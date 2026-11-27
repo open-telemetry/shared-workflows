@@ -1,0 +1,145 @@
+{
+  "head": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+  "merge": "9d925935ad1a9056cfcb9501de7326da78184c28",
+  "merged": "2026-08-05T04:33:51Z",
+  "missing_roots": 0,
+  "number": 356,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (the `pytest.importorskip(...)` call), which triggers Ruff E402 (imports not at top of file). Re-add the per-line `# noqa: E402` (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:36Z",
+      "hunk": "@@ -17,8 +17,8 @@\n # Skip collection when weaver_live_check isn't installed (non-conformance envs).\n pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n \n-from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n-from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n     Scenario,\n     run_conformance,\n )",
+      "id": "PRRT_kwDOSbspP86WdMmq",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831312"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (the `pytest.importorskip(...)` call), which triggers Ruff E402 (imports not at top of file). Re-add the per-line `# noqa: E402` (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:36Z",
+      "hunk": "@@ -17,8 +17,8 @@\n # Skip collection when weaver_live_check isn't installed (non-conformance envs).\n pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n \n-from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n-from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n     Scenario,\n     run_conformance,\n )",
+      "id": "PRRT_kwDOSbspP86WdMnF",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831347"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (the `pytest.importorskip(...)` call), which triggers Ruff E402 (imports not at top of file). Re-add the per-line `# noqa: E402` (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:37Z",
+      "hunk": "@@ -14,8 +14,8 @@\n pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n pytest.importorskip(\"opentelemetry.exporter.otlp.proto.grpc\")\n \n-from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n-from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n     Scenario,\n     run_conformance,\n )",
+      "id": "PRRT_kwDOSbspP86WdMn3",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831414"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (the `pytest.importorskip(...)` call), which triggers Ruff E402 (imports not at top of file). Re-add the per-line `# noqa: E402` (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:37Z",
+      "hunk": "@@ -12,8 +12,8 @@\n pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n pytest.importorskip(\"opentelemetry.exporter.otlp.proto.grpc\")\n \n-from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n-from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n     Scenario,\n     run_conformance,\n )",
+      "id": "PRRT_kwDOSbspP86WdMnd",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831383"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (the `pytest.importorskip(...)` call), which triggers Ruff E402 (imports not at top of file). Re-add the per-line `# noqa: E402` (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:37Z",
+      "hunk": "@@ -14,8 +14,8 @@\n pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n pytest.importorskip(\"opentelemetry.exporter.otlp.proto.grpc\")\n \n-from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n-from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n     Scenario,\n     run_conformance,\n )",
+      "id": "PRRT_kwDOSbspP86WdMoP",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831447"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (the `pytest.importorskip(...)` call), which triggers Ruff E402 (imports not at top of file). Re-add the per-line `# noqa: E402` (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:37Z",
+      "hunk": "@@ -12,8 +12,8 @@\n # Skip collection when weaver_live_check isn't installed (non-conformance envs).\n pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n \n-from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n-from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n     Scenario,\n     run_conformance,\n )",
+      "id": "PRRT_kwDOSbspP86WdMom",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831479"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (the `pytest.importorskip(...)` call), which triggers Ruff E402 (imports not at top of file). Re-add the per-line `# noqa: E402` (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:38Z",
+      "hunk": "@@ -14,8 +14,8 @@\n pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n pytest.importorskip(\"opentelemetry.exporter.otlp.proto.grpc\")\n \n-from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n-from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n     Scenario,\n     run_conformance,\n )",
+      "id": "PRRT_kwDOSbspP86WdMo4",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831505"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This import comes after an executable statement (`pytest.register_assert_rewrite(...)`), which triggers Ruff E402 (imports not at top of file). Add `# noqa: E402` on the import (or refactor to keep imports at the top) to avoid lint failures.",
+      "created": "2026-08-04T20:11:38Z",
+      "hunk": "@@ -7,7 +7,7 @@\n \n pytest.register_assert_rewrite(\"opentelemetry.test_util_genai.vcr\")\n \n-from opentelemetry.test_util_genai.vcr import (  # noqa: E402\n+from opentelemetry.test_util_genai.vcr import (\n     scrub_response_headers_overwrite,\n )",
+      "id": "PRRT_kwDOSbspP86WdMpF",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/conftest.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831527"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These imports come after executable code (setting the `DASHSCOPE_API_KEY` env var), which triggers Ruff E402 (imports not at top of file). Add `# noqa: E402` to the import statement(s) (or refactor) to avoid lint failures.\n\nThis issue also appears on line 20 of the same file.",
+      "created": "2026-08-04T20:11:38Z",
+      "hunk": "@@ -14,11 +14,11 @@\n if \"DASHSCOPE_API_KEY\" not in os.environ:\n     os.environ[\"DASHSCOPE_API_KEY\"] = \"test_dashscope_api_key\"\n \n-from opentelemetry.instrumentation.genai.qwen_agent import (  # noqa: E402\n+from opentelemetry.instrumentation.genai.qwen_agent import (\n     QwenAgentInstrumentor,\n )",
+      "id": "PRRT_kwDOSbspP86WdMpR",
+      "opened": "2026-08-04T20:11:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/tests/conftest.py",
+      "replies": [],
+      "reviewed": "1fab76199b89e0437c839c2240cea9abc3c6d9b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/356#discussion_r3715831562"
+    }
+  ]
+}

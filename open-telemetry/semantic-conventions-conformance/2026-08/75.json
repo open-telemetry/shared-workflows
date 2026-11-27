@@ -1,0 +1,151 @@
+{
+  "head": "47be58f596b58b32cb7d5245ff676db30f23d585",
+  "merge": "b215bab9b1e4ce719510efc3fb83044e778e99e4",
+  "merged": "2026-08-25T12:49:18Z",
+  "missing_roots": 0,
+  "number": 75,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Apache HttpAsyncClient may derive the request Content-Type from the entity (e.g., StringEntity defaulting to text/plain; charset=UTF-8). Setting a separate header risks sending a conflicting or unexpected Content-Type, which can break the shared HTTP contract expectations. Prefer constructing the entity with an explicit JSON content type that matches HttpContract.CONTENT_TYPE (and avoid duplicating/conflicting Content-Type headers).",
+      "created": "2026-08-24T18:25:13Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.apachehttpasyncclient;\n+\n+import io.opentelemetry.conformance.http.HttpClientWorkload;\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import java.net.URI;\n+import java.nio.charset.StandardCharsets;\n+import org.apache.http.HttpEntity;\n+import org.apache.http.HttpResponse;\n+import org.apache.http.client.methods.RequestBuilder;\n+import org.apache.http.entity.StringEntity;\n+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;\n+import org.apache.http.impl.nio.client.HttpAsyncClients;\n+import org.apache.http.util.EntityUtils;\n+\n+/** Runs the shared request contract through Apache HttpAsyncClient. */\n+public final class ApacheHttpAsyncClientClientScenario {\n+  private ApacheHttpAsyncClientClientScenario() {}\n+\n+  public static void run() throws Exception {\n+    try (CloseableHttpAsyncClient client = HttpAsyncClients.createDefault()) {\n+      client.start();\n+\n+      HttpClientWorkload.drive(\n+          ScenarioEnvironment.require(\"MOCK_SERVER_URL\"),\n+          (method, url, body) -> {\n+            RequestBuilder request =\n+                RequestBuilder.create(method)\n+                    .setUri(URI.create(url))\n+                    .setHeader(\"user-agent\", HttpContract.USER_AGENT);\n+            if (body != null) {\n+              request.setHeader(\"content-type\", HttpContract.CONTENT_TYPE);\n+              request.setEntity(new StringEntity(body, StandardCharsets.UTF_8));\n+            }",
+      "id": "PRRT_kwDOTuzK5c6bzm7t",
+      "opened": "2026-08-24T18:25:14Z",
+      "path": "scenarios/http/java/apache-httpasyncclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpasyncclient/ApacheHttpAsyncClientClientScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-24T18:32:34Z",
+          "body": "Addressed in c790ab857858f24fe2570d3ba7868554cba26f5a.\n\nAnalysis: Both Apache clients should derive the request Content-Type from one entity. Creating that entity from `HttpContract.CONTENT_TYPE` avoids a conflicting standalone header and avoids the charset parameter in `ContentType.APPLICATION_JSON`.\n\nUpsides: Both clients emit the exact contract content type from one source and encode request bodies as UTF-8.\n\nDownsides: Each request body requires an intermediate byte array.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3846348672"
+        }
+      ],
+      "reviewed": "1312aba39bad54be5afe009a52bf66fd253bf57f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3846296319"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "ContentType.APPLICATION_JSON commonly includes a charset parameter (e.g., application/json; charset=UTF-8). If the shared contract expects the Content-Type to match HttpContract.CONTENT_TYPE exactly, this can cause conformance mismatches. Consider using a ContentType parsed/created directly from HttpContract.CONTENT_TYPE (and set the Content-Type in one place) so the emitted header matches the contract precisely.",
+      "created": "2026-08-24T18:25:13Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.apachehttpclient;\n+\n+import io.opentelemetry.conformance.http.HttpClientWorkload;\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;\n+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;\n+import org.apache.hc.client5.http.impl.classic.HttpClients;\n+import org.apache.hc.core5.http.ContentType;\n+import org.apache.hc.core5.http.io.entity.EntityUtils;\n+import org.apache.hc.core5.http.io.entity.StringEntity;\n+\n+/** Runs the shared request contract through Apache HttpClient 5's classic API. */\n+public final class ApacheHttpClientClientScenario {\n+  private ApacheHttpClientClientScenario() {}\n+\n+  public static void run() throws Exception {\n+    try (CloseableHttpClient client = HttpClients.createDefault()) {\n+      HttpClientWorkload.drive(\n+          ScenarioEnvironment.require(\"MOCK_SERVER_URL\"),\n+          (method, url, body) -> {\n+            HttpUriRequestBase request = new HttpUriRequestBase(method, java.net.URI.create(url));\n+            request.addHeader(\"user-agent\", HttpContract.USER_AGENT);\n+            if (body != null) {\n+              request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));",
+      "id": "PRRT_kwDOTuzK5c6bzm8M",
+      "opened": "2026-08-24T18:25:14Z",
+      "path": "scenarios/http/java/apache-httpclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpclient/ApacheHttpClientClientScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-24T18:32:37Z",
+          "body": "Addressed in c790ab857858f24fe2570d3ba7868554cba26f5a.\n\nAnalysis: Both Apache clients should derive the request Content-Type from one entity. Creating that entity from `HttpContract.CONTENT_TYPE` avoids a conflicting standalone header and avoids the charset parameter in `ContentType.APPLICATION_JSON`.\n\nUpsides: Both clients emit the exact contract content type from one source and encode request bodies as UTF-8.\n\nDownsides: Each request body requires an intermediate byte array.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3846348976"
+        }
+      ],
+      "reviewed": "1312aba39bad54be5afe009a52bf66fd253bf57f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3846296371"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This uses `Future#get()` without a timeout, which can hang indefinitely if the mock server is unreachable or a request stalls (making CI runs flaky). Use a bounded wait (e.g., `.get(HttpClientWorkload.REQUEST_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)`) so every request is guaranteed to complete or fail within the scenario timeout.",
+      "created": "2026-08-24T19:16:11Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.asynchttpclient;\n+\n+import io.opentelemetry.conformance.http.HttpClientWorkload;\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import org.asynchttpclient.AsyncHttpClient;\n+import org.asynchttpclient.DefaultAsyncHttpClient;\n+import org.asynchttpclient.RequestBuilder;\n+import org.asynchttpclient.Response;\n+\n+/** Runs the shared request contract through Async HTTP Client. */\n+public final class AsyncHttpClientClientScenario {\n+  private AsyncHttpClientClientScenario() {}\n+\n+  public static void run() throws Exception {\n+    try (AsyncHttpClient client = new DefaultAsyncHttpClient()) {\n+      HttpClientWorkload.drive(\n+          ScenarioEnvironment.require(\"MOCK_SERVER_URL\"),\n+          (method, url, body) -> {\n+            RequestBuilder request =\n+                new RequestBuilder(method)\n+                    .setUrl(url)\n+                    .setHeader(\"user-agent\", HttpContract.USER_AGENT);\n+            if (body != null) {\n+              request.setHeader(\"content-type\", HttpContract.CONTENT_TYPE);\n+              request.setBody(body);\n+            }\n+\n+            Response response = client.executeRequest(request.build()).get();",
+      "id": "PRRT_kwDOTuzK5c6b0l_Q",
+      "opened": "2026-08-24T19:16:11Z",
+      "path": "scenarios/http/java/async-http-client/scenarios/src/main/java/io/opentelemetry/conformance/http/asynchttpclient/AsyncHttpClientClientScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:22:17Z",
+          "body": "Addressed in 47f243b03da8858e8e2b4867c255d6d42338cdcd.\n\nAnalysis: The shared request timeout should cover each explicit future wait, both HttpURLConnection network phases, and Vert.x shutdown. The same change also bounds the sibling Apache HttpAsyncClient future.\n\nUpsides: These clients now use one timeout for requests and shutdown, and a stalled operation fails within 30 seconds.\n\nDownsides: A network operation or shutdown that legitimately needs more than 30 seconds now fails.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3846725818"
+        }
+      ],
+      "reviewed": "a68f74b2b80d08e854181593c14a33fd6c82e093",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3846676420"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "One catch-all context collapses all six exchanges into one route: the agent reads `http.route` from `exchange.getHttpContext().getPath()`. Running the package on this branch:\n\n```\nGET /    route=/   url.path=/health\nGET /    route=/   url.path=/users/123\nPOST /   route=/   url.path=/items\nGET /    route=/   url.path=/status/404\n```\n\nEvery other route-emitting server here keeps them apart - servlet and tomcat report `/users/*`, helidon and restlet `/users/{userId}` - so this is the one package where the contract's parameterized-route case and the span name built from it aren't measured.\n\nOne context per prefix fixes it; I ran it and got `/health`, `/users/`, `/items`, `/status/`, with `data.json` unchanged, since coverage records attribute keys rather than values.\n\n```java\nserver.createContext(\"/health\", JavaHttpServerServerScenario::answer);\nserver.createContext(\"/users/\", JavaHttpServerServerScenario::answer);\nserver.createContext(\"/items\", JavaHttpServerServerScenario::answer);\nserver.createContext(\"/status/\", JavaHttpServerServerScenario::answer);\n```",
+      "created": "2026-08-25T03:00:04Z",
+      "hunk": "@@ -0,0 +1,53 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.javahttpserver;\n+\n+import com.sun.net.httpserver.HttpExchange;\n+import com.sun.net.httpserver.HttpServer;\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.http.HttpContract.Response;\n+import io.opentelemetry.conformance.http.HttpServerWorkload;\n+import io.opentelemetry.conformance.scenario.ScenarioLifecycle;\n+import java.io.IOException;\n+import java.io.OutputStream;\n+import java.net.InetAddress;\n+import java.net.InetSocketAddress;\n+import java.nio.charset.StandardCharsets;\n+\n+/** Hosts the shared HTTP exchanges in the JDK's {@link HttpServer} until the driver says stop. */\n+public final class JavaHttpServerServerScenario {\n+  private JavaHttpServerServerScenario() {}\n+\n+  public static void run() throws Exception {\n+    InetAddress loopback = InetAddress.getByName(\"127.0.0.1\");\n+    HttpServer server =\n+        HttpServer.create(new InetSocketAddress(loopback, HttpServerWorkload.scenarioPort()), 0);\n+\n+    server.createContext(\"/\", JavaHttpServerServerScenario::answer);",
+      "id": "PRRT_kwDOTuzK5c6b7BhJ",
+      "opened": "2026-08-25T03:17:14Z",
+      "path": "scenarios/http/java/java-http-server/scenarios/src/main/java/io/opentelemetry/conformance/http/javahttpserver/JavaHttpServerServerScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-25T04:02:46Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75/commits/8461ad7c9b71137569296aed4a3cc0b8822d23c6",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3849460428"
+        }
+      ],
+      "reviewed": "47f243b03da8858e8e2b4867c255d6d42338cdcd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3849219528"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`REQUEST_TIMEOUT` is not applied here, and an `HttpRequest` with no timeout waits forever, so a stalled mock server hangs the run until the job times out instead of failing.\n\n```java\nHttpRequest.newBuilder(URI.create(url)).timeout(HttpClientWorkload.REQUEST_TIMEOUT)\n```\n\nSame gap in `apache-httpclient` (`ConnectionConfig` leaves the socket timeout unset and `RequestConfig.responseTimeout` is null) and `jodd-http` (`timeout` defaults to -1, so `SO_TIMEOUT` 0). OkHttp, Ratpack and Jetty already bound it by default; the four that use the constant fail with a clear error. These three don't.",
+      "created": "2026-08-25T03:00:04Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.javahttpclient;\n+\n+import io.opentelemetry.conformance.http.HttpClientWorkload;\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import java.net.URI;\n+import java.net.http.HttpClient;\n+import java.net.http.HttpRequest;\n+import java.net.http.HttpResponse;\n+\n+/** Runs the shared request contract through the JDK's {@link HttpClient}. */\n+public final class JavaHttpClientClientScenario {\n+  private JavaHttpClientClientScenario() {}\n+\n+  public static void run() throws Exception {\n+    HttpClient client = HttpClient.newBuilder().build();\n+\n+    HttpClientWorkload.drive(\n+        ScenarioEnvironment.require(\"MOCK_SERVER_URL\"),\n+        (method, url, body) -> {\n+          HttpRequest.Builder request =\n+              HttpRequest.newBuilder(URI.create(url)).header(\"user-agent\", HttpContract.USER_AGENT);\n+          if (body == null) {\n+            request.method(method, HttpRequest.BodyPublishers.noBody());\n+          } else {\n+            request\n+                .header(\"content-type\", HttpContract.CONTENT_TYPE)\n+                .method(method, HttpRequest.BodyPublishers.ofString(body));\n+          }\n+          HttpResponse<String> response =\n+              client.send(request.build(), HttpResponse.BodyHandlers.ofString());",
+      "id": "PRRT_kwDOTuzK5c6b7BhN",
+      "opened": "2026-08-25T03:17:14Z",
+      "path": "scenarios/http/java/java-http-client/scenarios/src/main/java/io/opentelemetry/conformance/http/javahttpclient/JavaHttpClientClientScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-25T04:03:27Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75/commits/ded86877187f5f4fd40de1c2c86440911d5e9d28",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3849463099"
+        }
+      ],
+      "reviewed": "47f243b03da8858e8e2b4867c255d6d42338cdcd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3849219533"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "there does not seem to be a launcher / conformace.yaml for this one",
+      "created": "2026-08-25T03:00:04Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.springwebflux;\n+\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.http.HttpContract.Response;\n+import io.opentelemetry.conformance.http.HttpServerWorkload;\n+import io.opentelemetry.conformance.scenario.ScenarioLifecycle;\n+import java.util.Map;\n+import org.springframework.boot.SpringApplication;\n+import org.springframework.boot.autoconfigure.SpringBootApplication;\n+import org.springframework.context.ConfigurableApplicationContext;\n+import org.springframework.http.ResponseEntity;\n+import org.springframework.http.server.reactive.ServerHttpRequest;\n+import org.springframework.web.bind.annotation.GetMapping;\n+import org.springframework.web.bind.annotation.PostMapping;\n+import org.springframework.web.bind.annotation.RequestBody;\n+import org.springframework.web.bind.annotation.RestController;\n+import reactor.core.publisher.Mono;\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Spring WebFlux until the driver says stop.\n+ *\n+ * <p>The routes are request mappings, which is where an instrumentation reads {@code http.route}\n+ * from — the pattern rather than the concrete path.\n+ */\n+public final class SpringWebfluxServerScenario {",
+      "id": "PRRT_kwDOTuzK5c6b7BhP",
+      "opened": "2026-08-25T03:17:14Z",
+      "path": "scenarios/http/java/spring-webflux/scenarios/src/main/java/io/opentelemetry/conformance/http/springwebflux/SpringWebfluxServerScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-25T04:03:21Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75/commits/ded86877187f5f4fd40de1c2c86440911d5e9d28",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3849462659"
+        }
+      ],
+      "reviewed": "47f243b03da8858e8e2b4867c255d6d42338cdcd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3849219537"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same as the WebFlux one: no launcher and no `server/conformance.yaml` reference this class.",
+      "created": "2026-08-25T03:00:04Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.ratpack;\n+\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.http.HttpContract.Response;\n+import io.opentelemetry.conformance.http.HttpServerWorkload;\n+import io.opentelemetry.conformance.scenario.ScenarioLifecycle;\n+import java.net.InetAddress;\n+import ratpack.handling.Context;\n+import ratpack.server.RatpackServer;\n+\n+/** Hosts the shared HTTP exchanges on a Ratpack handler chain until the driver says stop. */\n+public final class RatpackServerScenario {",
+      "id": "PRRT_kwDOTuzK5c6b7BhQ",
+      "opened": "2026-08-25T03:17:14Z",
+      "path": "scenarios/http/java/ratpack/scenarios/src/main/java/io/opentelemetry/conformance/http/ratpack/RatpackServerScenario.java",
+      "replies": [],
+      "reviewed": "47f243b03da8858e8e2b4867c255d6d42338cdcd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/75#discussion_r3849219538"
+    }
+  ]
+}

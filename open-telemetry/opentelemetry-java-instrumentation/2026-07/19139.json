@@ -1,0 +1,386 @@
+{
+  "head": "cd18af25c2c17d567eccd1bd4595786d48b12ebd",
+  "merge": "6641530d1e07fad16d5d0190a59356da057db7d2",
+  "merged": "2026-07-16T17:08:23Z",
+  "missing_roots": 0,
+  "number": 19139,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `// fire-and-forget to forward backend` comment does not match the behavior here: the code blocks on `.get(10, MILLISECONDS)` and rethrows as a `RuntimeException` on failure. Two concerns:\n\n1. A 10 ms timeout is very aggressive for a gRPC round-trip to another container — the first export in particular has to establish the channel, which will typically take longer than 10 ms and hit `TimeoutException`. Because the throw happens before `metricRequests.add(request)` (line 452), a forwarding failure drops the metric batch entirely and returns an error to the agent, which can make `verifyMetrics(...)` flaky.\n2. Forwarding to weaver is auxiliary validation; a forwarding error should not break the primary metric capture. Consider logging the failure instead of throwing (and restoring the interrupt flag on `InterruptedException` rather than wrapping it).\n\nNote that reworking this to a local variable would also let you drop the now-redundant `requireNonNull(forwardStub, ...)` on line 441 (and its `java.util.Objects.requireNonNull` import), since a local reference narrows nullness for NullAway without the extra guard.",
+      "created": "2026-07-08T08:23:17Z",
+      "hunk": "@@ -308,6 +436,16 @@ public void export(\n                         ExportMetricsServiceRequest request,\n                         StreamObserver<ExportMetricsServiceResponse> responseObserver) {\n \n+                      if (forwardStub != null) {\n+                        // fire-and-forget to forward backend\n+                        requireNonNull(forwardStub, \"forwardStub is null\");\n+                        try {\n+                          forwardStub.export(request).get(10, MILLISECONDS);\n+                        } catch (InterruptedException | ExecutionException | TimeoutException e) {\n+                          throw new RuntimeException(e);\n+                        }",
+      "id": "PRRT_kwDODJKVX86PKmIg",
+      "opened": "2026-07-08T08:23:17Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "83ff2d0b1adf4d4cb5dfe8e3585714c52bec8e48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3542363374"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This comment is grammatically incorrect and hard to parse (\"not part supported platforms\"). It reads more clearly as \"This is not part of supported platforms and is only captured from the test environment\".",
+      "created": "2026-07-08T08:23:17Z",
+      "hunk": "@@ -0,0 +1,15 @@\n+\n+# When testing, we have to use imports to add existing entities and their attributes to the registry.\n+# This is not part supported platforms and is only captured from the test environment",
+      "id": "PRRT_kwDODJKVX86PKmIw",
+      "opened": "2026-07-08T08:23:17Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/resources/jmx/registry/test-common.yaml",
+      "replies": [],
+      "reviewed": "83ff2d0b1adf4d4cb5dfe8e3585714c52bec8e48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3542363400"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "```suggestion\n# Adding those here allows us to lower the noise level. Otherwise, related attributes would be reported\n# as errors because they are not part of the JMX registry.\n```",
+      "created": "2026-07-09T22:21:52Z",
+      "hunk": "@@ -0,0 +1,17 @@\n+\n+# When testing, we have to use imports to add existing entities and their attributes to the registry.\n+# This is not part of the JMX metrics themselves but is reported in the test environment.\n+# Adding those here allows to lower the noise level otherwise related attributes would be reported\n+# as errors because they are not part of the JMX registry.",
+      "id": "PRRT_kwDODJKVX86PuKNX",
+      "opened": "2026-07-09T23:32:32Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/resources/jmx/registry/test-common.yaml",
+      "replies": [],
+      "reviewed": "de360e0a4aee41d94f74166a2569e86cd0b437f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3555179124"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Pin this dependency to a semantic-conventions tag or commit. The unqualified URL tracks the default branch, while `JvmTest` asserts the exact imported `jvm.*` set, so an upstream addition or removal can break these tests without any repository change.",
+      "created": "2026-07-10T18:11:54Z",
+      "hunk": "@@ -0,0 +1,6 @@\n+name: jmx-metrics\n+description: This registry contains the semantic conventions for the JMX metrics instrumentation\n+schema_url: https://github.com/open-telemetry/opentelemetry-java-instrumentation/instrumentation/jmx-metrics/\n+dependencies:\n+  - name: otel\n+    registry_path: https://github.com/open-telemetry/semantic-conventions[model]",
+      "id": "PRRT_kwDODJKVX86P-WhF",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/model/manifest.yaml",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071546"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Register the model directory as an input to the test task. Because only its stable absolute path is passed as a JVM argument, editing these YAML files alone can leave `test` up-to-date and skip the validation this PR adds.",
+      "created": "2026-07-10T18:11:55Z",
+      "hunk": "@@ -42,10 +45,13 @@ tasks {\n       .withPropertyName(\"camelTestApp\")\n       .withNormalizer(ClasspathNormalizer::class)\n \n+    val registryDir = layout.projectDirectory.dir(\"../model\").asFile.absolutePath",
+      "id": "PRRT_kwDODJKVX86P-Whc",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071582"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only reads advice attached directly to a metric (and directly to resource attributes). Weaver attaches findings at the pertinent nested level—for example, missing required metric attributes on data points and attribute type mismatches on the attributes themselves—so those violations never reach `violationCount` and invalid telemetry can pass. Traverse all nested `live_check_result.all_advice` entries in each sample.",
+      "created": "2026-07-10T18:11:55Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import java.io.IOException;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.function.BiFunction;\n+import java.util.function.Consumer;\n+import javax.annotation.Nullable;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.utility.MountableFile;\n+\n+class WeaverContainer extends GenericContainer<WeaverContainer> {\n+\n+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n+\n+  private static final Logger logger = LoggerFactory.getLogger(WeaverContainer.class);\n+  private static final int ADMIN_PORT = 4320;\n+  private static final int OTLP_PORT = 4317;\n+\n+  @Nullable private JsonNode result = null;\n+\n+  WeaverContainer(Path registryRoot, String... registryFiles) {\n+    super(\"otel/weaver:v0.24.2\");\n+\n+    super.withExposedPorts(OTLP_PORT, ADMIN_PORT);\n+    super.waitingFor(Wait.forListeningPorts(OTLP_PORT, ADMIN_PORT));\n+    super.withCommand(\n+        \"registry\",\n+        \"live-check\",\n+        \"--registry\",\n+        \"/registry\",\n+        \"--inactivity-timeout=0\",\n+        \"--output=http\",\n+        \"--format\",\n+        \"json\");\n+    super.withLogConsumer(new Slf4jLogConsumer(logger));\n+\n+    // main registry definition\n+    copyRegistryFile(registryRoot, \"manifest.yaml\");\n+    // per-system registry definitions\n+    for (String registryFile : registryFiles) {\n+      copyRegistryFile(registryRoot, registryFile);\n+    }\n+    // Common definitions used when testing to inherit existing definitions.\n+    // Adding this allows to lower the noise level of validation errors for things that are not\n+    // directly part of the registry under test.\n+    super.withCopyFileToContainer(\n+        MountableFile.forClasspathResource(\"jmx/registry/test-common.yaml\"),\n+        \"/registry/test-common.yaml\");\n+  }\n+\n+  private void copyRegistryFile(Path root, String fileName) {\n+    String containerPath = \"/registry/\" + fileName;\n+    super.withCopyFileToContainer(MountableFile.forHostPath(root.resolve(fileName)), containerPath);\n+  }\n+\n+  @Override\n+  public void stop() {\n+    String uri = \"http://\" + this.getHost() + \":\" + this.getMappedPort(ADMIN_PORT) + \"/\";\n+    WebClient client = WebClient.of(uri);\n+    try (HttpData result = client.post(\"/stop\", new byte[0]).aggregate().join().content()) {\n+      this.result = OBJECT_MAPPER.readTree(result.toInputStream());\n+    } catch (IOException e) {\n+      throw new IllegalStateException(e);\n+    }\n+\n+    super.stop();\n+  }\n+\n+  public WeaverValidationResult getResult() {\n+    if (result == null) {\n+      throw new IllegalStateException(\"must stop container to get result first\");\n+    }\n+    return WeaverValidationResult.fromJson(result);\n+  }\n+\n+  public String getOtlpEndpoint() {\n+    return this.getHost() + \":\" + this.getMappedPort(OTLP_PORT);\n+  }\n+\n+  public static class WeaverValidationResult {\n+    private final List<WeaverValidationAdvice> advices;\n+    private final Set<String> seenNonRegistryMetrics;\n+    private final Set<String> seenNonRegistryAttributes;\n+    private final Set<String> seenRegistryMetrics;\n+    private final Set<String> seenRegistryAttributes;\n+\n+    private WeaverValidationResult(\n+        List<WeaverValidationAdvice> advices,\n+        Set<String> seenNonRegistryMetrics,\n+        Set<String> seenNonRegistryAttributes,\n+        Set<String> seenRegistryMetrics,\n+        Set<String> seenRegistryAttributes) {\n+      this.advices = advices;\n+      this.seenNonRegistryMetrics = seenNonRegistryMetrics;\n+      this.seenNonRegistryAttributes = seenNonRegistryAttributes;\n+      this.seenRegistryMetrics = seenRegistryMetrics;\n+      this.seenRegistryAttributes = seenRegistryAttributes;\n+    }\n+\n+    private static WeaverValidationResult fromJson(JsonNode json) {\n+      List<WeaverValidationAdvice> advices = new ArrayList<>();\n+\n+      Consumer<JsonNode> parseValidationAdvice =\n+          jsonNode -> {\n+            JsonNode allAdvice = jsonNode.get(\"live_check_result\").get(\"all_advice\");\n+            if (allAdvice.isArray() && !allAdvice.isEmpty()) {\n+              allAdvice.forEach(\n+                  advice -> {\n+                    advices.add(\n+                        new WeaverValidationAdvice(\n+                            advice.get(\"signal_name\").asText(null),\n+                            advice.get(\"message\").asText(),\n+                            advice.get(\"level\").asText()));\n+                  });\n+            }\n+          };\n+\n+      json.get(\"samples\")\n+          .forEach(\n+              sample -> {\n+                JsonNode resource = sample.get(\"resource\");\n+                JsonNode metric = sample.get(\"metric\");\n+                if (resource != null) {\n+                  resource.get(\"attributes\").forEach(parseValidationAdvice);\n+                } else if (metric != null) {\n+                  parseValidationAdvice.accept(metric);",
+      "id": "PRRT_kwDODJKVX86P-Whs",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [
+        {
+          "at": "2026-07-13T09:43:40Z",
+          "body": "this reads advice both to metrics and resource attributes (when `metric` is `null`), so this should be fine.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3569584721"
+        }
+      ],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071610"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] If the `/stop` request or JSON parsing fails, this method throws before `super.stop()` and leaves the container running. Put the container cleanup in a `finally` block so teardown is reliable on the failure path.",
+      "created": "2026-07-10T18:11:55Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import java.io.IOException;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.function.BiFunction;\n+import java.util.function.Consumer;\n+import javax.annotation.Nullable;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.utility.MountableFile;\n+\n+class WeaverContainer extends GenericContainer<WeaverContainer> {\n+\n+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n+\n+  private static final Logger logger = LoggerFactory.getLogger(WeaverContainer.class);\n+  private static final int ADMIN_PORT = 4320;\n+  private static final int OTLP_PORT = 4317;\n+\n+  @Nullable private JsonNode result = null;\n+\n+  WeaverContainer(Path registryRoot, String... registryFiles) {\n+    super(\"otel/weaver:v0.24.2\");\n+\n+    super.withExposedPorts(OTLP_PORT, ADMIN_PORT);\n+    super.waitingFor(Wait.forListeningPorts(OTLP_PORT, ADMIN_PORT));\n+    super.withCommand(\n+        \"registry\",\n+        \"live-check\",\n+        \"--registry\",\n+        \"/registry\",\n+        \"--inactivity-timeout=0\",\n+        \"--output=http\",\n+        \"--format\",\n+        \"json\");\n+    super.withLogConsumer(new Slf4jLogConsumer(logger));\n+\n+    // main registry definition\n+    copyRegistryFile(registryRoot, \"manifest.yaml\");\n+    // per-system registry definitions\n+    for (String registryFile : registryFiles) {\n+      copyRegistryFile(registryRoot, registryFile);\n+    }\n+    // Common definitions used when testing to inherit existing definitions.\n+    // Adding this allows to lower the noise level of validation errors for things that are not\n+    // directly part of the registry under test.\n+    super.withCopyFileToContainer(\n+        MountableFile.forClasspathResource(\"jmx/registry/test-common.yaml\"),\n+        \"/registry/test-common.yaml\");\n+  }\n+\n+  private void copyRegistryFile(Path root, String fileName) {\n+    String containerPath = \"/registry/\" + fileName;\n+    super.withCopyFileToContainer(MountableFile.forHostPath(root.resolve(fileName)), containerPath);\n+  }\n+\n+  @Override\n+  public void stop() {\n+    String uri = \"http://\" + this.getHost() + \":\" + this.getMappedPort(ADMIN_PORT) + \"/\";\n+    WebClient client = WebClient.of(uri);\n+    try (HttpData result = client.post(\"/stop\", new byte[0]).aggregate().join().content()) {\n+      this.result = OBJECT_MAPPER.readTree(result.toInputStream());\n+    } catch (IOException e) {\n+      throw new IllegalStateException(e);\n+    }\n+\n+    super.stop();",
+      "id": "PRRT_kwDODJKVX86P-WiE",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071635"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `build()` creates a `ManagedChannel`, but only the stub is retained and neither replacement nor test teardown shuts the channel down. Keep the channel itself and close it when forwarding is reset and after the server stops to avoid leaking gRPC resources across parameterized runs.",
+      "created": "2026-07-10T18:11:56Z",
+      "hunk": "@@ -286,6 +404,19 @@ protected void verifyMetrics(MetricsVerifier metricsVerifier) {\n   /** Minimal OTLP gRPC backend to capture metrics */\n   private static class OtlpGrpcServer extends ServerExtension {\n \n+    @Nullable private MetricsServiceGrpc.MetricsServiceFutureStub forwardStub;\n+\n+    /**\n+     * Sets the forwarding endpoint where the server should forward data to\n+     *\n+     * @param endpoint endpoint host:port\n+     */\n+    void setForwardEndpoint(String endpoint) {\n+      forwardStub =\n+          MetricsServiceGrpc.newFutureStub(\n+              ManagedChannelBuilder.forTarget(endpoint).usePlaintext().build());",
+      "id": "PRRT_kwDODJKVX86P-Wi7",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071698"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] A 10 ms timeout also covers the first gRPC channel connection and container round trip, which can legitimately exceed that threshold and make forwarding flaky. Use a seconds-scale timeout (or a stub deadline) instead.",
+      "created": "2026-07-10T18:11:56Z",
+      "hunk": "@@ -308,6 +439,15 @@ public void export(\n                         ExportMetricsServiceRequest request,\n                         StreamObserver<ExportMetricsServiceResponse> responseObserver) {\n \n+                      if (forwardStub != null) {\n+                        // forward to another backend if needed\n+                        try {\n+                          forwardStub.export(request).get(10, MILLISECONDS);",
+      "id": "PRRT_kwDODJKVX86P-Wif",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071665"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test sources should not add `@Nullable`; remove this annotation per the Java test-source style rule.",
+      "created": "2026-07-10T18:11:56Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import java.io.IOException;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.function.BiFunction;\n+import java.util.function.Consumer;\n+import javax.annotation.Nullable;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.utility.MountableFile;\n+\n+class WeaverContainer extends GenericContainer<WeaverContainer> {\n+\n+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n+\n+  private static final Logger logger = LoggerFactory.getLogger(WeaverContainer.class);\n+  private static final int ADMIN_PORT = 4320;\n+  private static final int OTLP_PORT = 4317;\n+\n+  @Nullable private JsonNode result = null;",
+      "id": "PRRT_kwDODJKVX86P-WjV",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071728"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test sources should not add `@Nullable`; remove this annotation per the Java test-source style rule.",
+      "created": "2026-07-10T18:11:56Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import java.io.IOException;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.function.BiFunction;\n+import java.util.function.Consumer;\n+import javax.annotation.Nullable;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.utility.MountableFile;\n+\n+class WeaverContainer extends GenericContainer<WeaverContainer> {\n+\n+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n+\n+  private static final Logger logger = LoggerFactory.getLogger(WeaverContainer.class);\n+  private static final int ADMIN_PORT = 4320;\n+  private static final int OTLP_PORT = 4317;\n+\n+  @Nullable private JsonNode result = null;\n+\n+  WeaverContainer(Path registryRoot, String... registryFiles) {\n+    super(\"otel/weaver:v0.24.2\");\n+\n+    super.withExposedPorts(OTLP_PORT, ADMIN_PORT);\n+    super.waitingFor(Wait.forListeningPorts(OTLP_PORT, ADMIN_PORT));\n+    super.withCommand(\n+        \"registry\",\n+        \"live-check\",\n+        \"--registry\",\n+        \"/registry\",\n+        \"--inactivity-timeout=0\",\n+        \"--output=http\",\n+        \"--format\",\n+        \"json\");\n+    super.withLogConsumer(new Slf4jLogConsumer(logger));\n+\n+    // main registry definition\n+    copyRegistryFile(registryRoot, \"manifest.yaml\");\n+    // per-system registry definitions\n+    for (String registryFile : registryFiles) {\n+      copyRegistryFile(registryRoot, registryFile);\n+    }\n+    // Common definitions used when testing to inherit existing definitions.\n+    // Adding this allows to lower the noise level of validation errors for things that are not\n+    // directly part of the registry under test.\n+    super.withCopyFileToContainer(\n+        MountableFile.forClasspathResource(\"jmx/registry/test-common.yaml\"),\n+        \"/registry/test-common.yaml\");\n+  }\n+\n+  private void copyRegistryFile(Path root, String fileName) {\n+    String containerPath = \"/registry/\" + fileName;\n+    super.withCopyFileToContainer(MountableFile.forHostPath(root.resolve(fileName)), containerPath);\n+  }\n+\n+  @Override\n+  public void stop() {\n+    String uri = \"http://\" + this.getHost() + \":\" + this.getMappedPort(ADMIN_PORT) + \"/\";\n+    WebClient client = WebClient.of(uri);\n+    try (HttpData result = client.post(\"/stop\", new byte[0]).aggregate().join().content()) {\n+      this.result = OBJECT_MAPPER.readTree(result.toInputStream());\n+    } catch (IOException e) {\n+      throw new IllegalStateException(e);\n+    }\n+\n+    super.stop();\n+  }\n+\n+  public WeaverValidationResult getResult() {\n+    if (result == null) {\n+      throw new IllegalStateException(\"must stop container to get result first\");\n+    }\n+    return WeaverValidationResult.fromJson(result);\n+  }\n+\n+  public String getOtlpEndpoint() {\n+    return this.getHost() + \":\" + this.getMappedPort(OTLP_PORT);\n+  }\n+\n+  public static class WeaverValidationResult {\n+    private final List<WeaverValidationAdvice> advices;\n+    private final Set<String> seenNonRegistryMetrics;\n+    private final Set<String> seenNonRegistryAttributes;\n+    private final Set<String> seenRegistryMetrics;\n+    private final Set<String> seenRegistryAttributes;\n+\n+    private WeaverValidationResult(\n+        List<WeaverValidationAdvice> advices,\n+        Set<String> seenNonRegistryMetrics,\n+        Set<String> seenNonRegistryAttributes,\n+        Set<String> seenRegistryMetrics,\n+        Set<String> seenRegistryAttributes) {\n+      this.advices = advices;\n+      this.seenNonRegistryMetrics = seenNonRegistryMetrics;\n+      this.seenNonRegistryAttributes = seenNonRegistryAttributes;\n+      this.seenRegistryMetrics = seenRegistryMetrics;\n+      this.seenRegistryAttributes = seenRegistryAttributes;\n+    }\n+\n+    private static WeaverValidationResult fromJson(JsonNode json) {\n+      List<WeaverValidationAdvice> advices = new ArrayList<>();\n+\n+      Consumer<JsonNode> parseValidationAdvice =\n+          jsonNode -> {\n+            JsonNode allAdvice = jsonNode.get(\"live_check_result\").get(\"all_advice\");\n+            if (allAdvice.isArray() && !allAdvice.isEmpty()) {\n+              allAdvice.forEach(\n+                  advice -> {\n+                    advices.add(\n+                        new WeaverValidationAdvice(\n+                            advice.get(\"signal_name\").asText(null),\n+                            advice.get(\"message\").asText(),\n+                            advice.get(\"level\").asText()));\n+                  });\n+            }\n+          };\n+\n+      json.get(\"samples\")\n+          .forEach(\n+              sample -> {\n+                JsonNode resource = sample.get(\"resource\");\n+                JsonNode metric = sample.get(\"metric\");\n+                if (resource != null) {\n+                  resource.get(\"attributes\").forEach(parseValidationAdvice);\n+                } else if (metric != null) {\n+                  parseValidationAdvice.accept(metric);\n+                } else {\n+                  throw new IllegalStateException(\"unexpected weaver validation result type\");\n+                }\n+              });\n+\n+      BiFunction<JsonNode, String, Set<String>> doParse =\n+          (jsonNode, key) -> {\n+            Set<String> result = new HashSet<>();\n+            jsonNode.get(key).fieldNames().forEachRemaining(result::add);\n+            return result;\n+          };\n+\n+      JsonNode statistics = json.get(\"statistics\");\n+      return new WeaverValidationResult(\n+          advices,\n+          doParse.apply(statistics, \"seen_non_registry_metrics\"),\n+          doParse.apply(statistics, \"seen_non_registry_attributes\"),\n+          doParse.apply(statistics, \"seen_registry_metrics\"),\n+          doParse.apply(statistics, \"seen_registry_attributes\"));\n+    }\n+\n+    /**\n+     * Get list of all validation messages\n+     *\n+     * @return list of validation messages\n+     */\n+    public List<WeaverValidationAdvice> getValidationAdvices() {\n+      return advices;\n+    }\n+\n+    /**\n+     * Get reported metrics that are not defined in registry\n+     *\n+     * @return set of metrics that were reported but are not part of tested registry\n+     */\n+    public Set<String> getSeenNonRegistryMetrics() {\n+      return seenNonRegistryMetrics;\n+    }\n+\n+    /**\n+     * Get reported attributes that are not defined in registry\n+     *\n+     * @return set of attributes that were reported but are not part of tested registry\n+     */\n+    public Set<String> getSeenNonRegistryAttributes() {\n+      return seenNonRegistryAttributes;\n+    }\n+\n+    /**\n+     * Get reported metrics that are defined in registry\n+     *\n+     * @return set of metrics that were reported and are part of tested registry\n+     */\n+    public Set<String> getSeenRegistryMetrics() {\n+      return seenRegistryMetrics;\n+    }\n+\n+    /**\n+     * Get reported attributes that are defined in registry\n+     *\n+     * @return set of attributes that were reported and are part of tested registry\n+     */\n+    public Set<String> getSeenRegistryAttributes() {\n+      return seenRegistryAttributes;\n+    }\n+  }\n+\n+  public static class WeaverValidationAdvice {\n+\n+    @Nullable private final String signalName;",
+      "id": "PRRT_kwDODJKVX86P-Wjq",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071753"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test sources should not add `@Nullable`; remove this parameter annotation per the Java test-source style rule.",
+      "created": "2026-07-10T18:11:57Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import java.io.IOException;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.function.BiFunction;\n+import java.util.function.Consumer;\n+import javax.annotation.Nullable;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.utility.MountableFile;\n+\n+class WeaverContainer extends GenericContainer<WeaverContainer> {\n+\n+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n+\n+  private static final Logger logger = LoggerFactory.getLogger(WeaverContainer.class);\n+  private static final int ADMIN_PORT = 4320;\n+  private static final int OTLP_PORT = 4317;\n+\n+  @Nullable private JsonNode result = null;\n+\n+  WeaverContainer(Path registryRoot, String... registryFiles) {\n+    super(\"otel/weaver:v0.24.2\");\n+\n+    super.withExposedPorts(OTLP_PORT, ADMIN_PORT);\n+    super.waitingFor(Wait.forListeningPorts(OTLP_PORT, ADMIN_PORT));\n+    super.withCommand(\n+        \"registry\",\n+        \"live-check\",\n+        \"--registry\",\n+        \"/registry\",\n+        \"--inactivity-timeout=0\",\n+        \"--output=http\",\n+        \"--format\",\n+        \"json\");\n+    super.withLogConsumer(new Slf4jLogConsumer(logger));\n+\n+    // main registry definition\n+    copyRegistryFile(registryRoot, \"manifest.yaml\");\n+    // per-system registry definitions\n+    for (String registryFile : registryFiles) {\n+      copyRegistryFile(registryRoot, registryFile);\n+    }\n+    // Common definitions used when testing to inherit existing definitions.\n+    // Adding this allows to lower the noise level of validation errors for things that are not\n+    // directly part of the registry under test.\n+    super.withCopyFileToContainer(\n+        MountableFile.forClasspathResource(\"jmx/registry/test-common.yaml\"),\n+        \"/registry/test-common.yaml\");\n+  }\n+\n+  private void copyRegistryFile(Path root, String fileName) {\n+    String containerPath = \"/registry/\" + fileName;\n+    super.withCopyFileToContainer(MountableFile.forHostPath(root.resolve(fileName)), containerPath);\n+  }\n+\n+  @Override\n+  public void stop() {\n+    String uri = \"http://\" + this.getHost() + \":\" + this.getMappedPort(ADMIN_PORT) + \"/\";\n+    WebClient client = WebClient.of(uri);\n+    try (HttpData result = client.post(\"/stop\", new byte[0]).aggregate().join().content()) {\n+      this.result = OBJECT_MAPPER.readTree(result.toInputStream());\n+    } catch (IOException e) {\n+      throw new IllegalStateException(e);\n+    }\n+\n+    super.stop();\n+  }\n+\n+  public WeaverValidationResult getResult() {\n+    if (result == null) {\n+      throw new IllegalStateException(\"must stop container to get result first\");\n+    }\n+    return WeaverValidationResult.fromJson(result);\n+  }\n+\n+  public String getOtlpEndpoint() {\n+    return this.getHost() + \":\" + this.getMappedPort(OTLP_PORT);\n+  }\n+\n+  public static class WeaverValidationResult {\n+    private final List<WeaverValidationAdvice> advices;\n+    private final Set<String> seenNonRegistryMetrics;\n+    private final Set<String> seenNonRegistryAttributes;\n+    private final Set<String> seenRegistryMetrics;\n+    private final Set<String> seenRegistryAttributes;\n+\n+    private WeaverValidationResult(\n+        List<WeaverValidationAdvice> advices,\n+        Set<String> seenNonRegistryMetrics,\n+        Set<String> seenNonRegistryAttributes,\n+        Set<String> seenRegistryMetrics,\n+        Set<String> seenRegistryAttributes) {\n+      this.advices = advices;\n+      this.seenNonRegistryMetrics = seenNonRegistryMetrics;\n+      this.seenNonRegistryAttributes = seenNonRegistryAttributes;\n+      this.seenRegistryMetrics = seenRegistryMetrics;\n+      this.seenRegistryAttributes = seenRegistryAttributes;\n+    }\n+\n+    private static WeaverValidationResult fromJson(JsonNode json) {\n+      List<WeaverValidationAdvice> advices = new ArrayList<>();\n+\n+      Consumer<JsonNode> parseValidationAdvice =\n+          jsonNode -> {\n+            JsonNode allAdvice = jsonNode.get(\"live_check_result\").get(\"all_advice\");\n+            if (allAdvice.isArray() && !allAdvice.isEmpty()) {\n+              allAdvice.forEach(\n+                  advice -> {\n+                    advices.add(\n+                        new WeaverValidationAdvice(\n+                            advice.get(\"signal_name\").asText(null),\n+                            advice.get(\"message\").asText(),\n+                            advice.get(\"level\").asText()));\n+                  });\n+            }\n+          };\n+\n+      json.get(\"samples\")\n+          .forEach(\n+              sample -> {\n+                JsonNode resource = sample.get(\"resource\");\n+                JsonNode metric = sample.get(\"metric\");\n+                if (resource != null) {\n+                  resource.get(\"attributes\").forEach(parseValidationAdvice);\n+                } else if (metric != null) {\n+                  parseValidationAdvice.accept(metric);\n+                } else {\n+                  throw new IllegalStateException(\"unexpected weaver validation result type\");\n+                }\n+              });\n+\n+      BiFunction<JsonNode, String, Set<String>> doParse =\n+          (jsonNode, key) -> {\n+            Set<String> result = new HashSet<>();\n+            jsonNode.get(key).fieldNames().forEachRemaining(result::add);\n+            return result;\n+          };\n+\n+      JsonNode statistics = json.get(\"statistics\");\n+      return new WeaverValidationResult(\n+          advices,\n+          doParse.apply(statistics, \"seen_non_registry_metrics\"),\n+          doParse.apply(statistics, \"seen_non_registry_attributes\"),\n+          doParse.apply(statistics, \"seen_registry_metrics\"),\n+          doParse.apply(statistics, \"seen_registry_attributes\"));\n+    }\n+\n+    /**\n+     * Get list of all validation messages\n+     *\n+     * @return list of validation messages\n+     */\n+    public List<WeaverValidationAdvice> getValidationAdvices() {\n+      return advices;\n+    }\n+\n+    /**\n+     * Get reported metrics that are not defined in registry\n+     *\n+     * @return set of metrics that were reported but are not part of tested registry\n+     */\n+    public Set<String> getSeenNonRegistryMetrics() {\n+      return seenNonRegistryMetrics;\n+    }\n+\n+    /**\n+     * Get reported attributes that are not defined in registry\n+     *\n+     * @return set of attributes that were reported but are not part of tested registry\n+     */\n+    public Set<String> getSeenNonRegistryAttributes() {\n+      return seenNonRegistryAttributes;\n+    }\n+\n+    /**\n+     * Get reported metrics that are defined in registry\n+     *\n+     * @return set of metrics that were reported and are part of tested registry\n+     */\n+    public Set<String> getSeenRegistryMetrics() {\n+      return seenRegistryMetrics;\n+    }\n+\n+    /**\n+     * Get reported attributes that are defined in registry\n+     *\n+     * @return set of attributes that were reported and are part of tested registry\n+     */\n+    public Set<String> getSeenRegistryAttributes() {\n+      return seenRegistryAttributes;\n+    }\n+  }\n+\n+  public static class WeaverValidationAdvice {\n+\n+    @Nullable private final String signalName;\n+    private final String message;\n+    private final String level;\n+\n+    WeaverValidationAdvice(@Nullable String signalName, String message, String level) {",
+      "id": "PRRT_kwDODJKVX86P-Wj5",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [
+        {
+          "at": "2026-07-13T09:44:45Z",
+          "body": "@copilot Where does the \"Test sources should not add @Nullable\" rule come from ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3569591219"
+        }
+      ],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071774"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test sources should not add `@Nullable`; remove this return annotation per the Java test-source style rule.",
+      "created": "2026-07-10T18:11:57Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import java.io.IOException;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.function.BiFunction;\n+import java.util.function.Consumer;\n+import javax.annotation.Nullable;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.utility.MountableFile;\n+\n+class WeaverContainer extends GenericContainer<WeaverContainer> {\n+\n+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n+\n+  private static final Logger logger = LoggerFactory.getLogger(WeaverContainer.class);\n+  private static final int ADMIN_PORT = 4320;\n+  private static final int OTLP_PORT = 4317;\n+\n+  @Nullable private JsonNode result = null;\n+\n+  WeaverContainer(Path registryRoot, String... registryFiles) {\n+    super(\"otel/weaver:v0.24.2\");\n+\n+    super.withExposedPorts(OTLP_PORT, ADMIN_PORT);\n+    super.waitingFor(Wait.forListeningPorts(OTLP_PORT, ADMIN_PORT));\n+    super.withCommand(\n+        \"registry\",\n+        \"live-check\",\n+        \"--registry\",\n+        \"/registry\",\n+        \"--inactivity-timeout=0\",\n+        \"--output=http\",\n+        \"--format\",\n+        \"json\");\n+    super.withLogConsumer(new Slf4jLogConsumer(logger));\n+\n+    // main registry definition\n+    copyRegistryFile(registryRoot, \"manifest.yaml\");\n+    // per-system registry definitions\n+    for (String registryFile : registryFiles) {\n+      copyRegistryFile(registryRoot, registryFile);\n+    }\n+    // Common definitions used when testing to inherit existing definitions.\n+    // Adding this allows to lower the noise level of validation errors for things that are not\n+    // directly part of the registry under test.\n+    super.withCopyFileToContainer(\n+        MountableFile.forClasspathResource(\"jmx/registry/test-common.yaml\"),\n+        \"/registry/test-common.yaml\");\n+  }\n+\n+  private void copyRegistryFile(Path root, String fileName) {\n+    String containerPath = \"/registry/\" + fileName;\n+    super.withCopyFileToContainer(MountableFile.forHostPath(root.resolve(fileName)), containerPath);\n+  }\n+\n+  @Override\n+  public void stop() {\n+    String uri = \"http://\" + this.getHost() + \":\" + this.getMappedPort(ADMIN_PORT) + \"/\";\n+    WebClient client = WebClient.of(uri);\n+    try (HttpData result = client.post(\"/stop\", new byte[0]).aggregate().join().content()) {\n+      this.result = OBJECT_MAPPER.readTree(result.toInputStream());\n+    } catch (IOException e) {\n+      throw new IllegalStateException(e);\n+    }\n+\n+    super.stop();\n+  }\n+\n+  public WeaverValidationResult getResult() {\n+    if (result == null) {\n+      throw new IllegalStateException(\"must stop container to get result first\");\n+    }\n+    return WeaverValidationResult.fromJson(result);\n+  }\n+\n+  public String getOtlpEndpoint() {\n+    return this.getHost() + \":\" + this.getMappedPort(OTLP_PORT);\n+  }\n+\n+  public static class WeaverValidationResult {\n+    private final List<WeaverValidationAdvice> advices;\n+    private final Set<String> seenNonRegistryMetrics;\n+    private final Set<String> seenNonRegistryAttributes;\n+    private final Set<String> seenRegistryMetrics;\n+    private final Set<String> seenRegistryAttributes;\n+\n+    private WeaverValidationResult(\n+        List<WeaverValidationAdvice> advices,\n+        Set<String> seenNonRegistryMetrics,\n+        Set<String> seenNonRegistryAttributes,\n+        Set<String> seenRegistryMetrics,\n+        Set<String> seenRegistryAttributes) {\n+      this.advices = advices;\n+      this.seenNonRegistryMetrics = seenNonRegistryMetrics;\n+      this.seenNonRegistryAttributes = seenNonRegistryAttributes;\n+      this.seenRegistryMetrics = seenRegistryMetrics;\n+      this.seenRegistryAttributes = seenRegistryAttributes;\n+    }\n+\n+    private static WeaverValidationResult fromJson(JsonNode json) {\n+      List<WeaverValidationAdvice> advices = new ArrayList<>();\n+\n+      Consumer<JsonNode> parseValidationAdvice =\n+          jsonNode -> {\n+            JsonNode allAdvice = jsonNode.get(\"live_check_result\").get(\"all_advice\");\n+            if (allAdvice.isArray() && !allAdvice.isEmpty()) {\n+              allAdvice.forEach(\n+                  advice -> {\n+                    advices.add(\n+                        new WeaverValidationAdvice(\n+                            advice.get(\"signal_name\").asText(null),\n+                            advice.get(\"message\").asText(),\n+                            advice.get(\"level\").asText()));\n+                  });\n+            }\n+          };\n+\n+      json.get(\"samples\")\n+          .forEach(\n+              sample -> {\n+                JsonNode resource = sample.get(\"resource\");\n+                JsonNode metric = sample.get(\"metric\");\n+                if (resource != null) {\n+                  resource.get(\"attributes\").forEach(parseValidationAdvice);\n+                } else if (metric != null) {\n+                  parseValidationAdvice.accept(metric);\n+                } else {\n+                  throw new IllegalStateException(\"unexpected weaver validation result type\");\n+                }\n+              });\n+\n+      BiFunction<JsonNode, String, Set<String>> doParse =\n+          (jsonNode, key) -> {\n+            Set<String> result = new HashSet<>();\n+            jsonNode.get(key).fieldNames().forEachRemaining(result::add);\n+            return result;\n+          };\n+\n+      JsonNode statistics = json.get(\"statistics\");\n+      return new WeaverValidationResult(\n+          advices,\n+          doParse.apply(statistics, \"seen_non_registry_metrics\"),\n+          doParse.apply(statistics, \"seen_non_registry_attributes\"),\n+          doParse.apply(statistics, \"seen_registry_metrics\"),\n+          doParse.apply(statistics, \"seen_registry_attributes\"));\n+    }\n+\n+    /**\n+     * Get list of all validation messages\n+     *\n+     * @return list of validation messages\n+     */\n+    public List<WeaverValidationAdvice> getValidationAdvices() {\n+      return advices;\n+    }\n+\n+    /**\n+     * Get reported metrics that are not defined in registry\n+     *\n+     * @return set of metrics that were reported but are not part of tested registry\n+     */\n+    public Set<String> getSeenNonRegistryMetrics() {\n+      return seenNonRegistryMetrics;\n+    }\n+\n+    /**\n+     * Get reported attributes that are not defined in registry\n+     *\n+     * @return set of attributes that were reported but are not part of tested registry\n+     */\n+    public Set<String> getSeenNonRegistryAttributes() {\n+      return seenNonRegistryAttributes;\n+    }\n+\n+    /**\n+     * Get reported metrics that are defined in registry\n+     *\n+     * @return set of metrics that were reported and are part of tested registry\n+     */\n+    public Set<String> getSeenRegistryMetrics() {\n+      return seenRegistryMetrics;\n+    }\n+\n+    /**\n+     * Get reported attributes that are defined in registry\n+     *\n+     * @return set of attributes that were reported and are part of tested registry\n+     */\n+    public Set<String> getSeenRegistryAttributes() {\n+      return seenRegistryAttributes;\n+    }\n+  }\n+\n+  public static class WeaverValidationAdvice {\n+\n+    @Nullable private final String signalName;\n+    private final String message;\n+    private final String level;\n+\n+    WeaverValidationAdvice(@Nullable String signalName, String message, String level) {\n+      this.signalName = signalName;\n+      this.message = message;\n+      this.level = level;\n+    }\n+\n+    @Nullable",
+      "id": "PRRT_kwDODJKVX86P-WkQ",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071800"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test sources should not add `@Nullable`; remove this annotation per the Java test-source style rule.",
+      "created": "2026-07-10T18:11:57Z",
+      "hunk": "@@ -68,6 +76,9 @@ class TargetSystemTest {\n   private GenericContainer<?> targetSystem;\n   private Collection<GenericContainer<?>> targetDependencies;\n \n+  private WeaverContainer weaver;\n+  @Nullable private Consumer<WeaverContainer.WeaverValidationResult> weaverMetricsVerify = null;",
+      "id": "PRRT_kwDODJKVX86P-Wkl",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071832"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test sources should not add `@Nullable`; remove this annotation per the Java test-source style rule.",
+      "created": "2026-07-10T18:11:58Z",
+      "hunk": "@@ -286,6 +404,19 @@ protected void verifyMetrics(MetricsVerifier metricsVerifier) {\n   /** Minimal OTLP gRPC backend to capture metrics */\n   private static class OtlpGrpcServer extends ServerExtension {\n \n+    @Nullable private MetricsServiceGrpc.MetricsServiceFutureStub forwardStub;",
+      "id": "PRRT_kwDODJKVX86P-Wk5",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071863"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Avoid adding AssertJ descriptions when the direct assertion already reports the unexpected value.",
+      "created": "2026-07-10T18:11:58Z",
+      "hunk": "@@ -103,6 +132,95 @@ void afterEach() {\n       }\n     }\n     targetDependencies = emptyList();\n+\n+    if (weaver != null) {\n+      stop(weaver);\n+      validateWeaverResultCommon(weaver.getResult());\n+      weaverMetricsVerify.accept(weaver.getResult());\n+    }\n+  }\n+\n+  private static void validateWeaverResultCommon(WeaverContainer.WeaverValidationResult result) {\n+    AtomicInteger violationCount = new AtomicInteger(0);\n+    result\n+        .getValidationAdvices()\n+        .forEach(\n+            advice -> {\n+              if (shouldIgnoreAdvice(advice)) {\n+                return;\n+              }\n+\n+              String signalOrResource = advice.getSignalName();\n+              if (signalOrResource == null) {\n+                signalOrResource = \"resource attribute\";\n+              }\n+              switch (advice.getLevel()) {\n+                case \"information\":\n+                  logger.info(\n+                      \"weaver reported information on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  break;\n+                case \"violation\":\n+                  logger.error(\n+                      \"weaver reported violation on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  violationCount.getAndIncrement();\n+                  break;\n+                case \"improvement\":\n+                  logger.warn(\n+                      \"weaver reported improvement on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  break;\n+                default:\n+                  throw new IllegalStateException(\"unknown advice level \" + advice.getLevel());\n+              }\n+            });\n+\n+    assertThat(violationCount.get())\n+        .describedAs(\"no registry violation should be reported\")\n+        .isEqualTo(0);",
+      "id": "PRRT_kwDODJKVX86P-WlH",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071887"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Avoid adding AssertJ descriptions when the direct string assertion already reports the unexpected value.",
+      "created": "2026-07-10T18:11:58Z",
+      "hunk": "@@ -103,6 +132,95 @@ void afterEach() {\n       }\n     }\n     targetDependencies = emptyList();\n+\n+    if (weaver != null) {\n+      stop(weaver);\n+      validateWeaverResultCommon(weaver.getResult());\n+      weaverMetricsVerify.accept(weaver.getResult());\n+    }\n+  }\n+\n+  private static void validateWeaverResultCommon(WeaverContainer.WeaverValidationResult result) {\n+    AtomicInteger violationCount = new AtomicInteger(0);\n+    result\n+        .getValidationAdvices()\n+        .forEach(\n+            advice -> {\n+              if (shouldIgnoreAdvice(advice)) {\n+                return;\n+              }\n+\n+              String signalOrResource = advice.getSignalName();\n+              if (signalOrResource == null) {\n+                signalOrResource = \"resource attribute\";\n+              }\n+              switch (advice.getLevel()) {\n+                case \"information\":\n+                  logger.info(\n+                      \"weaver reported information on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  break;\n+                case \"violation\":\n+                  logger.error(\n+                      \"weaver reported violation on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  violationCount.getAndIncrement();\n+                  break;\n+                case \"improvement\":\n+                  logger.warn(\n+                      \"weaver reported improvement on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  break;\n+                default:\n+                  throw new IllegalStateException(\"unknown advice level \" + advice.getLevel());\n+              }\n+            });\n+\n+    assertThat(violationCount.get())\n+        .describedAs(\"no registry violation should be reported\")\n+        .isEqualTo(0);\n+  }\n+\n+  protected void checkNothingUnregisteredWithPrefix(\n+      WeaverContainer.WeaverValidationResult result, String prefix) {\n+    result\n+        .getSeenNonRegistryMetrics()\n+        .forEach(\n+            attribute ->\n+                assertThat(attribute)\n+                    .describedAs(\"no un-registered metric with prefix %s expected\", prefix)\n+                    .doesNotStartWith(prefix));",
+      "id": "PRRT_kwDODJKVX86P-WlZ",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [
+        {
+          "at": "2026-07-15T08:29:43Z",
+          "body": "in this case the assertion description provides better description of the issue.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3585676370"
+        }
+      ],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071910"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Avoid adding AssertJ descriptions when the direct string assertion already reports the unexpected value.",
+      "created": "2026-07-10T18:11:58Z",
+      "hunk": "@@ -103,6 +132,95 @@ void afterEach() {\n       }\n     }\n     targetDependencies = emptyList();\n+\n+    if (weaver != null) {\n+      stop(weaver);\n+      validateWeaverResultCommon(weaver.getResult());\n+      weaverMetricsVerify.accept(weaver.getResult());\n+    }\n+  }\n+\n+  private static void validateWeaverResultCommon(WeaverContainer.WeaverValidationResult result) {\n+    AtomicInteger violationCount = new AtomicInteger(0);\n+    result\n+        .getValidationAdvices()\n+        .forEach(\n+            advice -> {\n+              if (shouldIgnoreAdvice(advice)) {\n+                return;\n+              }\n+\n+              String signalOrResource = advice.getSignalName();\n+              if (signalOrResource == null) {\n+                signalOrResource = \"resource attribute\";\n+              }\n+              switch (advice.getLevel()) {\n+                case \"information\":\n+                  logger.info(\n+                      \"weaver reported information on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  break;\n+                case \"violation\":\n+                  logger.error(\n+                      \"weaver reported violation on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  violationCount.getAndIncrement();\n+                  break;\n+                case \"improvement\":\n+                  logger.warn(\n+                      \"weaver reported improvement on {} : {}\",\n+                      signalOrResource,\n+                      advice.getMessage());\n+                  break;\n+                default:\n+                  throw new IllegalStateException(\"unknown advice level \" + advice.getLevel());\n+              }\n+            });\n+\n+    assertThat(violationCount.get())\n+        .describedAs(\"no registry violation should be reported\")\n+        .isEqualTo(0);\n+  }\n+\n+  protected void checkNothingUnregisteredWithPrefix(\n+      WeaverContainer.WeaverValidationResult result, String prefix) {\n+    result\n+        .getSeenNonRegistryMetrics()\n+        .forEach(\n+            attribute ->\n+                assertThat(attribute)\n+                    .describedAs(\"no un-registered metric with prefix %s expected\", prefix)\n+                    .doesNotStartWith(prefix));\n+    result\n+        .getSeenNonRegistryAttributes()\n+        .forEach(\n+            attribute ->\n+                assertThat(attribute)\n+                    .describedAs(\"no un-registered attribute with prefix %s expected\", prefix)\n+                    .doesNotStartWith(prefix));",
+      "id": "PRRT_kwDODJKVX86P-Wlk",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071928"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Prefer the nearest common parent exception in test catch clauses instead of a multi-catch.",
+      "created": "2026-07-10T18:11:59Z",
+      "hunk": "@@ -308,6 +439,15 @@ public void export(\n                         ExportMetricsServiceRequest request,\n                         StreamObserver<ExportMetricsServiceResponse> responseObserver) {\n \n+                      if (forwardStub != null) {\n+                        // forward to another backend if needed\n+                        try {\n+                          forwardStub.export(request).get(10, MILLISECONDS);\n+                        } catch (InterruptedException | ExecutionException | TimeoutException e) {",
+      "id": "PRRT_kwDODJKVX86P-Wlz",
+      "opened": "2026-07-10T18:11:59Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3561071950"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Weaver initializes every registry metric and attribute in these statistics maps with count `0`. Collecting only `fieldNames()` therefore makes the “seen” sets contain definitions that were never reported, so `checkRegistered` can pass without observing the expected telemetry. Preserve/filter the counts and include only entries whose count is greater than zero; the JVM expectations should then cover only telemetry this test actually emits.",
+      "created": "2026-07-15T16:47:41Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import java.io.IOException;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.function.BiFunction;\n+import java.util.function.Consumer;\n+import javax.annotation.Nullable;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.utility.MountableFile;\n+\n+class WeaverContainer extends GenericContainer<WeaverContainer> {\n+\n+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n+\n+  private static final Logger logger = LoggerFactory.getLogger(WeaverContainer.class);\n+  private static final int ADMIN_PORT = 4320;\n+  private static final int OTLP_PORT = 4317;\n+\n+  @Nullable private JsonNode result = null;\n+\n+  WeaverContainer(Path registryRoot, String... registryFiles) {\n+    super(\"otel/weaver:v0.24.2\");\n+\n+    super.withExposedPorts(OTLP_PORT, ADMIN_PORT);\n+    super.waitingFor(Wait.forListeningPorts(OTLP_PORT, ADMIN_PORT));\n+    super.withCommand(\n+        \"registry\",\n+        \"live-check\",\n+        \"--registry\",\n+        \"/registry\",\n+        \"--inactivity-timeout=0\",\n+        \"--output=http\",\n+        \"--format\",\n+        \"json\");\n+    super.withLogConsumer(new Slf4jLogConsumer(logger));\n+\n+    // main registry definition\n+    copyRegistryFile(registryRoot, \"manifest.yaml\");\n+    // per-system registry definitions\n+    for (String registryFile : registryFiles) {\n+      copyRegistryFile(registryRoot, registryFile);\n+    }\n+    // Common definitions used when testing to inherit existing definitions.\n+    // Adding this allows to lower the noise level of validation errors for things that are not\n+    // directly part of the registry under test.\n+    super.withCopyFileToContainer(\n+        MountableFile.forClasspathResource(\"jmx/registry/test-common.yaml\"),\n+        \"/registry/test-common.yaml\");\n+  }\n+\n+  private void copyRegistryFile(Path root, String fileName) {\n+    String containerPath = \"/registry/\" + fileName;\n+    super.withCopyFileToContainer(MountableFile.forHostPath(root.resolve(fileName)), containerPath);\n+  }\n+\n+  @Override\n+  public void stop() {\n+    String uri = \"http://\" + this.getHost() + \":\" + this.getMappedPort(ADMIN_PORT) + \"/\";\n+    WebClient client = WebClient.of(uri);\n+    try (HttpData result = client.post(\"/stop\", new byte[0]).aggregate().join().content()) {\n+      this.result = OBJECT_MAPPER.readTree(result.toInputStream());\n+    } catch (IOException e) {\n+      throw new IllegalStateException(e);\n+    } finally {\n+      super.stop();\n+    }\n+  }\n+\n+  public WeaverValidationResult getResult() {\n+    if (result == null) {\n+      throw new IllegalStateException(\"must stop container to get result first\");\n+    }\n+    return WeaverValidationResult.fromJson(result);\n+  }\n+\n+  public String getOtlpEndpoint() {\n+    return this.getHost() + \":\" + this.getMappedPort(OTLP_PORT);\n+  }\n+\n+  public static class WeaverValidationResult {\n+    private final List<WeaverValidationAdvice> advices;\n+    private final Set<String> seenNonRegistryMetrics;\n+    private final Set<String> seenNonRegistryAttributes;\n+    private final Set<String> seenRegistryMetrics;\n+    private final Set<String> seenRegistryAttributes;\n+\n+    private WeaverValidationResult(\n+        List<WeaverValidationAdvice> advices,\n+        Set<String> seenNonRegistryMetrics,\n+        Set<String> seenNonRegistryAttributes,\n+        Set<String> seenRegistryMetrics,\n+        Set<String> seenRegistryAttributes) {\n+      this.advices = advices;\n+      this.seenNonRegistryMetrics = seenNonRegistryMetrics;\n+      this.seenNonRegistryAttributes = seenNonRegistryAttributes;\n+      this.seenRegistryMetrics = seenRegistryMetrics;\n+      this.seenRegistryAttributes = seenRegistryAttributes;\n+    }\n+\n+    private static WeaverValidationResult fromJson(JsonNode json) {\n+      List<WeaverValidationAdvice> advices = new ArrayList<>();\n+\n+      Consumer<JsonNode> parseValidationAdvice =\n+          jsonNode -> {\n+            JsonNode allAdvice = jsonNode.get(\"live_check_result\").get(\"all_advice\");\n+            if (allAdvice.isArray() && !allAdvice.isEmpty()) {\n+              allAdvice.forEach(\n+                  advice -> {\n+                    advices.add(\n+                        new WeaverValidationAdvice(\n+                            advice.get(\"signal_name\").asText(null),\n+                            advice.get(\"message\").asText(),\n+                            advice.get(\"level\").asText()));\n+                  });\n+            }\n+          };\n+\n+      json.get(\"samples\")\n+          .forEach(\n+              sample -> {\n+                JsonNode resource = sample.get(\"resource\");\n+                JsonNode metric = sample.get(\"metric\");\n+                if (resource != null) {\n+                  resource.get(\"attributes\").forEach(parseValidationAdvice);\n+                } else if (metric != null) {\n+                  parseValidationAdvice.accept(metric);\n+                } else {\n+                  throw new IllegalStateException(\"unexpected weaver validation result type\");\n+                }\n+              });\n+\n+      BiFunction<JsonNode, String, Set<String>> doParse =\n+          (jsonNode, key) -> {\n+            Set<String> result = new HashSet<>();\n+            jsonNode.get(key).fieldNames().forEachRemaining(result::add);",
+      "id": "PRRT_kwDODJKVX86RLUOx",
+      "opened": "2026-07-15T16:47:42Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [
+        {
+          "at": "2026-07-15T17:44:14Z",
+          "body": "@SylvainJuge this looks like a potential problem",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3589533248"
+        },
+        {
+          "at": "2026-07-16T09:51:20Z",
+          "body": "You are correct, the registered metrics that were not reported have a count of zero in the weaver result.\r\n\r\nI've fixed that in d326832b82.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3594368711"
+        },
+        {
+          "at": "2026-07-16T10:09:25Z",
+          "body": "For example, one example where this was an issue is that the `jvm.gc.duration` metric is registered as it's part of the upstream semantic conventions, however it's not being reported as the JMX implementation can't capture it (as it's an histogram).\r\n\r\nWhile some attributes are marked as \"optional\", I don't think we have an equivalent for metrics in the semconv yaml, most of them are marked as \"recommended\" in docs, and knowing when they should be present or not depends on the context.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3594507693"
+        }
+      ],
+      "reviewed": "6d9c24afb07434deb3259bbf98c8400a832337fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3589171911"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The `ManagedChannel` created here is discarded, so it cannot be shut down. Each parameterized invocation replaces the stub while leaving the previous channel alive, retaining gRPC executors and transports through the test run. Store the channel separately and shut it down both when replacing the forwarding endpoint and when the OTLP server is stopped.",
+      "created": "2026-07-15T16:47:42Z",
+      "hunk": "@@ -286,6 +405,19 @@ protected void verifyMetrics(MetricsVerifier metricsVerifier) {\n   /** Minimal OTLP gRPC backend to capture metrics */\n   private static class OtlpGrpcServer extends ServerExtension {\n \n+    @Nullable private MetricsServiceGrpc.MetricsServiceFutureStub forwardStub;\n+\n+    /**\n+     * Sets the forwarding endpoint where the server should forward data to\n+     *\n+     * @param endpoint endpoint host:port\n+     */\n+    void setForwardEndpoint(String endpoint) {\n+      forwardStub =\n+          MetricsServiceGrpc.newFutureStub(\n+              ManagedChannelBuilder.forTarget(endpoint).usePlaintext().build());",
+      "id": "PRRT_kwDODJKVX86RLUPP",
+      "opened": "2026-07-15T16:47:42Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [
+        {
+          "at": "2026-07-16T09:58:17Z",
+          "body": "fixed in 818fbe0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3594424334"
+        }
+      ],
+      "reviewed": "6d9c24afb07434deb3259bbf98c8400a832337fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3589171957"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The forwarding channel is only shut down by the next invocation's `beforeEach()`. After the final invocation it remains open when the OTLP server is stopped, and a validation failure also skips cleanup. Reset the forwarding backend in this teardown using `finally`.",
+      "created": "2026-07-16T15:44:48Z",
+      "hunk": "@@ -103,6 +132,11 @@ void afterEach() {\n       }\n     }\n     targetDependencies = emptyList();\n+\n+    if (weaver != null) {\n+      stop(weaver);\n+      requireNonNull(weaverMetricsVerify).accept(weaver.getResult().checkCommonViolations());\n+    }",
+      "id": "PRRT_kwDODJKVX86RgRyX",
+      "opened": "2026-07-16T15:44:49Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [
+        {
+          "at": "2026-07-16T16:32:01Z",
+          "body": "fixed in b12a208 and cd18af2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3597233825"
+        }
+      ],
+      "reviewed": "64a09c2ae31e3703d7fdb2b8128645073f1da649",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139#discussion_r3596902759"
+    }
+  ]
+}

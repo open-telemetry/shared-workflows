@@ -1,0 +1,31 @@
+{
+  "head": "9134e6b3df120c93ecd407be58a1b9d3e2beb9d3",
+  "merge": "98d90ac70ac1893add5b6faa4b1a63ee19f88274",
+  "merged": "2026-10-25T18:28:48Z",
+  "missing_roots": 0,
+  "number": 20956,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify its regression tests. The user wants to keep the production fix as-is and integrate the regression assertions into the existing matcher test instead of adding new test methods.\n\nIn instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/FileManagerTest.java, remove the newly added testIsValidInstrumentationPathExcludesSourceDirectories() and testGetInstrumentationPathsExcludesSourceDirectories() methods. In the existing testIsValidInstrumentationPath(), add two direct assertions that isValidInstrumentationPath() returns false for the actual offending path instrumentation/spring/spring-integration-4.1/library/src/version41Test/java/io/opentelemetry/javaagent, once with forward slashes and once with Windows backslashes. Use the two literal paths directly in the assertions. No source-set matrix, new filesystem fixture, new test method, or helper is needed. Preserve all pre-existing tests.\n\nKeep the production FileManager.java change exactly unchanged, including the /src/ regex exclusion. Do not refactor discovery or introduce metadata-based registration. Run the narrowest relevant formatting followed by the FileManagerTest unit tests. Acceptance: the PR's only new test coverage is those two false assertions in the existing matcher test, with the one-line production fix retained.",
+      "created": "2026-10-25T04:15:01Z",
+      "hunk": "@@ -88,6 +88,39 @@ void testIsValidInstrumentationPath() {\n     assertThat(FileManager.isValidInstrumentationPath(\"/instrumentation/test/javaagent\")).isFalse();\n   }\n \n+  @Test\n+  void testIsValidInstrumentationPathExcludesSourceDirectories() {",
+      "id": "PRRT_kwDODJKVX86v-TB5",
+      "opened": "2026-10-25T04:15:01Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/FileManagerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-25T04:20:29Z",
+          "body": "Updated in 9134e6b3. The separate tests are removed, and the two requested literal-path assertions are in the existing matcher test; production code is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20956#discussion_r4369630134"
+        }
+      ],
+      "reviewed": "7ad4c3e235d4a499ec2d3de2fa76f53818c8401e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20956#discussion_r4369618990"
+    }
+  ]
+}

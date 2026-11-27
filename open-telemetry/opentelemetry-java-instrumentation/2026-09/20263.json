@@ -1,0 +1,208 @@
+{
+  "head": "3ea2659832c1bc2bfc797cf81b501babe4d8d3d7",
+  "merge": "b91f306a735a68845dd8f3e0f7c2e6b7e913abe6",
+  "merged": "2026-09-28T23:47:18Z",
+  "missing_roots": 0,
+  "number": 20263,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This assertion passes on an empty metric list because `allSatisfy` is vacuous. Use `anySatisfy` so the library test actually observes `runtime.java.memory` before validating that its scope is schema-less.",
+      "created": "2026-09-25T21:33:07Z",
+      "hunk": "@@ -49,4 +49,15 @@ protected String scopeName() {\n   void verifyObservablesAreNotEmpty() {\n     assertThat(observables).isNotEmpty();\n   }\n+\n+  @Test\n+  void libraryProcessMetricsHaveNoSchema() {\n+    testing.waitAndAssertMetrics(\n+        scopeName(),\n+        \"runtime.java.memory\",\n+        metrics ->\n+            metrics.allSatisfy(",
+      "id": "PRRT_kwDODJKVX86mKdWg",
+      "opened": "2026-09-25T21:33:10Z",
+      "path": "instrumentation/oshi-5.0/library/src/test/java/io/opentelemetry/instrumentation/oshi/v5_0/ProcessMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:09Z",
+          "body": "Addressed in 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.\n\nFixed in the verified source changes 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109363270"
+        }
+      ],
+      "reviewed": "2b7ed8d72b9c541c95fc016d4e1280df1b3cd9b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4108827961"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `allSatisfy` is vacuously true when no `runtime.java.memory` metric is present, allowing this schema-less assertion to pass even if process metrics are not registered. Require at least one matching metric with `anySatisfy`.",
+      "created": "2026-09-25T21:33:08Z",
+      "hunk": "@@ -79,4 +79,17 @@ void test() {\n                                                     equalTo(stringKey(\"type\"), \"system\"))\n                                                 .hasValueSatisfying(v -> v.isNotNegative())))));\n   }\n+\n+  @Test\n+  @EnabledIfSystemProperty(named = \"testExperimental\", matches = \"true\")\n+  void processMetricsHaveNoSchema() {\n+    testing()\n+        .waitAndAssertMetrics(\n+            scopeName(),\n+            \"runtime.java.memory\",\n+            metrics ->\n+                metrics.allSatisfy(",
+      "id": "PRRT_kwDODJKVX86mKdW_",
+      "opened": "2026-09-25T21:33:10Z",
+      "path": "instrumentation/oshi-5.0/testing/src/main/java/io/opentelemetry/instrumentation/oshi/v5_0/AbstractProcessMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:11Z",
+          "body": "Addressed in 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.\n\nFixed in the verified source changes 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109363364"
+        }
+      ],
+      "reviewed": "2b7ed8d72b9c541c95fc016d4e1280df1b3cd9b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4108828014"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `allSatisfy` succeeds for an empty filtered metric list, so this schema test can pass without observing `system.memory.usage` at all. Use `anySatisfy` so the test proves that a matching metric was exported before checking its schema and version.",
+      "created": "2026-09-25T21:33:08Z",
+      "hunk": "@@ -68,52 +87,137 @@ void test() {\n                                         point ->\n                                             point\n                                                 .hasAttributesSatisfyingExactly(\n-                                                    equalTo(STATE, \"used\"))\n+                                                    equalTo(\n+                                                        v3Preview() ? SYSTEM_MEMORY_STATE : STATE,\n+                                                        \"used\"))\n                                                 .hasValueSatisfying(v -> v.isNotNegative()),\n                                         point ->\n                                             point\n                                                 .hasAttributesSatisfyingExactly(\n-                                                    equalTo(STATE, \"free\"))\n+                                                    equalTo(\n+                                                        v3Preview() ? SYSTEM_MEMORY_STATE : STATE,\n+                                                        \"free\"))\n                                                 .hasValueSatisfying(v -> v.isNotNegative())))));\n+  }\n+\n+  @Test\n+  @SuppressWarnings(\"deprecation\") // using the legacy scopeName() bridge\n+  void networkAndDiskMetrics() {\n+    registerMetrics();\n+\n     testing()\n         .waitAndAssertMetrics(\n             scopeName(),\n             \"system.network.io\",\n             metrics ->\n                 metrics.anySatisfy(\n-                    metric -> assertThat(metric).hasUnit(\"By\").hasLongSumSatisfying(sum -> {})));\n+                    metric -> {\n+                      assertThat(metric)\n+                          .hasUnit(\"By\")\n+                          .hasLongSumSatisfying(sum -> sum.isMonotonic());\n+                      assertNetworkPoints(\n+                          metric.getLongSumData().getPoints(),\n+                          v3Preview() ? NETWORK_INTERFACE_NAME : stringKey(\"device\"));\n+                    }));\n     testing()\n         .waitAndAssertMetrics(\n             scopeName(),\n-            \"system.network.packets\",\n+            v3Preview() ? \"system.network.packet.count\" : \"system.network.packets\",\n             metrics ->\n                 metrics.anySatisfy(\n-                    metric ->\n-                        assertThat(metric).hasUnit(\"{packets}\").hasLongSumSatisfying(sum -> {})));\n+                    metric -> {\n+                      assertThat(metric)\n+                          .hasUnit(v3Preview() ? \"{packet}\" : \"{packets}\")\n+                          .hasLongSumSatisfying(sum -> sum.isMonotonic());\n+                      assertNetworkPoints(\n+                          metric.getLongSumData().getPoints(),\n+                          v3Preview() ? SYSTEM_DEVICE : stringKey(\"device\"));\n+                    }));\n     testing()\n         .waitAndAssertMetrics(\n             scopeName(),\n             \"system.network.errors\",\n             metrics ->\n                 metrics.anySatisfy(\n-                    metric ->\n-                        assertThat(metric).hasUnit(\"{errors}\").hasLongSumSatisfying(sum -> {})));\n+                    metric -> {\n+                      assertThat(metric)\n+                          .hasUnit(v3Preview() ? \"{error}\" : \"{errors}\")\n+                          .hasLongSumSatisfying(sum -> sum.isMonotonic());\n+                      assertNetworkPoints(\n+                          metric.getLongSumData().getPoints(),\n+                          v3Preview() ? NETWORK_INTERFACE_NAME : stringKey(\"device\"));\n+                    }));\n     testing()\n         .waitAndAssertMetrics(\n             scopeName(),\n             \"system.disk.io\",\n             metrics ->\n                 metrics.anySatisfy(\n-                    metric -> assertThat(metric).hasUnit(\"By\").hasLongSumSatisfying(sum -> {})));\n+                    metric -> {\n+                      assertThat(metric)\n+                          .hasUnit(\"By\")\n+                          .hasLongSumSatisfying(sum -> sum.isMonotonic());\n+                      assertDiskPoints(metric.getLongSumData().getPoints());\n+                    }));\n     testing()\n         .waitAndAssertMetrics(\n             scopeName(),\n             \"system.disk.operations\",\n             metrics ->\n                 metrics.anySatisfy(\n-                    metric ->\n-                        assertThat(metric)\n-                            .hasUnit(\"{operations}\")\n-                            .hasLongSumSatisfying(sum -> {})));\n+                    metric -> {\n+                      assertThat(metric)\n+                          .hasUnit(v3Preview() ? \"{operation}\" : \"{operations}\")\n+                          .hasLongSumSatisfying(sum -> sum.isMonotonic());\n+                      assertDiskPoints(metric.getLongSumData().getPoints());\n+                    }));\n+  }\n+\n+  @Test\n+  @SuppressWarnings(\"deprecation\") // using the legacy scopeName() bridge\n+  void systemMetricsUseSystemSchema() {\n+    testing()\n+        .waitAndAssertMetrics(\n+            scopeName(),\n+            \"system.memory.usage\",\n+            metrics ->\n+                metrics.allSatisfy(",
+      "id": "PRRT_kwDODJKVX86mKdXX",
+      "opened": "2026-09-25T21:33:10Z",
+      "path": "instrumentation/oshi-5.0/testing/src/main/java/io/opentelemetry/instrumentation/oshi/v5_0/AbstractSystemMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:14Z",
+          "body": "Addressed in 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.\n\nFixed in the verified source changes 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109363510"
+        }
+      ],
+      "reviewed": "2b7ed8d72b9c541c95fc016d4e1280df1b3cd9b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4108828055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `docs/contributing/style-guide.md:194-211` requires library production code to import stable semconv constants directly and reserve local copies for incubating constants. `V1_44_0` is available as `io.opentelemetry.semconv.SchemaUrls.V1_44_0`; use that constant instead of duplicating it here (the unavailable legacy `V1_19_0` may remain local).",
+      "created": "2026-09-25T21:33:09Z",
+      "hunk": "@@ -0,0 +1,19 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.oshi.v5_0.internal;\n+\n+/**\n+ * Schema URLs for system metric conventions without a library semconv dependency.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SchemaUrls {\n+  public static final String V1_19_0 = \"https://opentelemetry.io/schemas/1.19.0\";\n+  public static final String V1_44_0 = \"https://opentelemetry.io/schemas/1.44.0\";",
+      "id": "PRRT_kwDODJKVX86mKdX9",
+      "opened": "2026-09-25T21:33:10Z",
+      "path": "instrumentation/oshi-5.0/library/src/main/java/io/opentelemetry/instrumentation/oshi/v5_0/internal/SchemaUrls.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:19Z",
+          "body": "Addressed in 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.\n\nFixed in the verified source changes 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109363760"
+        }
+      ],
+      "reviewed": "2b7ed8d72b9c541c95fc016d4e1280df1b3cd9b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4108828131"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This newly deprecates a published library overload, but the PR has no Unreleased CHANGELOG entry. CONTRIBUTING.md requires a changelog entry for deprecations; add one directing users to `registerObservers(OpenTelemetry)`.",
+      "created": "2026-09-25T21:33:09Z",
+      "hunk": "@@ -5,167 +5,43 @@\n \n package io.opentelemetry.instrumentation.oshi.v5_0;\n \n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.v3Preview;\n+import static io.opentelemetry.instrumentation.oshi.v5_0.internal.SchemaUrls.V1_19_0;\n+import static io.opentelemetry.instrumentation.oshi.v5_0.internal.SchemaUrls.V1_44_0;\n+\n import io.opentelemetry.api.OpenTelemetry;\n-import io.opentelemetry.api.common.AttributeKey;\n-import io.opentelemetry.api.common.Attributes;\n import io.opentelemetry.api.metrics.Meter;\n import io.opentelemetry.api.metrics.MeterBuilder;\n import io.opentelemetry.instrumentation.api.internal.EmbeddedInstrumentationProperties;\n-import java.util.ArrayList;\n+import io.opentelemetry.instrumentation.oshi.v5_0.internal.SystemMetricsInternal;\n import java.util.List;\n-import oshi.SystemInfo;\n-import oshi.hardware.GlobalMemory;\n-import oshi.hardware.HWDiskStore;\n-import oshi.hardware.HardwareAbstractionLayer;\n-import oshi.hardware.NetworkIF;\n \n /** System Metrics Utility. */\n public final class SystemMetrics {\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.oshi-5.0\";\n \n-  private static final AttributeKey<String> DEVICE_KEY = AttributeKey.stringKey(\"device\");\n-  private static final AttributeKey<String> DIRECTION_KEY = AttributeKey.stringKey(\"direction\");\n-\n-  // copied from OtherIncubatingAttributes\n-  private static final AttributeKey<String> STATE_KEY = AttributeKey.stringKey(\"state\");\n-\n-  private static final Attributes ATTRIBUTES_USED = Attributes.of(STATE_KEY, \"used\");\n-  private static final Attributes ATTRIBUTES_FREE = Attributes.of(STATE_KEY, \"free\");\n-\n   /** Register observers for system metrics. */\n   public static List<AutoCloseable> registerObservers(OpenTelemetry openTelemetry) {\n-    return registerObservers(buildMeter(openTelemetry));\n+    boolean preview = v3Preview(openTelemetry);\n+    return SystemMetricsInternal.registerObservers(buildMeter(openTelemetry, preview), preview);\n   }\n \n   /**\n-   * Like {@link #registerObservers(OpenTelemetry)}, but accepts a pre-built {@link Meter}.\n+   * Like {@link #registerObservers(OpenTelemetry)}, but accepts a pre-built {@link Meter} and\n+   * retains the legacy metric conventions.\n    *\n    * @deprecated Exists only so the javaagent can emit the pre-rename {@code io.opentelemetry.oshi}\n    *     scope by default; to be removed in 3.0 once v3-preview becomes the default.\n    */\n   @Deprecated",
+      "id": "PRRT_kwDODJKVX86mKdXu",
+      "opened": "2026-09-25T21:33:10Z",
+      "path": "instrumentation/oshi-5.0/library/src/main/java/io/opentelemetry/instrumentation/oshi/v5_0/SystemMetrics.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:17Z",
+          "body": "Addressed in 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.\n\nFixed in the verified source changes 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109363644"
+        }
+      ],
+      "reviewed": "2b7ed8d72b9c541c95fc016d4e1280df1b3cd9b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4108828097"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The preview and legacy descriptions are part of the changed metric contract, but the updated tests assert names, units, attributes, and schemas without asserting any description. Add mode-dependent `hasDescription(...)` checks for all seven metrics so these new semconv descriptions and the retained legacy values cannot drift unnoticed.",
+      "created": "2026-09-25T21:33:10Z",
+      "hunk": "@@ -0,0 +1,184 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.oshi.v5_0.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.Meter;\n+import java.util.ArrayList;\n+import java.util.List;\n+import oshi.SystemInfo;\n+import oshi.hardware.GlobalMemory;\n+import oshi.hardware.HWDiskStore;\n+import oshi.hardware.HardwareAbstractionLayer;\n+import oshi.hardware.NetworkIF;\n+\n+/**\n+ * Internal registration bridge for the javaagent's pre-rename meter scope.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SystemMetricsInternal {\n+\n+  private static final AttributeKey<String> DEVICE_KEY = AttributeKey.stringKey(\"device\");\n+  private static final AttributeKey<String> DIRECTION_KEY = AttributeKey.stringKey(\"direction\");\n+\n+  // copied from OtherIncubatingAttributes\n+  private static final AttributeKey<String> STATE_KEY = AttributeKey.stringKey(\"state\");\n+\n+  // copied from SystemIncubatingAttributes\n+  private static final AttributeKey<String> SYSTEM_DEVICE = AttributeKey.stringKey(\"system.device\");\n+  private static final AttributeKey<String> SYSTEM_MEMORY_STATE =\n+      AttributeKey.stringKey(\"system.memory.state\");\n+\n+  // copied from NetworkIncubatingAttributes\n+  private static final AttributeKey<String> NETWORK_INTERFACE_NAME =\n+      AttributeKey.stringKey(\"network.interface.name\");\n+  private static final AttributeKey<String> NETWORK_IO_DIRECTION =\n+      AttributeKey.stringKey(\"network.io.direction\");\n+\n+  // copied from DiskIncubatingAttributes\n+  private static final AttributeKey<String> DISK_IO_DIRECTION =\n+      AttributeKey.stringKey(\"disk.io.direction\");\n+\n+  public static List<AutoCloseable> registerObservers(Meter meter, boolean v3Preview) {\n+    SystemInfo systemInfo = new SystemInfo();\n+    HardwareAbstractionLayer hal = systemInfo.getHardware();\n+    List<AutoCloseable> observables = new ArrayList<>();\n+    AttributeKey<String> memoryState = v3Preview ? SYSTEM_MEMORY_STATE : STATE_KEY;\n+    AttributeKey<String> networkDevice = v3Preview ? NETWORK_INTERFACE_NAME : DEVICE_KEY;\n+    AttributeKey<String> networkDirection = v3Preview ? NETWORK_IO_DIRECTION : DIRECTION_KEY;\n+    AttributeKey<String> packetDevice = v3Preview ? SYSTEM_DEVICE : DEVICE_KEY;\n+    AttributeKey<String> diskDevice = v3Preview ? SYSTEM_DEVICE : DEVICE_KEY;\n+    AttributeKey<String> diskDirection = v3Preview ? DISK_IO_DIRECTION : DIRECTION_KEY;\n+    Attributes used = Attributes.of(memoryState, \"used\");\n+    Attributes free = Attributes.of(memoryState, \"free\");\n+\n+    observables.add(\n+        meter\n+            .upDownCounterBuilder(\"system.memory.usage\")\n+            .setDescription(v3Preview ? \"Reports memory in use by state.\" : \"System memory usage\")",
+      "id": "PRRT_kwDODJKVX86mKdYc",
+      "opened": "2026-09-25T21:33:10Z",
+      "path": "instrumentation/oshi-5.0/library/src/main/java/io/opentelemetry/instrumentation/oshi/v5_0/internal/SystemMetricsInternal.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:22Z",
+          "body": "Addressed in 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.\n\nFixed in the verified source changes 289c32f35de11c36c95be8caab465f54fe36f6a8, 210269ddcadddbcf6b7498e458bca1a37d7639dc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109363924"
+        }
+      ],
+      "reviewed": "2b7ed8d72b9c541c95fc016d4e1280df1b3cd9b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4108828177"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecation Javadoc drops the removal timeline even though the overload is part of the v3-preview/3.0 migration. The repository's deprecation policy requires every `@deprecated` tag to state the compatibility window; retain the 3.0 timeline so API consumers know how long this overload remains available.",
+      "created": "2026-09-25T23:36:35Z",
+      "hunk": "@@ -5,167 +5,43 @@\n \n package io.opentelemetry.instrumentation.oshi.v5_0;\n \n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.v3Preview;\n+import static io.opentelemetry.instrumentation.oshi.v5_0.internal.SchemaUrls.V1_19_0;\n+import static io.opentelemetry.semconv.SchemaUrls.V1_44_0;\n+\n import io.opentelemetry.api.OpenTelemetry;\n-import io.opentelemetry.api.common.AttributeKey;\n-import io.opentelemetry.api.common.Attributes;\n import io.opentelemetry.api.metrics.Meter;\n import io.opentelemetry.api.metrics.MeterBuilder;\n import io.opentelemetry.instrumentation.api.internal.EmbeddedInstrumentationProperties;\n-import java.util.ArrayList;\n+import io.opentelemetry.instrumentation.oshi.v5_0.internal.SystemMetricsInternal;\n import java.util.List;\n-import oshi.SystemInfo;\n-import oshi.hardware.GlobalMemory;\n-import oshi.hardware.HWDiskStore;\n-import oshi.hardware.HardwareAbstractionLayer;\n-import oshi.hardware.NetworkIF;\n \n /** System Metrics Utility. */\n public final class SystemMetrics {\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.oshi-5.0\";\n \n-  private static final AttributeKey<String> DEVICE_KEY = AttributeKey.stringKey(\"device\");\n-  private static final AttributeKey<String> DIRECTION_KEY = AttributeKey.stringKey(\"direction\");\n-\n-  // copied from OtherIncubatingAttributes\n-  private static final AttributeKey<String> STATE_KEY = AttributeKey.stringKey(\"state\");\n-\n-  private static final Attributes ATTRIBUTES_USED = Attributes.of(STATE_KEY, \"used\");\n-  private static final Attributes ATTRIBUTES_FREE = Attributes.of(STATE_KEY, \"free\");\n-\n   /** Register observers for system metrics. */\n   public static List<AutoCloseable> registerObservers(OpenTelemetry openTelemetry) {\n-    return registerObservers(buildMeter(openTelemetry));\n+    boolean preview = v3Preview(openTelemetry);\n+    return SystemMetricsInternal.registerObservers(buildMeter(openTelemetry, preview), preview);\n   }\n \n   /**\n-   * Like {@link #registerObservers(OpenTelemetry)}, but accepts a pre-built {@link Meter}.\n+   * Like {@link #registerObservers(OpenTelemetry)}, but accepts a pre-built {@link Meter} and\n+   * retains the legacy metric conventions.\n    *\n-   * @deprecated Exists only so the javaagent can emit the pre-rename {@code io.opentelemetry.oshi}\n-   *     scope by default; to be removed in 3.0 once v3-preview becomes the default.\n+   * @deprecated Use {@link #registerObservers(OpenTelemetry)} to select the metric conventions and\n+   *     schema URL from the supplied OpenTelemetry configuration.",
+      "id": "PRRT_kwDODJKVX86mLxh9",
+      "opened": "2026-09-25T23:36:35Z",
+      "path": "instrumentation/oshi-5.0/library/src/main/java/io/opentelemetry/instrumentation/oshi/v5_0/SystemMetrics.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:54:42Z",
+          "body": "Addressed in ff499e824f0850cdcd85b302acdf2e3e4be8987b.\n\nFixed in the verified source changes ff499e824f0850cdcd85b302acdf2e3e4be8987b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109436918"
+        }
+      ],
+      "reviewed": "210269ddcadddbcf6b7498e458bca1a37d7639dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4109379099"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These new preview variants are not listed in `.github/scripts/instrumentations.sh`, whose metadata job invokes its enumerated tasks directly rather than this project's `check` task. Consequently neither the preview-only system metric contract nor the combined preview/experimental process-metric contract is collected and validated there. Add both `oshi-5.0:javaagent:testV3Preview` and `oshi-5.0:javaagent:testV3PreviewExperimental` to that task list.",
+      "created": "2026-09-26T22:19:12Z",
+      "hunk": "@@ -36,7 +36,28 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.oshi.experimental-metrics.enabled=true\")\n   }\n \n+  val testV3Preview = register<Test>(\"testV3Preview\") {",
+      "id": "PRRT_kwDODJKVX86mUqoO",
+      "opened": "2026-09-26T22:19:13Z",
+      "path": "instrumentation/oshi-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-26T22:33:34Z",
+          "body": "Addressed in 2d7715bf0eaed008f44d11904c8bda940cd8b112.\n\nFixed in the verified source changes 2d7715bf0eaed008f44d11904c8bda940cd8b112.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4113051127"
+        }
+      ],
+      "reviewed": "e3ad1fae8f3f4be72755187c48f634f66d25f583",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4113006746"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nThis instrumentation collects system metrics such as memory usage, network I/O, and disk operations.\n```",
+      "created": "2026-09-28T00:14:17Z",
+      "hunk": "@@ -2,7 +2,16 @@\n \n Provides OpenTelemetry instrumentation for [OSHI](https://github.com/oshi/oshi).\n \n-This instrumentation collects system metrics such as memory usage, network I/O, and disk operations.\n+This instrumentation collects system metrics such as memory usage, network\n+I/O, and disk operations.\n+\n+By default, `SystemMetrics.registerObservers(openTelemetry)` uses the 1.19.0\n+system metric conventions and schema. Set\n+`otel.instrumentation.common.v3-preview=true` in the supplied OpenTelemetry\n+configuration to opt into the 1.44.0 conventions and schema. For example,\n+`system.network.packets` (`{packets}`) becomes `system.network.packet.count`\n+(`{packet}`). The deprecated `registerObservers(Meter)` overload always uses\n+the legacy conventions; `ProcessMetrics` remains schema-less.",
+      "id": "PRRT_kwDODJKVX86mf8lr",
+      "opened": "2026-09-28T00:14:16Z",
+      "path": "instrumentation/oshi-5.0/library/README.md",
+      "replies": [],
+      "reviewed": "350951bc7d052ebe70b909685fe96e471dc1a77b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4117577998"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-28T00:15:16Z",
+      "hunk": "@@ -6,6 +6,18 @@\n | -------------------------------------------------------- | ------- | ------- | ------------------------ |\n | `otel.instrumentation.oshi.experimental-metrics.enabled` | Boolean | `false` | Enable the OSHI metrics. |\n \n+By default, OSHI system metrics use the legacy 1.19.0 conventions and schema\n+with the `io.opentelemetry.oshi` scope. Setting\n+`otel.instrumentation.common.v3-preview=true` switches system metrics to the\n+1.44.0 conventions and schema and the `io.opentelemetry.oshi-5.0` scope. For\n+example, `system.network.packets` (`{packets}`) becomes\n+`system.network.packet.count` (`{packet}`), and `device` and `direction`\n+become domain-specific attributes. The optional `runtime.java.*` process\n+metrics remain schema-less under either setting.\n+",
+      "id": "PRRT_kwDODJKVX86mf9Dg",
+      "opened": "2026-09-28T00:15:16Z",
+      "path": "instrumentation/oshi-5.0/README.md",
+      "replies": [],
+      "reviewed": "da37bd1f10592d5176d9c59c7ec1a861e643c9ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20263#discussion_r4117580887"
+    }
+  ]
+}

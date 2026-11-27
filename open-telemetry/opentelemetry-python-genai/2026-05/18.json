@@ -1,0 +1,73 @@
+{
+  "head": "3a38d95e4698850ca852ada60d15a42378a4c5c8",
+  "merge": "171834a3636229b8b64391e58e39a0fc48df29f6",
+  "merged": "2026-05-20T20:23:52Z",
+  "missing_roots": 0,
+  "number": 18,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The guard only checks the non-beta `openai.resources.chat.completions.Completions.parse` API, so SDK versions where structured outputs are exposed as `client.beta.chat.completions.parse` (including the 1.40.x introduction path) will skip wrapping entirely and still emit no telemetry for `parse()`. Please also detect and wrap the beta `Completions.parse`/`AsyncCompletions.parse` classes when present, or otherwise narrow the supported version claim/tests to the non-beta API.",
+      "created": "2026-05-15T06:39:54Z",
+      "hunk": "@@ -181,6 +197,36 @@ def _instrument(self, **kwargs):\n             ),\n         )\n \n+        # parse() wraps create() internally in the OpenAI SDK and returns a\n+        # ParsedChatCompletion. The telemetry-relevant fields (model, usage,\n+        # choices, finish_reason) are identical to ChatCompletion, so the\n+        # existing create() wrappers handle it correctly.\n+        self._parse_supported = _is_parse_supported()\n+        if self._parse_supported:\n+            wrap_function_wrapper(\n+                \"openai.resources.chat.completions\",\n+                \"Completions.parse\",",
+      "id": "PRRT_kwDOSbspP86CRwUN",
+      "opened": "2026-05-15T06:39:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-v2/src/opentelemetry/instrumentation/openai_v2/__init__.py",
+      "replies": [
+        {
+          "at": "2026-05-18T01:01:58Z",
+          "body": "For version `skew. parse()`, was on the beta path in openai 1.40 through 1.91, then moved to the main path in 1.92 when  the beta module went away, so the current main-only guard genuinely no-ops for users on that older range.\r\n \r\nI'd like to keep this PR narrowed to the non-beta API for now, which is the second option you offered. It also matches what landed in contrib (PR (https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4416), commit 23e1a47d), and the pytestmark.skipif on both test files gates tests on the same predicate as the wrap, so CI can't claim coverage we don't have.\r\n \r\nWill file a follow-up issue to add the beta-path wrap and a tox env pinned to a 1.40-1.91 release so it actually gets exercised. If maintainers would rather fold that into this PR, I'm good to do it here instead, please confirm @lzchen @lmolkova ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/18#discussion_r3255835235"
+        }
+      ],
+      "reviewed": "8e8b16b0897016849373f64c3299c744b788d8ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/18#discussion_r3246363585"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new async `parse()` coverage only exercises successful responses. For an instrumented public API, please add an async error-path test (for example an OpenAI/provider error cassette or parsed response failure) that verifies the span/log state and that the original exception is re-raised, matching the existing instrumentation error coverage expectations.",
+      "created": "2026-05-15T06:39:55Z",
+      "hunk": "@@ -0,0 +1,163 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for async OpenAI structured outputs (chat.completions.parse) instrumentation.\"\"\"\n+\n+import pytest\n+from openai.resources.chat.completions import Completions\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.utils import is_experimental_mode\n+\n+from .structured_outputs_utils import (\n+    STRUCTURED_OUTPUT_EXPECTED_INPUT_MESSAGES,\n+    STRUCTURED_OUTPUT_PROMPT,\n+    CalendarEvent,\n+)\n+from .test_utils import (\n+    DEFAULT_MODEL,\n+    assert_all_attributes,\n+    assert_message_in_logs,\n+    assert_messages_attribute,\n+    format_simple_expected_output_message,\n+)\n+\n+pytestmark = pytest.mark.skipif(\n+    not hasattr(Completions, \"parse\"),\n+    reason=\"parse() requires openai >= 1.40.0\",\n+)\n+\n+\n+@pytest.mark.asyncio()\n+async def test_async_structured_output_with_content(",
+      "id": "PRRT_kwDOSbspP86CRwU4",
+      "opened": "2026-05-15T06:39:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-v2/tests/test_async_structured_outputs.py",
+      "replies": [
+        {
+          "at": "2026-05-18T01:08:33Z",
+          "body": "Same shape on the async side: `test_async_structured_output_404` in 460d51d with an async-flavored cassette (x-stainless-async header, AsyncOpenAI user-agent). Asserts error.type and that the exception still raises. Modeled on `test_async_chat_completion_404`\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/18#discussion_r3255851092"
+        }
+      ],
+      "reviewed": "8e8b16b0897016849373f64c3299c744b788d8ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/18#discussion_r3246363643"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new sync `parse()` coverage only exercises successful responses. For an instrumented public API, please add an error-path test (for example an OpenAI/provider error cassette or parsed response failure) that verifies the span/log state and that the original exception is re-raised, matching the existing instrumentation error coverage expectations.",
+      "created": "2026-05-15T06:39:55Z",
+      "hunk": "@@ -0,0 +1,153 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for OpenAI structured outputs (chat.completions.parse) instrumentation.\"\"\"\n+\n+import pytest\n+from openai.resources.chat.completions import Completions\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.utils import is_experimental_mode\n+\n+from .structured_outputs_utils import (\n+    STRUCTURED_OUTPUT_EXPECTED_INPUT_MESSAGES,\n+    STRUCTURED_OUTPUT_PROMPT,\n+    CalendarEvent,\n+)\n+from .test_utils import (\n+    DEFAULT_MODEL,\n+    assert_all_attributes,\n+    assert_message_in_logs,\n+    assert_messages_attribute,\n+    format_simple_expected_output_message,\n+)\n+\n+pytestmark = pytest.mark.skipif(\n+    not hasattr(Completions, \"parse\"),\n+    reason=\"parse() requires openai >= 1.40.0\",\n+)\n+\n+\n+def test_structured_output_with_content(\n+    span_exporter, log_exporter, openai_client, instrument_with_content, vcr",
+      "id": "PRRT_kwDOSbspP86CRwUe",
+      "opened": "2026-05-15T06:39:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-v2/tests/test_structured_outputs.py",
+      "replies": [
+        {
+          "at": "2026-05-18T01:06:21Z",
+          "body": "Added test_structured_output_404 in 460d51d. Uses a 404 cassette modeled on `test_chat_completion_404.yaml`, asserts the span carries `error.type = \"NotFoundError\"`, and that the original `openai.NotFoundError` propagates to the caller. Runs across both content_mode parametrization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/18#discussion_r3255847191"
+        }
+      ],
+      "reviewed": "8e8b16b0897016849373f64c3299c744b788d8ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/18#discussion_r3246363612"
+    }
+  ]
+}

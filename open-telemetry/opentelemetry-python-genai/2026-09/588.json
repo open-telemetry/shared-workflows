@@ -1,0 +1,25 @@
+{
+  "head": "4c32ff231cfc0f4bb05c504bc86761e4b82a9e36",
+  "merge": "f157a49e564a28b646c86e211c4faebfe37dc0a5",
+  "merged": "2026-09-03T19:48:32Z",
+  "missing_roots": 0,
+  "number": 588,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": " JFYI - we should probably switch to more generic check, but let's get this one in and I'll update https://github.com/open-telemetry/opentelemetry-python-genai/pull/593 ",
+      "created": "2026-09-03T19:26:37Z",
+      "hunk": "@@ -126,9 +135,14 @@ def on_span_end(self, span: Span[Any]) -> None:\n         invocation = self._invocations.pop(span, None)\n         if invocation is None:\n             return\n-        if isinstance(invocation, ToolInvocation) and isinstance(\n-            span.span_data, FunctionSpanData\n+        if (\n+            isinstance(invocation, ToolInvocation)\n+            and isinstance(span.span_data, FunctionSpanData)\n+            and invocation.should_capture_content_on_span",
+      "id": "PRRT_kwDOSbspP86fDLiW",
+      "opened": "2026-09-03T19:26:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+      "replies": [],
+      "reviewed": "4c32ff231cfc0f4bb05c504bc86761e4b82a9e36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/588#discussion_r3927953186"
+    }
+  ]
+}

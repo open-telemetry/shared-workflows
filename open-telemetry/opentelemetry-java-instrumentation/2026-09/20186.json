@@ -1,0 +1,52 @@
+{
+  "head": "637f0f6b6de8f99b27f82dd50a8d683e5db5e62f",
+  "merge": "585b2718e295c7ff5ae7b459d20c45a5f69c357e",
+  "merged": "2026-09-29T07:33:41Z",
+  "missing_roots": 0,
+  "number": 20186,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This only selects a Java 27 compiler; the latest-dependency declaration below still resolves `4.+`, so the javaagent integration suite does not run against Helidon 27.0.0. Update that pin as described by the PR so the new compatibility claim is covered.",
+      "created": "2026-09-24T04:32:57Z",
+      "hunk": "@@ -13,6 +13,7 @@ muzzle {\n \n otelJava {\n   minJavaVersionSupported.set(JavaVersion.VERSION_21)\n+  maxJavaVersionSupported.set(JavaVersion.VERSION_27)",
+      "id": "PRRT_kwDODJKVX86lcKcP",
+      "opened": "2026-09-24T04:32:58Z",
+      "path": "instrumentation/helidon-4.3/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-24T04:50:38Z",
+          "body": "Addressed in 54327af3f1402eb3c21a024af9030624465b2cd6.\n\nFixed in the verified source changes 54327af3f1402eb3c21a024af9030624465b2cd6.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20186#discussion_r4090050596"
+        }
+      ],
+      "reviewed": "b078523bf6e8ece8178933492376e39ec8161e37",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20186#discussion_r4089968374"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This only selects a Java 27 compiler; the latest-dependency declaration below still resolves `4.+`, so this module never exercises Helidon 27.0.0 despite the stated support target. Update the latest-dependency pin so the Java 27 test run actually loads Helidon 27.",
+      "created": "2026-09-24T04:32:58Z",
+      "hunk": "@@ -4,6 +4,7 @@ plugins {\n \n otelJava {\n   minJavaVersionSupported.set(JavaVersion.VERSION_21)\n+  maxJavaVersionSupported.set(JavaVersion.VERSION_27)",
+      "id": "PRRT_kwDODJKVX86lcKcY",
+      "opened": "2026-09-24T04:32:58Z",
+      "path": "instrumentation/helidon-4.3/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-24T04:50:40Z",
+          "body": "Addressed in 54327af3f1402eb3c21a024af9030624465b2cd6.\n\nFixed in the verified source changes 54327af3f1402eb3c21a024af9030624465b2cd6.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20186#discussion_r4090050715"
+        }
+      ],
+      "reviewed": "b078523bf6e8ece8178933492376e39ec8161e37",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20186#discussion_r4089968387"
+    }
+  ]
+}

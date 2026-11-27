@@ -1,0 +1,25 @@
+{
+  "head": "202462c70b176415a6a90c3b47ad4cc89194321e",
+  "merge": "b896ddd18ce3da585a28db0b76156ca14673c521",
+  "merged": "2026-08-26T07:24:38Z",
+  "missing_roots": 0,
+  "number": 19793,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This reference now resolves to a metric definition that omits `messaging.consumer.group.name`, but the stable RocketMQ 5.0 simple-consumer test verifies that `messaging.client.operation.duration` emits that attribute (`RocketMqSimpleConsumerTest.java:203-222`). The previous `f4822aab` definition included it, so this generated update would make the instrumentation list under-document emitted telemetry. Please regenerate after ensuring the preview SimpleConsumer metric metadata is included/merged, retaining a RocketMQ-specific definition with the consumer-group attribute.",
+      "created": "2026-08-25T03:04:19Z",
+      "hunk": "@@ -16284,7 +16281,7 @@ libraries:\n   - when: otel.semconv-stability.preview=messaging\n     metric_refs:\n     - messaging.client.consumed.messages-73097de6\n-    - messaging.client.operation.duration-f4822aab\n+    - messaging.client.operation.duration-68138657",
+      "id": "PRRT_kwDODJKVX86b7ETE",
+      "opened": "2026-08-25T03:04:20Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "f0cb629f337d15f1cbd0aaa22916b9bbe9030bc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19793#discussion_r3849237681"
+    }
+  ]
+}

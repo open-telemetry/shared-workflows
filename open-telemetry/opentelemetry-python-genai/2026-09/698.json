@@ -1,0 +1,145 @@
+{
+  "head": "d9c5f9307ece4b99d8f239dba1e741ac445a26b8",
+  "merge": "4bce3916023d42b3e5495fec7ceb3b9d7d8aeaed",
+  "merged": "2026-09-13T22:35:06Z",
+  "missing_roots": 0,
+  "number": 698,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`NodeWithScore` does not expose `get_content()`; the text method belongs to the wrapped `BaseNode` (for example, `candidate.node.get_content()`). The broad `except` below hides this `AttributeError`, so every retrieved document is silently dropped and the happy path emits `[]` instead of the returned documents.",
+      "created": "2026-09-12T14:57:38Z",
+      "hunk": "@@ -298,6 +302,50 @@ def _request_model(agent: BaseWorkflowAgent) -> str | None:\n     return model_name if isinstance(model_name, str) and model_name else None\n \n \n+def _retrieval_query(bound_args: inspect.BoundArguments) -> str | None:\n+    \"\"\"Extract text from either accepted LlamaIndex retrieval query form.\"\"\"\n+    query = bound_args.arguments.get(\"str_or_query_bundle\")\n+    if isinstance(query, str):\n+        return query\n+    if isinstance(query, QueryBundle):\n+        return query.query_str\n+    return None\n+\n+\n+def _retrieval_top_k(retriever: BaseRetriever) -> int | None:\n+    \"\"\"Read the common top-k setting without requiring a retriever subtype.\"\"\"\n+    try:\n+        top_k = getattr(retriever, \"similarity_top_k\", None)\n+    except Exception:\n+        return None\n+    if isinstance(top_k, int) and not isinstance(top_k, bool):\n+        return top_k\n+    return None\n+\n+\n+def _retrieval_documents(\n+    result: object,\n+) -> list[RetrievalDocument] | None:\n+    \"\"\"Convert retrieved LlamaIndex nodes to semconv document objects.\"\"\"\n+    if not isinstance(result, Sequence):\n+        return None\n+    documents: list[RetrievalDocument] = []\n+    for candidate in cast(Sequence[object], result):\n+        if not isinstance(candidate, NodeWithScore):\n+            continue\n+        try:\n+            document: RetrievalDocument = {\n+                \"id\": candidate.node_id,\n+                \"content\": candidate.get_content(),",
+      "id": "PRRT_kwDOSbspP86hxA1l",
+      "opened": "2026-09-12T14:57:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "1844ec7a8b6c1755cebedc7911143b56aef71e16",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3996584704"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.retrieval.documents` is a schema-backed structured attribute, but this new shared model is introduced as a `TypedDict` and only says it follows the schema without linking the pinned retrieval-document model. Please use the matching dataclass representation used by the util for other semconv models (and serialize it accordingly) and cite the pinned schema so its fields and optionality remain verifiable.",
+      "created": "2026-09-12T14:57:38Z",
+      "hunk": "@@ -46,6 +47,19 @@ class GenericPart:\n     type: str\n \n \n+class RetrievalDocument(TypedDict, total=False):\n+    \"\"\"A document returned by a retrieval operation.\n+\n+    This model follows the GenAI retrieval document schema and is shared by\n+    instrumentations so document attributes retain a consistent shape.",
+      "id": "PRRT_kwDOSbspP86hxA1r",
+      "opened": "2026-09-12T14:57:39Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "1844ec7a8b6c1755cebedc7911143b56aef71e16",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3996584716"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `QueryBundle` input path is explicitly supported here, but the new tests only call `retrieve`/`aretrieve` with strings. Add a regression test using `QueryBundle(query_str=...)` and assert `gen_ai.retrieval.query.text`; otherwise this accepted input can silently lose query content without any test detecting it.",
+      "created": "2026-09-12T14:57:39Z",
+      "hunk": "@@ -298,6 +302,50 @@ def _request_model(agent: BaseWorkflowAgent) -> str | None:\n     return model_name if isinstance(model_name, str) and model_name else None\n \n \n+def _retrieval_query(bound_args: inspect.BoundArguments) -> str | None:\n+    \"\"\"Extract text from either accepted LlamaIndex retrieval query form.\"\"\"\n+    query = bound_args.arguments.get(\"str_or_query_bundle\")\n+    if isinstance(query, str):\n+        return query\n+    if isinstance(query, QueryBundle):\n+        return query.query_str",
+      "id": "PRRT_kwDOSbspP86hxA1u",
+      "opened": "2026-09-12T14:57:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "1844ec7a8b6c1755cebedc7911143b56aef71e16",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3996584725"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Because this conversion runs after the retriever has returned successfully, a `BaseException` from `node_id` or `get_content()` would replace the successful SDK result with an instrumentation failure. Catch `BaseException` here so telemetry finalization cannot change application behavior.",
+      "created": "2026-09-12T19:19:19Z",
+      "hunk": "@@ -298,6 +301,50 @@ def _request_model(agent: BaseWorkflowAgent) -> str | None:\n     return model_name if isinstance(model_name, str) and model_name else None\n \n \n+def _retrieval_query(bound_args: inspect.BoundArguments) -> str | None:\n+    \"\"\"Extract text from either accepted LlamaIndex retrieval query form.\"\"\"\n+    query = bound_args.arguments.get(\"str_or_query_bundle\")\n+    if isinstance(query, str):\n+        return query\n+    if isinstance(query, QueryBundle):\n+        return query.query_str\n+    return None\n+\n+\n+def _retrieval_top_k(retriever: BaseRetriever) -> int | None:\n+    \"\"\"Read the common top-k setting without requiring a retriever subtype.\"\"\"\n+    try:\n+        top_k = getattr(retriever, \"similarity_top_k\", None)\n+    except Exception:\n+        return None\n+    if isinstance(top_k, int) and not isinstance(top_k, bool):\n+        return top_k\n+    return None\n+\n+\n+def _retrieval_documents(\n+    result: object,\n+) -> list[dict[str, Any]] | None:\n+    \"\"\"Convert retrieved LlamaIndex nodes to semconv document objects.\"\"\"\n+    if not isinstance(result, Sequence):\n+        return None\n+    documents: list[dict[str, Any]] = []\n+    for candidate in cast(Sequence[object], result):\n+        if not isinstance(candidate, NodeWithScore):\n+            continue\n+        try:\n+            document: dict[str, Any] = {\n+                \"id\": candidate.node_id,\n+                \"content\": candidate.node.get_content(),\n+            }\n+            if candidate.score is not None:\n+                document[\"score\"] = candidate.score\n+            documents.append(document)\n+        except Exception:\n+            continue",
+      "id": "PRRT_kwDOSbspP86hyzPS",
+      "opened": "2026-09-12T19:19:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "0689e35c83a2c0f26ec6dc26b151bb056c09c513",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3997277602"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This getter is executed only for telemetry, so a `BaseException` raised by a custom `similarity_top_k` property currently aborts a retrieval that would otherwise run. Instrumentation must not alter the library call; suppress all failures from this best-effort extraction.",
+      "created": "2026-09-12T19:19:19Z",
+      "hunk": "@@ -298,6 +301,50 @@ def _request_model(agent: BaseWorkflowAgent) -> str | None:\n     return model_name if isinstance(model_name, str) and model_name else None\n \n \n+def _retrieval_query(bound_args: inspect.BoundArguments) -> str | None:\n+    \"\"\"Extract text from either accepted LlamaIndex retrieval query form.\"\"\"\n+    query = bound_args.arguments.get(\"str_or_query_bundle\")\n+    if isinstance(query, str):\n+        return query\n+    if isinstance(query, QueryBundle):\n+        return query.query_str\n+    return None\n+\n+\n+def _retrieval_top_k(retriever: BaseRetriever) -> int | None:\n+    \"\"\"Read the common top-k setting without requiring a retriever subtype.\"\"\"\n+    try:\n+        top_k = getattr(retriever, \"similarity_top_k\", None)\n+    except Exception:\n+        return None",
+      "id": "PRRT_kwDOSbspP86hyzPd",
+      "opened": "2026-09-12T19:19:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "0689e35c83a2c0f26ec6dc26b151bb056c09c513",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3997277619"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new tests compare attribute values but do not verify their exact OTel value types: `2.0 == 2`, and `json.loads` also accepts bytes. The instrumentation test policy requires explicit type checks, especially for the integer `top_k` and JSON-string documents attributes.",
+      "created": "2026-09-12T19:19:20Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+\n+import pytest\n+from llama_index.core.base.base_retriever import BaseRetriever\n+from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.semconv.attributes import (\n+    error_attributes as ErrorAttributes,\n+)\n+from opentelemetry.trace import SpanKind, StatusCode\n+\n+_GEN_AI_RETRIEVAL_TOP_K = \"gen_ai.retrieval.top_k\"\n+\n+\n+class _Retriever(BaseRetriever):\n+    def __init__(self, error: BaseException | None = None) -> None:\n+        super().__init__()\n+        self.similarity_top_k = 2\n+        self._error = error\n+\n+    def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:\n+        if self._error:\n+            raise self._error\n+        return [\n+            NodeWithScore(\n+                node=TextNode(id_=\"doc-1\", text=\"Paris is in France.\"),\n+                score=0.9,\n+            )\n+        ]\n+\n+\n+def _span(exporter):\n+    spans = [s for s in exporter.get_finished_spans() if s.name == \"retrieval\"]\n+    assert len(spans) == 1\n+    return spans[0]\n+\n+\n+def test_retrieval_captures_documents_and_query(\n+    span_exporter, instrument_llama_index_with_content\n+) -> None:\n+    _Retriever().retrieve(\"Where is Paris?\")\n+    span = _span(span_exporter)\n+    assert span.kind == SpanKind.CLIENT\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_OPERATION_NAME] == \"retrieval\"\n+    )\n+    assert span.attributes[_GEN_AI_RETRIEVAL_TOP_K] == 2\n+    assert span.attributes[GenAIAttributes.GEN_AI_RETRIEVAL_QUERY_TEXT] == (\n+        \"Where is Paris?\"\n+    )\n+    assert json.loads(\n+        span.attributes[GenAIAttributes.GEN_AI_RETRIEVAL_DOCUMENTS]\n+    ) == [{\"id\": \"doc-1\", \"content\": \"Paris is in France.\", \"score\": 0.9}]",
+      "id": "PRRT_kwDOSbspP86hyzP6",
+      "opened": "2026-09-12T19:19:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_retrieval.py",
+      "replies": [],
+      "reviewed": "0689e35c83a2c0f26ec6dc26b151bb056c09c513",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3997277654"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Retrieval documents are a semconv-defined structured model, but this helper creates `dict[str, Any]` values. That bypasses the required `opentelemetry.util.genai.types` contract and leaves the shape unchecked. Add a `RetrievalDocument` dataclass to util-genai, update `RetrievalInvocation.documents` to use it, and construct that type here before landing this instrumentation.",
+      "created": "2026-09-12T19:19:20Z",
+      "hunk": "@@ -298,6 +301,50 @@ def _request_model(agent: BaseWorkflowAgent) -> str | None:\n     return model_name if isinstance(model_name, str) and model_name else None\n \n \n+def _retrieval_query(bound_args: inspect.BoundArguments) -> str | None:\n+    \"\"\"Extract text from either accepted LlamaIndex retrieval query form.\"\"\"\n+    query = bound_args.arguments.get(\"str_or_query_bundle\")\n+    if isinstance(query, str):\n+        return query\n+    if isinstance(query, QueryBundle):\n+        return query.query_str\n+    return None\n+\n+\n+def _retrieval_top_k(retriever: BaseRetriever) -> int | None:\n+    \"\"\"Read the common top-k setting without requiring a retriever subtype.\"\"\"\n+    try:\n+        top_k = getattr(retriever, \"similarity_top_k\", None)\n+    except Exception:\n+        return None\n+    if isinstance(top_k, int) and not isinstance(top_k, bool):\n+        return top_k\n+    return None\n+\n+\n+def _retrieval_documents(\n+    result: object,\n+) -> list[dict[str, Any]] | None:",
+      "id": "PRRT_kwDOSbspP86hyzPq",
+      "opened": "2026-09-12T19:19:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "0689e35c83a2c0f26ec6dc26b151bb056c09c513",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3997277636"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This exception guard adds special handling for a hypothetical getter failure; other attribute reads in this handler are unguarded. Keep the same pattern here.\n\n```suggestion\n    top_k = getattr(retriever, \"similarity_top_k\", None)\n```",
+      "created": "2026-09-12T23:26:45Z",
+      "hunk": "@@ -298,6 +301,55 @@ def _request_model(agent: BaseWorkflowAgent) -> str | None:\n     return model_name if isinstance(model_name, str) and model_name else None\n \n \n+def _retrieval_query(bound_args: inspect.BoundArguments) -> str | None:\n+    \"\"\"Extract text from either accepted LlamaIndex retrieval query form.\"\"\"\n+    query = bound_args.arguments.get(\"str_or_query_bundle\")\n+    if isinstance(query, str):\n+        return query\n+    if isinstance(query, QueryBundle):\n+        return query.query_str\n+    return None\n+\n+\n+def _retrieval_top_k(retriever: BaseRetriever) -> int | None:\n+    \"\"\"Read the common top-k setting without requiring a retriever subtype.\"\"\"\n+    try:\n+        top_k = getattr(retriever, \"similarity_top_k\", None)\n+    except BaseException:\n+        return None",
+      "id": "PRRT_kwDOSbspP86h0mJ0",
+      "opened": "2026-09-12T23:29:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "f68ac748619cca1e961c229ff24c43d598451ae2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3997985771"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This artificial `KeyboardInterrupt` case only supports the unnecessary exception guard. Remove the test along with it.\n\n```suggestion\n```",
+      "created": "2026-09-12T23:26:45Z",
+      "hunk": "@@ -0,0 +1,161 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+from typing import cast\n+\n+import pytest\n+from llama_index.core.base.base_retriever import BaseRetriever\n+from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode\n+\n+from opentelemetry.instrumentation.genai.llama_index._handler import (\n+    _retrieval_documents,\n+    _retrieval_top_k,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.semconv.attributes import (\n+    error_attributes as ErrorAttributes,\n+)\n+from opentelemetry.trace import SpanKind, StatusCode\n+\n+_GEN_AI_RETRIEVAL_TOP_K = \"gen_ai.retrieval.top_k\"\n+\n+\n+def test_unconvertible_retrieval_results_are_omitted() -> None:\n+    assert _retrieval_documents([]) == []\n+    assert _retrieval_documents([object()]) is None\n+\n+\n+def test_similarity_top_k_getter_failure_is_ignored() -> None:\n+    class _FailingRetriever:\n+        @property\n+        def similarity_top_k(self) -> int:\n+            raise KeyboardInterrupt\n+\n+    assert _retrieval_top_k(cast(BaseRetriever, _FailingRetriever())) is None",
+      "id": "PRRT_kwDOSbspP86h0mJ2",
+      "opened": "2026-09-12T23:29:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_retrieval.py",
+      "replies": [],
+      "reviewed": "f68ac748619cca1e961c229ff24c43d598451ae2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/698#discussion_r3997985775"
+    }
+  ]
+}

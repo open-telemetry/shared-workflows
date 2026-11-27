@@ -1,0 +1,40 @@
+{
+  "head": "038365a3ec029cb9ad74f1372aa14d54262235fc",
+  "merge": "513607096c86f8dc41e5f766156f0701b5c3f15c",
+  "merged": "2026-04-22T05:06:40Z",
+  "missing_roots": 0,
+  "number": 18133,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    if (consumer == null) {\n      return emptyMap();\n    }\n    Map<String, String> map = consumerInfoField.get(consumer);\n```",
+      "created": "2026-04-22T04:18:53Z",
+      "hunk": "@@ -84,9 +83,6 @@ public static String getClientId(Consumer<?, ?> consumer) {\n   }\n \n   private static Map<String, String> getConsumerInfo(Consumer<?, ?> consumer) {\n-    if (consumer == null) {\n-      return emptyMap();\n-    }\n     Map<String, String> map = consumerInfoField.get(consumer);",
+      "id": "PRRT_kwDODJKVX858rZAA",
+      "opened": "2026-04-22T04:18:53Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "864f83764d610fde37e9327692c6e36741102e5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18133#discussion_r3121528910"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nimport static java.util.Collections.emptyMap;\nimport static java.util.stream.Collectors.joining;\n```",
+      "created": "2026-04-22T04:19:19Z",
+      "hunk": "@@ -5,7 +5,6 @@\n \n package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n \n-import static java.util.Collections.emptyMap;\n import static java.util.stream.Collectors.joining;",
+      "id": "PRRT_kwDODJKVX858rZLW",
+      "opened": "2026-04-22T04:19:18Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "999db9b1e67a6fd3b14f01b37be94b7327c2995d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18133#discussion_r3121529917"
+    }
+  ]
+}

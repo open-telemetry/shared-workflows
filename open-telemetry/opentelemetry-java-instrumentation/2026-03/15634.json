@@ -1,0 +1,295 @@
+{
+  "head": "216916dbad659bbcc53476e2d3da7198b21150de",
+  "merge": "6e1f950d211dd0e3edea0958c5cd85f53b90cb2f",
+  "merged": "2026-03-13T17:12:06Z",
+  "missing_roots": 0,
+  "number": 15634,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\n    if (request.getBody() == null) {\r\n      return request.getMethod() + \" \" + request.getOperation();\r\n    }\r\n    return request.getBody();\r\n```",
+      "created": "2025-12-15T11:07:57Z",
+      "hunk": "@@ -26,7 +26,12 @@ public String getDbNamespace(OpenSearchRequest request) {\n   @Override\n   @Nullable\n   public String getDbQueryText(OpenSearchRequest request) {\n-    return request.getMethod() + \" \" + request.getOperation();\n+    // keep the previous logic in case of failure to extract the query body\n+    if (request.getBody() == null) {\n+      return request.getMethod() + \" \" + request.getOperation();\n+    } else {\n+      return request.getBody();\n+    }",
+      "id": "PRRT_kwDODJKVX85mEZq5",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetter.java",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2618969279"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "Public classes should be declared final where possible ([ref](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/contributing/style-guideline.md#final-keyword-usage))\r\n\r\n```suggestion\r\npublic final class OpenSearchBodyExtractor {\r\n```",
+      "created": "2025-12-15T11:09:26Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import jakarta.json.stream.JsonGenerator;\n+import java.io.ByteArrayOutputStream;\n+import java.nio.charset.StandardCharsets;\n+import java.util.Iterator;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import org.apache.hc.core5.http.ContentType;\n+import org.opensearch.client.json.JsonpMapper;\n+import org.opensearch.client.json.NdJsonpSerializable;\n+import org.opensearch.client.transport.GenericSerializable;\n+\n+public class OpenSearchBodyExtractor {",
+      "id": "PRRT_kwDODJKVX85mEahD",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2618973659"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\npublic final class OpenSearchBodySanitizer {\r\n```",
+      "created": "2025-12-15T11:09:56Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.fasterxml.jackson.databind.node.ArrayNode;\n+import com.fasterxml.jackson.databind.node.ObjectNode;\n+import com.fasterxml.jackson.databind.node.TextNode;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+\n+public class OpenSearchBodySanitizer {",
+      "id": "PRRT_kwDODJKVX85mEa0f",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodySanitizer.java",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2618975213"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "i dont think is right?\r\n\r\n```suggestion\r\n/**\r\n * Splits and joins queries for newline-delimited JSON (nd-json) format.\r\n * Splits input by newlines and joins output with semicolons for display.\r\n */\r\n```",
+      "created": "2025-12-15T11:15:14Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+\n+/**\n+ * Splits multiple queries separated by semicolons. Single Responsibility: Only responsible for\n+ * query separation logic.\n+ */",
+      "id": "PRRT_kwDODJKVX85mEdwz",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/QuerySplitter.java",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2618990856"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "duplicate\r\n```suggestion\r\n```",
+      "created": "2025-12-15T11:15:53Z",
+      "hunk": "@@ -18,19 +18,21 @@ dependencies {\n   library(\"org.opensearch.client:opensearch-java:3.0.0\")\n   compileOnly(\"com.google.auto.value:auto-value-annotations\")\n   annotationProcessor(\"com.google.auto.value:auto-value\")\n+  implementation(\"com.fasterxml.jackson.core:jackson-databind\")\n \n   testImplementation(\"org.opensearch.client:opensearch-rest-client:3.0.0\")\n   testImplementation(project(\":instrumentation:opensearch:opensearch-rest-common:testing\"))\n   testInstrumentation(project(\":instrumentation:apache-httpclient:apache-httpclient-5.0:javaagent\"))\n \n-  // For testing AwsSdk2Transport\n+  // AwsSdk2Transport supports awssdk version 2.26.0\n   testInstrumentation(project(\":instrumentation:apache-httpclient:apache-httpclient-4.0:javaagent\"))\n   testInstrumentation(project(\":instrumentation:netty:netty-4.1:javaagent\"))\n-  testImplementation(\"software.amazon.awssdk:auth:2.22.0\")\n-  testImplementation(\"software.amazon.awssdk:identity-spi:2.22.0\")\n-  testImplementation(\"software.amazon.awssdk:apache-client:2.22.0\")\n-  testImplementation(\"software.amazon.awssdk:netty-nio-client:2.22.0\")\n-  testImplementation(\"software.amazon.awssdk:regions:2.22.0\")\n+  testImplementation(\"software.amazon.awssdk:auth:2.26.0\")\n+  testImplementation(\"software.amazon.awssdk:identity-spi:2.26.0\")\n+  testImplementation(\"software.amazon.awssdk:apache-client:2.26.0\")\n+  testImplementation(\"software.amazon.awssdk:netty-nio-client:2.26.0\")\n+  testImplementation(\"software.amazon.awssdk:netty-nio-client:2.26.0\")",
+      "id": "PRRT_kwDODJKVX85mEeD2",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2618992468"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this all looks to be unused, is it needed?\r\n\r\n```suggestion\r\n\r\n```",
+      "created": "2025-12-15T11:21:19Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import com.fasterxml.jackson.databind.JsonNode;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.fasterxml.jackson.databind.node.ArrayNode;\n+import com.fasterxml.jackson.databind.node.ObjectNode;\n+import com.fasterxml.jackson.databind.node.TextNode;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+\n+public class OpenSearchBodySanitizer {\n+\n+  private static final Logger logger = Logger.getLogger(OpenSearchBodySanitizer.class.getName());\n+\n+  private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper();\n+  private static final String MASKED_VALUE = \"?\";\n+  private static final OpenSearchBodySanitizer DEFAULT_INSTANCE =\n+      new OpenSearchBodySanitizer(DEFAULT_OBJECT_MAPPER);\n+\n+  private final ObjectMapper objectMapper;\n+\n+  private OpenSearchBodySanitizer(ObjectMapper objectMapper) {\n+    this.objectMapper = objectMapper;\n+  }\n+\n+  public static OpenSearchBodySanitizer create() {\n+    return new OpenSearchBodySanitizer(DEFAULT_OBJECT_MAPPER);\n+  }\n+\n+  public static OpenSearchBodySanitizer create(ObjectMapper objectMapper) {\n+    return new OpenSearchBodySanitizer(objectMapper);\n+  }\n+\n+  public static OpenSearchBodySanitizer getDefault() {\n+    return DEFAULT_INSTANCE;\n+  }",
+      "id": "PRRT_kwDODJKVX85mEhID",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodySanitizer.java",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2619008382"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "is the ContentType.parse needed here? could it just be `((GenericSerializable) request).serialize(baos);` ?",
+      "created": "2025-12-15T11:24:18Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import jakarta.json.stream.JsonGenerator;\n+import java.io.ByteArrayOutputStream;\n+import java.nio.charset.StandardCharsets;\n+import java.util.Iterator;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import org.apache.hc.core5.http.ContentType;\n+import org.opensearch.client.json.JsonpMapper;\n+import org.opensearch.client.json.NdJsonpSerializable;\n+import org.opensearch.client.transport.GenericSerializable;\n+\n+public class OpenSearchBodyExtractor {\n+\n+  private static final Logger logger = Logger.getLogger(OpenSearchBodyExtractor.class.getName());\n+\n+  @Nullable\n+  public static String extract(JsonpMapper mapper, Object request) {\n+    try {\n+      ByteArrayOutputStream baos = new ByteArrayOutputStream();\n+\n+      if (request instanceof NdJsonpSerializable) {\n+        writeNdJson(mapper, (NdJsonpSerializable) request, baos);\n+      } else if (request instanceof GenericSerializable) {\n+        ContentType.parse(((GenericSerializable) request).serialize(baos));",
+      "id": "PRRT_kwDODJKVX85mEil1",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2619016191"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this is unused",
+      "created": "2025-12-15T11:27:23Z",
+      "hunk": "@@ -106,13 +105,133 @@ void prepTest() {\n     server.enqueue(HttpResponse.of(HttpStatus.OK, MediaType.JSON_UTF_8, healthResponse));\n   }\n \n+  void setupForSearchResponse() {\n+    server.beforeTestExecution(null); // Added this line\n+\n+    // Mock OpenSearch Search response, matching the TestDocument class structure\n+    String searchResponseJson =\n+        \"{\\n\"\n+            + \"  \\\"took\\\": 5,\\n\"\n+            + \"  \\\"timed_out\\\": false,\\n\"\n+            + \"  \\\"_shards\\\": {\\n\"\n+            + \"    \\\"total\\\": 1,\\n\"\n+            + \"    \\\"successful\\\": 1,\\n\"\n+            + \"    \\\"skipped\\\": 0,\\n\"\n+            + \"    \\\"failed\\\": 0\\n\"\n+            + \"  },\\n\"\n+            + \"  \\\"hits\\\": {\\n\"\n+            + \"    \\\"total\\\": {\\n\"\n+            + \"      \\\"value\\\": 1,\\n\"\n+            + \"      \\\"relation\\\": \\\"eq\\\"\\n\"\n+            + \"    },\\n\"\n+            + \"    \\\"max_score\\\": 1.0,\\n\"\n+            + \"    \\\"hits\\\": [\\n\"\n+            + \"      {\\n\"\n+            + \"        \\\"_index\\\": \\\"my_index\\\",\\n\"\n+            + \"        \\\"_id\\\": \\\"1\\\",\\n\"\n+            + \"        \\\"_score\\\": 1.0,\\n\"\n+            + \"        \\\"_source\\\": {\\n\"\n+            + \"          \\\"id\\\": \\\"doc-1\\\",\\n\" // Corrected field\n+            + \"          \\\"message\\\": \\\"This is a test document.\\\"\\n\" // Corrected field\n+            + \"        }\\n\"\n+            + \"      }\\n\"\n+            + \"    ]\\n\"\n+            + \"  }\\n\"\n+            + \"}\";\n+    server.enqueue(HttpResponse.of(HttpStatus.OK, MediaType.JSON_UTF_8, searchResponseJson));\n+  }\n+\n+  void setupForMsearchResponse() {",
+      "id": "PRRT_kwDODJKVX85mEkQg",
+      "opened": "2025-12-15T11:31:46Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAwsSdk2TransportTest.java",
+      "replies": [],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2619025024"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "I wonder if it's worth mentioning that this will likely impact performance in some way due to the serialization?\r\n```suggestion\r\n| `otel.instrumentation.opensearch.capture-search-query`          | Boolean | `false` | Enable the capture of sanitized search query bodies. **Note**: Enabling this feature adds overhead for JSON serialization and parsing on search requests. |\r\n```",
+      "created": "2025-12-15T11:43:52Z",
+      "hunk": "@@ -3,3 +3,10 @@\n | System property                                                | Type    | Default | Description                                         |\n | -------------------------------------------------------------- | ------- | ------- | --------------------------------------------------- |\n | `otel.instrumentation.opensearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes. |\n+\n+## Settings for the [OpenSearch Java Client](https://docs.opensearch.org/latest/clients/java/) instrumentation\n+\n+| System property                                                 | Type    | Default | Description                                          |\n+|-----------------------------------------------------------------|---------| ------- |------------------------------------------------------|\n+| `otel.instrumentation.opensearch.experimental-span-attributes`  | Boolean | `false` | Enable the capture of experimental span attributes.  |\n+| `otel.instrumentation.opensearch.capture-search-query`          | Boolean | `false` | Enable the capture of sanitized search query bodies. |",
+      "id": "PRRT_kwDODJKVX85mEtKi",
+      "opened": "2025-12-15T11:43:53Z",
+      "path": "instrumentation/opensearch/README.md",
+      "replies": [
+        {
+          "at": "2025-12-17T03:49:31Z",
+          "body": "@jaydeluca I think so. This feature can add overhead to search requests. The overhead is expected to be slight, but could be unexpected on systems that use a lot of search requests. It's better to clarify this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2625496982"
+        }
+      ],
+      "reviewed": "fa40f55ed4cea1da111181d668eaede16a291345",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2619071823"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should be `compileOnly`. Implementation dependencies are embedded inside the agent, but your code seems to use the `jackson-databind` that is bundled inside the application.",
+      "created": "2025-12-18T13:33:20Z",
+      "hunk": "@@ -18,19 +18,20 @@ dependencies {\n   library(\"org.opensearch.client:opensearch-java:3.0.0\")\n   compileOnly(\"com.google.auto.value:auto-value-annotations\")\n   annotationProcessor(\"com.google.auto.value:auto-value\")\n+  implementation(\"com.fasterxml.jackson.core:jackson-databind\")",
+      "id": "PRRT_kwDODJKVX85mnOUK",
+      "opened": "2025-12-18T13:33:20Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "864c25fc9a070454d236e20de6cc3f12baf23c1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2631126816"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this change seems unrelated to opensearch",
+      "created": "2025-12-18T13:34:34Z",
+      "hunk": "@@ -53,6 +53,7 @@ public void onEnd(\n       @Nullable Throwable error) {\n \n     if (recordMetadata != null) {\n+      recordMetadata.serializedValueSize();",
+      "id": "PRRT_kwDODJKVX85mnPKM",
+      "opened": "2025-12-18T13:34:34Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "864c25fc9a070454d236e20de6cc3f12baf23c1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2631131369"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Just wondering whether instead of serializing the query to json string and then parsing that json, sanitizing it and serializing it again to json string you could wrap the `JsonGenerator` here so that it would replace literal values with `?` so you wouldn't need to parse the json again.",
+      "created": "2025-12-18T13:45:23Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import jakarta.json.stream.JsonGenerator;\n+import java.io.ByteArrayOutputStream;\n+import java.nio.charset.StandardCharsets;\n+import java.util.Iterator;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import org.opensearch.client.json.JsonpMapper;\n+import org.opensearch.client.json.NdJsonpSerializable;\n+import org.opensearch.client.transport.GenericSerializable;\n+\n+public final class OpenSearchBodyExtractor {\n+\n+  private static final Logger logger = Logger.getLogger(OpenSearchBodyExtractor.class.getName());\n+\n+  @Nullable\n+  public static String extract(JsonpMapper mapper, Object request) {\n+    try {\n+      ByteArrayOutputStream baos = new ByteArrayOutputStream();\n+\n+      if (request instanceof NdJsonpSerializable) {\n+        writeNdJson(mapper, (NdJsonpSerializable) request, baos);\n+      } else if (request instanceof GenericSerializable) {\n+        ((GenericSerializable) request).serialize(baos);\n+      } else {\n+        JsonGenerator generator = mapper.jsonProvider().createGenerator(baos);\n+        mapper.serialize(request, generator);\n+        generator.close();\n+      }\n+\n+      String body = baos.toString(StandardCharsets.UTF_8);\n+      return body.isEmpty() ? null : body;\n+    } catch (RuntimeException e) {\n+      logger.log(FINE, \"Failure extracting body\", e);\n+      return null;\n+    }\n+  }\n+\n+  private static void writeNdJson(\n+      JsonpMapper mapper, NdJsonpSerializable value, ByteArrayOutputStream baos) {\n+    try {\n+      Iterator<?> values = value._serializables();\n+      while (values.hasNext()) {\n+        Object item = values.next();\n+        if (item instanceof NdJsonpSerializable && item != value) {\n+          // do not recurse on the item itself\n+          writeNdJson(mapper, (NdJsonpSerializable) item, baos);\n+        } else {\n+          JsonGenerator generator = mapper.jsonProvider().createGenerator(baos);",
+      "id": "PRRT_kwDODJKVX85mnVp-",
+      "opened": "2025-12-18T13:45:23Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [
+        {
+          "at": "2025-12-24T03:10:23Z",
+          "body": "@laurit I was able to reduce extraction and sanitization from two steps to just one using `JsonGenerator`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2644685714"
+        }
+      ],
+      "reviewed": "864c25fc9a070454d236e20de6cc3f12baf23c1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2631165680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "remove redundant `else`.",
+      "created": "2026-01-06T23:57:24Z",
+      "hunk": "@@ -0,0 +1,115 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import com.fasterxml.jackson.core.JsonFactory;\n+import jakarta.json.stream.JsonGenerator;\n+import java.io.ByteArrayOutputStream;\n+import java.nio.charset.StandardCharsets;\n+import java.util.Iterator;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import org.opensearch.client.json.JsonpMapper;\n+import org.opensearch.client.json.NdJsonpSerializable;\n+import org.opensearch.client.json.jackson.JacksonJsonpGenerator;\n+import org.opensearch.client.json.jackson.JacksonJsonpMapper;\n+import org.opensearch.client.transport.GenericSerializable;\n+\n+public final class OpenSearchBodyExtractor {\n+\n+  private static final Logger logger = Logger.getLogger(OpenSearchBodyExtractor.class.getName());\n+  private static final String QUERY_SEPARATOR = \";\";\n+  private static final JsonFactory JSON_FACTORY = new JsonFactory();\n+\n+  @Nullable\n+  public static String extractSanitized(JsonpMapper mapper, Object request) {\n+    try {\n+      if (request instanceof NdJsonpSerializable) {\n+        return serializeNdJsonSanitized(mapper, (NdJsonpSerializable) request);\n+      } else if (request instanceof GenericSerializable) {",
+      "id": "PRRT_kwDODJKVX85oRNCa",
+      "opened": "2026-01-06T23:57:24Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [],
+      "reviewed": "5283ac7c848976efcc957392e10b478715269aa9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2666634415"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Try changing it to something similar to https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bc92d262f858091d786047f6189d575185ed208/instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/PulsarSingletons.java#L146-L147\nreplace `pulsar` with `opensearch` and `experimental_span_attributes/development` with `capture_search_query`",
+      "created": "2026-01-07T14:26:36Z",
+      "hunk": "@@ -11,10 +11,15 @@\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientSpanNameExtractor;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;\n \n public final class OpenSearchSingletons {\n   private static final Instrumenter<OpenSearchRequest, Void> INSTRUMENTER = createInstrumenter();\n \n+  public static final boolean CAPTURE_SEARCH_QUERY =\n+      ConfigPropertiesUtil.getBoolean(",
+      "id": "PRRT_kwDODJKVX85oXIc8",
+      "opened": "2026-01-07T14:26:36Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchSingletons.java",
+      "replies": [],
+      "reviewed": "01ef0ea5971072994e193cacdcfab3ac6b86caae",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2668668308"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "none of the tests seem to use this part",
+      "created": "2026-02-26T17:20:19Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.logging.Level.FINE;\n+\n+import com.fasterxml.jackson.core.JsonFactory;\n+import jakarta.json.stream.JsonGenerator;\n+import java.io.ByteArrayOutputStream;\n+import java.io.IOException;\n+import java.util.Iterator;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import org.opensearch.client.json.JsonpMapper;\n+import org.opensearch.client.json.NdJsonpSerializable;\n+import org.opensearch.client.json.jackson.JacksonJsonpGenerator;\n+import org.opensearch.client.json.jackson.JacksonJsonpMapper;\n+import org.opensearch.client.transport.GenericSerializable;\n+\n+public final class OpenSearchBodyExtractor {\n+\n+  private static final Logger logger = Logger.getLogger(OpenSearchBodyExtractor.class.getName());\n+  private static final String QUERY_SEPARATOR = \";\";\n+  private static final JsonFactory JSON_FACTORY = new JsonFactory();\n+\n+  @Nullable\n+  public static String extractSanitized(JsonpMapper mapper, Object request) {\n+    try {\n+      if (request instanceof NdJsonpSerializable) {\n+        return serializeNdJsonSanitized(mapper, (NdJsonpSerializable) request);\n+      }\n+\n+      if (request instanceof GenericSerializable) {\n+        // GenericSerializable writes directly to output stream, cannot sanitize\n+        // This path is typically not used for search queries\n+        ByteArrayOutputStream baos = new ByteArrayOutputStream();\n+        ((GenericSerializable) request).serialize(baos);\n+        String body = baos.toString(UTF_8);\n+        return body.isEmpty() ? null : body;\n+      }",
+      "id": "PRRT_kwDODJKVX85xACAm",
+      "opened": "2026-02-26T17:20:19Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-27T08:09:16Z",
+          "body": "@laurit since the type of request is checked to be either `SearchRequest` or `MsearchRequest` before calling `extractSanitized`, so the request can't be an instance of `GenericSerializable`. it was not a dead code before, but it became the dead code after some modification. it should be removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2863089790"
+        }
+      ],
+      "reviewed": "bd7336ae80ac457e988fab0dc42e87853212024c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2860321873"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "none of the tests seem to use this part",
+      "created": "2026-02-26T17:20:36Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.logging.Level.FINE;\n+\n+import com.fasterxml.jackson.core.JsonFactory;\n+import jakarta.json.stream.JsonGenerator;\n+import java.io.ByteArrayOutputStream;\n+import java.io.IOException;\n+import java.util.Iterator;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import org.opensearch.client.json.JsonpMapper;\n+import org.opensearch.client.json.NdJsonpSerializable;\n+import org.opensearch.client.json.jackson.JacksonJsonpGenerator;\n+import org.opensearch.client.json.jackson.JacksonJsonpMapper;\n+import org.opensearch.client.transport.GenericSerializable;\n+\n+public final class OpenSearchBodyExtractor {\n+\n+  private static final Logger logger = Logger.getLogger(OpenSearchBodyExtractor.class.getName());\n+  private static final String QUERY_SEPARATOR = \";\";\n+  private static final JsonFactory JSON_FACTORY = new JsonFactory();\n+\n+  @Nullable\n+  public static String extractSanitized(JsonpMapper mapper, Object request) {\n+    try {\n+      if (request instanceof NdJsonpSerializable) {\n+        return serializeNdJsonSanitized(mapper, (NdJsonpSerializable) request);\n+      }\n+\n+      if (request instanceof GenericSerializable) {\n+        // GenericSerializable writes directly to output stream, cannot sanitize\n+        // This path is typically not used for search queries\n+        ByteArrayOutputStream baos = new ByteArrayOutputStream();\n+        ((GenericSerializable) request).serialize(baos);\n+        String body = baos.toString(UTF_8);\n+        return body.isEmpty() ? null : body;\n+      }\n+\n+      return serializeSanitized(mapper, request);\n+    } catch (Exception exception) {\n+      logger.log(FINE, \"Failure extracting body\", exception);\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  private static String serializeSanitized(JsonpMapper mapper, Object item) throws IOException {\n+    ByteArrayOutputStream baos = new ByteArrayOutputStream();\n+\n+    if (mapper instanceof JacksonJsonpMapper) {\n+      // Use Jackson-based sanitizing generator for JacksonJsonpMapper\n+      com.fasterxml.jackson.core.JsonGenerator jacksonGenerator =\n+          JSON_FACTORY.createGenerator(baos);\n+      com.fasterxml.jackson.core.JsonGenerator sanitizingGenerator =\n+          new SanitizingJacksonJsonGenerator(jacksonGenerator);\n+      try (JsonGenerator generator = new JacksonJsonpGenerator(sanitizingGenerator)) {\n+        mapper.serialize(item, generator);\n+      }\n+    } else {\n+      // Fallback for other mappers (may not work for all implementations)\n+      JsonGenerator rawGenerator = mapper.jsonProvider().createGenerator(baos);\n+      try (JsonGenerator generator = new SanitizingJsonGenerator(rawGenerator)) {\n+        mapper.serialize(item, generator);\n+      }",
+      "id": "PRRT_kwDODJKVX85xACRy",
+      "opened": "2026-02-26T17:20:36Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-27T08:10:33Z",
+          "body": "@laurit the tests for not using default mapper are missing. it should be covered.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2863094163"
+        }
+      ],
+      "reviewed": "bd7336ae80ac457e988fab0dc42e87853212024c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2860323366"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Since capturing the query is now simpler than in the initial version I'm wondering whether we should add the performance note at all. Perhaps we should enable this by default?\ncc @trask ",
+      "created": "2026-02-26T17:25:30Z",
+      "hunk": "@@ -3,3 +3,10 @@\n | System property                                                | Type    | Default | Description                                         |\n | -------------------------------------------------------------- | ------- | ------- | --------------------------------------------------- |\n | `otel.instrumentation.opensearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes. |\n+\n+## Settings for the [OpenSearch Java Client](https://docs.opensearch.org/latest/clients/java/) instrumentation\n+\n+| System property                                                | Type    | Default | Description                                                                                                                                                |\n+| -------------------------------------------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |\n+| `otel.instrumentation.opensearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes.                                                                                                        |\n+| `otel.instrumentation.opensearch.capture-search-query`         | Boolean | `false` | Enable the capture of sanitized search query bodies. **Note**: Enabling this feature adds overhead for JSON serialization and parsing on search requests.  |",
+      "id": "PRRT_kwDODJKVX85xAHP1",
+      "opened": "2026-02-26T17:25:30Z",
+      "path": "instrumentation/opensearch/README.md",
+      "replies": [
+        {
+          "at": "2026-02-26T19:17:19Z",
+          "body": "seems reasonable, it's definitely useful data",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2860860025"
+        }
+      ],
+      "reviewed": "bd7336ae80ac457e988fab0dc42e87853212024c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15634#discussion_r2860351794"
+    }
+  ]
+}

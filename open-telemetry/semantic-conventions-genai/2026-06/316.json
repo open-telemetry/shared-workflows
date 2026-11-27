@@ -1,0 +1,31 @@
+{
+  "head": "632c2876d596e86bb2b6178ccc1e954811d50b85",
+  "merge": "528c45308c35c4d0cc31d386238908b4a1e7fd8f",
+  "merged": "2026-06-17T19:33:07Z",
+  "missing_roots": 0,
+  "number": 316,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Normalizing Copilot reviewer actors to \"copilot-pull-request-reviewer\" drops the \"[bot]\" suffix / \"app/\" prefix that `role_for()` uses to detect bots (see `low.endswith(\"[bot]\")`). This makes Copilot review activity look like an \"outsider\" (and therefore substantive), which can incorrectly update activity timestamps and include Copilot messages in PR conversation threads that explicitly filter out bots.",
+      "created": "2026-06-16T23:22:25Z",
+      "hunk": "@@ -203,9 +203,17 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:\n # human author behind a Copilot-authored PR.\n _COPILOT_COMMITTER_LOGINS = {\"copilot\"}\n _COPILOT_PR_AUTHORS = {\"app/copilot-swe-agent\", \"copilot\"}\n+_COPILOT_REVIEWER_LOGINS = {\"copilot\", \"copilot-pull-request-reviewer\", \"copilot-pull-request-reviewer[bot]\"}\n _MAINTENANCE_BOT_PR_AUTHORS = {\"app/otelbot\", \"app/renovate\"}\n \n \n+def reviewer_actor_login(obj: dict[str, Any] | None) -> str:\n+    login = actor_login(obj)\n+    if login.lower() in _COPILOT_REVIEWER_LOGINS:\n+        return \"copilot-pull-request-reviewer\"\n+    return login",
+      "id": "PRRT_kwDOSUeMrM6KDuUd",
+      "opened": "2026-06-16T23:22:25Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-16T23:25:16Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/632c2876d596e86bb2b6178ccc1e954811d50b85.\n\nCopilot reviewer aliases now preserve the `[bot]` suffix internally so `role_for()` still classifies them as bot activity, while rendering keeps the friendly `Copilot` display name.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/316#discussion_r3424600987"
+        }
+      ],
+      "reviewed": "515e63682581293f64488985c82e7d124e604ceb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/316#discussion_r3424588822"
+    }
+  ]
+}

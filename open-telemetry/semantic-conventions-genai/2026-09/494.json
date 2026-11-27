@@ -1,0 +1,40 @@
+{
+  "head": "82c064b4c28ebae348238c2b39d8fe4dd1f5b14e",
+  "merge": "fee465db333bdd6a7d2faa320edab5cf3101a4f4",
+  "merged": "2026-09-03T01:32:52Z",
+  "missing_roots": 0,
+  "number": 494,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Weaver 0.26 changes each v2 `entity_associations` leaf from a string to an object, but `templates/registry/markdown/metric_table.j2:13` still applies `trim` directly to the leaf. Metrics with entity associations will now fail to render or print the object instead of its entity type. Update that template to render `e.type` as part of this bump.",
+      "created": "2026-09-02T21:08:40Z",
+      "hunk": "@@ -1,5 +1,5 @@\n # renovate: datasource=github-releases depName=open-telemetry/weaver versioning=semver-coerced\n-WEAVER_VERSION=v0.25.1\n+WEAVER_VERSION=v0.26.0",
+      "id": "PRRT_kwDOSUeMrM6erren",
+      "opened": "2026-09-02T21:08:40Z",
+      "path": "versions.env",
+      "replies": [],
+      "reviewed": "69e200a6faef06d5b5eb19549d343c71194649cd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/494#discussion_r3918676728"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nWEAVER_VERSION=v0.26.1\n```",
+      "created": "2026-09-03T01:27:31Z",
+      "hunk": "@@ -1,5 +1,5 @@\n # renovate: datasource=github-releases depName=open-telemetry/weaver versioning=semver-coerced\n-WEAVER_VERSION=v0.25.1\n+WEAVER_VERSION=v0.26.0",
+      "id": "PRRT_kwDOSUeMrM6evctR",
+      "opened": "2026-09-03T01:27:31Z",
+      "path": "versions.env",
+      "replies": [],
+      "reviewed": "69e200a6faef06d5b5eb19549d343c71194649cd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/494#discussion_r3920198488"
+    }
+  ]
+}

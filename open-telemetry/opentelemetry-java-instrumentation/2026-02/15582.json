@@ -1,0 +1,76 @@
+{
+  "head": "b3973fc0de24fdaf86b2df274697c2369217d4ca",
+  "merge": "fea50c13dc0da448969c1078f3e01d8e13fb0eb2",
+  "merged": "2026-02-27T15:39:20Z",
+  "missing_roots": 0,
+  "number": 15582,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "google ai believes that these dbs don't support string literals in double quotes",
+      "created": "2025-12-09T14:30:05Z",
+      "hunk": "@@ -5,22 +5,45 @@\n \n package io.opentelemetry.instrumentation.api.incubator.semconv.db;\n \n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlStatementSanitizer.CacheKey;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.api.internal.InstrumenterContext;\n+import io.opentelemetry.semconv.DbAttributes;\n+import java.util.Arrays;\n import java.util.HashMap;\n+import java.util.HashSet;\n import java.util.Map;\n+import java.util.Set;\n \n /**\n  * Helper class for sanitizing sql that keeps sanitization results in {@link InstrumenterContext} so\n  * that each statement would be sanitized only once for given {@link Instrumenter} call.\n  */\n class SqlStatementSanitizerUtil {\n   private static final SqlStatementSanitizer sanitizer = SqlStatementSanitizer.create(true);\n+  private static final Set<String> dbsWithAnsiQuotes =\n+      new HashSet<>(\n+          Arrays.asList(\n+              DbAttributes.DbSystemNameValues.POSTGRESQL,\n+              \"oracle\",\n+              \"h2\",\n+              \"hsqldb\",\n+              \"db2\",\n+              \"derby\",\n+              \"hanadb\"));",
+      "id": "PRRT_kwDODJKVX85lVszK",
+      "opened": "2025-12-09T14:30:05Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuerySanitizerUtil.java",
+      "replies": [],
+      "reviewed": "7cf5f8a3f43c33ffac261ff911db42a06f70d932",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15582#discussion_r2602917490"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Moved this test to `io.opentelemetry.instrumentation.api.incubator.semconv.db` so it could access `CacheKey`",
+      "created": "2026-02-23T23:26:06Z",
+      "hunk": "@@ -13,24 +14,23 @@\n import io.opentelemetry.api.common.Attributes;\n import io.opentelemetry.api.common.AttributesBuilder;\n import io.opentelemetry.context.Context;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientSpanNameExtractor;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesExtractor;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlQuery;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlQuerySanitizer.CacheKey;\n import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.internal.InstrumenterContext;\n import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n import java.util.Collection;\n+import java.util.HashMap;\n import java.util.Map;\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n-class InstrumenterContextTest {\n+class SqlQuerySanitizerUtilCacheTest {",
+      "id": "PRRT_kwDODJKVX85wQWu4",
+      "opened": "2026-02-23T23:26:06Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuerySanitizerUtilCacheTest.java",
+      "replies": [],
+      "reviewed": "fa6d4264ec9dd92491d3c383aedf3f48cde47aa0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15582#discussion_r2843596923"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is what motivated https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16275",
+      "created": "2026-02-23T23:26:56Z",
+      "hunk": "@@ -149,9 +150,17 @@ public void pre(\n   void setQueryAttributes(AttributesBuilder attributes, Exchange exchange) {\n     String rawQueryText = getRawQueryText(exchange);\n     if (rawQueryText != null) {\n-      SqlQuery sqlQuery = emitOldDatabaseSemconv() ? sanitizer.sanitize(rawQueryText) : null;\n+      // using the conservative default since the underlying database is unknown to camel\n+      // TODO consider removing db spans from camel since underlying database instrumentation\n+      // can do a better job\n+      SqlQuery sqlQuery =\n+          emitOldDatabaseSemconv()\n+              ? sanitizer.sanitize(rawQueryText, DOUBLE_QUOTES_ARE_STRING_LITERALS)\n+              : null;",
+      "id": "PRRT_kwDODJKVX85wQXRY",
+      "opened": "2026-02-23T23:26:56Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecamel/decorators/DbSpanDecorator.java",
+      "replies": [
+        {
+          "at": "2026-02-27T08:29:17Z",
+          "body": "Our camel instrumentation is for camel 2.x. Camel 3.x has built-in instrumentation that our instrumentation is based on (idk whether it is enabled by default or what the user needs to do to enable it). Since it is not a widely used instrumentation I probably wouldn't have bothered preserving the behavior and just documented it as a breaking change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15582#discussion_r2863160024"
+        }
+      ],
+      "reviewed": "fa6d4264ec9dd92491d3c383aedf3f48cde47aa0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15582#discussion_r2843599934"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I removed h2 because it has a MySQL mode where double quotes are for string literals",
+      "created": "2026-02-24T05:32:21Z",
+      "hunk": "@@ -20,6 +27,41 @@ public final class JdbcAttributesGetter implements SqlClientAttributesGetter<DbR\n \n   public static final JdbcAttributesGetter INSTANCE = new JdbcAttributesGetter();\n \n+  // Databases where double quotes are exclusively identifiers and cannot be string literals.\n+  private static final Set<String> DOUBLE_QUOTES_FOR_IDENTIFIERS_SYSTEMS =\n+      new HashSet<>(\n+          Arrays.asList(\n+              // \"A string constant in SQL is an arbitrary sequence of characters\n+              // bounded by single quotes (')\"\n+              // https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-STRINGS\n+              \"postgresql\",\n+              // \"Text, character, and string literals are always surrounded\n+              // by single quotation marks.\"\n+              // https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/Literals.html\n+              \"oracle\",\n+              // \"A sequence of characters that starts and ends with a string delimiter,\n+              // which is an apostrophe (')\"\n+              // https://www.ibm.com/docs/en/db2/12.1?topic=elements-constants\n+              \"db2\",\n+              // \"Single quotation marks delimit character strings.\"\n+              // \"Double quotation marks delimit special identifiers\"\n+              // https://db.apache.org/derby/docs/10.17/ref/rrefsqlj28468.html\n+              \"derby\",\n+              // \"names of objects are enclosed in double-quotes\"\n+              // (double quotes are exclusively for identifiers; follows SQL standard strictly)\n+              // https://hsqldb.org/doc/2.0/guide/sqlgeneral-chapt.html\n+              \"hsqldb\",\n+              // <string_literal> ::= <single_quote>[<any_character>...]<single_quote>\n+              // <special_identifier> ::= <double_quotes><any_character>...<double_quotes>\n+              // https://help.sap.com/docs/hana-cloud-database/sap-hana-cloud-sap-hana-database-sql-reference-guide/sql-notation-conventions\n+              \"hanadb\",\n+              // \"String literals must be enclosed in single quotes.\n+              // Double quotes are not supported.\"\n+              // https://clickhouse.com/docs/en/sql-reference/syntax#string\n+              \"clickhouse\",\n+              // PostgreSQL-compatible fork, inherits PG string literal rules\n+              \"polardb\"));",
+      "id": "PRRT_kwDODJKVX85wTLQr",
+      "opened": "2026-02-24T05:32:21Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+      "replies": [],
+      "reviewed": "5e43fc4bbd025f1747df8496947b447e4bcd766b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15582#discussion_r2844611142"
+    }
+  ]
+}

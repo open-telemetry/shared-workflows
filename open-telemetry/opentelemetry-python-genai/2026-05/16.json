@@ -1,0 +1,190 @@
+{
+  "head": "0f198d57a32ff7d1a3f5aa239a8215e034e43ae0",
+  "merge": "975a98deb6a716ce679071bdc2fd59e1271b546c",
+  "merged": "2026-05-18T15:36:39Z",
+  "missing_roots": 0,
+  "number": 16,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "mind adding a condensed version of it to AGENTS.md ?",
+      "created": "2026-05-14T16:10:00Z",
+      "hunk": "@@ -68,9 +68,33 @@ uv run tox -e typecheck\n \n ### 4. Update the changelog\n \n-Add an entry to the affected package's `CHANGELOG.md` under the `Unreleased`\n-section for any change with user-visible impact. Pure docs and tooling\n-changes don't need an entry.\n+This repo uses [towncrier](https://towncrier.readthedocs.io/) to manage",
+      "id": "PRRT_kwDOSbspP86CHoqk",
+      "opened": "2026-05-14T16:10:00Z",
+      "path": "CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "bc86b5d7fc1dd79cc52d6ba041b06e4409a9529d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3242673271"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Adding or removing the `Skip Changelog` label will not rerun this workflow because the `pull_request` trigger uses the default activity types. A PR that initially fails this check will continue to show the failed run after the label is added unless another commit is pushed. Include `labeled` and `unlabeled` (and any other desired PR activities) in the trigger so the job condition is re-evaluated when the bypass label changes.\n",
+      "created": "2026-05-14T18:39:01Z",
+      "hunk": "@@ -0,0 +1,74 @@\n+# This action requires that any PR targeting the main branch should add a\n+# changelog fragment file in a .changelog/ directory under the affected\n+# package. If a changelog entry is not required, add the \"Skip Changelog\"\n+# label to disable this action.\n+\n+name: changelog\n+\n+on:\n+  pull_request:",
+      "id": "PRRT_kwDOSbspP86CJ85j",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": ".github/workflows/changelog.yml",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the towncrier start marker placed above the existing `## Unreleased` section, a future `towncrier build` will insert the generated release section before these existing unreleased entries. That leaves the current unreleased changes outside the generated release notes. Convert the existing entries into fragments or move/remove the static Unreleased section as part of the migration so the first towncrier release includes them correctly.",
+      "created": "2026-05-14T18:39:02Z",
+      "hunk": "@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.\n The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n \n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->\n+\n ## Unreleased",
+      "id": "PRRT_kwDOSbspP86CJ862",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496771"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This accepts any newly added file under any `.changelog/` directory, so a fragment with the wrong PR number or in an unrelated package still satisfies the check even though the contributor docs require `<package>/.changelog/<PR_NUMBER>.<type>`. Validate the fragment basename against the current PR number and allowed types (and, if possible, the affected package path) before previewing.",
+      "created": "2026-05-14T18:39:02Z",
+      "hunk": "@@ -0,0 +1,74 @@\n+# This action requires that any PR targeting the main branch should add a\n+# changelog fragment file in a .changelog/ directory under the affected\n+# package. If a changelog entry is not required, add the \"Skip Changelog\"\n+# label to disable this action.\n+\n+name: changelog\n+\n+on:\n+  pull_request:\n+    branches:\n+      - main\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  changelog:\n+    runs-on: ubuntu-latest\n+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'Skip Changelog') }}\n+\n+    steps:\n+      - uses: actions/checkout@v4\n+        with:\n+          fetch-depth: 0\n+\n+      - name: Fetch base branch\n+        run: git fetch origin ${{ github.base_ref }} --depth=1\n+\n+      - name: Ensure no direct changes to CHANGELOG.md\n+        run: |\n+          if [[ $(git diff --name-only FETCH_HEAD -- '**/CHANGELOG.md') ]]\n+          then\n+            echo \"CHANGELOG.md files should not be directly modified.\"\n+            echo \"Please add a changelog fragment file to the affected package's .changelog/ directory instead.\"\n+            echo \"See CONTRIBUTING.md for details.\"\n+            echo \"\"\n+            echo \"Or add the \\\"Skip Changelog\\\" label if this job should be skipped.\"\n+            false\n+          fi\n+\n+      - name: Check for changelog fragment\n+        run: |\n+          fragments=$(git diff --diff-filter=A --name-only FETCH_HEAD -- '**/.changelog/*' | grep -v '/\\.gitignore$' || true)",
+      "id": "PRRT_kwDOSbspP86CJ86I",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": ".github/workflows/changelog.yml",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496712"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the towncrier start marker placed above the existing `## Unreleased` section, a future `towncrier build` will insert the generated release section before these existing unreleased entries. That leaves the current unreleased changes outside the generated release notes. Convert the existing entries into fragments or move/remove the static Unreleased section as part of the migration so the first towncrier release includes them correctly.",
+      "created": "2026-05-14T18:39:02Z",
+      "hunk": "@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.\n The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n \n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->\n+\n ## Unreleased",
+      "id": "PRRT_kwDOSbspP86CJ86Z",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-anthropic/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496734"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the towncrier start marker placed above the existing `## Unreleased` section, a future `towncrier build` will insert the generated release section before these existing unreleased entries. That leaves the current unreleased changes outside the generated release notes. Convert the existing entries into fragments or move/remove the static Unreleased section as part of the migration so the first towncrier release includes them correctly.",
+      "created": "2026-05-14T18:39:02Z",
+      "hunk": "@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.\n The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n \n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->\n+\n ## Unreleased",
+      "id": "PRRT_kwDOSbspP86CJ86n",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-claude-agent-sdk/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496752"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the towncrier start marker placed above the existing `## Unreleased` section, a future `towncrier build` will insert the generated release section before these existing unreleased entries. That leaves the current unreleased changes outside the generated release notes. Convert the existing entries into fragments or move/remove the static Unreleased section as part of the migration so the first towncrier release includes them correctly.",
+      "created": "2026-05-14T18:39:03Z",
+      "hunk": "@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.\n The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n \n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->\n+\n ## Unreleased",
+      "id": "PRRT_kwDOSbspP86CJ87C",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496793"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the towncrier start marker placed above the existing `## Unreleased` section, a future `towncrier build` will insert the generated release section before these existing unreleased entries. That leaves the current unreleased changes outside the generated release notes. Convert the existing entries into fragments or move/remove the static Unreleased section as part of the migration so the first towncrier release includes them correctly.",
+      "created": "2026-05-14T18:39:03Z",
+      "hunk": "@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.\n The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n \n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->\n+\n ## Unreleased",
+      "id": "PRRT_kwDOSbspP86CJ87U",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-agents-v2/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496815"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the towncrier start marker placed above the existing `## Unreleased` section, a future `towncrier build` will insert the generated release section before these existing unreleased entries. That leaves the current unreleased changes outside the generated release notes. Convert the existing entries into fragments or move/remove the static Unreleased section as part of the migration so the first towncrier release includes them correctly.",
+      "created": "2026-05-14T18:39:03Z",
+      "hunk": "@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.\n The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n \n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->\n+\n ## Unreleased",
+      "id": "PRRT_kwDOSbspP86CJ87j",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-v2/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496838"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the towncrier start marker placed above the existing `## Unreleased` section, a future `towncrier build` will insert the generated release section before these existing unreleased entries. That leaves the current unreleased changes outside the generated release notes. Convert the existing entries into fragments or move/remove the static Unreleased section as part of the migration so the first towncrier release includes them correctly.",
+      "created": "2026-05-14T18:39:04Z",
+      "hunk": "@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.\n The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n \n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->\n+\n ## Unreleased",
+      "id": "PRRT_kwDOSbspP86CJ87_",
+      "opened": "2026-05-14T18:39:04Z",
+      "path": "util/opentelemetry-util-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6d052574157525c4630a240806d7b1e42eadb1f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243496872"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I think this might send agents on a wrong path - most contributors don't have write access but their agents might try to add labels. let's remove?\n\n\n```suggestion\n```",
+      "created": "2026-05-14T19:08:52Z",
+      "hunk": "@@ -70,6 +70,19 @@ uv run tox -e typecheck\n   `typing.cast(...)`, unless the referenced type is imported at runtime.\n - Whenever applicable, all code changes should have tests that actually validate the changes.\n \n+## Changelog\n+\n+This repo uses [towncrier](https://towncrier.readthedocs.io/) to manage changelogs.\n+\n+- Do not edit `CHANGELOG.md` directly — the `changelog` workflow rejects PRs that do.\n+- For changes with user-visible impact, add a fragment at `<package>/.changelog/<PR_NUMBER>.<type>`\n+  containing a one-line description. Types: `added`, `changed`, `deprecated`, `removed`, `fixed`.\n+- Don't include the PR number in the body — towncrier appends it from the filename.\n+- Preview locally with `uv run tox -e changelog-preview`.\n+- If the change needs no entry (pure docs or tooling), add the `Skip Changelog` label to the PR.",
+      "id": "PRRT_kwDOSbspP86CKZxd",
+      "opened": "2026-05-14T19:09:39Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "c061d4d0d4b92e23e048d71f0915ed10e9fd8a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243658203"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nit's already linked somewhere in this doc, no need to repeat",
+      "created": "2026-05-14T19:09:33Z",
+      "hunk": "@@ -70,6 +70,19 @@ uv run tox -e typecheck\n   `typing.cast(...)`, unless the referenced type is imported at runtime.\n - Whenever applicable, all code changes should have tests that actually validate the changes.\n \n+## Changelog\n+\n+This repo uses [towncrier](https://towncrier.readthedocs.io/) to manage changelogs.\n+\n+- Do not edit `CHANGELOG.md` directly — the `changelog` workflow rejects PRs that do.\n+- For changes with user-visible impact, add a fragment at `<package>/.changelog/<PR_NUMBER>.<type>`\n+  containing a one-line description. Types: `added`, `changed`, `deprecated`, `removed`, `fixed`.\n+- Don't include the PR number in the body — towncrier appends it from the filename.\n+- Preview locally with `uv run tox -e changelog-preview`.\n+- If the change needs no entry (pure docs or tooling), add the `Skip Changelog` label to the PR.\n+\n+See [CONTRIBUTING.md](CONTRIBUTING.md#4-update-the-changelog) for full details.",
+      "id": "PRRT_kwDOSbspP86CKaZ-",
+      "opened": "2026-05-14T19:09:39Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "c061d4d0d4b92e23e048d71f0915ed10e9fd8a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/16#discussion_r3243661895"
+    }
+  ]
+}

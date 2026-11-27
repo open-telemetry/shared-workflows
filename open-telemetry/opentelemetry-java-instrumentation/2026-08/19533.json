@@ -1,0 +1,36 @@
+{
+  "head": "9f6dae0641073c9ce5f95522028553f62528b427",
+  "merge": "904bd826aa786608e37a7d063e0c128d24606c5b",
+  "merged": "2026-08-12T21:18:02Z",
+  "missing_roots": 0,
+  "number": 19533,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Disabling Gradle's local cache prevents reads and writes, but it does not remove an already restored `~/.gradle/caches/build-cache-1`. Because `setup-gradle` still snapshots the Gradle User Home, that directory can remain in the saved Actions cache, so this does not provide the PR description's claimed reduction toward the 10 GB limit. If that reduction is intended, explicitly delete or exclude this directory in the cache-writing workflow.",
+      "created": "2026-08-12T14:41:43Z",
+      "hunk": "@@ -106,9 +107,16 @@ develocity {\n }\n \n buildCache {\n+  // a task loaded from the local build cache is never pushed to the remote build cache, so on the\n+  // build that writes the remote cache the local cache is disabled, otherwise everything that\n+  // doesn't change is served locally, never re-executed, and so never reaches the remote cache\n+  local {\n+    isEnabled = !isRemoteBuildCacheWriter",
+      "id": "PRRT_kwDODJKVX86Ym-Xt",
+      "opened": "2026-08-12T14:41:44Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-12T14:47:41Z",
+          "body": "Addressed in 96bfcb7003b4a3c2ebc1cb4d551221ec326cd4cd.\n\nAnalysis: Disabling Gradle's local build cache does not affect setup-gradle's Gradle User Home snapshot. Excluding caches/build-cache-1 from that snapshot when the Develocity access key is present uses the same condition as the remote build-cache writer and prevents the stale local cache from being restored or saved by that job.\n\nUpsides: The cache-writing job no longer retains build-cache-1 in the GitHub Actions cache, reducing cache usage while ensuring executed task outputs populate Develocity. PR builds without the access key retain their existing local-cache behavior.\n\nDownsides: The remote-cache writer cannot fall back to a restored local build cache and may initially execute more tasks while the remote cache is populated.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19533#discussion_r3767495159"
+        },
+        {
+          "at": "2026-08-12T14:49:01Z",
+          "body": "Addressed in 96bfcb70039f0ed1588f00235d090da3c8faea05.\n\nAnalysis: Disabling Gradle's local build cache does not affect setup-gradle's Gradle User Home snapshot. Excluding caches/build-cache-1 from that snapshot when the Develocity access key is present uses the same condition as the remote build-cache writer and prevents the stale local cache from being restored or saved by that job.\n\nUpsides: The cache-writing job no longer retains build-cache-1 in the GitHub Actions cache, reducing cache usage while ensuring executed task outputs populate Develocity. PR builds without the access key retain their existing local-cache behavior.\n\nDownsides: The remote-cache writer cannot fall back to a restored local build cache and may initially execute more tasks while the remote cache is populated.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19533#discussion_r3767505464"
+        }
+      ],
+      "reviewed": "2b2af786eb1741cf7bb37bf27875412f7b368e35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19533#discussion_r3767447266"
+    }
+  ]
+}

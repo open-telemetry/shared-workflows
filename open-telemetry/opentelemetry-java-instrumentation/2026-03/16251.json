@@ -1,0 +1,46 @@
+{
+  "head": "8ffdb3e661b296090b84931edd76e47b91788838",
+  "merge": "45d8c7ff1557c36fab496f7d65cbd9f78c4248d5",
+  "merged": "2026-03-02T15:16:49Z",
+  "missing_roots": 0,
+  "number": 16251,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`db.system` is currently captured in not the best way\r\n\r\nThis PR adds `db.system.name`, based on the jdbc url's \"driver\" component similar to jdbc instrumentation.\r\n\r\nIt adds `DbClientAttributesGetter.getDbSystem()` in order to support both old and new.",
+      "created": "2026-02-23T01:14:13Z",
+      "hunk": "@@ -50,23 +80,26 @@ public DbExecution(QueryExecutionInfo queryInfo, ConnectionFactoryOptions factor\n                 .split(\" \")[0]\n             : OTHER_SQL;",
+      "id": "PRRT_kwDODJKVX85wCMJC",
+      "opened": "2026-02-23T01:14:13Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/DbExecution.java",
+      "replies": [
+        {
+          "at": "2026-02-25T07:52:35Z",
+          "body": "Wondering whether this is necessary. The current convention seems to be that `getDbSystemName` returns the old value that is mapped to the new value in `DbClientAttributesExtractor` (but not in `DbClientSpanNameExtractor.computeSpanNameStable`). Perhaps we should start returning stable values from `getDbSystemName` and reverse the mapping?\nCould also drop the old logic for getting the db system name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16251#discussion_r2851428279"
+        },
+        {
+          "at": "2026-02-25T15:34:23Z",
+          "body": "I agree we could make this behavioral breaking change without a major version bump as it's a bug fix.\r\n\r\nMy general thought with the database semconv changes has been to try to leave existing untouched and only fix things under the stable semconv flag.\r\n\r\nSemi-related, I was planning to remove the centralized mapping out of the Instrumentation API (see also in #16277), under the idea that the Instrumentation API shouldn't know about the individual conventions for cassandra, elasticsearch, postresql, mysql, etc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16251#discussion_r2853767456"
+        },
+        {
+          "at": "2026-03-02T14:52:26Z",
+          "body": "In my opinion having the mapping in the instrumentation api is fine since it is only for transition, having it in one place could make removing it easier.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16251#discussion_r2872884508"
+        },
+        {
+          "at": "2026-03-02T15:16:33Z",
+          "body": "also similar to https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16304#discussion_r2872999173, this supports external instrumentations to control the mapping used (again though may not be super realistic scenario since they'd have to stick to our timeline as we'll be removing the support in 3.0)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16251#discussion_r2873015578"
+        }
+      ],
+      "reviewed": "42f95ef4f20954336b99b4f83fdd1fa991fe44f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16251#discussion_r2838752460"
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "head": "0c24c31971fe540d05c2fde6ea62652f7da68397",
+  "merge": "c2e35482e32b4d01775bf989535ef81e68dc916f",
+  "merged": "2026-11-04T15:57:48Z",
+  "missing_roots": 0,
+  "number": 21160,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `contains(a, b)` requires both substrings in one request path, so this `noneSatisfy` check passes even when excluded modules are queried separately. The same issue at line 132 leaves direct-request discovery isolation unchecked. Use `allSatisfy` with `doesNotContain(...)` in both checks to reject requests for any excluded module.",
+      "created": "2026-11-03T01:02:44Z",
+      "hunk": "@@ -0,0 +1,309 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.muzzle;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Arrays.asList;\n+import static java.util.stream.Collectors.joining;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.sun.net.httpserver.HttpServer;\n+import java.io.IOException;\n+import java.net.InetSocketAddress;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CopyOnWriteArrayList;\n+import java.util.jar.JarEntry;\n+import java.util.jar.JarOutputStream;\n+import org.gradle.testkit.runner.BuildResult;\n+import org.gradle.testkit.runner.BuildTask;\n+import org.gradle.testkit.runner.GradleRunner;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.io.TempDir;\n+\n+class MuzzleSliceFunctionalTest {\n+  private final List<String> requests = new CopyOnWriteArrayList<>();\n+\n+  @TempDir Path temp;\n+\n+  private HttpServer server;\n+\n+  @AfterEach\n+  void stopRepository() {\n+    if (server != null) {\n+      server.stop(0);\n+    }\n+  }\n+\n+  @Test\n+  void fourAndEightSlicesPreserveCoverageAndPairAssignments() throws IOException {\n+    startRepository();\n+    Path four = slicedFixture(\"four\", 8);\n+    BuildResult fourAll =\n+        slicedRunner(\n+                four,\n+                \":instrumentation:muzzle1\",\n+                \":instrumentation:muzzle2\",\n+                \":instrumentation:muzzle3\",\n+                \":instrumentation:muzzle4\")\n+            .build();\n+\n+    Path eight = slicedFixture(\"eight\", 8);\n+    BuildResult eightAll =\n+        slicedRunner(\n+                eight,\n+                \":instrumentation:muzzle1\",\n+                \":instrumentation:muzzle2\",\n+                \":instrumentation:muzzle3\",\n+                \":instrumentation:muzzle4\",\n+                \":instrumentation:muzzle5\",\n+                \":instrumentation:muzzle6\",\n+                \":instrumentation:muzzle7\",\n+                \":instrumentation:muzzle8\",\n+                \"-PmuzzleSlices=8\")\n+            .build();\n+    assertThat(assertionPaths(fourAll))\n+        .containsExactlyInAnyOrderElementsOf(assertionPaths(eightAll))\n+        .hasSize(8);\n+\n+    BuildResult fourSlice =\n+        slicedRunner(slicedFixture(\"four-pair\", 8), \":instrumentation:muzzle2\").build();\n+    BuildResult eightPair =\n+        slicedRunner(\n+                slicedFixture(\"eight-pair\", 8),\n+                \":instrumentation:muzzle2\",\n+                \":instrumentation:muzzle6\",\n+                \"-PmuzzleSlices=8\")\n+            .build();\n+    assertThat(assertionPaths(fourSlice))\n+        .containsExactlyInAnyOrderElementsOf(assertionPaths(eightPair))\n+        .containsExactlyInAnyOrder(\n+            \":instrumentation:b:muzzle-AssertPass-fixture-module-b-1.0\",\n+            \":instrumentation:f:muzzle-AssertPass-fixture-module-f-1.0\");\n+  }\n+\n+  @Test\n+  void selectedSlicesSkipOtherProjectsAndReuseConfigurationCache() throws IOException {\n+    startRepository();\n+    Path project = slicedFixture(\"discovery\", 4);\n+    String assertion = \":instrumentation:a:muzzle-AssertPass-fixture-library-1.0\";\n+    for (int i = 0; i < 3; i++) {\n+      BuildResult result =\n+          slicedRunner(project, \":instrumentation:muzzle1\", \"--configuration-cache\").build();\n+      assertThat(assertionPaths(result)).containsExactly(assertion);\n+      if (i == 2) {\n+        assertThat(result.getOutput()).contains(\"Reusing configuration cache\");\n+      }\n+    }\n+    assertThat(requests)\n+        .anySatisfy(path -> assertThat(path).contains(\"/library/maven-metadata.xml\"))\n+        .noneSatisfy(path -> assertThat(path).contains(\"/module-\"));\n+  }\n+\n+  @Test\n+  void directAndMixedRequestsDiscoverOnlyTheirProjects() throws IOException {\n+    startRepository();\n+    Path mixed = slicedFixture(\"mixed\", 4);\n+    BuildResult mixedResult =\n+        slicedRunner(mixed, \":instrumentation:muzzle1\", \":instrumentation:c:muzzle\").build();\n+    assertThat(assertionPaths(mixedResult))\n+        .containsExactlyInAnyOrder(\n+            \":instrumentation:a:muzzle-AssertPass-fixture-library-1.0\",\n+            \":instrumentation:c:muzzle-AssertPass-fixture-module-c-1.0\");\n+    assertThat(requests)\n+        .anySatisfy(path -> assertThat(path).contains(\"/library/maven-metadata.xml\"))\n+        .anySatisfy(path -> assertThat(path).contains(\"/module-c/maven-metadata.xml\"))\n+        .noneSatisfy(path -> assertThat(path).contains(\"/module-b/\", \"/module-d/\"));\n+\n+    requests.clear();\n+    Path direct = slicedFixture(\"direct\", 4);\n+    BuildResult directResult =\n+        slicedRunner(direct, \":instrumentation:c:muzzle-AssertPass-fixture-module-c-1.0\").build();\n+    assertThat(assertionPaths(directResult))\n+        .containsExactly(\":instrumentation:c:muzzle-AssertPass-fixture-module-c-1.0\");\n+    assertThat(requests)\n+        .anySatisfy(path -> assertThat(path).contains(\"/module-c/maven-metadata.xml\"))\n+        .noneSatisfy(path -> assertThat(path).contains(\"/library/\", \"/module-b/\", \"/module-d/\"));",
+      "id": "PRRT_kwDODJKVX86y7q10",
+      "opened": "2026-11-03T01:02:45Z",
+      "path": "gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleSliceFunctionalTest.java",
+      "replies": [
+        {
+          "at": "2026-11-03T01:16:02Z",
+          "body": "Fixed both checks in f43d6028. They now use `allSatisfy` with `doesNotContain(...)`, so any request for an excluded module fails the assertion. The selected-module checks remain in place.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449742314"
+        }
+      ],
+      "reviewed": "cb7c0ef714c4f39f13bad593f50c75d2397127e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449639294"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] Unqualified assertion requests such as `muzzle-AssertPass-fixture-module-c-1.0` pass `hasRelevantTask`, but this filter skips discovery in every non-root project because it requires a project-qualified prefix. Gradle therefore cannot find an assertion task that was available before this change. Preserve unqualified `muzzle-Assert...` selectors and add a TestKit case alongside the qualified direct-task test.",
+      "created": "2026-11-03T01:02:44Z",
+      "hunk": "@@ -232,13 +232,29 @@ val hasRelevantTask = gradle.startParameter.taskNames.any {\n }\n \n if (hasRelevantTask) {\n-  val system = newRepositorySystem()\n-  val session = newRepositorySystemSession(system)\n+  gradle.projectsEvaluated {\n+    val selected = gradle.startParameter.taskNames.any {\n+      val taskName = it.removePrefix(\":\")\n+      if (taskName.startsWith(\"instrumentation:muzzle\")) {\n+        val slice = rootProject.findProject(\":instrumentation\")\n+          ?.tasks?.findByName(taskName.substringAfter(\":\"))\n+        slice != null && muzzle.get() in slice.taskDependencies.getDependencies(slice)\n+      } else {\n+        val projectPath = project.path.removePrefix(\":\")\n+        val muzzleTaskName = if (projectPath.isEmpty()) \"muzzle\" else \"$projectPath:muzzle\"\n+        val assertionTaskPrefix =\n+          if (projectPath.isEmpty()) \"muzzle-Assert\" else \"$projectPath:muzzle-Assert\"\n+        taskName == muzzleTaskName || taskName.startsWith(assertionTaskPrefix)",
+      "id": "PRRT_kwDODJKVX86y7q1F",
+      "opened": "2026-11-03T01:02:45Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T01:16:02Z",
+          "body": "Fixed in f43d6028. The selection predicate again accepts unqualified `muzzle-Assert...` selectors, and a multi-project TestKit case invokes one from the fixture root. Fully qualified requests still use the project-specific prefix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449742307"
+        }
+      ],
+      "reviewed": "cb7c0ef714c4f39f13bad593f50c75d2397127e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449639222"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with both in-scope corrections below, preserving its eight-slice CI design and all existing compatibility checks. Do not create another PR or modify PR #21138. Do not edit the PR title or description.\n\n1. Restore unqualified assertion task selectors. The original hasRelevantTask explicitly permits taskName.startsWith(\"muzzle-Assert\"), but the new projectsEvaluated selected predicate skips every non-root project for an unqualified selector such as muzzle-AssertPass-fixture-module-c-1.0. Gradle cannot discover the generated task. Keep that bare selector path working across eligible projects, while fully qualified direct assertion requests must still restrict discovery to their actual project. Add a multi-project TestKit regression invoking the unqualified assertion name from the fixture root and verifying the expected assertion executes. This is the original assignment requirement and Copilot finding https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449639222.\n\n2. Fix both ineffective discovery-isolation assertions in MuzzleSliceFunctionalTest.directAndMixedRequestsDiscoverOnlyTheirProjects. noneSatisfy(path -> assertThat(path).contains(\"/module-b/\", \"/module-d/\")) only fails when one request path contains both substrings. The qualified direct-request assertion has the same problem with three exclusions. Use allSatisfy with doesNotContain for all excluded paths, or an equivalent assertion that rejects any individual forbidden module request. Preserve the positive assertions for selected modules. This addresses https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449639294.\n\nRun the focused MuzzleSliceFunctionalTest and related plugin tests, applying the appropriate formatter first. Do not relax expected discovery isolation, remove compatibility versions or assertions, change sampling/cache/network policies, or add benchmark infrastructure. Leave the Copilot review threads open for the coordinating session to assess and resolve after verifying the fix.",
+      "created": "2026-11-03T01:04:46Z",
+      "hunk": "@@ -232,13 +232,29 @@ val hasRelevantTask = gradle.startParameter.taskNames.any {\n }\n \n if (hasRelevantTask) {\n-  val system = newRepositorySystem()\n-  val session = newRepositorySystemSession(system)\n+  gradle.projectsEvaluated {\n+    val selected = gradle.startParameter.taskNames.any {\n+      val taskName = it.removePrefix(\":\")\n+      if (taskName.startsWith(\"instrumentation:muzzle\")) {\n+        val slice = rootProject.findProject(\":instrumentation\")\n+          ?.tasks?.findByName(taskName.substringAfter(\":\"))\n+        slice != null && muzzle.get() in slice.taskDependencies.getDependencies(slice)\n+      } else {\n+        val projectPath = project.path.removePrefix(\":\")\n+        val muzzleTaskName = if (projectPath.isEmpty()) \"muzzle\" else \"$projectPath:muzzle\"\n+        val assertionTaskPrefix =\n+          if (projectPath.isEmpty()) \"muzzle-Assert\" else \"$projectPath:muzzle-Assert\"\n+        taskName == muzzleTaskName || taskName.startsWith(assertionTaskPrefix)",
+      "id": "PRRT_kwDODJKVX86y7tp0",
+      "opened": "2026-11-03T01:04:46Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T01:14:16Z",
+          "body": "Addressed in `f43d6028`: unqualified assertion selectors now discover the generated task; both excluded-module checks reject any matching request, with a root-invoked TestKit regression added.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449732185"
+        }
+      ],
+      "reviewed": "cb7c0ef714c4f39f13bad593f50c75d2397127e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449657370"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] When an external build applies this plugin to its `:instrumentation` project, `:instrumentation:muzzle` enters the slice branch and is rejected because the task does not depend on itself. The build can then succeed without running compatibility assertions; qualified `:instrumentation:muzzle-Assert...` requests also skip discovery. Restrict this branch to numbered aggregate slice names so ordinary module and assertion requests reach the project-specific matching below.",
+      "created": "2026-11-03T01:20:00Z",
+      "hunk": "@@ -232,13 +232,31 @@ val hasRelevantTask = gradle.startParameter.taskNames.any {\n }\n \n if (hasRelevantTask) {\n-  val system = newRepositorySystem()\n-  val session = newRepositorySystemSession(system)\n+  gradle.projectsEvaluated {\n+    val selected = gradle.startParameter.taskNames.any {\n+      val taskName = it.removePrefix(\":\")\n+      if (taskName.startsWith(\"instrumentation:muzzle\")) {",
+      "id": "PRRT_kwDODJKVX86y7_Hw",
+      "opened": "2026-11-03T01:20:01Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T01:37:39Z",
+          "body": "Fixed in 1f2bef12. Aggregate matching now requires a complete numbered slice name, so a normal external `:instrumentation:muzzle` task and its qualified assertions use project-specific matching. The new external-plugin fixture executes both forms. The same commit adds coverage for a relative assertion request from a subproject working directory.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449913940"
+        }
+      ],
+      "reviewed": "f43d602870874a6b34272268f16cb332e7fbecc2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449773671"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix both remaining selector-compatibility regressions identified by Copilot review 5745815067. Keep the eight-slice CI design, existing compatibility checks and the previous fixes. Do not create another PR, change PR #21138, or edit the PR title or description.\n\n1. Treat only numbered aggregate tasks as slices. The selected predicate currently sends every name starting with instrumentation:muzzle into the aggregate-membership branch. In an external build that applies the published plugin to a normal :instrumentation project, :instrumentation:muzzle is the module task, not a numbered aggregate. It does not depend on itself, so discovery is skipped and compatibility assertions can silently disappear. Qualified :instrumentation:muzzle-Assert... requests are also misclassified. Restrict aggregate recognition to complete numbered aggregate names, and let ordinary module or assertion requests use their proper project-specific path. Add a functional external-build fixture applying the real plugin directly to :instrumentation and verify both its module muzzle and its qualified direct assertion actually execute the expected check. Finding https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449773671.\n\n2. Preserve project-relative assertion requests. The review body also identifies the invocation from a multi-project fixture's instrumentation/ working directory using c:muzzle-AssertPass-fixture-module-c-1.0. It passes the existing hasRelevantTask condition but the new selected predicate compares only the full root-qualified instrumentation:c prefix and skips discovery. Resolve supported relative task paths against the invocation's default project before filtering, using the real Gradle project context. Add a TestKit regression whose working directory is that subproject and assert the intended compatibility task executes. Do not merely prepend a hard-coded instrumentation path. Preserve the earlier unqualified root selector support, fully qualified direct-project isolation, multi-slice/mixed requests and configuration-cache reuse.\n\nThese are in scope because the original assignment requires preserving direct task requests and external consumers of the published plugin. Apply the appropriate formatter and run the focused MuzzleSliceFunctionalTest plus related plugin tests. Leave actual compatibility versions, exclusions, sampling, cache/network policy and runner configuration unchanged. Do not add benchmark infrastructure or resolve the review threads; the coordinator will verify delivery and handle them.",
+      "created": "2026-11-03T01:21:34Z",
+      "hunk": "@@ -232,13 +232,31 @@ val hasRelevantTask = gradle.startParameter.taskNames.any {\n }\n \n if (hasRelevantTask) {\n-  val system = newRepositorySystem()\n-  val session = newRepositorySystemSession(system)\n+  gradle.projectsEvaluated {\n+    val selected = gradle.startParameter.taskNames.any {\n+      val taskName = it.removePrefix(\":\")\n+      if (taskName.startsWith(\"instrumentation:muzzle\")) {",
+      "id": "PRRT_kwDODJKVX86y8A7m",
+      "opened": "2026-11-03T01:21:34Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T01:33:46Z",
+          "body": "Fixed in `1f2bef12`: slice filtering now recognizes numbered aggregates only, relative selectors are resolved against the invocation directory’s project, and TestKit covers external-plugin module/direct requests plus the subproject-relative selector. The focused Muzzle functional test and full `:gradle-plugins:test` suite pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449879385"
+        }
+      ],
+      "reviewed": "f43d602870874a6b34272268f16cb332e7fbecc2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449785640"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to preserve the remaining supported Gradle assertion-selector case identified in the body of review 5746045047: abbreviated project paths. Do not create another PR, edit PR metadata, change PR #21138, or alter the eight-slice compatibility workload.\n\nThe original plugin allows assertion discovery whenever a requested path contains :muzzle-Assert. The new literal project-prefix selection still skips discovery for :inst:c:muzzle-AssertPass-fixture-module-c-1.0, although Gradle normally resolves the unambiguous project abbreviation :inst:c to :instrumentation:c. The review body is actionable despite its No open issues heading and zero inline comments. Preserve this existing selector behavior and add a real TestKit regression invoking that abbreviated absolute project path. Also cover an abbreviated relative assertion path from the instrumentation working directory if the chosen solution normalizes that form.\n\nPrefer a conservative fallback over reimplementing Gradle fuzzy task-path selection. Keep the efficient exact-project and numbered-slice paths for the common cases. When an assertion request names a project path that cannot be resolved as an exact existing project, allow the necessary discovery and let Gradle perform its own abbreviation/ambiguity validation, as before. Exact fully qualified requests must continue to isolate discovery to their project. Do not silently skip compatibility checks or guess an ambiguous project. Keep the previous bare-selector, external :instrumentation module, qualified, relative, multi-slice/mixed and configuration-cache cases working.\n\nApply the appropriate formatter and run the focused MuzzleSliceFunctionalTest plus related plugin tests. Leave versions, positive/inverse assertions, exclusions, sampling and cache/network policy unchanged. Do not add benchmark infrastructure or resolve review threads. The coordinator will verify delivery and obtain review of the new head.",
+      "created": "2026-11-03T01:43:15Z",
+      "hunk": "@@ -232,13 +232,40 @@ val hasRelevantTask = gradle.startParameter.taskNames.any {\n }\n \n if (hasRelevantTask) {\n-  val system = newRepositorySystem()\n-  val session = newRepositorySystemSession(system)\n+  gradle.projectsEvaluated {\n+    val defaultProjectPath = rootProject.allprojects\n+      .firstOrNull { it.projectDir == gradle.startParameter.currentDir }\n+      ?.path?.removePrefix(\":\").orEmpty()\n+    val selected = gradle.startParameter.taskNames.any {\n+      val taskName = it.removePrefix(\":\")\n+      val resolvedTaskName =\n+        if (it.startsWith(\":\") || ':' !in taskName || defaultProjectPath.isEmpty()) {\n+          taskName\n+        } else {\n+          \"$defaultProjectPath:$taskName\"\n+        }\n+      if (resolvedTaskName.matches(Regex(\"instrumentation:muzzle\\\\d+\"))) {\n+        val slice = rootProject.findProject(\":instrumentation\")\n+          ?.tasks?.findByName(resolvedTaskName.substringAfter(\":\"))\n+        slice != null && muzzle.get() in slice.taskDependencies.getDependencies(slice)\n+      } else {\n+        val projectPath = project.path.removePrefix(\":\")\n+        val muzzleTaskName = if (projectPath.isEmpty()) \"muzzle\" else \"$projectPath:muzzle\"\n+        val assertionTaskPrefix =\n+          if (projectPath.isEmpty()) \"muzzle-Assert\" else \"$projectPath:muzzle-Assert\"\n+        resolvedTaskName == muzzleTaskName ||\n+          resolvedTaskName.startsWith(\"muzzle-Assert\") ||\n+          resolvedTaskName.startsWith(assertionTaskPrefix)",
+      "id": "PRRT_kwDODJKVX86y8brq",
+      "opened": "2026-11-03T01:43:15Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T01:53:51Z",
+          "body": "Fixed in `4db1f5e8`: unresolved qualified assertion project paths now trigger conservative discovery, while exact project paths remain isolated. Added TestKit coverage for abbreviated absolute and relative selectors; the focused and full Gradle plugin test suites pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4450055537"
+        }
+      ],
+      "reviewed": "1f2bef12e26bab4e5ab18f6677c6e0c7bc5d0238",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21160#discussion_r4449963404"
+    }
+  ]
+}

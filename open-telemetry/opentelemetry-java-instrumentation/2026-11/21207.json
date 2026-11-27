@@ -1,0 +1,25 @@
+{
+  "head": "45c27524d161d2f405cbd4c7ab254a097e3f93ea",
+  "merge": "b183e56a1fbde1f46454625b35e57e5d92f3c8f7",
+  "merged": "2026-11-05T09:41:53Z",
+  "missing_roots": 0,
+  "number": 21207,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Moving `server.port` out of the default inventory incorrectly implies that Elasticsearch transport requires experimental attributes to emit it; the shared database extractor emits it for a single endpoint on a non-default port regardless of that setting. Make default metadata collection exercise that case and regenerate the catalog so the attribute remains documented in both profiles. The same issue affects `elasticsearch-transport-5.3` at lines 9438–9439.",
+      "created": "2026-11-05T02:20:45Z",
+      "hunk": "@@ -9328,6 +9346,8 @@ libraries:\n         type: LONG\n       - name: server.address\n         type: STRING\n+      - name: server.port\n+        type: LONG",
+      "id": "PRRT_kwDODJKVX86z5Qhf",
+      "opened": "2026-11-05T02:20:45Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "45c27524d161d2f405cbd4c7ab254a097e3f93ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21207#discussion_r4475845363"
+    }
+  ]
+}

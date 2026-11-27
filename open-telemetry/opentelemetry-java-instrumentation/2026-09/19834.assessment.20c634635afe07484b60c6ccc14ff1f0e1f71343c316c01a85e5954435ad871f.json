@@ -1,0 +1,112 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "2fbefad8c989ee2b80648d6859b9c040d5f1cdf9a1907803dd79571389981779",
+  "input_digest": "20c634635afe07484b60c6ccc14ff1f0e1f71343c316c01a85e5954435ad871f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-network-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/network/v2_0/CouchbaseNetworkInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/CouchbaseNetworkInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coFDm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-network-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/network/v2_0/CouchbaseCoreInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-network-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/CouchbaseCoreNetworkInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coFEB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coFEb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coFEx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/springdata/CouchbaseSpringRepositoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/springdata/CouchbaseSpringRepositoryTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coFF5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseAsyncClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseAsyncClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coFFL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02e5f3ec2fa650345f03643facd3b55949401b67/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/springdata/CouchbaseSpringTemplateTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/springdata/CouchbaseSpringTemplateTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coFFj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6a302e9e858088e1cca8050136046235ce6098a/instrumentation/couchbase/couchbase-network-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/network/v2_0/CouchbaseInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-network-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/network/v2_0/CouchbaseInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/CouchbaseNetworkInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86coLNj",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cc2268ac7a958e7696c41e0c8176ebafab0f54cf/instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/CouchbaseCoreNetworkInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/CouchbaseCoreNetworkInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7621bd10ab7a9a1415c2b1082f130e9504cf0c9/instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/CouchbaseNetworkInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dpX-7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "74dbae1527d31b884f4542d9153af91254e72580",
+  "merge": "e44c68cbad01e055bcbbb5986ca21377c1c680a7",
+  "merged": "2026-09-23T13:19:51Z",
+  "missing_roots": 0,
+  "number": 20228,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This restriction is only added to the javaagent project. `instrumentation/helidon-4.3/library/build.gradle.kts` also declares `library(\"io.helidon.webserver:helidon-webserver:4.3.0\")`; the shared base convention resolves that to the pinned `#+` version in `-PtestLatestDeps=true` builds. The library tests will therefore still load Helidon 27.0.0 on the repository's Java 25 test runtime, so the latest-deps check can fail even though the agent module is constrained. Add the same `latestDepTestLibrary(...:4.+)` override to the library module, or otherwise constrain that module too.",
+      "created": "2026-09-23T11:57:11Z",
+      "hunk": "@@ -19,6 +19,8 @@ dependencies {\n   library(\"io.helidon.webserver:helidon-webserver:4.3.0\")\n   implementation(project(\":instrumentation:helidon-4.3:library\"))\n   testImplementation(project(\":instrumentation:helidon-4.3:testing\"))\n+  // 27.0.0 requires java 27, limit the latest dep version for now\n+  latestDepTestLibrary(\"io.helidon.webserver:helidon-webserver:4.+\") // documented limitation",
+      "id": "PRRT_kwDODJKVX86lI0rS",
+      "opened": "2026-09-23T11:57:11Z",
+      "path": "instrumentation/helidon-4.3/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "13310c87d9dd722a989cf1e0cf5ce0edb5104126",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20228#discussion_r4082138367"
+    }
+  ]
+}

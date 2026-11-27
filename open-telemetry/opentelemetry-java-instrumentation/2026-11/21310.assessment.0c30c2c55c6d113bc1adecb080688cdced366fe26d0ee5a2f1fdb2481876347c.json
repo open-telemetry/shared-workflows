@@ -1,0 +1,29 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e1b5b4665cb92c5cc2f5c218c42438d88730b3ac24b1241c5bb2b77161024d78",
+  "input_digest": "0c30c2c55c6d113bc1adecb080688cdced366fe26d0ee5a2f1fdb2481876347c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89d4d3b705bad2504ee31c1a758d899b0d42572e/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89d4d3b705bad2504ee31c1a758d899b0d42572e/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e53d628892cd117d5fb9e2257eb509316137754/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e53d628892cd117d5fb9e2257eb509316137754/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8c30bef027f24e149197b85c9987fa6014886730"
+      ],
+      "id": "PRRT_kwDODJKVX8637xs0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86370b-",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX8637xs0",
+      "status": "duplicate"
+    }
+  ]
+}

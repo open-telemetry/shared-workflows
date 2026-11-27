@@ -1,0 +1,68 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "2b155d213b1680a923fce7f0e84718a5c79175b6bab810a158fe56444ba0657a",
+  "input_digest": "182945128357b2f2b9ec7f47b4a1b3ef403924496f01c30323e172cb121f0f56",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27e39b64af5d1b9f1ed96bbaef73cd928a4334ef/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/faas/FaasExceptionEventExtractors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efba62a177e63cb37fa7531f0d72cd6266bb9c12/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/faas/internal/FaasExceptionEventExtractors.java"
+      ],
+      "id": "PRRT_kwDODJKVX86G6FJV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27e39b64af5d1b9f1ed96bbaef73cd928a4334ef/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/test/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AwsLambdaStreamWrapperHttpPropagationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27e39b64af5d1b9f1ed96bbaef73cd928a4334ef/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/test/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AwsLambdaStreamWrapperTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27e39b64af5d1b9f1ed96bbaef73cd928a4334ef/instrumentation/aws-lambda/aws-lambda-core-1.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efba62a177e63cb37fa7531f0d72cd6266bb9c12/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/test/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AwsLambdaStreamWrapperHttpPropagationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efba62a177e63cb37fa7531f0d72cd6266bb9c12/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/test/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AwsLambdaStreamWrapperTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efba62a177e63cb37fa7531f0d72cd6266bb9c12/instrumentation/aws-lambda/aws-lambda-core-1.0/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86G6FJx",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/708e377fb6de17a7ace413778a5ecd1502288dc6/instrumentation/aws-lambda/aws-lambda-core-1.0/testing/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AbstractAwsLambdaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efba62a177e63cb37fa7531f0d72cd6266bb9c12/instrumentation/aws-lambda/aws-lambda-core-1.0/testing/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AbstractAwsLambdaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HOCcj",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9427f79f4ac5ca2bedb1cf374473b0856a3ca61b/instrumentation/aws-lambda/aws-lambda-core-1.0/testing/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AbstractAwsLambdaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efba62a177e63cb37fa7531f0d72cd6266bb9c12/instrumentation/aws-lambda/aws-lambda-core-1.0/testing/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AbstractAwsLambdaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HOrMt",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ee3b12120a5ec032777fdcb68787e71a60bd7f5a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/faas/internal/FaasExceptionEventExtractors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efba62a177e63cb37fa7531f0d72cd6266bb9c12/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/faas/internal/FaasExceptionEventExtractors.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Hm9bs",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

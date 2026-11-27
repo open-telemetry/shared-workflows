@@ -1,0 +1,67 @@
+{
+  "head": "c7274f7d1e60aab520a765dac0ae9e25a96bc2ca",
+  "merge": "187269e794b685047f4506fade6337fbb9c5cc6a",
+  "merged": "2026-04-30T19:34:52Z",
+  "missing_roots": 0,
+  "number": 18272,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether `Pattern.compile(\"^[0-9 :]+[^ ]*/containers/.*([0-9a-f]{64})/.*$\");` would be better",
+      "created": "2026-04-29T13:54:56Z",
+      "hunk": "@@ -25,7 +25,8 @@ class CgroupV2ContainerIdExtractor {\n       Logger.getLogger(CgroupV2ContainerIdExtractor.class.getName());\n \n   static final Path V2_CGROUP_PATH = Paths.get(\"/proc/self/mountinfo\");\n-  private static final Pattern CONTAINER_ID_RE = Pattern.compile(\"^[0-9a-f]{64}$\");\n+  private static final Pattern CONTAINER_ID_RE =\n+      Pattern.compile(\"^[0-9 :]+[/a-z]*/containers/.*([0-9a-f]{64})/.*$\");",
+      "id": "PRRT_kwDODJKVX85-dEWf",
+      "opened": "2026-04-29T13:54:56Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/CgroupV2ContainerIdExtractor.java",
+      "replies": [
+        {
+          "at": "2026-04-29T17:24:10Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18272#discussion_r3162910737"
+        }
+      ],
+      "reviewed": "4b8921df9079955cfb392ce52431b446ecf9a683",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18272#discussion_r3161536986"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Optional simplification: anchor on the mountinfo prefix and constrain `/containers/...<id>` to the root field (whitespace-free token), so option-field content like `lowerdir=...` can never contribute a match. Also lets you switch `Matcher::matches` to `Matcher::find` since the regex no longer needs a trailing `/.*$`.\n\n```suggestion\n      Pattern.compile(\"^\\\\d+ \\\\d+ \\\\d+:\\\\d+ [^ ]*/containers/[^ ]*?([0-9a-f]{64})\");\n```",
+      "created": "2026-04-29T20:40:14Z",
+      "hunk": "@@ -25,7 +25,8 @@ class CgroupV2ContainerIdExtractor {\n       Logger.getLogger(CgroupV2ContainerIdExtractor.class.getName());\n \n   static final Path V2_CGROUP_PATH = Paths.get(\"/proc/self/mountinfo\");\n-  private static final Pattern CONTAINER_ID_RE = Pattern.compile(\"^[0-9a-f]{64}$\");\n+  private static final Pattern CONTAINER_ID_RE =\n+      Pattern.compile(\"^[0-9 :]+[^ ]*/containers/.*([0-9a-f]{64})/.*$\");",
+      "id": "PRRT_kwDODJKVX85-kCKp",
+      "opened": "2026-04-29T20:44:30Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/CgroupV2ContainerIdExtractor.java",
+      "replies": [
+        {
+          "at": "2026-04-30T14:55:13Z",
+          "body": "Good idea, done.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18272#discussion_r3168828727"
+        }
+      ],
+      "reviewed": "3766ef7b4a53a629ced68745fea5954ef6d1abe6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18272#discussion_r3164029798"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      logger.log(WARNING, \"Multiple container ids found in v2 cgroup path: {0}\", containerIds);\n```",
+      "created": "2026-04-29T20:41:24Z",
+      "hunk": "@@ -76,12 +77,19 @@ Optional<String> extractContainerId() {\n       return optCid;\n     }\n \n-    return fileAsList.stream()\n-        .filter(line -> line.contains(\"/containers/\"))\n-        .flatMap(line -> Stream.of(line.split(\"/\")))\n-        .map(CONTAINER_ID_RE::matcher)\n-        .filter(Matcher::matches)\n-        .reduce((first, second) -> second)\n-        .map(matcher -> matcher.group(0));\n+    List<String> containerIds =\n+        fileAsList.stream()\n+            .filter(line -> line.contains(\"/containers/\"))\n+            .map(CONTAINER_ID_RE::matcher)\n+            .filter(Matcher::matches)\n+            .map(matcher -> matcher.group(1))\n+            .distinct()\n+            .collect(toList());\n+    if (containerIds.size() > 1) {\n+      logger.log(WARNING, \"Multiple container ids found in v2 cgroup path: \" + containerIds);",
+      "id": "PRRT_kwDODJKVX85-kDfJ",
+      "opened": "2026-04-29T20:44:30Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/CgroupV2ContainerIdExtractor.java",
+      "replies": [],
+      "reviewed": "3766ef7b4a53a629ced68745fea5954ef6d1abe6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18272#discussion_r3164037768"
+    }
+  ]
+}

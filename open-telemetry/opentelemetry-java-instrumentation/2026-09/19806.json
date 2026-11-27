@@ -1,0 +1,67 @@
+{
+  "head": "a33c90813d9838df51a4291c2cacea18b018d4d7",
+  "merge": "c5f89a3013942a31607a8d4874817990d7f2491e",
+  "merged": "2026-09-01T19:42:11Z",
+  "missing_roots": 0,
+  "number": 19806,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`CONNECTION_*` is populated only by `LettuceClientInstrumentation`, whose type matcher targets `RedisClient`. Node connections created by `RedisClusterClient` also reach `AbstractRedisReactiveCommands`, but their connection fields remain unset; previously their `ClusterNodeEndpoint` (a `DefaultEndpoint`) supplied this metadata through `getChannelWriter()`. These unconditional reads therefore regress endpoint attributes for reactive commands obtained from a cluster node. Keep the direct-endpoint lookup as a fallback while using the connection fields for wrapped writers.",
+      "created": "2026-08-26T03:33:30Z",
+      "hunk": "@@ -130,14 +136,34 @@ public static Instrumenter<RedisURI, Void> connectInstrumenter() {\n \n   public static void attachAddress(\n       RedisCommand<?, ?, ?> command, StatefulConnection<?, ?> connection) {\n-    if (connection instanceof RedisChannelHandler) {\n-      Object channelWriter = ((RedisChannelHandler<?, ?>) connection).getChannelWriter();\n-      if (channelWriter instanceof DefaultEndpoint) {\n-        DefaultEndpoint endpoint = (DefaultEndpoint) channelWriter;\n-        COMMAND_ADDRESS.set(command, ENDPOINT_ADDRESS.get(endpoint));\n-        COMMAND_DATABASE_INDEX.set(command, ENDPOINT_DATABASE_INDEX.get(endpoint));\n-      }\n+    if (!(connection instanceof RedisChannelHandler)) {\n+      return;\n     }\n+\n+    RedisChannelHandler<?, ?> connectionHandler = (RedisChannelHandler<?, ?>) connection;\n+\n+    // Reactive commands previously copied endpoint metadata only when\n+    // RedisChannelHandler.getChannelWriter() returned a DefaultEndpoint directly. That works with\n+    // default ClientOptions through Lettuce 6.4. CommandExpiryWriter can also appear in Lettuce\n+    // 5.1-6.4 when command timeouts are explicitly enabled.\n+    //\n+    // Starting with Lettuce 6.5, command timeouts are enabled by default, so getChannelWriter()\n+    // returns CommandExpiryWriter instead of its DefaultEndpoint delegate. Lettuce 7 can return\n+    // MaintenanceAwareExpiryWriter, and CommandListenerWriter can add another outer wrapper.\n+    // Although these writers eventually delegate write() to DefaultEndpoint, the old\n+    // \"channelWriter instanceof DefaultEndpoint\" check is performed against the outer writer\n+    // object and therefore evaluates to false.\n+    //\n+    // As a result, the old branch was skipped and COMMAND_ADDRESS and COMMAND_DATABASE_INDEX\n+    // remained null. Reactive spans are started later by Reactor doOnSubscribe, where the\n+    // attributes getter reads these command fields, so the spans lacked server.address,\n+    // server.port, db.namespace, and the endpoint suffix in the span name.\n+    //\n+    // LettuceClientInstrumentation now stores the RedisURI metadata directly on the\n+    // RedisChannelHandler while the connection and original DefaultEndpoint are both available.\n+    // Reading CONNECTION_* here avoids depending on the concrete channel-writer wrapper chain.\n+    COMMAND_ADDRESS.set(command, CONNECTION_ADDRESS.get(connectionHandler));\n+    COMMAND_DATABASE_INDEX.set(command, CONNECTION_DATABASE_INDEX.get(connectionHandler));",
+      "id": "PRRT_kwDODJKVX86cU0qK",
+      "opened": "2026-08-26T03:33:30Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-26T04:39:34Z",
+          "body": "I checked it across the relevant Lettuce versions.\r\n\r\n`CONNECTION_*` is indeed not populated for connections created by `RedisClusterClient`. However, this does not appear to be a regression introduced by this PR: the previous direct-endpoint lookup relied on `ENDPOINT_*`, which is populated by the same instrumentation that currently targets only `RedisClient`. Therefore, `ClusterNodeEndpoint` did not have metadata to copy through the old path either.\r\n\r\nExtending the current matcher to `RedisClusterClient` would also be unsafe because node connections receive the bootstrap `getFirstUri()`, while the actual target node comes from the resolved `SocketAddress`. Using the bootstrap URI could report an incorrect `server.address`.\r\n\r\nGiven the scope of this PR, I propose keeping the current implementation unchanged. Redis Cluster support should be implemented in a separate follow-up PR that captures the actual resolved node address and adds dedicated cluster tests across the relevant Lettuce versions and writer configurations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19806#discussion_r3859693139"
+        }
+      ],
+      "reviewed": "d4de11942a1cdf14076ef6f653b75664bedabebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19806#discussion_r3859426954"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "an alternative could be\n```\n    String version = RedisClient.class.getPackage().getImplementationVersion();\n    assumeTrue(version != null && version.startsWith(\"5\"));\n```\nversion is set in manifest since 5.1",
+      "created": "2026-08-26T07:20:36Z",
+      "hunk": "@@ -700,6 +710,7 @@ void testNonDefaultDatabaseIndexOnBatch() throws Exception {\n   }\n \n   @Test\n+  @DisabledIfSystemProperty(named = \"testLettuce6OrLater\", matches = \"true\")",
+      "id": "PRRT_kwDODJKVX86cXgyd",
+      "opened": "2026-08-26T07:20:36Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "d4de11942a1cdf14076ef6f653b75664bedabebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19806#discussion_r3860481940"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I don't get what this means",
+      "created": "2026-08-26T07:21:21Z",
+      "hunk": "@@ -28,13 +28,92 @@ dependencies {\n   latestDepTestLibrary(\"io.lettuce:lettuce-core:5.0.+\") // see lettuce-5.1 module\n }\n \n+testing {\n+  suites {\n+    // These suite names intentionally do not start with \"test\". Otherwise the main suite's Lettuce\n+    // 5.0 latest-dependency override would apply to them.",
+      "id": "PRRT_kwDODJKVX86cXhjU",
+      "opened": "2026-08-26T07:21:21Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-27T02:01:25Z",
+          "body": "I have removed this comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19806#discussion_r3868147066"
+        }
+      ],
+      "reviewed": "d4de11942a1cdf14076ef6f653b75664bedabebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19806#discussion_r3860486606"
+    }
+  ]
+}

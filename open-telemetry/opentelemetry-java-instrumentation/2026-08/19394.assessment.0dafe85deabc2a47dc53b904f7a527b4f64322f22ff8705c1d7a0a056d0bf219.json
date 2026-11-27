@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f17568979b5606bd1c8eb18682eb6db0bcc36a344dd85b57b033a20d89ea8f48",
+  "input_digest": "0dafe85deabc2a47dc53b904f7a527b4f64322f22ff8705c1d7a0a056d0bf219",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c4e99eea73ad02b5de30233b167ac715764a0a79/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5578bc36da89e03c15609e164985a572d69cc641/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5578bc36da89e03c15609e164985a572d69cc641/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/12517f915a79fd18d89bd1c5cd800472c3fd3d40"
+      ],
+      "id": "PRRT_kwDODJKVX86WVr24",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/12517f915a79fd18d89bd1c5cd800472c3fd3d40/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5578bc36da89e03c15609e164985a572d69cc641/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8c88704611e9b16c518ad847e7751ff5c92b9844"
+      ],
+      "id": "PRRT_kwDODJKVX86WYvXQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

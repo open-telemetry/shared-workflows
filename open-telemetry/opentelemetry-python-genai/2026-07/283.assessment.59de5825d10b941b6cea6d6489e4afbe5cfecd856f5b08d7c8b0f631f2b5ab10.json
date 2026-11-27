@@ -1,0 +1,46 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "50e3dd3e311b5738277ab8884544f15cd46d4c50120ad5c04e931847c5f9fe90",
+  "input_digest": "59de5825d10b941b6cea6d6489e4afbe5cfecd856f5b08d7c8b0f631f2b5ab10",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4f5a2fb9730d0ff156c8feca47738369ce7d9cc4/util/opentelemetry-util-genai/.changelog/%2Breasoning-token-count.changed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/cc80df665890a63e22457032d4e318e990d4f360/util/opentelemetry-util-genai/.changelog/%2Breasoning-token-count.changed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/cc80df665890a63e22457032d4e318e990d4f360/util/opentelemetry-util-genai/.changelog/283.changed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/226a6aace22e7faab52d1289f9cb4fc2597b1154"
+      ],
+      "id": "PRRT_kwDOSbspP86R9AQh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4f5a2fb9730d0ff156c8feca47738369ce7d9cc4/util/opentelemetry-util-genai/.changelog/%2Breasoning-token-count.changed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/cc80df665890a63e22457032d4e318e990d4f360/util/opentelemetry-util-genai/.changelog/283.changed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/226a6aace22e7faab52d1289f9cb4fc2597b1154"
+      ],
+      "id": "PRRT_kwDOSbspP86R9AQj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4f5a2fb9730d0ff156c8feca47738369ce7d9cc4/instrumentation/opentelemetry-instrumentation-google-genai/.changelog/283.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4f5a2fb9730d0ff156c8feca47738369ce7d9cc4/instrumentation/opentelemetry-instrumentation-google-genai/.changelog/%2Breasoning-token-count.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/cc80df665890a63e22457032d4e318e990d4f360/instrumentation/opentelemetry-instrumentation-google-genai/.changelog/283.fixed"
+      ],
+      "id": "PRRT_kwDOSbspP86R9AQm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

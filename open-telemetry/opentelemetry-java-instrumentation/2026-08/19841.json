@@ -1,0 +1,88 @@
+{
+  "head": "26eb71b3912eeae599d03e99df27bea29d8fba4d",
+  "merge": "c0d813476f355e56479f70cdde9edfec302086df",
+  "merged": "2026-08-28T15:55:16Z",
+  "missing_roots": 0,
+  "number": 19841,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This stream attribute is used only within the `server` package, so making both the class and constructor public exposes more API than necessary. Please use package-private visibility, consistent with the repository's least-access rule.",
+      "created": "2026-08-26T22:28:00Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import java.net.InetSocketAddress;\n+import org.apache.pekko.stream.Attributes;\n+\n+public class PekkoHttpServerRemoteAddress implements Attributes.Attribute {\n+  private final InetSocketAddress address;\n+\n+  public PekkoHttpServerRemoteAddress(InetSocketAddress address) {",
+      "id": "PRRT_kwDODJKVX86cosMA",
+      "opened": "2026-08-26T22:28:01Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerRemoteAddress.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:13:26Z",
+          "body": "Addressed in 457c7b21a817fddeaf48049e62faf550c9a554af.\n\nAnalysis: Every reference to PekkoHttpServerRemoteAddress is in the server package. Package-private visibility keeps those callers working and follows the repository's minimal visibility rule.\n\nUpsides: This keeps the stream attribute as a package implementation detail and avoids an accidental API.\n\nDownsides: Code outside the server package can no longer reference or construct the class. No current caller does so.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19841#discussion_r3867697478"
+        }
+      ],
+      "reviewed": "aadb45ecbbe970db926f19066f0c7232fb0a6dab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19841#discussion_r3867211112"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] These comments say the helper is inlined into application packages, but both call sites use `@Advice.OnMethodExit(..., inline = false)`, so construction remains in the package-local advice class. Keeping this class and constructor public unnecessarily exposes an implementation detail; make both package-private.",
+      "created": "2026-08-27T01:28:14Z",
+      "hunk": "@@ -0,0 +1,23 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import java.net.InetSocketAddress;\n+import org.apache.pekko.stream.Attributes;\n+\n+// the class and constructor are public since they are used directly from advice code\n+// (which is inlined into other packages)\n+public class PekkoHttpServerRemoteAddress implements Attributes.Attribute {\n+  private final InetSocketAddress address;\n+\n+  public PekkoHttpServerRemoteAddress(InetSocketAddress address) {",
+      "id": "PRRT_kwDODJKVX86cqtGO",
+      "opened": "2026-08-27T01:28:14Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerRemoteAddress.java",
+      "replies": [
+        {
+          "at": "2026-08-27T01:29:59Z",
+          "body": "No code change.\n\nAnalysis: `TypeTransformerImpl` overrides the source annotation through `AdviceInliningPoolStrategy(poolStrategy, true)`. In classic advice mode, Byte Buddy therefore copies both advice bodies into Pekko classes. A package-private helper then causes `IllegalAccessError`, as the previous visibility change demonstrated in the `indy false` and latest-dependency CI jobs. The public class and constructor are required in that mode.\n\nUpsides: This keeps socket remote-address attachment working in both advice modes and avoids suppressed advice failures.\n\nDownsides: The helper is visible outside its package. It remains an internal javaagent class that is shaded into the agent artifact, so this does not expose an application API.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19841#discussion_r3868023515"
+        }
+      ],
+      "reviewed": "de5e6786543b8ecac0a5240fd9b802e2d5ea6761",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19841#discussion_r3868016921"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could import",
+      "created": "2026-08-27T13:38:21Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0\n+\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.http.{\n+  HttpServerInstrumentationExtension,\n+  HttpServerTestOptions,\n+  ServerEndpoint\n+}\n+import org.junit.jupiter.api.extension.RegisterExtension\n+\n+import java.util\n+import java.util.function.{BiFunction, Function}\n+\n+class PekkoHttpServerSourceInstrumentationTest\n+    extends AbstractHttpServerInstrumentationTest {\n+\n+  @RegisterExtension val extension: InstrumentationExtension =\n+    HttpServerInstrumentationExtension.forAgent()\n+\n+  override protected def setupServer(): AnyRef = {\n+    PekkoHttpTestServerSourceWebServer.start(port)\n+    null\n+  }\n+\n+  override protected def stopServer(server: Object): Unit =\n+    PekkoHttpTestServerSourceWebServer.stop()\n+\n+  override protected def configure(\n+      options: HttpServerTestOptions\n+  ): Unit = {\n+    super.configure(options)\n+    options.setTestException(false)\n+    options.setTestPathParam(true)\n+\n+    options.setHttpAttributes(\n+      new Function[ServerEndpoint, util.Set[\n+        io.opentelemetry.api.common.AttributeKey[_]",
+      "id": "PRRT_kwDODJKVX86c1eVY",
+      "opened": "2026-08-27T13:38:21Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerSourceInstrumentationTest.scala",
+      "replies": [],
+      "reviewed": "de5e6786543b8ecac0a5240fd9b802e2d5ea6761",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19841#discussion_r3872233770"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This new source-based server uses the default `h1c` protocol only, so it covers the `IncomingConnection.flow()` path for HTTP/1.1 but not the HTTP/2 source path claimed by the PR. The latter depends on `PekkoConnectionFlowAdvice` propagating the address into `Http2RequestParsingInstrumentation`, while the existing HTTP/2 test uses the higher-level `newServerAt(...).bind(...)` API and therefore cannot verify that interaction. Please add an HTTP/2-enabled `IncomingConnection` test using `h2c`.",
+      "created": "2026-08-28T15:29:01Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0\n+\n+import io.opentelemetry.api.common.AttributeKey\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.http.{\n+  HttpServerInstrumentationExtension,\n+  HttpServerTestOptions,\n+  ServerEndpoint\n+}\n+import org.junit.jupiter.api.extension.RegisterExtension\n+\n+import java.util\n+import java.util.function.{BiFunction, Function}\n+\n+class PekkoHttpServerSourceInstrumentationTest\n+    extends AbstractHttpServerInstrumentationTest {\n+\n+  @RegisterExtension val extension: InstrumentationExtension =\n+    HttpServerInstrumentationExtension.forAgent()\n+\n+  override protected def setupServer(): AnyRef = {\n+    PekkoHttpTestServerSourceWebServer.start(port)",
+      "id": "PRRT_kwDODJKVX86dN32M",
+      "opened": "2026-08-28T15:29:01Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerSourceInstrumentationTest.scala",
+      "replies": [
+        {
+          "at": "2026-08-28T15:46:52Z",
+          "body": "Pekko’s connection-source API does not support HTTP/2; enabling it explicitly falls back to HTTP/1.1. The existing `newServerAt(...).bind(...)` h2c test covers the supported HTTP/2 path through `prepareAttributes` and `Http2RequestParsingInstrumentation`. I corrected the PR description rather than adding an unsupported source-based HTTP/2 test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19841#discussion_r3881964711"
+        }
+      ],
+      "reviewed": "26eb71b3912eeae599d03e99df27bea29d8fba4d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19841#discussion_r3881837933"
+    }
+  ]
+}

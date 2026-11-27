@@ -1,0 +1,67 @@
+{
+  "head": "3ddfa3dfaf95c22cc8757dd95d64995876dd292c",
+  "merge": "8171557099b0b0757ce108d7902b98c36cb80e38",
+  "merged": "2026-08-19T13:12:26Z",
+  "missing_roots": 0,
+  "number": 398,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the PR description example list, “library NMP” looks like a typo/unclear placeholder and may confuse contributors (it reads like an acronym rather than a generic example). Consider using a more conventional placeholder (e.g., “library Foo/Bar”) to avoid ambiguity.",
+      "created": "2026-08-16T18:58:44Z",
+      "hunk": "@@ -26,7 +26,11 @@ comment for users on issue or pull request threads on their behalf as it is agai\n \n ## PR description\n \n-Keep description short and focus on what is being changed and any gaps or concerns.\n+Keep it short - prose under 200 words. Answer, in order:\n+\n+- What does this change do? 2 sentences max: fixes issue XYZ, adds feature ABC, adds instrumentation for library NMP, etc.",
+      "id": "PRRT_kwDOSbspP86Zo8IW",
+      "opened": "2026-08-16T18:58:45Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "7e7199b6a493dfea9bf95d09a06dca6be23f6729",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/398#discussion_r3792578195"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Couple of questions:\n\n1. It will run the precommit, lint etc right. We don't need to add it explicity here.\n2. Do we need to add conformance tests etc here?",
+      "created": "2026-08-17T02:10:33Z",
+      "hunk": "@@ -146,6 +150,27 @@ run silently uses the previously installed versions.\n   `typing.cast(...)`, unless the referenced type is imported at runtime.\n - Whenever applicable, all code changes should have tests that actually validate the changes.\n \n+## Code comments\n+\n+Write for someone reading the code as it is now, with no knowledge of the change that produced it.\n+\n+- Comment only gotchas that can't be inferred from the code (protocol quirks, ordering\n+  requirements, upstream bugs worked around). 1-2 sentences max.\n+- Never restate what the code does, describe what it used to do, or justify a change - the last one\n+  belongs in the PR description or a PR comment.\n+\n+## Self-review before opening a PR\n+\n+Once the change implementation is complete and tests pass, review the diff in a **new session**. Look for:\n+\n+- Test coverage gaps - sync/async variants, error paths, streaming, edge cases. Add the missing\n+  tests.\n+- Instrumentation of layers not owned by the target library (LLM spans reported by agentic framework).\n+- Functional issues\n+\n+Fix the findings, keeping the PR scoped to the original change; for anything outside that scope,\n+suggest an issue or a separate PR. Do not open a PR with unresolved major issues or test gaps.",
+      "id": "PRRT_kwDOSbspP86ZrNSn",
+      "opened": "2026-08-17T02:10:33Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-08-18T12:44:18Z",
+          "body": "1. this is for issues identified during self-review - not all of them are caught by CI / precommit.\r\n2. There is a separate section on this - https://github.com/lmolkova/opentelemetry-python-genai/blob/3ddfa3dfaf95c22cc8757dd95d64995876dd292c/AGENTS.md#conformance-tests",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/398#discussion_r3804136453"
+        }
+      ],
+      "reviewed": "3ddfa3dfaf95c22cc8757dd95d64995876dd292c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/398#discussion_r3793433180"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "> describe what it used to do, or justify a change\n\n💯\n\nugh, I keep having this problem in my PRs",
+      "created": "2026-08-18T14:28:59Z",
+      "hunk": "@@ -146,6 +150,27 @@ run silently uses the previously installed versions.\n   `typing.cast(...)`, unless the referenced type is imported at runtime.\n - Whenever applicable, all code changes should have tests that actually validate the changes.\n \n+## Code comments\n+\n+Write for someone reading the code as it is now, with no knowledge of the change that produced it.\n+\n+- Comment only gotchas that can't be inferred from the code (protocol quirks, ordering\n+  requirements, upstream bugs worked around). 1-2 sentences max.\n+- Never restate what the code does, describe what it used to do, or justify a change - the last one\n+  belongs in the PR description or a PR comment.",
+      "id": "PRRT_kwDOSbspP86aJP5U",
+      "opened": "2026-08-18T14:28:59Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-08-18T15:14:40Z",
+          "body": "I'm close to putting \"NEVER add comments unless I explicitly ask for it\" in my personal global agents.md 😡 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/398#discussion_r3805404588"
+        }
+      ],
+      "reviewed": "3ddfa3dfaf95c22cc8757dd95d64995876dd292c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/398#discussion_r3805003069"
+    }
+  ]
+}

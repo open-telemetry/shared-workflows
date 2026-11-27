@@ -1,0 +1,31 @@
+{
+  "head": "efee625424aa0345f972b194f84161f606afb5de",
+  "merge": "5b61229bf48398e03cd7f32c0eea0ddda1b1e5b0",
+  "merged": "2026-09-09T02:40:47Z",
+  "missing_roots": 0,
+  "number": 631,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: most of these 10 new tests don't add coverage. `conversation_id` is set once in `apply_request_attributes`, before the streaming/non-streaming and success/error paths diverge - so the streaming-create and error tests (x2 files) assert the same line as the basic one. The `{\"id\": ...}` shape is already covered by the extractor unit test, so the parametrize is redundant too.\n\nRequest-param coverage in this file already lives in `test_responses_create_with_all_params` + `_assert_request_attrs`. Suggest following that: add `conversation` there (and to the async twin), keep the `responses.stream()` test since it's a separate `extract_params` call site, and drop the rest.",
+      "created": "2026-09-05T00:36:05Z",
+      "hunk": "@@ -589,6 +591,130 @@ def test_responses_create_with_all_params(\n     )\n \n \n+CONVERSATION_ID = \"conv_0a1b2c3d4e5f60718293a4b5c6d7e8f9\"\n+\n+requires_conversation_param = pytest.mark.skipif(\n+    not _has_conversation_param,\n+    reason=(\n+        \"openai SDK too old to support 'conversation' parameter on \"\n+        \"Responses.create\"\n+    ),\n+)\n+\n+\n+@requires_conversation_param\n+@pytest.mark.parametrize(\n+    \"conversation\",\n+    [CONVERSATION_ID, {\"id\": CONVERSATION_ID}],\n+    ids=[\"id\", \"object\"],\n+)\n+@pytest.mark.cassette(\"test_responses_create_basic[content_mode0]\")\n+@pytest.mark.vcr()\n+def test_responses_create_records_conversation_id(",
+      "id": "PRRT_kwDOSbspP86feqBq",
+      "opened": "2026-09-05T00:37:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [
+        {
+          "at": "2026-09-06T07:32:06Z",
+          "body": "Thanks! Updated as suggested. One other change: since `conversation` only landed in openai 2.0 and this package supports `openai >= 1.26.0`, the parameter is now only passed and asserted when the installed SDK has it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/631#discussion_r3943307440"
+        }
+      ],
+      "reviewed": "808655c477220c3acf38429e1a0270d2676aa619",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/631#discussion_r3938833943"
+    }
+  ]
+}

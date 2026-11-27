@@ -1,0 +1,43 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "89bbfa62ad95f5b762293e09258664b440aa2fbefb959313f4ba9c320db6e681",
+  "input_digest": "5887869a46922ba377bd912b05dff41d8629e2df730074f9e1eaf33cf52f11bd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX85lVszK",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa6d4264ec9dd92491d3c383aedf3f48cde47aa0/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuerySanitizerUtilCacheTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa6d4264ec9dd92491d3c383aedf3f48cde47aa0/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuerySanitizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fea50c13dc0da448969c1078f3e01d8e13fb0eb2/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuerySanitizerUtilCacheTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3ec580be07c5f6f351ad9061470a49766f76dfec"
+      ],
+      "id": "PRRT_kwDODJKVX85wQWu4",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85wQXRY",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e43fc4bbd025f1747df8496947b447e4bcd766b/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fea50c13dc0da448969c1078f3e01d8e13fb0eb2/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX85wTLQr",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

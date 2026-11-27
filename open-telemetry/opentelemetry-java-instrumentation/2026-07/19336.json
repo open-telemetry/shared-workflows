@@ -1,0 +1,25 @@
+{
+  "head": "63c8bd4c1d71a8ee63d31c6c14f9305b81f664dd",
+  "merge": "834919e04ae58048fd30bf337f8396dee3ef7683",
+  "merged": "2026-07-29T20:36:37Z",
+  "missing_roots": 0,
+  "number": 19336,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "These suites are Testcontainers tests themselves — `AbstractVaadinTest` starts a `BrowserWebDriverContainer(\"selenium/standalone-chrome:4.43.0\")`, and `vaadin-14.2:testing` depends on `org.testcontainers:testcontainers-selenium`. Replacing `testcontainersBuildService` instead of adding to it takes these tasks out of the repo-wide cap of 2 concurrent container tests, so a vaadin suite can now run alongside 2 other container-heavy suites rather than counting toward that limit.\n\nA task can declare more than one shared service, and Gradle makes it hold a lease on each one before it runs, so declaring both keeps the resource cap and adds the serialization you want here:\n\n```suggestion\n    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n    usesService(vaadinBuildService)\n```\n\n(Checked this on a scratch build: with a max-2 service used by three tasks and a max-1 service used by two of them, the two sharing the max-1 service never overlapped while the third still ran in parallel.)",
+      "created": "2026-07-29T19:51:25Z",
+      "hunk": "@@ -79,9 +79,19 @@ testing {\n   }\n }\n \n+// Vaadin's frontend tooling installs node and pnpm into the shared ~/.vaadin directory. Running two\n+// test suites at once lets their npm installs clobber each other, which leaves ~/.vaadin corrupted\n+// and fails every subsequent attempt with ENOTEMPTY, so only let one suite run at a time.\n+abstract class VaadinBuildService : BuildService<BuildServiceParameters.None>\n+\n+val vaadinBuildService =\n+  gradle.sharedServices.registerIfAbsent(\"vaadinBuildService\", VaadinBuildService::class.java) {\n+    maxParallelUsages.set(1)\n+  }\n+\n tasks {\n   withType<Test>().configureEach {\n-    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+    usesService(vaadinBuildService)",
+      "id": "PRRT_kwDODJKVX86U48PL",
+      "opened": "2026-07-29T19:53:35Z",
+      "path": "instrumentation/vaadin-14.2/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "5104ce02d7cf37302229b38911eab3e6b565d638",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19336#discussion_r3677622950"
+    }
+  ]
+}

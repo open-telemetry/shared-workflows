@@ -1,0 +1,226 @@
+{
+  "head": "638a82b7ba7074a5bf85b7fccf381919a6722621",
+  "merge": "30a60ebdca7fb1a18e3487161acdc740fb03873b",
+  "merged": "2026-05-21T15:10:44Z",
+  "missing_roots": 0,
+  "number": 25,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Continuing from the [previous discussion](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4449#discussion_r3221579464). This makes sense to me. I was just wondering the nuance of \"if something is root-level and we have zero information about it, assume it's a workflow rather than silently dropping it.\" I think we are taking an approach and assuming that we want more data than assuming to ignore it (which I think is correct). Is my understanding correct? If so, please add similar comments here like what you proposed :)",
+      "created": "2026-05-18T19:52:51Z",
+      "hunk": "@@ -0,0 +1,217 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Callback-to-semconv operation mapping for LangChain callbacks.\n+\n+Maps each LangChain callback to the correct GenAI semantic convention\n+operation name.  Direct callbacks (``on_chat_model_start``,\n+``on_llm_start``, ``on_tool_start``, ``on_retriever_start``) have a\n+fixed 1-to-1 mapping.  ``on_chain_start`` requires heuristic\n+classification because LangChain emits this callback for agents,\n+workflows, and internal plumbing alike.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Optional\n+from uuid import UUID\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+\n+__all__ = [\n+    \"OperationName\",\n+    \"classify_chain_run\",\n+    \"resolve_agent_name\",\n+    \"should_ignore_chain\",\n+]\n+\n+# ---------------------------------------------------------------------------\n+# Operation name constants (sourced from the GenAI semconv enum where\n+# available, with string fallbacks for values not yet in the enum).\n+# ---------------------------------------------------------------------------\n+\n+\n+class OperationName:\n+    \"\"\"Canonical GenAI semantic convention operation names.\"\"\"\n+\n+    INVOKE_AGENT: str = GenAI.GenAiOperationNameValues.INVOKE_AGENT.value\n+    # invoke_workflow is not yet in the semconv enum; use the expected\n+    # string value so the mapping is forward-compatible.\n+    INVOKE_WORKFLOW: str = \"invoke_workflow\"\n+\n+\n+# ---------------------------------------------------------------------------\n+# LangGraph markers – names and prefixes produced by LangGraph that must\n+# be recognized when classifying ``on_chain_start`` callbacks.\n+# ---------------------------------------------------------------------------\n+\n+LANGGRAPH_NODE_KEY = \"langgraph_node\"\n+LANGGRAPH_START_NODE = \"__start__\"\n+MIDDLEWARE_PREFIX = \"Middleware.\"\n+LANGGRAPH_IDENTIFIER = \"LangGraph\"\n+\n+# Metadata keys used by callers to override classification.\n+_META_AGENT_SPAN = \"otel_agent_span\"\n+_META_WORKFLOW_SPAN = \"otel_workflow_span\"\n+_META_AGENT_NAME = \"agent_name\"\n+_META_AGENT_TYPE = \"agent_type\"\n+_META_OTEL_TRACE = \"otel_trace\"\n+\n+\n+# ---------------------------------------------------------------------------\n+# Helpers\n+# ---------------------------------------------------------------------------\n+\n+\n+def resolve_agent_name(\n+    serialized: dict[str, Any],\n+    metadata: Optional[dict[str, Any]],\n+    kwargs: dict[str, Any],\n+) -> Optional[str]:\n+    \"\"\"Derive the best-effort agent name from callback arguments.\n+\n+    Checks (in priority order):\n+    1. ``metadata[\"agent_name\"]``\n+    2. ``kwargs[\"name\"]``\n+    3. ``serialized[\"name\"]``\n+    4. ``metadata[\"langgraph_node\"]`` (if present and not a start node)\n+    \"\"\"\n+    if metadata:\n+        name = metadata.get(_META_AGENT_NAME)\n+        if name:\n+            return str(name)\n+\n+    name = kwargs.get(\"name\")\n+    if name:\n+        return str(name)\n+\n+    name = serialized.get(\"name\") if serialized else None\n+    if name:\n+        return str(name)\n+\n+    if metadata:\n+        node = metadata.get(LANGGRAPH_NODE_KEY)\n+        if node and node != LANGGRAPH_START_NODE:\n+            return str(node)\n+\n+    return None\n+\n+\n+def _has_agent_signals(metadata: Optional[dict[str, Any]]) -> bool:\n+    \"\"\"Return True when metadata contains any signal that the chain is an agent.\"\"\"\n+    if not metadata:\n+        return False\n+    return bool(\n+        metadata.get(_META_AGENT_SPAN)\n+        or metadata.get(_META_AGENT_NAME)\n+        or metadata.get(_META_AGENT_TYPE)\n+    )\n+\n+\n+def _looks_like_workflow(\n+    serialized: dict[str, Any],\n+    metadata: Optional[dict[str, Any]],\n+    parent_run_id: Optional[UUID],\n+) -> bool:\n+    \"\"\"Return True if the chain looks like a top-level workflow/graph.\"\"\"\n+    if parent_run_id is not None:\n+        return False\n+\n+    # An explicit workflow override is authoritative.\n+    if metadata and metadata.get(_META_WORKFLOW_SPAN):\n+        return True\n+\n+    # Heuristic: check for LangGraph identifier in the serialized repr.\n+    if serialized:\n+        name = serialized.get(\"name\", \"\")\n+        graph_id = (\n+            serialized.get(\"graph\", {}).get(\"id\", \"\")\n+            if isinstance(serialized.get(\"graph\"), dict)\n+            else \"\"\n+        )\n+        return LANGGRAPH_IDENTIFIER in name or LANGGRAPH_IDENTIFIER in graph_id\n+\n+    return True",
+      "id": "PRRT_kwDOSbspP86C89ZD",
+      "opened": "2026-05-18T19:52:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/src/opentelemetry/instrumentation/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3261684360"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Nit: Could you create a tracking issue after this is merged?",
+      "created": "2026-05-18T19:56:13Z",
+      "hunk": "@@ -0,0 +1,217 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Callback-to-semconv operation mapping for LangChain callbacks.\n+\n+Maps each LangChain callback to the correct GenAI semantic convention\n+operation name.  Direct callbacks (``on_chat_model_start``,\n+``on_llm_start``, ``on_tool_start``, ``on_retriever_start``) have a\n+fixed 1-to-1 mapping.  ``on_chain_start`` requires heuristic\n+classification because LangChain emits this callback for agents,\n+workflows, and internal plumbing alike.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Optional\n+from uuid import UUID\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+\n+__all__ = [\n+    \"OperationName\",\n+    \"classify_chain_run\",\n+    \"resolve_agent_name\",\n+    \"should_ignore_chain\",\n+]\n+\n+# ---------------------------------------------------------------------------\n+# Operation name constants (sourced from the GenAI semconv enum where\n+# available, with string fallbacks for values not yet in the enum).\n+# ---------------------------------------------------------------------------\n+\n+\n+class OperationName:\n+    \"\"\"Canonical GenAI semantic convention operation names.\"\"\"\n+\n+    INVOKE_AGENT: str = GenAI.GenAiOperationNameValues.INVOKE_AGENT.value\n+    # invoke_workflow is not yet in the semconv enum; use the expected\n+    # string value so the mapping is forward-compatible.\n+    INVOKE_WORKFLOW: str = \"invoke_workflow\"",
+      "id": "PRRT_kwDOSbspP86C9BAc",
+      "opened": "2026-05-18T19:56:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/src/opentelemetry/instrumentation/langchain/operation_mapping.py",
+      "replies": [
+        {
+          "at": "2026-05-19T19:49:40Z",
+          "body": "opentelemetry-semantic-conventions==0.63b0 has it, updated.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3269178782"
+        }
+      ],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3261705598"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "I think this would need to point to the new genai repo? ",
+      "created": "2026-05-18T20:01:58Z",
+      "hunk": "@@ -37,8 +38,8 @@ instruments = [\n langchain = \"opentelemetry.instrumentation.langchain:LangChainInstrumentor\"\n \n [project.urls]\n-Homepage = \"https://github.com/open-telemetry/opentelemetry-python-genai/tree/main/instrumentation/opentelemetry-instrumentation-langchain\"\n-Repository = \"https://github.com/open-telemetry/opentelemetry-python-genai\"\n+Homepage = \"https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation-genai/opentelemetry-instrumentation-langchain\"",
+      "id": "PRRT_kwDOSbspP86C9HM-",
+      "opened": "2026-05-18T20:01:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/pyproject.toml",
+      "replies": [],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3261742083"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Should we have vcr cassettes to test out real langchain interactions similar to the chat model calls?",
+      "created": "2026-05-18T20:31:03Z",
+      "hunk": "@@ -104,7 +104,73 @@ def test_delete_invocation_state(invocation_manager, mock_invocation):\n     assert run_id not in invocation_manager._invocations\n \n \n-def test_delete_invocation_state_with_children(invocation_manager):\n+def test_delete_invocation_state_deferred_while_children_live(",
+      "id": "PRRT_kwDOSbspP86C9mK5",
+      "opened": "2026-05-18T20:31:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/tests/test_invocation_manager.py",
+      "replies": [
+        {
+          "at": "2026-05-19T19:57:23Z",
+          "body": "chat model vcr tests - integration tests that call real LLM APIs → cassettes replay the HTTP traffic \r\ninvocation manager - pure unit tests of internal lifecycle logic; no I/O → no cassettes needed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3269228917"
+        }
+      ],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3261922542"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "could you please create an issue in semantic-conventions-genai repo to support it properly? we should consider adding structured input part",
+      "created": "2026-05-19T03:54:44Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import json\n+from typing import Any, Optional, cast\n+\n+from langchain_core.messages import AIMessage\n+\n+from opentelemetry.util.genai.types import (\n+    InputMessage,\n+    OutputMessage,\n+    Text,\n+)\n+\n+\n+def make_input_message(data: Any) -> list[InputMessage]:\n+    \"\"\"Create structured input message with full data as JSON.\"\"\"\n+    if not isinstance(data, dict):\n+        return []\n+    data_dict = cast(dict[str, Any], data)\n+    input_messages: list[InputMessage] = []\n+    messages: Any = data_dict.get(\"messages\")\n+    if messages is not None:\n+        for msg in messages:\n+            content: Any = getattr(msg, \"content\", \"\")\n+            if content and isinstance(content, str):\n+                input_message = InputMessage(\n+                    role=\"user\", parts=[Text(content)]\n+                )\n+                input_messages.append(input_message)\n+        return input_messages\n+    # Fallback: serialize non-message state fields as input.\n+    # Common in LangGraph where nodes use structured state fields\n+    # (e.g., user_query) rather than a message list.\n+    exclude_keys = {\"messages\", \"intermediate_steps\"}\n+    input_data: dict[str, Any] = {\n+        k: v\n+        for k, v in data_dict.items()\n+        if k not in exclude_keys and v is not None\n+    }\n+    if input_data:\n+        serialized = serialize(input_data)\n+        if serialized:\n+            return [InputMessage(role=\"user\", parts=[Text(serialized)])]",
+      "id": "PRRT_kwDOSbspP86DCAoe",
+      "opened": "2026-05-19T04:11:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/src/opentelemetry/instrumentation/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-05-19T20:16:44Z",
+          "body": "[issue](https://github.com/open-telemetry/semantic-conventions-genai/issues/175) added",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3269350971"
+        }
+      ],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3263539924"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\ndef _should_ignore_chain(\n```\n\nother helpers here are not public",
+      "created": "2026-05-19T03:56:08Z",
+      "hunk": "@@ -0,0 +1,217 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Callback-to-semconv operation mapping for LangChain callbacks.\n+\n+Maps each LangChain callback to the correct GenAI semantic convention\n+operation name.  Direct callbacks (``on_chat_model_start``,\n+``on_llm_start``, ``on_tool_start``, ``on_retriever_start``) have a\n+fixed 1-to-1 mapping.  ``on_chain_start`` requires heuristic\n+classification because LangChain emits this callback for agents,\n+workflows, and internal plumbing alike.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Optional\n+from uuid import UUID\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+\n+__all__ = [\n+    \"OperationName\",\n+    \"classify_chain_run\",\n+    \"resolve_agent_name\",\n+    \"should_ignore_chain\",\n+]\n+\n+# ---------------------------------------------------------------------------\n+# Operation name constants (sourced from the GenAI semconv enum where\n+# available, with string fallbacks for values not yet in the enum).\n+# ---------------------------------------------------------------------------\n+\n+\n+class OperationName:\n+    \"\"\"Canonical GenAI semantic convention operation names.\"\"\"\n+\n+    INVOKE_AGENT: str = GenAI.GenAiOperationNameValues.INVOKE_AGENT.value\n+    # invoke_workflow is not yet in the semconv enum; use the expected\n+    # string value so the mapping is forward-compatible.\n+    INVOKE_WORKFLOW: str = \"invoke_workflow\"\n+\n+\n+# ---------------------------------------------------------------------------\n+# LangGraph markers – names and prefixes produced by LangGraph that must\n+# be recognized when classifying ``on_chain_start`` callbacks.\n+# ---------------------------------------------------------------------------\n+\n+LANGGRAPH_NODE_KEY = \"langgraph_node\"\n+LANGGRAPH_START_NODE = \"__start__\"\n+MIDDLEWARE_PREFIX = \"Middleware.\"\n+LANGGRAPH_IDENTIFIER = \"LangGraph\"\n+\n+# Metadata keys used by callers to override classification.\n+_META_AGENT_SPAN = \"otel_agent_span\"\n+_META_WORKFLOW_SPAN = \"otel_workflow_span\"\n+_META_AGENT_NAME = \"agent_name\"\n+_META_AGENT_TYPE = \"agent_type\"\n+_META_OTEL_TRACE = \"otel_trace\"\n+\n+\n+# ---------------------------------------------------------------------------\n+# Helpers\n+# ---------------------------------------------------------------------------\n+\n+\n+def resolve_agent_name(\n+    serialized: dict[str, Any],\n+    metadata: Optional[dict[str, Any]],\n+    kwargs: dict[str, Any],\n+) -> Optional[str]:\n+    \"\"\"Derive the best-effort agent name from callback arguments.\n+\n+    Checks (in priority order):\n+    1. ``metadata[\"agent_name\"]``\n+    2. ``kwargs[\"name\"]``\n+    3. ``serialized[\"name\"]``\n+    4. ``metadata[\"langgraph_node\"]`` (if present and not a start node)\n+    \"\"\"\n+    if metadata:\n+        name = metadata.get(_META_AGENT_NAME)\n+        if name:\n+            return str(name)\n+\n+    name = kwargs.get(\"name\")\n+    if name:\n+        return str(name)\n+\n+    name = serialized.get(\"name\") if serialized else None\n+    if name:\n+        return str(name)\n+\n+    if metadata:\n+        node = metadata.get(LANGGRAPH_NODE_KEY)\n+        if node and node != LANGGRAPH_START_NODE:\n+            return str(node)\n+\n+    return None\n+\n+\n+def _has_agent_signals(metadata: Optional[dict[str, Any]]) -> bool:\n+    \"\"\"Return True when metadata contains any signal that the chain is an agent.\"\"\"\n+    if not metadata:\n+        return False\n+    return bool(\n+        metadata.get(_META_AGENT_SPAN)\n+        or metadata.get(_META_AGENT_NAME)\n+        or metadata.get(_META_AGENT_TYPE)\n+    )\n+\n+\n+def _looks_like_workflow(\n+    serialized: dict[str, Any],\n+    metadata: Optional[dict[str, Any]],\n+    parent_run_id: Optional[UUID],\n+) -> bool:\n+    \"\"\"Return True if the chain looks like a top-level workflow/graph.\"\"\"\n+    if parent_run_id is not None:\n+        return False\n+\n+    # An explicit workflow override is authoritative.\n+    if metadata and metadata.get(_META_WORKFLOW_SPAN):\n+        return True\n+\n+    # Heuristic: check for LangGraph identifier in the serialized repr.\n+    if serialized:\n+        name = serialized.get(\"name\", \"\")\n+        graph_id = (\n+            serialized.get(\"graph\", {}).get(\"id\", \"\")\n+            if isinstance(serialized.get(\"graph\"), dict)\n+            else \"\"\n+        )\n+        return LANGGRAPH_IDENTIFIER in name or LANGGRAPH_IDENTIFIER in graph_id\n+\n+    return True\n+\n+\n+# ---------------------------------------------------------------------------\n+# Public API\n+# ---------------------------------------------------------------------------\n+\n+\n+def should_ignore_chain(",
+      "id": "PRRT_kwDOSbspP86DCBUi",
+      "opened": "2026-05-19T04:11:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/src/opentelemetry/instrumentation/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3263543680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please add conformance test scenarios for agent and workflow similar to https://github.com/open-telemetry/opentelemetry-python-genai/blob/7cafd934e0cb23f26dd58a41460011d0f84ccbc2/instrumentation/opentelemetry-instrumentation-openai-v2/tests/conformance/tool_calling.py - these tests can actually replaces examples reasonably well, so feel free to remove examples. ",
+      "created": "2026-05-19T04:04:35Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86DCFWa",
+      "opened": "2026-05-19T04:11:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/examples/agent/single_node_agent.py",
+      "replies": [],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3263565793"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "check out #17 - this and other start_* are deprecated now and you can use `workflow` directly ",
+      "created": "2026-05-19T04:05:28Z",
+      "hunk": "@@ -34,6 +46,139 @@ def __init__(self, telemetry_handler: TelemetryHandler) -> None:\n         self._telemetry_handler = telemetry_handler\n         self._invocation_manager = _InvocationManager()\n \n+    def on_chain_start(\n+        self,\n+        serialized: dict[str, Any],\n+        inputs: dict[str, Any],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        operation = classify_chain_run(\n+            serialized, metadata, kwargs, parent_run_id\n+        )\n+\n+        if operation == OperationName.INVOKE_WORKFLOW:\n+            workflow_name = kwargs.get(\"name\") or serialized.get(\"name\")\n+            workflow_name_override = (\n+                metadata.get(\"workflow_name\") if metadata else None\n+            )\n+            workflow = self._telemetry_handler.start_workflow(",
+      "id": "PRRT_kwDOSbspP86DCFzi",
+      "opened": "2026-05-19T04:11:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/src/opentelemetry/instrumentation/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3263568336"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please create an issue in semconv-genai repo to decide what to do with gen_ai.provider.name for agentic frameworks",
+      "created": "2026-05-19T04:09:07Z",
+      "hunk": "@@ -34,6 +46,139 @@ def __init__(self, telemetry_handler: TelemetryHandler) -> None:\n         self._telemetry_handler = telemetry_handler\n         self._invocation_manager = _InvocationManager()\n \n+    def on_chain_start(\n+        self,\n+        serialized: dict[str, Any],\n+        inputs: dict[str, Any],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        operation = classify_chain_run(\n+            serialized, metadata, kwargs, parent_run_id\n+        )\n+\n+        if operation == OperationName.INVOKE_WORKFLOW:\n+            workflow_name = kwargs.get(\"name\") or serialized.get(\"name\")\n+            workflow_name_override = (\n+                metadata.get(\"workflow_name\") if metadata else None\n+            )\n+            workflow = self._telemetry_handler.start_workflow(\n+                name=workflow_name_override or workflow_name\n+            )\n+            workflow.input_messages = make_input_message(inputs)\n+            self._invocation_manager.add_invocation_state(\n+                run_id, parent_run_id, workflow\n+            )\n+        elif operation == OperationName.INVOKE_AGENT:\n+            # agent name passed by the user\n+            suggested_agent_name = resolve_agent_name(\n+                serialized, metadata, kwargs\n+            )\n+            # find if there is an agent already\n+            agent_invocation = self._find_nearest_agent(parent_run_id)\n+            agent_invocation_name = (\n+                agent_invocation.agent_name if agent_invocation else None\n+            )\n+            if suggested_agent_name:\n+                suggested_agent_name_lower = suggested_agent_name.lower()\n+                agent_invocation_name_lower = (\n+                    agent_invocation_name.lower()\n+                    if agent_invocation_name\n+                    else None\n+                )\n+                if suggested_agent_name_lower != agent_invocation_name_lower:\n+                    agent = self._telemetry_handler.start_invoke_local_agent(\n+                        provider=metadata.get(\"ls_provider\", \"unknown\")\n+                        if metadata\n+                        else \"unknown\",",
+      "id": "PRRT_kwDOSbspP86DCHkU",
+      "opened": "2026-05-19T04:11:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/src/opentelemetry/instrumentation/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-05-19T23:58:26Z",
+          "body": "created [issue](https://github.com/open-telemetry/semantic-conventions-genai/issues/178)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3270408314"
+        }
+      ],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3263578346"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we should pass agent name to `invoke_local_agent`, without it span name does not include it \n\n<img width=\"3134\" height=\"1114\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/0f757987-7453-4f20-bbd5-c9d3f96859e5\" />",
+      "created": "2026-05-19T04:09:10Z",
+      "hunk": "@@ -34,6 +46,139 @@ def __init__(self, telemetry_handler: TelemetryHandler) -> None:\n         self._telemetry_handler = telemetry_handler\n         self._invocation_manager = _InvocationManager()\n \n+    def on_chain_start(\n+        self,\n+        serialized: dict[str, Any],\n+        inputs: dict[str, Any],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        operation = classify_chain_run(\n+            serialized, metadata, kwargs, parent_run_id\n+        )\n+\n+        if operation == OperationName.INVOKE_WORKFLOW:\n+            workflow_name = kwargs.get(\"name\") or serialized.get(\"name\")\n+            workflow_name_override = (\n+                metadata.get(\"workflow_name\") if metadata else None\n+            )\n+            workflow = self._telemetry_handler.start_workflow(\n+                name=workflow_name_override or workflow_name\n+            )\n+            workflow.input_messages = make_input_message(inputs)\n+            self._invocation_manager.add_invocation_state(\n+                run_id, parent_run_id, workflow\n+            )\n+        elif operation == OperationName.INVOKE_AGENT:\n+            # agent name passed by the user\n+            suggested_agent_name = resolve_agent_name(\n+                serialized, metadata, kwargs\n+            )\n+            # find if there is an agent already\n+            agent_invocation = self._find_nearest_agent(parent_run_id)\n+            agent_invocation_name = (\n+                agent_invocation.agent_name if agent_invocation else None\n+            )\n+            if suggested_agent_name:\n+                suggested_agent_name_lower = suggested_agent_name.lower()\n+                agent_invocation_name_lower = (\n+                    agent_invocation_name.lower()\n+                    if agent_invocation_name\n+                    else None\n+                )\n+                if suggested_agent_name_lower != agent_invocation_name_lower:\n+                    agent = self._telemetry_handler.start_invoke_local_agent(",
+      "id": "PRRT_kwDOSbspP86DCHlm",
+      "opened": "2026-05-19T04:11:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-langchain/src/opentelemetry/instrumentation/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "1d6d649d2a16d7fd7ce9f4968a416b5395bac7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3263578468"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we have gen_ai.t.name here instead?",
+      "created": "2026-05-20T06:05:31Z",
+      "hunk": "@@ -158,11 +158,9 @@ _execute_tool_expected := {\n \n # Invoke agent.\n # Required: gen_ai.operation.name, gen_ai.provider.name.\n-# Most instrumentations should have agent.id; flag it as always-emit.\n _invoke_agent_expected := {\n \t\"gen_ai.operation.name\",\n \t\"gen_ai.provider.name\",",
+      "id": "PRRT_kwDOSbspP86DYEuD",
+      "opened": "2026-05-20T06:09:05Z",
+      "path": "policies/genai_span_validation.rego",
+      "replies": [
+        {
+          "at": "2026-05-20T16:46:53Z",
+          "body": "@lmolkova it is optional in [semcov](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-client-span)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3275638395"
+        }
+      ],
+      "reviewed": "7828ad5352a8b1495fb1d691c205d0268065f3d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3271565065"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "Even if it doesn't have oldest/latest (which IMO is more of a burden than adding any value), shouldn't langchain's unit tests be added here ? ",
+      "created": "2026-05-20T14:04:04Z",
+      "hunk": "@@ -122,6 +122,7 @@ deps =\n   ; Langchain has no oldest/latest matrix yet (TODO above); pin the client",
+      "id": "PRRT_kwDOSbspP86DgeTJ",
+      "opened": "2026-05-20T14:04:04Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-05-21T14:34:45Z",
+          "body": "Thanks for adding",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3281981363"
+        }
+      ],
+      "reviewed": "7828ad5352a8b1495fb1d691c205d0268065f3d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/25#discussion_r3274566752"
+    }
+  ]
+}

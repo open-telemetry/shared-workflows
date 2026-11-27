@@ -1,0 +1,39 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9bc23328321e53ac8a75a43865845fbc94429f7c92a7ddb84d375b66f368d583",
+  "input_digest": "f0896a2bf43e9a4c3f072194544c95e9ad833f2b5b5dcbd7711f8352a59f3121",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/183c19aa91c64849ed8a35a8a653d1c3366621f4/smoke-tests/images/servlet/src/wildfly.dockerfile",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/183c19aa91c64849ed8a35a8a653d1c3366621f4/smoke-tests/images/servlet/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7a626d831313417e02e7982186eeb99f142470d/smoke-tests/images/servlet/src/wildfly.dockerfile",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7a626d831313417e02e7982186eeb99f142470d/smoke-tests/images/servlet/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eaedc2fd071c280daa4feac386a9153874ba72ed"
+      ],
+      "id": "PRRT_kwDODJKVX86q4YOr",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eaedc2fd071c280daa4feac386a9153874ba72ed/smoke-tests/images/servlet/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eaedc2fd071c280daa4feac386a9153874ba72ed/smoke-tests/images/servlet/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eaedc2fd071c280daa4feac386a9153874ba72ed/smoke-tests/images/servlet/src/wildfly.dockerfile",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7a626d831313417e02e7982186eeb99f142470d/smoke-tests/images/servlet/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7a626d831313417e02e7982186eeb99f142470d/smoke-tests/images/servlet/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7a626d831313417e02e7982186eeb99f142470d/smoke-tests/images/servlet/src/wildfly.dockerfile",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0a17edc2e6091ee4f6d452f1bc298199c882e433"
+      ],
+      "id": "PRRT_kwDODJKVX86rEUVp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

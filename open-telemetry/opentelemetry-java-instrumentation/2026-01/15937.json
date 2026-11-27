@@ -1,0 +1,73 @@
+{
+  "head": "1b9de438eb033f20cf18a3ad518c82171210c852",
+  "merge": "9ebb33666cb8c070f8f54de31d74ef44b147c3a2",
+  "merged": "2026-01-20T08:29:43Z",
+  "missing_roots": 0,
+  "number": 15937,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot does this eliminate the need for `testStableSemconv` declaration above?",
+      "created": "2026-01-19T18:13:23Z",
+      "hunk": "@@ -56,7 +56,20 @@ tasks {\n     jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n   }\n \n+  val testSuites = testing.suites.withType(JvmTestSuite::class)\n+\n+  val stableSemconvSuites = testSuites\n+    .filter { it.name != \"test\" }\n+    .map { suite ->\n+      register<Test>(\"${suite.name}StableSemconv\") {\n+        testClassesDirs = suite.sources.output.classesDirs\n+        classpath = suite.sources.runtimeClasspath\n+\n+        jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX85qCkvz",
+      "opened": "2026-01-19T18:13:23Z",
+      "path": "instrumentation/spring/spring-data/spring-data-3.0/testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T18:21:48Z",
+          "body": "Yes, you're right! The automatic generation pattern now handles all test suites including the main \"test\" suite. Removed the manual `testStableSemconv` declaration and the filter in commit 68a3f9d.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15937#discussion_r2705741773"
+        }
+      ],
+      "reviewed": "f23f103be0e0458c2736e9761a2587287b12d15f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15937#discussion_r2705724248"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot inline `testSuites`",
+      "created": "2026-01-19T18:23:33Z",
+      "hunk": "@@ -50,13 +50,18 @@ tasks {\n     jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n   }\n \n-  val testStableSemconv by registering(Test::class) {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+  val testSuites = testing.suites.withType(JvmTestSuite::class)",
+      "id": "PRRT_kwDODJKVX85qCo16",
+      "opened": "2026-01-19T18:23:33Z",
+      "path": "instrumentation/spring/spring-data/spring-data-3.0/testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T18:28:16Z",
+          "body": "Done in commit 1b9de43.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15937#discussion_r2705760975"
+        }
+      ],
+      "reviewed": "68a3f9d263c0bdd8b33bbd46414c77d138e40aa4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15937#discussion_r2705745050"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot does `stableSemconvSuites` cover what was previously covered by `testStableSemconv`? run a test to be sure",
+      "created": "2026-01-19T19:57:36Z",
+      "hunk": "@@ -50,13 +50,16 @@ tasks {\n     jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n   }\n \n-  val testStableSemconv by registering(Test::class) {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+  val stableSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n+    register<Test>(\"${suite.name}StableSemconv\") {\n+      testClassesDirs = suite.sources.output.classesDirs\n+      classpath = suite.sources.runtimeClasspath\n+\n+      jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+    }",
+      "id": "PRRT_kwDODJKVX85qDORo",
+      "opened": "2026-01-19T19:57:36Z",
+      "path": "instrumentation/spring/spring-data/spring-data-3.0/testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T20:06:48Z",
+          "body": "Yes, confirmed. The auto-generated `testStableSemconv` covers exactly what the manual declaration did:\n\n**Evidence:**\n1. Both configurations use identical settings:\n   - testClassesDirs: `sourceSets.test` output \n   - classpath: `sourceSets.test` runtime classpath\n   - jvmArgs: `-Dotel.semconv-stability.opt-in=database`\n\n2. Test results verify both run the same tests:\n   - Manual version: `SpringJpaTest` with 4 tests\n   - Auto-generated version: `SpringJpaTest` with 4 tests  \n   - Both passed all tests\n\nThe difference is that the manual version explicitly used `sourceSets.test.get()`, while the auto-generated version uses `suite.sources` where suite is the \"test\" JvmTestSuite, which corresponds to the same source set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15937#discussion_r2705956326"
+        }
+      ],
+      "reviewed": "1b9de438eb033f20cf18a3ad518c82171210c852",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15937#discussion_r2705939940"
+    }
+  ]
+}

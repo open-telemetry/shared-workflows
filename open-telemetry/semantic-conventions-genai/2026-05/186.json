@@ -1,0 +1,72 @@
+{
+  "head": "91662ae22f34e2bec502c8cc79a20baeb4529973",
+  "merge": "af2f15afe0eda0bd79019fee383a5e35688efcfa",
+  "merged": "2026-05-26T21:22:39Z",
+  "missing_roots": 0,
+  "number": 186,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this comment helpful in the code? it's helpful context for the review, but not after it's merged. let's remove it",
+      "created": "2026-05-22T23:33:30Z",
+      "hunk": "@@ -53,15 +53,20 @@ async def run_agent_query_reference():\n         output_tokens = None\n         async for message in query(prompt=prompt_text, options=options):\n             if isinstance(message, AssistantMessage):\n-                raw = getattr(message, \"message\", None)\n-                if raw is not None:\n-                    response_model = response_model or getattr(raw, \"model\", None)\n-                    response_id = response_id or getattr(raw, \"id\", None)\n-                    finish_reason = finish_reason or getattr(raw, \"stop_reason\", None)\n-                    raw_usage = getattr(raw, \"usage\", None)\n-                    if raw_usage is not None:\n-                        input_tokens = getattr(raw_usage, \"input_tokens\", None)\n-                        output_tokens = getattr(raw_usage, \"output_tokens\", None)\n+                # claude-agent-sdk >=0.2 exposes fields directly on AssistantMessage\n+                # (message.model, message.message_id, message.usage) rather than\n+                # nesting them under message.message as in 0.1.x.",
+      "id": "PRRT_kwDOSUeMrM6EQAnF",
+      "opened": "2026-05-22T23:34:10Z",
+      "path": "reference/scenarios/claude-agent-sdk/scenario.py",
+      "replies": [],
+      "reviewed": "31be1bab64f71d471140692e7ded492dda4d27f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/186#discussion_r3291623499"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Token extraction uses `getattr(... ) or (...)`, which will treat a legitimate token count of `0` as falsy and fall back to the dict lookup (or `None`), potentially dropping valid 0-valued usage. Prefer explicit `is None` checks (or a small helper) so `0` is preserved for both input and output tokens.\n",
+      "created": "2026-05-26T18:45:09Z",
+      "hunk": "@@ -53,15 +53,17 @@ async def run_agent_query_reference():\n         output_tokens = None\n         async for message in query(prompt=prompt_text, options=options):\n             if isinstance(message, AssistantMessage):\n-                raw = getattr(message, \"message\", None)\n-                if raw is not None:\n-                    response_model = response_model or getattr(raw, \"model\", None)\n-                    response_id = response_id or getattr(raw, \"id\", None)\n-                    finish_reason = finish_reason or getattr(raw, \"stop_reason\", None)\n-                    raw_usage = getattr(raw, \"usage\", None)\n-                    if raw_usage is not None:\n-                        input_tokens = getattr(raw_usage, \"input_tokens\", None)\n-                        output_tokens = getattr(raw_usage, \"output_tokens\", None)\n+                response_model = response_model or getattr(message, \"model\", None)\n+                response_id = response_id or getattr(message, \"message_id\", None)\n+                finish_reason = finish_reason or getattr(message, \"stop_reason\", None)\n+                msg_usage = getattr(message, \"usage\", None)\n+                if msg_usage is not None and input_tokens is None:\n+                    input_tokens = getattr(msg_usage, \"input_tokens\", None) or (\n+                        msg_usage.get(\"input_tokens\") if isinstance(msg_usage, dict) else None\n+                    )\n+                    output_tokens = getattr(msg_usage, \"output_tokens\", None) or (\n+                        msg_usage.get(\"output_tokens\") if isinstance(msg_usage, dict) else None\n+                    )",
+      "id": "PRRT_kwDOSUeMrM6E5JK4",
+      "opened": "2026-05-26T18:45:09Z",
+      "path": "reference/scenarios/claude-agent-sdk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-26T18:52:38Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/186/commits/91662ae22f34e2bec502c8cc79a20baeb4529973",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/186#discussion_r3306131930"
+        },
+        {
+          "at": "2026-05-26T18:57:36Z",
+          "body": "Good catch — fixed in 91662ae. Verified upstream `claude-agent-sdk` `AssistantMessage.usage` / `ResultMessage.usage` are typed `dict[str, Any] | None`, so the `getattr(...) or (...)` pattern (which dropped legitimate `0` and also did nothing useful on a dict) was reduced to a direct `msg_usage.get(\"input_tokens\")` / `msg_usage.get(\"output_tokens\")`. The guard is now just `if msg_usage is not None and input_tokens is None`, so `0` is preserved for both input and output tokens.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/186#discussion_r3306164428"
+        }
+      ],
+      "reviewed": "aeca796ed1889e248f6055f6634eecb652333da6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/186#discussion_r3306089297"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PR description states there are no `scenario.py` changes for `claude-agent-sdk`, but this hunk changes how response fields are extracted (e.g., `message.model`/`message_id` instead of reading from `message.message.*`). Please update the PR description (or adjust the change) so reviewers can clearly understand whether behavior changed and which SDK fields are considered the authoritative sources.",
+      "created": "2026-05-26T18:45:09Z",
+      "hunk": "@@ -53,15 +53,17 @@ async def run_agent_query_reference():\n         output_tokens = None\n         async for message in query(prompt=prompt_text, options=options):\n             if isinstance(message, AssistantMessage):\n-                raw = getattr(message, \"message\", None)\n-                if raw is not None:\n-                    response_model = response_model or getattr(raw, \"model\", None)\n-                    response_id = response_id or getattr(raw, \"id\", None)\n-                    finish_reason = finish_reason or getattr(raw, \"stop_reason\", None)\n-                    raw_usage = getattr(raw, \"usage\", None)\n-                    if raw_usage is not None:\n-                        input_tokens = getattr(raw_usage, \"input_tokens\", None)\n-                        output_tokens = getattr(raw_usage, \"output_tokens\", None)\n+                response_model = response_model or getattr(message, \"model\", None)\n+                response_id = response_id or getattr(message, \"message_id\", None)\n+                finish_reason = finish_reason or getattr(message, \"stop_reason\", None)",
+      "id": "PRRT_kwDOSUeMrM6E5JLf",
+      "opened": "2026-05-26T18:45:09Z",
+      "path": "reference/scenarios/claude-agent-sdk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-26T18:57:39Z",
+          "body": "Good catch — the PR description was wrong. Updated the body to: (1) drop the \"no code changes to scenario.py\" claim, (2) explain that the old code targeted a nonexistent `AssistantMessage.message.*` shape and so was silently producing zero response attributes, (3) correct the Source column to reflect the actual SDK fields (`AssistantMessage.message_id`, `AssistantMessage.model`, `AssistantMessage.usage[\"...\"]`), and (4) add `gen_ai.response.finish_reasons` (also captured but previously omitted). Behavior change: response attributes that data.json claims are now actually emitted; before this PR they were not.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/186#discussion_r3306164802"
+        }
+      ],
+      "reviewed": "aeca796ed1889e248f6055f6634eecb652333da6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/186#discussion_r3306089353"
+    }
+  ]
+}

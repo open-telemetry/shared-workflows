@@ -1,0 +1,52 @@
+{
+  "head": "0b54dca1814bcba5929ab9a508bc16b5e12079a3",
+  "merge": "05c6ae71d9d2e1989945090d895e0bd30e524276",
+  "merged": "2026-07-08T22:23:01Z",
+  "missing_roots": 0,
+  "number": 361,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This updated guidance (extract instruction-role `system`/`developer` messages into `gen_ai.system_instructions` and avoid duplicating them in `gen_ai.input.messages`) is only reflected in the OpenAI scenario in this PR. Other existing reference scenarios still appear to duplicate system-role content in `gen_ai.input.messages` while also setting `gen_ai.system_instructions` (e.g., `reference/scenarios/pydantic-ai/scenario.py:73-82`), which contradicts the new normalization guidance.\n\nTo keep reference coverage consistent across supporting libraries, please update the affected scenarios (and regenerate their `data.json` / reports) to exclude extracted instruction-role messages from `gen_ai.input.messages` and emit `gen_ai.system_instructions` in the schema shape shown in `model/gen-ai/gen-ai-system-instructions.json` (array items with at least a `type`, e.g., `{ \"type\": \"text\", \"content\": ... }`).",
+      "created": "2026-07-03T13:06:29Z",
+      "hunk": "@@ -653,17 +653,18 @@ attributes:\n     stability: development\n   - key: gen_ai.system_instructions\n     type: any\n-    brief: The system message or instructions provided to the GenAI model separately from the chat history.\n+    brief: The system message or instructions provided to the GenAI model.\n     annotations:\n       type:\n         json_schema: model/gen-ai/gen-ai-system-instructions.json\n     note: |\n       This attribute SHOULD be used when the corresponding provider or API\n-      allows to provide system instructions or messages separately from the\n-      chat history.\n+      allows providing system instructions or messages separately from the\n+      chat history, or when system/developer instructions are identifiable\n+      as messages with instruction roles such as `system` or `developer`.\n ",
+      "id": "PRRT_kwDOSUeMrM6OMoh_",
+      "opened": "2026-07-03T13:06:30Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-05T14:24:07Z",
+          "body": "Fixed in 5a27c6a by updating the affected reference scenarios: normalized system instructions now use the schema-compatible `{ \"type\": \"text\", \"content\": ... }` shape, and Pydantic AI no longer duplicates extracted system instructions in `gen_ai.input.messages`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/361#discussion_r3525053304"
+        }
+      ],
+      "reviewed": "f24944ec17f717b3f7398f107080ebd25a569502",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/361#discussion_r3520034696"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Per `changelog.d/README.md`, `+.<type>.md` fragments are intended only when there is no PR number yet. If this PR already has a number, please rename this fragment to `<pr-number>.clarification.md` (or `<pr-number>.clarification.<counter>.md` if needed) so Towncrier output is traceable to the PR.",
+      "created": "2026-07-03T13:06:29Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify that identifiable system and developer role messages may be recorded as `gen_ai.system_instructions` and should not be duplicated in `gen_ai.input.messages`.",
+      "id": "PRRT_kwDOSUeMrM6OMoia",
+      "opened": "2026-07-03T13:06:30Z",
+      "path": "changelog.d/361.clarification.md",
+      "replies": [
+        {
+          "at": "2026-07-05T14:24:17Z",
+          "body": "Fixed in 5a27c6a by renaming the Towncrier fragment to `361.clarification.md`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/361#discussion_r3525053548"
+        }
+      ],
+      "reviewed": "f24944ec17f717b3f7398f107080ebd25a569502",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/361#discussion_r3520034733"
+    }
+  ]
+}

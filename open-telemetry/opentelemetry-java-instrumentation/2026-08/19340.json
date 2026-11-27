@@ -1,0 +1,76 @@
+{
+  "head": "e7d17adb90c6011a4ff97ed0c6238bec584581d5",
+  "merge": "26c08ace6c3dcd3402498db10cb4dcf037cb2906",
+  "merged": "2026-08-20T02:52:45Z",
+  "missing_roots": 0,
+  "number": 19340,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This Redisson 4.x-specific path is not exercised by the added regression test: the two test modules run Redisson 3.0.0 and 3.17.0 (with 3.16.x as the only latest-deps target), and the 3.17+ module has no 4.x/latest dependency test configuration. The test can therefore pass through `cancel(...)` while the `completeExceptionally(CancellationException)` behavior needed for the reported 4.6.1 leak remains unverified. Please run this regression test against a 4.x/latest Redisson dependency as well.",
+      "created": "2026-07-30T16:07:35Z",
+      "hunk": "@@ -32,4 +36,31 @@ public static <T> CompletableFuture<T> wrap(CompletableFuture<T> delegate, Conte\n     }\n     return new ContextPropagatingCompletableFuture<>(delegate, context);\n   }\n+\n+  @Override\n+  public boolean cancel(boolean mayInterruptIfRunning) {\n+    // Cancel the delegate first so that it remains the source of truth for connection acquisition.\n+    if (!delegate.cancel(mayInterruptIfRunning)) {\n+      return false;\n+    }\n+    cancelFromDelegate();\n+    return true;\n+  }\n+\n+  @Override\n+  public boolean completeExceptionally(Throwable error) {\n+    if (error instanceof CancellationException) {\n+      // Redisson 4.x cancels connection acquisition by completing the future exceptionally.\n+      if (!delegate.completeExceptionally(error)) {",
+      "id": "PRRT_kwDODJKVX86VKmBn",
+      "opened": "2026-07-30T16:07:36Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/ContextPropagatingCompletableFuture.java",
+      "replies": [
+        {
+          "at": "2026-08-03T01:14:34Z",
+          "body": "testLatestDeps covers this. The redisson-3.17 module has no `latestDepTestLibrary` cap, so `.github/config/latest-dep-versions.json` pins it to redisson 4.6.1 (the 3.16.8 pin belongs to the redisson-3.0 module). The `build / test-latest-deps` jobs run on every PR and passed here, so the new test already exercised the `completeExceptionally` path against 4.6.1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19340#discussion_r3700812653"
+        }
+      ],
+      "reviewed": "65325a64e5731f08d52d3df6d93e10c806fd6619",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19340#discussion_r3684320776"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Redisson made this switch in 3.26.0, not in 4.x -- `RedisExecutor` still calls `connectionFuture.cancel(false)` through 3.25.x and uses `completeExceptionally(new CancellationException())` from 3.26.0 onward. Worth naming the right version so nobody later reads this as dead code for the 3.x range we support.\n\n```suggestion\n      // Redisson 3.26+ cancels connection acquisition by completing the future exceptionally.\n```",
+      "created": "2026-08-03T01:14:48Z",
+      "hunk": "@@ -32,4 +36,31 @@ public static <T> CompletableFuture<T> wrap(CompletableFuture<T> delegate, Conte\n     }\n     return new ContextPropagatingCompletableFuture<>(delegate, context);\n   }\n+\n+  @Override\n+  public boolean cancel(boolean mayInterruptIfRunning) {\n+    // Cancel the delegate first so that it remains the source of truth for connection acquisition.\n+    if (!delegate.cancel(mayInterruptIfRunning)) {\n+      return false;\n+    }\n+    cancelFromDelegate();\n+    return true;\n+  }\n+\n+  @Override\n+  public boolean completeExceptionally(Throwable error) {\n+    if (error instanceof CancellationException) {\n+      // Redisson 4.x cancels connection acquisition by completing the future exceptionally.",
+      "id": "PRRT_kwDODJKVX86V1xzm",
+      "opened": "2026-08-03T01:16:55Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/ContextPropagatingCompletableFuture.java",
+      "replies": [],
+      "reviewed": "65325a64e5731f08d52d3df6d93e10c806fd6619",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19340#discussion_r3700813165"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] `ContextPropagatingRFuture` in the redisson-3.0 module has the same missing wrapper-to-delegate cancellation propagation, and it's the wrapper actually in force on the versions where `connectionWriteOp` still returns `RFuture` (pre-3.16). I pinned that module to redisson 3.15.0 and ran this PR's new test: it still fails with this fix applied, and passes if the cancelled command is issued outside a span, i.e. when no wrapper gets created. Mirroring the `delegate` field, the `cancel(boolean)` override and `cancelFromDelegate()` onto `ContextPropagatingRFuture` made it pass. Could you make the same change there so the `RFuture` versions are covered too?",
+      "created": "2026-08-03T17:19:46Z",
+      "hunk": "@@ -32,4 +36,31 @@ public static <T> CompletableFuture<T> wrap(CompletableFuture<T> delegate, Conte\n     }\n     return new ContextPropagatingCompletableFuture<>(delegate, context);\n   }\n+\n+  @Override\n+  public boolean cancel(boolean mayInterruptIfRunning) {\n+    // Cancel the delegate first so that it remains the source of truth for connection acquisition.\n+    if (!delegate.cancel(mayInterruptIfRunning)) {\n+      return false;\n+    }\n+    cancelFromDelegate();\n+    return true;\n+  }",
+      "id": "PRRT_kwDODJKVX86WEFDM",
+      "opened": "2026-08-03T17:25:40Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/ContextPropagatingCompletableFuture.java",
+      "replies": [],
+      "reviewed": "f55250c380b5f7869516253fc0875a7e6a1820f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19340#discussion_r3706239605"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] This short timeout makes the `assertThat(cancelled).isNotDone()` check below racy. On a loaded CI runner more than 750ms can pass between submitting the command and reaching that assertion, and by then Redisson will have already failed the future with a timeout. The test doesn't need a short timeout since the cancellation is explicit -- I ran it both ways at 5s and it still passes with the fix and still fails without it.\n\n```suggestion\n          .setTimeout(5000)\n```",
+      "created": "2026-08-03T17:19:46Z",
+      "hunk": "@@ -111,6 +116,15 @@ void setup(TestInfo testInfo) throws InvocationTargetException, IllegalAccessExc\n       // execution.\n       singleServerConfig.setConnectionMinimumIdleSize(0);\n     }\n+    if (testInfo.getTags().contains(TEST_CANCELLED_ACQUISITION)) {\n+      // Use a stable wire format so redis-cli can release the blocking command.\n+      config.setCodec(StringCodec.INSTANCE);\n+      singleServerConfig\n+          .setConnectionMinimumIdleSize(1)\n+          .setConnectionPoolSize(1)\n+          .setTimeout(750)",
+      "id": "PRRT_kwDODJKVX86WEFDP",
+      "opened": "2026-08-03T17:25:40Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "f55250c380b5f7869516253fc0875a7e6a1820f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19340#discussion_r3706239611"
+    }
+  ]
+}

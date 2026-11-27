@@ -1,0 +1,241 @@
+{
+  "head": "3f4f87afde86181f348044d236e4fe269dbb2010",
+  "merge": "d6b6678b38ab92b5cd5fd17687b281073846b56e",
+  "merged": "2026-09-24T03:09:36Z",
+  "missing_roots": 0,
+  "number": 20041,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`AttributesBuilder.put(...)` does not accept null values; several `DbInfo` getters can validly return null (and `getConfiguredServerPort()` can be null), which would cause an NPE at runtime when stable semconv is enabled. Build the attributes conditionally (only `put` when the value is non-null / non-empty) and convert the port to the expected numeric type when present.",
+      "created": "2026-09-08T19:47:48Z",
+      "hunk": "@@ -66,6 +76,54 @@ public static String poolName(DbInfo dbInfo, String fallbackName) {\n     return poolName.length() > 0 ? poolName.toString() : fallbackName;\n   }\n \n+  public static DbInfo dbInfo(Properties properties) {\n+    DbInfo.Builder dbInfoBuilder = DbInfo.builder();\n+\n+    String serverName = getPropertyValue(properties, \"serverName\");\n+    if (serverName != null && !serverName.isEmpty()) {\n+      serverName = UrlParsingUtils.stripIpv6Brackets(serverName);\n+      dbInfoBuilder.serverAddress(serverName).configuredServerAddress(serverName);\n+    }\n+\n+    Integer serverPort = UrlParsingUtils.parsePort(getPropertyValue(properties, \"portNumber\"));\n+    if (serverPort != null) {\n+      dbInfoBuilder.serverPort(serverPort).configuredServerPort(serverPort);\n+    }\n+\n+    String databaseName = getPropertyValue(properties, \"databaseName\");\n+    if (databaseName != null && !databaseName.isEmpty()) {\n+      dbInfoBuilder.dbNamespace(databaseName);\n+    }\n+\n+    return dbInfoBuilder.build();\n+  }\n+\n+  public static Attributes databaseAttributes(DbInfo dbInfo) {\n+    if (!emitStableDatabaseSemconv()) {\n+      return Attributes.empty();\n+    }\n+\n+    AttributesBuilder attributes = Attributes.builder();\n+    attributes.put(DB_SYSTEM_NAME, dbInfo.getDbSystemName());\n+    attributes.put(DB_NAMESPACE, dbInfo.getDbNamespace());\n+    attributes.put(SERVER_ADDRESS, dbInfo.getConfiguredServerAddress());\n+    attributes.put(SERVER_PORT, dbInfo.getConfiguredServerPort());",
+      "id": "PRRT_kwDODJKVX86gYwhF",
+      "opened": "2026-09-08T19:47:49Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:15:03Z",
+          "body": "No code change.\n\nAnalysis: AttributesBuilder.put(AttributeKey<T>, T) accepts nullable values and ignores them. The int overload also accepts getConfiguredServerPort() without an explicit Long conversion. The existing direct puts match this repository's attribute-building guidance.\n\nUpsides: Keeping the direct puts preserves the supported null-safe API path and avoids redundant branches and conversions.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963097188"
+        }
+      ],
+      "reviewed": "263f9380ca1831c8ffbec8d73e6f5fc5c430ef2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3961644112"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When Hikari is configured via `dataSourceClassName` + `dataSourceProperties` (no JDBC URL), this now calls `JdbcConnectionUrlParser.parse(null, ...)`. Previously this path supported deriving identity from standard properties like `serverName`, `portNumber`, and `databaseName` via `JdbcConnectionPoolNameUtil.poolName(Properties, ...)`; with a null URL, the parser may not populate those fields, causing pool name / stable DB attributes to degrade to defaults. Use `JdbcConnectionPoolNameUtil.dbInfo(config.getDataSourceProperties())` for this branch (or explicitly parse those properties) so the configured identity is preserved.",
+      "created": "2026-09-08T19:47:48Z",
+      "hunk": "@@ -38,29 +39,29 @@ public static void copyGeneratedPoolName(HikariConfig source, HikariConfig targe\n \n   public static MetricsTrackerFactory createMetricsTrackerFactory(\n       @Nullable MetricsTrackerFactory delegate, HikariConfig config) {\n+    DbInfo dbInfo = getDbInfo(config);\n+    Attributes databaseAttributes = JdbcConnectionPoolNameUtil.databaseAttributes(dbInfo);\n     if (!Boolean.TRUE.equals(GENERATED_POOL_NAME_FIELD.get(config))) {\n-      return hikariTelemetry.createMetricsTrackerFactory(delegate);\n+      return hikariTelemetry.createMetricsTrackerFactory(delegate, databaseAttributes);\n     }\n \n-    String dataSourceName = getDataSourceName(config);\n+    String dataSourceName = JdbcConnectionPoolNameUtil.poolName(dbInfo, DEFAULT_DATA_SOURCE_NAME);\n     return (hikariPoolName, poolStats) ->\n         hikariTelemetry\n             .createMetricsTrackerFactory(\n                 delegate == null\n                     ? null\n-                    : (ignored, stats) -> delegate.create(hikariPoolName, stats))\n+                    : (ignored, stats) -> delegate.create(hikariPoolName, stats),\n+                databaseAttributes)\n             .create(dataSourceName, poolStats);\n   }\n \n-  private static String getDataSourceName(HikariConfig config) {\n+  private static DbInfo getDbInfo(HikariConfig config) {\n     if (config.getDataSource() == null && config.getDataSourceClassName() != null) {\n-      return JdbcConnectionPoolNameUtil.poolName(\n-          config.getDataSourceProperties(), DEFAULT_DATA_SOURCE_NAME);\n+      return JdbcConnectionUrlParser.parse(null, config.getDataSourceProperties());\n     }\n \n-    DbInfo dbInfo =\n-        JdbcConnectionUrlParser.parse(config.getJdbcUrl(), config.getDataSourceProperties());\n-    return JdbcConnectionPoolNameUtil.poolName(dbInfo, DEFAULT_DATA_SOURCE_NAME);\n+    return JdbcConnectionUrlParser.parse(config.getJdbcUrl(), config.getDataSourceProperties());\n   }",
+      "id": "PRRT_kwDODJKVX86gYwiD",
+      "opened": "2026-09-08T19:47:49Z",
+      "path": "instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:15:04Z",
+          "body": "Addressed in fa1f17f10c54d0871975fdbceecbe236a420c59e.\n\nAnalysis: JdbcConnectionUrlParser returns DbInfo.DEFAULT for a null URL before it reads properties. Using JdbcConnectionPoolNameUtil.dbInfo preserves the configured server, port, and database for both the pool name and stable metric attributes.\n\nUpsides: Hikari dataSourceClassName configurations retain their configured database identity and attributes.\n\nDownsides: The property-only path cannot infer a database system name because those standard properties do not identify the driver type.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963097311"
+        }
+      ],
+      "reviewed": "263f9380ca1831c8ffbec8d73e6f5fc5c430ef2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3961644200"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the stable-semconv branch, empty strings are treated as valid and returned directly (e.g., an empty `dbNamespace` would produce an empty pool name). This differs from the previous behavior which ignored empty values. Consider checking `!isEmpty()` (and ideally trimming) for `dbNamespace`, `configuredServerAddress`, and `dbSystemName` before using them, otherwise fall through to the next option / fallback.",
+      "created": "2026-09-08T19:47:49Z",
+      "hunk": "@@ -17,27 +25,29 @@\n public final class JdbcConnectionPoolNameUtil {\n \n   public static String poolName(Properties properties, String fallbackName) {\n-    DbInfo.Builder dbInfoBuilder = DbInfo.builder();\n+    return poolName(dbInfo(properties), fallbackName);\n+  }\n \n-    String serverName = getPropertyValue(properties, \"serverName\");\n-    if (serverName != null && !serverName.isEmpty()) {\n-      dbInfoBuilder.serverAddress(UrlParsingUtils.stripIpv6Brackets(serverName));\n-    }\n+  public static String poolName(DbInfo dbInfo, String fallbackName) {\n+    if (emitStableDatabaseSemconv()) {\n+      String dbNamespace = dbInfo.getDbNamespace();\n+      if (dbNamespace != null) {\n+        return dbNamespace;\n+      }\n \n-    Integer serverPort = UrlParsingUtils.parsePort(getPropertyValue(properties, \"portNumber\"));\n-    if (serverPort != null) {\n-      dbInfoBuilder.serverPort(serverPort);\n-    }\n+      String configuredServerAddress = dbInfo.getConfiguredServerAddress();\n+      if (configuredServerAddress != null) {\n+        return endpoint(configuredServerAddress, dbInfo.getConfiguredServerPort());\n+      }\n \n-    String databaseName = getPropertyValue(properties, \"databaseName\");\n-    if (databaseName != null && !databaseName.isEmpty()) {\n-      dbInfoBuilder.dbNamespace(databaseName);\n-    }\n+      String dbSystemName = dbInfo.getDbSystemName();\n+      if (dbSystemName != null) {\n+        return dbSystemName;\n+      }\n \n-    return poolName(dbInfoBuilder.build(), fallbackName);\n-  }\n+      return fallbackName;\n+    }",
+      "id": "PRRT_kwDODJKVX86gYwi5",
+      "opened": "2026-09-08T19:47:49Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:15:06Z",
+          "body": "Addressed in ebcb1f7d8eadbd24f442b722b0d326dfedca22b2.\n\nAnalysis: The stable pool name path returned empty namespace, configured address, and database system values before it could try the next identity source. The guards now skip empty values. The tests cover each fallback tier and distinguish the intended old and stable naming rules.\n\nUpsides: Stable pool metrics keep a usable derived name when a higher-priority field is empty. The stable test task now verifies the configured-target precedence introduced by this pull request.\n\nDownsides: The parameterized tests carry separate old and stable expected values where the naming schemes intentionally differ. Whitespace-only values remain unchanged because existing property parsing does not trim them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963097429"
+        }
+      ],
+      "reviewed": "263f9380ca1831c8ffbec8d73e6f5fc5c430ef2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3961644264"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Multi-server configured targets are already normalized endpoint lists such as `db-a:5432,db-b:6432` with no separate port. When no namespace is available, this colon check wraps the entire list as if it were one IPv6 literal, producing `[db-a:5432,db-b:6432]` instead of the stable configured-target fallback. Return comma-separated targets unchanged before applying single-endpoint IPv6 formatting.",
+      "created": "2026-09-08T23:23:38Z",
+      "hunk": "@@ -66,6 +76,54 @@ public static String poolName(DbInfo dbInfo, String fallbackName) {\n     return poolName.length() > 0 ? poolName.toString() : fallbackName;\n   }\n \n+  public static DbInfo dbInfo(Properties properties) {\n+    DbInfo.Builder dbInfoBuilder = DbInfo.builder();\n+\n+    String serverName = getPropertyValue(properties, \"serverName\");\n+    if (serverName != null && !serverName.isEmpty()) {\n+      serverName = UrlParsingUtils.stripIpv6Brackets(serverName);\n+      dbInfoBuilder.serverAddress(serverName).configuredServerAddress(serverName);\n+    }\n+\n+    Integer serverPort = UrlParsingUtils.parsePort(getPropertyValue(properties, \"portNumber\"));\n+    if (serverPort != null) {\n+      dbInfoBuilder.serverPort(serverPort).configuredServerPort(serverPort);\n+    }\n+\n+    String databaseName = getPropertyValue(properties, \"databaseName\");\n+    if (databaseName != null && !databaseName.isEmpty()) {\n+      dbInfoBuilder.dbNamespace(databaseName);\n+    }\n+\n+    return dbInfoBuilder.build();\n+  }\n+\n+  public static Attributes databaseAttributes(DbInfo dbInfo) {\n+    if (!emitStableDatabaseSemconv()) {\n+      return Attributes.empty();\n+    }\n+\n+    AttributesBuilder attributes = Attributes.builder();\n+    attributes.put(DB_SYSTEM_NAME, dbInfo.getDbSystemName());\n+    attributes.put(DB_NAMESPACE, dbInfo.getDbNamespace());\n+    attributes.put(SERVER_ADDRESS, dbInfo.getConfiguredServerAddress());\n+    attributes.put(SERVER_PORT, dbInfo.getConfiguredServerPort());\n+    return attributes.build();\n+  }\n+\n+  private static String endpoint(String address, @Nullable Integer port) {\n+    StringBuilder endpoint = new StringBuilder();\n+    if (address.indexOf(':') >= 0) {\n+      endpoint.append('[').append(address).append(']');\n+    } else {\n+      endpoint.append(address);\n+    }\n+    if (port != null) {\n+      endpoint.append(':').append(port);\n+    }\n+    return endpoint.toString();\n+  }",
+      "id": "PRRT_kwDODJKVX86gcgPt",
+      "opened": "2026-09-08T23:23:39Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:41:28Z",
+          "body": "Addressed in fa1de662a21804a1c57c8fcfea8e2cc469ebbe06.\n\nAnalysis: The endpoint formatter treated every colon-containing value as one IPv6 address. Configured multi-target values are comma-separated endpoint lists, so they must bypass single-endpoint bracket and port formatting.\n\nUpsides: Stable pool names preserve normalized multi-server targets exactly and remain consistent with the configured server attribute.\n\nDownsides: The formatter relies on the parser contract that a comma denotes a normalized target list.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963243909"
+        }
+      ],
+      "reviewed": "49fac225b8dddebca27006fcd660b0a36fc44ac4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963145697"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `setName` advice calls `clearPoolName()`, so clearing `DATABASE_ATTRIBUTES_FIELD` here drops the configured database identity after a renamed pool is restarted. Renaming does not change the connection metadata; preserve this field and clear only the derived metric pool name.",
+      "created": "2026-09-08T23:23:39Z",
+      "hunk": "@@ -62,19 +68,21 @@ private static String getMetricPoolName(PoolDataSource dataSource) {\n       poolNameProperties.setProperty(\"databaseName\", databaseName);\n     }\n \n-    return JdbcConnectionPoolNameUtil.poolName(poolNameProperties, DEFAULT_POOL_NAME);\n+    return JdbcConnectionPoolNameUtil.dbInfo(poolNameProperties);\n   }\n \n   public static void clearPoolName(UniversalConnectionPool connectionPool) {\n     METRIC_POOL_NAME_FIELD.set(connectionPool, null);\n+    DATABASE_ATTRIBUTES_FIELD.set(connectionPool, null);\n   }",
+      "id": "PRRT_kwDODJKVX86gcgQV",
+      "opened": "2026-09-08T23:23:39Z",
+      "path": "instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:41:29Z",
+          "body": "Addressed in a9bb5604e4a93ea55e4c25dd87d7faebfc1fbb5a.\n\nAnalysis: Oracle UCP captured database attributes only when it generated the pool name, then cleared both values on a rename. Creation now always captures database attributes, name derivation remains conditional, and renaming clears only the derived name. Registration uses the current UCP name when no derived name remains. Validation also confirmed that the Integer port selected a primitive overload and unboxed null, so the code now converts a present port to Long without unboxing null. The shared pool metric assertions now allow the configured database attributes that they do not own.\n\nUpsides: Explicit and renamed UCP pools retain configured database identity, generated names still follow the intended rules, and missing ports no longer cause instrumentation advice failures.\n\nDownsides: Pool metric tests now verify their shared pool attributes without rejecting instrumentation-specific attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963244033"
+        }
+      ],
+      "reviewed": "49fac225b8dddebca27006fcd660b0a36fc44ac4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963145751"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Database attributes are stored only alongside a generated metric pool name. For a UCP pool with an explicit `connectionPoolName`, the creation advice never calls `capturePoolName`, so both fields are null and this branch registers through the no-attributes overload; renaming a generated pool also clears the attributes. Stable metrics therefore omit the configured database identity for explicit or renamed UCP pools. Capture database attributes for every created pool and preserve them across a name change, while keeping the derived-name override conditional.",
+      "created": "2026-09-08T23:23:39Z",
+      "hunk": "@@ -62,19 +68,21 @@ private static String getMetricPoolName(PoolDataSource dataSource) {\n       poolNameProperties.setProperty(\"databaseName\", databaseName);\n     }\n \n-    return JdbcConnectionPoolNameUtil.poolName(poolNameProperties, DEFAULT_POOL_NAME);\n+    return JdbcConnectionPoolNameUtil.dbInfo(poolNameProperties);\n   }\n \n   public static void clearPoolName(UniversalConnectionPool connectionPool) {\n     METRIC_POOL_NAME_FIELD.set(connectionPool, null);\n+    DATABASE_ATTRIBUTES_FIELD.set(connectionPool, null);\n   }\n \n   public static void registerMetrics(UniversalConnectionPool connectionPool) {\n     String poolName = METRIC_POOL_NAME_FIELD.get(connectionPool);\n+    Attributes databaseAttributes = DATABASE_ATTRIBUTES_FIELD.get(connectionPool);\n     if (poolName == null) {\n       telemetry().registerMetrics(connectionPool);\n     } else {\n-      telemetry().registerMetrics(connectionPool, poolName);\n+      telemetry().registerMetrics(connectionPool, poolName, databaseAttributes);",
+      "id": "PRRT_kwDODJKVX86gcgQj",
+      "opened": "2026-09-08T23:23:39Z",
+      "path": "instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:41:31Z",
+          "body": "Addressed in a9bb5604e4a93ea55e4c25dd87d7faebfc1fbb5a.\n\nAnalysis: Oracle UCP captured database attributes only when it generated the pool name, then cleared both values on a rename. Creation now always captures database attributes, name derivation remains conditional, and renaming clears only the derived name. Registration uses the current UCP name when no derived name remains. Validation also confirmed that the Integer port selected a primitive overload and unboxed null, so the code now converts a present port to Long without unboxing null. The shared pool metric assertions now allow the configured database attributes that they do not own.\n\nUpsides: Explicit and renamed UCP pools retain configured database identity, generated names still follow the intended rules, and missing ports no longer cause instrumentation advice failures.\n\nDownsides: Pool metric tests now verify their shared pool attributes without rejecting instrumentation-specific attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963244181"
+        }
+      ],
+      "reviewed": "49fac225b8dddebca27006fcd660b0a36fc44ac4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963145775"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `putAll(databaseAttributes)` runs after the explicit pool-name attribute, so a caller of this new public overload can include `db.client.connection.pool.name` and silently replace the `poolName` argument. The named parameter should remain authoritative; merge the additional attributes first and write `POOL_NAME` last.",
+      "created": "2026-09-08T23:53:35Z",
+      "hunk": "@@ -54,7 +68,24 @@ public static DbConnectionPoolMetrics create(\n    */\n   @Deprecated\n   public static DbConnectionPoolMetrics create(Meter meter, String poolName) {\n-    return new DbConnectionPoolMetrics(meter, Attributes.of(POOL_NAME, poolName));\n+    return create(meter, poolName, Attributes.empty());\n+  }\n+\n+  /**\n+   * Like {@link #create(Meter, String)}, but accepts additional database attributes.\n+   *\n+   * @deprecated Exists only so the {@code tomcat-jdbc-8.5} javaagent can emit the pre-rename {@code\n+   *     io.opentelemetry.tomcat-jdbc} scope by default; to be removed in 3.0 once v3-preview\n+   *     becomes the default.\n+   */\n+  @Deprecated\n+  public static DbConnectionPoolMetrics create(\n+      Meter meter, String poolName, Attributes databaseAttributes) {\n+    Attributes attributes = Attributes.of(POOL_NAME, poolName);\n+    if (emitStableDatabaseSemconv()) {\n+      attributes = attributes.toBuilder().putAll(databaseAttributes).build();\n+    }\n+    return new DbConnectionPoolMetrics(meter, attributes);",
+      "id": "PRRT_kwDODJKVX86gc6rv",
+      "opened": "2026-09-08T23:53:36Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbConnectionPoolMetrics.java",
+      "replies": [
+        {
+          "at": "2026-09-09T00:00:19Z",
+          "body": "Addressed in 573d8f940891900331f616f5cb52d782f501f4df.\n\nAnalysis: The additional attributes were merged after the named pool argument, so a duplicate pool-name key could override the method contract. The builder now merges optional database attributes first and writes the pool name last.\n\nUpsides: The named poolName argument is authoritative for all callers, and a focused test protects that precedence.\n\nDownsides: A duplicate pool-name entry in databaseAttributes is intentionally discarded.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963351737"
+        }
+      ],
+      "reviewed": "a9bb5604e4a93ea55e4c25dd87d7faebfc1fbb5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963319390"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The linked database-target requirements specify that a portless IPv6 literal retains its native form, but this branch wraps every colon-containing address in brackets. For a configured address such as `2001:db8::1` with no port or namespace, the stable generated pool name becomes `[2001:db8::1]` instead of `2001:db8::1`. Only add brackets when a port is appended.",
+      "created": "2026-09-08T23:53:35Z",
+      "hunk": "@@ -66,6 +76,60 @@ public static String poolName(DbInfo dbInfo, String fallbackName) {\n     return poolName.length() > 0 ? poolName.toString() : fallbackName;\n   }\n \n+  public static DbInfo dbInfo(Properties properties) {\n+    DbInfo.Builder dbInfoBuilder = DbInfo.builder();\n+\n+    String serverName = getPropertyValue(properties, \"serverName\");\n+    if (serverName != null && !serverName.isEmpty()) {\n+      serverName = UrlParsingUtils.stripIpv6Brackets(serverName);\n+      dbInfoBuilder.serverAddress(serverName).configuredServerAddress(serverName);\n+    }\n+\n+    Integer serverPort = UrlParsingUtils.parsePort(getPropertyValue(properties, \"portNumber\"));\n+    if (serverPort != null) {\n+      dbInfoBuilder.serverPort(serverPort).configuredServerPort(serverPort);\n+    }\n+\n+    String databaseName = getPropertyValue(properties, \"databaseName\");\n+    if (databaseName != null && !databaseName.isEmpty()) {\n+      dbInfoBuilder.dbNamespace(databaseName);\n+    }\n+\n+    return dbInfoBuilder.build();\n+  }\n+\n+  public static Attributes databaseAttributes(DbInfo dbInfo) {\n+    if (!emitStableDatabaseSemconv()) {\n+      return Attributes.empty();\n+    }\n+\n+    AttributesBuilder attributes = Attributes.builder();\n+    attributes.put(DB_SYSTEM_NAME, dbInfo.getDbSystemName());\n+    attributes.put(DB_NAMESPACE, dbInfo.getDbNamespace());\n+    attributes.put(SERVER_ADDRESS, dbInfo.getConfiguredServerAddress());\n+    Integer configuredServerPort = dbInfo.getConfiguredServerPort();\n+    attributes.put(\n+        SERVER_PORT, configuredServerPort == null ? null : configuredServerPort.longValue());\n+    return attributes.build();\n+  }\n+\n+  private static String endpoint(String address, @Nullable Integer port) {\n+    if (address.indexOf(',') >= 0) {\n+      return address;\n+    }\n+\n+    StringBuilder endpoint = new StringBuilder();\n+    if (address.indexOf(':') >= 0) {\n+      endpoint.append('[').append(address).append(']');\n+    } else {\n+      endpoint.append(address);\n+    }\n+    if (port != null) {\n+      endpoint.append(':').append(port);\n+    }\n+    return endpoint.toString();",
+      "id": "PRRT_kwDODJKVX86gc6sA",
+      "opened": "2026-09-08T23:53:36Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-09T00:00:21Z",
+          "body": "Addressed in 3c26a873a847055faad8805ac46cc6ee31825934.\n\nAnalysis: IPv6 brackets disambiguate an appended port and are not part of a portless address. The endpoint formatter now returns every portless single target unchanged and applies IPv6 brackets only when it appends a port.\n\nUpsides: Portless IPv6 pool names preserve their configured form while IPv6 endpoints with ports remain unambiguous.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963351902"
+        }
+      ],
+      "reviewed": "a9bb5604e4a93ea55e4c25dd87d7faebfc1fbb5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r3963319420"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should add javadoc?",
+      "created": "2026-09-21T13:44:18Z",
+      "hunk": "@@ -30,6 +31,12 @@ public void registerMetrics(PooledDataSource dataSource, String dataSourceName)\n     ConnectionPoolMetrics.registerMetrics(openTelemetry, dataSource, dataSourceName);\n   }\n \n+  public void registerMetrics(",
+      "id": "PRRT_kwDODJKVX86kX4Tj",
+      "opened": "2026-09-21T13:44:17Z",
+      "path": "instrumentation/c3p0-0.9/library/src/main/java/io/opentelemetry/instrumentation/c3p0/v0_9/C3p0Telemetry.java",
+      "replies": [
+        {
+          "at": "2026-09-21T18:06:37Z",
+          "body": "e34e49562d5c5a9e42a3dbccdc3b2a0f6686b9c7",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r4065003114"
+        }
+      ],
+      "reviewed": "46fe1a22490905c39279a4ff69bd7f5df3836fd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r4062701952"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I presume that for v3 we would want to remove `stable`, idk how we are going to find the comments like this that should be updated.",
+      "created": "2026-09-21T13:46:29Z",
+      "hunk": "@@ -39,6 +40,15 @@ public MetricsTrackerFactory createMetricsTrackerFactory() {\n    */\n   public MetricsTrackerFactory createMetricsTrackerFactory(\n       @Nullable MetricsTrackerFactory delegate) {\n-    return new OpenTelemetryMetricsTrackerFactory(openTelemetry, delegate);\n+    return createMetricsTrackerFactory(delegate, Attributes.empty());\n+  }\n+\n+  /**\n+   * Returns a metrics tracker factory that adds the supplied configured database attributes to\n+   * stable database metrics.",
+      "id": "PRRT_kwDODJKVX86kX7St",
+      "opened": "2026-09-21T13:46:29Z",
+      "path": "instrumentation/hikaricp-3.0/library/src/main/java/io/opentelemetry/instrumentation/hikaricp/v3_0/HikariTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-09-21T18:41:45Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20203",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r4065271617"
+        }
+      ],
+      "reviewed": "46fe1a22490905c39279a4ff69bd7f5df3836fd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r4062720199"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This stable naming branch makes the existing user-facing pool-name documentation inaccurate. `vibur-dbcp-11.0/metadata.yaml`, `tomcat-jdbc-8.5/metadata.yaml`, both Tomcat/Apache DBCP metadata and javaagent READMEs, and the Oracle UCP library README still describe the legacy host-first concatenation as the only derivation rule. Update those docs to distinguish the legacy format from the stable `db.namespace` → configured endpoint → `db.system.name` → library fallback order.",
+      "created": "2026-09-21T19:20:58Z",
+      "hunk": "@@ -0,0 +1,145 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jdbc.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.jdbc.internal.dbinfo.DbInfo;\n+import io.opentelemetry.instrumentation.jdbc.internal.parser.UrlParsingUtils;\n+import java.util.Properties;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class JdbcConnectionPoolMetricsUtil {\n+\n+  public static String poolName(DbInfo dbInfo, @Nullable String explicitName, String fallbackName) {\n+    if (explicitName != null) {\n+      return explicitName;\n+    }\n+\n+    if (emitStableDatabaseSemconv()) {\n+      String dbNamespace = dbInfo.getDbNamespace();\n+      if (dbNamespace != null && !dbNamespace.isEmpty()) {\n+        return dbNamespace;\n+      }",
+      "id": "PRRT_kwDODJKVX86kfMBU",
+      "opened": "2026-09-21T19:20:59Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-22T21:43:01Z",
+          "body": "3f4f87afde86181f348044d236e4fe269dbb2010",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r4076812738"
+        }
+      ],
+      "reviewed": "e34e49562d5c5a9e42a3dbccdc3b2a0f6686b9c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20041#discussion_r4065579036"
+    }
+  ]
+}

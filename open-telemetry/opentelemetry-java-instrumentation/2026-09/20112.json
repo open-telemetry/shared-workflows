@@ -1,0 +1,40 @@
+{
+  "head": "21359037009b0016872a0e5253ebbe2ba81caae8",
+  "merge": "31203b6656bebdbfb7d66bf467f8ba7ef3d346f6",
+  "merged": "2026-09-12T15:17:20Z",
+  "missing_roots": 0,
+  "number": 20112,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `SpanAssert` is not the assertion type used by this API, so this guidance points readers to a nonexistent class. `waitAndAssertTraces` accepts `TraceAssert` consumers whose span callbacks receive `SpanDataAssert` (see `testing-common/.../InstrumentationExtension.java:161` and `AgentInstrumentationTest.java:99-106`).",
+      "created": "2026-09-11T18:25:40Z",
+      "hunk": "@@ -144,6 +152,14 @@ subclass may have already started the container, so `withCommand` on the running\n instance is a no-op; with per-instance state each subclass mutates and starts its own\n fresh container.\n \n+## Trace Assertions\n+\n+When a test knows the complete expected trace and span structure, use\n+`InstrumentationExtension.waitAndAssertTraces(...)` with `TraceAssert` and `SpanAssert`. Do not",
+      "id": "PRRT_kwDODJKVX86hl1b4",
+      "opened": "2026-09-11T18:25:41Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [],
+      "reviewed": "6faf3ce3fee8cb43b6264a5ae9cc37f5e7c48991",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20112#discussion_r3992225076"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The stated failure mode is inaccurate. Since `equalTo` also has an `equalTo(AttributeKey<Long>, int)` overload, the uncast conditional selects that overload; when the condition is false, Java unboxes the `null` branch and throws `NullPointerException` before the assertion runs. The mismatch with the `Long` key is not the observed failure.",
+      "created": "2026-09-12T00:06:43Z",
+      "hunk": "@@ -168,6 +184,13 @@ fresh container.\n   is already an `int` expression or variable. The assertion API already has an\n   `equalTo(AttributeKey<Long>, int)` overload, so `equalTo(longKey(\"iteration\"), iteration)` is\n   preferred over `equalTo(longKey(\"iteration\"), (long) iteration)`.\n+- Use a `(long)` cast when an `int` value is one branch of a nullable conditional passed to\n+  `equalTo(AttributeKey<Long>, ...)`; prefer `(long) port` over `Long.valueOf(port)`. Without the\n+  cast, Java boxes the conditional as `Integer`, which does not match the `Long` attribute key:",
+      "id": "PRRT_kwDODJKVX86hrKko",
+      "opened": "2026-09-12T00:06:43Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [],
+      "reviewed": "5a25d2e5cfe600ef748e9912ee34032d2ce91f5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20112#discussion_r3994328807"
+    }
+  ]
+}

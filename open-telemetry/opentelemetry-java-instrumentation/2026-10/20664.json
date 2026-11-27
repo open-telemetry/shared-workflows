@@ -1,0 +1,73 @@
+{
+  "head": "bd2e74e91fe1412af47869b0294c6d38ac4ac43c",
+  "merge": "e49428c98c4e382126404488ec7e5327da02fe5a",
+  "merged": "2026-10-19T07:12:09Z",
+  "missing_roots": 0,
+  "number": 20664,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please defer the entire SOFA RPC javaagent migration from this PR and restore this build script to its pre-PR contents. I am limiting the initial rollout to direct `named<JvmTestSuite>(\"test\") { executions { ... } }` conversions, not executions applied across `test` and `testSofaRpc`. Leave all existing tests and lifecycle wiring unchanged for a later rollout. Keep the SOFA RPC library and library-autoconfigure migrations in this PR.",
+      "created": "2026-10-17T19:24:30Z",
+      "hunk": "@@ -25,49 +28,25 @@ testing {\n         implementation(\"com.alipay.sofa:sofa-rpc-all:${baseVersion(\"5.4.0\").orLatest()}\")\n       }\n     }\n-  }\n-}\n-\n-tasks.withType<Test>().configureEach {\n-  systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n-  jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n-  // required on jdk17\n-  jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-}\n-\n-val previewSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n-  tasks.register<Test>(\"${suite.name}PreviewSemconv\") {\n-    testClassesDirs = suite.sources.output.classesDirs\n-    classpath = suite.sources.runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.semconv-stability.preview=rpc,service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=rpc,service.peer\")\n-  }\n-}\n-\n-val bothSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n-  tasks.register<Test>(\"${suite.name}BothSemconv\") {\n-    testClassesDirs = suite.sources.output.classesDirs\n-    classpath = suite.sources.runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.semconv-stability.preview=rpc/dup,service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=rpc/dup,service.peer\")\n-  }\n-}\n-\n-val exceptionSignalLogsSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n-  tasks.register<Test>(\"${suite.name}ExceptionSignalLogs\") {\n-    testClassesDirs = suite.sources.output.classesDirs\n-    classpath = suite.sources.runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.preview=logs\")\n-  }\n-}\n-\n-tasks {\n-  check {\n-    dependsOn(testing.suites, previewSemconvSuites, bothSemconvSuites, exceptionSignalLogsSuites)\n+    withType<JvmTestSuite>().configureEach {",
+      "id": "PRRT_kwDODJKVX86tjlV4",
+      "opened": "2026-10-17T19:24:30Z",
+      "path": "instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T19:32:05Z",
+          "body": "Restored the SOFA RPC javaagent build script to its pre-migration contents in `bd2e74e9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20664#discussion_r4304169239"
+        }
+      ],
+      "reviewed": "0da3a389566c6dde8a879cd9f5e6152e373ed9fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20664#discussion_r4304143606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please defer the entire Apache Dubbo library-autoconfigure migration from this PR and restore this build script to its pre-PR contents. Although its variants only belong to `test`, the current migration restructures shared configuration across all suites and conditionally registers those variants. For this initial rollout I want only direct `named<JvmTestSuite>(\"test\") { executions { ... } }` conversions. Defer this module completely rather than rewriting it into a narrower migration now.",
+      "created": "2026-10-17T19:24:30Z",
+      "hunk": "@@ -29,43 +32,25 @@ testing {\n         implementation(\"org.apache.dubbo:dubbo:${baseVersion(\"2.7.14\").orLatest()}\")\n       }\n     }\n-  }\n-}\n-\n-tasks.withType<Test>().configureEach {\n-  systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n-  jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n-  // to suppress non-fatal errors on jdk17\n-  jvmArgs(\"--add-opens=java.base/java.math=ALL-UNNAMED\")\n-  // required on jdk17\n-  jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-}\n-\n-tasks {\n-  val testSuites = testing.suites.withType(JvmTestSuite::class)\n-    .matching { it.name == \"test\" }\n-\n-  val previewSemconvSuites = testSuites.map { suite ->\n-    register<Test>(\"${suite.name}PreviewSemconv\") {\n-      testClassesDirs = suite.sources.output.classesDirs\n-      classpath = suite.sources.runtimeClasspath\n-\n-      jvmArgs(\"-Dotel.semconv-stability.preview=rpc\")\n-      systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=rpc\")\n-    }\n-  }\n-\n-  val bothSemconvSuites = testSuites.map { suite ->\n-    register<Test>(\"${suite.name}BothSemconv\") {\n-      testClassesDirs = suite.sources.output.classesDirs\n-      classpath = suite.sources.runtimeClasspath\n-\n-      jvmArgs(\"-Dotel.semconv-stability.preview=rpc/dup\")\n-      systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=rpc/dup\")\n+    withType<JvmTestSuite>().configureEach {",
+      "id": "PRRT_kwDODJKVX86tjlV5",
+      "opened": "2026-10-17T19:24:30Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T19:32:05Z",
+          "body": "Restored the Apache Dubbo library-autoconfigure build script to its pre-migration contents in `bd2e74e9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20664#discussion_r4304169236"
+        }
+      ],
+      "reviewed": "0da3a389566c6dde8a879cd9f5e6152e373ed9fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20664#discussion_r4304143609"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please defer the entire Apache Dubbo javaagent migration from this PR and restore this build script to its pre-PR contents. I am limiting the initial rollout to direct `testing { suites { named<JvmTestSuite>(\"test\") { executions { ... } } } }` conversions. This migration applies executions across `test` and `testDubbo`, so leave its existing test wiring unchanged for a later rollout. Keep the GraphQL, gRPC library, SOFA RPC library/library-autoconfigure, and Thrift migrations.",
+      "created": "2026-10-17T19:24:31Z",
+      "hunk": "@@ -38,40 +41,23 @@ testing {\n         }\n       }\n     }\n-  }\n-}\n-\n-tasks.withType<Test>().configureEach {\n-  systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n-  jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n-  // to suppress non-fatal errors on jdk17\n-  jvmArgs(\"--add-opens=java.base/java.math=ALL-UNNAMED\")\n-  // required on jdk17\n-  jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-}\n-\n-val previewSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n-  tasks.register<Test>(\"${suite.name}PreviewSemconv\") {\n-    testClassesDirs = suite.sources.output.classesDirs\n-    classpath = suite.sources.runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.semconv-stability.preview=rpc,service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=rpc,service.peer\")\n-  }\n-}\n-\n-val bothSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n-  tasks.register<Test>(\"${suite.name}BothSemconv\") {\n-    testClassesDirs = suite.sources.output.classesDirs\n-    classpath = suite.sources.runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.semconv-stability.preview=rpc/dup,service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=rpc/dup,service.peer\")\n-  }\n-}\n-\n-tasks {\n-  check {\n-    dependsOn(testing.suites, previewSemconvSuites, bothSemconvSuites)\n+    withType<JvmTestSuite>().configureEach {",
+      "id": "PRRT_kwDODJKVX86tjlV9",
+      "opened": "2026-10-17T19:24:30Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T19:32:05Z",
+          "body": "Restored the Apache Dubbo javaagent build script to its pre-migration contents in `bd2e74e9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20664#discussion_r4304169230"
+        }
+      ],
+      "reviewed": "0da3a389566c6dde8a879cd9f5e6152e373ed9fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20664#discussion_r4304143614"
+    }
+  ]
+}

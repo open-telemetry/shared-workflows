@@ -1,0 +1,25 @@
+{
+  "head": "b0e0524f53ec983cda4410bbe247b449ef8c9789",
+  "merge": "248bf9adbd6ce98e6c2f124ec4c5ffa286a6f041",
+  "merged": "2026-03-26T21:22:52Z",
+  "missing_roots": 0,
+  "number": 17088,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "you could create just 1 variable like `issue_title=\"${{ inputs.title }}` and add the `(#$GITHUB_RUN_NUMBER)` in `gh issue create`",
+      "created": "2026-03-26T18:54:46Z",
+      "hunk": "@@ -28,8 +32,17 @@ jobs:\n         env:\n           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n         run: |\n+          # Use custom title if provided, otherwise use default\n+          if [[ -n \"${{ inputs.title }}\" ]]; then\n+            issue_title_base=\"${{ inputs.title }}\"",
+      "id": "PRRT_kwDODJKVX853HAxy",
+      "opened": "2026-03-26T18:54:46Z",
+      "path": ".github/workflows/reusable-workflow-notification.yml",
+      "replies": [],
+      "reviewed": "2fed1727341caee70ee114353f9c9749f3988b55",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17088#discussion_r2997037219"
+    }
+  ]
+}

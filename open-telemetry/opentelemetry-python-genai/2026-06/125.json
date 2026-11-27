@@ -1,0 +1,61 @@
+{
+  "head": "0dcebfe52019cae3b08e615b196ec12d3944a6b5",
+  "merge": "75cac1335c4f0bcc3f0547ceabc185cc6efb7988",
+  "merged": "2026-06-12T18:33:39Z",
+  "missing_roots": 0,
+  "number": 125,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`TypeAlias` is only available from `typing` in Python 3.10+. If this package still supports Python 3.8/3.9 (common for OTel libs), this import will raise `ImportError` at import time. Prefer importing `TypeAlias` from `typing_extensions`, or use a compatibility import (try `typing` then fallback to `typing_extensions`), unless the package metadata has been bumped to require Python >= 3.10.",
+      "created": "2026-06-10T17:05:57Z",
+      "hunk": "@@ -9,9 +9,7 @@\n from contextvars import Token\n from dataclasses import asdict\n from types import TracebackType\n-from typing import TYPE_CHECKING, Any, Sequence\n-\n-from typing_extensions import TypeAlias\n+from typing import TYPE_CHECKING, Any, Sequence, TypeAlias",
+      "id": "PRRT_kwDOSbspP86IjuBi",
+      "opened": "2026-06-10T17:05:58Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-06-10T17:09:18Z",
+          "body": "the python version requirement across all packages in this repo is:\r\n`requires-python = \">=3.10\"`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/125#discussion_r3390125120"
+        }
+      ],
+      "reviewed": "0dcebfe52019cae3b08e615b196ec12d3944a6b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/125#discussion_r3390105177"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`TypedDict` is available in `typing` starting in Python 3.8. If this instrumentation/test suite is intended to run on Python 3.7 (or any environment below 3.8), this will fail at import time. If older runtimes are supported, keep `typing_extensions.TypedDict` (or a compatibility import); otherwise ensure the declared minimum Python version matches this change.",
+      "created": "2026-06-10T17:05:58Z",
+      "hunk": "@@ -6,14 +6,13 @@\n from __future__ import annotations\n \n import os\n-from typing import Annotated, Any\n+from typing import Annotated, Any, TypedDict",
+      "id": "PRRT_kwDOSbspP86IjuB9",
+      "opened": "2026-06-10T17:05:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/conformance/workflow.py",
+      "replies": [],
+      "reviewed": "0dcebfe52019cae3b08e615b196ec12d3944a6b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/125#discussion_r3390105222"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same compatibility concern as the conformance test: importing `TypedDict` from `typing` requires Python 3.8+. If examples are expected to run on older Python versions, this will break. Consider keeping `typing_extensions.TypedDict` (or a compatibility import) unless the repo/package minimum Python version is >= 3.8.",
+      "created": "2026-06-10T17:05:58Z",
+      "hunk": "@@ -15,13 +15,12 @@\n OpenTelemetry LangChain instrumentation traces both LLM calls.\n \"\"\"\n \n-from typing import Annotated\n+from typing import Annotated, TypedDict",
+      "id": "PRRT_kwDOSbspP86IjuCT",
+      "opened": "2026-06-10T17:05:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/workflow/main.py",
+      "replies": [],
+      "reviewed": "0dcebfe52019cae3b08e615b196ec12d3944a6b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/125#discussion_r3390105254"
+    }
+  ]
+}

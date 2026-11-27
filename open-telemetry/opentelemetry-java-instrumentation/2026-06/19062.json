@@ -1,0 +1,55 @@
+{
+  "head": "8ae40456ccf154a34b8d03975558087d3c189ee9",
+  "merge": "c7e893ad77861f8848b4133bc4f347060cde9d72",
+  "merged": "2026-06-25T01:20:27Z",
+  "missing_roots": 0,
+  "number": 19062,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The captured `error` is recorded on the span but never rethrown, so any exception thrown by the underlying async processor (e.g. protocol/read errors from `readMessageBegin`/`readMessageEnd`) is swallowed and never propagates to `AsyncFrameBuffer.invoke()`, which then can't transition the connection to its error/close state. This diverges from the synchronous `ServerProcessorDecorator.process` (which does `throw t;`) and from the javaagent's `ThriftTBaseAsyncProcessorInstrumentation` advice that lets the original throwable propagate — the stated goal of this PR is feature parity with that advice. Consider rethrowing while still ending the span.",
+      "created": "2026-06-22T18:06:55Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.thrift.v0_13.internal;\n+\n+import org.apache.thrift.TAsyncProcessor;\n+import org.apache.thrift.TBaseAsyncProcessor;\n+import org.apache.thrift.TException;\n+import org.apache.thrift.TProcessor;\n+import org.apache.thrift.protocol.TProtocol;\n+import org.apache.thrift.server.AbstractNonblockingServer;\n+import org.apache.thrift.server.FrameBufferUtil;\n+import org.apache.thrift.transport.TTransport;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class ServerAsyncProcessorDecorator implements TAsyncProcessor, TProcessor {\n+  private final TBaseAsyncProcessor<?> processor;\n+  private final String serviceName;\n+\n+  public ServerAsyncProcessorDecorator(TBaseAsyncProcessor<?> processor, String serviceName) {\n+    this.processor = processor;\n+    this.serviceName = serviceName;\n+  }\n+\n+  @Override\n+  public void process(AbstractNonblockingServer.AsyncFrameBuffer fb) throws TException {\n+    if (!(fb.getInputProtocol() instanceof ServerInProtocolDecorator)\n+        || !(fb.getOutputProtocol() instanceof ServerOutProtocolDecorator)) {\n+      processor.process(fb);\n+      return;\n+    }\n+\n+    TTransport transport = FrameBufferUtil.getTransport(fb);\n+    ServerInProtocolDecorator serverInProtocolDecorator =\n+        (ServerInProtocolDecorator) fb.getInputProtocol();\n+    ServerOutProtocolDecorator serverOutProtocolDecorator =\n+        (ServerOutProtocolDecorator) fb.getOutputProtocol();\n+\n+    serverInProtocolDecorator.setServiceName(serviceName);\n+    ServerCallContext serverCallContext = ServerCallContext.start(transport);\n+    Throwable error = null;\n+    try {\n+      processor.process(fb);\n+    } catch (Throwable t) {\n+      error = t;\n+    } finally {\n+      serverCallContext.end();\n+    }\n+    if (serverInProtocolDecorator.isOneway()\n+        || serverOutProtocolDecorator.hasException()\n+        || error != null) {\n+      serverInProtocolDecorator.endSpan(error, serverOutProtocolDecorator.hasException());\n+    }",
+      "id": "PRRT_kwDODJKVX86LWnY9",
+      "opened": "2026-06-22T18:06:56Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ServerAsyncProcessorDecorator.java",
+      "replies": [],
+      "reviewed": "9eba80309475cbdcf1a4915a94a41dd2d552c306",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19062#discussion_r3454418988"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This snippet declares the local as `thriftTelemetry` but then calls `telemetry.wrapServerInProtocolFactory(...)` / `telemetry.wrapServerOutProtocolFactory(...)`, referencing an undefined `telemetry` variable. Every other snippet in this README uses `thriftTelemetry`, so these two lines should use `thriftTelemetry` for the example to compile.",
+      "created": "2026-06-22T18:06:56Z",
+      "hunk": "@@ -37,6 +37,14 @@ TProcessor configureServer(OpenTelemetry openTelemetry, TProcessor processor, St\n   return thriftTelemetry.wrapServerProcessor(processor, serviceName);\n }\n \n+// When using AsyncProcessor also wrap input and output protocol factories.\n+void configureServer(OpenTelemetry openTelemetry, TNonblockingServer.Args tnbArgs) {\n+  ThriftTelemetry thriftTelemetry = ThriftTelemetry.create(openTelemetry);\n+  // TBinaryProtocol.Factory is the default\n+  tnbArgs.inputProtocolFactory(telemetry.wrapServerInProtocolFactory(new TBinaryProtocol.Factory()));\n+  tnbArgs.outputProtocolFactory(telemetry.wrapServerOutProtocolFactory(new TBinaryProtocol.Factory()));",
+      "id": "PRRT_kwDODJKVX86LWnZa",
+      "opened": "2026-06-22T18:06:56Z",
+      "path": "instrumentation/thrift-0.13/library/README.md",
+      "replies": [],
+      "reviewed": "9eba80309475cbdcf1a4915a94a41dd2d552c306",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19062#discussion_r3454419023"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grammar: \"accessing a non-public members\" mixes the singular article \"a\" with the plural \"members\". Since this class exposes more than one helper, drop the article.",
+      "created": "2026-06-22T18:06:56Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package org.apache.thrift;\n+\n+import java.util.Map;\n+\n+// Helper for accessing a non-public members.",
+      "id": "PRRT_kwDODJKVX86LWnZu",
+      "opened": "2026-06-22T18:06:56Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/org/apache/thrift/AsyncProcessorUtil.java",
+      "replies": [],
+      "reviewed": "9eba80309475cbdcf1a4915a94a41dd2d552c306",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19062#discussion_r3454419047"
+    }
+  ]
+}

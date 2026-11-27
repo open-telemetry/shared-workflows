@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7834b60ee8e4404ce475561d761411b017f882ee044e3debf74b6c6ccfd0fbef",
+  "input_digest": "0ab79e7c1b57b82d6a37faaed342c86003ea4ba69b83c8d6f6004ed4b3715572",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1cfa65609a7de357ef6f8b0b7164bf1662fda079/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/00c0e86daae738ccb8b67e4ab2fac13111ead42e/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/035a603c4f67ed2cc4e7d766acf9325456350c55"
+      ],
+      "id": "PRRT_kwDOTuzK5c657xAg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f337f7351cef7d03c85c4352728c9f98be76a01a/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/00c0e86daae738ccb8b67e4ab2fac13111ead42e/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/029714767300d19494b2afb9ff4c7c8a9634dcc6"
+      ],
+      "id": "PRRT_kwDOTuzK5c66MKT5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

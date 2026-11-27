@@ -1,0 +1,106 @@
+{
+  "head": "ac93a875becb653d7b36e515ecebefec48140bdf",
+  "merge": "b6eef1ca38aeff7bdf4250a51db17ffaceb717ba",
+  "merged": "2026-07-14T21:23:33Z",
+  "missing_roots": 0,
+  "number": 261,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`to_input_messages` now silently drops any non-`BaseMessage` entries. For LangGraph-style `(\"human\", \"...\")` tuples this avoids the AttributeError, but it also means the user prompt is not recorded at all (and `make_input_message` won’t fall back because the `messages` key is present). If the goal is to support raw tuple messages, consider converting them into `InputMessage` entries rather than skipping.",
+      "created": "2026-07-13T17:20:46Z",
+      "hunk": "@@ -157,6 +157,8 @@ def to_input_messages(\n     \"\"\"Convert LangChain messages into spec-conformant ``InputMessage`` s.\"\"\"\n     result: list[InputMessage] = []\n     for message in messages:\n+        if not isinstance(message, BaseMessage):\n+            continue\n         parts = _message_parts(message)\n         if not parts:",
+      "id": "PRRT_kwDOSbspP86Qenuz",
+      "opened": "2026-07-13T17:20:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "d6bbdb3386c769926e5e7e900eac82216c8a2b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/261#discussion_r3572715663"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This line contains trailing whitespace (spaces on an otherwise blank line), which will typically fail ruff/formatting checks.",
+      "created": "2026-07-13T17:20:46Z",
+      "hunk": "@@ -649,6 +649,14 @@ def test_messages_key_takes_priority_over_other_fields(self):\n \n         assert len(result) == 1\n         assert result[0].parts[0].content == \"hello\"\n+    ",
+      "id": "PRRT_kwDOSbspP86QenvI",
+      "opened": "2026-07-13T17:20:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [],
+      "reviewed": "d6bbdb3386c769926e5e7e900eac82216c8a2b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/261#discussion_r3572715692"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new test asserts raw `(role, content)` tuples are skipped. If the intended behavior is to *support* these inputs (per PR title/description/changelog), the test should instead assert that tuple entries are converted into `InputMessage`s and included in the result.",
+      "created": "2026-07-13T17:20:46Z",
+      "hunk": "@@ -649,6 +649,14 @@ def test_messages_key_takes_priority_over_other_fields(self):\n \n         assert len(result) == 1\n         assert result[0].parts[0].content == \"hello\"\n+    \n+    def test_messages_key_skips_non_basemessage_entries(self):\n+        result = make_input_message(\n+            {\"messages\": [(\"human\", \"Hello\"), HumanMessage(content=\"Hi\")]}\n+        )\n+\n+        assert len(result) == 1\n+        assert result[0].parts[0].content == \"Hi\"",
+      "id": "PRRT_kwDOSbspP86QenvZ",
+      "opened": "2026-07-13T17:20:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [],
+      "reviewed": "d6bbdb3386c769926e5e7e900eac82216c8a2b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/261#discussion_r3572715717"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This reads like a bug fix; please use a `.fixed` towncrier fragment (e.g., rename to `261.fixed`) instead of `.changed` to match existing repo convention.",
+      "created": "2026-07-13T17:20:46Z",
+      "hunk": "@@ -0,0 +1 @@\n+Support raw (\"role\", content) tuple messages in agent inputs, preventing duplicate `invoke_agent` spans.",
+      "id": "PRRT_kwDOSbspP86Qenvw",
+      "opened": "2026-07-13T17:20:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/261.changed",
+      "replies": [],
+      "reviewed": "d6bbdb3386c769926e5e7e900eac82216c8a2b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/261#discussion_r3572715750"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "could you please create a follow up issue to record something when we get non-standard messages here? It'd be good to have some information, especially since langchain allow it.",
+      "created": "2026-07-13T17:36:18Z",
+      "hunk": "@@ -157,6 +157,8 @@ def to_input_messages(\n     \"\"\"Convert LangChain messages into spec-conformant ``InputMessage`` s.\"\"\"\n     result: list[InputMessage] = []\n     for message in messages:\n+        if not isinstance(message, BaseMessage):",
+      "id": "PRRT_kwDOSbspP86Qe5SZ",
+      "opened": "2026-07-13T17:38:15Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "d6bbdb3386c769926e5e7e900eac82216c8a2b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/261#discussion_r3572814762"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this accurate? it seems we don't support them, we just ignore them for the time being",
+      "created": "2026-07-13T17:38:05Z",
+      "hunk": "@@ -0,0 +1 @@\n+Support raw (\"role\", content) tuple messages in agent inputs, preventing duplicate `invoke_agent` spans.",
+      "id": "PRRT_kwDOSbspP86Qe7lj",
+      "opened": "2026-07-13T17:38:15Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/261.changed",
+      "replies": [
+        {
+          "at": "2026-07-13T17:52:49Z",
+          "body": "Yes, I will have to rephrase it. I was thinking instead of skipping, we should convert any non-standard messages into BaseMessage format so we don't loose the prompt and important attributes. There is a method in langchain_core named [`convert_to_messages`](https://github.com/langchain-ai/langchain/blob/00c0f69dc0dfd619f023f1ee9dc83574d8a173ed/libs/core/langchain_core/messages/utils.py#L706) that normalizes formats that langchain accepts to BaseMessage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/261#discussion_r3572934388"
+        }
+      ],
+      "reviewed": "d6bbdb3386c769926e5e7e900eac82216c8a2b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/261#discussion_r3572828237"
+    }
+  ]
+}

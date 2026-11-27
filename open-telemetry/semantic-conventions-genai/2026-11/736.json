@@ -1,0 +1,82 @@
+{
+  "head": "0d7a75091841e7ba6c0af61f1f6008c1adf7a58b",
+  "merge": "afd3ff6b73b60ca3744fd26739438d4e21fe527a",
+  "merged": "2026-11-20T21:22:32Z",
+  "missing_roots": 0,
+  "number": 736,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new registry links send consumers of `gen_ai.usage.input_tokens`, including embeddings consumers, to this recommendation, but inference counters do not include embeddings usage. `docs/gen-ai/gen-ai-token-metrics.md:46-48` explicitly uses the sum of `gen_ai.client.embeddings.operation.input_tokens` for embeddings totals. Please scope this recommendation to generation and link the embeddings alternative so readers do not omit embeddings from token accounting.",
+      "created": "2026-11-20T01:33:26Z",
+      "hunk": "@@ -496,6 +503,34 @@ reported following their own conventions.\n For conventions on capturing instructions, inputs, and outputs on inference spans,\n see [Capturing instructions, inputs, and outputs](gen-ai-spans.md#capturing-instructions-inputs-and-outputs).\n \n+## How to aggregate token usage\n+\n+> [!NOTE]\n+> Use the [`gen_ai.client.inference.usage.*`](#metric-gen_aiclientinferenceusageinput_tokens)\n+> counters whenever possible. They aren't affected by trace sampling. Filter or\n+> group by `service.name` if multiple services report inference.",
+      "id": "PRRT_kwDOSUeMrM65zEQ2",
+      "opened": "2026-11-20T01:33:26Z",
+      "path": "docs/gen-ai/client-inference.md",
+      "replies": [
+        {
+          "at": "2026-11-20T01:41:32Z",
+          "body": "The section now lives on the token metrics page and points to embeddings (or other) metrics depending on the operation.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/736#discussion_r4637465048"
+        }
+      ],
+      "reviewed": "cd512ae9344ac247ae84f453151f8934e9f38084",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/736#discussion_r4637412112"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This inference-only query can omit all reported usage for a remote agent invocation. For example, `reference/scenarios/aws-bedrock-agent/scenario.py:119-157` records usage on the client `invoke_agent` span without emitting the remote inference spans. Since the agent usage attributes now link here, please state that this example measures visible inference usage, not the trace's complete token usage, and explain that remote-agent usage must be queried separately rather than added indiscriminately to inference usage.",
+      "created": "2026-11-20T01:33:26Z",
+      "hunk": "@@ -496,6 +503,34 @@ reported following their own conventions.\n For conventions on capturing instructions, inputs, and outputs on inference spans,\n see [Capturing instructions, inputs, and outputs](gen-ai-spans.md#capturing-instructions-inputs-and-outputs).\n \n+## How to aggregate token usage\n+\n+> [!NOTE]\n+> Use the [`gen_ai.client.inference.usage.*`](#metric-gen_aiclientinferenceusageinput_tokens)\n+> counters whenever possible. They aren't affected by trace sampling. Filter or\n+> group by `service.name` if multiple services report inference.\n+\n+To see token usage in an individual trace, filter by `gen_ai.operation.name`\n+and break down by `service.name` if multiple services report the same type of\n+spans. For example (pseudocode):",
+      "id": "PRRT_kwDOSUeMrM65zERM",
+      "opened": "2026-11-20T01:33:26Z",
+      "path": "docs/gen-ai/client-inference.md",
+      "replies": [
+        {
+          "at": "2026-11-20T01:41:34Z",
+          "body": "This is an example of filtering spans to avoid double counting, not a complete accounting of all usage in a trace. Not planning to address.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/736#discussion_r4637465238"
+        }
+      ],
+      "reviewed": "cd512ae9344ac247ae84f453151f8934e9f38084",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/736#discussion_r4637412149"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please change `iwth different type` to `of different types` so the typo and grammatical error do not appear in the generated changelog.",
+      "created": "2026-11-20T01:44:28Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify that `gen_ai.usage.*` span attributes are not additive across spans iwth different type; token usage metrics should be used whenever possible.",
+      "id": "PRRT_kwDOSUeMrM65zO73",
+      "opened": "2026-11-20T01:44:28Z",
+      "path": "changelog.d/736.clarification.md",
+      "replies": [],
+      "reviewed": "ab1762f68567dcb79e6ea43e734884992579025b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/736#discussion_r4637484273"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "not sure this suggestion is worth it...\n\n```suggestion\n  group by service.namespace, service.name\n```",
+      "created": "2026-11-20T17:57:44Z",
+      "hunk": "@@ -19,6 +20,35 @@ linkTitle: Token Metrics\n     - [Metric: `gen_ai.client.inference.operation.output_tokens`](#metric-gen_aiclientinferenceoperationoutput_tokens)\n <!-- tocstop -->\n \n+## How to aggregate token usage\n+\n+> [!NOTE]\n+> Use [inference token metrics](#inference-token-metrics) (or corresponding\n+> [embeddings](client-embeddings.md#metrics) or other metrics, depending on the\n+> operation) whenever possible. They aren't affected by trace sampling. Filter\n+> or group by `service.name` if multiple services report the same operations.\n+\n+To see token usage in an individual trace, filter by `gen_ai.operation.name`\n+and break down by `service.name` if multiple services report the same type of\n+spans. For example (pseudocode):\n+\n+<!-- TODO: replace the gen_ai.operation.name filter with\n+span.type, see\n+https://github.com/open-telemetry/opentelemetry-specification/pull/5378 -->\n+\n+```text\n+sum(gen_ai.usage.input_tokens)\n+  where trace_id == \"<trace id>\"\n+    and gen_ai.operation.name in (chat, generate_content, text_completion, realtime_inference)\n+  group by service.name",
+      "id": "PRRT_kwDOSUeMrM66G7Ri",
+      "opened": "2026-11-20T18:15:59Z",
+      "path": "docs/gen-ai/gen-ai-token-metrics.md",
+      "replies": [],
+      "reviewed": "fcf0cef6b217b8e4ba9e2496f175a26670efa4dd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/736#discussion_r4645894537"
+    }
+  ]
+}

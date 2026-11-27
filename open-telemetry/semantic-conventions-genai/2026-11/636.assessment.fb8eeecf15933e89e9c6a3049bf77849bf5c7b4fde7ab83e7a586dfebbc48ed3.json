@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7952e952c23c298e18a455f2bf71c433513c8704c6b1ac2c6416e1d18fb22f4f",
+  "input_digest": "fb8eeecf15933e89e9c6a3049bf77849bf5c7b4fde7ab83e7a586dfebbc48ed3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/5e9baf06c58fa1b3b321af06fd1e7bfd3bb0b32f/changelog.d/%2Bexecute-tool.clarification.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/04f89be5e128892887e034f7835e6d3b2541374a/changelog.d/%2Bexecute-tool.clarification.md"
+      ],
+      "id": "PRRT_kwDOSUeMrM6zQVwy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/23ca077c67a5a99a22e8acd3a44509c14fe66f47/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/23ca077c67a5a99a22e8acd3a44509c14fe66f47/reference/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/23ca077c67a5a99a22e8acd3a44509c14fe66f47/reference/src/semconv_genai/report.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/04f89be5e128892887e034f7835e6d3b2541374a/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/04f89be5e128892887e034f7835e6d3b2541374a/reference/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/04f89be5e128892887e034f7835e6d3b2541374a/reference/src/semconv_genai/report.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/04f89be5e128892887e034f7835e6d3b2541374a/reference/reports/gen-ai-execute-tool-duration-metric.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/5fecd20e31e5f0e24071208906f8013860885953"
+      ],
+      "id": "PRRT_kwDOSUeMrM6xZMBT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

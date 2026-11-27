@@ -1,0 +1,31 @@
+{
+  "head": "555db1a58e03f6f9022046fef242e55631531e4d",
+  "merge": "3e5b5142cfe627243c28d7711331f6e5f21596a7",
+  "merged": "2026-11-16T23:43:25Z",
+  "missing_roots": 0,
+  "number": 21289,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The cache-token getters also apply to `ConverseStream`, but the added test only exercises synchronous `Converse`. This leaves cache-token deserialization from streaming metadata and emission at span completion unverified. Please add a shared streaming integration case asserting both cache attributes for library and javaagent instrumentation, including latest-dependency coverage and absence on older SDKs.",
+      "created": "2026-11-11T15:18:28Z",
+      "hunk": "@@ -661,6 +652,37 @@ private static Long getUsageInputTokens(\n     return null;\n   }\n \n+  @Nullable\n+  static Long getUsageCacheReadInputTokens(Response response) {\n+    return getTokenUsageCount(response, \"cacheReadInputTokens\");\n+  }\n+\n+  @Nullable\n+  static Long getUsageCacheCreationInputTokens(Response response) {\n+    return getTokenUsageCount(response, \"cacheWriteInputTokens\");\n+  }\n+\n+  @Nullable\n+  private static Long getTokenUsageCount(Response response, String fieldName) {\n+    TokenUsage usage = getConverseTokenUsage(response);\n+    if (usage == null) {\n+      return null;\n+    }\n+    // The cache token fields were added in bedrockruntime 2.31.12, after the version this library\n+    // compiles against, so they are read by name and are absent on older SDKs.\n+    return usage.getValueForField(fieldName, Integer.class).map(Integer::longValue).orElse(null);\n+  }\n+\n+  @Nullable\n+  private static TokenUsage getConverseTokenUsage(Response response) {\n+    if (response.getSdkResponse() instanceof ConverseResponse) {\n+      return ((ConverseResponse) response.getSdkResponse()).usage();\n+    }\n+    BedrockRuntimeStreamResponseHandler<?, ?> streamHandler =\n+        BedrockRuntimeStreamResponseHandler.fromContext(response.otelContext());\n+    return streamHandler != null ? streamHandler.usage : null;",
+      "id": "PRRT_kwDODJKVX862O6CC",
+      "opened": "2026-11-11T15:18:29Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/BedrockRuntimeImpl.java",
+      "replies": [
+        {
+          "at": "2026-11-11T15:36:26Z",
+          "body": "Added a ConverseStream case in 02f55e70fc. It runs in both the library and javaagent suites and checks the attributes are present on the latest SDK and absent on 2.25.63.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21289#discussion_r4539883938"
+        }
+      ],
+      "reviewed": "e8ffef70c23b505a76e29a3f593c5e93c67b918f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21289#discussion_r4539679205"
+    }
+  ]
+}

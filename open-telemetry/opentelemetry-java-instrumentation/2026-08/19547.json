@@ -1,0 +1,286 @@
+{
+  "head": "b5bbb9cae8e09ff96496aa4018d6942fff0eefea",
+  "merge": "f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954",
+  "merged": "2026-08-25T19:12:48Z",
+  "missing_roots": 0,
+  "number": 19547,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This critical existing-context branch has no regression coverage. The race itself need not be reproduced: a deterministic test can call `sendHead()` and then `end()` on the same Vert.x 3 request and verify that the injected `traceparent` remains unchanged (or count propagator injections). That test would fail if this guard is removed and repeated header mutation returns.",
+      "created": "2026-08-12T23:34:56Z",
+      "hunk": "@@ -96,6 +96,18 @@ public static AdviceScope startAndAttachContext(HttpClientRequest request) {\n           return null;\n         }\n \n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.\n+        Contexts contexts = CONTEXTS.get(request);\n+        if (contexts != null) {\n+          return new AdviceScope(contexts.context, contexts.context.makeCurrent());\n+        }",
+      "id": "PRRT_kwDODJKVX86Ywq4n",
+      "opened": "2026-08-12T23:34:57Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-13T00:17:15Z",
+          "body": "The guard here is identical to the 4.0 and 5.0 copies. I added the deterministic sendHead then end regression test in both of those modules, where the Future based request API lets me express the two write triggering calls cleanly and assert the full parent to client to server chain. The reported stack trace is on 4.0 over HTTP/2, and since all three modules share the same advice those tests exercise the same inject once logic that this branch implements. Vert.x 3's request API here is callback based rather than Future based so the same test does not port over as cleanly, but I am glad to add a 3.0 variant too if you would like the coverage duplicated in every module.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3771345932"
+        },
+        {
+          "at": "2026-08-25T17:35:42Z",
+          "body": "Added the Vert.x 3 regression coverage in `VertxHttpClientTest`. One test exercises `sendHead()` followed by `end()`, another covers a suppressed first call followed by `end()`, and a third verifies that `endHandler(...)` does not consume the first write attempt.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855592301"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "I removed the added Vert.x 3 coverage in `b5bbb9cae8` to keep this change narrow; Vert.x 4 and 5 retain deterministic `sendHead()`-then-`end()` coverage for the shared guard.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178070"
+        }
+      ],
+      "reviewed": "c1617926ecf432f22f439627367f76c1c74b005c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3771157527"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This critical existing-context branch has no regression coverage. The race itself need not be reproduced: a deterministic test can call `sendHead()` and then `end()` on the same Vert.x 5 request and verify that the injected `traceparent` remains unchanged (or count propagator injections). That test would fail if this guard is removed and repeated header mutation returns.",
+      "created": "2026-08-12T23:34:57Z",
+      "hunk": "@@ -92,6 +92,17 @@ private AdviceScope(Context context) {\n \n       @Nullable\n       public static AdviceScope start(HttpClientRequest request) {\n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.\n+        Contexts contexts = CONTEXTS.get(request);\n+        if (contexts != null) {\n+          return new AdviceScope(contexts.context);\n+        }",
+      "id": "PRRT_kwDODJKVX86Ywq42",
+      "opened": "2026-08-12T23:34:57Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-13T00:17:14Z",
+          "body": "Good call. I added a deterministic regression test for this, injectsContextOnceWhenSendHeadPrecedesEnd in VertxHttpClientTest. It drives a single request through sendHead() followed by end() so the existing context guard branch is exercised on the second call, and it asserts the full parent to client to server chain. Before the fix the second call re injected a fresh context, so the server span ended up parented to a client span that was never exported and that exact chain assertion breaks. With the inject once guard the chain holds, so the test fails on the old behaviour and passes with the fix, without having to reproduce the race itself.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3771345871"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "Covered by the existing Vert.x 5 `injectsContextOnceWhenSendHeadPrecedesEnd` regression test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178088"
+        }
+      ],
+      "reviewed": "c1617926ecf432f22f439627367f76c1c74b005c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3771157551"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This critical existing-context branch has no regression coverage. The race itself need not be reproduced: a deterministic test can call `sendHead()` and then `end()` on the same Vert.x 4 request and verify that the injected `traceparent` remains unchanged (or count propagator injections). That test would fail if this guard is removed and repeated header mutation returns.",
+      "created": "2026-08-12T23:34:57Z",
+      "hunk": "@@ -92,6 +92,18 @@ private AdviceScope(Context context) {\n \n       @Nullable\n       public static AdviceScope start(HttpClientRequest request) {\n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.\n+        Contexts contexts = CONTEXTS.get(request);\n+        if (contexts != null) {\n+          return new AdviceScope(contexts.context);\n+        }",
+      "id": "PRRT_kwDODJKVX86Ywq5C",
+      "opened": "2026-08-12T23:34:57Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-13T00:17:13Z",
+          "body": "Good call. I added a deterministic regression test for this, injectsContextOnceWhenSendHeadPrecedesEnd in VertxHttpClientTest. It drives a single request through sendHead() followed by end() so the existing context guard branch is exercised on the second call, and it asserts the full parent to client to server chain. Before the fix the second call re injected a fresh context, so the server span ended up parented to a client span that was never exported and that exact chain assertion breaks. With the inject once guard the chain holds, so the test fails on the old behaviour and passes with the fix, without having to reproduce the race itself.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3771345774"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "Covered by the existing Vert.x 4 `injectsContextOnceWhenSendHeadPrecedesEnd` regression test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178080"
+        }
+      ],
+      "reviewed": "c1617926ecf432f22f439627367f76c1c74b005c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3771157576"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This only records a successful span start, not the fact that the request has already reached its first write-triggering call. If `sendHead()` runs while this CLIENT instrumenter is suppressed, `shouldStart` returns false and `CONTEXTS` remains null; a later `end()` under a different current context can then start and inject after the head was handed to the event loop, recreating the `HeadersMultiMap` race. Track a per-request “start attempted” marker independently of `Contexts`, set it before `shouldStart`, and have later calls mount the context only when one was actually created.",
+      "created": "2026-08-13T03:05:17Z",
+      "hunk": "@@ -92,6 +92,18 @@ private AdviceScope(Context context) {\n \n       @Nullable\n       public static AdviceScope start(HttpClientRequest request) {\n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.\n+        Contexts contexts = CONTEXTS.get(request);\n+        if (contexts != null) {\n+          return new AdviceScope(contexts.context);\n+        }",
+      "id": "PRRT_kwDODJKVX86YzHW9",
+      "opened": "2026-08-13T03:05:18Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-25T17:35:42Z",
+          "body": "Fixed in `6fc454e940`. Vert.x 4 now records a dedicated first-attempt marker before `shouldStart`, while `CONTEXTS` remains success-only. A suppressed `sendHead()` therefore prevents a later `end()` from starting or injecting. `doesNotInjectAfterSuppressedSendHead` covers this path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855592305"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "I reverted the attempt marker in `b5bbb9cae8`; suppressed first calls are outside the observed failure and supporting them would require broader synchronization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178059"
+        }
+      ],
+      "reviewed": "633380ae581497b7592338e64fa285752229caca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3772087139"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This only records a successful span start, not the fact that the request has already reached its first write-triggering call. If `sendHead()` runs while this CLIENT instrumenter is suppressed, `shouldStart` returns false and `CONTEXTS` remains null; a later `end()` under a different current context can then start and inject after the head was handed to the event loop, recreating the `HeadersMultiMap` race. Track a per-request “start attempted” marker independently of `Contexts`, set it before `shouldStart`, and have later calls mount the context only when one was actually created.",
+      "created": "2026-08-13T03:05:17Z",
+      "hunk": "@@ -96,6 +96,18 @@ public static AdviceScope startAndAttachContext(HttpClientRequest request) {\n           return null;\n         }\n \n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.\n+        Contexts contexts = CONTEXTS.get(request);\n+        if (contexts != null) {\n+          return new AdviceScope(contexts.context, contexts.context.makeCurrent());\n+        }",
+      "id": "PRRT_kwDODJKVX86YzHWq",
+      "opened": "2026-08-13T03:05:18Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-25T17:35:42Z",
+          "body": "Fixed in `6fc454e940`. Vert.x 3 now records a dedicated first-attempt marker before `shouldStart`, while `CONTEXTS` remains success-only. A suppressed `sendHead()` therefore prevents a later `end()` from starting or injecting. `doesNotInjectAfterSuppressedSendHead` covers this path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855592315"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "I reverted the attempt marker in `b5bbb9cae8`; suppressed first calls are outside the observed failure and supporting them would require broader synchronization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178077"
+        }
+      ],
+      "reviewed": "633380ae581497b7592338e64fa285752229caca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3772087114"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This only records a successful span start, not the fact that the request has already reached its first write-triggering call. If `sendHead()` runs while this CLIENT instrumenter is suppressed, `shouldStart` returns false and `CONTEXTS` remains null; a later `end()` under a different current context can then start and inject after the head was handed to the event loop, recreating the `HeadersMultiMap` race. Track a per-request “start attempted” marker independently of `Contexts`, set it before `shouldStart`, and have later calls mount the context only when one was actually created.",
+      "created": "2026-08-13T03:05:17Z",
+      "hunk": "@@ -92,6 +92,17 @@ private AdviceScope(Context context) {\n \n       @Nullable\n       public static AdviceScope start(HttpClientRequest request) {\n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.\n+        Contexts contexts = CONTEXTS.get(request);\n+        if (contexts != null) {\n+          return new AdviceScope(contexts.context);\n+        }",
+      "id": "PRRT_kwDODJKVX86YzHXZ",
+      "opened": "2026-08-13T03:05:18Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-25T17:35:42Z",
+          "body": "Fixed in `6fc454e940`. Vert.x 5 now records a dedicated first-attempt marker before `shouldStart`, while `CONTEXTS` remains success-only. A suppressed `sendHead()` therefore prevents a later `end()` from starting or injecting. `doesNotInjectAfterSuppressedSendHead` covers this path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855592329"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "I reverted the attempt marker in `b5bbb9cae8`; suppressed first calls are outside the observed failure and supporting them would require broader synchronization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178085"
+        }
+      ],
+      "reviewed": "633380ae581497b7592338e64fa285752229caca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3772087170"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "did you consider returning `null` instead",
+      "created": "2026-08-13T16:43:12Z",
+      "hunk": "@@ -96,6 +96,18 @@ public static AdviceScope startAndAttachContext(HttpClientRequest request) {\n           return null;\n         }\n \n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.\n+        Contexts contexts = CONTEXTS.get(request);\n+        if (contexts != null) {\n+          return new AdviceScope(contexts.context, contexts.context.makeCurrent());",
+      "id": "PRRT_kwDODJKVX86ZAtyo",
+      "opened": "2026-08-13T16:43:12Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-14T03:09:05Z",
+          "body": "Good call, done. I changed all three modules to return null on the already started request, so a second sendHead or end call now does nothing instead of re attaching the context. The regression test that drives sendHead then end and asserts the full parent to client to server chain still passes, so the repeat call makeCurrent was not affecting the exported trace.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3780723046"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "Yes—repeated successfully instrumented requests still return `null` in the final version.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178072"
+        }
+      ],
+      "reviewed": "633380ae581497b7592338e64fa285752229caca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3777310683"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "imo it would be enough to say `// skip if the request has already been instrumented`",
+      "created": "2026-08-25T13:44:21Z",
+      "hunk": "@@ -96,6 +96,18 @@ public static AdviceScope startAndAttachContext(HttpClientRequest request) {\n           return null;\n         }\n \n+        // Vert.x can call sendHead()/end() more than once for a single request, and from a\n+        // thread other than the connection's event loop. Start the span and inject the\n+        // trace-context headers only on the first such call. Injecting on every call would\n+        // repeatedly mutate the request's HeadersMultiMap, which is not thread-safe, while\n+        // Vert.x may be serializing those same headers on the event loop. That data race can\n+        // surface as a NullPointerException in HeadersMultiMap.names(). Injecting once keeps the\n+        // instrumentation from adding a second, unsynchronized writer of the header map.",
+      "id": "PRRT_kwDODJKVX86cGI3s",
+      "opened": "2026-08-25T13:44:21Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-25T17:35:42Z",
+          "body": "Done in `3b0b5e29f2`. The comment is now `// Skip if this request has already reached a write-triggering call.` I kept “write-triggering call” because a suppressed first call marks the request without creating a span.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855592304"
+        },
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "Updated to this wording in `b5bbb9cae8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178060"
+        }
+      ],
+      "reviewed": "fb0d0c0795aa12d9ac5b3999ae59fc114549275f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3853592919"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The check/mark does not order the first injection before a concurrent second write call. One thread can set `ATTEMPTED`, then another thread can observe it and proceed into `end()` while the first is still in `instrumenter().start(...)`; the second call can hand the headers to Vert.x before the first thread reaches `putHeader`, recreating the serialization race. Please serialize the whole marker check through context creation/injection on the request monitor (not only the get/set), so a skipped call cannot proceed until injection has completed.",
+      "created": "2026-08-25T17:46:19Z",
+      "hunk": "@@ -96,6 +98,12 @@ public static AdviceScope startAndAttachContext(HttpClientRequest request) {\n           return null;\n         }\n \n+        // Skip if this request has already reached a write-triggering call.\n+        if (INSTRUMENTATION_STATE.get(request) != null) {\n+          return null;\n+        }\n+        INSTRUMENTATION_STATE.set(request, RequestInstrumentationState.ATTEMPTED);",
+      "id": "PRRT_kwDODJKVX86cLccH",
+      "opened": "2026-08-25T17:46:20Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "The marker was removed in `b5bbb9cae8`; concurrent write-triggering calls on one request are outside this narrow fix, which prevents reinjection after successful instrumentation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178087"
+        }
+      ],
+      "reviewed": "3b0b5e29f21f94eae0b4665295709af3fc80da72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855674745"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The check/mark does not order the first injection before a concurrent second write call. One thread can set `ATTEMPTED`, then another thread can observe it and proceed into `end()` while the first is still in `instrumenter().start(...)`; the second call can hand the headers to Vert.x before the first thread reaches `putHeader`, recreating the serialization race. Please serialize the whole marker check through context creation/injection on the request monitor (not only the get/set), so a skipped call cannot proceed until injection has completed.",
+      "created": "2026-08-25T17:46:19Z",
+      "hunk": "@@ -92,6 +94,12 @@ private AdviceScope(Context context) {\n \n       @Nullable\n       public static AdviceScope start(HttpClientRequest request) {\n+        // Skip if this request has already reached a write-triggering call.\n+        if (INSTRUMENTATION_STATE.get(request) != null) {\n+          return null;\n+        }\n+        INSTRUMENTATION_STATE.set(request, RequestInstrumentationState.ATTEMPTED);",
+      "id": "PRRT_kwDODJKVX86cLcca",
+      "opened": "2026-08-25T17:46:20Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "The marker was removed in `b5bbb9cae8`; concurrent write-triggering calls on one request are outside this narrow fix, which prevents reinjection after successful instrumentation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178069"
+        }
+      ],
+      "reviewed": "3b0b5e29f21f94eae0b4665295709af3fc80da72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855674781"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The check/mark does not order the first injection before a concurrent second write call. One thread can set `ATTEMPTED`, then another thread can observe it and proceed into `end()` while the first is still in `instrumenter().start(...)`; the second call can hand the headers to Vert.x before the first thread reaches `putHeader`, recreating the serialization race. Please serialize the whole marker check through context creation/injection on the request monitor (not only the get/set), so a skipped call cannot proceed until injection has completed.",
+      "created": "2026-08-25T17:46:20Z",
+      "hunk": "@@ -92,6 +94,11 @@ private AdviceScope(Context context) {\n \n       @Nullable\n       public static AdviceScope start(HttpClientRequest request) {\n+        // Skip if this request has already reached a write-triggering call.\n+        if (INSTRUMENTATION_STATE.get(request) != null) {\n+          return null;\n+        }\n+        INSTRUMENTATION_STATE.set(request, RequestInstrumentationState.ATTEMPTED);",
+      "id": "PRRT_kwDODJKVX86cLcct",
+      "opened": "2026-08-25T17:46:20Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/HttpRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-25T18:47:59Z",
+          "body": "The marker was removed in `b5bbb9cae8`; concurrent write-triggering calls on one request are outside this narrow fix, which prevents reinjection after successful instrumentation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3856178065"
+        }
+      ],
+      "reviewed": "3b0b5e29f21f94eae0b4665295709af3fc80da72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19547#discussion_r3855674819"
+    }
+  ]
+}

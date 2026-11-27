@@ -1,0 +1,31 @@
+{
+  "head": "d5eb0ed4c2d80b6be0dee4e13643f348ea43150c",
+  "merge": "a61bd3bb612d9fbdfe9ab3f3de823b75facaed20",
+  "merged": "2026-10-10T20:10:09Z",
+  "missing_roots": 0,
+  "number": 20477,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot wherever this list appears, add comment linking to where it comes from in semconv spec\n\nin files edited in this PR and other files too",
+      "created": "2026-10-09T16:53:36Z",
+      "hunk": "@@ -206,10 +206,40 @@ void normal() {\n             entry(NETWORK_PEER_PORT, 456L));\n   }\n \n+  @ParameterizedTest\n+  @ValueSource(\n+      strings = {\n+        \"AWSAccessKeyId\",\n+        \"Signature\",\n+        \"X-Amz-Signature\",\n+        \"X-Amz-Credential\",\n+        \"X-Amz-Security-Token\",\n+        \"sig\",\n+        \"X-Goog-Signature\"",
+      "id": "PRRT_kwDODJKVX86q3qpa",
+      "opened": "2026-10-09T16:53:36Z",
+      "path": "instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-09T17:01:47Z",
+          "body": "Added semconv links beside the default set and repeated test lists in d5eb0ed4, including existing server/sanitizer tests. Updated shared configuration and Spring metadata descriptions too. Generated docs will inherit the shared-source link in the nightly update. Targeted tests and style checks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20477#discussion_r4232578505"
+        }
+      ],
+      "reviewed": "eb3aac7d75ca1ee313ebd633b88e6a719ae61263",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20477#discussion_r4232508920"
+    }
+  ]
+}

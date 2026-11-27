@@ -1,0 +1,134 @@
+{
+  "head": "18dd5267b5e726601622b26ba8021e8a1b2892c2",
+  "merge": "7bb0bab650b25f82d480a776e87e2680ec050063",
+  "merged": "2026-06-17T21:34:20Z",
+  "missing_roots": 0,
+  "number": 119,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Directly accessing `response.response_id` can raise `AttributeError` on supported `google-genai` versions where this field is absent, and in streaming it can also overwrite a previously captured response id with `None` on later chunks. Prefer a guarded, write-once assignment (and coerce to `str`).",
+      "created": "2026-06-09T19:52:02Z",
+      "hunk": "@@ -396,11 +396,12 @@ def _get_extra_generate_content_attributes() -> dict[str, AttributeValue]:\n     return dict(attrs or {})\n \n \n-def _maybe_update_token_counts_and_finish_reasons(\n+def _apply_response_attributes(\n     response: GenerateContentResponse,\n     finish_reasons: list[str],\n     invocation: InferenceInvocation,\n ):\n+    invocation.response_id = response.response_id",
+      "id": "PRRT_kwDOSbspP86IRVkS",
+      "opened": "2026-06-09T19:52:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "0f879ea764735c2291777431b96b70294b88c36d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3383436508"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_apply_response_attributes()` is invoked for both streaming and async streaming responses, but the new `gen_ai.response.id` behavior is only covered by non-streaming tests. Add assertions in the streaming test suites (sync + async) to ensure the response id is set when present, and not cleared by subsequent chunks (per CONTRIBUTING genai instrumentation test guidance: cover streaming/non-streaming variants).",
+      "created": "2026-06-09T19:52:03Z",
+      "hunk": "@@ -577,7 +578,7 @@ def instrumented_generate_content_stream(\n                     config=wrapped_config,\n                     **kwargs,\n                 ):\n-                    _maybe_update_token_counts_and_finish_reasons(\n+                    _apply_response_attributes(\n                         resp, finish_reasons, invocation\n                     )",
+      "id": "PRRT_kwDOSbspP86IRVko",
+      "opened": "2026-06-09T19:52:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "0f879ea764735c2291777431b96b70294b88c36d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3383436539"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "note(non-blocking): Not sure, but I need to check if these attributes should be added from both openai and anthropic instrumentations.",
+      "created": "2026-06-15T03:17:45Z",
+      "hunk": "@@ -93,6 +93,9 @@ def __init__(\n         self.cache_creation_input_tokens: int | None = None\n         self.cache_read_input_tokens: int | None = None\n         self.tool_definitions: list[ToolDefinition] | None = None\n+        self.top_k: float | None = None\n+        self.request_choice_count: int | None = None",
+      "id": "PRRT_kwDOSbspP86JdSYs",
+      "opened": "2026-06-15T04:03:25Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-06-15T04:03:25Z",
+          "body": "Only question, can we remove this from this pr and add it separately?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3410846560"
+        },
+        {
+          "at": "2026-06-15T14:17:36Z",
+          "body": "We could but why bother doing it in a separate PR ? I can open an issue to track adding them to openai/anthropic if that helps ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3414157964"
+        },
+        {
+          "at": "2026-06-15T14:32:35Z",
+          "body": "Opened https://github.com/open-telemetry/opentelemetry-python-genai/issues/138",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3414261401"
+        }
+      ],
+      "reviewed": "1d3bde43f08fe8cb43a3d97abe2af596888cb1f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3410837866"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): can we do something like this here \n\n```python\n    attributes = {k: v for k, v in attributes.items() if allow_list.allowed(k)}\n    if response_mime_type := config.get(\"response_mime_type\"):\n        if response_mime_type == \"text/plain\":\n            invocation.output_type = \"text\"\n        elif response_mime_type == \"application/json\":\n            invocation.output_type = \"json\"\n        else:\n            invocation.output_type = response_mime_type\n    invocation.attributes.update(attributes)\n```",
+      "created": "2026-06-15T03:56:36Z",
+      "hunk": "@@ -279,43 +278,44 @@ async def _to_tool_definition_async(\n     return _to_tool_definition_common(tool)\n \n \n-def _create_request_attributes(\n+def _apply_request_attributes(\n     config: Optional[GenerateContentConfigOrDict],\n     allow_list: AllowList,\n-) -> dict[str, AttributeValue]:\n+    invocation: InferenceInvocation,\n+) -> None:\n     if not config:\n-        return {}\n+        return\n     config = _to_dict(config)\n+    invocation.temperature = config.get(\"temperature\")\n+    invocation.top_p = config.get(\"top_p\")\n+    invocation.top_k = config.get(\"top_k\")\n+    invocation.request_choice_count = config.get(\"candidate_count\")\n+    invocation.max_tokens = config.get(\"max_output_tokens\")\n+    invocation.stop_sequences = config.get(\"stop_sequences\")\n+    invocation.frequency_penalty = config.get(\"frequency_penalty\")\n+    invocation.presence_penalty = config.get(\"presence_penalty\")\n+    invocation.seed = config.get(\"seed\")\n     attributes = flatten_dict(\n         config,\n         # A custom prefix is used, because the names/structure of the\n         # configuration is likely to be specific to Google Gen AI SDK.\n         key_prefix=GCP_GENAI_OPERATION_CONFIG,\n-        exclude_keys=[\n-            # System instruction can be overly long for a span attribute.\n-            # Additionally, it is recorded as an event (log), instead.\n-            \"gcp.gen_ai.operation.config.system_instruction\",\n-        ],\n-        # Although a custom prefix is used by default, some of the attributes\n-        # are captured in common, standard, Semantic Conventions. For the\n-        # well-known properties whose values align with Semantic Conventions,\n-        # we ensure that the key name matches the standard SemConv name.\n-        rename_keys={\n-            # TODO: add more entries here as more semantic conventions are\n-            # generalized to cover more of the available config options.\n-            \"gcp.gen_ai.operation.config.temperature\": gen_ai_attributes.GEN_AI_REQUEST_TEMPERATURE,\n-            \"gcp.gen_ai.operation.config.top_k\": gen_ai_attributes.GEN_AI_REQUEST_TOP_K,\n-            \"gcp.gen_ai.operation.config.top_p\": gen_ai_attributes.GEN_AI_REQUEST_TOP_P,\n-            \"gcp.gen_ai.operation.config.candidate_count\": gen_ai_attributes.GEN_AI_REQUEST_CHOICE_COUNT,\n-            \"gcp.gen_ai.operation.config.max_output_tokens\": gen_ai_attributes.GEN_AI_REQUEST_MAX_TOKENS,\n-            \"gcp.gen_ai.operation.config.stop_sequences\": gen_ai_attributes.GEN_AI_REQUEST_STOP_SEQUENCES,\n-            \"gcp.gen_ai.operation.config.frequency_penalty\": gen_ai_attributes.GEN_AI_REQUEST_FREQUENCY_PENALTY,\n-            \"gcp.gen_ai.operation.config.presence_penalty\": gen_ai_attributes.GEN_AI_REQUEST_PRESENCE_PENALTY,\n-            \"gcp.gen_ai.operation.config.seed\": gen_ai_attributes.GEN_AI_REQUEST_SEED,\n+        # These are all captured already as semantic conventions.\n+        exclude_keys={\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.system_instruction\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.temperature\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.top_k\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.top_p\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.candidate_count\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.max_output_tokens\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.stop_sequences\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.frequency_penalty\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.presence_penalty\",\n+            f\"{GCP_GENAI_OPERATION_CONFIG}.seed\",\n         },\n     )\n-    response_mime_type = config.get(\"response_mime_type\")\n-    if response_mime_type:\n+    attributes = {k: v for k, v in attributes.items() if allow_list.allowed(k)}\n+    if response_mime_type := config.get(\"response_mime_type\"):\n         if response_mime_type == \"text/plain\":",
+      "id": "PRRT_kwDOSbspP86JdklV",
+      "opened": "2026-06-15T04:03:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [
+        {
+          "at": "2026-06-15T14:25:57Z",
+          "body": "Yeah for sure.. I meant to do that and got distracted updating the invocation type.. done now",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3414214816"
+        }
+      ],
+      "reviewed": "1d3bde43f08fe8cb43a3d97abe2af596888cb1f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3410941280"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "nit probably more readable to either do the checks in the loop\n\n```py\nfor key, value in ...:\n  if k not in exclude_keys: continue\n\n  ...\n```\n\nor alternatively just use set key difference\n\n```py\nfor key in d.keys() - exclude_keys:\n  value = d[key]\n  ...\n```",
+      "created": "2026-06-17T14:51:44Z",
+      "hunk": "@@ -126,168 +55,63 @@ def _flatten_compound_value_using_json(\n             value,\n         )\n         return {}\n-    json_value = json.loads(json_string)\n     return _flatten_value(\n         key,\n-        json_value,\n-        exclude_keys=exclude_keys,\n-        rename_keys=rename_keys,\n-        flatten_functions=flatten_functions,\n+        json.loads(json_string),\n+        exclude_keys,\n         # Ensure that we don't recurse indefinitely if \"json.loads()\" somehow returns\n         # a complex, compound object that does not get handled by the \"primitive\", \"list\",\n         # or \"dict\" cases. Prevents falling back on the JSON serialization fallback path.\n-        _from_json=True,\n+        True,\n     )\n \n \n-def _flatten_compound_value(  # pylint: disable=too-many-return-statements\n+def _flatten_compound_value(\n     key: str,\n     value: Any,\n     exclude_keys: Set[str],\n-    rename_keys: Dict[str, str],\n-    flatten_functions: Dict[str, FlattenFunc],\n-    key_names: Set[str],\n     _from_json=False,\n ) -> FlattenedDict:\n-    fully_flattened_with_flatten_func, value = _flatten_with_flatten_func(\n-        key=key,\n-        value=value,\n-        exclude_keys=exclude_keys,\n-        rename_keys=rename_keys,\n-        flatten_functions=flatten_functions,\n-        key_names=key_names,\n-    )\n-    if fully_flattened_with_flatten_func:\n-        return value\n     if isinstance(value, dict):\n-        return _flatten_dict(\n-            value,\n-            key_prefix=key,\n-            exclude_keys=exclude_keys,\n-            rename_keys=rename_keys,\n-            flatten_functions=flatten_functions,\n-        )\n+        return flatten_dict(value, key, exclude_keys)\n     if isinstance(value, list):\n         if _is_homogenous_primitive_list(value):\n             return {key: value}\n-        return _flatten_list(\n-            value,\n-            key_prefix=key,\n-            exclude_keys=exclude_keys,\n-            rename_keys=rename_keys,\n-            flatten_functions=flatten_functions,\n-        )\n+        result = {f\"{key}.length\": len(value)}\n+        for idx, val in enumerate(value):\n+            result.update(_flatten_value(f\"{key}[{idx}]\", val, exclude_keys))\n+        return result\n     if hasattr(value, \"model_dump\"):\n         try:\n-            return _flatten_dict(\n-                value.model_dump(),\n-                key_prefix=key,\n-                exclude_keys=exclude_keys,\n-                rename_keys=rename_keys,\n-                flatten_functions=flatten_functions,\n-            )\n+            return flatten_dict(value.model_dump(), key, exclude_keys)\n         except TypeError:\n             return {key: str(value)}\n     return _flatten_compound_value_using_json(\n-        key,\n-        value,\n-        exclude_keys=exclude_keys,\n-        rename_keys=rename_keys,\n-        flatten_functions=flatten_functions,\n-        _from_json=_from_json,\n+        key, value, exclude_keys, _from_json\n     )\n \n \n def _flatten_value(\n     key: str,\n     value: Any,\n     exclude_keys: Set[str],\n-    rename_keys: Dict[str, str],\n-    flatten_functions: Dict[str, FlattenFunc],\n     _from_json=False,\n ) -> FlattenedDict:\n-    if value is None:\n-        return {}\n-    key_names = set([key])\n-    renamed_key = rename_keys.get(key)\n-    if renamed_key is not None:\n-        key_names.add(renamed_key)\n-        key = renamed_key\n-    if key_names & exclude_keys:\n+    if value is None or key in exclude_keys:\n         return {}\n-    if _is_primitive(value):\n+    if isinstance(value, (str, bool, int, float)):\n         return {key: value}\n-    return _flatten_compound_value(\n-        key=key,\n-        value=value,\n-        exclude_keys=exclude_keys,\n-        rename_keys=rename_keys,\n-        flatten_functions=flatten_functions,\n-        key_names=key_names,\n-        _from_json=_from_json,\n-    )\n+    return _flatten_compound_value(key, value, exclude_keys, _from_json)\n \n \n-def _flatten_dict(\n+def flatten_dict(\n     d: Dict[str, Any],\n     key_prefix: str,\n     exclude_keys: Set[str],\n-    rename_keys: Dict[str, str],\n-    flatten_functions: Dict[str, FlattenFunc],\n-) -> FlattenedDict:\n-    result = {}\n-    for key, value in d.items():\n-        if key in exclude_keys:\n-            continue\n-        full_key = _concat_key(key_prefix, key)\n-        flattened = _flatten_value(\n-            full_key,\n-            value,\n-            exclude_keys=exclude_keys,\n-            rename_keys=rename_keys,\n-            flatten_functions=flatten_functions,\n-        )\n-        result.update(flattened)\n-    return result\n-\n-\n-def _flatten_list(\n-    lst: list[Any],\n-    key_prefix: str,\n-    exclude_keys: Set[str],\n-    rename_keys: Dict[str, str],\n-    flatten_functions: Dict[str, FlattenFunc],\n ) -> FlattenedDict:\n     result = {}\n-    result[_concat_key(key_prefix, \"length\")] = len(lst)\n-    for index, value in enumerate(lst):\n-        full_key = f\"{key_prefix}[{index}]\"\n-        flattened = _flatten_value(\n-            full_key,\n-            value,\n-            exclude_keys=exclude_keys,\n-            rename_keys=rename_keys,\n-            flatten_functions=flatten_functions,\n+    for key, value in [(k, v) for k, v in d.items() if k not in exclude_keys]:",
+      "id": "PRRT_kwDOSbspP86KQUKd",
+      "opened": "2026-06-17T14:56:30Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/dict_util.py",
+      "replies": [
+        {
+          "at": "2026-06-17T18:21:06Z",
+          "body": "Ack, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3430529497"
+        }
+      ],
+      "reviewed": "14f3f7097731b1bba824d8150516c442fbb3ece7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3429122568"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Any way we could make this type safe? IIRC, `GenerateContentConfigOrDict` has a pydantic model variant and you can use `model_validate(config)`\n\nWDYT?",
+      "created": "2026-06-17T14:56:10Z",
+      "hunk": "@@ -279,57 +278,53 @@ async def _to_tool_definition_async(\n     return _to_tool_definition_common(tool)\n \n \n-def _create_request_attributes(\n+def _apply_request_attributes(\n     config: Optional[GenerateContentConfigOrDict],\n     allow_list: AllowList,\n-) -> dict[str, AttributeValue]:\n+    invocation: InferenceInvocation,\n+) -> None:\n     if not config:\n-        return {}\n+        return\n     config = _to_dict(config)\n+    invocation.temperature = config.get(\"temperature\")\n+    invocation.top_p = config.get(\"top_p\")\n+    invocation.top_k = config.get(\"top_k\")\n+    invocation.request_choice_count = config.get(\"candidate_count\")\n+    invocation.max_tokens = config.get(\"max_output_tokens\")\n+    invocation.stop_sequences = config.get(\"stop_sequences\")\n+    invocation.frequency_penalty = config.get(\"frequency_penalty\")\n+    invocation.presence_penalty = config.get(\"presence_penalty\")\n+    invocation.seed = config.get(\"seed\")\n+    if response_mime_type := config.get(\"response_mime_type\"):\n+        if response_mime_type == \"text/plain\":\n+            invocation.output_type = \"text\"\n+        elif response_mime_type == \"application/json\":\n+            invocation.output_type = \"json\"\n+        else:\n+            invocation.output_type = response_mime_type",
+      "id": "PRRT_kwDOSbspP86KQaFO",
+      "opened": "2026-06-17T14:56:30Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [
+        {
+          "at": "2026-06-17T19:41:05Z",
+          "body": "Ok your comment made me realize we were parsing the GenerateContentConfig inconsistently all over the place, instead of just doing it in one place, one way and then passing it around..\n\nUltimately decided to try to use `model_validate` when it's a dict, and return a base empty object when that fails, and pass that around so everything just expects a GenerateContentConfig object..\n\nWhen I call the real `generate_content` I pass in the original unmodified config (that might have failed to parse, since I don't want to override how the real library deals with a invalid config being passed in..) unless we got a valid config with tools which we wrapped to get the execute tool span..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3430973151"
+        }
+      ],
+      "reviewed": "14f3f7097731b1bba824d8150516c442fbb3ece7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/119#discussion_r3429156252"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "head": "118524b3c67a08d74ea641bea76905ed71de4729",
+  "merge": "2ec4a6fc441852382816eb2cd57a4ddbb2b49baf",
+  "merged": "2026-10-14T22:35:51Z",
+  "missing_roots": 0,
+  "number": 204,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This constraint is not installable with the committed dependency set: `composer.lock` still pins Guzzle 7.15.5, and the locked `open-telemetry/opentelemetry-auto-guzzle` 1.4.0 itself requires `guzzlehttp/guzzle: ^7`. Because CI runs `composer validate --strict` and `composer install`, it will reject this stale/conflicting lock. Please upgrade the instrumentation package to a release that supports Guzzle 8 and commit the regenerated lock file, or keep Guzzle on v7.",
+      "created": "2026-09-14T05:32:03Z",
+      "hunk": "@@ -4,7 +4,7 @@\n   \"license\": \"Apache-2.0\",\n   \"require\": {\n     \"php\": \">=8.2\",\n-    \"guzzlehttp/guzzle\": \"^7.9\",\n+    \"guzzlehttp/guzzle\": \"^8.0\",",
+      "id": "PRRT_kwDOTuzK5c6h_7WG",
+      "opened": "2026-09-14T05:32:03Z",
+      "path": "scenarios/http/php/guzzle/opentelemetry-guzzle/composer.json",
+      "replies": [
+        {
+          "at": "2026-09-20T14:03:53Z",
+          "body": "`open-telemetry/opentelemetry-auto-guzzle` will have to be updated.\r\nCurrently `dev-main` supports `guzzle ^8`, but no release does yet.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/204#discussion_r4057125330"
+        },
+        {
+          "at": "2026-10-14T22:09:32Z",
+          "body": "Fixed in 066e9a5b. The instrumentation requirement is now ^1.5, and the regenerated lockfile contains released instrumentation 1.5.0, which supports Guzzle ^7 || ^8, alongside Guzzle 8.2.0. These versions are preserved after merging main in 118524b3. Composer validation/install, PHP relocking, and HTTP PHP scenario CI checks all pass.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/204#discussion_r4276805126"
+        }
+      ],
+      "reviewed": "428f1bc68e87810fda5ae68028033c53a00a584a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/204#discussion_r4002441722"
+    }
+  ]
+}

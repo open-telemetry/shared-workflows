@@ -1,0 +1,31 @@
+{
+  "head": "ea9ec358be391d4af7e1ddab0a716fa80fb81af6",
+  "merge": "634ef17e70a2d6f548a122092c49f6e735844c89",
+  "merged": "2026-04-01T03:13:43Z",
+  "missing_roots": 0,
+  "number": 17331,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot change this to assertThat ... isTrue",
+      "created": "2026-04-01T02:42:52Z",
+      "hunk": "@@ -131,9 +131,13 @@ void setFailure(Throwable failure) {\n \n     RESPONSE get() {\n       try {\n-        latch.await(1, MINUTES);\n+        boolean completed = latch.await(1, MINUTES);\n+        if (!completed) {\n+          throw new IllegalStateException(\"Timed out waiting for response\");\n+        }",
+      "id": "PRRT_kwDODJKVX854HchQ",
+      "opened": "2026-04-01T02:42:52Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-common/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/AbstractElasticsearchClientTest.java",
+      "replies": [
+        {
+          "at": "2026-04-01T02:45:57Z",
+          "body": "Done in ea9ec35. Changed to `assertThat(latch.await(1, MINUTES)).isTrue()` and added the AssertJ import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17331#discussion_r3019452265"
+        }
+      ],
+      "reviewed": "81581f7e84fca244c645453b8564da34552b90df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17331#discussion_r3019442977"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "head": "058a3fd63ecd48fbf60fd2ba6dfc002c10fb33c5",
+  "merge": "b8c40bbe34e2475523b42bf1b34423a94d9ad949",
+  "merged": "2026-08-20T15:56:35Z",
+  "missing_roots": 0,
+  "number": 407,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says both `agno` and `smolagents` were added to the release package lists in `eachdist.ini` and `release-package.yml`, but this workflow change only adds `opentelemetry-instrumentation-genai-smolagents`. Either add `opentelemetry-instrumentation-genai-agno` here as well (to keep release lists consistent) or adjust the PR description to reflect the actual workflow behavior.",
+      "created": "2026-08-18T14:06:31Z",
+      "hunk": "@@ -12,6 +12,7 @@ on:\n         - opentelemetry-instrumentation-genai-openai-agents\n         - opentelemetry-instrumentation-genai-openai\n         - opentelemetry-instrumentation-genai-qwen-agent\n+        - opentelemetry-instrumentation-genai-smolagents",
+      "id": "PRRT_kwDOSbspP86aIvEx",
+      "opened": "2026-08-18T14:06:34Z",
+      "path": ".github/workflows/release-package.yml",
+      "replies": [],
+      "reviewed": "16a1d1472c860df57c4d2851fe55b74709571a03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/407#discussion_r3804806401"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Executing `package.py` via `exec()` runs arbitrary code and can trigger imports/side-effects, which is risky for a lint-style CI check and makes failures harder to reason about. Prefer parsing `package.py` with `ast` and extracting `_instruments` as a literal (e.g., `ast.literal_eval` of the assignment RHS), and fail with a clear error if `_instruments` is not a simple tuple/list literal.",
+      "created": "2026-08-18T14:06:32Z",
+      "hunk": "@@ -0,0 +1,172 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Guard dependency invariants across packages.\n+\n+1. Oldest dependency invariant:\n+   The oldest tox envs install the lowest versions of each package's *declared* deps straight from\n+   pyproject.toml via ``UV_RESOLUTION=lowest-direct`` (see AGENTS.md). pyproject.toml is therefore the\n+   single source of truth for those floors and running the env is what validates them. This script\n+   covers the two gaps a passing oldest env can't see:\n+   - Re-introduced drift: a pyproject-declared dep hand-pinned again in tests/requirements.oldest.txt.\n+     Such a pin silently overrides the derived floor and can drift from the declared bound; remove it.\n+   - Missing coverage: a package with an oldest tox factor (a tests/requirements.latest.txt) but no\n+     tests/requirements.oldest.txt at all, so its declared floors are never exercised.\n+\n+2. Package runtime dependency specifier invariant:\n+   Instrumentation packages declare their target library dependencies in [project.optional-dependencies]\n+   `instruments` in pyproject.toml, and expose them at runtime via `_instruments` in `package.py`.\n+   These two must match to ensure runtime instrumentor compatibility checks and package metadata stay in sync.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import sys\n+from pathlib import Path\n+\n+try:\n+    import tomllib\n+except ModuleNotFoundError:  # Python < 3.11\n+    import tomli as tomllib\n+\n+from packaging.requirements import Requirement\n+from packaging.utils import canonicalize_name\n+\n+\n+def declared_dep_names(pyproject: dict) -> set[str]:\n+    \"\"\"Canonical names of every dep declared in [project.dependencies] and optional-dependencies.\"\"\"\n+    project = pyproject.get(\"project\", {})\n+    names: set[str] = set()\n+    for dep in project.get(\"dependencies\", []):\n+        names.add(canonicalize_name(Requirement(dep).name))\n+    for deps in project.get(\"optional-dependencies\", {}).values():\n+        for dep in deps:\n+            names.add(canonicalize_name(Requirement(dep).name))\n+    return names\n+\n+\n+def pinned_names(oldest_req_path: Path) -> set[str]:\n+    \"\"\"Canonical names of every pinned requirement in an oldest requirements file.\n+\n+    Skips option lines (-e/-r/-c/--flag) and anything that isn't a parseable requirement.\n+    \"\"\"\n+    names: set[str] = set()\n+    for raw in oldest_req_path.read_text(encoding=\"utf-8\").splitlines():\n+        line = raw.split(\"#\", 1)[0].strip()\n+        if not line or line.startswith(\"-\"):\n+            continue\n+        try:\n+            names.add(canonicalize_name(Requirement(line).name))\n+        except Exception:\n+            continue\n+    return names\n+\n+\n+def check_instruments_match(pkg_dir: Path, pyproject: dict) -> list[str]:\n+    \"\"\"Verify that package.py _instruments matches pyproject.toml [project.optional-dependencies] instruments.\"\"\"\n+    errors: list[str] = []\n+    pyproject_instruments_raw = (\n+        pyproject.get(\"project\", {})\n+        .get(\"optional-dependencies\", {})\n+        .get(\"instruments\", [])\n+    )\n+    if not pyproject_instruments_raw:\n+        return errors\n+\n+    package_py_files = list((pkg_dir / \"src\").glob(\"**/package.py\"))\n+    if not package_py_files:\n+        return errors\n+\n+    package_py_path = package_py_files[0]\n+    scope: dict[str, object] = {}\n+    try:\n+        exec(package_py_path.read_text(encoding=\"utf-8\"), scope)",
+      "id": "PRRT_kwDOSbspP86aIvFm",
+      "opened": "2026-08-18T14:06:34Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "16a1d1472c860df57c4d2851fe55b74709571a03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/407#discussion_r3804806493"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This logic silently skips validation in two drift cases that the new invariant check is supposed to catch: (1) `package.py` defines `_instruments` but `pyproject.toml` lacks the `instruments` extra, and (2) `pyproject.toml` declares an `instruments` extra but no `package.py` is found under `src/`. Instead of returning success for these cases, treat the missing side as an error (or as an empty set and then compare) so metadata drift is detected.",
+      "created": "2026-08-18T14:06:32Z",
+      "hunk": "@@ -0,0 +1,172 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Guard dependency invariants across packages.\n+\n+1. Oldest dependency invariant:\n+   The oldest tox envs install the lowest versions of each package's *declared* deps straight from\n+   pyproject.toml via ``UV_RESOLUTION=lowest-direct`` (see AGENTS.md). pyproject.toml is therefore the\n+   single source of truth for those floors and running the env is what validates them. This script\n+   covers the two gaps a passing oldest env can't see:\n+   - Re-introduced drift: a pyproject-declared dep hand-pinned again in tests/requirements.oldest.txt.\n+     Such a pin silently overrides the derived floor and can drift from the declared bound; remove it.\n+   - Missing coverage: a package with an oldest tox factor (a tests/requirements.latest.txt) but no\n+     tests/requirements.oldest.txt at all, so its declared floors are never exercised.\n+\n+2. Package runtime dependency specifier invariant:\n+   Instrumentation packages declare their target library dependencies in [project.optional-dependencies]\n+   `instruments` in pyproject.toml, and expose them at runtime via `_instruments` in `package.py`.\n+   These two must match to ensure runtime instrumentor compatibility checks and package metadata stay in sync.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import sys\n+from pathlib import Path\n+\n+try:\n+    import tomllib\n+except ModuleNotFoundError:  # Python < 3.11\n+    import tomli as tomllib\n+\n+from packaging.requirements import Requirement\n+from packaging.utils import canonicalize_name\n+\n+\n+def declared_dep_names(pyproject: dict) -> set[str]:\n+    \"\"\"Canonical names of every dep declared in [project.dependencies] and optional-dependencies.\"\"\"\n+    project = pyproject.get(\"project\", {})\n+    names: set[str] = set()\n+    for dep in project.get(\"dependencies\", []):\n+        names.add(canonicalize_name(Requirement(dep).name))\n+    for deps in project.get(\"optional-dependencies\", {}).values():\n+        for dep in deps:\n+            names.add(canonicalize_name(Requirement(dep).name))\n+    return names\n+\n+\n+def pinned_names(oldest_req_path: Path) -> set[str]:\n+    \"\"\"Canonical names of every pinned requirement in an oldest requirements file.\n+\n+    Skips option lines (-e/-r/-c/--flag) and anything that isn't a parseable requirement.\n+    \"\"\"\n+    names: set[str] = set()\n+    for raw in oldest_req_path.read_text(encoding=\"utf-8\").splitlines():\n+        line = raw.split(\"#\", 1)[0].strip()\n+        if not line or line.startswith(\"-\"):\n+            continue\n+        try:\n+            names.add(canonicalize_name(Requirement(line).name))\n+        except Exception:\n+            continue\n+    return names\n+\n+\n+def check_instruments_match(pkg_dir: Path, pyproject: dict) -> list[str]:\n+    \"\"\"Verify that package.py _instruments matches pyproject.toml [project.optional-dependencies] instruments.\"\"\"\n+    errors: list[str] = []\n+    pyproject_instruments_raw = (\n+        pyproject.get(\"project\", {})\n+        .get(\"optional-dependencies\", {})\n+        .get(\"instruments\", [])\n+    )\n+    if not pyproject_instruments_raw:\n+        return errors\n+\n+    package_py_files = list((pkg_dir / \"src\").glob(\"**/package.py\"))\n+    if not package_py_files:\n+        return errors",
+      "id": "PRRT_kwDOSbspP86aIvGM",
+      "opened": "2026-08-18T14:06:34Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "16a1d1472c860df57c4d2851fe55b74709571a03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/407#discussion_r3804806559"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If a package contains multiple `package.py` files under `src/`, selecting the first match makes the check non-deterministic (filesystem order) and can validate the wrong file. Consider sorting the matches and erroring if the count is not exactly 1, so the check is deterministic and fails loudly when the package layout is unexpected.",
+      "created": "2026-08-18T14:06:33Z",
+      "hunk": "@@ -0,0 +1,172 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Guard dependency invariants across packages.\n+\n+1. Oldest dependency invariant:\n+   The oldest tox envs install the lowest versions of each package's *declared* deps straight from\n+   pyproject.toml via ``UV_RESOLUTION=lowest-direct`` (see AGENTS.md). pyproject.toml is therefore the\n+   single source of truth for those floors and running the env is what validates them. This script\n+   covers the two gaps a passing oldest env can't see:\n+   - Re-introduced drift: a pyproject-declared dep hand-pinned again in tests/requirements.oldest.txt.\n+     Such a pin silently overrides the derived floor and can drift from the declared bound; remove it.\n+   - Missing coverage: a package with an oldest tox factor (a tests/requirements.latest.txt) but no\n+     tests/requirements.oldest.txt at all, so its declared floors are never exercised.\n+\n+2. Package runtime dependency specifier invariant:\n+   Instrumentation packages declare their target library dependencies in [project.optional-dependencies]\n+   `instruments` in pyproject.toml, and expose them at runtime via `_instruments` in `package.py`.\n+   These two must match to ensure runtime instrumentor compatibility checks and package metadata stay in sync.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import sys\n+from pathlib import Path\n+\n+try:\n+    import tomllib\n+except ModuleNotFoundError:  # Python < 3.11\n+    import tomli as tomllib\n+\n+from packaging.requirements import Requirement\n+from packaging.utils import canonicalize_name\n+\n+\n+def declared_dep_names(pyproject: dict) -> set[str]:\n+    \"\"\"Canonical names of every dep declared in [project.dependencies] and optional-dependencies.\"\"\"\n+    project = pyproject.get(\"project\", {})\n+    names: set[str] = set()\n+    for dep in project.get(\"dependencies\", []):\n+        names.add(canonicalize_name(Requirement(dep).name))\n+    for deps in project.get(\"optional-dependencies\", {}).values():\n+        for dep in deps:\n+            names.add(canonicalize_name(Requirement(dep).name))\n+    return names\n+\n+\n+def pinned_names(oldest_req_path: Path) -> set[str]:\n+    \"\"\"Canonical names of every pinned requirement in an oldest requirements file.\n+\n+    Skips option lines (-e/-r/-c/--flag) and anything that isn't a parseable requirement.\n+    \"\"\"\n+    names: set[str] = set()\n+    for raw in oldest_req_path.read_text(encoding=\"utf-8\").splitlines():\n+        line = raw.split(\"#\", 1)[0].strip()\n+        if not line or line.startswith(\"-\"):\n+            continue\n+        try:\n+            names.add(canonicalize_name(Requirement(line).name))\n+        except Exception:\n+            continue\n+    return names\n+\n+\n+def check_instruments_match(pkg_dir: Path, pyproject: dict) -> list[str]:\n+    \"\"\"Verify that package.py _instruments matches pyproject.toml [project.optional-dependencies] instruments.\"\"\"\n+    errors: list[str] = []\n+    pyproject_instruments_raw = (\n+        pyproject.get(\"project\", {})\n+        .get(\"optional-dependencies\", {})\n+        .get(\"instruments\", [])\n+    )\n+    if not pyproject_instruments_raw:\n+        return errors\n+\n+    package_py_files = list((pkg_dir / \"src\").glob(\"**/package.py\"))\n+    if not package_py_files:\n+        return errors",
+      "id": "PRRT_kwDOSbspP86aIvGo",
+      "opened": "2026-08-18T14:06:34Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "16a1d1472c860df57c4d2851fe55b74709571a03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/407#discussion_r3804806615"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If a package contains multiple `package.py` files under `src/`, selecting the first match makes the check non-deterministic (filesystem order) and can validate the wrong file. Consider sorting the matches and erroring if the count is not exactly 1, so the check is deterministic and fails loudly when the package layout is unexpected.",
+      "created": "2026-08-18T14:06:33Z",
+      "hunk": "@@ -0,0 +1,172 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Guard dependency invariants across packages.\n+\n+1. Oldest dependency invariant:\n+   The oldest tox envs install the lowest versions of each package's *declared* deps straight from\n+   pyproject.toml via ``UV_RESOLUTION=lowest-direct`` (see AGENTS.md). pyproject.toml is therefore the\n+   single source of truth for those floors and running the env is what validates them. This script\n+   covers the two gaps a passing oldest env can't see:\n+   - Re-introduced drift: a pyproject-declared dep hand-pinned again in tests/requirements.oldest.txt.\n+     Such a pin silently overrides the derived floor and can drift from the declared bound; remove it.\n+   - Missing coverage: a package with an oldest tox factor (a tests/requirements.latest.txt) but no\n+     tests/requirements.oldest.txt at all, so its declared floors are never exercised.\n+\n+2. Package runtime dependency specifier invariant:\n+   Instrumentation packages declare their target library dependencies in [project.optional-dependencies]\n+   `instruments` in pyproject.toml, and expose them at runtime via `_instruments` in `package.py`.\n+   These two must match to ensure runtime instrumentor compatibility checks and package metadata stay in sync.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import sys\n+from pathlib import Path\n+\n+try:\n+    import tomllib\n+except ModuleNotFoundError:  # Python < 3.11\n+    import tomli as tomllib\n+\n+from packaging.requirements import Requirement\n+from packaging.utils import canonicalize_name\n+\n+\n+def declared_dep_names(pyproject: dict) -> set[str]:\n+    \"\"\"Canonical names of every dep declared in [project.dependencies] and optional-dependencies.\"\"\"\n+    project = pyproject.get(\"project\", {})\n+    names: set[str] = set()\n+    for dep in project.get(\"dependencies\", []):\n+        names.add(canonicalize_name(Requirement(dep).name))\n+    for deps in project.get(\"optional-dependencies\", {}).values():\n+        for dep in deps:\n+            names.add(canonicalize_name(Requirement(dep).name))\n+    return names\n+\n+\n+def pinned_names(oldest_req_path: Path) -> set[str]:\n+    \"\"\"Canonical names of every pinned requirement in an oldest requirements file.\n+\n+    Skips option lines (-e/-r/-c/--flag) and anything that isn't a parseable requirement.\n+    \"\"\"\n+    names: set[str] = set()\n+    for raw in oldest_req_path.read_text(encoding=\"utf-8\").splitlines():\n+        line = raw.split(\"#\", 1)[0].strip()\n+        if not line or line.startswith(\"-\"):\n+            continue\n+        try:\n+            names.add(canonicalize_name(Requirement(line).name))\n+        except Exception:\n+            continue\n+    return names\n+\n+\n+def check_instruments_match(pkg_dir: Path, pyproject: dict) -> list[str]:\n+    \"\"\"Verify that package.py _instruments matches pyproject.toml [project.optional-dependencies] instruments.\"\"\"\n+    errors: list[str] = []\n+    pyproject_instruments_raw = (\n+        pyproject.get(\"project\", {})\n+        .get(\"optional-dependencies\", {})\n+        .get(\"instruments\", [])\n+    )\n+    if not pyproject_instruments_raw:\n+        return errors\n+\n+    package_py_files = list((pkg_dir / \"src\").glob(\"**/package.py\"))\n+    if not package_py_files:",
+      "id": "PRRT_kwDOSbspP86aIvHd",
+      "opened": "2026-08-18T14:06:34Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "16a1d1472c860df57c4d2851fe55b74709571a03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/407#discussion_r3804806704"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`scripts/check_deps.py` conditionally imports `tomli` for Python < 3.11, but this tox env only installs `packaging`. To keep the tox env runnable across supported Python versions, add a conditional dependency like `tomli; python_version < '3.11'` (or otherwise ensure `tomli` is available when needed).",
+      "created": "2026-08-18T14:06:34Z",
+      "hunk": "@@ -335,6 +336,12 @@ commands =\n [testenv:lint-check-versions]\n commands =\n   python {toxinidir}/scripts/version_utils.py check\n+ \n+[testenv:lint-check-deps]\n+deps =\n+  packaging",
+      "id": "PRRT_kwDOSbspP86aIvIO",
+      "opened": "2026-08-18T14:06:34Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "16a1d1472c860df57c4d2851fe55b74709571a03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/407#discussion_r3804806779"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I think it would achieve the same, but hermetically, to generate `requirements.*.txt` from `uv pip compile --resolution=...`?\n\nWe do this for a couple of packages in contrib ([example opamp](https://github.com/open-telemetry/opentelemetry-python-contrib/blob/7b794faf874169d78ad56ba0f4da8365aee75b5c/opamp/opentelemetry-opamp-client/test-requirements.lowest.txt#L1-L2)). It was difficult to do this across the board, and IIRC there was some bug in UV workspaces that made it difficult to do from `pyproject.toml` files.\n\nThis LGTM but I'm happy to give it a shot in another PR. Would have fixed for example #410.",
+      "created": "2026-08-20T14:43:57Z",
+      "hunk": "@@ -0,0 +1,217 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Guard dependency invariants across packages.\n+\n+1. Oldest dependency invariant:\n+   The oldest tox envs install the lowest versions of each package's *declared* deps straight from\n+   pyproject.toml via ``UV_RESOLUTION=lowest-direct`` (see AGENTS.md). pyproject.toml is therefore the\n+   single source of truth for those floors and running the env is what validates them. This script\n+   covers the two gaps a passing oldest env can't see:\n+   - Re-introduced drift: a pyproject-declared dep hand-pinned again in tests/requirements.oldest.txt.\n+     Such a pin silently overrides the derived floor and can drift from the declared bound; remove it.\n+   - Missing coverage: a package with an oldest tox factor (a tests/requirements.latest.txt) but no\n+     tests/requirements.oldest.txt at all, so its declared floors are never exercised.",
+      "id": "PRRT_kwDOSbspP86a2VLt",
+      "opened": "2026-08-20T14:44:15Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "058a3fd63ecd48fbf60fd2ba6dfc002c10fb33c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/407#discussion_r3822588300"
+    }
+  ]
+}

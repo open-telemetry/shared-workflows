@@ -1,0 +1,31 @@
+{
+  "head": "73da32a6176462bf35d0b4bf0508627c525601d5",
+  "merge": "6c56d9d99c3a17f8aa6e0004100eae702b0ac2fc",
+  "merged": "2026-08-28T14:05:14Z",
+  "missing_roots": 0,
+  "number": 19858,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "There are more tests in this class and elsewhere where kind is not asserted would it be better to add this assertion everywhere. Also noticed that name isn't asserted, perhaps that should also be added.",
+      "created": "2026-08-27T06:07:29Z",
+      "hunk": "@@ -182,17 +183,19 @@ void basic() {\n                 trace.hasSpansSatisfyingExactly(\n                     maybeWithTransportSpan(\n                         span ->\n-                            span.hasAttributesSatisfyingExactly(\n-                                equalTo(GEN_AI_PROVIDER_NAME, OPENAI),\n-                                equalTo(GEN_AI_OPERATION_NAME, CHAT),\n-                                equalTo(GEN_AI_REQUEST_MODEL, TEST_CHAT_MODEL),\n-                                satisfies(GEN_AI_RESPONSE_ID, val -> val.startsWith(\"chatcmpl-\")),\n-                                equalTo(GEN_AI_RESPONSE_MODEL, TEST_CHAT_RESPONSE_MODEL),\n-                                satisfies(\n-                                    GEN_AI_RESPONSE_FINISH_REASONS,\n-                                    val -> val.containsExactly(\"stop\")),\n-                                equalTo(GEN_AI_USAGE_INPUT_TOKENS, 22L),\n-                                equalTo(GEN_AI_USAGE_OUTPUT_TOKENS, 2L)))));\n+                            span.hasKind(SpanKind.CLIENT)",
+      "id": "PRRT_kwDODJKVX86ctjZm",
+      "opened": "2026-08-27T06:07:28Z",
+      "path": "instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractChatTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T15:24:24Z",
+          "body": "Good call. Addressed in 73da32a6. I added a shared `assertChatSpan` helper and applied it to all other tests OpenAI chat completion inference requests - including streaming, tool calls, multiple choices, and connection errors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19858#discussion_r3873186142"
+        }
+      ],
+      "reviewed": "82e205b16acc4e2aa6cf8bf1eb2ae8557f67b69b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19858#discussion_r3869154515"
+    }
+  ]
+}

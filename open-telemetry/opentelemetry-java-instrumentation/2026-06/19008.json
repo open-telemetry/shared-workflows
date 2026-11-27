@@ -1,0 +1,272 @@
+{
+  "head": "c4730160206f2cb6f7812f29c2a656b7355e5fbe",
+  "merge": "8f759eec78231d806bc38aebfcbd93f901ff1615",
+  "merged": "2026-06-16T10:35:57Z",
+  "missing_roots": 0,
+  "number": 19008,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This test currently pre-populates AgentDistributionConfig from system properties only, so it doesn’t validate the declarative-config path described in the PR (i.e., parsing `distribution.javaagent.thread_details_enabled` via JavaagentDistributionAccessCustomizerProvider). That leaves the main integration between the distribution node and ThreadDetailsCustomizerProvider untested.",
+      "created": "2026-06-15T22:13:37Z",
+      "hunk": "@@ -0,0 +1,102 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Collections.singletonMap;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfiguration;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.spi.internal.DefaultConfigProperties;\n+import io.opentelemetry.sdk.logs.export.LogRecordExporter;\n+import io.opentelemetry.sdk.metrics.export.MetricExporter;\n+import io.opentelemetry.sdk.trace.export.SpanExporter;\n+import java.io.ByteArrayInputStream;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.function.BiFunction;\n+import java.util.function.Function;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n+\n+class ThreadDetailsCustomizerProviderTest {\n+\n+  @AfterEach\n+  void tearDown() {\n+    AgentDistributionConfig.resetForTest();\n+  }\n+\n+  @ParameterizedTest\n+  @CsvSource({\n+    \"true, true\",\n+    \"false, false\",\n+  })\n+  void addsThreadDetailsProcessorWhenEnabled(boolean enabled, boolean expected) {\n+    AgentDistributionConfig.set(\n+        AgentDistributionConfig.fromConfigProperties(\n+            DefaultConfigProperties.createFromMap(\n+                singletonMap(\"otel.javaagent.add-thread-details\", String.valueOf(enabled)))));\n+\n+    OpenTelemetryConfigurationModel model =\n+        applyCustomizer(\n+            DeclarativeConfiguration.parse(\n+                new ByteArrayInputStream(\"file_format: \\\"1.0\\\"\\n\".getBytes(UTF_8))),\n+            new ThreadDetailsCustomizerProvider());\n+",
+      "id": "PRRT_kwDODJKVX86JuQ3c",
+      "opened": "2026-06-15T22:13:37Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+      "replies": [
+        {
+          "at": "2026-06-15T22:31:05Z",
+          "body": "Good catch — reworked the test to drive the full declarative-config path. It now parses YAML with `distribution.javaagent.thread_details_enabled` and runs `JavaagentDistributionAccessCustomizerProvider` (which populates `AgentDistributionConfig`) ahead of `ThreadDetailsCustomizerProvider`, so the distribution-node → customizer integration is actually exercised.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3416947836"
+        }
+      ],
+      "reviewed": "fdb9be7bf9bac227373c7d77348b308fb007aa76",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3416882111"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "To support the declarative-config coverage improvement above (applying multiple customizer providers), `applyCustomizer` should accept the `DeclarativeConfigurationCustomizerProvider` interface instead of the concrete `ThreadDetailsCustomizerProvider` type.",
+      "created": "2026-06-15T22:13:37Z",
+      "hunk": "@@ -0,0 +1,102 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Collections.singletonMap;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfiguration;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.spi.internal.DefaultConfigProperties;\n+import io.opentelemetry.sdk.logs.export.LogRecordExporter;\n+import io.opentelemetry.sdk.metrics.export.MetricExporter;\n+import io.opentelemetry.sdk.trace.export.SpanExporter;\n+import java.io.ByteArrayInputStream;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.function.BiFunction;\n+import java.util.function.Function;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n+\n+class ThreadDetailsCustomizerProviderTest {\n+\n+  @AfterEach\n+  void tearDown() {\n+    AgentDistributionConfig.resetForTest();\n+  }\n+\n+  @ParameterizedTest\n+  @CsvSource({\n+    \"true, true\",\n+    \"false, false\",\n+  })\n+  void addsThreadDetailsProcessorWhenEnabled(boolean enabled, boolean expected) {\n+    AgentDistributionConfig.set(\n+        AgentDistributionConfig.fromConfigProperties(\n+            DefaultConfigProperties.createFromMap(\n+                singletonMap(\"otel.javaagent.add-thread-details\", String.valueOf(enabled)))));\n+\n+    OpenTelemetryConfigurationModel model =\n+        applyCustomizer(\n+            DeclarativeConfiguration.parse(\n+                new ByteArrayInputStream(\"file_format: \\\"1.0\\\"\\n\".getBytes(UTF_8))),\n+            new ThreadDetailsCustomizerProvider());\n+\n+    String name = \"thread_details\";\n+    if (expected) {\n+      assertThat(model.toString()).containsOnlyOnce(name);\n+    } else {\n+      assertThat(model.toString()).doesNotContain(name);\n+    }\n+  }\n+\n+  private static OpenTelemetryConfigurationModel applyCustomizer(\n+      OpenTelemetryConfigurationModel model, ThreadDetailsCustomizerProvider provider) {",
+      "id": "PRRT_kwDODJKVX86JuQ3s",
+      "opened": "2026-06-15T22:13:37Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+      "replies": [
+        {
+          "at": "2026-06-15T22:31:07Z",
+          "body": "Done — `applyCustomizers` now accepts `DeclarativeConfigurationCustomizerProvider...` and chains the providers in `order()`, which is what enabled the coverage improvement above.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3416947923"
+        }
+      ],
+      "reviewed": "fdb9be7bf9bac227373c7d77348b308fb007aa76",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3416882130"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `hasAttributesSatisfying(...)` is the non-exact attribute assertion variant, which (by design) ignores any unexpected attributes. Since this smoke test is only asserting presence/validity of `thread.id` and `thread.name`, using two `hasAttribute(satisfies(...))` calls keeps the intent clear and avoids the non-exact helper.",
+      "created": "2026-06-15T22:36:40Z",
+      "hunk": "@@ -72,7 +74,10 @@ void restTemplate() {\n                                         satisfies(\n                                             SERVICE_INSTANCE_ID,\n                                             AbstractCharSequenceAssert::isNotBlank)))\n-                        .hasAttribute(HTTP_ROUTE, \"/ping\"),\n+                        .hasAttribute(HTTP_ROUTE, \"/ping\")\n+                        .hasAttributesSatisfying(\n+                            satisfies(THREAD_ID, val -> val.isNotZero()),\n+                            satisfies(THREAD_NAME, val -> val.isNotBlank())),",
+      "id": "PRRT_kwDODJKVX86Juge6",
+      "opened": "2026-06-15T22:36:41Z",
+      "path": "smoke-tests-otel-starter/spring-boot-2/src/testDeclarativeConfig/java/io/opentelemetry/spring/smoketest/OtelSpringStarterSmokeTest.java",
+      "replies": [
+        {
+          "at": "2026-06-15T23:05:27Z",
+          "body": "Applied — switched to two `hasAttribute(satisfies(...))` calls (matching the distro/service-instance assertions just above) instead of the non-exact `hasAttributesSatisfying`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417077992"
+        }
+      ],
+      "reviewed": "fa7c90802ff5b4b570c89bd815a8e635e88c52ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3416971041"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `propertyValue == null` is currently unreachable here: `@CsvSource` provides an empty string for the \", false\" row (not `null`), so the ternary’s null branch never runs and the test doesn’t actually cover the “property not set” scenario it describes. Use `@CsvSource(nullValues = ...)` (or `@NullSource`) so the null case is exercised intentionally.",
+      "created": "2026-06-15T22:36:41Z",
+      "hunk": "@@ -0,0 +1,104 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.thread;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfiguration;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.logs.export.LogRecordExporter;\n+import io.opentelemetry.sdk.metrics.export.MetricExporter;\n+import io.opentelemetry.sdk.trace.export.SpanExporter;\n+import java.io.ByteArrayInputStream;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.function.BiFunction;\n+import java.util.function.Function;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n+\n+class ThreadDetailsCustomizerProviderTest {\n+\n+  @ParameterizedTest\n+  @CsvSource({\n+    \"true, true\",\n+    \"false, false\",\n+    \", false\", // empty value means key is not set\n+    \"invalid, false\",\n+  })\n+  @SuppressWarnings(\"StringConcatToTextBlock\") // latest dep allows text blocks\n+  void addsThreadDetailsProcessor(String propertyValue, boolean expected) {\n+    String enabled =\n+        propertyValue == null\n+            ? \"\"\n+            : \"distribution:\\n\"\n+                + \"  spring_starter:\\n\"\n+                + \"    thread_details_enabled: \"\n+                + propertyValue\n+                + \"\\n\";",
+      "id": "PRRT_kwDODJKVX86JugfO",
+      "opened": "2026-06-15T22:36:41Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/thread/ThreadDetailsCustomizerProviderTest.java",
+      "replies": [
+        {
+          "at": "2026-06-15T22:48:17Z",
+          "body": "Good catch — fixed with `@CsvSource(nullValues = \"NULL\")` so the null case is exercised intentionally. I kept both distinct false-paths covered: the `NULL` row (distribution node absent) and the empty-value row (`thread_details_enabled:` key present with no value, which parses to a null scalar).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417015481"
+        }
+      ],
+      "reviewed": "fa7c90802ff5b4b570c89bd815a8e635e88c52ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3416971062"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`processor.getAdditionalProperties()` is dereferenced without a null-check. Elsewhere in the model you already treat collections as nullable (e.g., `getProcessors()`), so this should defensively handle `null` to avoid a potential NPE when iterating existing processor models.",
+      "created": "2026-06-15T22:55:13Z",
+      "hunk": "@@ -0,0 +1,72 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.thread.internal;\n+\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanProcessorModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanProcessorPropertyModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.TracerProviderModel;\n+import java.util.ArrayList;\n+import java.util.List;\n+\n+/**\n+ * Adds the {@link AddThreadDetailsSpanProcessor} (via the {@link\n+ * AddThreadDetailsComponentProvider}) to the declarative configuration model when {@link\n+ * #isEnabled(OpenTelemetryConfigurationModel)} returns {@code true}.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public abstract class AbstractThreadDetailsCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  protected abstract boolean isEnabled(OpenTelemetryConfigurationModel model);\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    customizer.addModelCustomizer(\n+        model -> {\n+          maybeAddThreadDetailsProcessor(model);\n+          return model;\n+        });\n+  }\n+\n+  private void maybeAddThreadDetailsProcessor(OpenTelemetryConfigurationModel model) {\n+    if (!isEnabled(model)) {\n+      return;\n+    }\n+    TracerProviderModel tracerProvider = model.getTracerProvider();\n+    if (tracerProvider == null) {\n+      tracerProvider = new TracerProviderModel();\n+      model.withTracerProvider(tracerProvider);\n+    }\n+    List<SpanProcessorModel> processors = tracerProvider.getProcessors();\n+    if (processors == null) {\n+      processors = new ArrayList<>();\n+      tracerProvider.withProcessors(processors);\n+    }\n+    // don't install another instance if it is already present.\n+    if (threadDetailsProcessorIsAlreadyConfigured(processors)) {\n+      return;\n+    }\n+    processors.add(\n+        new SpanProcessorModel()\n+            .withAdditionalProperty(\n+                AddThreadDetailsComponentProvider.NAME, new SpanProcessorPropertyModel()));\n+  }\n+\n+  private static boolean threadDetailsProcessorIsAlreadyConfigured(\n+      List<SpanProcessorModel> processors) {\n+    for (SpanProcessorModel processor : processors) {\n+      if (processor.getAdditionalProperties().containsKey(AddThreadDetailsComponentProvider.NAME)) {\n+        return true;\n+      }",
+      "id": "PRRT_kwDODJKVX86Jusl4",
+      "opened": "2026-06-15T22:55:14Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-06-15T23:22:46Z",
+          "body": "Two things: (1) `getAdditionalProperties()` is non-null by contract — the jsonschema2pojo post-processing in opentelemetry-java adds `@Nullable` to every generated getter *except* `getAdditionalProperties` (regex `get(?!AdditionalProperties)`), and the map is always an initialized `LinkedHashMap`. (2) This method (`threadDetailsProcessorIsAlreadyConfigured`) was since removed — the dedup guard was dropped as over-engineering — so the code no longer exists at HEAD.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417146942"
+        }
+      ],
+      "reviewed": "eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417038073"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`distribution.getAdditionalProperties()` is accessed without checking for null. If `additionalProperties` can be absent, this will throw at runtime; guard by reading the map into a local variable and returning `false` when it's null/missing.",
+      "created": "2026-06-15T22:55:13Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.thread;\n+\n+import io.opentelemetry.instrumentation.thread.internal.AbstractThreadDetailsCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.DistributionModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.DistributionPropertyModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+\n+/**\n+ * Adds thread details span attributes when enabled via the {@code distribution.spring_starter}\n+ * node.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class ThreadDetailsCustomizerProvider extends AbstractThreadDetailsCustomizerProvider {\n+\n+  @Override\n+  protected boolean isEnabled(OpenTelemetryConfigurationModel model) {\n+    DistributionModel distribution = model.getDistribution();\n+    if (distribution == null) {\n+      return false;\n+    }\n+    DistributionPropertyModel springStarter =\n+        distribution.getAdditionalProperties().get(\"spring_starter\");",
+      "id": "PRRT_kwDODJKVX86JusmR",
+      "opened": "2026-06-15T22:55:14Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/thread/ThreadDetailsCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-06-15T23:16:44Z",
+          "body": "`getAdditionalProperties()` is non-null by contract. The declarative-config model POJOs are generated by jsonschema2pojo in opentelemetry-java, and the post-processing step adds `@Nullable` to every generated getter *except* `getAdditionalProperties` — the regex is `get(?!AdditionalProperties)` with the comment \"Add @Nullable annotations to all getters (except getAdditionalProperties which is non-null)\". The map is the catch-all bucket, always initialized to an empty `LinkedHashMap`. (Declared collections like `getProcessors()` *can* be null because the build sets `initializeCollections = false`, which is why those are guarded — but that does not apply to `additionalProperties`.) So `.get(\"spring_starter\")` just returns null when absent, which the next line already handles.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417122934"
+        }
+      ],
+      "reviewed": "eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417038102"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The markdown table has an extra leading `|` on each row (`|| ...`), which renders as an empty first column in GitHub-flavored markdown. Use a single leading pipe (`| ...`) so the table formats correctly.",
+      "created": "2026-06-15T22:55:14Z",
+      "hunk": "@@ -55,3 +55,18 @@ We plan to integrate OpenTelemetry's own client-side monitoring solution by defa\n - The snippet is injected only into HTML responses that contain a `<head>` tag\n - The agent will attempt to preserve the original character encoding of the response\n - If the response already has a `Content-Length` header, it will be updated to reflect the additional content\n+\n+## Thread details span attributes\n+\n+This option controls whether the javaagent adds the experimental `thread.id` and `thread.name`\n+span attributes.\n+\n+| System property                   | Environment variable              | Purpose                                                                                                                          |\n+| --------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |\n+| otel.javaagent.add-thread-details | OTEL_JAVAAGENT_ADD_THREAD_DETAILS | Enable capture of experimental `thread.id` and `thread.name` span attributes on spans created by the javaagent and manual spans. |",
+      "id": "PRRT_kwDODJKVX86Jusma",
+      "opened": "2026-06-15T22:55:14Z",
+      "path": "docs/advanced-configuration-options.md",
+      "replies": [
+        {
+          "at": "2026-06-15T23:22:47Z",
+          "body": "The table already uses single leading pipes (`| System property | ... |`) and renders correctly. There is no `||`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417147031"
+        }
+      ],
+      "reviewed": "eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417038114"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The component name `\\\"thread_details\\\"` is duplicated as a string literal in tests (and similarly in the Spring test). Prefer a shared constant (e.g., `AddThreadDetailsComponentProvider.NAME`) or at least a local `private static final String` to prevent drift if the component name ever changes.",
+      "created": "2026-06-15T22:55:14Z",
+      "hunk": "@@ -0,0 +1,117 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfiguration;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.logs.export.LogRecordExporter;\n+import io.opentelemetry.sdk.metrics.export.MetricExporter;\n+import io.opentelemetry.sdk.trace.export.SpanExporter;\n+import java.io.ByteArrayInputStream;\n+import java.util.ArrayList;\n+import java.util.Arrays;\n+import java.util.Comparator;\n+import java.util.List;\n+import java.util.function.BiFunction;\n+import java.util.function.Function;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n+\n+class ThreadDetailsCustomizerProviderTest {\n+\n+  @AfterEach\n+  void tearDown() {\n+    AgentDistributionConfig.resetForTest();\n+  }\n+\n+  @ParameterizedTest\n+  @CsvSource({\n+    \"true, true\",\n+    \"false, false\",\n+  })\n+  @SuppressWarnings(\"StringConcatToTextBlock\") // latest dep allows text blocks\n+  void addsThreadDetailsProcessorWhenEnabled(boolean enabled, boolean expected) {\n+    String yaml =\n+        \"file_format: \\\"1.0\\\"\\n\"\n+            + \"distribution:\\n\"\n+            + \"  javaagent:\\n\"\n+            + \"    thread_details_enabled: \"\n+            + enabled\n+            + \"\\n\";\n+\n+    // drive the full declarative-config path: JavaagentDistributionAccessCustomizerProvider parses\n+    // distribution.javaagent into AgentDistributionConfig, which ThreadDetailsCustomizerProvider\n+    // then reads to decide whether to inject the processor\n+    OpenTelemetryConfigurationModel model =\n+        applyCustomizers(\n+            DeclarativeConfiguration.parse(new ByteArrayInputStream(yaml.getBytes(UTF_8))),\n+            new JavaagentDistributionAccessCustomizerProvider(),\n+            new ThreadDetailsCustomizerProvider());\n+\n+    assertThat(threadDetailsProcessorPresent(model)).isEqualTo(expected);\n+  }\n+\n+  private static boolean threadDetailsProcessorPresent(OpenTelemetryConfigurationModel model) {\n+    if (model.getTracerProvider() == null || model.getTracerProvider().getProcessors() == null) {\n+      return false;\n+    }\n+    return model.getTracerProvider().getProcessors().stream()\n+        .anyMatch(processor -> processor.getAdditionalProperties().containsKey(\"thread_details\"));",
+      "id": "PRRT_kwDODJKVX86Jusmm",
+      "opened": "2026-06-15T22:55:14Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+      "replies": [
+        {
+          "at": "2026-06-15T23:22:49Z",
+          "body": "Good call — switched both tests to use `ThreadDetailsComponentProvider.NAME` instead of the hardcoded literal.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417147149"
+        },
+        {
+          "at": "2026-06-15T23:28:12Z",
+          "body": "On reflection, reverted this — keeping the literal `\"thread_details\"` on purpose. It is the user-facing declarative-config YAML node name (a contract), so the test should pin it explicitly and fail if `NAME` is ever renamed, rather than tautologically tracking the production constant. Test independence is the priority here over avoiding drift.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417166818"
+        }
+      ],
+      "reviewed": "eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417038129"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Adding the thread-details processor unconditionally can lead to duplicate `thread_details` span processors if the user already configured one in the declarative config. This can add unnecessary overhead (processor invoked twice per span) and differs from the existing span-logging customizer, which avoids installing duplicates.",
+      "created": "2026-06-15T23:02:25Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.thread.internal;\n+\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanProcessorModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanProcessorPropertyModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.TracerProviderModel;\n+import java.util.ArrayList;\n+import java.util.List;\n+\n+/**\n+ * Adds the {@link AddThreadDetailsSpanProcessor} (via the {@link\n+ * AddThreadDetailsComponentProvider}) to the declarative configuration model when {@link\n+ * #isEnabled(OpenTelemetryConfigurationModel)} returns {@code true}.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public abstract class AbstractThreadDetailsCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  protected abstract boolean isEnabled(OpenTelemetryConfigurationModel model);\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    customizer.addModelCustomizer(\n+        model -> {\n+          maybeAddThreadDetailsProcessor(model);\n+          return model;\n+        });\n+  }\n+\n+  private void maybeAddThreadDetailsProcessor(OpenTelemetryConfigurationModel model) {\n+    if (!isEnabled(model)) {\n+      return;\n+    }\n+    TracerProviderModel tracerProvider = model.getTracerProvider();\n+    if (tracerProvider == null) {\n+      tracerProvider = new TracerProviderModel();\n+      model.withTracerProvider(tracerProvider);\n+    }\n+    List<SpanProcessorModel> processors = tracerProvider.getProcessors();\n+    if (processors == null) {\n+      processors = new ArrayList<>();\n+      tracerProvider.withProcessors(processors);\n+    }\n+    processors.add(\n+        new SpanProcessorModel()\n+            .withAdditionalProperty(\n+                AddThreadDetailsComponentProvider.NAME, new SpanProcessorPropertyModel()));\n+  }",
+      "id": "PRRT_kwDODJKVX86JuxuQ",
+      "opened": "2026-06-15T23:02:25Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-06-15T23:09:09Z",
+          "body": "Intentional — the dedup guard was removed as over-engineering. A duplicate `thread_details` processor can only arise if a user hand-authors `thread_details:` in their config *and* enables the distro flag, which is a contrived self-misconfiguration for an internal, distro-gated feature that users are not expected to author directly. The span-logging customizer guards against duplicates because `console` is a genuinely user-facing exporter people add themselves; that likelihood does not carry over here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417092828"
+        }
+      ],
+      "reviewed": "94791f1d4cd3b1effb362a3635404b177958a651",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417066924"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] AbstractThreadDetailsCustomizerProvider always appends the `thread_details` span processor when enabled, even if the user already configured it in YAML (or if the customizer runs more than once). That can result in duplicate processors and extra per-span work.\n\nConsider checking for an existing processor model with the `thread_details` additional property before adding a new one (similar to how AbstractSpanLoggingCustomizerProvider avoids installing a duplicate logging exporter).",
+      "created": "2026-06-15T23:09:33Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.thread.internal;\n+\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanProcessorModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanProcessorPropertyModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.TracerProviderModel;\n+import java.util.ArrayList;\n+import java.util.List;\n+\n+/**\n+ * Adds the {@link ThreadDetailsSpanProcessor} (via the {@link ThreadDetailsComponentProvider}) to\n+ * the declarative configuration model when {@link #isEnabled(OpenTelemetryConfigurationModel)}\n+ * returns {@code true}.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public abstract class AbstractThreadDetailsCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  protected abstract boolean isEnabled(OpenTelemetryConfigurationModel model);\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    customizer.addModelCustomizer(\n+        model -> {\n+          maybeAddThreadDetailsProcessor(model);\n+          return model;\n+        });\n+  }\n+\n+  private void maybeAddThreadDetailsProcessor(OpenTelemetryConfigurationModel model) {\n+    if (!isEnabled(model)) {\n+      return;\n+    }\n+    TracerProviderModel tracerProvider = model.getTracerProvider();\n+    if (tracerProvider == null) {\n+      tracerProvider = new TracerProviderModel();\n+      model.withTracerProvider(tracerProvider);\n+    }\n+    List<SpanProcessorModel> processors = tracerProvider.getProcessors();\n+    if (processors == null) {\n+      processors = new ArrayList<>();\n+      tracerProvider.withProcessors(processors);\n+    }\n+    processors.add(\n+        new SpanProcessorModel()\n+            .withAdditionalProperty(\n+                ThreadDetailsComponentProvider.NAME, new SpanProcessorPropertyModel()));",
+      "id": "PRRT_kwDODJKVX86Ju2gJ",
+      "opened": "2026-06-15T23:09:33Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-06-15T23:34:02Z",
+          "body": "Same as the earlier thread — the dedup guard was intentionally removed as over-engineering. A duplicate can only arise if a user hand-authors `thread_details:` *and* enables the distro flag, a contrived self-misconfiguration for an internal, distro-gated feature. The span-logging customizer guards because `console` is a genuinely user-facing exporter; that likelihood does not carry over here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417185666"
+        }
+      ],
+      "reviewed": "0266809b8a4115b23482730e97ff81d1c0c413e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417094560"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new doc section describes the system property/env-var toggle, but this PR also introduces declarative-config enablement. Adding the declarative YAML keys here would make the docs match the PR behavior and avoid confusion about how to enable this feature under file config.",
+      "created": "2026-06-15T23:09:33Z",
+      "hunk": "@@ -55,3 +55,18 @@ We plan to integrate OpenTelemetry's own client-side monitoring solution by defa\n - The snippet is injected only into HTML responses that contain a `<head>` tag\n - The agent will attempt to preserve the original character encoding of the response\n - If the response already has a `Content-Length` header, it will be updated to reflect the additional content\n+\n+## Thread details span attributes\n+\n+This option controls whether the javaagent adds the experimental `thread.id` and `thread.name`\n+span attributes.\n+\n+| System property                   | Environment variable              | Purpose                                                                                                                          |\n+| --------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |\n+| otel.javaagent.add-thread-details | OTEL_JAVAAGENT_ADD_THREAD_DETAILS | Enable capture of experimental `thread.id` and `thread.name` span attributes on spans created by the javaagent and manual spans. |",
+      "id": "PRRT_kwDODJKVX86Ju2gg",
+      "opened": "2026-06-15T23:09:33Z",
+      "path": "docs/advanced-configuration-options.md",
+      "replies": [
+        {
+          "at": "2026-06-15T23:34:01Z",
+          "body": "Good point — added a declarative-config section showing the `distribution.javaagent.thread_details_enabled` YAML key (default `false`).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417185613"
+        },
+        {
+          "at": "2026-06-15T23:38:59Z",
+          "body": "Decided to remove the doc section from this file entirely instead. `docs/advanced-configuration-options.md` is for escape-hatch options \"not meant to be used under normal circumstances,\" whereas thread details is a normal on-by-default feature, so it does not belong here. The user-facing docs (property + declarative keys, agent and Spring) will go on opentelemetry.io alongside the other declarative-config common attributes as a follow-up.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417201208"
+        }
+      ],
+      "reviewed": "0266809b8a4115b23482730e97ff81d1c0c413e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417094591"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says the javaagent declarative-config enablement is via `distribution.javaagent` with `otel.javaagent.add-thread-details`, but the actual declarative-config key used in this PR is `distribution.javaagent.thread_details_enabled` (with `otel.javaagent.add-thread-details` still supported via ConfigProperties / non-declarative config). This mismatch is likely to confuse reviewers/users reading the PR description.",
+      "created": "2026-06-15T23:57:26Z",
+      "hunk": "@@ -38,6 +38,10 @@ otel:\n       - tracecontext:\n       - baggage:\n \n+  distribution:\n+    spring_starter:\n+      thread_details_enabled: true",
+      "id": "PRRT_kwDODJKVX86JvVbo",
+      "opened": "2026-06-15T23:57:26Z",
+      "path": "smoke-tests-otel-starter/spring-boot-2/src/testDeclarativeConfig/resources/application.yaml",
+      "replies": [
+        {
+          "at": "2026-06-16T03:17:11Z",
+          "body": "Good catch — updated the PR description: the javaagent declarative-config key is `distribution.javaagent.thread_details_enabled`, and `otel.javaagent.add-thread-details` is still honored via non-declarative `ConfigProperties`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417900966"
+        }
+      ],
+      "reviewed": "c4730160206f2cb6f7812f29c2a656b7355e5fbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19008#discussion_r3417277334"
+    }
+  ]
+}

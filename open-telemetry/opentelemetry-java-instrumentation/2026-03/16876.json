@@ -1,0 +1,31 @@
+{
+  "head": "35057b307058892f479816e297ad48d1690aea24",
+  "merge": "e0c72150437f1616ab2d87246d1c9c13dacfad47",
+  "merged": "2026-03-21T16:55:34Z",
+  "missing_roots": 0,
+  "number": 16876,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot was this a bug? can you add a test case that covers this?",
+      "created": "2026-03-21T03:27:13Z",
+      "hunk": "@@ -50,7 +50,7 @@ public ServerContext peekFirst() {\n   }\n \n   public ServerContext peekLast() {\n-    return serverContexts.peekFirst();\n+    return serverContexts.peekLast();",
+      "id": "PRRT_kwDODJKVX8512oXv",
+      "opened": "2026-03-21T03:27:13Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/internal/ServerContexts.java",
+      "replies": [
+        {
+          "at": "2026-03-21T16:55:19Z",
+          "body": "Working on test here: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16909",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16876#discussion_r2969804054"
+        }
+      ],
+      "reviewed": "35057b307058892f479816e297ad48d1690aea24",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16876#discussion_r2968902163"
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "head": "c6de7eab0e21cc703e26d2b39fb2ece631cadbb6",
+  "merge": "addcf1e6684543fd5811550c91e96f4abb215d31",
+  "merged": "2026-06-11T17:50:00Z",
+  "missing_roots": 0,
+  "number": 18937,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getContext()` currently reconstructs a new `Context.root().with(Span.wrap(...))` whenever `trace_id`/`span_id`/`trace_flags` are present in Log4j context data, even when the appender is executing on the original application thread with a non-root `Context.current()`. This drops any other context entries (e.g., baggage or custom `ContextKey`s) and changes behavior vs the prior logic that only reconstructed when `Context.current()` was `Context.root()` (async/background thread case).",
+      "created": "2026-06-08T23:31:31Z",
+      "hunk": "@@ -369,18 +370,78 @@ private void emit(OpenTelemetry openTelemetry, LogEvent event) {\n     builder.emit();\n   }\n \n+  private Context getContext(\n+      OpenTelemetry openTelemetry, LogEvent event, ReadOnlyStringMap contextData) {\n+    Object context = contextData.getValue(OTEL_CONTEXT_DATA_KEY);\n+    if (context instanceof Context) {\n+      return (Context) context;\n+    }\n+    Context currentContext = Context.current();\n+    if (v3Preview) {\n+      return currentContext;\n+    }\n+",
+      "id": "PRRT_kwDODJKVX86H_SzY",
+      "opened": "2026-06-08T23:31:32Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+      "replies": [
+        {
+          "at": "2026-06-09T00:08:57Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937/commits/d34de0c5a2fe5aad8f3ccba1e6e1db7e2315c06a",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377059779"
+        }
+      ],
+      "reviewed": "079330f426c6fa0781c6412e635768c58ac9c63c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3376941250"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ContextCapturingLogRecordProcessor.context` is written from `onEmit(...)` (potentially on a different thread) and read later from the test thread without any happens-before relationship, which can make this test flaky. Mark the field `volatile` (or use an `AtomicReference`) to ensure visibility.",
+      "created": "2026-06-08T23:31:31Z",
+      "hunk": "@@ -26,10 +60,146 @@ void setup() {\n   @AfterEach\n   void cleanup() {\n     OpenTelemetryAppender.resetForTest();\n+    StatusLogger.getLogger().clear();\n   }\n \n   @Override\n   protected InstrumentationExtension getTesting() {\n     return testing;\n   }\n+\n+  @Test\n+  void logWithFullContext() {\n+    ContextCapturingLogRecordProcessor logRecordProcessor =\n+        new ContextCapturingLogRecordProcessor();\n+    InMemoryLogRecordExporter logRecordExporter = InMemoryLogRecordExporter.create();\n+    OpenTelemetrySdk openTelemetry =\n+        OpenTelemetrySdk.builder()\n+            .setLoggerProvider(\n+                SdkLoggerProvider.builder()\n+                    .addLogRecordProcessor(logRecordProcessor)\n+                    .addLogRecordProcessor(SimpleLogRecordProcessor.create(logRecordExporter))\n+                    .build())\n+            .build();\n+    OpenTelemetryAppender.resetForTest();\n+    OpenTelemetryAppender.install(openTelemetry);\n+\n+    try {\n+      Context context = Context.current().with(TEST_CONTEXT_KEY, \"context-value\");\n+      try (Scope ignored = context.makeCurrent()) {\n+        logger.info(\"log message 1\");\n+      }\n+\n+      executeAfterLogsExecution();\n+\n+      await()\n+          .untilAsserted(\n+              () -> assertThat(logRecordExporter.getFinishedLogRecordItems()).hasSize(1));\n+      assertThat(logRecordProcessor.getContext().get(TEST_CONTEXT_KEY)).isEqualTo(\"context-value\");\n+    } finally {\n+      openTelemetry.close();\n+    }\n+  }\n+\n+  @Test\n+  void logWithSpanContextFromContextData() {\n+    assumeFalse(Boolean.getBoolean(\"otel.instrumentation.common.v3-preview\"));\n+\n+    OpenTelemetryAppender.resetForTest();\n+    OpenTelemetryAppender appender =\n+        OpenTelemetryAppender.builder()\n+            .setName(\"OpenTelemetryAppender\")\n+            .setOpenTelemetry(testing.getOpenTelemetry())\n+            .build();\n+    appender.start();\n+\n+    String traceId = \"ff000000000000000000000000000041\";\n+    String spanId = \"ff00000000000041\";\n+    String traceFlags = \"01\";\n+    ContextDataKeys contextDataKeys = ContextDataKeys.create(testing.getOpenTelemetry());\n+    StringMap contextData = ContextDataFactory.createContextData();\n+    contextData.putValue(contextDataKeys.getTraceIdKey(), traceId);\n+    contextData.putValue(contextDataKeys.getSpanIdKey(), spanId);\n+    contextData.putValue(contextDataKeys.getTraceFlags(), traceFlags);\n+    StatusLogger.getLogger().clear();\n+\n+    appender.append(\n+        Log4jLogEvent.newBuilder()\n+            .setLoggerName(\"TestLogger\")\n+            .setLevel(Level.INFO)\n+            .setMessage(new FormattedMessage(\"log message 1\", (Object) null))\n+            .setContextData(contextData)\n+            .setThreadId(Thread.currentThread().getId() + 1)\n+            .setThreadName(\"application-thread\")\n+            .build());\n+\n+    SpanContext spanContext =\n+        SpanContext.create(\n+            traceId, spanId, TraceFlags.fromHex(traceFlags, 0), TraceState.getDefault());\n+    testing.waitAndAssertLogRecords(\n+        logRecord -> logRecord.hasBody(\"log message 1\").hasSpanContext(spanContext));\n+    assertThat(StatusLogger.getLogger().getStatusData())\n+        .extracting(statusData -> statusData.getMessage().getFormattedMessage())\n+        .anySatisfy(\n+            message ->\n+                assertThat(message)\n+                    .contains(\n+                        \"recovering span context from Log4j context data\",\n+                        OpenTelemetryAppenderContextDataInjector.class.getName()));\n+  }\n+\n+  @Test\n+  @SetSystemProperty(\n+      key = OpenTelemetryAppenderContextDataInjector.DELEGATE_CONTEXT_DATA_INJECTOR_PROPERTY,\n+      value =\n+          \"io.opentelemetry.instrumentation.log4j.appender.v2_17.OpenTelemetryAppenderTest$TestContextDataInjector\")\n+  void contextDataInjectorDelegatesToConfiguredInjector() {\n+    OpenTelemetryAppenderContextDataInjector injector =\n+        new OpenTelemetryAppenderContextDataInjector();\n+\n+    StringMap contextData =\n+        injector.injectContextData(emptyList(), ContextDataFactory.createContextData());\n+    Object otelContext = contextData.getValue(OTEL_CONTEXT_DATA_KEY);\n+\n+    assertThat((String) contextData.getValue(\"delegate-key\")).isEqualTo(\"delegate-value\");\n+    assertThat(otelContext).isInstanceOf(Context.class);\n+  }\n+\n+  private static class ContextCapturingLogRecordProcessor implements LogRecordProcessor {\n+\n+    private Context context = Context.root();",
+      "id": "PRRT_kwDODJKVX86H_Szs",
+      "opened": "2026-06-08T23:31:32Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/test/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderTest.java",
+      "replies": [
+        {
+          "at": "2026-06-09T00:09:38Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937/commits/b3eddb1f9dddb0ea25e185788f79614f11044147",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377062140"
+        }
+      ],
+      "reviewed": "079330f426c6fa0781c6412e635768c58ac9c63c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3376941274"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ContextDataAccessorImpl.forEach(...)` filters out entries whose key equals `OTEL_CONTEXT_DATA_KEY`. Since the lambda already guards on `value instanceof String`, this extra key check is not needed to prevent the carried `Context` object from being turned into attributes, and it makes `captureContextDataAttributes=\"*\"` silently drop a user-supplied string context-data entry named `otel.context`.",
+      "created": "2026-06-09T00:15:59Z",
+      "hunk": "@@ -369,18 +370,85 @@ private void emit(OpenTelemetry openTelemetry, LogEvent event) {\n     builder.emit();\n   }\n \n+  private Context getContext(\n+      OpenTelemetry openTelemetry, LogEvent event, ReadOnlyStringMap contextData) {\n+    Object context = contextData.getValue(OTEL_CONTEXT_DATA_KEY);\n+    if (context instanceof Context) {\n+      return (Context) context;\n+    }\n+    Context currentContext = Context.current();\n+    if (currentContext != Context.root()) {\n+      return currentContext;\n+    }\n+\n+    if (!v3Preview) {\n+      // when using async logger we'll be executing on a different thread than what started logging\n+      // reconstruct the context from context data\n+      ContextDataAccessor<ReadOnlyStringMap> contextDataAccessor = ContextDataAccessorImpl.INSTANCE;\n+      ContextDataKeys contextDataKeys = ContextDataKeys.create(openTelemetry);\n+      String traceId = contextDataAccessor.getValue(contextData, contextDataKeys.getTraceIdKey());\n+      String spanId = contextDataAccessor.getValue(contextData, contextDataKeys.getSpanIdKey());\n+      String traceFlags =\n+          contextDataAccessor.getValue(contextData, contextDataKeys.getTraceFlags());\n+      if (traceId != null && spanId != null && traceFlags != null) {\n+        warnIfUsingLegacyContextDataForAsyncLoggers(event);\n+        return Context.root()\n+            .with(\n+                Span.wrap(\n+                    SpanContext.create(\n+                        traceId,\n+                        spanId,\n+                        TraceFlags.fromHex(traceFlags, 0),\n+                        TraceState.getDefault())));\n+      }\n+    }\n+    return currentContext;\n+  }\n+\n+  private void warnIfUsingLegacyContextDataForAsyncLoggers(LogEvent event) {\n+    if (!wasLoggedOnDifferentThread(event)) {\n+      return;\n+    }\n+    if (legacyContextDataWarningLogged.getAndSet(true)) {\n+      return;\n+    }\n+    StatusLogger.getLogger()\n+        .warn(\n+            \"OpenTelemetry Log4j appender is recovering span context from Log4j context data \"\n+                + \"for an event logged on another thread. This compatibility behavior only \"\n+                + \"propagates span context and will be removed in 3.0. Configure \"\n+                + \"log4j2.ContextDataInjector=\"\n+                + OpenTelemetryAppenderContextDataInjector.class.getName()\n+                + \" to propagate the full OpenTelemetry Context for async loggers.\");\n+  }\n+\n+  private static boolean wasLoggedOnDifferentThread(LogEvent event) {\n+    long eventThreadId = event.getThreadId();\n+    // Only treat this as async handoff when Log4j captured a usable, different thread id.\n+    return eventThreadId > 0 && eventThreadId != Thread.currentThread().getId();\n+  }\n+\n   private enum ContextDataAccessorImpl implements ContextDataAccessor<ReadOnlyStringMap> {\n     INSTANCE;\n \n     @Override\n     @Nullable\n     public String getValue(ReadOnlyStringMap contextData, String key) {\n-      return contextData.getValue(key);\n+      Object value = contextData.getValue(key);\n+      if (value instanceof String) {\n+        return (String) value;\n+      }\n+      return null;\n     }\n \n     @Override\n     public void forEach(ReadOnlyStringMap contextData, BiConsumer<String, String> action) {\n-      contextData.forEach(action::accept);\n+      contextData.forEach(\n+          (key, value) -> {\n+            if (!OTEL_CONTEXT_DATA_KEY.equals(key) && value instanceof String) {\n+              action.accept(key, (String) value);\n+            }",
+      "id": "PRRT_kwDODJKVX86H_sId",
+      "opened": "2026-06-09T00:16:00Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+      "replies": [
+        {
+          "at": "2026-06-09T00:57:40Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/25aea5a19d2941bb380b42f47b5a9b2aeee82f65.\n\nRemoved the special otel.context key exclusion so string-valued context data with that key can still be captured as attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377203144"
+        }
+      ],
+      "reviewed": "b3eddb1f9dddb0ea25e185788f79614f11044147",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377083005"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `otel.context` context-data propagation is not currently exercised end-to-end: this test only verifies that the injector adds a `Context` object, but it never asserts that `OpenTelemetryAppender` actually *reads* `OTEL_CONTEXT_DATA_KEY` when `Context.current()` is root (the async/background-thread case). Adding an assertion that a log event with `OTEL_CONTEXT_DATA_KEY` set results in the expected span context would prevent regressions where the appender ignores the carried `Context`.",
+      "created": "2026-06-09T00:15:59Z",
+      "hunk": "@@ -26,10 +60,146 @@ void setup() {\n   @AfterEach\n   void cleanup() {\n     OpenTelemetryAppender.resetForTest();\n+    StatusLogger.getLogger().clear();\n   }\n \n   @Override\n   protected InstrumentationExtension getTesting() {\n     return testing;\n   }\n+\n+  @Test\n+  void logWithFullContext() {\n+    ContextCapturingLogRecordProcessor logRecordProcessor =\n+        new ContextCapturingLogRecordProcessor();\n+    InMemoryLogRecordExporter logRecordExporter = InMemoryLogRecordExporter.create();\n+    OpenTelemetrySdk openTelemetry =\n+        OpenTelemetrySdk.builder()\n+            .setLoggerProvider(\n+                SdkLoggerProvider.builder()\n+                    .addLogRecordProcessor(logRecordProcessor)\n+                    .addLogRecordProcessor(SimpleLogRecordProcessor.create(logRecordExporter))\n+                    .build())\n+            .build();\n+    OpenTelemetryAppender.resetForTest();\n+    OpenTelemetryAppender.install(openTelemetry);\n+\n+    try {\n+      Context context = Context.current().with(TEST_CONTEXT_KEY, \"context-value\");\n+      try (Scope ignored = context.makeCurrent()) {\n+        logger.info(\"log message 1\");\n+      }\n+\n+      executeAfterLogsExecution();\n+\n+      await()\n+          .untilAsserted(\n+              () -> assertThat(logRecordExporter.getFinishedLogRecordItems()).hasSize(1));\n+      assertThat(logRecordProcessor.getContext().get(TEST_CONTEXT_KEY)).isEqualTo(\"context-value\");\n+    } finally {\n+      openTelemetry.close();\n+    }\n+  }\n+\n+  @Test\n+  void logWithSpanContextFromContextData() {\n+    assumeFalse(Boolean.getBoolean(\"otel.instrumentation.common.v3-preview\"));\n+\n+    OpenTelemetryAppender.resetForTest();\n+    OpenTelemetryAppender appender =\n+        OpenTelemetryAppender.builder()\n+            .setName(\"OpenTelemetryAppender\")\n+            .setOpenTelemetry(testing.getOpenTelemetry())\n+            .build();\n+    appender.start();\n+\n+    String traceId = \"ff000000000000000000000000000041\";\n+    String spanId = \"ff00000000000041\";\n+    String traceFlags = \"01\";\n+    ContextDataKeys contextDataKeys = ContextDataKeys.create(testing.getOpenTelemetry());\n+    StringMap contextData = ContextDataFactory.createContextData();\n+    contextData.putValue(contextDataKeys.getTraceIdKey(), traceId);\n+    contextData.putValue(contextDataKeys.getSpanIdKey(), spanId);\n+    contextData.putValue(contextDataKeys.getTraceFlags(), traceFlags);\n+    StatusLogger.getLogger().clear();\n+\n+    appender.append(\n+        Log4jLogEvent.newBuilder()\n+            .setLoggerName(\"TestLogger\")\n+            .setLevel(Level.INFO)\n+            .setMessage(new FormattedMessage(\"log message 1\", (Object) null))\n+            .setContextData(contextData)\n+            .setThreadId(Thread.currentThread().getId() + 1)\n+            .setThreadName(\"application-thread\")\n+            .build());\n+\n+    SpanContext spanContext =\n+        SpanContext.create(\n+            traceId, spanId, TraceFlags.fromHex(traceFlags, 0), TraceState.getDefault());\n+    testing.waitAndAssertLogRecords(\n+        logRecord -> logRecord.hasBody(\"log message 1\").hasSpanContext(spanContext));\n+    assertThat(StatusLogger.getLogger().getStatusData())\n+        .extracting(statusData -> statusData.getMessage().getFormattedMessage())\n+        .anySatisfy(\n+            message ->\n+                assertThat(message)\n+                    .contains(\n+                        \"recovering span context from Log4j context data\",\n+                        OpenTelemetryAppenderContextDataInjector.class.getName()));\n+  }\n+\n+  @Test\n+  @SetSystemProperty(\n+      key = OpenTelemetryAppenderContextDataInjector.DELEGATE_CONTEXT_DATA_INJECTOR_PROPERTY,\n+      value =\n+          \"io.opentelemetry.instrumentation.log4j.appender.v2_17.OpenTelemetryAppenderTest$TestContextDataInjector\")\n+  void contextDataInjectorDelegatesToConfiguredInjector() {\n+    OpenTelemetryAppenderContextDataInjector injector =\n+        new OpenTelemetryAppenderContextDataInjector();\n+\n+    StringMap contextData =\n+        injector.injectContextData(emptyList(), ContextDataFactory.createContextData());\n+    Object otelContext = contextData.getValue(OTEL_CONTEXT_DATA_KEY);\n+\n+    assertThat((String) contextData.getValue(\"delegate-key\")).isEqualTo(\"delegate-value\");\n+    assertThat(otelContext).isInstanceOf(Context.class);\n+  }",
+      "id": "PRRT_kwDODJKVX86H_sIn",
+      "opened": "2026-06-09T00:16:00Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/test/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderTest.java",
+      "replies": [
+        {
+          "at": "2026-06-09T00:57:42Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6d07f4dfdf23b9789982653355c8cf41c9464621.\n\nAdded an end-to-end test that proves the appender reads the carried Context from Log4j context data when Context.current() is root.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377203243"
+        }
+      ],
+      "reviewed": "b3eddb1f9dddb0ea25e185788f79614f11044147",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377083022"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The warning logged when a configured delegate injector can’t be instantiated is misleading (it says “using default: {}” but formats the exception) and also drops the stack trace by using `e.toString()`. Logging the exception as a throwable makes troubleshooting misconfiguration much easier.",
+      "created": "2026-06-09T01:02:18Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.log4j.appender.v2_17;\n+\n+import static io.opentelemetry.instrumentation.log4j.appender.v2_17.internal.ContextDataKeys.OTEL_CONTEXT_DATA_KEY;\n+\n+import io.opentelemetry.context.Context;\n+import java.util.List;\n+import org.apache.logging.log4j.ThreadContext;\n+import org.apache.logging.log4j.core.ContextDataInjector;\n+import org.apache.logging.log4j.core.config.Property;\n+import org.apache.logging.log4j.core.impl.ContextDataFactory;\n+import org.apache.logging.log4j.core.impl.ThreadContextDataInjector;\n+import org.apache.logging.log4j.core.util.Loader;\n+import org.apache.logging.log4j.spi.CopyOnWrite;\n+import org.apache.logging.log4j.spi.DefaultThreadContextMap;\n+import org.apache.logging.log4j.spi.ReadOnlyThreadContextMap;\n+import org.apache.logging.log4j.status.StatusLogger;\n+import org.apache.logging.log4j.util.PropertiesUtil;\n+import org.apache.logging.log4j.util.ReadOnlyStringMap;\n+import org.apache.logging.log4j.util.StringMap;\n+\n+public final class OpenTelemetryAppenderContextDataInjector implements ContextDataInjector {\n+\n+  static final String DELEGATE_CONTEXT_DATA_INJECTOR_PROPERTY =\n+      \"otel.instrumentation.log4j-appender.context-data-injector.delegate\";\n+\n+  private final ContextDataInjector delegate = createDelegateInjector();\n+\n+  @Override\n+  public StringMap injectContextData(List<Property> properties, StringMap reusable) {\n+    StringMap contextData = delegate.injectContextData(properties, reusable);\n+    if (contextData.isFrozen()) {\n+      contextData = ContextDataFactory.createContextData(contextData);\n+    }\n+    contextData.putValue(OTEL_CONTEXT_DATA_KEY, Context.current());\n+    return contextData;\n+  }\n+\n+  @Override\n+  public ReadOnlyStringMap rawContextData() {\n+    return delegate.rawContextData();\n+  }\n+\n+  private static ContextDataInjector createDelegateInjector() {\n+    String className =\n+        PropertiesUtil.getProperties().getStringProperty(DELEGATE_CONTEXT_DATA_INJECTOR_PROPERTY);\n+    if (className != null) {\n+      try {\n+        if (className.equals(OpenTelemetryAppenderContextDataInjector.class.getName())) {\n+          throw new IllegalArgumentException(\"Delegate injector cannot be this injector\");\n+        }\n+        return Loader.newCheckedInstanceOf(className, ContextDataInjector.class);\n+      } catch (Exception e) {\n+        StatusLogger.getLogger()\n+            .warn(\n+                \"Could not create ContextDataInjector delegate for '{}', using default: {}\",\n+                className,\n+                e.toString());",
+      "id": "PRRT_kwDODJKVX86IADvb",
+      "opened": "2026-06-09T01:02:19Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderContextDataInjector.java",
+      "replies": [
+        {
+          "at": "2026-06-09T03:06:30Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9875f358eb394a3090b350cbe9ad1a1136888f73.\n\nUpdated the delegate injector warning to pass the throwable to StatusLogger directly so Log4j can include the stack trace.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377615391"
+        }
+      ],
+      "reviewed": "6d07f4dfdf23b9789982653355c8cf41c9464621",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377216347"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Configuring `OpenTelemetryAppenderContextDataInjector` adds a non-string `otel.context` entry into Log4j context data. If users have layouts that render the entire context/MDC map (e.g., `%X` without a key, or JSON layouts that dump all context data), that key may show up in their log output; it’s worth calling out here so users can exclude it if desired.",
+      "created": "2026-06-09T01:02:19Z",
+      "hunk": "@@ -103,4 +103,54 @@ The available settings are:\n \n The `otel.event.name` key is supported in `MapMessage` entries and context data entries. When present, its value is used as the log event name and is not emitted as an attribute.\n \n+#### Async Loggers\n+\n+When using Log4j async loggers, for example `AsyncRoot`, `AsyncLogger`, or Log4j's built-in\n+`AsyncAppender`, Log4j creates the `LogEvent` on the application thread and later invokes appenders\n+on a background thread. To make the `OpenTelemetryAppender` emit logs with the application thread's\n+full OpenTelemetry `Context`, configure Log4j to use the OpenTelemetry appender context data\n+injector:\n+",
+      "id": "PRRT_kwDODJKVX86IADvj",
+      "opened": "2026-06-09T01:02:19Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/README.md",
+      "replies": [
+        {
+          "at": "2026-06-09T03:06:31Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2b91a5ad259355cc673bb93eebc27042cc130e87.\n\nRenamed the carried context key to otel.internal.context and documented that layouts rendering all context data should exclude it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377615470"
+        }
+      ],
+      "reviewed": "6d07f4dfdf23b9789982653355c8cf41c9464621",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377216362"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`StatusLogger.getLogger().clear()` is a global reset that can hide StatusLogger output from other tests running in the same JVM, and it’s not needed for the tests here since the one test that asserts on status data already clears it locally. Consider removing the clear() call from the `@AfterEach` cleanup.",
+      "created": "2026-06-09T01:02:19Z",
+      "hunk": "@@ -26,10 +60,188 @@ void setup() {\n   @AfterEach\n   void cleanup() {\n     OpenTelemetryAppender.resetForTest();\n+    StatusLogger.getLogger().clear();\n   }",
+      "id": "PRRT_kwDODJKVX86IADvv",
+      "opened": "2026-06-09T01:02:19Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/test/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderTest.java",
+      "replies": [
+        {
+          "at": "2026-06-09T03:06:33Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/14ac1749801e8a8e0d52b7dc5857e3ae302694f1.\n\nRemoved the global StatusLogger cleanup reset and changed the warning assertion to use a scoped StatusListener collector instead of clearing status data.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377615526"
+        }
+      ],
+      "reviewed": "6d07f4dfdf23b9789982653355c8cf41c9464621",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377216377"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`rawContextData()` currently just delegates to the underlying `ContextDataInjector`, so `OTEL_CONTEXT_DATA_KEY` is not present on code paths where Log4j reads context data via `rawContextData()` (some event factories use this as a fast path). In those cases async log events won’t carry the full OpenTelemetry `Context`, defeating the purpose of this injector.",
+      "created": "2026-06-09T03:34:24Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.log4j.appender.v2_17;\n+\n+import static io.opentelemetry.instrumentation.log4j.appender.v2_17.internal.ContextDataKeys.OTEL_CONTEXT_DATA_KEY;\n+\n+import io.opentelemetry.context.Context;\n+import java.util.List;\n+import org.apache.logging.log4j.ThreadContext;\n+import org.apache.logging.log4j.core.ContextDataInjector;\n+import org.apache.logging.log4j.core.config.Property;\n+import org.apache.logging.log4j.core.impl.ContextDataFactory;\n+import org.apache.logging.log4j.core.impl.ThreadContextDataInjector;\n+import org.apache.logging.log4j.core.util.Loader;\n+import org.apache.logging.log4j.spi.CopyOnWrite;\n+import org.apache.logging.log4j.spi.DefaultThreadContextMap;\n+import org.apache.logging.log4j.spi.ReadOnlyThreadContextMap;\n+import org.apache.logging.log4j.status.StatusLogger;\n+import org.apache.logging.log4j.util.PropertiesUtil;\n+import org.apache.logging.log4j.util.ReadOnlyStringMap;\n+import org.apache.logging.log4j.util.StringMap;\n+\n+public final class OpenTelemetryAppenderContextDataInjector implements ContextDataInjector {\n+\n+  static final String DELEGATE_CONTEXT_DATA_INJECTOR_PROPERTY =\n+      \"otel.instrumentation.log4j-appender.context-data-injector.delegate\";\n+\n+  private final ContextDataInjector delegate = createDelegateInjector();\n+\n+  @Override\n+  public StringMap injectContextData(List<Property> properties, StringMap reusable) {\n+    StringMap contextData = delegate.injectContextData(properties, reusable);\n+    if (contextData.isFrozen()) {\n+      contextData = ContextDataFactory.createContextData(contextData);\n+    }\n+    contextData.putValue(OTEL_CONTEXT_DATA_KEY, Context.current());\n+    return contextData;\n+  }\n+\n+  @Override\n+  public ReadOnlyStringMap rawContextData() {\n+    return delegate.rawContextData();\n+  }",
+      "id": "PRRT_kwDODJKVX86IBZLa",
+      "opened": "2026-06-09T03:34:24Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderContextDataInjector.java",
+      "replies": [
+        {
+          "at": "2026-06-09T03:40:28Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cd4bcd501b3dd00cea630eeeaa1f99442ba063e3.\n\nUpdated rawContextData() to add the carried OpenTelemetry Context and extended the delegate injector test to cover both injectContextData() and rawContextData().",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377751190"
+        }
+      ],
+      "reviewed": "161efccd0aa2606bf2506cdcb3715cd3c9474908",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3377718684"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Did you consider using a `ContextDataProvider` instead of `ContextDataInjector` similarly to what `log4j-context-data-2.17` instrumentation does?",
+      "created": "2026-06-09T12:23:02Z",
+      "hunk": "@@ -0,0 +1,77 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.log4j.appender.v2_17;\n+\n+import static io.opentelemetry.instrumentation.log4j.appender.v2_17.internal.ContextDataKeys.OTEL_CONTEXT_DATA_KEY;\n+\n+import io.opentelemetry.context.Context;\n+import java.util.List;\n+import org.apache.logging.log4j.ThreadContext;\n+import org.apache.logging.log4j.core.ContextDataInjector;\n+import org.apache.logging.log4j.core.config.Property;\n+import org.apache.logging.log4j.core.impl.ContextDataFactory;\n+import org.apache.logging.log4j.core.impl.ThreadContextDataInjector;\n+import org.apache.logging.log4j.core.util.Loader;\n+import org.apache.logging.log4j.spi.CopyOnWrite;\n+import org.apache.logging.log4j.spi.DefaultThreadContextMap;\n+import org.apache.logging.log4j.spi.ReadOnlyThreadContextMap;\n+import org.apache.logging.log4j.status.StatusLogger;\n+import org.apache.logging.log4j.util.PropertiesUtil;\n+import org.apache.logging.log4j.util.ReadOnlyStringMap;\n+import org.apache.logging.log4j.util.StringMap;\n+\n+public final class OpenTelemetryAppenderContextDataInjector implements ContextDataInjector {",
+      "id": "PRRT_kwDODJKVX86IJLvj",
+      "opened": "2026-06-09T12:23:01Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderContextDataInjector.java",
+      "replies": [
+        {
+          "at": "2026-06-09T22:47:20Z",
+          "body": "added comment explaining why that doesn't work: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937/commits/73f58dc103e23d4a666f5a6782d5bde20f6aaa74",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3384320264"
+        },
+        {
+          "at": "2026-06-10T06:59:59Z",
+          "body": "> because the appender needs to carry the {@link Context} object itself, not only string key/value pairs\r\n\r\nJust wondering whether this limitation could be ignored. The default `ContextDataInjector` calls `ContextDataProvider`s. Since `ContextDataInjector` use `StringMap` that accepts `Object` values perhaps the value being a `String` isn't required. Wondering whether abusing that would let us use a `ContextDataProvider`. Though this could backfire.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3386166950"
+        },
+        {
+          "at": "2026-06-10T13:29:51Z",
+          "body": "do you mean ignoring the generic typing on https://github.com/apache/logging-log4j2/blob/6beea3feb0e5ec59ed85db14075bb7837b0a968f/log4j-core/src/main/java/org/apache/logging/log4j/core/util/ContextDataProvider.java#L36?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3388695980"
+        },
+        {
+          "at": "2026-06-10T13:46:04Z",
+          "body": "yes",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3388813375"
+        },
+        {
+          "at": "2026-06-10T14:28:11Z",
+          "body": "seems like a potentially bad idea to me 😅, but I can mock it up to see what corner cases we might be exposed to if you'd like",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3389136945"
+        }
+      ],
+      "reviewed": "cd4bcd501b3dd00cea630eeeaa1f99442ba063e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3380526435"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`injectContextData(...)` always copies/frees a frozen map and adds `OTEL_CONTEXT_DATA_KEY`, even when `Context.current()` is `Context.root()`. In the common case of no active OTel context, this adds avoidable overhead (and can force an allocation if the delegate returns a frozen map) without changing behavior. Consider skipping the injection entirely when the current context is root.",
+      "created": "2026-06-09T22:51:23Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.log4j.appender.v2_17;\n+\n+import static io.opentelemetry.instrumentation.log4j.appender.v2_17.internal.ContextDataKeys.OTEL_CONTEXT_DATA_KEY;\n+\n+import io.opentelemetry.context.Context;\n+import java.util.List;\n+import org.apache.logging.log4j.ThreadContext;\n+import org.apache.logging.log4j.core.ContextDataInjector;\n+import org.apache.logging.log4j.core.config.Property;\n+import org.apache.logging.log4j.core.impl.ContextDataFactory;\n+import org.apache.logging.log4j.core.impl.ThreadContextDataInjector;\n+import org.apache.logging.log4j.core.util.Loader;\n+import org.apache.logging.log4j.spi.CopyOnWrite;\n+import org.apache.logging.log4j.spi.DefaultThreadContextMap;\n+import org.apache.logging.log4j.spi.ReadOnlyThreadContextMap;\n+import org.apache.logging.log4j.status.StatusLogger;\n+import org.apache.logging.log4j.util.PropertiesUtil;\n+import org.apache.logging.log4j.util.ReadOnlyStringMap;\n+import org.apache.logging.log4j.util.StringMap;\n+\n+/**\n+ * Injects the full OpenTelemetry {@link Context} into Log4j event context data for async logger\n+ * handoff.\n+ *\n+ * <p>This uses Log4j's ContextDataInjector extension point instead of ContextDataProvider because\n+ * the appender needs to carry the {@link Context} object itself, not only string key/value pairs.\n+ * Although Log4j 2.17 added ContextDataProvider.supplyStringMap(), Log4j does not call it for every\n+ * thread context map. In web-app mode, which is enabled by default when the Servlet API is on the\n+ * classpath, Log4j disables thread locals and uses DefaultThreadContextMap. That path calls\n+ * ContextDataProvider.supplyContextData(), which is limited to Map&lt;String, String&gt;.\n+ *\n+ * <p>By delegating to Log4j's selected injector first and then adding the {@link Context} object to\n+ * the resulting {@link StringMap}, this works for DefaultThreadContextMap, copy-on-write, and\n+ * garbage-free thread context maps.\n+ */\n+public final class OpenTelemetryAppenderContextDataInjector implements ContextDataInjector {\n+\n+  static final String DELEGATE_CONTEXT_DATA_INJECTOR_PROPERTY =\n+      \"otel.instrumentation.log4j-appender.context-data-injector.delegate\";\n+\n+  private final ContextDataInjector delegate = createDelegateInjector();\n+\n+  @Override\n+  public StringMap injectContextData(List<Property> properties, StringMap reusable) {\n+    StringMap contextData = delegate.injectContextData(properties, reusable);\n+    if (contextData.isFrozen()) {\n+      contextData = ContextDataFactory.createContextData(contextData);\n+    }\n+    contextData.putValue(OTEL_CONTEXT_DATA_KEY, Context.current());\n+    return contextData;",
+      "id": "PRRT_kwDODJKVX86IT1rX",
+      "opened": "2026-06-09T22:51:24Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderContextDataInjector.java",
+      "replies": [
+        {
+          "at": "2026-06-10T01:26:26Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ebc7d00c78f0fc9670439eaaedfcccf72b9a0afc.\n\nSkipped context-data injection when the current OpenTelemetry context is root, returning the delegate map unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3384873751"
+        }
+      ],
+      "reviewed": "73f58dc103e23d4a666f5a6782d5bde20f6aaa74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3384336135"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`rawContextData()` currently always allocates/copies into a new `StringMap` to add `OTEL_CONTEXT_DATA_KEY`. When `Context.current()` is `Context.root()`, this is unnecessary and defeats the purpose of Log4j's `rawContextData()` fast-path. Returning the delegate's raw context data directly in the root-context case avoids an allocation without changing behavior.",
+      "created": "2026-06-09T22:51:24Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.log4j.appender.v2_17;\n+\n+import static io.opentelemetry.instrumentation.log4j.appender.v2_17.internal.ContextDataKeys.OTEL_CONTEXT_DATA_KEY;\n+\n+import io.opentelemetry.context.Context;\n+import java.util.List;\n+import org.apache.logging.log4j.ThreadContext;\n+import org.apache.logging.log4j.core.ContextDataInjector;\n+import org.apache.logging.log4j.core.config.Property;\n+import org.apache.logging.log4j.core.impl.ContextDataFactory;\n+import org.apache.logging.log4j.core.impl.ThreadContextDataInjector;\n+import org.apache.logging.log4j.core.util.Loader;\n+import org.apache.logging.log4j.spi.CopyOnWrite;\n+import org.apache.logging.log4j.spi.DefaultThreadContextMap;\n+import org.apache.logging.log4j.spi.ReadOnlyThreadContextMap;\n+import org.apache.logging.log4j.status.StatusLogger;\n+import org.apache.logging.log4j.util.PropertiesUtil;\n+import org.apache.logging.log4j.util.ReadOnlyStringMap;\n+import org.apache.logging.log4j.util.StringMap;\n+\n+/**\n+ * Injects the full OpenTelemetry {@link Context} into Log4j event context data for async logger\n+ * handoff.\n+ *\n+ * <p>This uses Log4j's ContextDataInjector extension point instead of ContextDataProvider because\n+ * the appender needs to carry the {@link Context} object itself, not only string key/value pairs.\n+ * Although Log4j 2.17 added ContextDataProvider.supplyStringMap(), Log4j does not call it for every\n+ * thread context map. In web-app mode, which is enabled by default when the Servlet API is on the\n+ * classpath, Log4j disables thread locals and uses DefaultThreadContextMap. That path calls\n+ * ContextDataProvider.supplyContextData(), which is limited to Map&lt;String, String&gt;.\n+ *\n+ * <p>By delegating to Log4j's selected injector first and then adding the {@link Context} object to\n+ * the resulting {@link StringMap}, this works for DefaultThreadContextMap, copy-on-write, and\n+ * garbage-free thread context maps.\n+ */\n+public final class OpenTelemetryAppenderContextDataInjector implements ContextDataInjector {\n+\n+  static final String DELEGATE_CONTEXT_DATA_INJECTOR_PROPERTY =\n+      \"otel.instrumentation.log4j-appender.context-data-injector.delegate\";\n+\n+  private final ContextDataInjector delegate = createDelegateInjector();\n+\n+  @Override\n+  public StringMap injectContextData(List<Property> properties, StringMap reusable) {\n+    StringMap contextData = delegate.injectContextData(properties, reusable);\n+    if (contextData.isFrozen()) {\n+      contextData = ContextDataFactory.createContextData(contextData);\n+    }\n+    contextData.putValue(OTEL_CONTEXT_DATA_KEY, Context.current());\n+    return contextData;\n+  }\n+\n+  @Override\n+  public ReadOnlyStringMap rawContextData() {\n+    StringMap contextData = ContextDataFactory.createContextData(delegate.rawContextData());\n+    contextData.putValue(OTEL_CONTEXT_DATA_KEY, Context.current());\n+    return contextData;\n+  }",
+      "id": "PRRT_kwDODJKVX86IT1rp",
+      "opened": "2026-06-09T22:51:24Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppenderContextDataInjector.java",
+      "replies": [
+        {
+          "at": "2026-06-10T01:26:31Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a0b929ffce35c1fae067bf59062c51ac96b00b94.\n\nSkipped raw context-data copying when the current OpenTelemetry context is root, returning the delegate raw data unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3384873957"
+        }
+      ],
+      "reviewed": "73f58dc103e23d4a666f5a6782d5bde20f6aaa74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18937#discussion_r3384336160"
+    }
+  ]
+}

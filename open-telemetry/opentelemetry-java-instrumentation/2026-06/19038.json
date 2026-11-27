@@ -1,0 +1,70 @@
+{
+  "head": "7cf84f0f5586d258a8683b2a65788561c835cdfa",
+  "merge": "2c4b01b9f66ab0a4b267fbd70610cf80dd94a379",
+  "merged": "2026-06-22T14:23:50Z",
+  "missing_roots": 0,
+  "number": 19038,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Test-code classes shouldn't be declared `final` per the repo Java style guide. This is also inconsistent with the adjacent `Parameter` helper (`private static class Parameter` at line 515). Consider dropping `final` from both `BatchScenario` here and its nested `Builder` (line 600).",
+      "created": "2026-06-19T17:12:54Z",
+      "hunk": "@@ -524,4 +535,93 @@ private static class Parameter {\n       this.table = table;\n     }\n   }\n+\n+  private static final class BatchScenario {",
+      "id": "PRRT_kwDODJKVX86K5CNE",
+      "opened": "2026-06-19T17:12:55Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [],
+      "reviewed": "22017ed66a59b7a8391839ea61120521901b1a1f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19038#discussion_r3443806829"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Test-code classes shouldn't be declared `final` per the repo Java style guide. This is also inconsistent with the adjacent `Parameter` helper (`protected static class Parameter` at line 530). Consider dropping `final` from both `BatchScenario` here and its nested `Builder` (line 600).",
+      "created": "2026-06-19T17:12:55Z",
+      "hunk": "@@ -574,4 +569,93 @@ protected CqlSessionBuilder addContactPoint(CqlSessionBuilder sessionBuilder) {\n     sessionBuilder.addContactPoint(new InetSocketAddress(cassandra.getHost(), cassandraPort));\n     return sessionBuilder;\n   }\n+\n+  private static final class BatchScenario {",
+      "id": "PRRT_kwDODJKVX86K5CNc",
+      "opened": "2026-06-19T17:12:55Z",
+      "path": "instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java",
+      "replies": [],
+      "reviewed": "22017ed66a59b7a8391839ea61120521901b1a1f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19038#discussion_r3443806858"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The project style guide says not to declare classes `final` in test code (`src/test/` directories and modules whose name starts/ends with `testing`/`tests`). This `Builder` is in a `src/test/` source set, so the `final` modifier should be dropped here for consistency with the convention.",
+      "created": "2026-06-19T17:20:01Z",
+      "hunk": "@@ -524,4 +535,93 @@ private static class Parameter {\n       this.table = table;\n     }\n   }\n+\n+  private static class BatchScenario {\n+    final Function<Session, BatchStatement> buildBatch;\n+    final String spanName;\n+    final String oldSpanName;\n+    final String queryText;\n+    final String oldStatement;\n+    final String querySummary;\n+    final Long batchSize;\n+    final String operationName;\n+    final String collectionName;\n+\n+    BatchScenario(Builder builder) {\n+      this.buildBatch = builder.buildBatch;\n+      this.spanName = builder.spanName;\n+      this.oldSpanName = builder.oldSpanName;\n+      this.queryText = builder.queryText;\n+      this.oldStatement = builder.oldStatement;\n+      this.querySummary = builder.querySummary;\n+      this.batchSize = builder.batchSize;\n+      this.operationName = builder.operationName;\n+      this.collectionName = builder.collectionName;\n+    }\n+\n+    static Builder builder() {\n+      return new Builder();\n+    }\n+\n+    static final class Builder {",
+      "id": "PRRT_kwDODJKVX86K5HxK",
+      "opened": "2026-06-19T17:20:02Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [],
+      "reviewed": "26580f1e9c287180a01a1ccbcba10c54c83b2533",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19038#discussion_r3443837730"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The project style guide says not to declare classes `final` in test code, including modules whose directory name starts/ends with `testing` (this file is in the `cassandra-common-4.0/testing` module). The `final` modifier on this `Builder` should be dropped for consistency with the convention.",
+      "created": "2026-06-19T17:20:02Z",
+      "hunk": "@@ -574,4 +569,93 @@ protected CqlSessionBuilder addContactPoint(CqlSessionBuilder sessionBuilder) {\n     sessionBuilder.addContactPoint(new InetSocketAddress(cassandra.getHost(), cassandraPort));\n     return sessionBuilder;\n   }\n+\n+  private static class BatchScenario {\n+    final Function<CqlSession, BatchStatement> buildBatch;\n+    final String spanName;\n+    final String oldSpanName;\n+    final String queryText;\n+    final String oldStatement;\n+    final String querySummary;\n+    final Long batchSize;\n+    final String operationName;\n+    final String collectionName;\n+\n+    BatchScenario(Builder builder) {\n+      this.buildBatch = builder.buildBatch;\n+      this.spanName = builder.spanName;\n+      this.oldSpanName = builder.oldSpanName;\n+      this.queryText = builder.queryText;\n+      this.oldStatement = builder.oldStatement;\n+      this.querySummary = builder.querySummary;\n+      this.batchSize = builder.batchSize;\n+      this.operationName = builder.operationName;\n+      this.collectionName = builder.collectionName;\n+    }\n+\n+    static Builder builder() {\n+      return new Builder();\n+    }\n+\n+    static final class Builder {",
+      "id": "PRRT_kwDODJKVX86K5HxY",
+      "opened": "2026-06-19T17:20:02Z",
+      "path": "instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java",
+      "replies": [],
+      "reviewed": "26580f1e9c287180a01a1ccbcba10c54c83b2533",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19038#discussion_r3443837750"
+    }
+  ]
+}

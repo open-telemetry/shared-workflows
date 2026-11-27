@@ -1,0 +1,115 @@
+{
+  "head": "26ee6863f92c00964483548dfd0fe9a18e82b5c4",
+  "merge": "978648bdd90ca3efcd20030c0fb3453d077d58d4",
+  "merged": "2026-09-10T17:08:29Z",
+  "missing_roots": 0,
+  "number": 19981,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This sanitizes and reports a credential-bearing target, while the PR description explicitly says credential-bearing targets are omitted. The same behavior is asserted for both single- and multi-host inputs, so either reject any target containing user info here or update the stated requirement if sanitization is intended.",
+      "created": "2026-09-04T13:11:16Z",
+      "hunk": "@@ -179,10 +223,258 @@ public void setContext(Context context) {\n     this.context = context;\n   }\n \n-  private static String resolveDbSystemName(@Nullable String driver, @Nullable String protocol) {\n-    // Use PROTOCOL when DRIVER is \"pool\" (r2dbc-pool wraps the real driver in PROTOCOL),\n-    // otherwise use DRIVER directly.\n-    String rawDriver = \"pool\".equals(driver) && protocol != null ? protocol : driver;\n-    return rawDriver != null ? DRIVER_TO_SYSTEM_NAME.getOrDefault(rawDriver, OTHER_SQL) : OTHER_SQL;\n+  private static boolean isUnixDomainSocket(@Nullable String serverAddress) {\n+    return serverAddress != null && serverAddress.startsWith(\"/\");\n+  }\n+\n+  private static boolean isServerAddressGroupCandidate(@Nullable String serverAddress) {\n+    return serverAddress != null && serverAddress.indexOf(',') >= 0;\n+  }\n+\n+  private static ConfiguredServerTarget buildServerAddressGroup(\n+      @Nullable String serverAddress, @Nullable Integer serverPort, @Nullable Integer defaultPort) {\n+    if (serverAddress == null\n+        || serverAddress.indexOf('/') >= 0\n+        || serverAddress.indexOf('?') >= 0\n+        || serverAddress.indexOf('#') >= 0\n+        || (serverPort != null && !isValidPort(serverPort))) {\n+      return ConfiguredServerTarget.EMPTY;\n+    }\n+\n+    int firstComma = serverAddress.indexOf(',');\n+    int userInfoEnd = serverAddress.indexOf('@');\n+    if (userInfoEnd > firstComma\n+        || (userInfoEnd >= 0 && userInfoEnd != serverAddress.lastIndexOf('@'))) {\n+      return ConfiguredServerTarget.EMPTY;\n+    }\n+\n+    String hostList = stripUserInfo(serverAddress);",
+      "id": "PRRT_kwDODJKVX86fTOj5",
+      "opened": "2026-09-04T13:11:17Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/DbExecution.java",
+      "replies": [
+        {
+          "at": "2026-09-04T14:56:40Z",
+          "body": "Sanitization is intentional. The PR description now distinguishes removable credentials or user info from ambiguous or malformed credential-bearing inputs, which remain omitted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3935216840"
+        }
+      ],
+      "reviewed": "827f8c028f99d99e3cb1c460bcfc129b50c32a19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3934300855"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new split changes `db.system.name` for pooled nested protocols, even though this PR is scoped to configured targets and promises legacy behavior remains unchanged. For example, `DRIVER=pool, PROTOCOL=clickhouse:http` previously resolved as `other_sql` because the full protocol was looked up, but now resolves as `clickhouse` in both semconv modes. Keep the old value for `systemName` and use the split values only for target/default-port handling.",
+      "created": "2026-09-04T13:11:17Z",
+      "hunk": "@@ -94,11 +113,26 @@ public DbExecution(QueryExecutionInfo queryInfo, ConnectionFactoryOptions factor\n         factoryOptions.hasOption(DRIVER) ? (String) factoryOptions.getValue(DRIVER) : null;\n     String protocol =\n         factoryOptions.hasOption(PROTOCOL) ? (String) factoryOptions.getValue(PROTOCOL) : null;\n-    this.systemName = resolveDbSystemName(driver, protocol);\n+    String resolvedDriver = resolveDriver(driver, protocol);\n+    String resolvedProtocol = resolveProtocol(driver, protocol);\n+    this.systemName = resolveDbSystemName(resolvedDriver);",
+      "id": "PRRT_kwDODJKVX86fTOkV",
+      "opened": "2026-09-04T13:11:17Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/DbExecution.java",
+      "replies": [
+        {
+          "at": "2026-09-04T14:56:40Z",
+          "body": "Restored the legacy `db.system.name` resolution. The split driver and protocol values are now used only for configured-target and default-port handling.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3935216834"
+        }
+      ],
+      "reviewed": "827f8c028f99d99e3cb1c460bcfc129b50c32a19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3934300901"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Bracket syntax is stripped before the shared target builder validates the host, so malformed bracketed DNS names such as `[host1]:5432` are accepted and emitted as `host1` instead of causing the stable target to be omitted. Require a colon in the bracket contents before returning it; the existing builder validation will then verify that it is actually an IPv6 literal.",
+      "created": "2026-09-04T13:11:17Z",
+      "hunk": "@@ -179,10 +223,258 @@ public void setContext(Context context) {\n     this.context = context;\n   }\n \n-  private static String resolveDbSystemName(@Nullable String driver, @Nullable String protocol) {\n-    // Use PROTOCOL when DRIVER is \"pool\" (r2dbc-pool wraps the real driver in PROTOCOL),\n-    // otherwise use DRIVER directly.\n-    String rawDriver = \"pool\".equals(driver) && protocol != null ? protocol : driver;\n-    return rawDriver != null ? DRIVER_TO_SYSTEM_NAME.getOrDefault(rawDriver, OTHER_SQL) : OTHER_SQL;\n+  private static boolean isUnixDomainSocket(@Nullable String serverAddress) {\n+    return serverAddress != null && serverAddress.startsWith(\"/\");\n+  }\n+\n+  private static boolean isServerAddressGroupCandidate(@Nullable String serverAddress) {\n+    return serverAddress != null && serverAddress.indexOf(',') >= 0;\n+  }\n+\n+  private static ConfiguredServerTarget buildServerAddressGroup(\n+      @Nullable String serverAddress, @Nullable Integer serverPort, @Nullable Integer defaultPort) {\n+    if (serverAddress == null\n+        || serverAddress.indexOf('/') >= 0\n+        || serverAddress.indexOf('?') >= 0\n+        || serverAddress.indexOf('#') >= 0\n+        || (serverPort != null && !isValidPort(serverPort))) {\n+      return ConfiguredServerTarget.EMPTY;\n+    }\n+\n+    int firstComma = serverAddress.indexOf(',');\n+    int userInfoEnd = serverAddress.indexOf('@');\n+    if (userInfoEnd > firstComma\n+        || (userInfoEnd >= 0 && userInfoEnd != serverAddress.lastIndexOf('@'))) {\n+      return ConfiguredServerTarget.EMPTY;\n+    }\n+\n+    String hostList = stripUserInfo(serverAddress);\n+    String[] hosts = hostList.split(\",\", -1);\n+    List<ParsedEndpoint> endpoints = new ArrayList<>(hosts.length);\n+    for (String host : hosts) {\n+      ParsedEndpoint endpoint = parseEndpoint(host, serverPort);\n+      if (endpoint == null) {\n+        return ConfiguredServerTarget.EMPTY;\n+      }\n+      endpoints.add(endpoint);\n+    }\n+    if (defaultPort == null) {\n+      return buildUnknownDefaultPortGroup(endpoints);\n+    }\n+\n+    DbServerTargetBuilder builder = DbServerTarget.builder(defaultPort);\n+    for (ParsedEndpoint endpoint : endpoints) {\n+      builder.addEndpoint(endpoint.host, endpoint.port == null ? -1 : endpoint.port);\n+    }\n+    return ConfiguredServerTarget.from(builder.build());\n+  }\n+\n+  private static String stripUserInfo(String serverAddress) {\n+    int at = serverAddress.lastIndexOf('@');\n+    return at < 0 ? serverAddress : serverAddress.substring(at + 1);\n+  }\n+\n+  private static ConfiguredServerTarget buildServerTarget(\n+      @Nullable String serverAddress, @Nullable Integer serverPort, @Nullable Integer defaultPort) {\n+    if (serverAddress != null\n+        && (serverAddress.indexOf('/') >= 0\n+            || serverAddress.indexOf('?') >= 0\n+            || serverAddress.indexOf('#') >= 0)) {\n+      return ConfiguredServerTarget.EMPTY;\n+    }\n+    if (serverPort != null && !isValidPort(serverPort)) {\n+      return ConfiguredServerTarget.EMPTY;\n+    }\n+    ParsedEndpoint endpoint = parseEndpoint(serverAddress, serverPort);\n+    if (endpoint == null) {\n+      return ConfiguredServerTarget.EMPTY;\n+    }\n+    int effectiveDefaultPort = defaultPort != null ? defaultPort : endpoint.port == null ? 1 : -1;\n+    return ConfiguredServerTarget.from(\n+        DbServerTarget.builder(effectiveDefaultPort)\n+            .addEndpoint(endpoint.host, endpoint.port == null ? -1 : endpoint.port)\n+            .build());\n+  }\n+\n+  private static ConfiguredServerTarget buildUnknownDefaultPortGroup(\n+      List<ParsedEndpoint> endpoints) {\n+    for (ParsedEndpoint endpoint : endpoints) {\n+      int validationDefaultPort = endpoint.port == null ? 1 : -1;\n+      if (DbServerTarget.builder(validationDefaultPort)\n+              .addEndpoint(endpoint.host, endpoint.port == null ? -1 : endpoint.port)\n+              .build()\n+          == null) {\n+        return ConfiguredServerTarget.EMPTY;\n+      }\n+    }\n+\n+    StringBuilder addressGroup = new StringBuilder();\n+    for (int i = 0; i < Math.min(endpoints.size(), MAX_ENDPOINTS); i++) {\n+      ParsedEndpoint endpoint = endpoints.get(i);\n+      if (addressGroup.length() > 0) {\n+        addressGroup.append(',');\n+      }\n+      appendEndpoint(addressGroup, endpoint);\n+    }\n+    return new ConfiguredServerTarget(addressGroup.toString(), null);\n+  }\n+\n+  private static void appendEndpoint(StringBuilder result, ParsedEndpoint endpoint) {\n+    if (endpoint.port != null && endpoint.host.indexOf(':') >= 0) {\n+      result.append('[').append(endpoint.host).append(']');\n+    } else {\n+      result.append(endpoint.host);\n+    }\n+    if (endpoint.port != null) {\n+      result.append(':').append(endpoint.port);\n+    }\n+  }\n+\n+  @Nullable\n+  private static ParsedEndpoint parseEndpoint(\n+      @Nullable String serverAddress, @Nullable Integer serverPort) {\n+    if (serverAddress == null) {\n+      return null;\n+    }\n+    int userInfoEnd = serverAddress.indexOf('@');\n+    if (userInfoEnd >= 0 && userInfoEnd != serverAddress.lastIndexOf('@')) {\n+      return null;\n+    }\n+\n+    String host = stripUserInfo(serverAddress).trim();\n+    if (host.startsWith(\"[\")) {\n+      int closingBracket = host.indexOf(']');\n+      if (closingBracket < 0 || host.indexOf(']', closingBracket + 1) >= 0) {\n+        return null;\n+      }\n+      String rest = host.substring(closingBracket + 1);\n+      Integer port =\n+          rest.isEmpty() ? serverPort : parsePort(rest.startsWith(\":\") ? rest.substring(1) : \"\");\n+      return !rest.isEmpty() && port == null\n+          ? null\n+          : new ParsedEndpoint(host.substring(1, closingBracket), port);",
+      "id": "PRRT_kwDODJKVX86fTOkw",
+      "opened": "2026-09-04T13:11:17Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/DbExecution.java",
+      "replies": [
+        {
+          "at": "2026-09-04T14:56:40Z",
+          "body": "Bracketed non-IPv6 hosts are now rejected in `R2dbcServerTarget`, with single-host and multi-host coverage added.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3935216848"
+        }
+      ],
+      "reviewed": "827f8c028f99d99e3cb1c460bcfc129b50c32a19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3934300935"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This normalization depends only on the listener's immutable `factoryOptions`, but `DbExecution` is constructed for every query (`TraceProxyListener.java:34`). As written, every operation—including legacy-semconv operations that never read these fields—re-splits, validates, and allocates the target. Precompute the normalized address/port once when the listener is constructed and pass that immutable result into each execution.",
+      "created": "2026-09-04T15:06:38Z",
+      "hunk": "@@ -94,11 +110,24 @@ public DbExecution(QueryExecutionInfo queryInfo, ConnectionFactoryOptions factor\n         factoryOptions.hasOption(DRIVER) ? (String) factoryOptions.getValue(DRIVER) : null;\n     String protocol =\n         factoryOptions.hasOption(PROTOCOL) ? (String) factoryOptions.getValue(PROTOCOL) : null;\n+    String resolvedDriver = resolveDriver(driver, protocol);\n+    String resolvedProtocol = resolveProtocol(driver, protocol);\n     this.systemName = resolveDbSystemName(driver, protocol);\n     this.serverAddress =\n         factoryOptions.hasOption(HOST) ? (String) factoryOptions.getValue(HOST) : null;\n     this.serverPort =\n         factoryOptions.hasOption(PORT) ? (Integer) factoryOptions.getValue(PORT) : null;\n+    Integer defaultPort =\n+        resolveDefaultPort(\n+            resolvedDriver,\n+            resolvedProtocol,\n+            factoryOptions.hasOption(SSL) && Boolean.TRUE.equals(factoryOptions.getValue(SSL)));\n+    DbServerTarget configuredServerTarget =\n+        R2dbcServerTarget.create(serverAddress, serverPort, defaultPort);",
+      "id": "PRRT_kwDODJKVX86fVxyF",
+      "opened": "2026-09-04T15:06:38Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/DbExecution.java",
+      "replies": [
+        {
+          "at": "2026-09-09T05:02:07Z",
+          "body": "No code change.\n\nAnalysis: The current head already constructs one immutable `R2dbcConnectionInfo` from `factoryOptions` in the `TraceProxyListener` constructor. Each query passes that same snapshot to `DbExecution`, whose configured target getters only read the precomputed `DbServerTarget`. The production listener path no longer parses or normalizes the target per query.\n\nUpsides: The current design removes the reported per-operation parsing and allocation while keeping all factory-derived connection attributes in one reusable snapshot.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3964814881"
+        }
+      ],
+      "reviewed": "fea33df10c12e97c1f8ab7a3f08fdc754b266679",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3935300022"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "a bit surprised that we already have only 1 copy of this, would have thought that there are more",
+      "created": "2026-09-10T07:58:28Z",
+      "hunk": "@@ -0,0 +1,124 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.r2dbc.v1_0.internal;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import javax.annotation.Nullable;\n+\n+final class R2dbcServerTarget {\n+\n+  @Nullable\n+  static DbServerTarget create(\n+      @Nullable String serverAddress, @Nullable Integer serverPort, @Nullable Integer defaultPort) {\n+    if (isUnixDomainSocket(serverAddress)) {\n+      return DbServerTarget.unixSocket(serverAddress);\n+    }\n+    if (serverAddress == null\n+        || serverAddress.indexOf('/') >= 0\n+        || serverAddress.indexOf('?') >= 0\n+        || serverAddress.indexOf('#') >= 0\n+        || (serverPort != null && !isValidPort(serverPort))) {\n+      return null;\n+    }\n+\n+    int firstComma = serverAddress.indexOf(',');\n+    int userInfoEnd = serverAddress.indexOf('@');\n+    // user info belongs to the whole address, so it must appear once and ahead of every host\n+    if ((firstComma >= 0 && userInfoEnd > firstComma)\n+        || (userInfoEnd >= 0 && userInfoEnd != serverAddress.lastIndexOf('@'))) {\n+      return null;\n+    }\n+\n+    DbServerTargetBuilder builder = builder(defaultPort);\n+    for (String host : stripUserInfo(serverAddress).split(\",\", -1)) {\n+      ParsedEndpoint endpoint = parseEndpoint(host, serverPort);\n+      if (endpoint == null) {\n+        return null;\n+      }\n+      builder.addEndpoint(endpoint.host, endpoint.port == null ? -1 : endpoint.port);\n+    }\n+    return builder.build();\n+  }\n+\n+  private static boolean isUnixDomainSocket(@Nullable String serverAddress) {\n+    return serverAddress != null && serverAddress.startsWith(\"/\");\n+  }\n+\n+  private static DbServerTargetBuilder builder(@Nullable Integer defaultPort) {\n+    return defaultPort == null ? DbServerTarget.builder() : DbServerTarget.builder(defaultPort);\n+  }\n+\n+  @Nullable\n+  private static ParsedEndpoint parseEndpoint(String serverAddress, @Nullable Integer serverPort) {\n+    String host = serverAddress.trim();\n+    if (host.startsWith(\"[\")) {\n+      int closingBracket = host.indexOf(']');\n+      if (closingBracket < 0 || host.indexOf(']', closingBracket + 1) >= 0) {\n+        return null;\n+      }\n+      String bracketedHost = host.substring(1, closingBracket);\n+      if (bracketedHost.indexOf(':') < 0) {\n+        return null;\n+      }\n+      String rest = host.substring(closingBracket + 1);\n+      Integer port =\n+          rest.isEmpty() ? serverPort : parsePort(rest.startsWith(\":\") ? rest.substring(1) : \"\");\n+      return !rest.isEmpty() && port == null ? null : new ParsedEndpoint(bracketedHost, port);\n+    }\n+    if (host.indexOf('[') >= 0 || host.indexOf(']') >= 0) {\n+      return null;\n+    }\n+\n+    int firstColon = host.indexOf(':');\n+    int lastColon = host.lastIndexOf(':');\n+    if (firstColon >= 0 && firstColon == lastColon) {\n+      Integer port = parsePort(host.substring(firstColon + 1));\n+      return port == null ? null : new ParsedEndpoint(host.substring(0, firstColon), port);\n+    }\n+    return new ParsedEndpoint(host, serverPort);\n+  }\n+\n+  private static String stripUserInfo(String serverAddress) {\n+    int at = serverAddress.lastIndexOf('@');\n+    return at < 0 ? serverAddress : serverAddress.substring(at + 1);\n+  }\n+\n+  @Nullable\n+  private static Integer parsePort(String value) {",
+      "id": "PRRT_kwDODJKVX86g-5CO",
+      "opened": "2026-09-10T07:58:27Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-10T17:08:10Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20097",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3981616800"
+        }
+      ],
+      "reviewed": "26ee6863f92c00964483548dfd0fe9a18e82b5c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19981#discussion_r3976844555"
+    }
+  ]
+}

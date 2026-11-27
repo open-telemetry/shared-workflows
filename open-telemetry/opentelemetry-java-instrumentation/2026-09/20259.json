@@ -1,0 +1,388 @@
+{
+  "head": "4f480a7c86beb7f6507f30874802c92fd51cd526",
+  "merge": "a3ce84536f05db0978e6a25b09af1f46fb06cacc",
+  "merged": "2026-09-29T20:24:45Z",
+  "missing_roots": 0,
+  "number": 20259,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Both fallback names are explicitly unstable (`/development` and `experimental`), so they should not be gated by v3-preview. Preview gating is for deprecated stable names that must survive until 3.0; unstable names should remain active throughout their normal deprecation window and then be removed in a later minor. This introduces a mode-specific removal before the advertised removal, so please keep the fallbacks active regardless of v3-preview (or remove them through the normal unstable deprecation process) and update the preview-specific tests/docs accordingly.",
+      "created": "2026-09-25T20:46:41Z",
+      "hunk": "@@ -418,18 +419,21 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");\n     if (result == null && !SemconvStability.v3Preview(openTelemetry)) {",
+      "id": "PRRT_kwDODJKVX86mJpON",
+      "opened": "2026-09-25T20:46:41Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:00Z",
+          "body": "Addressed in 36dc26431d5fd9e5dcd35fa92dd59a97faeaec8a.\n\nFixed in the verified source changes 36dc26431d5fd9e5dcd35fa92dd59a97faeaec8a.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4109362874"
+        }
+      ],
+      "reviewed": "b08a52f81872c9ee3a1722b5ce0810375002d978",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4108492610"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Docs] This sentence now contradicts the PR description, which still says both deprecated fallbacks are ignored under v3-preview. The implementation and updated tests intentionally keep them active there, so the PR description is stale and should be updated to describe the adopted behavior.",
+      "created": "2026-09-25T23:33:44Z",
+      "hunk": "@@ -5,6 +5,27 @@ These are not meant to be used under normal circumstances.\n If you find yourself needing to use any of them, it would be great if you could drop us an issue\n explaining why, so that we can try to come up with a better solution to address your need.\n \n+## Span suppression strategy\n+\n+To choose a span suppression strategy in declarative configuration, set\n+`java.common.span_suppression_strategy` under `instrumentation/development`:\n+\n+```yaml\n+instrumentation/development:\n+  java:\n+    common:\n+      span_suppression_strategy: span-kind\n+```\n+\n+The supported values are `semconv` (the default), `span-kind`, and `none`.\n+The previous YAML key, `java.common.span_suppression_strategy/development`,\n+and the already deprecated flat property,\n+`otel.instrumentation.experimental.span-suppression-strategy`, remain available\n+until 3.0, including under v3-preview. The replacement is YAML-only; there is",
+      "id": "PRRT_kwDODJKVX86mLwM7",
+      "opened": "2026-09-25T23:33:44Z",
+      "path": "docs/advanced-configuration-options.md",
+      "replies": [
+        {
+          "at": "2026-09-25T23:46:40Z",
+          "body": "No code change.\n\nThe documentation is correct. The PR description should say both deprecated fallbacks remain active under v3-preview until 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4109410196"
+        }
+      ],
+      "reviewed": "36dc26431d5fd9e5dcd35fa92dd59a97faeaec8a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4109370541"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Unresolved merge-conflict markers leave the changelog malformed and discard one of these deprecation entries depending on how the conflict is interpreted. Resolve the conflict by retaining both entries before merging.",
+      "created": "2026-09-26T21:45:17Z",
+      "hunk": "@@ -17,13 +17,21 @@\n \n ### 🚫 Deprecations\n \n+<<<<<<< HEAD\n+- Deprecate the `java.common.span_suppression_strategy/development` YAML key\n+  in favor of `java.common.span_suppression_strategy`. The replacement is\n+  YAML-only; the already deprecated\n+  `otel.instrumentation.experimental.span-suppression-strategy` flat property\n+  remains available until 3.0.\n+=======",
+      "id": "PRRT_kwDODJKVX86mUae2",
+      "opened": "2026-09-26T21:45:18Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-09-26T21:58:16Z",
+          "body": "Addressed in e3e90f416243b03c0a57ba90b4742876c3e4f888.\n\nFixed in the verified source changes e3e90f416243b03c0a57ba90b4742876c3e4f888.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4112940478"
+        }
+      ],
+      "reviewed": "6ed104015d222feb2dac5fb3d9d11196453643ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4112902278"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This reintroduces v3-preview gating for two explicitly unstable names (`/development` and `experimental`). Unstable settings remain active during their deprecation window regardless of v3-preview; with this guard, existing preview users silently fall back to `semconv` before the advertised removal. Keep the fallback chain ungated and update the preview expectations accordingly.",
+      "created": "2026-09-26T21:45:17Z",
+      "hunk": "@@ -418,18 +418,21 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");\n     if (result == null && !SemconvStability.v3Preview(openTelemetry)) {",
+      "id": "PRRT_kwDODJKVX86mUafC",
+      "opened": "2026-09-26T21:45:18Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-26T21:58:19Z",
+          "body": "Addressed in e3e90f416243b03c0a57ba90b4742876c3e4f888.\n\nFixed in the verified source changes e3e90f416243b03c0a57ba90b4742876c3e4f888.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4112940585"
+        }
+      ],
+      "reviewed": "6ed104015d222feb2dac5fb3d9d11196453643ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4112902295"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Docs] Both deprecated names are unstable, so they remain active under v3-preview through their deprecation window rather than being ignored there. This text reintroduces the stale preview behavior and would tell users that valid fallback configuration silently changes to `semconv`; document that the fallbacks also apply and warn in preview mode.",
+      "created": "2026-09-26T21:45:18Z",
+      "hunk": "@@ -5,6 +5,28 @@ These are not meant to be used under normal circumstances.\n If you find yourself needing to use any of them, it would be great if you could drop us an issue\n explaining why, so that we can try to come up with a better solution to address your need.\n \n+## Span suppression strategy\n+\n+To choose a span suppression strategy in declarative configuration, set\n+`java.common.span_suppression_strategy` under `instrumentation/development`:\n+\n+```yaml\n+instrumentation/development:\n+  java:\n+    common:\n+      span_suppression_strategy: span-kind\n+```\n+\n+The supported values are `semconv` (the default), `span-kind`, and `none`.\n+The previous YAML key, `java.common.span_suppression_strategy/development`,\n+and the already deprecated flat property,\n+`otel.instrumentation.experimental.span-suppression-strategy`, remain available\n+until 3.0 outside v3-preview and warn when applied. V3-preview ignores both\n+deprecated settings, using `semconv` unless the stable YAML key or the\n+programmatic setting is set. The replacement is YAML-only; there is no new flat\n+property. Programmatic `Experimental.setSpanSuppressionStrategy(...)` takes\n+precedence over configuration.",
+      "id": "PRRT_kwDODJKVX86mUafI",
+      "opened": "2026-09-26T21:45:18Z",
+      "path": "docs/advanced-configuration-options.md",
+      "replies": [
+        {
+          "at": "2026-09-26T21:58:21Z",
+          "body": "Addressed in e3e90f416243b03c0a57ba90b4742876c3e4f888.\n\nFixed in the verified source changes e3e90f416243b03c0a57ba90b4742876c3e4f888.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4112940688"
+        }
+      ],
+      "reviewed": "6ed104015d222feb2dac5fb3d9d11196453643ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4112902302"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The new stable key is YAML-only, but the added builder tests inject a mocked `DeclarativeConfigProperties`, while the bridge test only verifies that flat properties cannot populate it. Add a declarative-mode test that parses the documented YAML through `DeclarativeConfiguration`/`SdkConfigProvider` and verifies that `span-kind` reaches `buildSpanSuppressor()`; otherwise the actual YAML path and provider wiring are untested.",
+      "created": "2026-09-26T22:01:57Z",
+      "hunk": "@@ -418,18 +417,21 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n-    if (result == null && !SemconvStability.v3Preview(openTelemetry)) {\n-      String deprecatedResult =\n-          SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n-      if (deprecatedResult != null) {\n-        if (spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n-          logger.warning(\n-              \"The otel.instrumentation.experimental.span-suppression-strategy setting is\"\n-                  + \" deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"\n-                  + \" declarative instrumentation configuration instead.\");\n-        }\n-        result = deprecatedResult;\n+    String result = commonConfig.getString(\"span_suppression_strategy\");",
+      "id": "PRRT_kwDODJKVX86mUh4o",
+      "opened": "2026-09-26T22:01:57Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-26T22:22:29Z",
+          "body": "Addressed in 246495282ee3dd4d011fa6f82019ede607989d2c, 84481e0ed7ac73ff5e5277285d41e27261ca7e97.\n\nFixed in the verified source changes 246495282ee3dd4d011fa6f82019ede607989d2c, 84481e0ed7ac73ff5e5277285d41e27261ca7e97.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4113017172"
+        }
+      ],
+      "reviewed": "e3e90f416243b03c0a57ba90b4742876c3e4f888",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4112950126"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n              \"The otel.instrumentation.experimental.span-suppression-strategy setting is\"\n                  + \" deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"\n```",
+      "created": "2026-09-27T16:53:59Z",
+      "hunk": "@@ -418,18 +419,28 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");\n     if (result == null && !SemconvStability.v3Preview(openTelemetry)) {\n-      String deprecatedResult =\n-          SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n-      if (deprecatedResult != null) {\n-        if (spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n+      // Deprecated declarative and flat names remain available until 3.0.\n+      result = commonConfig.getString(\"span_suppression_strategy/development\");\n+      if (result != null && spanSuppressionConfigWarningLogged.compareAndSet(false, true)) {\n+        logger.warning(\n+            \"The java.common.span_suppression_strategy/development setting (or its flat\"\n+                + \" equivalent otel.instrumentation.experimental.span-suppression-strategy)\"\n+                + \" is deprecated and will be removed in 3.0. Use\"\n+                + \" java.common.span_suppression_strategy (or\"\n+                + \" otel.instrumentation.common.span-suppression-strategy in flat configuration)\"\n+                + \" instead.\");\n+      }\n+      if (result == null) {\n+        result =\n+            SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n+        if (result != null && spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n           logger.warning(\n-              \"The otel.instrumentation.experimental.span-suppression-strategy setting is\"\n-                  + \" deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"\n+              \"The otel.instrumentation.experimental.span-suppression-strategy setting\"\n+                  + \" is deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"",
+      "id": "PRRT_kwDODJKVX86mcdYz",
+      "opened": "2026-09-27T16:53:59Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [],
+      "reviewed": "f52921f2a8838e269905d0178b9c342d71ee4435",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4116152836"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-28T02:36:49Z",
+      "hunk": "@@ -5,6 +5,33 @@ These are not meant to be used under normal circumstances.\n If you find yourself needing to use any of them, it would be great if you could drop us an issue\n explaining why, so that we can try to come up with a better solution to address your need.\n \n+## Span suppression strategy\n+\n+Set `otel.instrumentation.common.span-suppression-strategy` in flat configuration:\n+\n+```properties\n+otel.instrumentation.common.span-suppression-strategy=span-kind\n+```\n+\n+Or set `java.common.span_suppression_strategy` under `instrumentation/development`:\n+\n+```yaml\n+instrumentation/development:\n+  java:\n+    common:\n+      span_suppression_strategy: span-kind\n+```\n+\n+The supported values are `semconv` (the default), `span-kind`, and `none`.\n+The previous YAML key, `java.common.span_suppression_strategy/development`,\n+and the already deprecated flat property,\n+`otel.instrumentation.experimental.span-suppression-strategy`, remain available\n+until 3.0 and warn when applied outside v3-preview. Under v3-preview, both\n+deprecated names are ignored without warning. The stable setting takes\n+precedence over either deprecated name, and the old YAML key takes precedence\n+over the old flat property. Programmatic\n+`Experimental.setSpanSuppressionStrategy(...)` takes precedence over configuration.\n+",
+      "id": "PRRT_kwDODJKVX86mhIVV",
+      "opened": "2026-09-28T02:36:48Z",
+      "path": "docs/advanced-configuration-options.md",
+      "replies": [],
+      "reviewed": "8c6ec2d6ae4fc7b29d074154729087c9695d7bc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4118061832"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This direct deprecated-property warning still tells users to switch to the programmatic API or declarative configuration, even though this PR introduces `otel.instrumentation.common.span-suppression-strategy` as the stable flat replacement. Name that property in this warning so operators can migrate without changing configuration mechanisms, and update the matching assertion.",
+      "created": "2026-09-28T03:44:53Z",
+      "hunk": "@@ -418,18 +424,22 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");\n     if (result == null && !SemconvStability.v3Preview(openTelemetry)) {\n-      String deprecatedResult =\n-          SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n-      if (deprecatedResult != null) {\n-        if (spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n+      // Deprecated declarative and flat names remain available until 3.0.\n+      result = commonConfig.getString(\"span_suppression_strategy/development\");\n+      if (result != null && spanSuppressionConfigWarningLogged.compareAndSet(false, true)) {\n+        logger.warning(SPAN_SUPPRESSION_CONFIG_DEPRECATION_WARNING);\n+      }\n+      if (result == null) {\n+        result =\n+            SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n+        if (result != null && spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n           logger.warning(\n               \"The otel.instrumentation.experimental.span-suppression-strategy setting is\"\n                   + \" deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"\n                   + \" declarative instrumentation configuration instead.\");",
+      "id": "PRRT_kwDODJKVX86mh2dD",
+      "opened": "2026-09-28T03:44:54Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-28T16:12:33Z",
+          "body": "Addressed in 18e53425986fca5a0a051e41516682aea4e5bc4f.\n\nFixed in the verified source changes 18e53425986fca5a0a051e41516682aea4e5bc4f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4124443286"
+        }
+      ],
+      "reviewed": "03362dc344cb7b0b4946d70db0945347d76d10f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4118374598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The stable flat replacement is only read through `ExtendedOpenTelemetry`'s config provider. For supported standalone/library usage with a plain `OpenTelemetry` instance (for example `OpenTelemetry.noop()`), setting `otel.instrumentation.common.span-suppression-strategy` leaves `result` null, while the deprecated flat property still works through the direct `SystemProperty` fallback below. Users who migrate to the advertised replacement therefore silently revert to `semconv`. Read the stable system property as a fallback before checking either deprecated name.",
+      "created": "2026-09-28T16:16:02Z",
+      "hunk": "@@ -418,18 +419,26 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");",
+      "id": "PRRT_kwDODJKVX86mw-0s",
+      "opened": "2026-09-28T16:16:02Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-28T18:14:55Z",
+          "body": "Addressed in c8e5d217ace2395862e83bfbe8d397eb9657397e, f5f88aea271c220426b561d5c56a72f24f04ae5e.\n\nFixed in the verified source changes c8e5d217ace2395862e83bfbe8d397eb9657397e, f5f88aea271c220426b561d5c56a72f24f04ae5e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4125550932"
+        }
+      ],
+      "reviewed": "18e53425986fca5a0a051e41516682aea4e5bc4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4124480258"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This preview-mode statement documents an early removal that is not valid for these unstable aliases. Both deprecated names should remain active and warn under v3-preview through the stated deprecation window; otherwise users silently get the default `semconv` strategy.",
+      "created": "2026-09-28T19:22:20Z",
+      "hunk": "@@ -20,6 +20,11 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `otel.instrumentation.experimental.span-suppression-strategy` in favor of\n+  `otel.instrumentation.common.span-suppression-strategy`. The old property remains a fallback\n+  until 3.0 and warns when applied outside v3-preview. Under v3-preview, both this property and the\n+  deprecated `java.common.span_suppression_strategy/development` YAML key are ignored without\n+  warning; use the stable setting instead.",
+      "id": "PRRT_kwDODJKVX86m1FIM",
+      "opened": "2026-09-28T19:22:21Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "4d224163c543e9849684ca69e6df2fa8d5b0c076",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4126158286"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This warning points library-instrumentation users to a flat replacement that this code intentionally does not read without an `ExtendedOpenTelemetry` config bridge. Following it with a plain `OpenTelemetry` instance therefore falls back to `semconv`. Point this direct-system-property path back to the programmatic API (or declarative configuration) so the migration advice works.",
+      "created": "2026-09-29T01:00:55Z",
+      "hunk": "@@ -418,18 +419,26 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");\n     if (result == null && !SemconvStability.v3Preview(openTelemetry)) {\n-      String deprecatedResult =\n-          SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n-      if (deprecatedResult != null) {\n-        if (spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n+      // Deprecated declarative and flat names remain available until 3.0.\n+      result = commonConfig.getString(\"span_suppression_strategy/development\");\n+      if (result != null && spanSuppressionConfigWarningLogged.compareAndSet(false, true)) {\n+        logger.warning(\n+            \"The otel.instrumentation.experimental.span-suppression-strategy setting and the\"\n+                + \" equivalent declarative configuration property are deprecated and will be removed\"\n+                + \" in 3.0. Use otel.instrumentation.common.span-suppression-strategy or equivalent\"\n+                + \" declarative configuration instead.\");\n+      }\n+      if (result == null) {\n+        result =\n+            SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n+        if (result != null && spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n           logger.warning(\n               \"The otel.instrumentation.experimental.span-suppression-strategy setting is\"\n-                  + \" deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"\n-                  + \" declarative instrumentation configuration instead.\");\n+                  + \" deprecated and will be removed in 3.0. Use\"\n+                  + \" otel.instrumentation.common.span-suppression-strategy instead.\");",
+      "id": "PRRT_kwDODJKVX86m6w0i",
+      "opened": "2026-09-29T01:00:56Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [],
+      "reviewed": "62d3901c44e689ee274fe6958275dfeb8b71bf5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4128547845"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This entry omits the deprecated declarative key and presents the new flat property as the replacement for every user, but library instrumentation intentionally does not read that flat property. Include both configuration surfaces and direct library users to the programmatic API so the migration guidance is complete and usable.",
+      "created": "2026-09-29T01:00:56Z",
+      "hunk": "@@ -20,6 +20,9 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `otel.instrumentation.experimental.span-suppression-strategy` in favor of\n+  `otel.instrumentation.common.span-suppression-strategy`. The old property remains a fallback\n+  until 3.0 and warns when applied.",
+      "id": "PRRT_kwDODJKVX86m6w02",
+      "opened": "2026-09-29T01:00:56Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "62d3901c44e689ee274fe6958275dfeb8b71bf5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4128547896"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n                  + \" deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"\n                  + \" declarative instrumentation configuration instead.\");\n```",
+      "created": "2026-09-29T01:38:19Z",
+      "hunk": "@@ -418,18 +419,26 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");\n     if (result == null && !SemconvStability.v3Preview(openTelemetry)) {\n-      String deprecatedResult =\n-          SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n-      if (deprecatedResult != null) {\n-        if (spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n+      // Deprecated declarative and flat names remain available until 3.0.\n+      result = commonConfig.getString(\"span_suppression_strategy/development\");\n+      if (result != null && spanSuppressionConfigWarningLogged.compareAndSet(false, true)) {\n+        logger.warning(\n+            \"The otel.instrumentation.experimental.span-suppression-strategy setting and the\"\n+                + \" equivalent declarative configuration property are deprecated and will be removed\"\n+                + \" in 3.0. Use otel.instrumentation.common.span-suppression-strategy or equivalent\"\n+                + \" declarative configuration instead.\");\n+      }\n+      if (result == null) {\n+        result =\n+            SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n+        if (result != null && spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n           logger.warning(\n               \"The otel.instrumentation.experimental.span-suppression-strategy setting is\"\n-                  + \" deprecated and will be removed in 3.0. Use the programmatic API or equivalent\"\n-                  + \" declarative instrumentation configuration instead.\");\n+                  + \" deprecated and will be removed in 3.0. Use\"\n+                  + \" otel.instrumentation.common.span-suppression-strategy instead.\");",
+      "id": "PRRT_kwDODJKVX86m7QL1",
+      "opened": "2026-09-29T01:38:19Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [],
+      "reviewed": "62d3901c44e689ee274fe6958275dfeb8b71bf5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4128750550"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-29T01:38:42Z",
+      "hunk": "@@ -418,18 +419,27 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");\n     if (result == null && !SemconvStability.v3Preview(openTelemetry)) {\n-      String deprecatedResult =\n-          SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n-      if (deprecatedResult != null) {\n-        if (spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n+      // Deprecated declarative and flat names remain available until 3.0.\n+      result = commonConfig.getString(\"span_suppression_strategy/development\");\n+      if (result != null && spanSuppressionConfigWarningLogged.compareAndSet(false, true)) {\n+        logger.warning(\n+            \"The otel.instrumentation.experimental.span-suppression-strategy setting and the\"\n+                + \" equivalent declarative configuration property are deprecated and will be removed\"\n+                + \" in 3.0. Use otel.instrumentation.common.span-suppression-strategy or equivalent\"\n+                + \" declarative configuration instead.\");\n+      }\n+      if (result == null) {\n+        result =\n+            SystemProperty.getString(\"otel.instrumentation.experimental.span-suppression-strategy\");\n+        if (result != null && spanSuppressionPropertyWarningLogged.compareAndSet(false, true)) {\n           logger.warning(\n               \"The otel.instrumentation.experimental.span-suppression-strategy setting is\"\n+                  + \" deprecated and will be removed in 3.0. Use\"",
+      "id": "PRRT_kwDODJKVX86m7QeR",
+      "opened": "2026-09-29T01:38:42Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [],
+      "reviewed": "084e8c6ba9cbbfe1e8f17e3ec9ae3daf42a5cc9c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4128752376"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This entry only announces the flat-property deprecation, but the change also deprecates `java.common.span_suppression_strategy/development`. Name both declarative paths so YAML users receive the required migration guidance.",
+      "created": "2026-09-29T17:31:30Z",
+      "hunk": "@@ -20,6 +20,9 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `otel.instrumentation.experimental.span-suppression-strategy` in favor of\n+  `otel.instrumentation.common.span-suppression-strategy`. The old property remains a fallback\n+  until 3.0 and warns when applied.",
+      "id": "PRRT_kwDODJKVX86nOI7E",
+      "opened": "2026-09-29T17:31:31Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-09-29T18:01:12Z",
+          "body": "Addressed in 072d6fec4b14a8566aa15b17e9c0338c7fe6c37f, 2b9625d96495aec29b350251195d1fd01990ec32, 49754e73005fe0b560b7db16dec6d7e87012a94e.\n\nFixed in the verified source changes 072d6fec4b14a8566aa15b17e9c0338c7fe6c37f, 2b9625d96495aec29b350251195d1fd01990ec32, 49754e73005fe0b560b7db16dec6d7e87012a94e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136688084"
+        }
+      ],
+      "reviewed": "9c570ee8618b0bd9135f4e917abffcb5a7cc1b7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136435608"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The new stable setting is not represented in the shared configuration documentation: `instrumentation-docs/src/main/resources/shared-config-definitions.yaml:287-290` still defines only the deprecated flat/YAML names, so the generated declarative example also omits `java.common.span_suppression_strategy`. Update that definition and regenerate the example so users can discover the stable configuration introduced here.",
+      "created": "2026-09-29T17:31:30Z",
+      "hunk": "@@ -418,18 +419,26 @@ private SpanSuppressionStrategy getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    String result = commonConfig.getString(\"span_suppression_strategy\");",
+      "id": "PRRT_kwDODJKVX86nOI7j",
+      "opened": "2026-09-29T17:31:31Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-29T18:01:13Z",
+          "body": "Addressed in 072d6fec4b14a8566aa15b17e9c0338c7fe6c37f, 2b9625d96495aec29b350251195d1fd01990ec32, 49754e73005fe0b560b7db16dec6d7e87012a94e.\n\nFixed in the verified source changes 072d6fec4b14a8566aa15b17e9c0338c7fe6c37f, 2b9625d96495aec29b350251195d1fd01990ec32, 49754e73005fe0b560b7db16dec6d7e87012a94e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136688359"
+        }
+      ],
+      "reviewed": "9c570ee8618b0bd9135f4e917abffcb5a7cc1b7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136435657"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Docs] This migration guidance is incorrect for standalone library instrumentation: the new stable flat property is only consumed through the Java agent's flat-property bridge, while a plain `OpenTelemetry` instance does not read it and library users must migrate to `Experimental.setSpanSuppressionStrategy(...)` (or declarative configuration). Qualify the flat-to-flat replacement as Java-agent-only so library users do not silently fall back to `semconv`.",
+      "created": "2026-09-29T18:05:30Z",
+      "hunk": "@@ -20,6 +20,11 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `otel.instrumentation.experimental.span-suppression-strategy` and\n+  `java.common.span_suppression_strategy/development` in favor of\n+  `otel.instrumentation.common.span-suppression-strategy` and\n+  `java.common.span_suppression_strategy`, respectively. The old settings remain fallbacks until\n+  3.0 and warn when applied.",
+      "id": "PRRT_kwDODJKVX86nO1t3",
+      "opened": "2026-09-29T18:05:31Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-09-29T18:23:28Z",
+          "body": "Addressed in 42f473ae22e83bf62f0c84b4d9b1ee96a8a82e6c.\n\nFixed in the verified source changes 42f473ae22e83bf62f0c84b4d9b1ee96a8a82e6c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136886196"
+        }
+      ],
+      "reviewed": "49754e73005fe0b560b7db16dec6d7e87012a94e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136724392"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Docs] This shared definition feeds both generated documentation files, but `docs/instrumentation-list.yaml` still contains neither the new stable definition nor its deprecated counterpart. `YamlHelper.generateInstrumentationYaml()` includes every `global_configurations` entry, so please run `./gradlew :instrumentation-docs:runAnalysis` and commit the resulting catalog update; otherwise consumers of the complete generated configuration list cannot discover this setting.",
+      "created": "2026-09-29T18:05:30Z",
+      "hunk": "@@ -285,11 +285,19 @@ global_configurations:\n     type: string\n \n   span-suppression-strategy:\n+    name: otel.instrumentation.common.span-suppression-strategy\n+    declarative_name: java.common.span_suppression_strategy\n+    description: \"Strategy for suppressing nested instrumentation spans: `semconv` suppresses a span nested in a span of the same semantic convention type, `span-kind` suppresses a span nested in a span of the same span kind, and `none` disables suppression.\"",
+      "id": "PRRT_kwDODJKVX86nO1uu",
+      "opened": "2026-09-29T18:05:31Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [
+        {
+          "at": "2026-09-29T18:23:30Z",
+          "body": "Addressed in 42f473ae22e83bf62f0c84b4d9b1ee96a8a82e6c.\n\nFixed in the verified source changes 42f473ae22e83bf62f0c84b4d9b1ee96a8a82e6c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136886454"
+        }
+      ],
+      "reviewed": "49754e73005fe0b560b7db16dec6d7e87012a94e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136724467"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `docs/instrumentation-list.yaml` is generated and must not be edited in feature PRs (`.github/instructions/instrumentation-list.instructions.md:5-8`). Revert all changes to this file; the nightly metadata workflow will regenerate the catalog from `shared-config-definitions.yaml`.",
+      "created": "2026-09-29T18:26:37Z",
+      "hunk": "@@ -2,6 +2,8 @@\n # The structure and contents are a work in progress and subject to change.\n # Common metrics and configurations are collected in the top-level `definitions` catalog;\n # each module references them by id via `metric_refs` and `configuration_refs`.\n+# `global_configuration_refs` lists the configurations read by the agent itself rather\n+# than by a specific instrumentation.",
+      "id": "PRRT_kwDODJKVX86nPTwo",
+      "opened": "2026-09-29T18:26:37Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-09-29T18:35:53Z",
+          "body": "Addressed in 4f480a7c86beb7f6507f30874802c92fd51cd526.\n\nFixed in the verified source changes 4f480a7c86beb7f6507f30874802c92fd51cd526.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136998936"
+        }
+      ],
+      "reviewed": "42f473ae22e83bf62f0c84b4d9b1ee96a8a82e6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136914079"
+    }
+  ]
+}

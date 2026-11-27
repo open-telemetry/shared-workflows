@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3da6af0f9e45e309f3211a779d3fc1a382f3c1e5f66639c360eebaf486796287",
+  "input_digest": "3db54b8cb5748528f0062ba077cb9166dea4cf1a60fb42bb0d522abbaec947dd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/569c330651c4a398f5fe3b0ff218a028179147d9/instrumentation/tomcat/tomcat-7.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8e8d2fa7c5874b54971714da8294fbe5275dc092/instrumentation/tomcat/tomcat-7.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d7e0e5d791957963dd776cafc78129dd79c7447e"
+      ],
+      "id": "PRRT_kwDODJKVX86rrz1A",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3fa15b0fb693877091bbf93e89d2346f8b1fc67e/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8e8d2fa7c5874b54971714da8294fbe5275dc092/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86sETWU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9f8862f7dbb1a2723b49446046aef62cfd2bf9d/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8e8d2fa7c5874b54971714da8294fbe5275dc092/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d7e0e5d791957963dd776cafc78129dd79c7447e"
+      ],
+      "id": "PRRT_kwDODJKVX86sJ8MN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

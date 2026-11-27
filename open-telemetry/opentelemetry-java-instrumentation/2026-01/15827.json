@@ -1,0 +1,25 @@
+{
+  "head": "eb0508fc28c4476519070e839fbf3b56531d3b49",
+  "merge": "1e57e6551d660e7844264deebbd18279d87c365d",
+  "merged": "2026-01-12T17:26:52Z",
+  "missing_roots": 0,
+  "number": 15827,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this method is not used",
+      "created": "2026-01-12T12:47:06Z",
+      "hunk": "@@ -26,12 +31,50 @@ public static JettyClientTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n   }\n \n   private final HttpClient httpClient;\n+  private final Instrumenter<Request, Response> instrumenter;\n \n   JettyClientTelemetry(HttpClient httpClient) {",
+      "id": "PRRT_kwDODJKVX85o-gtw",
+      "opened": "2026-01-12T12:47:06Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyClientTelemetry.java",
+      "replies": [],
+      "reviewed": "a6cca3bd87bf5386e3c08ccd5ed4fa8d37b4fe01",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15827#discussion_r2682134838"
+    }
+  ]
+}

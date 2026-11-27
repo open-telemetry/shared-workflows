@@ -1,0 +1,31 @@
+{
+  "head": "371abca7f5b2ef52f305ed6fea759df2ed8959ee",
+  "merge": "22d33b008db9c709deb102718eebf3aeebd7cb3d",
+  "merged": "2026-08-25T11:23:22Z",
+  "missing_roots": 0,
+  "number": 19770,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This new `must` rule leaves the repository noncompliant immediately. For example, `GradleParser.java:29-43` still declares six lower-camel `static final Pattern` fields, while `AgentTestingExporterAccess.java:26-30` and `TestAgentListenerAccess.java:19-24` still declare lower-camel `static final MethodHandle` fields (with additional examples elsewhere). Either rename those declarations and their usages in this PR or narrow the mandatory rule to the types being migrated; otherwise the documented rule and automated review guidance will reject existing code that this migration leaves behind.",
+      "created": "2026-08-24T03:50:11Z",
+      "hunk": "@@ -130,10 +130,15 @@ Examples that may remain uppercase include:\n - literal strings, numbers, and booleans that behave like module constants\n - immutable value objects that are treated as fixed constants after initialization, such as\n   `Duration` timeouts, intervals, or deadlines\n-- semantic keys and handles such as `AttributeKey`, `ContextKey`, `VirtualField`,\n-  `MethodHandle`, and `Pattern`\n - canonical singleton or sentinel fields named `INSTANCE`, `EMPTY`, or `NOOP`\n \n+Semantic key and handle types — `AttributeKey`, `ContextKey`, `VirtualField`, `MethodHandle`, and\n+`Pattern` — **must** use uppercase names for `static final` fields, regardless of visibility\n+(`private` or `public`) and regardless of whether the value is created by a runtime factory method\n+(for example `VirtualField.find(...)`). These types identify a fixed, well-known slot or pattern\n+rather than a mutable collaborator, so the field name should read the same way no matter where the\n+value comes from.",
+      "id": "PRRT_kwDODJKVX86bkssj",
+      "opened": "2026-08-24T03:50:11Z",
+      "path": "docs/contributing/style-guide.md",
+      "replies": [
+        {
+          "at": "2026-08-24T14:43:41Z",
+          "body": "No code change.\n\nAnalysis: The current head already narrows the mandatory rule in the style guide and all automated review guidance. Only static final VirtualField fields must use SCREAMING_SNAKE_CASE. AttributeKey, ContextKey, MethodHandle, and Pattern fields remain good candidates for uppercase names, but the guidance does not require it.\n\nUpsides: Existing lower-camel Pattern and MethodHandle fields remain compliant, and this pull request stays focused on the VirtualField migration.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19770#discussion_r3844546872"
+        }
+      ],
+      "reviewed": "d6e3aa7ba7603949731b60ca423d6ff9a2c7a806",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19770#discussion_r3840579764"
+    }
+  ]
+}

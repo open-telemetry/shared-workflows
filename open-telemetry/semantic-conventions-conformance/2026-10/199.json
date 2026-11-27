@@ -1,0 +1,31 @@
+{
+  "head": "3164e1e6ddbec176694f3b1e4c5d90e7fe4619b4",
+  "merge": "68feaf3d08d647cd2eafd90dce774cae2bd08560",
+  "merged": "2026-10-01T02:45:19Z",
+  "missing_roots": 0,
+  "number": 199,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This GET endpoint is deterministic, but placing it in `CREATE_ENDPOINTS` only compares its top-level key set. A response whose run data changes between identical requests—or whose fallback/thread filtering is broken—would still pass, contrary to the mock-server determinism contract. Move this case to `ENDPOINTS` and add focused assertions for the default run and for a run created under the requested thread.",
+      "created": "2026-09-13T22:36:32Z",
+      "hunk": "@@ -168,6 +168,7 @@\n     (\"bedrock-agent\", \"put\", \"/agents/\", {\"agentName\": \"mock-agent\"}),\n     (\"bedrock-agentcore\", \"post\", \"/memories/create\", {\"name\": \"mock-memory\"}),\n     (\"openai-assistants\", \"post\", \"/v1/assistants\", {\"model\": \"gpt-4o-mini\"}),\n+    (\"openai-assistants-list-runs\", \"get\", \"/v1/threads/thread-mock-001/runs\", None),",
+      "id": "PRRT_kwDOTuzK5c6h8mi-",
+      "opened": "2026-09-13T22:36:32Z",
+      "path": "tools/gen-ai/mock-server/tests/test_mock_server.py",
+      "replies": [
+        {
+          "at": "2026-09-14T21:45:42Z",
+          "body": "Addressed in https://github.com/open-telemetry/semantic-conventions-conformance/commit/6c583a467d7895ab50ac4edbcb31c93e6ce436c2",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/199#discussion_r4009892943"
+        }
+      ],
+      "reviewed": "a076a9d29514f9cdd06e5b77d8120bf93eef3cae",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/199#discussion_r4001120474"
+    }
+  ]
+}

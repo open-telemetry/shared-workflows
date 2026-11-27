@@ -1,0 +1,52 @@
+{
+  "head": "3589d97ca87082b754908ea5f892ff5b747d2a3e",
+  "merge": "3299de9ea9fc6b3c6fae9108737489624ceae730",
+  "merged": "2026-05-15T17:14:10Z",
+  "missing_roots": 0,
+  "number": 18756,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When `AGENT_RESULT=success` but no `cleanup.patch` is found, this now always creates/pushes an empty commit. Because the workflow’s artifact download/upload steps are `continue-on-error`, a transient artifact issue could also produce “no cleanup.patch” even when the agent actually generated changes, and this would incorrectly record the module as a no-op while still marking it processed (dropping the real patch). Consider gating the empty-commit path on a positive signal that the agent artifact was downloaded correctly (e.g., presence of `agent_output.json` / expected directories), or treat a missing artifact on success as a failure and record it in failed.txt instead of creating the empty commit.",
+      "created": "2026-05-15T03:55:10Z",
+      "hunk": "@@ -134,6 +136,14 @@ if [ -n \"$PATCH_SRC\" ]; then\n             )\n         fi\n     )\n+elif [ \"$AGENT_RESULT\" = \"success\" ]; then\n+    (\n+        cd \"$WIP_WT\"\n+        git commit --allow-empty \\\n+            -m \"Cleanup for $SHORT (empty)\" \\\n+            -m \"No cleanup changes needed.\"\n+        git push origin \"$WIP_BRANCH\"\n+    )",
+      "id": "PRRT_kwDODJKVX86CQM8f",
+      "opened": "2026-05-15T03:55:10Z",
+      "path": ".github/scripts/module-cleanup/finalize.sh",
+      "replies": [
+        {
+          "at": "2026-05-15T15:20:27Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1ef55955dee1ffacd9f42d419f795175c2de61fa.\n\nThe export step now writes an explicit cleanup.noop marker for intentional no-op runs, and finalize treats a missing cleanup.patch/cleanup.noop result as a failure instead of creating an empty cleanup commit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18756#discussion_r3249189746"
+        }
+      ],
+      "reviewed": "a7e35ad0ae5514afd059a6307d6901d2bbc71b54",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18756#discussion_r3245801202"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Now that successful no-op runs add an empty commit to the wip branch, it’s possible for `origin/$WIP_BRANCH` to be ahead of `origin/main` while `FILE_COUNT` stays 0 (only empty commits). When `QUEUE_REMAINING` reaches 0, the flush logic will still try to create a batch branch + PR even though there are no file changes, which can produce a no-op PR (or potentially cause `gh pr create` to fail depending on GitHub’s behavior for empty diffs). Consider preventing flush/PR creation when the wip tree matches main (e.g., require `FILE_COUNT > 0` before flushing, or detect tree equality and just drop the wip branch / skip PR creation).",
+      "created": "2026-05-15T15:27:38Z",
+      "hunk": "@@ -134,6 +163,16 @@ if [ -n \"$PATCH_SRC\" ]; then\n             )\n         fi\n     )\n+elif [ \"$AGENT_RESULT\" = \"success\" ] && [ -n \"$NOOP_SRC\" ]; then\n+    (\n+        cd \"$WIP_WT\"\n+        git commit --allow-empty \\\n+            -m \"Cleanup for $SHORT (empty)\" \\\n+            -m \"No cleanup changes needed.\"\n+        git push origin \"$WIP_BRANCH\"\n+    )",
+      "id": "PRRT_kwDODJKVX86CZwpg",
+      "opened": "2026-05-15T15:27:39Z",
+      "path": ".github/scripts/module-cleanup/finalize.sh",
+      "replies": [
+        {
+          "at": "2026-05-15T15:57:49Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3589d97ca87b18b584d2c60b8fcb18ac74524e3e4.\n\nThe flush logic now requires the wip branch to have file changes before creating a batch PR, so a branch containing only empty no-op review commits is skipped instead of producing an empty-diff PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18756#discussion_r3249399691"
+        }
+      ],
+      "reviewed": "1ef55955dee1ffacd9f42d419f795175c2de61fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18756#discussion_r3249236322"
+    }
+  ]
+}

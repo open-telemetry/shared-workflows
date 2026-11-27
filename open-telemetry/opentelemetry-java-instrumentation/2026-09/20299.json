@@ -1,0 +1,70 @@
+{
+  "head": "e9b2031e204611e8b7ae011d397ec9158a404514",
+  "merge": "b18eec147afe3738515ea233b3ec112b1b683133",
+  "merged": "2026-09-29T15:12:15Z",
+  "missing_roots": 0,
+  "number": 20299,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This setting has a fixed default rather than falling back to another setting: `SemconvExceptionSignal` treats both `null` and the empty string as span-events-only. Omitting `default` therefore causes the example generator to exclude a safe global configuration contrary to the metadata contract. Add an empty-string default and regenerate the example output.",
+      "created": "2026-09-28T23:17:36Z",
+      "hunk": "@@ -246,3 +246,102 @@ configurations:\n     default: trace_flags\n     deprecated: true\n     replaced_by: otel.instrumentation.common.logging.trace-flags-key\n+\n+# Global configurations are read by the agent or the instrumentation API itself, on behalf of every\n+# instrumentation rather than any particular one, so no module's metadata.yaml declares them and\n+# modules must not `ref` them. A setting that is read on behalf of specific instrumentations (even by\n+# a shared helper) belongs in `configurations` above, referenced by each of those modules.\n+#\n+# An entry without a `default` falls back to another setting when unset. Such entries, and deprecated\n+# ones, are left out of docs/declarative-configuration-example.yaml, because merely setting them there\n+# would change behavior.\n+global_configurations:\n+  common.v3-preview:\n+    name: otel.instrumentation.common.v3-preview\n+    declarative_name: java.common.v3_preview\n+    description: \"Enables a preview of the behavior planned for version 3.0 of the agent, such as emitting the stable database and code semantic conventions and the new messaging semantic conventions by default, and ignoring deprecated settings. The set of changes it enables can grow in any release.\"\n+    type: boolean\n+    default: false\n+\n+  semconv-stability.preview:\n+    name: otel.semconv-stability.preview\n+    declarative_name: java.common.semconv_stability.preview\n+    description: \"Opt-in to emit preview (not yet stable) semantic conventions for the `rpc`, `messaging`, and `service.peer` groups. Use `<group>/dup` to emit both the old and the preview conventions simultaneously. Outside v3 preview these groups are also accepted by `otel.semconv-stability.opt-in`; under v3 preview only this setting selects them for `rpc` and `service.peer`, and messaging always uses the preview conventions. The flat `otel.semconv-stability.preview` property is read only from system properties and environment variables, not from the agent configuration file.\"\n+    type: list\n+\n+  semconv-exception.signal.preview:\n+    name: otel.semconv.exception.signal.preview\n+    declarative_name: general.semconv_exception.signal.preview\n+    description: \"Preview of emitting exceptions as log records instead of span events. `logs` emits log records only and `logs/dup` emits both log records and span events. When unset, exceptions are recorded as span events.\"\n+    type: string",
+      "id": "PRRT_kwDODJKVX86m5WYS",
+      "opened": "2026-09-28T23:17:37Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [],
+      "reviewed": "c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20299#discussion_r4127955669"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This overload is only used internally and by the package-local test, so making it public exposes an implementation/testing hook unnecessarily. Use package-private visibility with the repository's testing marker.",
+      "created": "2026-09-28T23:17:36Z",
+      "hunk": "@@ -45,16 +46,38 @@ private record ConfigValue(\n   private static final Yaml SCALAR_YAML = new Yaml();\n \n   /**\n-   * Generates a declarative configuration YAML file from instrumentation modules.\n+   * Generates a declarative configuration YAML file from instrumentation modules and the global\n+   * configurations of the {@link SharedConfigurationRegistry}.\n    *\n    * @param modules the list of instrumentation modules\n    * @param writer the writer to output the YAML to\n    * @throws IOException if an I/O error occurs\n    */\n   public static void generateConfigurationYaml(\n       List<InstrumentationModule> modules, BufferedWriter writer) throws IOException {\n+    generateConfigurationYaml(\n+        modules,\n+        List.copyOf(SharedConfigurationRegistry.getInstance().globalConfigurations().values()),\n+        writer);\n+  }\n \n-    Map<String, Object> configTree = buildConfigTree(modules);\n+  /**\n+   * Generates a declarative configuration YAML file from instrumentation modules and global\n+   * configurations.\n+   *\n+   * @param modules the list of instrumentation modules\n+   * @param globalConfigurations configurations read by the agent or the instrumentation API itself\n+   *     rather than by a specific module, included regardless of the modules\n+   * @param writer the writer to output the YAML to\n+   * @throws IOException if an I/O error occurs\n+   */\n+  public static void generateConfigurationYaml(\n+      List<InstrumentationModule> modules,\n+      List<ConfigurationOption> globalConfigurations,\n+      BufferedWriter writer)\n+      throws IOException {",
+      "id": "PRRT_kwDODJKVX86m5WYy",
+      "opened": "2026-09-28T23:17:37Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGenerator.java",
+      "replies": [],
+      "reviewed": "c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20299#discussion_r4127955723"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This overload is only called by the public wrapper and its package-local test, so exposing it publicly unnecessarily expands the utility's API. Keep the testing seam package-private and mark why it is broader than private.",
+      "created": "2026-09-28T23:17:37Z",
+      "hunk": "@@ -52,14 +52,29 @@ public class YamlHelper {\n \n   public static void generateInstrumentationYaml(\n       List<InstrumentationModule> list, BufferedWriter writer) {\n+    generateInstrumentationYaml(\n+        list,\n+        List.copyOf(SharedConfigurationRegistry.getInstance().globalConfigurations().values()),\n+        writer);\n+  }\n+\n+  /**\n+   * Generates the instrumentation list, including global configurations: settings read by the agent\n+   * or the instrumentation API itself rather than by a specific module. They are added to the\n+   * definitions catalog and listed by id under the top-level {@code global_configuration_refs}.\n+   */\n+  public static void generateInstrumentationYaml(\n+      List<InstrumentationModule> list,\n+      List<ConfigurationOption> globalConfigurations,\n+      BufferedWriter writer) {",
+      "id": "PRRT_kwDODJKVX86m5WZN",
+      "opened": "2026-09-28T23:17:37Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/YamlHelper.java",
+      "replies": [],
+      "reviewed": "c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20299#discussion_r4127955772"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Repository test conventions explicitly avoid AssertJ descriptions when the direct assertion already reports the unexpected values. The failing collection assertion will show every undocumented mapping without this custom text.",
+      "created": "2026-09-28T23:17:37Z",
+      "hunk": "@@ -104,6 +117,44 @@ void validateDeclarativeNames() throws IOException {\n     }\n   }\n \n+  /**\n+   * Every declarative name with a special mapping in the bridge is a setting the agent reads, so it\n+   * must be documented, either by a module's metadata.yaml or as a shared or global configuration.\n+   * Without this, a setting read by the agent or the instrumentation API itself (rather than by a\n+   * module) silently goes missing from docs/declarative-configuration-example.yaml.\n+   */\n+  @Test\n+  void specialMappingsAreDocumented() throws Exception {\n+    Set<String> documented = new HashSet<>();\n+    metadataConfigurations().values().stream()\n+        .flatMap(List::stream)\n+        .map(ConfigurationOption::declarativeName)\n+        .filter(Objects::nonNull)\n+        .forEach(documented::add);\n+    SharedConfigurationRegistry registry = SharedConfigurationRegistry.getInstance();\n+    Stream.concat(\n+            registry.definitions().values().stream(),\n+            registry.globalConfigurations().values().stream())\n+        .map(ConfigurationOption::declarativeName)\n+        .filter(Objects::nonNull)\n+        .forEach(documented::add);\n+\n+    List<String> undocumented =\n+        specialMappings().keySet().stream()\n+            .filter(name -> !documented.contains(name))\n+            .sorted()\n+            .toList();\n+\n+    assertThat(undocumented)\n+        .describedAs(\n+            \"Declarative names mapped in ConfigPropertiesBackedDeclarativeConfigProperties but not\"\n+                + \" documented in any metadata.yaml or in \"\n+                + SHARED_DEFINITIONS\n+                + \". Document them in the owning module's metadata.yaml, or in\"\n+                + \" global_configurations if the agent or instrumentation API reads them.\")\n+        .isEmpty();",
+      "id": "PRRT_kwDODJKVX86m5WZw",
+      "opened": "2026-09-28T23:17:37Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/DeclarativeConfigValidationTest.java",
+      "replies": [],
+      "reviewed": "c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20299#discussion_r4127955834"
+    }
+  ]
+}

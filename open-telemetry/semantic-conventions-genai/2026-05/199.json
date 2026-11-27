@@ -1,0 +1,94 @@
+{
+  "head": "33ac39eed1671becb21a30dbb8cb813dbbe6cb8f",
+  "merge": "ba5e310ed94b193b810060b427de1d596d04725c",
+  "merged": "2026-05-27T14:28:10Z",
+  "missing_roots": 0,
+  "number": 199,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If the GraphQL response includes an `errors` field or `data.repository` is null (e.g., bad `repo`, auth/rate-limit issues, or partial failures), this function will currently treat it as “no matching issue” and return `None`, which then triggers creation of a duplicate dashboard issue. Consider explicitly checking for `errors`/missing repository and raising an exception so the workflow fails loudly instead of creating a new issue on query failure.\n",
+      "created": "2026-05-26T19:00:32Z",
+      "hunk": "@@ -17,18 +16,51 @@\n DASHBOARD_LABEL = \"dashboard\"\n \n \n+# GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint\n+# because that endpoint has been observed to omit pinned issues from its\n+# results, which would cause this script to create a duplicate dashboard\n+# issue instead of updating the existing one.\n+_FIND_DASHBOARD_ISSUE_QUERY = \"\"\"\n+query ($owner: String!, $name: String!, $label: String!, $after: String) {\n+  repository(owner: $owner, name: $name) {\n+    issues(\n+      first: 100\n+      after: $after\n+      states: OPEN\n+      filterBy: { labels: [$label] }\n+      orderBy: { field: CREATED_AT, direction: ASC }\n+    ) {\n+      pageInfo { hasNextPage endCursor }\n+      nodes { number title }\n+    }\n+  }\n+}\n+\"\"\"\n+\n+\n def find_dashboard_issue(repo: str) -> int | None:\n-    label = quote(DASHBOARD_LABEL, safe=\"\")\n-    issues = gh_api(f\"/repos/{repo}/issues?state=open&labels={label}&per_page=100\", paginate=True)\n-    numbers = sorted(\n-        issue[\"number\"]\n-        for issue in issues\n-        if isinstance(issue, dict)\n-        and issue.get(\"pull_request\") is None\n-        and issue.get(\"title\") == DASHBOARD_TITLE\n-        and isinstance(issue.get(\"number\"), int)\n-    )\n-    return numbers[0] if numbers else None\n+    owner, _, name = repo.partition(\"/\")\n+    numbers: list[int] = []\n+    after: str | None = None\n+    while True:\n+        data = gh_graphql(\n+            _FIND_DASHBOARD_ISSUE_QUERY,\n+            {\"owner\": owner, \"name\": name, \"label\": DASHBOARD_LABEL, \"after\": after},\n+        )\n+        connection = (((data.get(\"data\") or {}).get(\"repository\") or {}).get(\"issues\") or {})",
+      "id": "PRRT_kwDOSUeMrM6E5Zrb",
+      "opened": "2026-05-26T19:00:33Z",
+      "path": ".github/scripts/pull-request-dashboard/publish_dashboard.py",
+      "replies": [
+        {
+          "at": "2026-05-26T19:07:22Z",
+          "body": "Looked into this. `gh api graphql` already exits non-zero whenever the response includes an `errors` array — verified: querying a nonexistent repo returns `{\"data\":{\"repository\":null},\"errors\":[{\"type\":\"NOT_FOUND\",...}]}` with exit code 1, which `gh_graphql` / `run_gh` turn into a `RuntimeError`. The original silent-fallback path was the actual bug, because `or {}` papered over a null repository and converted \"loud failure\" into \"duplicate dashboard issue\". Fixed in b6f25b1 by removing the silent fallbacks entirely (`or {}`, `or []`, `isinstance` defenses) — now subscript access fails fast at the assumption boundary, and `gh_graphql` remains the fail-fast layer for any GraphQL error.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3306225219"
+        }
+      ],
+      "reviewed": "410308b7d7c738d36e83d46addb62cb00245df0f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3306182664"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The pagination loop can become infinite if `pageInfo.hasNextPage` is true but `pageInfo.endCursor` is missing/empty (since `after` becomes `None` and the next iteration re-fetches the first page). Add a guard to raise/abort when `hasNextPage` is true but `endCursor` is not a non-empty string.\n",
+      "created": "2026-05-26T19:00:33Z",
+      "hunk": "@@ -17,18 +16,51 @@\n DASHBOARD_LABEL = \"dashboard\"\n \n \n+# GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint\n+# because that endpoint has been observed to omit pinned issues from its\n+# results, which would cause this script to create a duplicate dashboard\n+# issue instead of updating the existing one.\n+_FIND_DASHBOARD_ISSUE_QUERY = \"\"\"\n+query ($owner: String!, $name: String!, $label: String!, $after: String) {\n+  repository(owner: $owner, name: $name) {\n+    issues(\n+      first: 100\n+      after: $after\n+      states: OPEN\n+      filterBy: { labels: [$label] }\n+      orderBy: { field: CREATED_AT, direction: ASC }\n+    ) {\n+      pageInfo { hasNextPage endCursor }\n+      nodes { number title }\n+    }\n+  }\n+}\n+\"\"\"\n+\n+\n def find_dashboard_issue(repo: str) -> int | None:\n-    label = quote(DASHBOARD_LABEL, safe=\"\")\n-    issues = gh_api(f\"/repos/{repo}/issues?state=open&labels={label}&per_page=100\", paginate=True)\n-    numbers = sorted(\n-        issue[\"number\"]\n-        for issue in issues\n-        if isinstance(issue, dict)\n-        and issue.get(\"pull_request\") is None\n-        and issue.get(\"title\") == DASHBOARD_TITLE\n-        and isinstance(issue.get(\"number\"), int)\n-    )\n-    return numbers[0] if numbers else None\n+    owner, _, name = repo.partition(\"/\")\n+    numbers: list[int] = []\n+    after: str | None = None\n+    while True:\n+        data = gh_graphql(\n+            _FIND_DASHBOARD_ISSUE_QUERY,\n+            {\"owner\": owner, \"name\": name, \"label\": DASHBOARD_LABEL, \"after\": after},\n+        )\n+        connection = (((data.get(\"data\") or {}).get(\"repository\") or {}).get(\"issues\") or {})\n+        for node in connection.get(\"nodes\") or []:\n+            if not isinstance(node, dict):\n+                continue\n+            if node.get(\"title\") != DASHBOARD_TITLE:\n+                continue\n+            number = node.get(\"number\")\n+            if isinstance(number, int):\n+                numbers.append(number)\n+        page_info = connection.get(\"pageInfo\") or {}\n+        if not page_info.get(\"hasNextPage\"):\n+            break\n+        after = page_info.get(\"endCursor\") or None",
+      "id": "PRRT_kwDOSUeMrM6E5Zr6",
+      "opened": "2026-05-26T19:00:33Z",
+      "path": ".github/scripts/pull-request-dashboard/publish_dashboard.py",
+      "replies": [
+        {
+          "at": "2026-05-26T19:07:24Z",
+          "body": "Not taking this one. Per the [Relay Cursor Connections spec](https://relay.dev/graphql/connections.htm) (which GitHub implements), `endCursor` is the cursor of the last edge in the current page — it is `null` only when the page has zero edges, and in that case `hasNextPage` is also `false`. The hypothesized state (`hasNextPage: true` AND `endCursor: null/empty`) is unreachable on a spec-compliant connection, so guarding for it would be defensive code for a scenario that cannot happen. If GitHub ever did violate this, `gh_graphql` would still raise on the next page request (an empty `after=` is rejected), preserving fail-fast behavior.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3306225436"
+        }
+      ],
+      "reviewed": "410308b7d7c738d36e83d46addb62cb00245df0f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3306182711"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`find_dashboard_issue()` paginates through *all* open issues with the `dashboard` label, even though the query is already ordered by `CREATED_AT ASC` and you only need the earliest issue whose title matches `DASHBOARD_TITLE`. Consider returning immediately when you encounter the first matching node (and dropping the `numbers` list / `min()`), to reduce GraphQL calls and avoid scanning the full result set unnecessarily.",
+      "created": "2026-05-26T19:09:51Z",
+      "hunk": "@@ -17,18 +16,47 @@\n DASHBOARD_LABEL = \"dashboard\"\n \n \n+# GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint\n+# because that endpoint has been observed to omit pinned issues from its\n+# results, which would cause this script to create a duplicate dashboard\n+# issue instead of updating the existing one.\n+_FIND_DASHBOARD_ISSUE_QUERY = \"\"\"\n+query ($owner: String!, $name: String!, $label: String!, $after: String) {\n+  repository(owner: $owner, name: $name) {\n+    issues(\n+      first: 100\n+      after: $after\n+      states: OPEN\n+      filterBy: { labels: [$label] }\n+      orderBy: { field: CREATED_AT, direction: ASC }\n+    ) {\n+      pageInfo { hasNextPage endCursor }\n+      nodes { number title }\n+    }\n+  }\n+}\n+\"\"\"\n+\n+\n def find_dashboard_issue(repo: str) -> int | None:\n-    label = quote(DASHBOARD_LABEL, safe=\"\")\n-    issues = gh_api(f\"/repos/{repo}/issues?state=open&labels={label}&per_page=100\", paginate=True)\n-    numbers = sorted(\n-        issue[\"number\"]\n-        for issue in issues\n-        if isinstance(issue, dict)\n-        and issue.get(\"pull_request\") is None\n-        and issue.get(\"title\") == DASHBOARD_TITLE\n-        and isinstance(issue.get(\"number\"), int)\n-    )\n-    return numbers[0] if numbers else None\n+    owner, _, name = repo.partition(\"/\")\n+    numbers: list[int] = []\n+    after: str | None = None\n+    while True:",
+      "id": "PRRT_kwDOSUeMrM6E5jxr",
+      "opened": "2026-05-26T19:09:52Z",
+      "path": ".github/scripts/pull-request-dashboard/publish_dashboard.py",
+      "replies": [
+        {
+          "at": "2026-05-26T19:20:54Z",
+          "body": "Good call — applied in c728975. Since the query orders by `CREATED_AT ASC`, the first matching node in iteration order is already the earliest, so the function now returns immediately on the first title match and drops both the `numbers` list accumulator and the `min()` call.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3306297795"
+        }
+      ],
+      "reviewed": "b6f25b11a196928758936d127926c1c2d73fffd6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3306240441"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> has been observed to omit pinned issues\n\n😮 ",
+      "created": "2026-05-27T02:09:45Z",
+      "hunk": "@@ -17,18 +16,44 @@\n DASHBOARD_LABEL = \"dashboard\"\n \n \n+# GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint\n+# because that endpoint has been observed to omit pinned issues from its",
+      "id": "PRRT_kwDOSUeMrM6E-btJ",
+      "opened": "2026-05-27T02:09:44Z",
+      "path": ".github/scripts/pull-request-dashboard/publish_dashboard.py",
+      "replies": [
+        {
+          "at": "2026-05-27T14:26:54Z",
+          "body": "(I'm actually not sure it was related to pinned issues, PR description has a better guess, I've updated the comment to match)",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3311466793"
+        }
+      ],
+      "reviewed": "c728975cae1f7a459af43c295b70642745c8c194",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/199#discussion_r3308001270"
+    }
+  ]
+}

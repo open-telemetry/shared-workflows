@@ -1,0 +1,25 @@
+{
+  "head": "73319e4a16df9529915b2ff4ffdb02f1a41cb5e2",
+  "merge": "22f2656125af6b4813f61d98951e713d1002158f",
+  "merged": "2026-03-24T07:29:10Z",
+  "missing_roots": 0,
+  "number": 17003,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot order `@AfterEach` method _after_ `@BeforeEach`, both here and in the other Test",
+      "created": "2026-03-24T00:12:17Z",
+      "hunk": "@@ -84,10 +85,16 @@ static void setupAll() throws UnknownHostException {\n \n   @AfterAll\n   static void cleanupAll() {\n-    redisson.shutdown();\n     redisServer.stop();\n   }\n \n+  @AfterEach\n+  void cleanup() {\n+    if (redisson != null) {\n+      redisson.shutdown();\n+    }\n+  }\n+",
+      "id": "PRRT_kwDODJKVX852Rvj0",
+      "opened": "2026-03-24T00:12:17Z",
+      "path": "instrumentation/redisson/redisson-common/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "0223749d1adbd03774a4ddcdbe720057d59c6063",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17003#discussion_r2978299619"
+    }
+  ]
+}

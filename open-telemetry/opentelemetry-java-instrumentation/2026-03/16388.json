@@ -1,0 +1,137 @@
+{
+  "head": "ec716e984735353547b682e91004c0b9e218e44c",
+  "merge": "257ebe6467d84fa1871fdc21e6666e86b0048aec",
+  "merged": "2026-03-13T02:23:53Z",
+  "missing_roots": 0,
+  "number": 16388,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "pedantic, but....\n```suggestion\n      if (port == null || port <= 0 || port > 65535) {\n```",
+      "created": "2026-03-04T23:26:38Z",
+      "hunk": "@@ -78,9 +81,20 @@ public static <REQUEST, RESPONSE> HttpClientAttributesExtractorBuilder<REQUEST,\n   public void onStart(AttributesBuilder attributes, Context parentContext, REQUEST request) {\n     super.onStart(attributes, parentContext, request);\n \n-    internalServerExtractor.onStart(attributes, request);\n-\n     String fullUrl = stripSensitiveData(getter.getUrlFull(request));\n+\n+    AddressAndPort serverAddressAndPort = serverAddressAndPortExtractor.extract(request);\n+    if (serverAddressAndPort.getAddress() != null) {\n+      attributes.put(SERVER_ADDRESS, serverAddressAndPort.getAddress());\n+      Integer port = serverAddressAndPort.getPort();\n+      if (port == null || port <= 0) {",
+      "id": "PRRT_kwDODJKVX85yMEIn",
+      "opened": "2026-03-04T23:26:38Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "4650bd745c4de0500af02e2d3ea221e75891d4c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2886662958"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should we remove this if to verify that instrumentations always fill it? Or do we have instrumentations that don't?",
+      "created": "2026-03-05T08:23:09Z",
+      "hunk": "@@ -1102,11 +1102,8 @@ protected SpanDataAssert assertClientSpan(\n               if (httpClientAttributes.contains(SERVER_PORT)) {",
+      "id": "PRRT_kwDODJKVX85yRA_9",
+      "opened": "2026-03-05T08:23:09Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "4650bd745c4de0500af02e2d3ea221e75891d4c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2888450779"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "just curious why should we make this change only in the next major version, is there something that prevents us from doing it right now?",
+      "created": "2026-03-09T10:03:35Z",
+      "hunk": "@@ -78,9 +85,24 @@ public static <REQUEST, RESPONSE> HttpClientAttributesExtractorBuilder<REQUEST,\n   public void onStart(AttributesBuilder attributes, Context parentContext, REQUEST request) {\n     super.onStart(attributes, parentContext, request);\n \n-    internalServerExtractor.onStart(attributes, request);\n-\n     String fullUrl = stripSensitiveData(getter.getUrlFull(request));\n+\n+    if (SemconvStability.v3Preview()) {",
+      "id": "PRRT_kwDODJKVX85y-Yiu",
+      "opened": "2026-03-09T10:03:35Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-03-09T15:48:30Z",
+          "body": "yeah, it's confusing, due to this:\r\n\r\n> [Adding new attributes to existing metrics that do not \"break apart\" existing timeseries, such that alert thresholds would break / need to change.](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/versioning-and-stability.md#semantic-conventions-stability)\r\n\r\nfor some clarification what this means, see https://github.com/open-telemetry/semantic-conventions/issues/722",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2906298130"
+        },
+        {
+          "at": "2026-03-10T04:20:37Z",
+          "body": "it got annoying, let's call it a bug fix 😅 \r\n\r\nit will only \"break apart\" existing timeseries if the app was connecting to both 80 and 443 on the same target `server.address`, which is pretty uncommon in practice",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2909235252"
+        }
+      ],
+      "reviewed": "0414767742fa1b787c59df6b252daee72ef28bd7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2904416646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why is the `hostConfiguration.getProtocol()` value relevant here?",
+      "created": "2026-03-10T07:37:03Z",
+      "hunk": "@@ -101,6 +101,9 @@ public String getServerAddress(HttpMethod request) {\n   @Nullable\n   public Integer getServerPort(HttpMethod request) {\n     HostConfiguration hostConfiguration = request.getHostConfiguration();\n-    return hostConfiguration != null ? hostConfiguration.getPort() : null;\n+    if (hostConfiguration == null || hostConfiguration.getProtocol() == null) {",
+      "id": "PRRT_kwDODJKVX85zOE6n",
+      "opened": "2026-03-10T07:37:03Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpclient/v2_0/ApacheHttpClientHttpAttributesGetter.java",
+      "replies": [],
+      "reviewed": "c5020b53b7a2cd8982344334d66067f3c89cb27f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2909911152"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether something like\n```java\n  @Nullable\n  public static Integer portOrDefaultFromScheme(@Nullable Integer port, Supplier<String> scheme) {\n    if (port != null && port > 0) {\n      return port;\n    }\n    return defaultPortForScheme(scheme.get());\n  }\n```\nwould help",
+      "created": "2026-03-10T07:49:48Z",
+      "hunk": "@@ -29,5 +30,16 @@ public final class HttpConstants {\n \n   public static final String _OTHER = \"_OTHER\";\n \n+  @Nullable\n+  public static Integer defaultPortForScheme(@Nullable String scheme) {\n+    if (\"http\".equals(scheme)) {\n+      return 80;\n+    }\n+    if (\"https\".equals(scheme)) {\n+      return 443;\n+    }\n+    return null;\n+  }\n+",
+      "id": "PRRT_kwDODJKVX85zOOe1",
+      "opened": "2026-03-10T07:49:48Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpConstants.java",
+      "replies": [
+        {
+          "at": "2026-03-10T18:45:09Z",
+          "body": "added, looks nice, does introduce a capturing lambda, but really should get jitted away",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2913746584"
+        },
+        {
+          "at": "2026-03-12T09:41:06Z",
+          "body": "The lambda is only useful when getting the scheme does something complicated that is worth skipping when the port is already known. I'd guess that in most (if not all) cases we could pass the scheme directly. If you don't like the capturing lambda you could add an overload with plain string.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2923408511"
+        }
+      ],
+      "reviewed": "c5020b53b7a2cd8982344334d66067f3c89cb27f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2909964017"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-03-11T19:58:01Z",
+      "hunk": "@@ -65,6 +65,7 @@ public String getServerAddress(ApacheHttpClientRequest request) {\n   }\n \n   @Override\n+  @Nullable",
+      "id": "PRRT_kwDODJKVX85zssNd",
+      "opened": "2026-03-11T19:58:11Z",
+      "path": "instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/ApacheHttpAsyncClientHttpAttributesGetter.java",
+      "replies": [],
+      "reviewed": "e0c9dba293535ecfca0bd50cb13100ffaf97fb5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2920675647"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not sure having this overload is worth it. Or could make the other one call this one.",
+      "created": "2026-03-12T09:41:37Z",
+      "hunk": "@@ -29,5 +31,32 @@ public final class HttpConstants {\n \n   public static final String _OTHER = \"_OTHER\";\n \n+  @Nullable\n+  public static Integer portOrDefaultFromScheme(@Nullable Integer port, Supplier<String> scheme) {\n+    if (port != null && port > 0) {\n+      return port;\n+    }\n+    return defaultPortForScheme(scheme.get());\n+  }\n+\n+  @Nullable\n+  public static Integer portOrDefaultFromScheme(int port, Supplier<String> scheme) {",
+      "id": "PRRT_kwDODJKVX85z0deU",
+      "opened": "2026-03-12T09:41:37Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpConstants.java",
+      "replies": [],
+      "reviewed": "5d6fb60ffb8cf16a75a7ab2dd00917b07bda6ad8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16388#discussion_r2923411624"
+    }
+  ]
+}

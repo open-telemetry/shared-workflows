@@ -1,0 +1,73 @@
+{
+  "head": "07e3efacd82a66489d50c159efc76ea632ba7f01",
+  "merge": "d6fd4fc6106346b2f89e0f80c084eaf1cc0a01fe",
+  "merged": "2026-11-05T18:10:25Z",
+  "missing_roots": 0,
+  "number": 149,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "nit: `spans` is assigned again further down (`spans = coverage_model[\"spans\"]` before the `matched` filter), which is now redundant. The docstring above also breaks mid-sentence after \"A span that\". And `test_genai_coverage.py` reflows two blocks that aren't related to this change.",
+      "created": "2026-11-04T23:37:41Z",
+      "hunk": "@@ -85,10 +92,20 @@ def classify_span(\n         signature.\n         \"\"\"\n         del span_name\n-        operation = str(attributes.get(\"gen_ai.operation.name\", \"\")).lower()\n         present = {\n             name for name, value in attributes.items() if value is not None\n         }\n+        spans = coverage_model[\"spans\"]",
+      "id": "PRRT_kwDOTuzK5c6z2tU-",
+      "opened": "2026-11-04T23:40:16Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/_coverage.py",
+      "replies": [
+        {
+          "at": "2026-11-05T14:43:50Z",
+          "body": "Removed the duplicate `spans` assignment, reworded the docstring, and restored the original formatting of the two unrelated test blocks in 395d86a.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/149#discussion_r4481848338"
+        }
+      ],
+      "reviewed": "ea5228c54131cd3fa8ad719630896b20ab002f78",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/149#discussion_r4474740971"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This looks like a stray artifact from running `uv` at the repo root. The root `pyproject.toml` only carries ruff/pyright settings and has no `[project]` table, so this lock has no packages, and Renovate may start trying to relock it. Can it be removed?",
+      "created": "2026-11-04T23:37:41Z",
+      "hunk": "@@ -0,0 +1,3 @@\n+version = 1",
+      "id": "PRRT_kwDOTuzK5c6z2tU6",
+      "opened": "2026-11-04T23:40:16Z",
+      "path": "uv.lock",
+      "replies": [
+        {
+          "at": "2026-11-05T14:43:41Z",
+          "body": "Removed the stray root `uv.lock` in 395d86a.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/149#discussion_r4481846465"
+        }
+      ],
+      "reviewed": "ea5228c54131cd3fa8ad719630896b20ab002f78",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/149#discussion_r4474740962"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The pinned registry declares `gen_ai.execute_tool.internal` as `internal` only, so a `client`-kind `execute_tool` span should also get `genai_span_kind_unexpected` here. It doesn't, and that ID never shows up in any committed scenario `data.json`, so the kind rule may not fire at all (that predates this PR). Either way, this exact-set assertion would break once that rule works. Asserting `\"genai_span_name_format\" in advice` would avoid depending on it.",
+      "created": "2026-11-04T23:37:41Z",
+      "hunk": "@@ -0,0 +1,162 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"GenAI span advice policy behavior around MCP compatibility attributes.\"\"\"\n+\n+from __future__ import annotations\n+\n+import copy\n+import json\n+import subprocess\n+from pathlib import Path\n+from typing import Any\n+\n+import pytest\n+\n+from genai_conformance import DOMAIN\n+from opentelemetry.conformance import WeaverNotInstalledError, check_weaver\n+\n+_POLICY = (\n+    Path(__file__).parents[1]\n+    / \"src/genai_conformance/policies/genai_span_validation.rego\"\n+)\n+_SHAPE_POLICY_IDS = {\n+    \"genai_expected_attribute_missing\",\n+    \"genai_span_kind_unexpected\",\n+    \"genai_span_name_format\",\n+}\n+\n+\n+def _span(name: str, kind: str) -> dict[str, Any]:\n+    return {\n+        \"span\": {\n+            \"name\": name,\n+            \"kind\": kind,\n+            \"attributes\": [\n+                {\"name\": \"mcp.method.name\", \"value\": \"tools/call\"},\n+                {\"name\": \"gen_ai.operation.name\", \"value\": \"execute_tool\"},\n+                {\"name\": \"gen_ai.tool.name\", \"value\": \"get_weather\"},\n+            ],\n+        }\n+    }\n+\n+\n+def _run_policy(\n+    root: Path,\n+    registry: Path,\n+    model: dict[str, Any],\n+    samples: list[dict[str, Any]],\n+) -> dict[tuple[str, str], set[str]]:\n+    input_path = root / \"input.json\"\n+    model_path = root / \"coverage-model.json\"\n+    report_dir = root / \"report\"\n+    input_path.write_text(json.dumps(samples), encoding=\"utf-8\")\n+    model_path.write_text(json.dumps(model), encoding=\"utf-8\")\n+\n+    result = subprocess.run(\n+        [\n+            \"weaver\",\n+            \"registry\",\n+            \"live-check\",\n+            \"--quiet\",\n+            \"--registry\",\n+            str(registry),\n+            \"--input-source\",\n+            str(input_path),\n+            \"--advice-policies\",\n+            str(_POLICY),\n+            \"--advice-data\",\n+            str(model_path),\n+            \"--format\",\n+            \"json\",\n+            \"--fail-on\",\n+            \"none\",\n+            \"--no-stream\",\n+            \"--output\",\n+            str(report_dir),\n+        ],\n+        capture_output=True,\n+        text=True,\n+        check=False,\n+    )\n+    assert result.returncode == 0, result.stderr\n+\n+    report: dict[str, Any] = json.loads(\n+        (report_dir / \"live_check.json\").read_text(encoding=\"utf-8\")\n+    )\n+    return {\n+        (span[\"kind\"], span[\"name\"]): {\n+            advice[\"id\"]\n+            for advice in span[\"live_check_result\"][\"all_advice\"]\n+            if advice[\"id\"] in _SHAPE_POLICY_IDS\n+        }\n+        for sample in report[\"samples\"]\n+        if (span := sample.get(\"span\")) is not None\n+    }\n+\n+\n+@pytest.fixture(scope=\"module\")\n+def policy_advice(\n+    tmp_path_factory: pytest.TempPathFactory,\n+) -> tuple[dict[tuple[str, str], set[str]], dict[tuple[str, str], set[str]]]:\n+    try:\n+        check_weaver()\n+        registry = DOMAIN.registry\n+        model = copy.deepcopy(DOMAIN.coverage_model)\n+    except (WeaverNotInstalledError, OSError, RuntimeError) as error:\n+        pytest.skip(f\"GenAI policy test unavailable: {error}\")\n+\n+    with_mcp = _run_policy(\n+        tmp_path_factory.mktemp(\"genai-policy-mcp\"),\n+        registry,\n+        model,\n+        [\n+            _span(\"tools/call get_weather\", \"client\"),\n+            _span(\"tools/call get_weather\", \"server\"),\n+            _span(\"wrong get_weather\", \"internal\"),\n+        ],\n+    )\n+\n+    model[\"spans\"].pop(\"mcp.client\", None)\n+    model[\"spans\"].pop(\"mcp.server\", None)\n+    without_mcp = _run_policy(\n+        tmp_path_factory.mktemp(\"genai-policy-fallback\"),\n+        registry,\n+        model,\n+        [_span(\"tools/call get_weather\", \"client\")],\n+    )\n+    return with_mcp, without_mcp\n+\n+\n+def test_mcp_client_and_server_spans_skip_genai_shape_rules(\n+    policy_advice: tuple[\n+        dict[tuple[str, str], set[str]], dict[tuple[str, str], set[str]]\n+    ],\n+) -> None:\n+    with_mcp, _ = policy_advice\n+\n+    assert with_mcp[(\"client\", \"tools/call get_weather\")] == set()\n+    assert with_mcp[(\"server\", \"tools/call get_weather\")] == set()\n+\n+\n+def test_internal_span_with_mcp_attribute_keeps_genai_shape_rules(\n+    policy_advice: tuple[\n+        dict[tuple[str, str], set[str]], dict[tuple[str, str], set[str]]\n+    ],\n+) -> None:\n+    with_mcp, _ = policy_advice\n+\n+    assert (\n+        \"genai_span_name_format\" in with_mcp[(\"internal\", \"wrong get_weather\")]\n+    )\n+\n+\n+def test_missing_mcp_definitions_keep_genai_shape_rules(\n+    policy_advice: tuple[\n+        dict[tuple[str, str], set[str]], dict[tuple[str, str], set[str]]\n+    ],\n+) -> None:\n+    _, without_mcp = policy_advice\n+    advice = without_mcp[(\"client\", \"tools/call get_weather\")]\n+\n+    assert advice == {\"genai_span_name_format\"}",
+      "id": "PRRT_kwDOTuzK5c6z2tU8",
+      "opened": "2026-11-04T23:40:16Z",
+      "path": "tools/gen-ai/runner/tests/test_genai_policy.py",
+      "replies": [
+        {
+          "at": "2026-11-05T14:43:45Z",
+          "body": "Changed the fallback test in 395d86a to assert that `genai_span_name_format` is present, so additional advice such as `genai_span_kind_unexpected` can appear without breaking the test.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/149#discussion_r4481847411"
+        }
+      ],
+      "reviewed": "ea5228c54131cd3fa8ad719630896b20ab002f78",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/149#discussion_r4474740968"
+    }
+  ]
+}

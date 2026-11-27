@@ -1,0 +1,25 @@
+{
+  "head": "61ba48a90fde6d27c040138a12591ca4ed330f46",
+  "merge": "5b2b5a20322a8a141ba2163cdc40766da5c12070",
+  "merged": "2026-04-17T22:18:57Z",
+  "missing_roots": 0,
+  "number": 17903,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n                    // added in 2.2.0 (in which case aws-lambda-events-2.2 is used)\n```",
+      "created": "2026-04-17T21:23:25Z",
+      "hunk": "@@ -25,12 +25,12 @@ public AwsLambdaInstrumentationModule() {\n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n     return hasClassesNamed(\n-            // aws-lambda-java-core 1.0.0+\n+            // added in 1.0.0\n             \"com.amazonaws.services.lambda.runtime.RequestHandler\")\n         .and(\n             not(\n                 hasClassesNamed(\n-                    // aws-lambda-events-2.2 is used when SQSEvent is present\n+                    // added in 2.2.0",
+      "id": "PRRT_kwDODJKVX8573EGW",
+      "opened": "2026-04-17T21:23:25Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awslambdacore/v1_0/AwsLambdaInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "0eade6723e28bf7969501bb7b01e0d7d4890a414",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17903#discussion_r3103356004"
+    }
+  ]
+}

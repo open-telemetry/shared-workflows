@@ -1,0 +1,66 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9f8c7b11240f2c894f616a74732dba46f73c424c8f48aa42c9cae8ff99efb8ba",
+  "input_digest": "f291fcc8cb2fc84d3ae3035b604584cf8c25600f11b24f9d9db18717fcc85d9e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75204cec6cb9c016a7899112bf37bd81cc67d547/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75204cec6cb9c016a7899112bf37bd81cc67d547/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTraceChainTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTraceChainTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75204cec6cb9c016a7899112bf37bd81cc67d547/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75204cec6cb9c016a7899112bf37bd81cc67d547/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SingleServiceCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SingleServiceCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/544fc3d91a7bb8998c5877ac6a569b62b6a75ff0"
+      ],
+      "id": "PRRT_kwDODJKVX86txq7P",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/544fc3d91a7bb8998c5877ac6a569b62b6a75ff0/testing-common/src/test/java/io/opentelemetry/instrumentation/testing/AgentTestRunnerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/testing-common/src/test/java/io/opentelemetry/instrumentation/testing/AgentTestRunnerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e62d53a76f5097fd2cf78fe7f776829077e1d61a"
+      ],
+      "id": "PRRT_kwDODJKVX86txyBX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/544fc3d91a7bb8998c5877ac6a569b62b6a75ff0/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SuppressionTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SuppressionTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SingleServiceCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/TwoServicesWithDirectClientCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0e896b92eacb6ce02f83d1329e301f407f49d11f"
+      ],
+      "id": "PRRT_kwDODJKVX86tx0dQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0e896b92eacb6ce02f83d1329e301f407f49d11f/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SuppressionTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96be94c3d7847bad075f44f311813f29a7983572/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SuppressionTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bb3e31891c0738cad25dc8060124d30efe13ec62"
+      ],
+      "id": "PRRT_kwDODJKVX86tyFgG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

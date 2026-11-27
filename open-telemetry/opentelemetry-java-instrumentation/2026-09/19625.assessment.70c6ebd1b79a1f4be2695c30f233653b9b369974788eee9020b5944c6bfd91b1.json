@@ -1,0 +1,122 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "def4153ef6b8441db11c512554859c8defa824aa74a8fed367e4fe35f9951f72",
+  "input_digest": "70c6ebd1b79a1f4be2695c30f233653b9b369974788eee9020b5944c6bfd91b1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/654cf90a5cf2f18149a7d22f35c0835c47a097bc/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapperTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapperTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86a6m35",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/654cf90a5cf2f18149a7d22f35c0835c47a097bc/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/654cf90a5cf2f18149a7d22f35c0835c47a097bc/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/DefaultErrorCauseExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/DefaultErrorCauseExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86a6m3y",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5375a4a374c75df280ecdf9ecae8dc15bbed564b/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/604814f2c20ba633ccb26f0cd00004cdd7d93b75"
+      ],
+      "id": "PRRT_kwDODJKVX86cfD_x",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5375a4a374c75df280ecdf9ecae8dc15bbed564b/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/604814f2c20ba633ccb26f0cd00004cdd7d93b75"
+      ],
+      "id": "PRRT_kwDODJKVX86cfFZD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/604814f2c20ba633ccb26f0cd00004cdd7d93b75/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7b2ab4bf9353ff040e789004d22ff31de0efb16f"
+      ],
+      "id": "PRRT_kwDODJKVX86dR7me",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7b2ab4bf9353ff040e789004d22ff31de0efb16f/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7b2ab4bf9353ff040e789004d22ff31de0efb16f/docs/contributing/style-guide.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d7d415b6d6b1ee241a88ccd1ab9718398a8b84aa"
+      ],
+      "id": "PRRT_kwDODJKVX86eibrL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7b2ab4bf9353ff040e789004d22ff31de0efb16f/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6684b24311864496a4a8c1b276a34438ff109cf7"
+      ],
+      "id": "PRRT_kwDODJKVX86eibsY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6684b24311864496a4a8c1b276a34438ff109cf7/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/DefaultExceptionMapperInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6684b24311864496a4a8c1b276a34438ff109cf7/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/DefaultExceptionMapperInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/619146b29b3ca69a507a50e8d24759ffc9cfd396"
+      ],
+      "id": "PRRT_kwDODJKVX86el1fe",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6684b24311864496a4a8c1b276a34438ff109cf7/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6684b24311864496a4a8c1b276a34438ff109cf7/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/DefaultExceptionMapperInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e305181975fcc708dbb55202bbe95ccc1b8f2756/instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/DefaultExceptionMapperInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/619146b29b3ca69a507a50e8d24759ffc9cfd396"
+      ],
+      "id": "PRRT_kwDODJKVX86el1gi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "642563ebcdcffc9aaf7986e2ce8b3d131ac2d64e",
+  "merge": "e2283002b023eed2b932815341cc85e2850698a1",
+  "merged": "2026-09-29T22:10:58Z",
+  "missing_roots": 0,
+  "number": 20270,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  This instrumentation enables database client spans and database client metrics for Couchbase 2.0\n```",
+      "created": "2026-09-27T03:05:45Z",
+      "hunk": "@@ -1,6 +1,6 @@\n display_name: Couchbase Client\n description: >\n-  This instrumentation enables database client spans and database client metrics for Couchbase 2.0\n+  This instrumentation enables database client spans and database client metrics for Couchbase 2.x",
+      "id": "PRRT_kwDODJKVX86mW5-n",
+      "opened": "2026-09-27T03:05:45Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "5b3aed72c0cd9c9efdce7160ff1c13c3884e41a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20270#discussion_r4113907418"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "the repeat in `.v2_0.network.v2_0` feels a little odd, but i suppose it is what it is",
+      "created": "2026-09-29T18:51:41Z",
+      "hunk": "@@ -3,10 +3,10 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.couchbase.v2_0.network;\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v2_0.network.v2_0;",
+      "id": "PRRT_kwDODJKVX86nP2r2",
+      "opened": "2026-09-29T18:55:28Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/v2_0/CouchbaseCoreNetworkInstrumentation.java",
+      "replies": [],
+      "reviewed": "642563ebcdcffc9aaf7986e2ce8b3d131ac2d64e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20270#discussion_r4137138979"
+    }
+  ]
+}

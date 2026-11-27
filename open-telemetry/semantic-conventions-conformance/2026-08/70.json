@@ -1,0 +1,100 @@
+{
+  "head": "6431d5242743ed847901409678428a5bba05fdf8",
+  "merge": "6a2d4447f90204713767b4b3c91b2ddb6cd8cbb8",
+  "merged": "2026-08-19T20:39:11Z",
+  "missing_roots": 0,
+  "number": 70,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`.github/actionlint.yaml` declares `cncf-ubuntu-2-8-x86` under `self-hosted-runner.labels`, but these workflows use the label alone in `runs-on`. For self-hosted runners, it’s more robust to be explicit and use the array form (e.g., `runs-on: [self-hosted, cncf-ubuntu-2-8-x86]`, and in the matrix `os: [self-hosted, cncf-ubuntu-2-8-x86]`). This avoids ambiguity and aligns with typical self-hosted runner selection patterns.",
+      "created": "2026-08-19T17:14:02Z",
+      "hunk": "@@ -22,7 +22,7 @@ jobs:\n       matrix:\n         include:\n           # Test the runner on each supported operating system.\n-          - os: ubuntu-latest\n+          - os: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOTuzK5c6ajT4E",
+      "opened": "2026-08-19T17:14:04Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "4eda7b42490dccdf42fb767867e96f65edd407f8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/70#discussion_r3815164302"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`.github/actionlint.yaml` declares `cncf-ubuntu-2-8-x86` under `self-hosted-runner.labels`, but these workflows use the label alone in `runs-on`. For self-hosted runners, it’s more robust to be explicit and use the array form (e.g., `runs-on: [self-hosted, cncf-ubuntu-2-8-x86]`, and in the matrix `os: [self-hosted, cncf-ubuntu-2-8-x86]`). This avoids ambiguity and aligns with typical self-hosted runner selection patterns.",
+      "created": "2026-08-19T17:14:02Z",
+      "hunk": "@@ -51,7 +51,7 @@ jobs:\n \n   lint:\n     name: Lint\n-    runs-on: ubuntu-latest\n+    runs-on: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOTuzK5c6ajT4Z",
+      "opened": "2026-08-19T17:14:04Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "4eda7b42490dccdf42fb767867e96f65edd407f8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/70#discussion_r3815164337"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`.github/actionlint.yaml` declares `cncf-ubuntu-2-8-x86` under `self-hosted-runner.labels`, but these workflows use the label alone in `runs-on`. For self-hosted runners, it’s more robust to be explicit and use the array form (e.g., `runs-on: [self-hosted, cncf-ubuntu-2-8-x86]`, and in the matrix `os: [self-hosted, cncf-ubuntu-2-8-x86]`). This avoids ambiguity and aligns with typical self-hosted runner selection patterns.",
+      "created": "2026-08-19T17:14:03Z",
+      "hunk": "@@ -135,7 +135,7 @@ jobs:\n   # Separate from `test` because it needs weaver and the fetched registry.\n   coverage-model:\n     name: Coverage model\n-    runs-on: ubuntu-latest\n+    runs-on: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOTuzK5c6ajT47",
+      "opened": "2026-08-19T17:14:04Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "4eda7b42490dccdf42fb767867e96f65edd407f8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/70#discussion_r3815164383"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`.github/actionlint.yaml` declares `cncf-ubuntu-2-8-x86` under `self-hosted-runner.labels`, but these workflows use the label alone in `runs-on`. For self-hosted runners, it’s more robust to be explicit and use the array form (e.g., `runs-on: [self-hosted, cncf-ubuntu-2-8-x86]`, and in the matrix `os: [self-hosted, cncf-ubuntu-2-8-x86]`). This avoids ambiguity and aligns with typical self-hosted runner selection patterns.",
+      "created": "2026-08-19T17:14:03Z",
+      "hunk": "@@ -95,7 +95,7 @@ jobs:\n \n   types:\n     name: Types\n-    runs-on: ubuntu-latest\n+    runs-on: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOTuzK5c6ajT4m",
+      "opened": "2026-08-19T17:14:04Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "4eda7b42490dccdf42fb767867e96f65edd407f8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/70#discussion_r3815164356"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`.github/actionlint.yaml` declares `cncf-ubuntu-2-8-x86` under `self-hosted-runner.labels`, but these workflows use the label alone in `runs-on`. For self-hosted runners, it’s more robust to be explicit and use the array form (e.g., `runs-on: [self-hosted, cncf-ubuntu-2-8-x86]`, and in the matrix `os: [self-hosted, cncf-ubuntu-2-8-x86]`). This avoids ambiguity and aligns with typical self-hosted runner selection patterns.",
+      "created": "2026-08-19T17:14:03Z",
+      "hunk": "@@ -305,7 +305,7 @@ jobs:\n       - types\n       - coverage-model\n       - scenarios\n-    runs-on: ubuntu-latest\n+    runs-on: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOTuzK5c6ajT50",
+      "opened": "2026-08-19T17:14:04Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "4eda7b42490dccdf42fb767867e96f65edd407f8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/70#discussion_r3815164457"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`.github/actionlint.yaml` declares `cncf-ubuntu-2-8-x86` under `self-hosted-runner.labels`, but these workflows use the label alone in `runs-on`. For self-hosted runners, it’s more robust to be explicit and use the array form (e.g., `runs-on: [self-hosted, cncf-ubuntu-2-8-x86]`, and in the matrix `os: [self-hosted, cncf-ubuntu-2-8-x86]`). This avoids ambiguity and aligns with typical self-hosted runner selection patterns.",
+      "created": "2026-08-19T17:14:03Z",
+      "hunk": "@@ -195,7 +195,7 @@ jobs:\n \n   scenarios:\n     name: Scenarios\n-    runs-on: ubuntu-latest\n+    runs-on: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOTuzK5c6ajT5X",
+      "opened": "2026-08-19T17:14:04Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "4eda7b42490dccdf42fb767867e96f65edd407f8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/70#discussion_r3815164419"
+    }
+  ]
+}

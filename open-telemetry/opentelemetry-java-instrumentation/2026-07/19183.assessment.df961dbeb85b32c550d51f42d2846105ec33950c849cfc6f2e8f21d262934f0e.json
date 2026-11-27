@@ -1,0 +1,55 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "628095ac2a1969ab25de9562f4c5fd2dd634a6953d445a54b6331a9432568dc1",
+  "input_digest": "df961dbeb85b32c550d51f42d2846105ec33950c849cfc6f2e8f21d262934f0e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86QXtP1",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4bc28c22b492318ebdd2f9cfb4a67507ac8110dd/mise.toml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e71bd171d5818777cf9f9c017fe12c0864725d65/mise.toml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4bc28c22b492318ebdd2f9cfb4a67507ac8110dd/.github/config/lychee.toml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e71bd171d5818777cf9f9c017fe12c0864725d65/.github/config/lychee.toml"
+      ],
+      "id": "PRRT_kwDODJKVX86QjVdx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5880e720e545c7221b30ad0d91092891063ea6df/mise.toml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e71bd171d5818777cf9f9c017fe12c0864725d65/mise.toml"
+      ],
+      "id": "PRRT_kwDODJKVX86Q3pdR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86RI-F_",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86Q3pdR",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc9f351695cab2cb23f1a77782bbf5c2d6c6a9f5/docs/contributing/style-guide.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e71bd171d5818777cf9f9c017fe12c0864725d65/docs/contributing/style-guide.md"
+      ],
+      "id": "PRRT_kwDODJKVX86RKCDP",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

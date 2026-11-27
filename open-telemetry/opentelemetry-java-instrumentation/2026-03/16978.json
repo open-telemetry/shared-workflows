@@ -1,0 +1,25 @@
+{
+  "head": "428cada830adbbcd31e998ac41c699ea1b8b412c",
+  "merge": "addb95282fcd1be4e87dfbcd5b1eb030419df959",
+  "merged": "2026-03-23T19:31:05Z",
+  "missing_roots": 0,
+  "number": 16978,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@copilot revert changes to this file",
+      "created": "2026-03-23T15:28:56Z",
+      "hunk": "@@ -131,8 +131,9 @@ public static reactor.util.context.Context storeOpenTelemetryContext(\n    *     context.\n    * @return Trace context or default value.\n    */\n+  @Nullable\n   public static Context getOpenTelemetryContext(",
+      "id": "PRRT_kwDODJKVX852Kk9V",
+      "opened": "2026-03-23T15:28:56Z",
+      "path": "instrumentation/reactor/reactor-3.1/library/src/main/java/io/opentelemetry/instrumentation/reactor/v3_1/ContextPropagationOperator.java",
+      "replies": [],
+      "reviewed": "9662f10359dfa208572909e7319c441aad231d95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16978#discussion_r2975796504"
+    }
+  ]
+}

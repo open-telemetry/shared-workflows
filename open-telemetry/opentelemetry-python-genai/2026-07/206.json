@@ -1,0 +1,136 @@
+{
+  "head": "2757fcc5104fa31214bddba0691b4278ab9e7392",
+  "merge": "099428bd6ce1e4e94d0656f09cfa755a2a99bd40",
+  "merged": "2026-07-08T22:42:17Z",
+  "missing_roots": 0,
+  "number": 206,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this still necessary? I don't think so",
+      "created": "2026-07-08T20:53:26Z",
+      "hunk": "@@ -18,11 +17,10 @@\n env values differ. This module hosts that body once so per-package\n conftests collapse to a thin wrapper.\n \n-The stability-class reset is required because\n-``_OpenTelemetrySemanticConventionStability`` caches the first read of\n-``OTEL_SEMCONV_STABILITY_OPT_IN`` — without resetting ``_initialized``\n-mid-test, a later env change would not take effect on the next\n-``.instrument()`` call.\n+The stability-class reset is kept as test-isolation hygiene:\n+``_OpenTelemetrySemanticConventionStability`` caches state across\n+``.instrument()`` calls, so resetting ``_initialized`` between tests avoids\n+that cache leaking from one test into the next.",
+      "id": "PRRT_kwDOSbspP86PYE2k",
+      "opened": "2026-07-08T20:53:26Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/instrumentor.py",
+      "replies": [
+        {
+          "at": "2026-07-08T22:10:13Z",
+          "body": "You're right — `instrument()` doesn't set `OTEL_SEMCONV_STABILITY_OPT_IN` at all anymore, so there's nothing left for the reset to protect against here. Removed it (and the now-unused import) in the latest commit.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547561181"
+        }
+      ],
+      "reviewed": "8fe7df4f8803a42a342d4516fb2468f61049ec6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547178937"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `.env` example still references `OTEL_SEMCONV_STABILITY_OPT_IN` (which the PR says is no longer used) and suggests `true` is a valid value for `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. In the current util implementation, the value must match the `ContentCapturingMode` enum names (e.g. `span_only`), so `true` is not valid and the semconv env-var note is stale. Also fix the typo “attibutes”.",
+      "created": "2026-07-08T20:53:28Z",
+      "hunk": "@@ -23,13 +23,6 @@ OTEL_SERVICE_NAME=opentelemetry-python-openai\n # - everything else - don't record content on any signal\n OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=span_only",
+      "id": "PRRT_kwDOSbspP86PYE5q",
+      "opened": "2026-07-08T20:53:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/examples/manual/.env",
+      "replies": [
+        {
+          "at": "2026-07-08T22:10:15Z",
+          "body": "Good catch — `true` was never actually a valid value for `get_content_capturing_mode()` (it only recognizes the `ContentCapturingMode` enum names), so this bullet was doubly stale. Removed.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547561261"
+        }
+      ],
+      "reviewed": "8fe7df4f8803a42a342d4516fb2468f61049ec6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547179187"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `.env` example still references `OTEL_SEMCONV_STABILITY_OPT_IN` and lists `true` as a valid/meaningful value for `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. The util’s `get_content_capturing_mode()` only accepts `ContentCapturingMode` enum names, so `true` is invalid and the semconv reference should be removed. Also fix the typo “attibutes”.",
+      "created": "2026-07-08T20:53:28Z",
+      "hunk": "@@ -26,13 +26,6 @@ OTEL_SERVICE_NAME=opentelemetry-python-openai\n # - everything else - don't record content on any signal",
+      "id": "PRRT_kwDOSbspP86PYE6k",
+      "opened": "2026-07-08T20:53:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/examples/zero-code/.env",
+      "replies": [
+        {
+          "at": "2026-07-08T22:10:16Z",
+          "body": "Good catch — `true` was never actually a valid value for `get_content_capturing_mode()` (it only recognizes the `ContentCapturingMode` enum names), so this bullet was doubly stale. Removed.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547561363"
+        }
+      ],
+      "reviewed": "8fe7df4f8803a42a342d4516fb2468f61049ec6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547179253"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `.env.example` still references `OTEL_SEMCONV_STABILITY_OPT_IN` and implies `true` is a supported value for `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. The util only accepts `ContentCapturingMode` enum names (e.g. `span_only`), so the `true` bullet and semconv note should be removed.",
+      "created": "2026-07-08T20:53:28Z",
+      "hunk": "@@ -23,13 +23,6 @@ OTEL_SERVICE_NAME=openai-agents-manual-demo\n # - everything else - don't record content on any signal",
+      "id": "PRRT_kwDOSbspP86PYE7B",
+      "opened": "2026-07-08T20:53:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/manual/.env.example",
+      "replies": [
+        {
+          "at": "2026-07-08T22:10:17Z",
+          "body": "Good catch — `true` was never actually a valid value for `get_content_capturing_mode()` (it only recognizes the `ContentCapturingMode` enum names), so this bullet was doubly stale. Removed.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547561453"
+        }
+      ],
+      "reviewed": "8fe7df4f8803a42a342d4516fb2468f61049ec6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547179289"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `.env.example` still references `OTEL_SEMCONV_STABILITY_OPT_IN` and lists `true` as a backward-compat value for `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. The util’s mode parser only accepts `ContentCapturingMode` enum names, so `true` isn’t valid and the semconv env-var note should be removed.",
+      "created": "2026-07-08T20:53:29Z",
+      "hunk": "@@ -26,13 +26,6 @@ OTEL_SERVICE_NAME=openai-agents-zero-code-demo\n # - everything else - don't record content on any signal",
+      "id": "PRRT_kwDOSbspP86PYE7v",
+      "opened": "2026-07-08T20:53:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/.env.example",
+      "replies": [
+        {
+          "at": "2026-07-08T22:10:19Z",
+          "body": "Good catch — `true` was never actually a valid value for `get_content_capturing_mode()` (it only recognizes the `ContentCapturingMode` enum names), so this bullet was doubly stale. Removed.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547561516"
+        }
+      ],
+      "reviewed": "8fe7df4f8803a42a342d4516fb2468f61049ec6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547179348"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "This note should also be removed, right?",
+      "created": "2026-07-08T22:13:00Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86PZK-t",
+      "opened": "2026-07-08T22:12:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/.env.example",
+      "replies": [
+        {
+          "at": "2026-07-08T22:14:23Z",
+          "body": "Yep — already gone, this line was removed in the follow-up commit (a Copilot review comment caught the same thing a bit earlier). Thanks for double-checking!\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547581182"
+        }
+      ],
+      "reviewed": "8fe7df4f8803a42a342d4516fb2468f61049ec6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/206#discussion_r3547574003"
+    }
+  ]
+}

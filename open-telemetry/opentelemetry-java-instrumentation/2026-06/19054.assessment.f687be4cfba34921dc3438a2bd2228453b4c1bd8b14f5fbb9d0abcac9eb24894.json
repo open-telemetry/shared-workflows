@@ -1,0 +1,670 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "51f65a24deca17e8fcf12cf2b2304631108ccfbfe85de3cf8d6fdd60f65038f9",
+  "input_digest": "f687be4cfba34921dc3438a2bd2228453b4c1bd8b14f5fbb9d0abcac9eb24894",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7d19779be96d702de06a8feb815dd1836b68d37/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7d19779be96d702de06a8feb815dd1836b68d37/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86K8TDP",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7d19779be96d702de06a8feb815dd1836b68d37/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86K8TDg",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDpI8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/Jedis14PipelineRunner.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/AbstractJedisTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/Jedis14PipelineRunner.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/AbstractJedisTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDpN7",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDpbe",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDprD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDpw9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDqaH",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86LDqff",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDrME",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDrcX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65aa7b64779876ba72c08d8807ba9e02d296b8b8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LDroM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LVV12",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LVV2R",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LVV2d",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/settings.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86LVV2x",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc2078978eef5fd90c90f6c384a0dc250e71cd7a/instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86LV-Rr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc2078978eef5fd90c90f6c384a0dc250e71cd7a/instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc2078978eef5fd90c90f6c384a0dc250e71cd7a/instrumentation/jedis/jedis-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/53595be2c6a93e52eda00317a140068f28059797"
+      ],
+      "id": "PRRT_kwDODJKVX86LV-SX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc2078978eef5fd90c90f6c384a0dc250e71cd7a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc2078978eef5fd90c90f6c384a0dc250e71cd7a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc2078978eef5fd90c90f6c384a0dc250e71cd7a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisTransactionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LV-Sp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/10cdbf37095491bfdf2125e48abf590e20298cf4"
+      ],
+      "id": "PRRT_kwDODJKVX86LZpmV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86LZqvE",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7d4674f68e24da2e017c7f9827dca9352f7a76d4"
+      ],
+      "id": "PRRT_kwDODJKVX86LZsEW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ad702987da0a35f732aa96d9db3e1951c6530f06"
+      ],
+      "id": "PRRT_kwDODJKVX86LZszb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e82f9cda4f72bbb6ca290a61ca5070b895269ed5"
+      ],
+      "id": "PRRT_kwDODJKVX86LZtUp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b39d8feee87cf13a8eee5fbc55d8b0cb0c2273e0"
+      ],
+      "id": "PRRT_kwDODJKVX86LZuFc",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86LZu5K",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/234816dfbe0e3748b55653fa45e6920d4ecd7220"
+      ],
+      "id": "PRRT_kwDODJKVX86LZvhG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b"
+      ],
+      "id": "PRRT_kwDODJKVX86LZvx2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86LZwMH",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7ebff145b13b08886c660f6e7f1057c803d475d3"
+      ],
+      "id": "PRRT_kwDODJKVX86LZwlM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6"
+      ],
+      "id": "PRRT_kwDODJKVX86LZxWQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8/instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86LZyaL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lah4-",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86LZyaL",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b"
+      ],
+      "id": "PRRT_kwDODJKVX86La0LJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b"
+      ],
+      "id": "PRRT_kwDODJKVX86La02s",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b"
+      ],
+      "id": "PRRT_kwDODJKVX86La1MK",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b"
+      ],
+      "id": "PRRT_kwDODJKVX86La2u8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86La3S1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b"
+      ],
+      "id": "PRRT_kwDODJKVX86La4EF",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b"
+      ],
+      "id": "PRRT_kwDODJKVX86La4d6",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86La5KX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86La5no",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineContext.java"
+      ],
+      "id": "PRRT_kwDODJKVX86La58z",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b/instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fa5ea6c1bff4fe1f8d0a78f9fbeff46f4f9067cd"
+      ],
+      "id": "PRRT_kwDODJKVX86LbdUy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/Jedis30ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fa5ea6c1bff4fe1f8d0a78f9fbeff46f4f9067cd"
+      ],
+      "id": "PRRT_kwDODJKVX86LbdU_",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa5ea6c1bff4fe1f8d0a78f9fbeff46f4f9067cd/instrumentation/jedis/jedis-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa5ea6c1bff4fe1f8d0a78f9fbeff46f4f9067cd/instrumentation/jedis/jedis-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/Jedis30ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa5ea6c1bff4fe1f8d0a78f9fbeff46f4f9067cd/instrumentation/jedis/jedis-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/Jedis40ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/Jedis30ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/Jedis40ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3bc21f15640d4e86780fdbda1d8892053b93f23d"
+      ],
+      "id": "PRRT_kwDODJKVX86LdIJ4",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7R1",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7R5",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7R6",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7R7",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7Rc",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7Rm",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7Rq",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7Rt",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7Rz",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7SC",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7SF",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7SK",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7SO",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7SW",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7Sa",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Lq7Sd",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86MM5tj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/docs/supported-libraries.md"
+      ],
+      "id": "PRRT_kwDODJKVX86MM6LJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/52dbebe7812d380806b42cdb2155b616b19370f2"
+      ],
+      "id": "PRRT_kwDODJKVX86MNP7O",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9/instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/52dbebe7812d380806b42cdb2155b616b19370f2"
+      ],
+      "id": "PRRT_kwDODJKVX86MNY4n",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/52dbebe7812d380806b42cdb2155b616b19370f2/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53595be2c6a93e52eda00317a140068f28059797/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86MWCk7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

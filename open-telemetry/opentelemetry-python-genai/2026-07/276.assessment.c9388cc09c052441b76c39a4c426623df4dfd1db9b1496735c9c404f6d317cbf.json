@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8284c47e89a7bf3ac2c52ab27d5e39fdbc0d1f0534251d9b977ad0d41a2d4295",
+  "input_digest": "c9388cc09c052441b76c39a4c426623df4dfd1db9b1496735c9c404f6d317cbf",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/99fe694031a933fc0ea81a34044e34dd736fa846/util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1e27b90766a27a655575c59d51596e73962366a1/util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/09cafc3020007196dfe8b95db2abf04c447b1ce5"
+      ],
+      "id": "PRRT_kwDOSbspP86RTaWz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

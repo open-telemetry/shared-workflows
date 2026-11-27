@@ -1,0 +1,52 @@
+{
+  "head": "d9d09e3897a71ab3a388456dfb112e0cd1b2c398",
+  "merge": "670ffac7dbf6571599fab0602d8db6ce194f813f",
+  "merged": "2026-09-09T07:11:42Z",
+  "missing_roots": 0,
+  "number": 19839,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This advice can overwrite an SRV target captured by the 3.7/4.0 module. `mongo-3.1` remains enabled on newer `mongo-java-driver` versions because `MongoClientOptions` is still present, and all of these modules instrument the same `BaseCluster` constructor. Thus the final cache value depends on advice ordering; if this seed-only advice runs last, an SRV client is reported as the driver's placeholder seed instead of its SRV host. Make this advice SRV-aware as well, or restrict this type instrumentation to driver versions where the newer cluster advice is not active.",
+      "created": "2026-08-26T22:19:38Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v3_1;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import com.mongodb.connection.ClusterId;\n+import com.mongodb.connection.ClusterSettings;\n+import io.opentelemetry.instrumentation.mongo.v3_1.internal.MongoClusterTargets;\n+import io.opentelemetry.instrumentation.mongo.v3_1.internal.MongoServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class ClusterInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.mongodb.connection.BaseCluster\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArgument(0, named(\"com.mongodb.connection.ClusterId\")))\n+            .and(takesArgument(1, named(\"com.mongodb.connection.ClusterSettings\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void captureConfiguredTarget(\n+        @Advice.Argument(0) ClusterId clusterId, @Advice.Argument(1) ClusterSettings settings) {\n+      // drivers covered by this module resolve SRV hosts before constructing the cluster\n+      MongoClusterTargets.register(clusterId, MongoServerTarget.seeds(settings.getHosts()));",
+      "id": "PRRT_kwDODJKVX86colBs",
+      "opened": "2026-08-26T22:19:39Z",
+      "path": "instrumentation/mongo/mongo-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/ClusterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T03:09:57Z",
+          "body": "Addressed in 43471ce5cfb3b44221a457610db88d2f45dbac14.\n\nAnalysis: The mongo-3.1 advice can run alongside the 3.7 and 4.0 advice on newer drivers. It must use the shared reflective SRV lookup before falling back to seeds so every active advice registers the same configured target.\n\nUpsides: SRV clients retain their configured SRV host regardless of Byte Buddy advice order. The reflective helper keeps the advice compatible with drivers that predate ClusterSettings.getSrvHost().\n\nDownsides: The legacy advice performs one cached reflective method invocation when the driver exposes getSrvHost().",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19839#discussion_r3868411469"
+        }
+      ],
+      "reviewed": "ea91517d6bfba73b0e6905b2fcf6ff656ec76c42",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19839#discussion_r3867166828"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Duplicate Unix-socket seeds are omitted even though this method deduplicates endpoints. The loop collapses duplicates into `hosts`, but this check uses the original list size, so two identical socket entries return `null` instead of the single logical socket target. Check the deduplicated endpoint count instead (and add the duplicate-socket case alongside `duplicateSeedsAreRemoved`).",
+      "created": "2026-09-08T22:37:16Z",
+      "hunk": "@@ -0,0 +1,137 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.mongo.v3_1.internal;\n+\n+import com.mongodb.ServerAddress;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Objects;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class MongoServerTarget {\n+\n+  private static final int DEFAULT_PORT = 27017;\n+  private static final String SRV_SCHEME = \"mongodb+srv://\";\n+  private static final String UNIX_SERVER_ADDRESS_CLASS = \"com.mongodb.UnixServerAddress\";\n+\n+  // the driver reports its default port for socket paths, but the port is not part of the target\n+  private static final String UNIX_SOCKET_SUFFIX = \".sock\";\n+\n+  private final String address;\n+  @Nullable private final Integer port;\n+\n+  @Nullable\n+  static MongoServerTarget srvHost(@Nullable String host) {\n+    if (host == null || host.isEmpty()) {\n+      return null;\n+    }\n+    DbServerTarget target =\n+        DbServerTarget.builder(DEFAULT_PORT).addEndpoint(host, DEFAULT_PORT).build();\n+    return target == null || !target.getAddress().equals(host)\n+        ? null\n+        : new MongoServerTarget(SRV_SCHEME + host, null);\n+  }\n+\n+  @Nullable\n+  public static MongoServerTarget seeds(@Nullable List<ServerAddress> seeds) {\n+    if (seeds == null || seeds.isEmpty()) {\n+      return null;\n+    }\n+\n+    List<String> hosts = new ArrayList<>(seeds.size());\n+    List<Integer> ports = new ArrayList<>(seeds.size());\n+    DbServerTarget unixSocketTarget = null;\n+    for (ServerAddress seed : seeds) {\n+      String host = host(seed);\n+      if (host == null) {\n+        return null;\n+      }\n+      boolean unixSocket = isUnixSocket(seed, host);\n+      if (unixSocket) {\n+        unixSocketTarget = DbServerTarget.unixSocket(host);\n+        if (unixSocketTarget == null) {\n+          return null;\n+        }\n+      }\n+      Integer port = unixSocket ? null : seed.getPort();\n+      if (!containsEndpoint(hosts, ports, host, port)) {\n+        hosts.add(host);\n+        ports.add(port);\n+      }\n+    }\n+    if (unixSocketTarget != null) {\n+      if (seeds.size() > 1) {",
+      "id": "PRRT_kwDODJKVX86gb4F6",
+      "opened": "2026-09-08T22:37:17Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:20:17Z",
+          "body": "Addressed in d9d09e3897a71ab3a388456dfb112e0cd1b2c398.\n\nAnalysis: MongoServerTarget deduplicates seed endpoints into hosts before building a target. The Unix-socket branch checked seeds.size(), so repeated copies of the same socket were treated as several logical endpoints and suppressed. Checking hosts.size() applies the same deduplication semantics to Unix sockets.\n\nUpsides: Repeated copies of one Unix socket now produce one logical target, while distinct sockets and mixed socket and TCP endpoints remain suppressed.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19839#discussion_r3963126150"
+        }
+      ],
+      "reviewed": "68e4fb95e8e59dc5b707e494188ed30ceb6e8885",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19839#discussion_r3962890353"
+    }
+  ]
+}

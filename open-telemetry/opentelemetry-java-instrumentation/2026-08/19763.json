@@ -1,0 +1,213 @@
+{
+  "head": "077bcbccec7ea56f355009d9f2382d6a28ec9c71",
+  "merge": "1495e7b710008c11b9c27f2f6a5a241b11018675",
+  "merged": "2026-08-26T14:52:56Z",
+  "missing_roots": 0,
+  "number": 19763,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This version-specific fallback is not exercised by the current test matrix: the regular tests use Lettuce 5.x/latest, while the compatibility suite is pinned to 6.1.10, where `name(...)` has already populated the request and this branch stays false. Please add a suite pinned to 6.0.0–6.0.2 (for example, 6.0.2) that runs the existing command-span assertions so the regression this PR targets is verified.",
+      "created": "2026-08-22T21:56:25Z",
+      "hunk": "@@ -199,6 +199,14 @@ public synchronized Tracer.Span remoteEndpoint(Endpoint endpoint) {\n     @CanIgnoreReturnValue\n     @SuppressWarnings({\"UnusedMethod\", \"EffectivelyPrivate\"})\n     public synchronized Tracer.Span start(RedisCommand<?, ?, ?> command) {\n+      // In Lettuce 6.0.0-6.0.2 the command name is missing when start() runs,\n+      // so take name from the command. Later versions already sets the name correctly,\n+      // so only fill it in when it is still null.\n+      // getType.name() removed in  6.5.0+.\n+      if (request.getCommand() == null && command.getType() != null) {\n+        request.setCommand(String.valueOf(command.getType()));",
+      "id": "PRRT_kwDODJKVX86bbkJH",
+      "opened": "2026-08-22T21:56:25Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [
+        {
+          "at": "2026-08-22T22:55:17Z",
+          "body": "Agreed, will add a suite pinned to 6.0.2 but it cn't reuse AbstractLettuceSyncClientTest. That suite fails 11 of 13 tests on 6.0.2. 8 failure are the missing address attributes(#3952) and 3 are from the RESP3 HELLO span in Lettuce 6.0\r\nI ran the same suite on 6.0.3 and got the same 3 HELLO failures, so those aren't caused by this fix. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3837210638"
+        },
+        {
+          "at": "2026-08-23T14:26:51Z",
+          "body": "Added testLettuce600 using 6.0.2 and verified it is fails without the fix. It doesn't use reactor-core,since that trips CompatibilityCheckers and disables the instrumentations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838743267"
+        },
+        {
+          "at": "2026-08-24T19:39:48Z",
+          "body": "No code change.\n\nAnalysis: The current head already registers `testLettuce60` with Lettuce 6.0.2. Its setup waits for the two deterministic connection and SET traces before clearing data. The regression test uses a method-level deprecation suppression. It asserts the literal `SET` span name and the complete expected attribute set with `hasAttributesSatisfyingExactly`.\n\nUpsides: The existing focused suite covers the affected Lettuce versions and checks each requested telemetry field without allowing setup traces to leak.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3846850011"
+        }
+      ],
+      "reviewed": "9c981fdbce2071b452a580612009d7e1d012c25f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3837110040"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This setup command is traced, and Lettuce 6.0 also emits a traced RESP3 HELLO during connection setup. Because the extension clears captured data before each test, a late export can survive that clear and be consumed by `waitAndAssertTraces`, making this suite flaky. Drain the deterministic two setup traces before `setUp()` returns.",
+      "created": "2026-08-23T14:35:19Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_1;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.lettuce.core.RedisClient;\n+import io.lettuce.core.api.sync.RedisCommands;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.lettuce.v5_1.AbstractLettuceClientTest;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.net.InetAddress;\n+import java.net.UnknownHostException;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@SuppressWarnings(\"deprecation\")\n+class Lettuce600CommandNameTest extends AbstractLettuceClientTest {\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  public InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected RedisClient createClient(String uri) {\n+    return RedisClient.create(uri);\n+  }\n+\n+  private RedisCommands<String, String> syncCommands;\n+\n+  @BeforeAll\n+  void setUp() throws UnknownHostException {\n+    redisServer.start();\n+\n+    host = redisServer.getHost();\n+    ip = InetAddress.getByName(host).getHostAddress();\n+    port = redisServer.getMappedPort(6379);\n+    embeddedDbUri = \"redis://\" + host + \":\" + port + \"/\" + DB_INDEX;\n+\n+    redisClient = createClient(embeddedDbUri);\n+\n+    connection = redisClient.connect();\n+    syncCommands = connection.sync();\n+\n+    syncCommands.set(\"TESTKEY\", \"TESTVAL\");",
+      "id": "PRRT_kwDODJKVX86bf7Mf",
+      "opened": "2026-08-23T14:35:19Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/testLettuce600/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/Lettuce600CommandNameTest.java",
+      "replies": [
+        {
+          "at": "2026-08-23T14:59:51Z",
+          "body": "added waitForTraces and clearData in setup",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838814166"
+        },
+        {
+          "at": "2026-08-24T19:39:49Z",
+          "body": "No code change.\n\nAnalysis: The current head already registers `testLettuce60` with Lettuce 6.0.2. Its setup waits for the two deterministic connection and SET traces before clearing data. The regression test uses a method-level deprecation suppression. It asserts the literal `SET` span name and the complete expected attribute set with `hasAttributesSatisfyingExactly`.\n\nUpsides: The existing focused suite covers the affected Lettuce versions and checks each requested telemetry field without allowing setup traces to leak.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3846850177"
+        }
+      ],
+      "reviewed": "ca01aef3ecb92cfeb8d5ca5a9dc2584875967a58",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838761901"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `hasAttributesSatisfying` silently permits unexpected attributes, so this regression test can pass with an incorrect attribute set. Use `hasAttributesSatisfyingExactly` and enumerate the complete expected attributes for this Lettuce version and semconv mode.",
+      "created": "2026-08-23T14:35:19Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_1;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.lettuce.core.RedisClient;\n+import io.lettuce.core.api.sync.RedisCommands;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.lettuce.v5_1.AbstractLettuceClientTest;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.net.InetAddress;\n+import java.net.UnknownHostException;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@SuppressWarnings(\"deprecation\")\n+class Lettuce600CommandNameTest extends AbstractLettuceClientTest {\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  public InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected RedisClient createClient(String uri) {\n+    return RedisClient.create(uri);\n+  }\n+\n+  private RedisCommands<String, String> syncCommands;\n+\n+  @BeforeAll\n+  void setUp() throws UnknownHostException {\n+    redisServer.start();\n+\n+    host = redisServer.getHost();\n+    ip = InetAddress.getByName(host).getHostAddress();\n+    port = redisServer.getMappedPort(6379);\n+    embeddedDbUri = \"redis://\" + host + \":\" + port + \"/\" + DB_INDEX;\n+\n+    redisClient = createClient(embeddedDbUri);\n+\n+    connection = redisClient.connect();\n+    syncCommands = connection.sync();\n+\n+    syncCommands.set(\"TESTKEY\", \"TESTVAL\");\n+  }\n+\n+  @AfterAll\n+  void cleanUp() {\n+    connection.close();\n+    redisClient.shutdown();\n+    redisServer.stop();\n+  }\n+\n+  @Test\n+  void commandNameIsPopulated() {\n+    String res = syncCommands.set(\"TESTSETKEY\", \"TESTSETVAL\");\n+    assertThat(res).isEqualTo(\"OK\");\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasKind(SpanKind.CLIENT)\n+                            .hasAttributesSatisfying(\n+                                equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                                equalTo(maybeStable(DB_STATEMENT), \"SET TESTSETKEY ?\"))));",
+      "id": "PRRT_kwDODJKVX86bf7Mi",
+      "opened": "2026-08-23T14:35:19Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/testLettuce600/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/Lettuce600CommandNameTest.java",
+      "replies": [
+        {
+          "at": "2026-08-23T15:15:51Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838847659"
+        },
+        {
+          "at": "2026-08-24T19:39:51Z",
+          "body": "No code change.\n\nAnalysis: The current head already registers `testLettuce60` with Lettuce 6.0.2. Its setup waits for the two deterministic connection and SET traces before clearing data. The regression test uses a method-level deprecation suppression. It asserts the literal `SET` span name and the complete expected attribute set with `hasAttributesSatisfyingExactly`.\n\nUpsides: The existing focused suite covers the affected Lettuce versions and checks each requested telemetry field without allowing setup traces to leak.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3846850331"
+        }
+      ],
+      "reviewed": "ca01aef3ecb92cfeb8d5ca5a9dc2584875967a58",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838761908"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This suppression covers the entire class even though only `commandNameIsPopulated` uses deprecated semantic-convention constants. Scope it to that test method so future members do not silently suppress unrelated deprecation warnings.\n\nThis issue also appears in the following locations of the same file:\n- line 44\n- line 83",
+      "created": "2026-08-23T15:20:32Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_1;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.REDIS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.lettuce.core.RedisClient;\n+import io.lettuce.core.api.sync.RedisCommands;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.lettuce.v5_1.AbstractLettuceClientTest;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.net.InetAddress;\n+import java.net.UnknownHostException;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv",
+      "id": "PRRT_kwDODJKVX86bgLaZ",
+      "opened": "2026-08-23T15:20:32Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/testLettuce600/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/Lettuce600CommandNameTest.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:39:52Z",
+          "body": "No code change.\n\nAnalysis: The current head already registers `testLettuce60` with Lettuce 6.0.2. Its setup waits for the two deterministic connection and SET traces before clearing data. The regression test uses a method-level deprecation suppression. It asserts the literal `SET` span name and the complete expected attribute set with `hasAttributesSatisfyingExactly`.\n\nUpsides: The existing focused suite covers the affected Lettuce versions and checks each requested telemetry field without allowing setup traces to leak.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3846850504"
+        }
+      ],
+      "reviewed": "b61144dfeb2ad101f2f0c1cfa1cac94b879c6d0b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838857987"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ProtocolKeyword` did not require `toString()` in the affected Lettuce versions; it required `name()` and `getBytes()`, and valid non-enum implementations can therefore inherit `Object.toString()`. For those custom commands this fallback records a value such as `MyCommand@...` as the operation and query text. Decode the protocol keyword bytes, which are available throughout the Muzzle range, instead.",
+      "created": "2026-08-23T15:20:32Z",
+      "hunk": "@@ -199,6 +199,14 @@ public synchronized Tracer.Span remoteEndpoint(Endpoint endpoint) {\n     @CanIgnoreReturnValue\n     @SuppressWarnings({\"UnusedMethod\", \"EffectivelyPrivate\"})\n     public synchronized Tracer.Span start(RedisCommand<?, ?, ?> command) {\n+      // In Lettuce 6.0.0-6.0.2 the command name is missing when start() runs,\n+      // so take name from the command. Later versions already sets the name correctly,\n+      // so only fill it in when it is still null.\n+      // getType.name() removed in  6.5.0+.\n+      if (request.getCommand() == null && command.getType() != null) {\n+        request.setCommand(String.valueOf(command.getType()));",
+      "id": "PRRT_kwDODJKVX86bgLaw",
+      "opened": "2026-08-23T15:20:32Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:39:53Z",
+          "body": "Addressed in d1a308e666b42f29b5ec24dfddb1e170567bc9ee.\n\nAnalysis: `ProtocolKeyword.getBytes()` is available across the supported Lettuce range and contains the Redis command keyword. Decoding those bytes as US-ASCII avoids relying on an optional `toString()` override while remaining compatible with versions that removed `name()`.\n\nUpsides: Custom protocol keywords now produce stable command names, operation attributes, and query text instead of object identity strings.\n\nDownsides: The fallback allocates a decoded string when Lettuce has not supplied the command name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3846850628"
+        }
+      ],
+      "reviewed": "b61144dfeb2ad101f2f0c1cfa1cac94b879c6d0b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838858024"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The regression also drops the command-derived span name, but this test only checks the attributes. Add a span-name assertion so the targeted Lettuce 6.0 fallback verifies all affected telemetry fields rather than allowing the span to remain named `redis`.",
+      "created": "2026-08-23T15:46:44Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_1;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.REDIS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.lettuce.core.RedisClient;\n+import io.lettuce.core.api.sync.RedisCommands;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.lettuce.v5_1.AbstractLettuceClientTest;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.net.InetAddress;\n+import java.net.UnknownHostException;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class Lettuce600CommandNameTest extends AbstractLettuceClientTest {\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  public InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected RedisClient createClient(String uri) {\n+    return RedisClient.create(uri);\n+  }\n+\n+  private RedisCommands<String, String> syncCommands;\n+\n+  @BeforeAll\n+  void setUp() throws UnknownHostException {\n+    redisServer.start();\n+\n+    host = redisServer.getHost();\n+    ip = InetAddress.getByName(host).getHostAddress();\n+    port = redisServer.getMappedPort(6379);\n+    embeddedDbUri = \"redis://\" + host + \":\" + port + \"/\" + DB_INDEX;\n+\n+    redisClient = createClient(embeddedDbUri);\n+\n+    connection = redisClient.connect();\n+    syncCommands = connection.sync();\n+\n+    syncCommands.set(\"TESTKEY\", \"TESTVAL\");\n+    testing.waitForTraces(2);\n+    testing.clearData();\n+  }\n+\n+  @AfterAll\n+  void cleanUp() {\n+    connection.close();\n+    redisClient.shutdown();\n+    redisServer.stop();\n+  }\n+\n+  @Test\n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  void commandNameIsPopulated() {\n+    String res = syncCommands.set(\"TESTSETKEY\", \"TESTSETVAL\");\n+    assertThat(res).isEqualTo(\"OK\");\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                // server.address / network.* are absent on 6.0.0-6.0.2 (#3952)\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasKind(SpanKind.CLIENT)",
+      "id": "PRRT_kwDODJKVX86bgVJI",
+      "opened": "2026-08-23T15:46:45Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/testLettuce600/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/Lettuce600CommandNameTest.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:39:54Z",
+          "body": "No code change.\n\nAnalysis: The current head already registers `testLettuce60` with Lettuce 6.0.2. Its setup waits for the two deterministic connection and SET traces before clearing data. The regression test uses a method-level deprecation suppression. It asserts the literal `SET` span name and the complete expected attribute set with `hasAttributesSatisfyingExactly`.\n\nUpsides: The existing focused suite covers the affected Lettuce versions and checks each requested telemetry field without allowing setup traces to leak.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3846850739"
+        }
+      ],
+      "reviewed": "020aa9f816de5a83eef8b21cef2eb2ed6d666468",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3838914734"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "did you consider using the same approach as in\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceDbAttributesGetter.java#L61-L63",
+      "created": "2026-08-24T12:54:06Z",
+      "hunk": "@@ -199,6 +201,16 @@ public synchronized Tracer.Span remoteEndpoint(Endpoint endpoint) {\n     @CanIgnoreReturnValue\n     @SuppressWarnings({\"UnusedMethod\", \"EffectivelyPrivate\"})\n     public synchronized Tracer.Span start(RedisCommand<?, ?, ?> command) {\n+      // In Lettuce 6.0.0-6.0.2 the command name is missing when start() runs,\n+      // so take name from the command. Later versions already set the name correctly,\n+      // so only fill it in when it is still null.\n+      // getBytes() is the only method available across the muzzle range.\n+      // getType().name() was removed in 6.5.0+.",
+      "id": "PRRT_kwDODJKVX86bsq6f",
+      "opened": "2026-08-24T12:54:05Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [
+        {
+          "at": "2026-08-24T13:28:36Z",
+          "body": "Hi @laurit , yes, this was my first implementation but co-pilot flagged that ProtocolKeyword only declares getBytes and name in 5.1-6.2. \r\nI am fine switching back to request.getType().toString() for consistency purpose. \r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3843891145"
+        }
+      ],
+      "reviewed": "f82c6d17c3e5b0b4c7dd7a99a91572a64bbaa08a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3843619623"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "i'd rename to `testLettuce60` and also similarly rename the test class",
+      "created": "2026-08-24T12:55:52Z",
+      "hunk": "@@ -55,6 +55,13 @@ testing {\n         implementation(project(\":instrumentation:lettuce:lettuce-5.1:testing\"))\n       }\n     }\n+    register<JvmTestSuite>(\"testLettuce600\") {",
+      "id": "PRRT_kwDODJKVX86bstKY",
+      "opened": "2026-08-24T12:55:52Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-24T13:37:17Z",
+          "body": "Make sense. Renamed the files and testcases.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3843961409"
+        }
+      ],
+      "reviewed": "f82c6d17c3e5b0b4c7dd7a99a91572a64bbaa08a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3843632773"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`ip` is never read by this test, so this assignment is also the only reason `setUp()` declares `throws UnknownHostException` and the file imports `java.net.InetAddress` and `java.net.UnknownHostException`.",
+      "created": "2026-08-24T19:56:10Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_1;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.REDIS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.lettuce.core.RedisClient;\n+import io.lettuce.core.api.sync.RedisCommands;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.lettuce.v5_1.AbstractLettuceClientTest;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.net.InetAddress;\n+import java.net.UnknownHostException;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class Lettuce60CommandNameTest extends AbstractLettuceClientTest {\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  public InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected RedisClient createClient(String uri) {\n+    return RedisClient.create(uri);\n+  }\n+\n+  private RedisCommands<String, String> syncCommands;\n+\n+  @BeforeAll\n+  void setUp() throws UnknownHostException {\n+    redisServer.start();\n+\n+    host = redisServer.getHost();\n+    ip = InetAddress.getByName(host).getHostAddress();",
+      "id": "PRRT_kwDODJKVX86b1Wj5",
+      "opened": "2026-08-24T20:06:51Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/testLettuce60/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/Lettuce60CommandNameTest.java",
+      "replies": [],
+      "reviewed": "d1a308e666b42f29b5ec24dfddb1e170567bc9ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19763#discussion_r3846972982"
+    }
+  ]
+}

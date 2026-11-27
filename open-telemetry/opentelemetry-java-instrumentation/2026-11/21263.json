@@ -1,0 +1,66 @@
+{
+  "head": "fcf5c01d1582d145470142db93e26b7ea860e43b",
+  "merge": "150c2ec673c22e248dca3b27fa04457d2d294ec4",
+  "merged": "2026-11-11T06:40:25Z",
+  "missing_roots": 0,
+  "number": 21263,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  [Javaagent] Log failures suppressed while wrapping**\n\nIf proxy generation fails unexpectedly, `suppress = Throwable.class` silently discards the wrapping failure, leaving no diagnostic for why the context-propagation protection did not take effect. Catch and log the failure where wrapping occurs while preserving the original executor, as required for fallible advice helpers. [.github/instructions/javaagent-advice.instructions.mdL32-L37](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a3ec8bd2a49c0d402319aaa61d2578b9e74e4df0/.github/instructions/javaagent-advice.instructions.md#L32-L37)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-09T14:32:47Z",
+      "hunk": "@@ -56,4 +65,29 @@ public static MetricsTrackerFactory onEnter(\n       return HikariSingletons.createMetricsTrackerFactory(userMetricsTracker, config);\n     }\n   }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class InitializeHouseKeepingExecutorServiceAdvice {\n+\n+    private static ScheduledExecutorService wrap(ScheduledExecutorService executor) {\n+      return (ScheduledExecutorService)\n+          Proxy.newProxyInstance(\n+              InitializeHouseKeepingExecutorServiceAdvice.class.getClassLoader(),\n+              new Class<?>[] {ScheduledExecutorService.class},\n+              (proxy, method, args) -> {\n+                try (Scope ignore = Context.root().makeCurrent()) {\n+                  return method.invoke(executor, args);\n+                } catch (InvocationTargetException e) {\n+                  throw e.getCause();\n+                }\n+              });\n+    }\n+\n+    @AssignReturned.ToReturned\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX861S0n5",
+      "opened": "2026-11-09T14:32:47Z",
+      "path": "instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariPoolInstrumentation.java",
+      "replies": [],
+      "reviewed": "a3ec8bd2a49c0d402319aaa61d2578b9e74e4df0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21263#discussion_r4513866830"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  [Javaagent] Drop the return-type matcher**\n\nThe HikariPool type has a single zero-argument `initializeHouseKeepingExecutorService` lifecycle method, so this `returns(...)` clause neither selects a supported overload nor prevents a concrete incompatibility; the typed `@Advice.Return` and replacement do not justify it. Match by name or zero-argument signature and remove the static import. [.github/instructions/javaagent.instructions.mdL112-L116](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a3ec8bd2a49c0d402319aaa61d2578b9e74e4df0/.github/instructions/javaagent.instructions.md#L112-L116)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-09T14:32:47Z",
+      "hunk": "@@ -34,6 +40,9 @@ public void transform(TypeTransformer transformer) {\n         named(\"setMetricsTrackerFactory\")\n             .and(takesArguments(named(\"com.zaxxer.hikari.metrics.MetricsTrackerFactory\"))),\n         getClass().getName() + \"$SetMetricsTrackerFactoryAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"initializeHouseKeepingExecutorService\").and(returns(ScheduledExecutorService.class)),",
+      "id": "PRRT_kwDODJKVX861S0nu",
+      "opened": "2026-11-09T14:32:47Z",
+      "path": "instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariPoolInstrumentation.java",
+      "replies": [],
+      "reviewed": "a3ec8bd2a49c0d402319aaa61d2578b9e74e4df0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21263#discussion_r4513866814"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Does it work / is it any better to use `ignoreTaskClass(...)` like OkHttp, or make `Context.root()` current around maintenance-task submission like MongoDB, instead of proxying the executor?",
+      "created": "2026-11-10T17:08:42Z",
+      "hunk": "@@ -56,4 +64,29 @@ public static MetricsTrackerFactory onEnter(\n       return HikariSingletons.createMetricsTrackerFactory(userMetricsTracker, config);\n     }\n   }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class InitializeHouseKeepingExecutorServiceAdvice {\n+\n+    private static ScheduledExecutorService wrap(ScheduledExecutorService executor) {\n+      return (ScheduledExecutorService)\n+          Proxy.newProxyInstance(",
+      "id": "PRRT_kwDODJKVX861zyQL",
+      "opened": "2026-11-10T17:10:05Z",
+      "path": "instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariPoolInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-10T18:10:39Z",
+          "body": "I think `ignoreTaskClass` worked but had to use `HikariPool$Lambda` which didn't feel ideal as it is hard to tell whether there are any other lambdas in that class that could benefit from propagation. Handling submission wasn't easy as `createPoolEntry` first calls `newPoolEntry`, for which context could be propagated to get statements executed to initialize connection added to the calling trace, and later submits a task to the housekeeping executor, for which propagation isn't wanted. I guess we could set root context around the method and accept that whatever is executed to initialize the connection will be in a separate trace.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21263#discussion_r4528679307"
+        },
+        {
+          "at": "2026-11-11T02:35:18Z",
+          "body": "thanks, proxy sounds good then",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21263#discussion_r4533288292"
+        }
+      ],
+      "reviewed": "fcf5c01d1582d145470142db93e26b7ea860e43b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21263#discussion_r4528001978"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "b4bc535fdae4ff799270acf4fd23d7778ec4c5e1",
+  "merge": "ca9ebf1bc5362c967217324b62c356f016c04a7f",
+  "merged": "2026-06-12T06:24:02Z",
+  "missing_roots": 0,
+  "number": 18957,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `hasAttributesSatisfying(...)` silently allows unexpected attributes, which can hide regressions in emitted attributes. This project’s Java test guidance prefers `hasAttributesSatisfyingExactly(...)` for span assertions to ensure the attribute set is validated precisely.",
+      "created": "2026-06-12T04:53:42Z",
+      "hunk": "@@ -42,64 +42,75 @@ abstract class AbstractKafkaSpringStarterSmokeTest extends AbstractSpringStarter\n   @SuppressWarnings(\"deprecation\") // using deprecated semconv\n   @Test\n   void shouldInstrumentProducerAndConsumer() {\n-    testing.runWithSpan(\n-        \"producer\",\n+    runProducerTest(\n         () -> {\n-          kafkaTemplate.executeInTransaction(\n-              ops -> {\n-                // return type is incompatible between Spring Boot 2 and 3\n-                try {\n-                  ops.getClass()\n-                      .getDeclaredMethod(\"send\", String.class, Object.class, Object.class)\n-                      .invoke(ops, \"testTopic\", \"10\", \"testSpan\");\n-                } catch (Exception e) {\n-                  throw new IllegalStateException(e);\n-                }\n-                return 0;\n+          testing.runWithSpan(\n+              \"producer\",\n+              () -> {\n+                kafkaTemplate.executeInTransaction(\n+                    ops -> {\n+                      // return type is incompatible between Spring Boot 2 and 3\n+                      try {\n+                        ops.getClass()\n+                            .getDeclaredMethod(\"send\", String.class, Object.class, Object.class)\n+                            .invoke(ops, \"testTopic\", \"10\", \"testSpan\");\n+                      } catch (Exception e) {\n+                        throw new IllegalStateException(e);\n+                      }\n+                      return 0;\n+                    });\n               });\n+\n+          testing.waitAndAssertTraces(\n+              trace ->\n+                  trace.hasSpansSatisfyingExactly(\n+                      span -> span.hasName(\"producer\"),\n+                      span ->\n+                          span.hasName(\"testTopic publish\")\n+                              .hasKind(SpanKind.PRODUCER)\n+                              .hasParent(trace.getSpan(0))\n+                              .hasAttributesSatisfyingExactly(\n+                                  equalTo(MESSAGING_SYSTEM, \"kafka\"),\n+                                  equalTo(MESSAGING_DESTINATION_NAME, \"testTopic\"),\n+                                  equalTo(MESSAGING_OPERATION, \"publish\"),\n+                                  satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(\"producer\")),\n+                                  satisfies(\n+                                      MESSAGING_DESTINATION_PARTITION_ID,\n+                                      AbstractStringAssert::isNotEmpty),\n+                                  satisfies(\n+                                      MESSAGING_KAFKA_MESSAGE_OFFSET,\n+                                      AbstractLongAssert::isNotNegative),\n+                                  equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\")),\n+                      span ->\n+                          span.hasName(\"testTopic process\")\n+                              .hasKind(SpanKind.CONSUMER)\n+                              .hasParent(trace.getSpan(1))\n+                              .hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX86JBDkD",
+      "opened": "2026-06-12T04:53:42Z",
+      "path": "smoke-tests-otel-starter/spring-boot-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractKafkaSpringStarterSmokeTest.java",
+      "replies": [],
+      "reviewed": "b4bc535fdae4ff799270acf4fd23d7778ec4c5e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18957#discussion_r3400779285"
+    }
+  ]
+}

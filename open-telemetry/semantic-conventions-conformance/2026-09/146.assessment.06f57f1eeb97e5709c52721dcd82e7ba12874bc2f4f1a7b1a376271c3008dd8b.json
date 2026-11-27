@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c55e8d3c8700f7530f7add0dfbc6c5bcfe8d662c009516be18ae9daedc7d6818",
+  "input_digest": "06f57f1eeb97e5709c52721dcd82e7ba12874bc2f4f1a7b1a376271c3008dd8b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/43ff63b0b5b27a8e6e8df829cb0e4a5eb1f96200/scenarios/http/java/ratpack/scenarios/src/main/java/io/opentelemetry/conformance/http/ratpack/RatpackClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ffd0843d2ace1db209c776e4f6be624ec8316bb9/scenarios/http/java/ratpack/scenarios/src/main/java/io/opentelemetry/conformance/http/ratpack/RatpackClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/0355b86e5be2fe34abc30056649855adcaf956b5"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dmlcq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/43ff63b0b5b27a8e6e8df829cb0e4a5eb1f96200/scenarios/http/java/spring-web/scenarios/src/main/java/io/opentelemetry/conformance/http/springweb/SpringWebClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ffd0843d2ace1db209c776e4f6be624ec8316bb9/scenarios/http/java/spring-web/scenarios/src/main/java/io/opentelemetry/conformance/http/springweb/SpringWebClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/0355b86e5be2fe34abc30056649855adcaf956b5"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dmlc9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

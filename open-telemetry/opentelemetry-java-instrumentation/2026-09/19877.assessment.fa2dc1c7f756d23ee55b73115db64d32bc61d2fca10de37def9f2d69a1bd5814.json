@@ -1,0 +1,178 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "bf60b53ecaba61b305655533f191ff1cf7eda11cfd086a191f66d4457b7821af",
+  "input_digest": "fa2dc1c7f756d23ee55b73115db64d32bc61d2fca10de37def9f2d69a1bd5814",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c4_ax",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraSqlAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c4_bY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/SessionBuilderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/SessionBuilderInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c4_cE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/CassandraSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/CassandraSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/SessionBuilderInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c4_ce",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/CassandraSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/CassandraSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/CompletionStageFunction.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_4/SessionBuilderInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c4_cz",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8330370ab9e4f1760e800fa06cf35d39e9de2884/instrumentation/cassandra/cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTargetTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTargetTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c4_dE",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f316fb8edd16d53241f662dbd4671d0b21447bb8/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gW9po",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f316fb8edd16d53241f662dbd4671d0b21447bb8/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTargetTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gW9qE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f316fb8edd16d53241f662dbd4671d0b21447bb8/instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f316fb8edd16d53241f662dbd4671d0b21447bb8/instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gW9ql",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86gW9rN",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86c4_ce",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86gW9ry",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86c4_ce",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8759138c312ba2256fe1f414ea8500b236cfb9ce/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8759138c312ba2256fe1f414ea8500b236cfb9ce/instrumentation/cassandra/cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTargetTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8759138c312ba2256fe1f414ea8500b236cfb9ce/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/TracingCqlSession.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTargetTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/TracingCqlSession.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b8694d25f35749cdacd2d0688c7bb2bc86ec7057"
+      ],
+      "id": "PRRT_kwDODJKVX86ghU16",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8759138c312ba2256fe1f414ea8500b236cfb9ce/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a41b46daa1c0a7b631334fe41fed1103b41c7a9e"
+      ],
+      "id": "PRRT_kwDODJKVX86ghU2K",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86gjsNH",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cc287c510a0dd47b2f2f0b67f88b4c46c9f7627b/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d61b8b6fabd3144df847d380ed7e8f42b6705e6/instrumentation/cassandra/cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraServerTargetTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7ec3c533582f5a0785265470782b63a52404eec7"
+      ],
+      "id": "PRRT_kwDODJKVX86gvH-V",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

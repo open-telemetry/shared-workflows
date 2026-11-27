@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "24533bc315d59e333b2ef902089ac0e271298ca9b07d68b674f8f9c145b1863f",
+  "input_digest": "7f3987bdb01b8a7c34cbaab023f3ef82cbd16b6506b79376cb62186f40bc5dc2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39cb8b72b12c63d8afb175251e54da8685e8710f/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39cb8b72b12c63d8afb175251e54da8685e8710f/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsAccess.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08d5710e13c2441053ff514ed2991082bf986845/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08d5710e13c2441053ff514ed2991082bf986845/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08d5710e13c2441053ff514ed2991082bf986845/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsAccess.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YGWH2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

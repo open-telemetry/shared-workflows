@@ -1,0 +1,52 @@
+{
+  "head": "4735e3bd00a5740872e34b33ab2891a42fdc4af0",
+  "merge": "f1c263d7ee2234d598a3e921a0465bd6ebf2f49d",
+  "merged": "2026-08-05T18:10:55Z",
+  "missing_roots": 0,
+  "number": 19397,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new contract is that `Timer` no longer exports a `.max` metric, but deleting the old positive assertion does not verify that behavior: this test would still pass if the gauge were accidentally restored because `waitAndAssertMetrics` only requires a matching metric for each supplied assertion. Add an explicit name-based emptiness assertion, as this test already does for `testTimer.histogram`.",
+      "created": "2026-08-04T14:21:34Z",
+      "hunk": "@@ -62,21 +62,6 @@ void testTimer() {\n                                         .hasAttributesSatisfyingExactly(\n                                             equalTo(stringKey(\"tag\"), \"value\"))\n                                         .hasBucketBoundaries(NO_BUCKETS))));",
+      "id": "PRRT_kwDODJKVX86WWz5d",
+      "opened": "2026-08-04T14:21:35Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractTimerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-04T14:56:47Z",
+          "body": "Addressed in 6be96fa9d331097bef25d141bd7768c38c8d8f42: Added explicit name-based emptiness assertions for the .max metric, mirroring the existing .histogram emptiness assertions, so the tests actively verify the gauge is no longer emitted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19397#discussion_r3713661894"
+        }
+      ],
+      "reviewed": "7273170b58488894fbde92b67b3ab87236553461",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19397#discussion_r3713393933"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new contract is that `DistributionSummary` no longer exports a `.max` metric, but deleting the old positive assertion does not verify that behavior: this test would still pass if the gauge were accidentally restored because `waitAndAssertMetrics` only requires a matching metric for each supplied assertion. Add an explicit name-based emptiness assertion, as this test already does for `testSummary.histogram`.",
+      "created": "2026-08-04T14:21:35Z",
+      "hunk": "@@ -61,21 +61,6 @@ void testMicrometerDistributionSummary() {\n                                         .hasAttributesSatisfyingExactly(\n                                             equalTo(stringKey(\"tag\"), \"value\"))\n                                         .hasBucketBoundaries(NO_BUCKETS))));",
+      "id": "PRRT_kwDODJKVX86WWz52",
+      "opened": "2026-08-04T14:21:35Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractDistributionSummaryTest.java",
+      "replies": [
+        {
+          "at": "2026-08-04T14:56:47Z",
+          "body": "Addressed in 6be96fa9d331097bef25d141bd7768c38c8d8f42: Added explicit name-based emptiness assertions for the .max metric, mirroring the existing .histogram emptiness assertions, so the tests actively verify the gauge is no longer emitted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19397#discussion_r3713661925"
+        }
+      ],
+      "reviewed": "7273170b58488894fbde92b67b3ab87236553461",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19397#discussion_r3713393977"
+    }
+  ]
+}

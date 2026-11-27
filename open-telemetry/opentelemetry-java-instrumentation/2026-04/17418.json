@@ -1,0 +1,31 @@
+{
+  "head": "0af3adb089863e3a97bac73c81e210d6a25b6fe0",
+  "merge": "3b2944f45c7255a5f590b8ac693877af624578cb",
+  "merged": "2026-04-03T17:23:48Z",
+  "missing_roots": 0,
+  "number": 17418,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think this one could be useful. It might help a new contributor figure out why it fails.",
+      "created": "2026-04-01T18:58:36Z",
+      "hunk": "@@ -90,21 +92,17 @@ public static List<List<SpanData>> waitForTraces(\n     return completeTraces;\n   }\n \n-  // TODO: we should probably move that to InstrumentationTestRunner once we get rid of all groovy\n   public static void assertScopeVersion(List<List<SpanData>> traces) {\n+    Set<String> instrumentationScopesWithoutVersion = new LinkedHashSet<>();\n     for (List<SpanData> trace : traces) {\n       for (SpanData span : trace) {\n         InstrumentationScopeInfo scopeInfo = span.getInstrumentationScopeInfo();\n-        if (!scopeInfo.getName().startsWith(\"test\")) {",
+      "id": "PRRT_kwDODJKVX854UmY9",
+      "opened": "2026-04-01T18:58:36Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/util/TelemetryDataUtil.java",
+      "replies": [
+        {
+          "at": "2026-04-03T17:02:02Z",
+          "body": "thanks, I brought this one back",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17418#discussion_r3033598319"
+        }
+      ],
+      "reviewed": "62a64cf4eeb3840f40ff7d7cf061ef286ac76f6b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17418#discussion_r3024028282"
+    }
+  ]
+}

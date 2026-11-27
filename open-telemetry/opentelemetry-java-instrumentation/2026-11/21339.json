@@ -1,0 +1,52 @@
+{
+  "head": "1eac233369df55cf51f68b1f5843f0bee099edc1",
+  "merge": "d8c2a12a3a01426898d0960dbbde5b3c2b835903",
+  "merged": "2026-11-19T16:46:55Z",
+  "missing_roots": 0,
+  "number": 21339,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the Quarkus 4 upgrade directly on this PR. Do not open a separate PR. The PR updates only `io.quarkus:quarkus-bom` to `4.0.0`, leaving the `io.quarkus` Gradle plugin at `3.40.1.2`. The PR image build and partition 2 jobs fail in `:smoke-tests:images:quarkus:quarkusAppPartsBuild` on `CuratedApplication.getCuratedApplicationContext()`, which Quarkus 4 adds.\n\n- Align the Gradle plugin and BOM at `4.0.0` in `smoke-tests/images/quarkus/build.gradle.kts`. Add a file-scoped Renovate group in `.github/renovate.json5` for the two declarations so future updates target both together.\n- Quarkus 4 requires Java 21. Change only the Quarkus image's compiler release, source and target compatibility, and default base image to Java 21. Add a default-off `skip-java-17` input to both reusable PR-build and publish smoke image workflows, and set it only in the two Quarkus callers. Keep Java 21, 25, and 27 image builds and leave the general test JDK matrix and older Quarkus instrumentation fixtures alone.\n- Preserve the Java 17 `QuarkusSmokeTest` case on its existing Quarkus 3 GHCR tag. Prepare the version selection for newer JDKs without committing a tag that hasn't been published. The PR workflow uses `jibDockerBuild`, while smoke CI reads the pinned `TestImageVersions` tag. The new shared tag for Java 21, 25, and 27 can be switched only after the normal publish workflow has produced those images. Do not publish images or merge this PR yourself.\n\nRun the narrow Quarkus Gradle build and image checks that the environment supports. Where Docker permits, validate candidate images for Java 21, 25, and 27 with `QuarkusSmokeTest` against their actual candidate tags, not the current published Quarkus 3 tag. The `/hello` request should still export the expected `GET /hello` span. Report what you could run and any limits. Leave the unrelated baseline `quarkus-3.0-testing:buildModel` resolution failure out of scope.",
+      "created": "2026-11-19T02:31:39Z",
+      "hunk": "@@ -21,7 +21,7 @@ plugins {\n }\n \n dependencies {\n-  implementation(enforcedPlatform(\"io.quarkus:quarkus-bom:3.40.1.2\"))\n+  implementation(enforcedPlatform(\"io.quarkus:quarkus-bom:4.0.0\"))",
+      "id": "PRRT_kwDODJKVX865TJKl",
+      "opened": "2026-11-19T02:31:39Z",
+      "path": "smoke-tests/images/quarkus/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-19T02:55:01Z",
+          "body": "Aligned the Quarkus plugin and BOM at 4.0.0, added a file-scoped Renovate group, and skipped Java 17 only in the two Quarkus image workflows. The shared tag remains the currently published tag; Java 17 stays on that legacy tag until the Java 21+ images are published. Built local JDK 21/25/27 candidates and ran `QuarkusSmokeTest` against them; all emitted `GET /hello`. No images were published. Commit: `dafa6cee`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21339#discussion_r4623759001"
+        }
+      ],
+      "reviewed": "ede124e00ab6228999dc909db4cf9260ec0a591d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21339#discussion_r4623605802"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove the separate Java 17 Quarkus smoke-image pin. The maintainer wants the same rollout as #12541 and #12567: build and publish the new images first, then switch the one shared test tag and drop the JDK that the new Quarkus version no longer supports.\n\nFor this PR, delete `QUARKUS_JAVA_17_VERSION` and remove the ternary in `QuarkusSmokeTest`, so it uses `QUARKUS_VERSION` for all image tags as before. Remove the temporary rollout comment from `TestImageVersions`; the PR description will cover the rollout. Keep the current published `QUARKUS_VERSION` value and the Java 17, 21, 25, and 27 test cases unchanged for now. In a separate change after the normal Quarkus 4 image publishing workflow has run, the maintainer will update the shared tag and drop Java 17 together. Do not publish images, merge, or open a separate PR. Keep the Quarkus 4 build changes and the workflow's Java 17 skip intact, and do not touch the agent's Java support or the separate Quarkus 3 instrumentation tests.\n\nLimit this cleanup to the two smoke test source files. Follow the repository's Gradle instructions, apply the narrow formatter, and run the targeted `QuarkusSmokeTest` if Docker is available. Report what actually ran and any limitations.",
+      "created": "2026-11-19T04:04:43Z",
+      "hunk": "@@ -18,7 +18,9 @@ public class TestImageVersions {\n   public static final String PLAY_VERSION = \"20261007.37549989769\";\n \n   // smoke-test-quarkus\n+  // Update QUARKUS_VERSION after the Quarkus 4 images for Java 21+ have been published.\n   public static final String QUARKUS_VERSION = \"20261007.37549989866\";\n+  public static final String QUARKUS_JAVA_17_VERSION = \"20261007.37549989866\";",
+      "id": "PRRT_kwDODJKVX865Ud7v",
+      "opened": "2026-11-19T04:04:43Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+      "replies": [
+        {
+          "at": "2026-11-19T04:21:18Z",
+          "body": "Removed the Java 17-specific version and rollout comment, and restored the shared tag for all four existing JDK cases. Commit: `1eac2333`. The formatter passed, and all 4 `QuarkusSmokeTest` cases passed locally.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21339#discussion_r4624283780"
+        }
+      ],
+      "reviewed": "dafa6cee3714e5dbebe08fa2c04b505b13cc4e76",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21339#discussion_r4624182522"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "head": "ce52af84ae34f43862758f9d7e1e5514a97a2e7d",
+  "merge": "493a6e4c60fddd4901e9ce6060580287a579ee6f",
+  "merged": "2026-07-21T16:55:59Z",
+  "missing_roots": 0,
+  "number": 289,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The LLMInvocation docstring now says to “Pass to handler.inference() to start the span”, but TelemetryHandler.inference() takes a provider string and returns an InferenceInvocation; it does not accept an LLMInvocation instance. This makes the docs incorrect and confusing for users migrating from the legacy API.",
+      "created": "2026-07-20T06:46:22Z",
+      "hunk": "@@ -228,8 +228,8 @@ def _maybe_create_event(self) -> LogRecord | None:\n class LLMInvocation:\n     \"\"\"Deprecated. Use InferenceInvocation instead.\n \n-    Data container for an LLM invocation. Pass to handler.llm() to start\n-    the span, then update fields and call handler.stop_llm() or handler.fail_llm().\n+    Data container for an LLM invocation. Pass to handler.inference() to start\n+    the span, then update fields and call invocation.stop() or invocation.fail().\n     \"\"\"",
+      "id": "PRRT_kwDOSbspP86SKXAd",
+      "opened": "2026-07-20T06:46:23Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "4fbc8e484304bd3bbc959ae2df3834255cc5ec3c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/289#discussion_r3612437904"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_start_with_handler’s docstring claims it is called by handler.inference(), but TelemetryHandler.inference() does not call this helper. If this method is retained for legacy/internal purposes, the docstring should describe that accurately to avoid implying an unsupported workflow.",
+      "created": "2026-07-20T06:46:22Z",
+      "hunk": "@@ -267,7 +267,7 @@ def _start_with_handler(\n         logger: Logger,\n         completion_hook: CompletionHook,\n     ) -> None:\n-        \"\"\"Create and start an InferenceInvocation from this data container. Called by handler.start_llm().\"\"\"\n+        \"\"\"Create and start an InferenceInvocation from this data container. Called by handler.inference().\"\"\"",
+      "id": "PRRT_kwDOSbspP86SKXAt",
+      "opened": "2026-07-20T06:46:23Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "4fbc8e484304bd3bbc959ae2df3834255cc5ec3c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/289#discussion_r3612437928"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment introduces a separate, user-visible breaking change (removal of TelemetryHandler deprecated methods) that is not mentioned in the PR title/description, which focus on adding CompactionPart. Consider splitting the removal into a dedicated PR, or at minimum updating the PR metadata and documenting the compatibility/versioning impact explicitly.",
+      "created": "2026-07-20T06:46:23Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove deprecated ``start_inference``, ``start_llm``, ``start_embedding``, ``start_tool``, ``start_workflow``, ``stop_llm``, ``fail_llm``, ``start_invoke_local_agent``, and ``start_invoke_remote_agent`` methods from ``TelemetryHandler``. Use ``inference()``, ``embedding()``, ``tool()``, ``workflow()``, ``invoke_local_agent()``, and ``invoke_remote_agent()`` instead.",
+      "id": "PRRT_kwDOSbspP86SKXAy",
+      "opened": "2026-07-20T06:46:23Z",
+      "path": "util/opentelemetry-util-genai/.changelog/+remove-deprecated-methods.removed",
+      "replies": [],
+      "reviewed": "4fbc8e484304bd3bbc959ae2df3834255cc5ec3c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/289#discussion_r3612437934"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this a good behavior we should test for? I'd rather not serialize nulls",
+      "created": "2026-07-20T18:26:20Z",
+      "hunk": "@@ -140,6 +142,35 @@ def test_server_tool_call_in_message():\n     assert isinstance(msg.parts[1], ServerToolCallResponse)\n \n \n+def test_compactionpart_is_message_part():\n+    \"\"\"CompactionPart works as a MessagePart alongside other part types.\"\"\"\n+    part = CompactionPart(\n+        id=\"compact_001\", content=\"Summary of earlier turns.\"\n+    )\n+    assert part.id == \"compact_001\"\n+    assert part.content == \"Summary of earlier turns.\"\n+    assert part.type == \"compaction\"\n+\n+    msg = InputMessage(role=\"assistant\", parts=[part])\n+    assert len(msg.parts) == 1\n+    assert isinstance(msg.parts[0], CompactionPart)\n+\n+\n+def test_compactionpart_bare_serializes_with_explicit_nulls():",
+      "id": "PRRT_kwDOSbspP86SV4cW",
+      "opened": "2026-07-20T18:26:25Z",
+      "path": "util/opentelemetry-util-genai/tests/test_toolcall.py",
+      "replies": [
+        {
+          "at": "2026-07-21T04:25:16Z",
+          "body": "Fair challenge — walking through it from your side, I think you're right. This test canonizes what asdict() happens to do, not a shape anyone chose, and the semconv reference corpus already votes for omission: the anthropic scenario fixtures record a bare compaction part as just {\"type\": \"compaction\"}.\n\nOne flag before dropping Nones at the shared layer: it can't be a blanket filter. ToolCallRequest.arguments / ToolCallResponse.response are Any-typed, where None can be a real value (a tool legitimately returning null vs no response recorded). The safe version drops only the Optional metadata fields (id, content) — which would also clean up the \"id\": null that ServerToolCall has emitted since 1.0b0, and beta seems like the right window for that. Happy either way on scoping: fold the small dict_factory into this PR and flip this test to assert {\"type\": \"compaction\"}, or land the type as-is minus this test and do the serializer as an immediate follow-up.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/289#discussion_r3619418050"
+        },
+        {
+          "at": "2026-07-21T04:38:09Z",
+          "body": "Could you please avoid excessive AI usage when talking to humans?\r\n\r\nA good approach would be to encode it into semconv using pydantic / json schema properties where possible and special-casing tool call arguments / result. Once it's formalized in semconv, it should be ok to have per-property serialization choices.\r\n\r\nFor this PR, I'll be happy to merge with this test removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/289#discussion_r3619477377"
+        },
+        {
+          "at": "2026-07-21T12:55:56Z",
+          "body": "Done — removed the test in [commit hash]. Happy to pick up the dict_factory/semconv-property follow-up whenever that's ready.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/289#discussion_r3622299827"
+        }
+      ],
+      "reviewed": "fa90f25f7a2ca82f5bf85b642eaae0fcc4e8d368",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/289#discussion_r3616612086"
+    }
+  ]
+}

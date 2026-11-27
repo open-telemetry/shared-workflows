@@ -1,0 +1,103 @@
+{
+  "head": "f1e7e2f6ba2699d914e23afc4bfed4638cf3be4c",
+  "merge": "e6facef2f340cd8935ebfe6f468fec338efdd9cf",
+  "merged": "2026-05-12T17:17:04Z",
+  "missing_roots": 0,
+  "number": 18557,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": " [minor] Do we need to add anything for `@EnumSource` or `@ValueSource` usages and recommendations ? For example with a boolean value maybe adding explicitly the name of the boolean parameter to get a human-friendly description would be relevant.",
+      "created": "2026-05-04T15:20:07Z",
+      "hunk": "@@ -12,6 +12,39 @@\n - Do not use AssertJ `.as(...)` descriptions or `.withFailMessage(...)` in tests.\n   Prefer direct assertions whose failure output shows the unexpected values.\n \n+## Parameterized Tests\n+\n+- When the same test logic is repeated for multiple input/output cases, prefer\n+  `@ParameterizedTest` over one large test with many unrelated assertions or many small tests that\n+  duplicate the same setup.\n+- Prefer `@MethodSource` with a private static `Stream<Arguments>` provider for multi-field cases.",
+      "id": "PRRT_kwDODJKVX85_Y9MR",
+      "opened": "2026-05-04T15:20:07Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [
+        {
+          "at": "2026-05-05T06:29:42Z",
+          "body": "I used both a couple times - and it most cases wished I had used method source instead - it's just easier to have only one type IMO.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3186438969"
+        }
+      ],
+      "reviewed": "b2ad89d7bedcd734ccf4309ddc2f5a5094d5c6e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3182587559"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Java example mixes a separate `String name` parameter with a `TestCase` that also contains `name`, and the `name` method parameter is otherwise unused. This is easy for readers to copy/paste into real tests where Error Prone can flag unused parameters, and it also creates a risk of the display name diverging from `TestCase.name`. Consider restructuring the example to pass a single `TestCase` argument (and rely on `TestCase.toString()` / an overridden record `toString()` for the display name), or remove the `name` component from `TestCase` if the standalone `String name` is the recommended pattern.\n",
+      "created": "2026-05-09T20:48:25Z",
+      "hunk": "@@ -12,6 +12,65 @@\n - Do not use AssertJ `.as(...)` descriptions or `.withFailMessage(...)` in tests.\n   Prefer direct assertions whose failure output shows the unexpected values.\n \n+## Parameterized Tests\n+\n+- When the same test logic is repeated for multiple input/output cases, prefer\n+  `@ParameterizedTest` over one large test with many unrelated assertions or many small tests that\n+  duplicate the same setup.\n+- Prefer `@MethodSource` with a private static `Stream<Arguments>` provider for multi-field cases.\n+  Keep the provider close to the test that uses it.\n+- Prefer a human-readable case name in each row, either as a standalone first parameter or as part\n+  of a named test-case object, so failures identify the scenario without reading the whole row.\n+- Each `Arguments.of(...)` entry should describe one coherent scenario. Prefer one expected outcome\n+  per row instead of packing several unrelated expectations into a single parameterized case.\n+- In the test body, keep the setup and assertion flow the same for every row. If different rows need\n+  materially different control flow, split them into separate tests instead of forcing everything\n+  into one parameterized method.\n+- For more complex parameterized tests, prefer a small test DTO / test-case type instead of a long\n+  positional argument list. Include a `name` field and the scenario inputs/expected outputs needed\n+  by the test.\n+- When the test-case shape becomes large or deeply nested, prefer a small builder or factory helpers\n+  for constructing cases so each row stays readable. The goal is the structure: named scenario,\n+  explicit inputs, and explicit expected result, rather than a wide `Arguments.of(...)` tuple.\n+\n+Example shape:\n+\n+```java\n+record TestCase(String name, Input input, Output expected) {}\n+\n+@ParameterizedTest(name = \"{0}\")\n+@MethodSource(\"testCases\")\n+void test(String name, TestCase testCase) {",
+      "id": "PRRT_kwDODJKVX86A2j-N",
+      "opened": "2026-05-09T20:48:25Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [],
+      "reviewed": "45c54b28ed3872eb1dca0b5c256e74d897af9960",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3213872551"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The paragraph about overriding `toString()` so `@ParameterizedTest(name = \"{0}\")` prints a readable scenario implies that the first parameter is the test-case object (since `{0}` renders `toString()`), but the preceding example uses `{0}` for a standalone `String name`. Align the narrative + example so the `{0}` placeholder consistently refers to the same kind of argument (either the name string or the test-case object).",
+      "created": "2026-05-09T20:48:25Z",
+      "hunk": "@@ -12,6 +12,65 @@\n - Do not use AssertJ `.as(...)` descriptions or `.withFailMessage(...)` in tests.\n   Prefer direct assertions whose failure output shows the unexpected values.\n \n+## Parameterized Tests\n+\n+- When the same test logic is repeated for multiple input/output cases, prefer\n+  `@ParameterizedTest` over one large test with many unrelated assertions or many small tests that\n+  duplicate the same setup.\n+- Prefer `@MethodSource` with a private static `Stream<Arguments>` provider for multi-field cases.\n+  Keep the provider close to the test that uses it.\n+- Prefer a human-readable case name in each row, either as a standalone first parameter or as part\n+  of a named test-case object, so failures identify the scenario without reading the whole row.\n+- Each `Arguments.of(...)` entry should describe one coherent scenario. Prefer one expected outcome\n+  per row instead of packing several unrelated expectations into a single parameterized case.\n+- In the test body, keep the setup and assertion flow the same for every row. If different rows need\n+  materially different control flow, split them into separate tests instead of forcing everything\n+  into one parameterized method.\n+- For more complex parameterized tests, prefer a small test DTO / test-case type instead of a long\n+  positional argument list. Include a `name` field and the scenario inputs/expected outputs needed\n+  by the test.\n+- When the test-case shape becomes large or deeply nested, prefer a small builder or factory helpers\n+  for constructing cases so each row stays readable. The goal is the structure: named scenario,\n+  explicit inputs, and explicit expected result, rather than a wide `Arguments.of(...)` tuple.\n+\n+Example shape:\n+\n+```java\n+record TestCase(String name, Input input, Output expected) {}\n+\n+@ParameterizedTest(name = \"{0}\")\n+@MethodSource(\"testCases\")\n+void test(String name, TestCase testCase) {\n+  assertThat(run(testCase.input())).isEqualTo(testCase.expected());\n+}\n+```\n+\n+In modules that still target a Java version below 16 (most javaagent\n+instrumentation modules use `minJavaVersionSupported = 8`), records are not\n+available in test sources because `--release` is shared with main sources. Use\n+a `static final class` with explicit fields and a constructor, and override\n+`toString()` to return the case name so `@ParameterizedTest(name = \"{0}\")`\n+prints a readable scenario:",
+      "id": "PRRT_kwDODJKVX86A2j-S",
+      "opened": "2026-05-09T20:48:25Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [],
+      "reviewed": "45c54b28ed3872eb1dca0b5c256e74d897af9960",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3213872559"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The example shows `@MethodSource(\"testCases\")` but doesn’t include the corresponding `testCases()` provider method, and the surrounding guidance recommends a private static `Stream<Arguments>` provider. Consider extending the snippet to include a minimal `private static Stream<Arguments> testCases()` so readers can copy/paste an end-to-end pattern without guessing the provider shape/name.\n",
+      "created": "2026-05-11T14:59:56Z",
+      "hunk": "@@ -12,6 +12,36 @@\n - Do not use AssertJ `.as(...)` descriptions or `.withFailMessage(...)` in tests.\n   Prefer direct assertions whose failure output shows the unexpected values.\n \n+## Parameterized Tests\n+\n+- When the same test logic is repeated for multiple input/output cases, prefer\n+  `@ParameterizedTest` over one large test with many unrelated assertions or many small tests that\n+  duplicate the same setup.\n+- Prefer `@MethodSource` with a private static `Stream<Arguments>` provider for multi-field cases.\n+  Keep the provider close to the test that uses it.\n+- Prefer a human-readable case name as the first parameter so failures identify the scenario\n+  without reading the whole row.\n+- Each `Arguments.of(...)` entry should describe one coherent scenario. Prefer one expected outcome\n+  per row instead of packing several unrelated expectations into a single parameterized case.\n+- In the test body, keep the setup and assertion flow the same for every row. If different rows need\n+  materially different control flow, split them into separate tests instead of forcing everything\n+  into one parameterized method.\n+- Avoid introducing a dedicated `TestCase` wrapper type for parameterized rows. Prefer a readable\n+  case name plus plain arguments, and extract a shared expected-value object only when it makes the\n+  assertions materially clearer.\n+- If a row gets too wide, first look for ways to simplify the assertion shape (for example, compare\n+  against one structured expected value) instead of adding another wrapper layer around the row.\n+\n+Example shape:\n+\n+```java\n+@ParameterizedTest(name = \"{0}\")\n+@MethodSource(\"testCases\")\n+void test(String name, Input input, Output expected) {\n+  assertThat(run(input)).isEqualTo(expected);\n+}",
+      "id": "PRRT_kwDODJKVX86BIBTq",
+      "opened": "2026-05-11T14:59:57Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [
+        {
+          "at": "2026-05-12T07:09:57Z",
+          "body": "Added a minimal `private static Stream<Arguments> testCases()` provider directly below the example so the snippet is copy/pasteable end-to-end.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3224403257"
+        }
+      ],
+      "reviewed": "26a8e4dee9a81b7695ea95d96da6289c12e6d7cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3219916351"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description mentions adding guidance about “roundtrip-style coverage as an idiomatic pattern for translation and mapping tests”, but this change only introduces the “Parameterized Tests” section. Either add the roundtrip-coverage guidance to this doc or update the PR description so it matches what’s actually being changed.",
+      "created": "2026-05-11T14:59:57Z",
+      "hunk": "@@ -12,6 +12,36 @@\n - Do not use AssertJ `.as(...)` descriptions or `.withFailMessage(...)` in tests.\n   Prefer direct assertions whose failure output shows the unexpected values.\n \n+## Parameterized Tests\n+\n+- When the same test logic is repeated for multiple input/output cases, prefer\n+  `@ParameterizedTest` over one large test with many unrelated assertions or many small tests that",
+      "id": "PRRT_kwDODJKVX86BIBUQ",
+      "opened": "2026-05-11T14:59:57Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [
+        {
+          "at": "2026-05-12T07:10:03Z",
+          "body": "Updated the PR body to match the actual docs-only change and removed the unrelated roundtrip-coverage claim.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3224403884"
+        }
+      ],
+      "reviewed": "26a8e4dee9a81b7695ea95d96da6289c12e6d7cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18557#discussion_r3219916403"
+    }
+  ]
+}

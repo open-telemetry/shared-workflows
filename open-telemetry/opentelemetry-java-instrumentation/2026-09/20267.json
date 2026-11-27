@@ -1,0 +1,109 @@
+{
+  "head": "2ee73ce6daa1a6902aaaad6209052c6da21c6e47",
+  "merge": "2217269480960d9cae7f70fbfeb3850741b9f388",
+  "merged": "2026-09-30T17:59:20Z",
+  "missing_roots": 0,
+  "number": 20267,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  testLibrary(\"org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.0\")\n```",
+      "created": "2026-09-29T18:28:28Z",
+      "hunk": "@@ -42,7 +68,13 @@ dependencies {\n   testImplementation(project(\":instrumentation:reactor:reactor-3.1:library\"))\n   testImplementation(project(\":instrumentation-annotations\"))\n \n-  testLibrary(\"org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.0\")\n+  testLibrary(\"org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.0\") {\n+    if (!otelProps.testLatestDeps) {\n+      version {\n+        strictly(\"1.0.0\")\n+      }\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86nPWZV",
+      "opened": "2026-09-29T18:28:28Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "343ece8f2f0db3705a941691958b23a189d73e8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4136930737"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Remove this project dependency from the versioned integration suite. `version13Test` runs with the installed agent, so putting the javaagent artifact (and its transitive `javaagent-kotlin` helper) on the application classpath lets `FlowInstrumentationHelper`/`FlowUtilKt` resolve without agent helper injection and can make the relocated Flow test pass even when packaging or injection is broken. Version-specific javaagent suites should declare only their runtime/test dependencies; `implementation(project())` is reserved for direct `unitTests` suites.",
+      "created": "2026-09-29T18:36:34Z",
+      "hunk": "@@ -55,6 +81,26 @@ kotlin {\n   }\n }\n \n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"version13Test\") {\n+      dependencies {\n+        implementation(project())",
+      "id": "PRRT_kwDODJKVX86nPh8r",
+      "opened": "2026-09-29T18:36:35Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-29T21:55:42Z",
+          "body": "Addressed in 68e24a4f5b6df9e7ee88075e523bff217362f197.\n\nFixed in the verified source changes 68e24a4f5b6df9e7ee88075e523bff217362f197.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4138743456"
+        }
+      ],
+      "reviewed": "86629b8d7049b8585c82e9c53283527b69a49bba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4137005202"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use just `orLatest()`",
+      "created": "2026-09-30T11:05:49Z",
+      "hunk": "@@ -55,6 +81,25 @@ kotlin {\n   }\n }\n \n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"version13Test\") {\n+      dependencies {\n+        implementation(\"io.opentelemetry:opentelemetry-extension-kotlin\")\n+        implementation(\"org.jetbrains.kotlin:kotlin-stdlib-jdk8\")\n+        implementation(\n+          \"org.jetbrains.kotlinx:kotlinx-coroutines-core:${baseVersion(\"1.3.0\").orLatest(\"+\")}\",",
+      "id": "PRRT_kwDODJKVX86ngGKn",
+      "opened": "2026-09-30T11:05:49Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-30T15:02:10Z",
+          "body": "a20d9adcf37e29ff7aff666d68ae0dcebd741747",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4146089478"
+        }
+      ],
+      "reviewed": "68e24a4f5b6df9e7ee88075e523bff217362f197",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4143870208"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "someone added\n```\n  named(\"byteBuddyKotlin\") {\n    enabled = false\n  }\n```\nto `kotlinx-coroutines-1.0` I suspect that this might get rid of the need to have a separate project for kotlin sources",
+      "created": "2026-09-30T11:08:20Z",
+      "hunk": "@@ -1,8 +1,7 @@\n import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n \n-// We are using a separate module for kotlin source instead of placing them in\n-// instrumentation/kotlinx-coroutines/kotlinx-coroutines-flow-1.3/javaagent because muzzle\n-// generation plugin currently doesn't handle kotlin sources correctly.\n+// Keep this Kotlin helper separate because the muzzle generation plugin does not configure Kotlin",
+      "id": "PRRT_kwDODJKVX86ngJHT",
+      "opened": "2026-09-30T11:08:20Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent-kotlin/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-30T16:01:16Z",
+          "body": "2ee73ce6daa1a6902aaaad6209052c6da21c6e47",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4146662521"
+        }
+      ],
+      "reviewed": "68e24a4f5b6df9e7ee88075e523bff217362f197",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4143888628"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should rename this package too?",
+      "created": "2026-09-30T11:08:34Z",
+      "hunk": "@@ -3,12 +3,13 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.kotlinx.coroutines.flow.v1_3;\n+package io.opentelemetry.javaagent.instrumentation.kotlinxcoroutines.v1_0.flow;\n \n import io.opentelemetry.context.Context;\n import io.opentelemetry.instrumentation.api.annotation.support.async.AsyncOperationEndStrategies;\n import io.opentelemetry.instrumentation.api.annotation.support.async.AsyncOperationEndStrategy;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.javaagent.instrumentation.kotlinx.coroutines.flow.v1_3.FlowUtilKt;",
+      "id": "PRRT_kwDODJKVX86ngJbF",
+      "opened": "2026-09-30T11:08:34Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/flow/FlowInstrumentationHelper.java",
+      "replies": [
+        {
+          "at": "2026-09-30T15:02:12Z",
+          "body": "988fe122a90c3a476da4626ae501d20f0812deab",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4146089735"
+        }
+      ],
+      "reviewed": "68e24a4f5b6df9e7ee88075e523bff217362f197",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20267#discussion_r4143890521"
+    }
+  ]
+}

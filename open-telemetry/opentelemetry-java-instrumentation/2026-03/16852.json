@@ -1,0 +1,25 @@
+{
+  "head": "f030c0e6993acb3e4f222459fa5e378b6e5c8e86",
+  "merge": "95e58553236ca86d42d0e079e9b1add46cc61cb6",
+  "merged": "2026-03-21T01:01:00Z",
+  "missing_roots": 0,
+  "number": 16852,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "hasTotalAttributeCount is redundant now",
+      "created": "2026-03-21T01:00:27Z",
+      "hunk": "@@ -95,7 +94,7 @@ void logstashVariousValues() {\n                 .hasBody(\"log message 1\")\n                 // 14 fields (including map keys)\n                 .hasTotalAttributeCount(14)\n-                .hasAttributesSatisfying(\n+                .hasAttributesSatisfyingExactly(",
+      "id": "PRRT_kwDODJKVX8511yZl",
+      "opened": "2026-03-21T01:00:27Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/logstashMarkerTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/LogstashMarkerTest.java",
+      "replies": [],
+      "reviewed": "f030c0e6993acb3e4f222459fa5e378b6e5c8e86",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16852#discussion_r2968569285"
+    }
+  ]
+}

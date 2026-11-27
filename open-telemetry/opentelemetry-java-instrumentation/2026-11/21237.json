@@ -1,0 +1,31 @@
+{
+  "head": "145fc6f9b57d0162d766afbb9c3c91d3034126cc",
+  "merge": "6866f9b8453d0f40d9df0f7dcdd487084d4ad355",
+  "merged": "2026-11-07T08:14:38Z",
+  "missing_roots": 0,
+  "number": 21237,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the two additional behavior-preserving advice cleanups below. Keep the existing Logback cleanup. Do not create a separate PR.\n\nIn instrumentation/jboss-logmanager/jboss-logmanager-mdc-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jbosslogmanager/mdc/v1_1/JbossExtLogRecordInstrumentation.java, GetMdcCopyAdvice.onExit mutates the returned map in place and always returns that same reference. Remove its @AssignReturned.ToReturned annotation, change its return type to void, convert early return value statements to bare returns, and remove the final return. Preserve all MDC enrichment and guards. Keep GetMdcAdvice unchanged because it genuinely replaces the returned string.\n\nIn instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/PublishingMessageImplInstrumentation.java, GetPropertiesAdvice.onExit likewise mutates the original properties map in place. Remove @AssignReturned.ToReturned, change its return type to void, convert its early return to a bare return, remove its final return, and remove the AssignReturned import if unused. Preserve the PublishingMessageImpl guard and property additions.\n\nThese are equivalent to this PR's Logback cleanup, but remove redundant return-value assignment instead of argument assignment. Preserve all existing behavior, including suppressed exceptions and in-place map mutations. Remove only imports made unused by these changes, follow repository formatting, and run relevant existing tests. Limit the coding changes to these two additional cleanups.",
+      "created": "2026-11-07T02:37:23Z",
+      "hunk": "@@ -39,11 +37,9 @@ public void transform(TypeTransformer transformer) {\n   @SuppressWarnings(\"unused\")\n   public static class CallAppendersAdvice {\n \n-    @AssignReturned.ToArguments(@ToArgument(0))\n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static ILoggingEvent onEnter(@Advice.Argument(0) ILoggingEvent event) {\n+    public static void onEnter(@Advice.Argument(0) ILoggingEvent event) {",
+      "id": "PRRT_kwDODJKVX860xFhg",
+      "opened": "2026-11-07T02:37:23Z",
+      "path": "instrumentation/logback/logback-mdc-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/mdc/v1_0/LoggerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-07T02:46:36Z",
+          "body": "Updated both advice methods as requested while preserving the existing guards, suppression, and in-place map mutations. Focused JBoss LogManager and RocketMQ javaagent tests passed. Commit: `145fc6f9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21237#discussion_r4499694778"
+        }
+      ],
+      "reviewed": "a34890c0caf74de0342cf2cca6fa938d5ccad831",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21237#discussion_r4499652962"
+    }
+  ]
+}

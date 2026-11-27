@@ -1,0 +1,46 @@
+{
+  "head": "e24e76eed32d7e52e4cb12041c9ab9874e18d16a",
+  "merge": "e798d2191e9975d943e1f925b3b640deead2764d",
+  "merged": "2026-06-08T22:10:41Z",
+  "missing_roots": 0,
+  "number": 263,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`reactionGroups.users(first: 20)` can truncate the list of reactors, which can cause the dashboard to miss an acknowledgement when there are >20 positive reactions on the comment. Since GitHub GraphQL supports up to 100 per page, increasing this to 100 reduces false negatives without requiring extra pagination logic.",
+      "created": "2026-06-08T18:50:39Z",
+      "hunk": "@@ -213,6 +213,14 @@ def load_reviewer_set(org: str) -> set[str]:\n                             author {\n                                 login\n                             }\n+                            reactionGroups {\n+                                content\n+                                users(first: 20) {\n+                                    nodes {\n+                                        login\n+                                    }\n+                                }\n+                            }",
+      "id": "PRRT_kwDOSUeMrM6H7k5q",
+      "opened": "2026-06-08T18:50:40Z",
+      "path": ".github/scripts/pull-request-dashboard/github_cli.py",
+      "replies": [],
+      "reviewed": "b5537edf2b53d7ba67c86c49aed5cb39513f196c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/263#discussion_r3375601914"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same truncation issue here: limiting `reactionGroups.users` to 20 can drop the specific reviewer whose reaction should count as an acknowledgement. Bump to 100 (GitHub GraphQL max page size) to make acknowledgements more reliable.",
+      "created": "2026-06-08T18:50:40Z",
+      "hunk": "@@ -239,6 +247,14 @@ def load_reviewer_set(org: str) -> set[str]:\n                     author {\n                         login\n                     }\n+                    reactionGroups {\n+                        content\n+                        users(first: 20) {\n+                            nodes {\n+                                login\n+                            }\n+                        }\n+                    }",
+      "id": "PRRT_kwDOSUeMrM6H7k6N",
+      "opened": "2026-06-08T18:50:40Z",
+      "path": ".github/scripts/pull-request-dashboard/github_cli.py",
+      "replies": [
+        {
+          "at": "2026-06-08T18:55:18Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/263/commits/e24e76eed32d7e52e4cb12041c9ab9874e18d16a",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/263#discussion_r3375628708"
+        }
+      ],
+      "reviewed": "b5537edf2b53d7ba67c86c49aed5cb39513f196c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/263#discussion_r3375601960"
+    }
+  ]
+}

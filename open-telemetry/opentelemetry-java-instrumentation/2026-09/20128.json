@@ -1,0 +1,271 @@
+{
+  "head": "5e9dba66d72193ed981f8a3f3f5eea540103d7fa",
+  "merge": "1e4bbe121a968f8cab401ebd781a0271983f1fc7",
+  "merged": "2026-09-18T19:46:11Z",
+  "missing_roots": 0,
+  "number": 20128,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This task explicitly enables Hibernate, but the telemetry condition records only v3 preview. `MetaDataCollector` uses this value verbatim as the generated `when` condition, so regenerated docs will claim these spans are emitted with v3 preview alone even though the module now also requires `otel.instrumentation.hibernate.enabled=true`. Include the opt-in in the metadata condition.",
+      "created": "2026-09-12T23:01:58Z",
+      "hunk": "@@ -67,6 +67,28 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.hibernate.experimental-span-attributes=true\")\n   }\n \n+  val testV3Preview = register<Test>(\"testV3Preview\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.instrumentation.common.v3-preview=true\")\n+    jvmArgs(\"-Dotel.instrumentation.hibernate.enabled=true\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.v3-preview=true\")",
+      "id": "PRRT_kwDODJKVX86h0cSK",
+      "opened": "2026-09-12T23:01:59Z",
+      "path": "instrumentation/hibernate/hibernate-3.3/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-12T23:21:40Z",
+          "body": "Addressed in 05cf23a4af568ab92e40ae81e4349ab7a50ab016.\n\nAnalysis: MetaDataCollector copies metadataConfig into generated telemetry unchanged. Each v3 preview task enables its instrumentation with a separate JVM property, so its metadata condition must include both active properties. The cloned Hibernate suites also retain inherited metadata and append both v3 preview properties.\n\nUpsides: Generated documentation now states every configuration required to emit the collected spans. The JVM properties remain separate and valid for each test process.\n\nDownsides: The generated conditions are longer. There is no runtime behavior change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997973970"
+        }
+      ],
+      "reviewed": "de6a1d46bc1ed4844ab91ccadd646bbdced44bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997925683"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The cloned suites explicitly enable Hibernate, but the telemetry condition records only v3 preview. `MetaDataCollector` uses this value verbatim as the generated `when` condition, so regenerated docs will claim these spans are emitted with v3 preview alone even though the module now also requires `otel.instrumentation.hibernate.enabled=true`. Include the opt-in in the metadata condition.",
+      "created": "2026-09-12T23:01:58Z",
+      "hunk": "@@ -92,6 +92,41 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.hibernate.experimental-span-attributes=true\")\n   }\n \n+  val v3PreviewSuites = testing.suites.withType(JvmTestSuite::class)\n+    .map { suite ->\n+      register<Test>(\"${suite.name}V3Preview\") {\n+        val sourceTask = named<Test>(suite.name).get()\n+        setJvmArgs(sourceTask.jvmArgs)\n+        setSystemProperties(sourceTask.systemProperties)\n+\n+        testClassesDirs = suite.sources.output.classesDirs\n+        classpath = suite.sources.runtimeClasspath\n+\n+        val v3PreviewConfig = \"otel.instrumentation.common.v3-preview=true\"\n+        jvmArgs(\"-D$v3PreviewConfig\")\n+        jvmArgs(\"-Dotel.instrumentation.hibernate.enabled=true\")\n+        systemProperty(\n+          \"metadataConfig\",\n+          listOfNotNull(sourceTask.systemProperties[\"metadataConfig\"], v3PreviewConfig)\n+            .joinToString(\",\"),\n+        )\n+        isEnabled = sourceTask.enabled",
+      "id": "PRRT_kwDODJKVX86h0cSe",
+      "opened": "2026-09-12T23:01:59Z",
+      "path": "instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-12T23:21:41Z",
+          "body": "Addressed in 05cf23a4af568ab92e40ae81e4349ab7a50ab016.\n\nAnalysis: MetaDataCollector copies metadataConfig into generated telemetry unchanged. Each v3 preview task enables its instrumentation with a separate JVM property, so its metadata condition must include both active properties. The cloned Hibernate suites also retain inherited metadata and append both v3 preview properties.\n\nUpsides: Generated documentation now states every configuration required to emit the collected spans. The JVM properties remain separate and valid for each test process.\n\nDownsides: The generated conditions are longer. There is no runtime behavior change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997974034"
+        }
+      ],
+      "reviewed": "de6a1d46bc1ed4844ab91ccadd646bbdced44bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997925707"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The cloned suites explicitly enable Hibernate, but the telemetry condition records only v3 preview. `MetaDataCollector` uses this value verbatim as the generated `when` condition, so regenerated docs will claim these spans are emitted with v3 preview alone even though the module now also requires `otel.instrumentation.hibernate.enabled=true`. Include the opt-in in the metadata condition.",
+      "created": "2026-09-12T23:01:58Z",
+      "hunk": "@@ -93,6 +93,41 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.hibernate.experimental-span-attributes=true\")\n   }\n \n+  val v3PreviewSuites = testing.suites.withType(JvmTestSuite::class)\n+    .map { suite ->\n+      register<Test>(\"${suite.name}V3Preview\") {\n+        val sourceTask = named<Test>(suite.name).get()\n+        setJvmArgs(sourceTask.jvmArgs)\n+        setSystemProperties(sourceTask.systemProperties)\n+\n+        testClassesDirs = suite.sources.output.classesDirs\n+        classpath = suite.sources.runtimeClasspath\n+\n+        val v3PreviewConfig = \"otel.instrumentation.common.v3-preview=true\"\n+        jvmArgs(\"-D$v3PreviewConfig\")\n+        jvmArgs(\"-Dotel.instrumentation.hibernate.enabled=true\")\n+        systemProperty(\n+          \"metadataConfig\",\n+          listOfNotNull(sourceTask.systemProperties[\"metadataConfig\"], v3PreviewConfig)\n+            .joinToString(\",\"),\n+        )",
+      "id": "PRRT_kwDODJKVX86h0cSk",
+      "opened": "2026-09-12T23:01:59Z",
+      "path": "instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-12T23:21:42Z",
+          "body": "Addressed in 05cf23a4af568ab92e40ae81e4349ab7a50ab016.\n\nAnalysis: MetaDataCollector copies metadataConfig into generated telemetry unchanged. Each v3 preview task enables its instrumentation with a separate JVM property, so its metadata condition must include both active properties. The cloned Hibernate suites also retain inherited metadata and append both v3 preview properties.\n\nUpsides: Generated documentation now states every configuration required to emit the collected spans. The JVM properties remain separate and valid for each test process.\n\nDownsides: The generated conditions are longer. There is no runtime behavior change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997974127"
+        }
+      ],
+      "reviewed": "de6a1d46bc1ed4844ab91ccadd646bbdced44bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997925718"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This task explicitly enables Hibernate, but the telemetry condition records only v3 preview. `MetaDataCollector` uses this value verbatim as the generated `when` condition, so regenerated docs will claim these spans are emitted with v3 preview alone even though the module now also requires `otel.instrumentation.hibernate.enabled=true`. Include the opt-in in the metadata condition.",
+      "created": "2026-09-12T23:01:58Z",
+      "hunk": "@@ -45,6 +45,28 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.hibernate.experimental-span-attributes=true\")\n   }\n \n+  val testV3Preview = register<Test>(\"testV3Preview\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.instrumentation.common.v3-preview=true\")\n+    jvmArgs(\"-Dotel.instrumentation.hibernate.enabled=true\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.v3-preview=true\")",
+      "id": "PRRT_kwDODJKVX86h0cSw",
+      "opened": "2026-09-12T23:01:59Z",
+      "path": "instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-12T23:21:43Z",
+          "body": "Addressed in 05cf23a4af568ab92e40ae81e4349ab7a50ab016.\n\nAnalysis: MetaDataCollector copies metadataConfig into generated telemetry unchanged. Each v3 preview task enables its instrumentation with a separate JVM property, so its metadata condition must include both active properties. The cloned Hibernate suites also retain inherited metadata and append both v3 preview properties.\n\nUpsides: Generated documentation now states every configuration required to emit the collected spans. The JVM properties remain separate and valid for each test process.\n\nDownsides: The generated conditions are longer. There is no runtime behavior change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997974177"
+        }
+      ],
+      "reviewed": "de6a1d46bc1ed4844ab91ccadd646bbdced44bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997925734"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This task explicitly enables Hystrix, but the telemetry condition records only v3 preview. `MetaDataCollector` uses this value verbatim as the generated `when` condition, so regenerated docs will claim these spans are emitted with v3 preview alone even though the module now also requires `otel.instrumentation.hystrix.enabled=true`. Include the opt-in in the metadata condition.",
+      "created": "2026-09-12T23:01:59Z",
+      "hunk": "@@ -40,8 +40,29 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.hystrix.experimental-span-attributes=true\")\n   }\n \n+  val testV3Preview = register<Test>(\"testV3Preview\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.instrumentation.common.v3-preview=true\")\n+    jvmArgs(\"-Dotel.instrumentation.hystrix.enabled=true\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.v3-preview=true\")",
+      "id": "PRRT_kwDODJKVX86h0cTB",
+      "opened": "2026-09-12T23:01:59Z",
+      "path": "instrumentation/hystrix-1.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-12T23:21:45Z",
+          "body": "Addressed in 05cf23a4af568ab92e40ae81e4349ab7a50ab016.\n\nAnalysis: MetaDataCollector copies metadataConfig into generated telemetry unchanged. Each v3 preview task enables its instrumentation with a separate JVM property, so its metadata condition must include both active properties. The cloned Hibernate suites also retain inherited metadata and append both v3 preview properties.\n\nUpsides: Generated documentation now states every configuration required to emit the collected spans. The JVM properties remain separate and valid for each test process.\n\nDownsides: The generated conditions are longer. There is no runtime behavior change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997974226"
+        }
+      ],
+      "reviewed": "de6a1d46bc1ed4844ab91ccadd646bbdced44bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997925755"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This task explicitly enables Twilio, but the telemetry condition records only v3 preview. `MetaDataCollector` uses this value verbatim as the generated `when` condition, so regenerated docs will claim these spans are emitted with v3 preview alone even though the module now also requires `otel.instrumentation.twilio.enabled=true`. Include the opt-in in the metadata condition.",
+      "created": "2026-09-12T23:01:59Z",
+      "hunk": "@@ -34,7 +34,28 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.twilio.experimental-span-attributes=true\")\n   }\n \n+  val testV3Preview = register<Test>(\"testV3Preview\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.instrumentation.common.v3-preview=true\")\n+    jvmArgs(\"-Dotel.instrumentation.twilio.enabled=true\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.v3-preview=true\")",
+      "id": "PRRT_kwDODJKVX86h0cTJ",
+      "opened": "2026-09-12T23:01:59Z",
+      "path": "instrumentation/twilio-6.6/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-12T23:21:46Z",
+          "body": "Addressed in 05cf23a4af568ab92e40ae81e4349ab7a50ab016.\n\nAnalysis: MetaDataCollector copies metadataConfig into generated telemetry unchanged. Each v3 preview task enables its instrumentation with a separate JVM property, so its metadata condition must include both active properties. The cloned Hibernate suites also retain inherited metadata and append both v3 preview properties.\n\nUpsides: Generated documentation now states every configuration required to emit the collected spans. The JVM properties remain separate and valid for each test process.\n\nDownsides: The generated conditions are longer. There is no runtime behavior change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997974275"
+        }
+      ],
+      "reviewed": "de6a1d46bc1ed4844ab91ccadd646bbdced44bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3997925768"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-13T01:17:05Z",
+      "hunk": "@@ -4,6 +4,11 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- When `otel.instrumentation.common.v3-preview=true`, the Hibernate ORM `hibernate-3.3`,\n+  `hibernate-4.0`, `hibernate-6.0`, and `hibernate-procedure-call-4.3` modules, Hystrix 1.4, and\n+  Twilio 6.6 are disabled by default. To keep them enabled, set\n+  `otel.instrumentation.hibernate.enabled=true`, `otel.instrumentation.hystrix.enabled=true`, or\n+  `otel.instrumentation.twilio.enabled=true`, respectively.",
+      "id": "PRRT_kwDODJKVX86h1Lm2",
+      "opened": "2026-09-13T01:17:04Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "0c57f2adcd1011d46d1e1460d8dbde8f2eb77387",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3998217650"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-13T13:14:20Z",
+      "hunk": "@@ -1,10 +1,31 @@\n # Scope of this repository\n \n-Both javaagent and library-based approaches to the following:\n+## Instrumentation maintained here\n \n-- Instrumentation for specific Java libraries and frameworks\n-  - Emitting spans and metrics (and in the future logs)\n-- System metrics\n-- MDC logging integrations\n-  - Encoding traceId/spanId into logs\n+This repository focuses on Java agent and standalone library instrumentation that implements\n+[OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/), including:\n+\n+- HTTP client and server telemetry\n+- RPC client and server telemetry\n+- Messaging telemetry\n+- Database client and connection pool telemetry\n+- JVM runtime and system metrics\n+- GraphQL server telemetry\n+- FaaS server telemetry\n+- GenAI client telemetry\n+- Resource detection for:\n+  - Containers\n+  - Hosts\n+  - Operating systems\n+  - Processes and the Java runtime\n+\n+The repository also maintains instrumentation for:\n+\n+- Context propagation\n+- Scheduled job execution\n+- Collection of logging framework events as OpenTelemetry logs\n+- Injection of trace context into logging framework context\n - Spring Boot starters\n+\n+Proposals outside these areas are considered based on their maintenance cost, signal quality,\n+cardinality, overlap with existing instrumentation, and value to users.",
+      "id": "PRRT_kwDODJKVX86h4_Qt",
+      "opened": "2026-09-13T13:14:20Z",
+      "path": "docs/scope.md",
+      "replies": [],
+      "reviewed": "eb03dbb8f0b2e7d9ca35f31710c20f252310523b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r3999714774"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The new scope section lists maintained areas but never states the default-enablement policy described by this PR: that agent instrumentation in these areas is generally enabled by default and new instrumentation outside them normally is not. Without that statement, this reads only as a repository scope list and does not document the policy future contributors are meant to follow.",
+      "created": "2026-09-14T16:01:42Z",
+      "hunk": "@@ -1,10 +1,28 @@\n # Scope of this repository\n \n-Both javaagent and library-based approaches to the following:\n+## Instrumentation maintained here\n \n-- Instrumentation for specific Java libraries and frameworks\n-  - Emitting spans and metrics (and in the future logs)\n-- System metrics\n-- MDC logging integrations\n-  - Encoding traceId/spanId into logs\n+This repository focuses on Java agent and standalone library instrumentation that implements\n+[OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/), including:",
+      "id": "PRRT_kwDODJKVX86iLtBg",
+      "opened": "2026-09-14T16:01:42Z",
+      "path": "docs/scope.md",
+      "replies": [
+        {
+          "at": "2026-09-14T22:48:52Z",
+          "body": "Addressed in 6dc107e97c426cf47e4aca5c607569eaf99ad86a.\n\nAnalysis: The scope page replaced the earlier policy text with a list of maintained instrumentation areas. The list does not say how those areas govern default enablement. The added paragraph restores that rule and states that standalone library instrumentation is outside it because users initialize those libraries explicitly.\n\nUpsides: Contributors can now tell when new Java agent instrumentation should be enabled by default. The standalone library boundary prevents the rule from being applied where enablement is explicit.\n\nDownsides: The scope page gains one policy paragraph. There is no runtime behavior change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010280540"
+        }
+      ],
+      "reviewed": "2ed3e34a2f8055e05bf52393eb022a428ba25eda",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4007071767"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This override is not exercised in disabled mode for Hibernate 4–5. The only new `testDisabled` task uses Hibernate 3.3, whose Muzzle range ends at 4.0, so that test still passes if this module remains enabled under v3 preview. Add a `DefaultEnablementTest` and filtered v3-preview task using a Hibernate 4/5 operation.",
+      "created": "2026-09-14T22:58:07Z",
+      "hunk": "@@ -21,6 +22,11 @@ public HibernateInstrumentationModule() {\n     super(\"hibernate\", \"hibernate-4.0\");\n   }\n \n+  @Override\n+  public boolean defaultEnabled() {\n+    return super.defaultEnabled() && !AgentCommonConfig.get().isV3Preview();",
+      "id": "PRRT_kwDODJKVX86iT30C",
+      "opened": "2026-09-14T22:58:08Z",
+      "path": "instrumentation/hibernate/hibernate-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/v4_0/HibernateInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:11:17Z",
+          "body": "Addressed in 2b971cf1119a98ea8d880ddbb13bdf931cc62d43.\n\nAnalysis: Hibernate 4, Hibernate 6, and procedure-call are separate instrumentation modules with disjoint class matchers. The Hibernate 3.3 test cannot load or exercise them. Each module now runs a representative operation in normal and v3 preview JVMs. The disabled tasks also turn off JDBC instrumentation so any extra span proves that a Hibernate module was installed.\n\nUpsides: Each defaultEnabled() override now has positive and negative coverage against a compatible Hibernate API. The exact disabled trace detects accidental installation of any affected module.\n\nDownsides: The module test suites run three additional filtered JVM tasks. The procedure-call test uses a separate in-memory database to avoid sharing state with its behavior tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010397447"
+        }
+      ],
+      "reviewed": "6dc107e97c426cf47e4aca5c607569eaf99ad86a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010331731"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The Hibernate 3.3 default-enablement test cannot exercise this procedure-call module because `ProcedureCall` starts at Hibernate 4.3. Without a v3-preview run of a stored-procedure operation, this independently installed module could remain enabled unnoticed. Add dedicated positive/disabled coverage for this module.",
+      "created": "2026-09-14T22:58:08Z",
+      "hunk": "@@ -20,6 +21,11 @@ public HibernateInstrumentationModule() {\n     super(\"hibernate-procedure-call\", \"hibernate-procedure-call-4.3\", \"hibernate\");\n   }\n \n+  @Override\n+  public boolean defaultEnabled() {\n+    return super.defaultEnabled() && !AgentCommonConfig.get().isV3Preview();",
+      "id": "PRRT_kwDODJKVX86iT305",
+      "opened": "2026-09-14T22:58:08Z",
+      "path": "instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/procedure/call/v4_3/HibernateInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:11:21Z",
+          "body": "Addressed in 2b971cf1119a98ea8d880ddbb13bdf931cc62d43.\n\nAnalysis: Hibernate 4, Hibernate 6, and procedure-call are separate instrumentation modules with disjoint class matchers. The Hibernate 3.3 test cannot load or exercise them. Each module now runs a representative operation in normal and v3 preview JVMs. The disabled tasks also turn off JDBC instrumentation so any extra span proves that a Hibernate module was installed.\n\nUpsides: Each defaultEnabled() override now has positive and negative coverage against a compatible Hibernate API. The exact disabled trace detects accidental installation of any affected module.\n\nDownsides: The module test suites run three additional filtered JVM tasks. The procedure-call test uses a separate in-memory database to avoid sharing state with its behavior tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010397771"
+        }
+      ],
+      "reviewed": "6dc107e97c426cf47e4aca5c607569eaf99ad86a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010331806"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This override is not exercised in disabled mode for Hibernate 6+. The new coverage runs only against Hibernate 3.3, where this module cannot match, so it cannot detect this module being accidentally installed under v3 preview. Add a `DefaultEnablementTest` and filtered v3-preview task for a Hibernate 6+ operation.",
+      "created": "2026-09-14T22:58:08Z",
+      "hunk": "@@ -21,6 +22,11 @@ public HibernateInstrumentationModule() {\n     super(\"hibernate\", \"hibernate-6.0\");\n   }\n \n+  @Override\n+  public boolean defaultEnabled() {\n+    return super.defaultEnabled() && !AgentCommonConfig.get().isV3Preview();",
+      "id": "PRRT_kwDODJKVX86iT30b",
+      "opened": "2026-09-14T22:58:08Z",
+      "path": "instrumentation/hibernate/hibernate-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/v6_0/HibernateInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:11:19Z",
+          "body": "Addressed in 2b971cf1119a98ea8d880ddbb13bdf931cc62d43.\n\nAnalysis: Hibernate 4, Hibernate 6, and procedure-call are separate instrumentation modules with disjoint class matchers. The Hibernate 3.3 test cannot load or exercise them. Each module now runs a representative operation in normal and v3 preview JVMs. The disabled tasks also turn off JDBC instrumentation so any extra span proves that a Hibernate module was installed.\n\nUpsides: Each defaultEnabled() override now has positive and negative coverage against a compatible Hibernate API. The exact disabled trace detects accidental installation of any affected module.\n\nDownsides: The module test suites run three additional filtered JVM tasks. The procedure-call test uses a separate in-memory database to avoid sharing state with its behavior tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010397648"
+        }
+      ],
+      "reviewed": "6dc107e97c426cf47e4aca5c607569eaf99ad86a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010331766"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The parent is a reliable completion signal only if the instrumented operation finishes before the callback returns. For an asynchronous API, following this guidance literally can export the parent first and let an unexpected instrumentation span arrive after the exact assertion has already passed. Require awaiting asynchronous completion inside `runWithSpan(...)`.",
+      "created": "2026-09-14T22:58:08Z",
+      "hunk": "@@ -0,0 +1,130 @@\n+# [Testing] Default instrumentation enablement\n+\n+## Quick reference\n+\n+- Use when: adding or reviewing coverage for instrumentation that is disabled by default, or that\n+  becomes disabled by default under `otel.instrumentation.common.v3-preview`\n+- Review focus: run one representative operation in enabled and disabled modes, prove that the\n+  operation emits telemetry when enabled, and prove that it emits no instrumentation telemetry\n+  when disabled\n+\n+## Test observable behavior\n+\n+Test enablement through the installed Java agent and a representative library operation. Do not\n+call `InstrumentationModule.defaultEnabled()` directly, mock `AgentCommonConfig`, or inspect agent\n+internals. Those approaches either bypass agent configuration or couple the test to class-loader\n+and installation details.\n+\n+The operation must produce an instrumentation span when the module is enabled. A negative-only test\n+can pass even when its operation never reaches instrumented code.\n+\n+## Use one test in both modes\n+\n+Put the coverage in a dedicated `DefaultEnablementTest`. Run the same test method under the normal\n+test task and a `testDisabled` task. Read the startup property into a class constant and use it only\n+to select the expected trace shape.\n+\n+For instrumentation that becomes disabled under v3 preview:\n+\n+```java\n+class DefaultEnablementTest {\n+\n+  private static final boolean V3_PREVIEW =\n+      Boolean.getBoolean(\"otel.instrumentation.common.v3-preview\");\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Test\n+  void defaultEnablement() {\n+    testing.runWithSpan(\"parent\", () -> runRepresentativeOperation());\n+\n+    if (V3_PREVIEW) {\n+      testing.waitAndAssertTraces(\n+          trace -> trace.hasSpansSatisfyingExactly(span -> span.hasName(\"parent\")));\n+    } else {\n+      testing.waitAndAssertTraces(\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span -> span.hasName(\"parent\"),\n+                  span -> span.hasName(\"expected instrumentation span\")));\n+    }\n+  }\n+}\n+```\n+\n+Keep the `if` around the complete `waitAndAssertTraces(...)` calls. Do not put it inside the trace\n+assertion callback. Separate calls make each mode's complete expected output visible.\n+\n+Do not use `@EnabledIfSystemProperty` or separate positive and negative test methods. One method\n+must execute the same operation in both JVM configurations.\n+\n+## The parent span is a completion signal\n+\n+Wrap the library operation in a manually created parent span. In disabled mode, assert that the\n+completed trace contains exactly that span:\n+\n+```java\n+testing.waitAndAssertTraces(\n+    trace -> trace.hasSpansSatisfyingExactly(span -> span.hasName(\"parent\")));\n+```\n+\n+Do not replace this with an immediate `testing.spans().isEmpty()` assertion. Export is asynchronous,\n+so an unexpected instrumentation span could arrive after the assertion. The parent span gives\n+`waitAndAssertTraces(...)` a completed trace to await, and `hasSpansSatisfyingExactly(...)` rejects\n+any additional span.",
+      "id": "PRRT_kwDODJKVX86iT31T",
+      "opened": "2026-09-14T22:58:08Z",
+      "path": ".github/agents/knowledge/testing-default-enablement.md",
+      "replies": [
+        {
+          "at": "2026-09-14T23:11:22Z",
+          "body": "Addressed in 851a9ba849d8a0d03617f3e6e509165c5c4230e0.\n\nAnalysis: The guidance assumed that the instrumented operation finishes before the parent span. An asynchronous operation can outlive the callback, which lets the exact assertion observe only the completed parent. The added instruction requires the callback to wait for the operation.\n\nUpsides: Negative enablement tests cannot pass before an unexpected asynchronous instrumentation span arrives.\n\nDownsides: Tests for asynchronous APIs must block on their normal completion mechanism.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010397874"
+        }
+      ],
+      "reviewed": "6dc107e97c426cf47e4aca5c607569eaf99ad86a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20128#discussion_r4010331838"
+    }
+  ]
+}

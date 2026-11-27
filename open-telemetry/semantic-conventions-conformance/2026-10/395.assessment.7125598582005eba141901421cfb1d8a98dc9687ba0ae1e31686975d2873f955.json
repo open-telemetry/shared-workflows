@@ -1,0 +1,40 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "058e26c7e3310b3b874cb88c9a815c702021c879e37278b861be9a2810252d50",
+  "input_digest": "7125598582005eba141901421cfb1d8a98dc9687ba0ae1e31686975d2873f955",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/33c56e89ad244fca1fb6ba1c19852d6f1741ff19/scenarios/gen-ai/python/google-adk/openinference/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/33c56e89ad244fca1fb6ba1c19852d6f1741ff19/scenarios/gen-ai/python/google-adk/openinference/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2250d9f986a74783a9ac3cbd954639b25e0ffadc/scenarios/gen-ai/python/google-adk/openinference/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2250d9f986a74783a9ac3cbd954639b25e0ffadc/scenarios/gen-ai/python/google-adk/openinference/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/94e6ec1ed5604e847550dbe1d5e6101cce44e427"
+      ],
+      "id": "PRRT_kwDOTuzK5c6wUiAz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6wUwfX",
+      "kind": null,
+      "original": "PRRT_kwDOTuzK5c6wUiAz",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/75bc00f6af921cec72d412cd52c61b8c1faddfd1/scenarios/gen-ai/python/google-adk/openinference/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2250d9f986a74783a9ac3cbd954639b25e0ffadc/scenarios/gen-ai/python/google-adk/openinference/conformance.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6wdxhC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

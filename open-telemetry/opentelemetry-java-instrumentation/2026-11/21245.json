@@ -1,0 +1,31 @@
+{
+  "head": "38adb5033b8c9642f7d5440fdeaf7f2b5f3740de",
+  "merge": "8b284f4b9e97f81726b31aa2b365218f941a486c",
+  "merged": "2026-11-07T20:37:02Z",
+  "missing_roots": 0,
+  "number": 21245,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by backporting only the ResourceDeclarativeConfigTest test fix from merged PR #21227, commit b803b5cf8ee745407f9e9f83fbfcd136fcafbe19. Do not create a separate PR.\n\nThe SDK 1.68.0 update causes ResourceDeclarativeConfigTest.endToEnd() at line 50 to fail across all test3 variants and testLatestDeps3 with \"Cannot locate field resource on class io.opentelemetry.sdk.trace.TracerSharedState\". SDK 1.68.0 replaced the private resource field with resourceProvider. In instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/internal/ResourceDeclarativeConfigTest.java, use the same fix as #21227: configure tracer_provider.processors with a simple processor and the test exporter, create and end a test span, wait for the exported trace, and perform the existing resource assertions on the exported span Resource rather than reflecting into sharedState.resource. Remove imports made unused by that change.\n\nPreserve maintenance/v2.x behavior and existing resource assertions. Do not backport the whole SDK update commit, main-only entity/schema assertions, or unrelated changes. Keep the SDK at 1.68.0. Run the narrow relevant formatter and resources library tests under repository instructions. Acceptance criteria: the test exercises declarative resource configuration through exported telemetry, no private SDK field extraction remains in this test, and the existing resource assertions pass on SDK 1.68.0.",
+      "created": "2026-11-07T16:23:02Z",
+      "hunk": "@@ -5,7 +5,7 @@ plugins {\n data class DependencySet(val group: String, val version: String, val modules: List<String>)\n \n // this line is managed by .github/scripts/update-sdk-version.sh\n-val otelSdkVersion = \"1.67.0\"\n+val otelSdkVersion = \"1.68.0\"",
+      "id": "PRRT_kwDODJKVX8604XUl",
+      "opened": "2026-11-07T16:23:02Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-07T16:33:25Z",
+          "body": "Backported only the exported-telemetry test fix, preserving the existing resource assertions: `38adb503`. The formatter and targeted resources library test pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21245#discussion_r4502758250"
+        }
+      ],
+      "reviewed": "b509aee84e1c1d52166f188ea9e706b1c2fca970",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21245#discussion_r4502715239"
+    }
+  ]
+}

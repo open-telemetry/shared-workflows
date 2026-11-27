@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b3399e0a546e589a631e8c618a091f825b6116df1de47c7e90b979021aebfb80",
+  "input_digest": "bb3a1a9a67c7bdf5230d439c858d6e0fdd4281427eb8cb20fbdd8e39f87e88a3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eae01e004ba2937625ad797bc573cc638b3a1b03/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1149968bf2a65a508f37d515ee66f6aab5c6d3f8/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/212eec928fdd677fd2eb51b546b21156c14589c3"
+      ],
+      "id": "PRRT_kwDODJKVX86rQuW0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/212eec928fdd677fd2eb51b546b21156c14589c3/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1149968bf2a65a508f37d515ee66f6aab5c6d3f8/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d31896507ada0f5af290ec14798ac056319785d8"
+      ],
+      "id": "PRRT_kwDODJKVX86rQwmr",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/44d3b1d09233ec69ea56fcebfd8135875c3f92f9/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1149968bf2a65a508f37d515ee66f6aab5c6d3f8/instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86sJkOV",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "head": "8e54535365398f016fd876c01034e3f6563647f7",
+  "merge": "b1aa5335f79f51b86827c3356dfbd71894750abe",
+  "merged": "2026-02-26T16:57:22Z",
+  "missing_roots": 0,
+  "number": 16276,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This class didn't feel worth it (https://github.com/open-telemetry/opentelemetry-java/issues/6970)",
+      "created": "2026-02-24T04:58:26Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85wS5O3",
+      "opened": "2026-02-24T05:00:23Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbResponseStatusUtil.java",
+      "replies": [],
+      "reviewed": "fbe37fb7eb60b8f8ee8f39e8eb1f0ba0e7c44eb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2844508917"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is a change of behavior (under stable semconv flag)\n\n`db.response.status_code` isn't restricted to error codes",
+      "created": "2026-02-24T04:59:55Z",
+      "hunk": "@@ -82,6 +81,22 @@ public String getDbOperationName(ElasticsearchRestRequest request) {\n   @Nullable\n   @Override\n   public String getDbResponseStatusCode(@Nullable Response response, @Nullable Throwable error) {\n-    return response != null ? dbResponseStatusCode(response.getStatusLine().getStatusCode()) : null;\n+    if (response != null) {\n+      return Integer.toString(response.getStatusLine().getStatusCode());\n+    }\n+    return null;",
+      "id": "PRRT_kwDODJKVX85wS54V",
+      "opened": "2026-02-24T05:00:23Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+      "replies": [],
+      "reviewed": "fbe37fb7eb60b8f8ee8f39e8eb1f0ba0e7c44eb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2844512553"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I'm wondering about the usefulness of capturing `db.response.status_code` for non-errors.\n\nSemantic conventions say `db.response.status_code` is conditionally required:\n\n> If the operation failed and status code is available.\n\nso it may be ok if we don't capture it for non-errors.\n\nBut if we only capture it for errors, then I'm wondering how it's useful since those error codes will be captured (also) in `error.type`.\n\ncc @lmolkova",
+      "created": "2026-02-25T02:53:05Z",
+      "hunk": "@@ -110,7 +112,10 @@ void elasticsearchStatus() throws IOException {\n                             equalTo(HTTP_REQUEST_METHOD, \"GET\"),\n                             equalTo(URL_FULL, httpHost.toURI() + \"/\"),\n                             equalTo(SERVER_ADDRESS, httpHost.getHostName()),\n-                            equalTo(SERVER_PORT, httpHost.getPort())),\n+                            equalTo(SERVER_PORT, httpHost.getPort()),\n+                            equalTo(\n+                                DB_RESPONSE_STATUS_CODE,\n+                                emitStableDatabaseSemconv() ? \"200\" : null)),",
+      "id": "PRRT_kwDODJKVX85wkAEt",
+      "opened": "2026-02-25T02:53:21Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-api-client-7.16/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/apiclient/ElasticsearchClientTest.java",
+      "replies": [
+        {
+          "at": "2026-02-25T16:10:29Z",
+          "body": "For elastic and opensearch that use http client underneath the current behavior would is similar to what http client instrumentations use. For other database clients I'd guess that even now status code and error type are going to match when status code is present and there is no status code for successful operations (do we have a database client that reports status code for success?).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2853968428"
+        },
+        {
+          "at": "2026-02-26T01:22:15Z",
+          "body": "Interesting. I don't remember us discussing this during stabilization so not sure if there are good reasons for it.\r\n\r\n> do we have a database client that reports status code for success?\r\n\r\nWe have at least [Postgres](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/db/postgresql.md), [MS SQL](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/db/sql-server.md), [mariaDB](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/db/mariadb.md), [cosmosdb](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/db/cosmosdb.md) that do have non-error codes.\r\n\r\nI think we use both because it's consistent with HTTP client -  most of the time error code is the same as http status code and only when there is no response at all. We probably did it in HTTP because status code is a common grouping key on dashboards and it's not always related to errors/success. \r\nIt's also part of [`error.type` definition](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/registry/attributes/error.md)\r\n\r\n> If a specific domain defines its own set of error identifiers (such as HTTP or RPC status codes), it's RECOMMENDED to:\r\n> \r\n> - Use a domain-specific attribute\r\n> - Set error.type to capture all errors\r\n\r\nIf we made status code opt-in by default:\r\n- we'd let individual systems override it and provide status code attribute by default in success cases\r\n- we wouldn't provide status code in case of failure by default\r\n- we'd ask uses to build dashboards using `error.type` (which we already do).\r\n\r\nI think it makes more sense than what we have today, but I don't like the idea of a breaking change in DB semconv.\r\nWe should fix it for unstable DBs and consider for RPC/future. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2856365503"
+        },
+        {
+          "at": "2026-02-26T01:36:37Z",
+          "body": "created https://github.com/open-telemetry/semantic-conventions/issues/3478\r\n\r\nWould you folks feel bad for not following this `conditionally_required` in instrumentations? It makes sense from practical standpoint and there is nobody that would be broken, right?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2856396303"
+        },
+        {
+          "at": "2026-02-26T16:51:32Z",
+          "body": "> Would you folks feel bad for not following this `conditionally_required` in instrumentations?\r\n\r\nnope, I won't feel bad at all 😄",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2860147416"
+        }
+      ],
+      "reviewed": "78bc71497ffc0fd3db7dbbf5a9465d532a509cc0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2850538387"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Previously we had this in the `DbResponseStatusUtil` class. Since multiple instrumentations need to decide which http statuses are errors perhaps it would make sense to share this code?",
+      "created": "2026-02-25T14:39:40Z",
+      "hunk": "@@ -41,6 +39,25 @@ public String getDbOperationName(OpenSearchRestRequest request) {\n   @Override\n   public String getDbResponseStatusCode(\n       @Nullable OpenSearchRestResponse response, @Nullable Throwable error) {\n-    return response != null ? dbResponseStatusCode(response.getStatusCode()) : null;\n+    if (response != null) {\n+      return Integer.toString(response.getStatusCode());\n+    }\n+    return null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      OpenSearchRestRequest request,\n+      @Nullable OpenSearchRestResponse response,\n+      @Nullable Throwable error) {\n+\n+    if (response != null) {\n+      int statusCode = response.getStatusCode();\n+      if (statusCode >= 400 || statusCode < 100) {",
+      "id": "PRRT_kwDODJKVX85wsXe2",
+      "opened": "2026-02-25T14:39:39Z",
+      "path": "instrumentation/opensearch/opensearch-rest-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/OpenSearchRestAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-02-25T15:45:01Z",
+          "body": "see https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2844508917\r\n\r\nI realize we may decide never to remove all shared `.internal` code, but this one is just 3 LOC used in only Elasticsearch and OpenSearch instrumentations (which are sort of effectively the same instrumentation).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2853829813"
+        },
+        {
+          "at": "2026-02-25T16:02:09Z",
+          "body": "I personally think that removing shared internal code isn't too useful. Using unaligned artifacts can lead to failures even without the shared internal code. Another alternative would be to move https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpStatusCodeConverter.java to internal and make it public so that `HttpStatusCodeConverter.CLIENT.isError` could be used.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2853922945"
+        }
+      ],
+      "reviewed": "78bc71497ffc0fd3db7dbbf5a9465d532a509cc0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16276#discussion_r2853442307"
+    }
+  ]
+}

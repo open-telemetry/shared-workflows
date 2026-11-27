@@ -1,0 +1,31 @@
+{
+  "head": "ad9e721bd014aada25426894084518b052a5ae35",
+  "merge": "8d97d79d73bbc7baa1ad718f1cf0c7c24f219f8d",
+  "merged": "2026-03-02T15:38:07Z",
+  "missing_roots": 0,
+  "number": 16313,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "haven't reported this upstream yet",
+      "created": "2026-03-01T05:10:01Z",
+      "hunk": "@@ -56,7 +56,14 @@ dependencies {\n   // When updating, update above in plugins too\n   implementation(\"com.diffplug.spotless:spotless-plugin-gradle:8.2.1\")\n   implementation(\"com.google.guava:guava:33.5.0-jre\")\n-  implementation(\"com.gradleup.shadow:shadow-gradle-plugin:9.3.1\")\n+  implementation(\"com.gradleup.shadow:shadow-gradle-plugin:9.3.2\")\n+  // plexus-xml 4.1+ pulls in Maven 4 API which uses JPMS-only service registration,\n+  // causing \"No XmlService implementation found\" in Gradle's classloader\n+  constraints {\n+    implementation(\"org.codehaus.plexus:plexus-xml\") {\n+      version { strictly(\"4.0.4\") }\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX85xXqdH",
+      "opened": "2026-03-01T05:10:01Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-02T15:36:53Z",
+          "body": "looks like our usage of the shadow plugin doesn't need it and it is the spdxsbom plugin that fails ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16313#discussion_r2873123094"
+        }
+      ],
+      "reviewed": "ad9e721bd014aada25426894084518b052a5ae35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16313#discussion_r2868436885"
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "head": "d9fe816ab92a8291cfc259621982b4121cdb4c40",
+  "merge": "9fd1c70532c2546874970dae8bf69431041c9e7a",
+  "merged": "2026-10-12T08:07:45Z",
+  "missing_roots": 0,
+  "number": 20376,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-08T15:16:04Z",
+      "hunk": "@@ -213,6 +213,9 @@ The following metrics have JFR implementations and can be selected for JFR. JMX\n \n The attributes reported on the memory metrics (`jvm.memory.*`) and gc metrics (`jvm.gc.*`) are dependent on the garbage collector used by the application, since each garbage collector organizes memory pools differently and has different strategies for reclaiming memory during garbage collection.\n \n+JMX `jvm.gc.duration` metrics always include `jvm.gc.cause` from the JVM's GC notification. All metrics\n+use the `io.opentelemetry.runtime-telemetry` instrumentation scope.\n+",
+      "id": "PRRT_kwDODJKVX86qbTWJ",
+      "opened": "2026-10-08T15:16:04Z",
+      "path": "instrumentation/runtime-telemetry/library/README.md",
+      "replies": [],
+      "reviewed": "ae2084319e4fadcf98b86b2735676659618c7138",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4220781324"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-08T15:16:42Z",
+      "hunk": "@@ -1,5 +1,8 @@\n # Settings for the Runtime Telemetry instrumentation\n \n+JVM metrics and package-emitter events use the `io.opentelemetry.runtime-telemetry` instrumentation\n+scope. JMX GC duration metrics always include the `jvm.gc.cause` attribute.\n+",
+      "id": "PRRT_kwDODJKVX86qbUcf",
+      "opened": "2026-10-08T15:16:42Z",
+      "path": "instrumentation/runtime-telemetry/README.md",
+      "replies": [],
+      "reviewed": "3296bc5bd3479c9eff62a43a5c22628d0b6cc104",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4220788627"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-08T15:17:25Z",
+      "hunk": "@@ -9,14 +9,5 @@\n | `otel.instrumentation.runtime-telemetry.experimental.package-emitter.enabled`         | Boolean | `false` | Enable creating events for JAR libraries used by the application.                                                                  |\n | `otel.instrumentation.runtime-telemetry.experimental.package-emitter.jars-per-second` | Integer | 10      | The number of JAR files processed per second.                                                                                      |\n \n-## Deprecated Properties (to be removed in 3.0)\n-\n-| System property                                                          | Type    | Default | Description                                                                                |\n-| ------------------------------------------------------------------------ | ------- | ------- | ------------------------------------------------------------------------------------------ |\n-| `otel.instrumentation.runtime-telemetry.capture-gc-cause`                | Boolean | `false` | Enable the capture of the jvm.gc.cause attribute. Will always be captured in 3.0.          |\n-| `otel.instrumentation.runtime-telemetry.emit-experimental-telemetry`     | Boolean | `false` | Use `emit-experimental-metrics` instead.                                                   |\n-| `otel.instrumentation.runtime-telemetry.package-emitter.enabled`         | Boolean | `false` | Use `experimental.package-emitter.enabled` instead.                                        |\n-| `otel.instrumentation.runtime-telemetry.package-emitter.jars-per-second` | Integer | 10      | Use `experimental.package-emitter.jars-per-second` instead.                                |\n-| `otel.instrumentation.runtime-telemetry.experimental.prefer-jfr`         | Boolean | `false` | Use `experimental.jfr-metrics.included` instead. May be removed in the next minor release. |\n-| `otel.instrumentation.runtime-telemetry-java17.enabled`                  | Boolean | `false` | Deprecated. Use `emit-experimental-jfr-metrics` instead.                                   |\n-| `otel.instrumentation.runtime-telemetry-java17.enable-all`               | Boolean | `false` | Deprecated. Use `experimental.jfr-metrics.included=*` instead.                             |\n+JFR is disabled by default. See the [library documentation](library/README.md#configuration) for\n+selector semantics and declarative YAML examples.",
+      "id": "PRRT_kwDODJKVX86qbVss",
+      "opened": "2026-10-08T15:17:25Z",
+      "path": "instrumentation/runtime-telemetry/README.md",
+      "replies": [],
+      "reviewed": "930685932e7fcc596f5c04e3179c0f4bcff90531",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4220796708"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-08T15:17:35Z",
+      "hunk": "@@ -9,14 +9,5 @@\n | `otel.instrumentation.runtime-telemetry.experimental.package-emitter.enabled`         | Boolean | `false` | Enable creating events for JAR libraries used by the application.                                                                  |\n | `otel.instrumentation.runtime-telemetry.experimental.package-emitter.jars-per-second` | Integer | 10      | The number of JAR files processed per second.                                                                                      |\n ",
+      "id": "PRRT_kwDODJKVX86qbV-U",
+      "opened": "2026-10-08T15:17:34Z",
+      "path": "instrumentation/runtime-telemetry/README.md",
+      "replies": [],
+      "reviewed": "930685932e7fcc596f5c04e3179c0f4bcff90531",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4220798521"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This makes `jvm.gc.cause` unconditional, but the current-behavior examples in `instrumentation/runtime-telemetry/library/README.md:223-253` still show every `jvm.gc.duration` point with only `jvm.gc.action` and `jvm.gc.name`. Those examples now misdescribe the emitted attribute set; update them to include representative `jvm.gc.cause` values (or explicitly state that the value varies by collection).",
+      "created": "2026-10-09T15:22:49Z",
+      "hunk": "@@ -129,10 +124,7 @@ public void handleNotification(Notification notification, Object unused) {\n       AttributesBuilder builder = Attributes.builder();\n       builder.put(JVM_GC_NAME, gcName);\n       builder.put(JVM_GC_ACTION, gcAction);\n-      if (captureGcCause) {\n-        String gcCause = notificationInfo.getGcCause();\n-        builder.put(JVM_GC_CAUSE, gcCause);\n-      }\n+      builder.put(JVM_GC_CAUSE, notificationInfo.getGcCause());",
+      "id": "PRRT_kwDODJKVX86q1vuz",
+      "opened": "2026-10-09T15:22:50Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/GarbageCollector.java",
+      "replies": [
+        {
+          "at": "2026-10-09T16:09:05Z",
+          "body": "Addressed in 9034dcd652e221ede38ba3dad5150686e5d43a2b.\n\nThe README now states that every jvm.gc.duration point includes jvm.gc.cause and explicitly explains its omission from the six collector examples because the value varies by collection. Allocation Failure and System.gc() are representative values already asserted by GarbageCollectorTest. This addresses the inline finding and its duplicate overview without changing telemetry or collector-specific attributes.\n\n<!-- copilot-loop:9df63f8880c36eab2a85201864afb014c8441f61d6b545c19d9b845fac140db0:4231716193:5ad7496b90634a04b943ccb47dd4480d -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4232137126"
+        }
+      ],
+      "reviewed": "1a2f1414833f6f00849539829399247e8460c2a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4231716193"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This is only true for JMX-sourced GC metrics. When `jvm.gc.duration` is selected for JFR, the JFR handlers record only `jvm.gc.name` and `jvm.gc.action` (for example, `G1GarbageCollectionHandler.java:30-31,53`), so this sentence misdocuments a supported selector path. Scope the claim to JMX and clarify the JFR behavior.",
+      "created": "2026-10-09T18:03:52Z",
+      "hunk": "@@ -215,6 +215,8 @@ The attributes reported on the memory metrics (`jvm.memory.*`) and gc metrics (`\n \n The following lists attributes reported for a variety of garbage collectors. Notice that attributes are not necessarily constant across `*.used`, `*.committed`, and `*.limit` since not all memory pools report a limit.\n \n+Every `jvm.gc.duration` point also includes `jvm.gc.cause`, omitted from the examples below because its value varies by collection (for example, `Allocation Failure` or `System.gc()`).",
+      "id": "PRRT_kwDODJKVX86q5JEp",
+      "opened": "2026-10-09T18:03:52Z",
+      "path": "instrumentation/runtime-telemetry/library/README.md",
+      "replies": [
+        {
+          "at": "2026-10-09T18:44:59Z",
+          "body": "Addressed in 465bd26e2005d5a5adb450a83317f515f9f47a59.\n\nConfirmed the JMX notification listener adds jvm.gc.cause, while the G1, Young, and Old JFR duration handlers emit only jvm.gc.name and jvm.gc.action. The README now scopes cause to JMX and explicitly documents JFR behavior.\n\n<!-- copilot-loop:242c5aafdaa8cbfa2ecbb972f72dad30646e4b40044ab19817e8b7b1fa8aaece:4233122049:5a1e6fb7373e43bf96cbc5258dac7ab1 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4233458784"
+        }
+      ],
+      "reviewed": "68d09a93c8e89131117e55f2b79b87393824ee1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20376#discussion_r4233122049"
+    }
+  ]
+}

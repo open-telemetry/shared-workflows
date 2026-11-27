@@ -1,0 +1,172 @@
+{
+  "head": "6b3c6b89d3b68fc34d2d6a6f7270f817909c540c",
+  "merge": "361e8676a772cfb5ee18d1ed9a55b7be4ad2c555",
+  "merged": "2026-10-09T06:54:12Z",
+  "missing_roots": 0,
+  "number": 20451,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    # A comma-separated list of stable semantic convention groups to opt into.\n```",
+      "created": "2026-10-08T20:23:28Z",
+      "hunk": "@@ -45,9 +45,8 @@ instrumentation/development:\n           - sig\n           - X-Goog-Signature\n \n-    # A comma-separated list of semantic convention groups to opt into, such as `rpc` and\n-    # `service.peer`. Use `<group>/dup` to emit both old and new conventions. Under v3 preview the\n-    # preview groups use `otel.semconv-stability.preview` instead.\n+    # A comma-separated list of stable semantic convention groups to opt into. Preview RPC and\n+    # service-peer conventions can be selected with `java.common.semconv_stability.preview`.",
+      "id": "PRRT_kwDODJKVX86qigJN",
+      "opened": "2026-10-08T20:23:28Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [],
+      "reviewed": "a7d0c7816508fab4cca8344516cedb7c52be793e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4223758865"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This variant now selects preview conventions but remains named `testConnectionTelemetryEnabledStableSemconv`. Rename it with a `PreviewSemconv` suffix and update its `check` dependency and `.github/scripts/instrumentations.sh` entry.",
+      "created": "2026-10-08T21:05:33Z",
+      "hunk": "@@ -56,19 +56,19 @@ tasks {\n       classpath = sourceSets.test.get().runtimeClasspath\n       jvmArgs(\n         \"-Dotel.instrumentation.lettuce.connection-telemetry.enabled=true\",\n-        \"-Dotel.semconv-stability.opt-in=service.peer\"\n+        \"-Dotel.semconv-stability.preview=service.peer\"",
+      "id": "PRRT_kwDODJKVX86qjYY8",
+      "opened": "2026-10-08T21:05:35Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T21:37:29Z",
+          "body": "Renamed this variant to `testConnectionTelemetryEnabledPreviewSemconv` and updated its `check` dependency and CI-script entry in 6b3c6b89d3b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224392033"
+        }
+      ],
+      "reviewed": "f046ce61883c25cee5dc2314d6fe465151c66b47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224126136"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This now routes every experimental domain exclusively through `previewFlags`, which also removes the legacy `otel.semconv-stability.opt-in=rpc` behavior. The linked #20408 explicitly says not to change RPC selector compatibility; retain the legacy fallback for RPC while removing it for service-peer, unless the linked requirement is intentionally being expanded.",
+      "created": "2026-10-08T21:05:33Z",
+      "hunk": "@@ -156,7 +148,7 @@ private static SemconvMode flagTarget(Set<SemconvMode> supportedModes) {\n \n   private Set<String> flagsFor(Set<SemconvMode> supportedModes) {\n     if (supportedModes.contains(SemconvMode.V1_EXPERIMENTAL)) {\n-      return effectivePreviewFlags();\n+      return previewFlags;\n     }\n     return stableFlags;",
+      "id": "PRRT_kwDODJKVX86qjYYS",
+      "opened": "2026-10-08T21:05:35Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvSelectionResolver.java",
+      "replies": [
+        {
+          "at": "2026-10-08T21:32:54Z",
+          "body": "I intentionally expanded this PR to include RPC. Both RPC and service-peer conventions now require the preview selector for 3.0, as documented in the PR title, description, and breaking-change entry. The legacy RPC fallback is intentionally removed; default telemetry and explicit `general.rpc.semconv` configuration remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224356568"
+        }
+      ],
+      "reviewed": "f046ce61883c25cee5dc2314d6fe465151c66b47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224126074"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This unit suite now exercises preview service-peer conventions, so retaining `testStableSemconvUnitTests` is misleading and conflicts with the preview-task naming convention.",
+      "created": "2026-10-08T21:05:33Z",
+      "hunk": "@@ -55,7 +55,7 @@ testing {\n \n       targets.all {\n         testTask.configure {\n-          jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")\n+          jvmArgs(\"-Dotel.semconv-stability.preview=service.peer\")",
+      "id": "PRRT_kwDODJKVX86qjYZY",
+      "opened": "2026-10-08T21:05:35Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T21:37:29Z",
+          "body": "Renamed the suite to `testPreviewSemconvUnitTests` in 6b3c6b89d3b. It remains included in `check` through `testing.suites`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224392060"
+        }
+      ],
+      "reviewed": "f046ce61883c25cee5dc2314d6fe465151c66b47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224126184"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This variant now selects preview conventions but remains named `testConnectionTelemetryEnabledStableSemconv`. Rename it with a `PreviewSemconv` suffix and update its `check` dependency and `.github/scripts/instrumentations.sh` entry.",
+      "created": "2026-10-08T21:05:34Z",
+      "hunk": "@@ -186,11 +186,11 @@ tasks {\n       classpath = sourceSets.test.get().runtimeClasspath\n       jvmArgs(\n         \"-Dotel.instrumentation.lettuce.connection-telemetry.enabled=true\",\n-        \"-Dotel.semconv-stability.opt-in=service.peer\"\n+        \"-Dotel.semconv-stability.preview=service.peer\"",
+      "id": "PRRT_kwDODJKVX86qjYZ3",
+      "opened": "2026-10-08T21:05:35Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T21:37:29Z",
+          "body": "Renamed this variant to `testConnectionTelemetryEnabledPreviewSemconv` and updated its `check` dependency and CI-script entry in 6b3c6b89d3b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224392042"
+        }
+      ],
+      "reviewed": "f046ce61883c25cee5dc2314d6fe465151c66b47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224126228"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The version-1.7 variant now selects preview service-peer conventions but is still named `version17TestStableSemconv`. Rename it to `version17TestPreviewSemconv` and update both CI-script references and the `check` dependency.",
+      "created": "2026-10-08T21:05:34Z",
+      "hunk": "@@ -91,19 +91,19 @@ tasks {\n     systemProperty(\"ratpack14Test\", true)\n   }\n \n-  val testStableSemconv = register<Test>(\"testStableSemconv\") {\n+  val testPreviewSemconv = register<Test>(\"testPreviewSemconv\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=service.peer\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=service.peer\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=service.peer\")\n     systemProperty(\"ratpack14Test\", true)\n   }\n \n   val version17TestStableSemconv = register<Test>(\"version17TestStableSemconv\") {\n     testClassesDirs = version17Test.get().sources.output.classesDirs\n     classpath = version17Test.get().sources.runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=service.peer\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=service.peer\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=service.peer\")",
+      "id": "PRRT_kwDODJKVX86qjYam",
+      "opened": "2026-10-08T21:05:35Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T21:37:29Z",
+          "body": "Renamed the variant to `version17TestPreviewSemconv` and updated its `check` dependency and both CI-script references in 6b3c6b89d3b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224392067"
+        }
+      ],
+      "reviewed": "f046ce61883c25cee5dc2314d6fe465151c66b47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224126294"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This controller-telemetry variant now selects preview conventions but retains the `StableSemconv` name. Rename it to `testControllerTelemetryPreviewSemconv` and update the `check` dependency and instrumentation CI entry.",
+      "created": "2026-10-08T21:05:34Z",
+      "hunk": "@@ -93,24 +93,24 @@ tasks {\n     )\n   }\n \n-  val testStableSemconv = register<Test>(\"testStableSemconv\") {\n+  val testPreviewSemconv = register<Test>(\"testPreviewSemconv\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n     exclude(\"**/server/**\")\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=service.peer\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=service.peer\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=service.peer\")\n   }\n \n   val testControllerTelemetryStableSemconv = register<Test>(\"testControllerTelemetryStableSemconv\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n     include(\"**/server/**\")\n     jvmArgs(\"-Dotel.instrumentation.common.controller-telemetry.enabled=true\")\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=service.peer\")\n     systemProperty(\n       \"metadataConfig\",\n       \"otel.instrumentation.common.controller-telemetry.enabled=true,\" +\n-        \"otel.semconv-stability.opt-in=service.peer\"\n+        \"otel.semconv-stability.preview=service.peer\"",
+      "id": "PRRT_kwDODJKVX86qjYbG",
+      "opened": "2026-10-08T21:05:35Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T21:37:29Z",
+          "body": "Renamed the variant to `testControllerTelemetryPreviewSemconv` and updated its `check` dependency and CI-script entry in 6b3c6b89d3b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224392054"
+        }
+      ],
+      "reviewed": "f046ce61883c25cee5dc2314d6fe465151c66b47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224126346"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This suite now selects preview service-peer conventions but is still named `stableSemconvUnitTests`. Rename it to `previewSemconvUnitTests` and update the `check` reference so task names accurately identify the mode they exercise.",
+      "created": "2026-10-08T21:05:35Z",
+      "hunk": "@@ -69,7 +69,7 @@ testing {\n       targets {\n         all {\n           testTask.configure {\n-            jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")\n+            jvmArgs(\"-Dotel.semconv-stability.preview=service.peer\")",
+      "id": "PRRT_kwDODJKVX86qjYbl",
+      "opened": "2026-10-08T21:05:35Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T21:37:29Z",
+          "body": "Renamed the suite to `previewSemconvUnitTests` and updated the explicit `check` reference in 6b3c6b89d3b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224392065"
+        }
+      ],
+      "reviewed": "f046ce61883c25cee5dc2314d6fe465151c66b47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20451#discussion_r4224126388"
+    }
+  ]
+}

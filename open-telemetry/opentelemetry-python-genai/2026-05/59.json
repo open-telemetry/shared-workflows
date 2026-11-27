@@ -1,0 +1,25 @@
+{
+  "head": "ff1428aa0876fcbe406eac1b5219aea390ee9f47",
+  "merge": "e06fa359229bd7a6026810288edc80f1443204c8",
+  "merged": "2026-05-22T16:23:15Z",
+  "missing_roots": 0,
+  "number": 59,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workflow header comment says the job can be disabled by adding the \"Skip Changelog\" label, but the job is now also skipped when the PR has the \"dependencies\" label. Please update the comment (and ideally keep it consistent with contributor guidance) so the documented skip conditions match the `if:` logic.",
+      "created": "2026-05-21T18:38:57Z",
+      "hunk": "@@ -17,7 +17,11 @@ permissions:\n jobs:\n   changelog:\n     runs-on: ubuntu-latest\n-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'Skip Changelog') }}\n+    if: >-\n+      ${{\n+        !contains(github.event.pull_request.labels.*.name, 'dependencies') &&\n+        !contains(github.event.pull_request.labels.*.name, 'Skip Changelog')\n+      }}",
+      "id": "PRRT_kwDOSbspP86D5naX",
+      "opened": "2026-05-21T18:38:57Z",
+      "path": ".github/workflows/changelog.yml",
+      "replies": [],
+      "reviewed": "04d6e20430233175aa15060c9c50ef1d04302184",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/59#discussion_r3283529765"
+    }
+  ]
+}

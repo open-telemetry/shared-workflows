@@ -1,0 +1,82 @@
+{
+  "head": "fe0d08727ed048670ef13f30769e02aa6fc34ded",
+  "merge": "078e09d69f0f4cdf8ffc7dcdee84fe93e6d7a549",
+  "merged": "2026-09-19T03:30:08Z",
+  "missing_roots": 0,
+  "number": 705,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Dropping falsey finish reasons makes this array lose its positional correspondence with `response.generations`. For example, `stop`, missing, `length` becomes `['stop', 'length']`, so `length` is attributed to the wrong candidate. The linked semantic convention requires one value per returned generation and recommends `error` when an expected reason is absent; preserve the slot instead of filtering it.",
+      "created": "2026-09-13T21:26:33Z",
+      "hunk": "@@ -522,6 +516,8 @@ def on_llm_end(\n                             name=name_str,\n                         )\n                     output_messages.append(output_message)\n+                    if finish_reason:\n+                        finish_reasons.append(finish_reason)",
+      "id": "PRRT_kwDOSbspP86h8Kav",
+      "opened": "2026-09-13T21:26:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "04dd9e3388b315f9d29f9477651fb155d76b8f24",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/705#discussion_r4000949278"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The newly assigned `finish_reasons` field is not asserted by any test; the existing finish-reason tests only inspect `OutputMessage.finish_reason`. Add coverage that verifies the exact `list[str]` assigned for single and multiple generations (including a missing reason), plus the exported `gen_ai.response.finish_reasons` span attribute.",
+      "created": "2026-09-13T21:26:34Z",
+      "hunk": "@@ -597,6 +593,8 @@ def on_llm_end(\n                         llm_invocation.output_tokens = output_tokens\n \n         llm_invocation.output_messages = output_messages\n+        if finish_reasons:\n+            llm_invocation.finish_reasons = finish_reasons",
+      "id": "PRRT_kwDOSbspP86h8Ka8",
+      "opened": "2026-09-13T21:26:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "04dd9e3388b315f9d29f9477651fb155d76b8f24",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/705#discussion_r4000949293"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Nit: does it always make sense to report absent finish reasons as error? Should we use \"unknown\" like above?",
+      "created": "2026-09-17T15:41:03Z",
+      "hunk": "@@ -522,6 +516,7 @@ def on_llm_end(\n                             name=name_str,\n                         )\n                     output_messages.append(output_message)\n+                    finish_reasons.append(finish_reason or \"error\")",
+      "id": "PRRT_kwDOSbspP86jbfRv",
+      "opened": "2026-09-17T15:41:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-19T02:40:05Z",
+          "body": "semconv says to record and fallback to error\r\n\r\nhttps://github.com/open-telemetry/semantic-conventions-genai/blob/c88d504ab3d9879f8e50d3cc87e69775e11db234/model/gen-ai/registry.yaml#L217-L224\r\n\r\nthanks for catching this btw,  i updated 'unknown' to 'error'.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/705#discussion_r4051973622"
+        }
+      ],
+      "reviewed": "4edc803192bd8f7e53c7ae37d0e3c843890c9556",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/705#discussion_r4038778874"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Can an agent be encountered but it's name is `None`? If we have unnamed agent and the next one is named, would this function return the next one as \"nearest\" incorrectly in this case?",
+      "created": "2026-09-17T15:45:00Z",
+      "hunk": "@@ -775,23 +766,23 @@ def on_retriever_error(\n             return\n \n         invocation.fail(error)\n-        if not invocation.span.is_recording():\n-            self._invocation_manager.delete_invocation_state(run_id=run_id)\n+        self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n     def _find_agent_context(\n         self, run_id: UUID | None\n-    ) -> tuple[AgentInvocation | None, set[str]]:\n+    ) -> tuple[str | None, set[str]]:\n         current = run_id\n         visited: set[UUID] = set()\n-        nearest_agent: AgentInvocation | None = None\n+        nearest_agent_name: str | None = None\n         ancestor_agent_names: set[str] = set()\n         while current is not None and current not in visited:\n             visited.add(current)\n             entity = self._invocation_manager.get_invocation(current)\n-            if isinstance(entity, AgentInvocation):\n-                if nearest_agent is None:\n-                    nearest_agent = entity\n-                if entity.agent_name:\n-                    ancestor_agent_names.add(entity.agent_name.lower())\n+            if isinstance(entity, LocalAgentInvocation):\n+                agent_name = self._invocation_manager.get_agent_name(current)\n+                if nearest_agent_name is None:",
+      "id": "PRRT_kwDOSbspP86jbnX4",
+      "opened": "2026-09-17T15:45:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-19T02:39:03Z",
+          "body": "great catch! created #742 - turns out we don't record unnamed agents. Changed check here to a boolean flag (to work properly once we support unnamed agents)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/705#discussion_r4051971566"
+        }
+      ],
+      "reviewed": "4edc803192bd8f7e53c7ae37d0e3c843890c9556",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/705#discussion_r4038827956"
+    }
+  ]
+}

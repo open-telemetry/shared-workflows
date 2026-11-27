@@ -1,0 +1,241 @@
+{
+  "head": "9272e960eb346ce9deb66d0aed84819a65ad7bac",
+  "merge": "8b489aed73a391f54500b6d4b2547290630a4027",
+  "merged": "2026-10-14T23:19:58Z",
+  "missing_roots": 0,
+  "number": 453,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "After removing `mcp.network.protocol.attributes`, this attribute group now only contains `mcp.protocol.version` and `error.type`. However, the docs for `mcp.client.session.duration` still list `server.address` and `server.port` as recommended attributes. If `server.address`/`server.port` are still intended to be part of the session-duration metric, add them explicitly to this YAML (or via a more targeted ref_group) so the registry and generated docs remain consistent.",
+      "created": "2026-08-16T05:05:20Z",
+      "hunk": "@@ -11,7 +11,6 @@ attribute_groups:\n     visibility: internal\n     attributes:\n       - ref: mcp.protocol.version\n-      - ref_group: mcp.network.protocol.attributes\n       - ref: error.type\n         requirement_level:\n           conditionally_required: If and only if session ends with an error.",
+      "id": "PRRT_kwDOSUeMrM6Zkw2Y",
+      "opened": "2026-08-16T05:05:21Z",
+      "path": "model/mcp/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-08-16T05:19:12Z",
+          "body": "Addressed in 547e96c. Removed the remaining client endpoint dimensions so both session-duration metrics have only session-level attributes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3791008219"
+        }
+      ],
+      "reviewed": "26750e66935e7c8d4772521717e909b1c9b92c37",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3790989580"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "“`+Inf` bucket” is Prometheus-specific terminology; other exporters/representations may not expose buckets using the `+Inf` label. Consider rephrasing to exporter-neutral wording (e.g., ‘captured in the implicit infinity/overflow bucket’) or clarify that `+Inf` refers to Prometheus exposition.",
+      "created": "2026-08-16T05:05:21Z",
+      "hunk": "@@ -931,6 +931,7 @@ Examples:\n This metric SHOULD be specified with\n [`ExplicitBucketBoundaries`](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.55.0/specification/metrics/api.md#instrument-advisory-parameters)\n of `[ 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60, 120, 300 ]`.\n+Measurements above 300 seconds are captured in the `+Inf` bucket.",
+      "id": "PRRT_kwDOSUeMrM6Zkw2g",
+      "opened": "2026-08-16T05:05:21Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-08-16T05:19:21Z",
+          "body": "Addressed in 547e96c. Rephrased the note to refer to the exporter-neutral implicit overflow bucket.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3791008447"
+        }
+      ],
+      "reviewed": "26750e66935e7c8d4772521717e909b1c9b92c37",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3790989589"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog entry appears narrower than the actual doc/registry changes shown here (e.g., removal of `jsonrpc.protocol.version` and `network.protocol.*`, in addition to `network.transport`). Consider updating the entry to explicitly mention all removed attribute families (or use a broader phrase like ‘Remove network/protocol-related attributes…’) to avoid misleading release notes.",
+      "created": "2026-08-16T05:05:21Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove transport attributes from MCP session-duration metrics.",
+      "id": "PRRT_kwDOSUeMrM6Zkw2n",
+      "opened": "2026-08-16T05:05:21Z",
+      "path": "changelog.d/+.bugfix.1.md",
+      "replies": [
+        {
+          "at": "2026-08-16T05:19:30Z",
+          "body": "Addressed in 547e96c. The changelog now describes removal of network and protocol attributes from the session-duration metrics.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3791008678"
+        }
+      ],
+      "reviewed": "26750e66935e7c8d4772521717e909b1c9b92c37",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3790989600"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Dropping the whole `mcp.network.protocol.attributes` group removes more than what actually varies within a session.\n\n`jsonrpc.protocol.version` and `network.protocol.name` are fixed for the lifetime of a session, and the transport *family* (stdio vs HTTP) is too - only `tcp` vs `quic` and the HTTP version can change between operations. Losing the stdio-vs-HTTP split takes away what is probably the most useful dimension on session duration, since the two have completely different lifetime distributions.\n\nSuggest keeping the session-stable attributes and narrowing the removal to `network.transport` + `network.protocol.version`",
+      "created": "2026-08-16T22:46:43Z",
+      "hunk": "@@ -11,7 +11,6 @@ attribute_groups:\n     visibility: internal\n     attributes:\n       - ref: mcp.protocol.version\n-      - ref_group: mcp.network.protocol.attributes",
+      "id": "PRRT_kwDOSUeMrM6ZqE3g",
+      "opened": "2026-08-16T22:49:03Z",
+      "path": "model/mcp/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-08-17T06:04:16Z",
+          "body": "Addressed in d8929b0. Retained network.protocol.name and jsonrpc.protocol.version, and removed only network.transport and network.protocol.version.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3794125688"
+        }
+      ],
+      "reviewed": "547e96c883d1fc58b1abbfd8ce7713be3acd4d8e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3793002508"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Removing `server.address`/`server.port` is not supported by the motivation - the MCP endpoint is fixed for a session; a client cannot move a session to another server.\n\nWithout them the session-duration metric cannot be broken down per server, and cannot be joined with the client operation metrics and spans that keep these attributes.",
+      "created": "2026-08-16T22:46:43Z",
+      "hunk": "@@ -50,7 +49,6 @@ metrics:\n     stability: development\n     attributes:\n       - ref_group: mcp.session.metrics.attributes\n-      - ref_group: mcp.client.address_and_port.attributes",
+      "id": "PRRT_kwDOSUeMrM6ZqE3i",
+      "opened": "2026-08-16T22:49:03Z",
+      "path": "model/mcp/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-08-17T06:04:17Z",
+          "body": "Addressed in d8929b0. Retained the client endpoint attribute group.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3794125771"
+        }
+      ],
+      "reviewed": "547e96c883d1fc58b1abbfd8ce7713be3acd4d8e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3793002510"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This is standard OTel histogram behavior - measurements above the last boundary always fall into the last (`+Inf`) bucket - so it does not need to be restated on individual metrics. Please drop the sentence here and at line 997.\n\nAlso, \"overflow bucket\" is not the right term: in OTel, overflow refers to the attribute set produced when a cardinality limit is hit.",
+      "created": "2026-08-16T22:46:43Z",
+      "hunk": "@@ -931,6 +931,7 @@ Examples:\n This metric SHOULD be specified with\n [`ExplicitBucketBoundaries`](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.55.0/specification/metrics/api.md#instrument-advisory-parameters)\n of `[ 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60, 120, 300 ]`.\n+Measurements above 300 seconds are captured in the implicit overflow bucket.",
+      "id": "PRRT_kwDOSUeMrM6ZqE3k",
+      "opened": "2026-08-16T22:49:03Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-08-17T06:04:18Z",
+          "body": "Addressed in d8929b0. Removed the per-metric histogram sentence.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3794125831"
+        }
+      ],
+      "reviewed": "547e96c883d1fc58b1abbfd8ce7713be3acd4d8e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3793002512"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The PR description still describes the first commit. It says JSON-RPC, network, and endpoint attributes are removed, but this head retains `jsonrpc.protocol.version`, `network.protocol.name`, `server.address`, and `server.port`, and the `+Inf` bucket clarification it lists is no longer in the diff. Only `network.transport` and `network.protocol.version` are removed now.\n",
+      "created": "2026-08-20T21:23:35Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove per-operation transport details from MCP session-duration metrics.",
+      "id": "PRRT_kwDOSUeMrM6a9r55",
+      "opened": "2026-08-20T21:32:03Z",
+      "path": "changelog.d/+.bugfix.1.md",
+      "replies": [
+        {
+          "at": "2026-08-21T06:07:02Z",
+          "body": "Addressed. Updated the PR description to match the final scope: only network.transport and network.protocol.version are removed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3827688144"
+        }
+      ],
+      "reviewed": "d8929b048089e8246fa747cab12e2555b899d5b0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3825460698"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Inlining the ref drops the `examples: [\"http\", \"websocket\"]` override from `mcp.network.protocol.attributes`, so both session-duration tables now advertise the generic registry examples `amqp`; `http`; `mqtt` instead of the MCP-specific ones every other MCP signal shows (docs/gen-ai/mcp.md lines 953 and 1025). Re-run `make generate-all` after fixing.\n\n```suggestion\n      - ref: network.protocol.name\n        requirement_level:\n          recommended: When applicable.\n        examples:\n          - \"http\"\n          - \"websocket\"\n```\n",
+      "created": "2026-08-20T21:23:35Z",
+      "hunk": "@@ -11,7 +11,12 @@ attribute_groups:\n     visibility: internal\n     attributes:\n       - ref: mcp.protocol.version\n-      - ref_group: mcp.network.protocol.attributes\n+      - ref: network.protocol.name\n+        requirement_level:\n+          recommended: When applicable.",
+      "id": "PRRT_kwDOSUeMrM6a9r5y",
+      "opened": "2026-08-20T21:32:03Z",
+      "path": "model/mcp/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-08-21T06:07:01Z",
+          "body": "Addressed in 85a5f78. Restored the MCP-specific http and websocket examples and regenerated the documentation.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3827688003"
+        }
+      ],
+      "reviewed": "d8929b048089e8246fa747cab12e2555b899d5b0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3825460687"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`network.protocol.name` and `jsonrpc.protocol.version` are now defined twice - here and in `mcp.network.protocol.attributes` - with identical overrides that have to be kept in sync by hand. The `examples` override already drifted once in this PR.\n\nSplit the shared group instead: a session-stable group holding `network.protocol.name` + `jsonrpc.protocol.version`, referenced both here and from `mcp.network.protocol.attributes`, which keeps only the per-operation `network.transport` + `network.protocol.version`.",
+      "created": "2026-08-27T04:13:52Z",
+      "hunk": "@@ -11,7 +11,15 @@ attribute_groups:\n     visibility: internal\n     attributes:\n       - ref: mcp.protocol.version\n-      - ref_group: mcp.network.protocol.attributes\n+      - ref: network.protocol.name",
+      "id": "PRRT_kwDOSUeMrM6csURf",
+      "opened": "2026-08-27T04:14:55Z",
+      "path": "model/mcp/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-08-27T23:42:19Z",
+          "body": "Addressed in b55ea0c. Split the session-stable dimensions into `mcp.network.protocol.session.attributes`, shared by session metrics and the operation group; `network.transport` and `network.protocol.version` remain per-operation.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3876704531"
+        }
+      ],
+      "reviewed": "85a5f786a235853ac084f69072dea92d643ee805",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3868662405"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`network.transport` in `model/mcp/common.yaml` still carries the brief \"The transport protocol used for the MCP session.\" If transport is per-operation, that brief is wrong on the signals that keep the attribute - it describes the transport of the observed operation, not of the session.",
+      "created": "2026-08-27T04:13:52Z",
+      "hunk": "@@ -11,7 +11,15 @@ attribute_groups:\n     visibility: internal\n     attributes:\n       - ref: mcp.protocol.version\n-      - ref_group: mcp.network.protocol.attributes\n+      - ref: network.protocol.name\n+        requirement_level:\n+          recommended: When applicable.\n+        examples:\n+          - \"http\"\n+          - \"websocket\"\n+      - ref: jsonrpc.protocol.version",
+      "id": "PRRT_kwDOSUeMrM6csURh",
+      "opened": "2026-08-27T04:14:55Z",
+      "path": "model/mcp/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-08-27T23:42:21Z",
+          "body": "Addressed in b55ea0c. Corrected the brief to refer to the observed MCP operation.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3876704674"
+        }
+      ],
+      "reviewed": "85a5f786a235853ac084f69072dea92d643ee805",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3868662407"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "instead of building deep hierarchies of groups, flatten them down and reference on the actual signals rather than other groups unless there is a good reason to.\n\n`- ref_group: mcp.network.protocol.session.attributes` is not a big duplication, but makes yaml much more readable on the signal level",
+      "created": "2026-09-01T00:07:30Z",
+      "hunk": "@@ -82,28 +82,33 @@ attribute_groups:\n \n           Any other error code SHOULD be considered an error.\n \n-  - id: mcp.network.protocol.attributes\n+  - id: mcp.network.protocol.session.attributes\n     visibility: internal\n     attributes:\n-      - ref: network.transport\n-        brief: The transport protocol used for the MCP session.\n-        note: |\n-          This attribute SHOULD be set to `tcp` or `quic` if the transport protocol\n-          is HTTP. It SHOULD be set to `pipe` if the transport is stdio.\n-        examples: [\"tcp\", \"quic\", \"pipe\"]\n       - ref: network.protocol.name\n         requirement_level:\n           recommended: When applicable.\n         examples:\n           - \"http\"\n           - \"websocket\"\n+      - ref: jsonrpc.protocol.version\n+        requirement_level:\n+          recommended: When it's not `2.0`.\n+\n+  - id: mcp.network.protocol.attributes\n+    visibility: internal\n+    attributes:\n+      - ref: network.transport\n+        brief: The transport protocol used for the observed MCP operation.\n+        note: |\n+          This attribute SHOULD be set to `tcp` or `quic` if the transport protocol\n+          is HTTP. It SHOULD be set to `pipe` if the transport is stdio.\n+        examples: [\"tcp\", \"quic\", \"pipe\"]\n+      - ref_group: mcp.network.protocol.session.attributes",
+      "id": "PRRT_kwDOSUeMrM6d7Alx",
+      "opened": "2026-09-01T00:09:21Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [
+        {
+          "at": "2026-09-02T14:10:34Z",
+          "body": "Addressed in 9272e96. Removed the nested session group; session metrics now list their stable protocol attributes directly, and the operation group contains direct attribute references only.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3915003762"
+        }
+      ],
+      "reviewed": "b55ea0ca2b3467b8045b9353ac60ce3e59918bda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/453#discussion_r3899569703"
+    }
+  ]
+}

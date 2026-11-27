@@ -1,0 +1,188 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "53a45495054c308f7abd0359caaac117b34d339d3d22966a7c57f487f1aa07d2",
+  "input_digest": "6bf2dbe030453416ddfec104397ef52982812a6abaccd17f47ac2a979ca5eb63",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a54aef73677fc8e66745959ba9b61f0891036724/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddqq3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a54aef73677fc8e66745959ba9b61f0891036724/instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/SocketStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/SocketStreamInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddqq_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a54aef73677fc8e66745959ba9b61f0891036724/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a54aef73677fc8e66745959ba9b61f0891036724/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/InternalStreamConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/InternalStreamConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddqrG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvCs",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/NettyStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/NettyStreamInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvDB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/MongoConnectionPeer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/MongoConnectionPeer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvDL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/SocketStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/SocketStreamInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvDX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/MongoConnectionPeer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/MongoConnectionPeer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvDu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoNetworkPeer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoNetworkPeer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvEC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/MongoConnectionPeerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/MongoConnectionPeerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvEU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85195b47b33fefce8c16ef79955c8b5fbe63600c/instrumentation/mongo/mongo-3.7/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/MongoConnectionPeerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.7/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/MongoConnectionPeerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmvEb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/90b66978d65062ce8ad3cc4276c16e43041e990e/instrumentation/mongo/mongo-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/MongoInstrumentationSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/MongoInstrumentationSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dz6Q-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82ec4753b42aa64ac2270358659ec1cb81311afc/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86g9Sqd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82ec4753b42aa64ac2270358659ec1cb81311afc/instrumentation/mongo/mongo-3.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-3.1/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86g9UxK",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82ec4753b42aa64ac2270358659ec1cb81311afc/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/NettyStreamInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/NettyStreamInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86g9pqA",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82ec4753b42aa64ac2270358659ec1cb81311afc/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26786bd2f0645f6f92121206a484e49646ccaf07/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/26786bd2f0645f6f92121206a484e49646ccaf07"
+      ],
+      "id": "PRRT_kwDODJKVX86g9y_Q",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

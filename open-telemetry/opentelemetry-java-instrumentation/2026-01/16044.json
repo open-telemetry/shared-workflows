@@ -1,0 +1,40 @@
+{
+  "head": "457c35720bf90a8ab8b89c9aa58dbe0775d1d535",
+  "merge": "c93d34d9e867a73928484a7771cfcfa57a58e0ab",
+  "merged": "2026-01-29T07:49:30Z",
+  "missing_roots": 0,
+  "number": 16044,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "the current implementation uses the old sanitizer and depends on operationName and collectionName being captured, which is not the case with the new sanitizer",
+      "created": "2026-01-28T21:27:54Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85rh6AP",
+      "opened": "2026-01-28T21:27:54Z",
+      "path": "instrumentation/hibernate/hibernate-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/OperationNameUtil.java",
+      "replies": [],
+      "reviewed": "8acf4fcd480901f080775e32b05bf98df8baa30d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16044#discussion_r2738689406"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think this I just overlooked this when I was adding summarization. it makes sense that it wouldn't be added to the sanitized query, but I think should be added to the summary",
+      "created": "2026-01-28T21:30:52Z",
+      "hunk": "@@ -653,8 +653,9 @@ WHITESPACE           = [ \\t\\r\\n]+\n           if (!insideComment) {\n             if (operation == none) {\n               // hql/jpql queries may skip SELECT and start with FROM clause\n-              // treat such queries as SELECT queries (but don't add SELECT to summary)\n+              // treat such queries as SELECT queries\n               setOperation(new Select());\n+              appendOperationToSummary(\"SELECT\");",
+      "id": "PRRT_kwDODJKVX85rh7up",
+      "opened": "2026-01-28T21:30:52Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [],
+      "reviewed": "8acf4fcd480901f080775e32b05bf98df8baa30d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16044#discussion_r2738698420"
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "head": "4fb50951661db098654ae5cf742395a371ef39b3",
+  "merge": "bf13ba3a6df6e3e192280ffd800ee1bd661ccc5f",
+  "merged": "2026-08-30T22:01:30Z",
+  "missing_roots": 0,
+  "number": 120,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`--rm` removes the container as soon as PostgreSQL exits, so the early-exit path cannot reliably inspect it or read its logs; `docker logs`/the later cleanup will usually report “No such container” instead of the PostgreSQL failure. Since this class already removes the container explicitly on every exit path, omit Docker auto-removal so diagnostics remain available until `_remove()` runs.",
+      "created": "2026-08-27T21:00:11Z",
+      "hunk": "@@ -0,0 +1,287 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"A session-scoped PostgreSQL backend managed through Docker.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+import re\n+import subprocess\n+import time\n+from importlib import resources\n+from types import TracebackType\n+from typing import Mapping\n+\n+from opentelemetry.conformance._env import timeout_seconds\n+\n+logger = logging.getLogger(__name__)\n+\n+# renovate: datasource=docker depName=postgres versioning=docker\n+POSTGRES_IMAGE = \"postgres:18.6-bookworm@sha256:1c59e2c3c818eaa0f0628f695b36e7c9e362d6b219b36a54a32df645cbd7e1af\"\n+\n+POSTGRES_HOST = \"127.0.0.1\"\n+POSTGRES_PORT = 5432\n+POSTGRES_DATABASE = \"conformance\"\n+POSTGRES_USER = \"conformance\"\n+POSTGRES_PASSWORD = \"conformance\"\n+\n+_STARTUP_TIMEOUT = (\"OTEL_CONFORMANCE_POSTGRES_STARTUP_TIMEOUT\", 60.0)\n+_DOCKER_TIMEOUT = (\"OTEL_CONFORMANCE_POSTGRES_DOCKER_TIMEOUT\", 300.0)\n+_POLL_INTERVAL_SECONDS = 0.25\n+_CONTAINER_ID = re.compile(r\"[0-9a-f]{12,64}\")\n+\n+\n+class Postgres:\n+    \"\"\"Own one PostgreSQL container and its initialized schema.\"\"\"\n+\n+    def __init__(self) -> None:\n+        self._container_id: str | None = None\n+        self._published_port: int | None = None\n+\n+    @property\n+    def variables(self) -> Mapping[str, str]:\n+        \"\"\"Language-neutral connection fields for scenario environments.\"\"\"\n+        if self._published_port is None:\n+            raise RuntimeError(\"PostgreSQL has not been started\")\n+        return {\n+            \"POSTGRES_HOST\": POSTGRES_HOST,\n+            \"POSTGRES_PORT\": str(self._published_port),\n+            \"POSTGRES_DATABASE\": POSTGRES_DATABASE,\n+            \"POSTGRES_USER\": POSTGRES_USER,\n+            \"POSTGRES_PASSWORD\": POSTGRES_PASSWORD,\n+        }\n+\n+    def start(self) -> Postgres:\n+        \"\"\"Start PostgreSQL, wait until it is ready, and apply the schema.\"\"\"\n+        if self._container_id is not None:\n+            raise RuntimeError(\"PostgreSQL has already been started\")\n+\n+        result = self._docker(\n+            \"run\",\n+            \"--detach\",\n+            \"--rm\",\n+            \"--publish\",\n+            f\"{POSTGRES_HOST}::{POSTGRES_PORT}\",",
+      "id": "PRRT_kwDOTuzK5c6c-mWg",
+      "opened": "2026-08-27T21:00:12Z",
+      "path": "tools/database/runner/src/database_conformance/_postgres.py",
+      "replies": [],
+      "reviewed": "8cde7d72ad830ae529d2c5cd420a2048a7c5b9c0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3875825969"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we give testcontainers a try? https://testcontainers-python.readthedocs.io/en/latest/\n\nit's a wrapper around image, but afaik it hides a bunch or complications around logs / failures / diagnostics, waiting for start, etc",
+      "created": "2026-08-28T21:34:42Z",
+      "hunk": "@@ -0,0 +1,287 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"A session-scoped PostgreSQL backend managed through Docker.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+import re\n+import subprocess\n+import time\n+from importlib import resources\n+from types import TracebackType\n+from typing import Mapping\n+\n+from opentelemetry.conformance._env import timeout_seconds\n+\n+logger = logging.getLogger(__name__)\n+\n+# renovate: datasource=docker depName=postgres versioning=docker\n+POSTGRES_IMAGE = \"postgres:18.6-bookworm@sha256:1c59e2c3c818eaa0f0628f695b36e7c9e362d6b219b36a54a32df645cbd7e1af\"\n+\n+POSTGRES_HOST = \"127.0.0.1\"\n+POSTGRES_PORT = 5432\n+POSTGRES_DATABASE = \"conformance\"\n+POSTGRES_USER = \"conformance\"\n+POSTGRES_PASSWORD = \"conformance\"\n+\n+_STARTUP_TIMEOUT = (\"OTEL_CONFORMANCE_POSTGRES_STARTUP_TIMEOUT\", 60.0)\n+_DOCKER_TIMEOUT = (\"OTEL_CONFORMANCE_POSTGRES_DOCKER_TIMEOUT\", 300.0)\n+_POLL_INTERVAL_SECONDS = 0.25\n+_CONTAINER_ID = re.compile(r\"[0-9a-f]{12,64}\")\n+\n+\n+class Postgres:\n+    \"\"\"Own one PostgreSQL container and its initialized schema.\"\"\"\n+\n+    def __init__(self) -> None:\n+        self._container_id: str | None = None\n+        self._published_port: int | None = None\n+\n+    @property\n+    def variables(self) -> Mapping[str, str]:\n+        \"\"\"Language-neutral connection fields for scenario environments.\"\"\"\n+        if self._published_port is None:\n+            raise RuntimeError(\"PostgreSQL has not been started\")\n+        return {\n+            \"POSTGRES_HOST\": POSTGRES_HOST,\n+            \"POSTGRES_PORT\": str(self._published_port),\n+            \"POSTGRES_DATABASE\": POSTGRES_DATABASE,\n+            \"POSTGRES_USER\": POSTGRES_USER,\n+            \"POSTGRES_PASSWORD\": POSTGRES_PASSWORD,\n+        }\n+\n+    def start(self) -> Postgres:\n+        \"\"\"Start PostgreSQL, wait until it is ready, and apply the schema.\"\"\"\n+        if self._container_id is not None:\n+            raise RuntimeError(\"PostgreSQL has already been started\")\n+\n+        result = self._docker(",
+      "id": "PRRT_kwDOTuzK5c6dT3Ng",
+      "opened": "2026-08-28T21:34:42Z",
+      "path": "tools/database/runner/src/database_conformance/_postgres.py",
+      "replies": [],
+      "reviewed": "8cde7d72ad830ae529d2c5cd420a2048a7c5b9c0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3884198021"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "interesting! do we count refinement as both - generic span and refinement? \n\nor probably since these two are still in v1, they both qualify as spans.",
+      "created": "2026-08-28T21:39:01Z",
+      "hunk": "@@ -0,0 +1,74 @@\n+{\n+  \"spans\": {\n+    \"db.client\": [\n+      \"db.namespace\",\n+      \"db.operation.batch.size\",\n+      \"db.query.summary\",\n+      \"db.query.text\",\n+      \"db.stored_procedure.name\",\n+      \"db.system.name\",\n+      \"server.address\",\n+      \"server.port\"\n+    ],\n+    \"db.sql.client\": [\n+      \"db.namespace\",\n+      \"db.operation.batch.size\",\n+      \"db.query.summary\",\n+      \"db.query.text\",\n+      \"db.stored_procedure.name\",\n+      \"server.address\",\n+      \"server.port\"\n+    ]",
+      "id": "PRRT_kwDOTuzK5c6dT6p7",
+      "opened": "2026-08-28T21:39:00Z",
+      "path": "scenarios/database/java/jdbc/opentelemetry-javaagent/data.json",
+      "replies": [
+        {
+          "at": "2026-08-29T17:26:40Z",
+          "body": "good point, reworked this around the most specific \"refinement\" (PostgreSQL in this case), and added MariaDB as well to see how it scales",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887208047"
+        }
+      ],
+      "reviewed": "8cde7d72ad830ae529d2c5cd420a2048a7c5b9c0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3884219301"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This packaged source file is missing the copyright/SPDX header used by its PostgreSQL counterpart (`tools/database/runner/src/database_conformance/postgres.sql:1-2`). Add the same header so both backend schemas follow the repository's source-licensing convention.",
+      "created": "2026-08-29T16:08:12Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+CREATE TABLE IF NOT EXISTS items (",
+      "id": "PRRT_kwDOTuzK5c6dbBMf",
+      "opened": "2026-08-29T16:08:13Z",
+      "path": "tools/database/runner/src/database_conformance/mariadb.sql",
+      "replies": [
+        {
+          "at": "2026-08-29T16:13:08Z",
+          "body": "Addressed in 948ffc2527e689d59cbcb3b04f204626b89d534a.\n\nAnalysis: The MariaDB schema is packaged source code and should carry the same OpenTelemetry copyright and SPDX header as the PostgreSQL schema.\n\nUpsides: Both database schema resources now state their copyright and Apache 2.0 license consistently.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887050276"
+        }
+      ],
+      "reviewed": "502115f57d28253f9f66d063206f57442fa746d5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887039471"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test name still says the classifier returns the general and SQL types, but the assertion now verifies only the PostgreSQL refinement. Rename it so test reports describe the behavior being exercised.",
+      "created": "2026-08-29T16:19:51Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Recognising database client spans.\"\"\"\n+\n+from __future__ import annotations\n+\n+import pytest\n+\n+from database_conformance import classify_span\n+\n+\n+@pytest.mark.parametrize(\"kind\", [\"client\", \"CLIENT\", \"SPAN_KIND_CLIENT\"])\n+def test_a_sql_client_span_has_general_and_sql_types(kind: str) -> None:",
+      "id": "PRRT_kwDOTuzK5c6dbFlO",
+      "opened": "2026-08-29T16:19:52Z",
+      "path": "tools/database/runner/tests/test_database_coverage.py",
+      "replies": [
+        {
+          "at": "2026-08-29T16:24:58Z",
+          "body": "Addressed in 39dbd94c8abe04ef5d7acf919c2d3368b23d8589.\n\nAnalysis: Both test names described behavior that their test bodies no longer exercise. The names now identify the PostgreSQL refinement and MariaDB cleanup paths that the assertions cover.\n\nUpsides: Test reports now identify the exact backend behavior under test.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887076764"
+        }
+      ],
+      "reviewed": "948ffc2527e689d59cbcb3b04f204626b89d534a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887065973"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This documentation says all refinements retain their IDs, but the template change only does so for spans; events, metrics, and entities are still filtered to their base definitions. Qualify this as span refinements so the documented model matches the generated shape.",
+      "created": "2026-08-29T16:19:52Z",
+      "hunk": "@@ -3,9 +3,8 @@\n \n \"\"\"The coverage model: what a registry declares, per signal and entity.\n \n-Weaver resolves a registry into one JSON file. Provider refinements\n-(``openai.inference.client`` refines ``gen_ai.inference.client``) are left out:\n-a provider's attributes are not coverage of the general span type::\n+Weaver resolves a registry into one JSON file. Refinements keep their own ids, so a classifier can select a provider-specific\n+definition without counting its attributes as coverage of the base signal::",
+      "id": "PRRT_kwDOTuzK5c6dbFlY",
+      "opened": "2026-08-29T16:19:52Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_model.py",
+      "replies": [
+        {
+          "at": "2026-08-29T16:25:00Z",
+          "body": "Addressed in 612992a28f76c689d96cac00fbd953ed4f99fb82.\n\nAnalysis: The coverage model preserves distinct refinement IDs only for spans. Both descriptions now limit that behavior to span refinements.\n\nUpsides: The Python documentation and Weaver template comment now describe the generated model accurately and consistently.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887076829"
+        }
+      ],
+      "reviewed": "948ffc2527e689d59cbcb3b04f204626b89d534a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887065988"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This comment describes refinements generally, but only the `spans` expression below preserves refinement IDs; events, metrics, and entities still discard refinements. Narrow the wording to spans to keep the template documentation accurate.",
+      "created": "2026-08-29T16:19:52Z",
+      "hunk": "@@ -6,9 +6,8 @@\n # the levels are for readers of the model, since a missing required attribute\n # is a weaver violation rather than a coverage gap.\n #\n-# Provider refinements (openai.inference.client refines gen_ai.inference.client)\n-# are ignored: only a signal's own definition is modelled, so a provider's\n-# attributes are not coverage of the general span type.\n+# Refinements keep their own ids. A classifier can select the most specific\n+# applicable definition without attributing its fields to the base signal.",
+      "id": "PRRT_kwDOTuzK5c6dbFlb",
+      "opened": "2026-08-29T16:19:52Z",
+      "path": "tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+      "replies": [
+        {
+          "at": "2026-08-29T16:25:01Z",
+          "body": "Addressed in 612992a28f76c689d96cac00fbd953ed4f99fb82.\n\nAnalysis: The coverage model preserves distinct refinement IDs only for spans. Both descriptions now limit that behavior to span refinements.\n\nUpsides: The Python documentation and Weaver template comment now describe the generated model accurately and consistently.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887076867"
+        }
+      ],
+      "reviewed": "948ffc2527e689d59cbcb3b04f204626b89d534a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3887065994"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This is `scenarios/http/java/weaver.toml` copied verbatim, minus the comments explaining why each filter exists. The next Java domain copies it again. One shared file (say `tools/java/weaver.toml`) both point at would keep them from drifting.",
+      "created": "2026-08-30T16:54:39Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+#\n+# Findings filtered out for the Java scenarios. A declared config replaces the",
+      "id": "PRRT_kwDOTuzK5c6dilYC",
+      "opened": "2026-08-30T17:19:43Z",
+      "path": "scenarios/database/java/weaver.toml",
+      "replies": [
+        {
+          "at": "2026-08-30T21:23:45Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/commit/5ae9d6893569a3b502841222a64d656b491be903",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3890572934"
+        }
+      ],
+      "reviewed": "06ee392306364acc3721306f6aec56d1580c0afd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3889964285"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: an INTERNAL span from an in-process SQL database (sqlite) falls through to `db.client` instead of `db.sql.client`. Deliberate? The INTERNAL allowance in the spec is for exactly that case, so it looks like the SQL refinement gets lost where it applies.",
+      "created": "2026-08-30T16:54:39Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"How to recognise database client span types.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Callable, Mapping\n+\n+_SQL_SYSTEMS = frozenset(\n+    {\n+        \"actian.ingres\",\n+        \"cockroachdb\",\n+        \"derby\",\n+        \"firebirdsql\",\n+        \"h2database\",\n+        \"hsqldb\",\n+        \"ibm.db2\",\n+        \"mariadb\",\n+        \"microsoft.sql_server\",\n+        \"mysql\",\n+        \"oracle.db\",\n+        \"other_sql\",\n+        \"postgresql\",\n+        \"sap.maxdb\",\n+        \"sqlite\",\n+        \"trino\",\n+    }\n+)\n+\n+_SYSTEM_SPAN_TYPES = {\n+    \"mariadb\": \"db.mariadb.client\",\n+    \"postgresql\": \"db.postgresql.client\",\n+}\n+\n+\n+def classify_span(\n+    span_name: str, span_kind: str, attributes: Mapping[str, object]\n+) -> set[str]:\n+    \"\"\"Return the database span types described by a client span.\"\"\"\n+    del span_name\n+    kind = span_kind.upper().removeprefix(\"SPAN_KIND_\")\n+    if kind not in {\"CLIENT\", \"INTERNAL\"}:\n+        return set()\n+\n+    system = attributes.get(\"db.system.name\")\n+    if not isinstance(system, str):\n+        return set()\n+\n+    if kind == \"CLIENT\":\n+        if specific := _SYSTEM_SPAN_TYPES.get(system):\n+            return {specific}\n+        if system in _SQL_SYSTEMS:\n+            return {\"db.sql.client\"}\n+    return {\"db.client\"}",
+      "id": "PRRT_kwDOTuzK5c6dilYE",
+      "opened": "2026-08-30T17:19:43Z",
+      "path": "tools/database/runner/src/database_conformance/_coverage.py",
+      "replies": [
+        {
+          "at": "2026-08-30T21:23:22Z",
+          "body": "pruned the list down for now until we extend conformance testing targets\r\n\r\nhttps://github.com/open-telemetry/semantic-conventions-conformance/commit/343e1b54ebaf170d3c0c952d143a6d488ac6ce44",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3890572032"
+        }
+      ],
+      "reviewed": "06ee392306364acc3721306f6aec56d1580c0afd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3889964287"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `_cli.py` passes this kind of optional kwarg as `**({\"build_data\": build_data} if build_data is not None else {})` - would drop the duplicated call here.",
+      "created": "2026-08-30T16:54:40Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance runs against the database semantic conventions.\"\"\"\n+\n+import sys\n+from collections.abc import Callable, Generator, Mapping\n+from contextlib import contextmanager\n+from pathlib import Path\n+\n+from opentelemetry.conformance import (\n+    ConformanceSession,\n+    Domain,\n+    PackageSpec,\n+    ServerSpec,\n+    SpecError,\n+    WeaverSpec,\n+    load_spec,\n+    main,\n+    require_pin,\n+)\n+\n+from ._container import DatabaseContainer\n+from ._coverage import classifier, classify_span\n+from ._mariadb import MariaDB\n+from ._postgres import Postgres\n+\n+_HERE = Path(__file__).parent\n+\n+DOMAIN = Domain(\n+    name=\"database-conformance\",\n+    repo=\"open-telemetry/semantic-conventions\",\n+    ref=require_pin(_HERE / \"versions.env\", \"SEMCONV_REF\"),\n+    classifier=classifier,\n+)\n+\n+_BACKENDS: dict[str, Callable[[], DatabaseContainer]] = {\n+    \"mariadb\": MariaDB,\n+    \"postgresql\": Postgres,\n+}\n+\n+\n+def _backend_name(spec: PackageSpec) -> str:\n+    where = f\"{spec.directory / 'conformance.yaml'}.runner_config\"\n+    config = spec.runner_config\n+    if set(config) != {\"backend\"}:\n+        raise SpecError(\n+            f\"{where} must contain exactly one string key named 'backend'\"\n+        )\n+    backend = config[\"backend\"]\n+    if not isinstance(backend, str):\n+        raise SpecError(\n+            f\"{where}.backend: expected a string\"\n+        )\n+    if backend not in _BACKENDS:\n+        choices = \", \".join(sorted(_BACKENDS))\n+        raise SpecError(\n+            f\"{where}.backend selects unsupported backend {backend!r}; \"\n+            f\"expected one of: {choices}\"\n+        )\n+    return backend\n+\n+\n+@contextmanager\n+def database_session(\n+    directory: Path | str,\n+    *,\n+    report_dir: Path | str | None = None,\n+    data_file: Path | str | None = None,\n+    variables: Mapping[str, str] | None = None,\n+    weaver: WeaverSpec | None = None,\n+    server: ServerSpec | None = None,\n+    env: Mapping[str, str] | None = None,\n+    build_data: Callable[[Path, PackageSpec], object] | None = None,\n+    spec: PackageSpec | None = None,\n+) -> Generator[ConformanceSession, None, None]:\n+    \"\"\"Open a database conformance session with its configured backend.\"\"\"\n+    spec = spec or load_spec(Path(directory))\n+    with _BACKENDS[_backend_name(spec)]() as backend:\n+        resolved = dict(variables or {})\n+        resolved.update(backend.variables)\n+        if build_data is None:",
+      "id": "PRRT_kwDOTuzK5c6dilYG",
+      "opened": "2026-08-30T17:19:43Z",
+      "path": "tools/database/runner/src/database_conformance/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-30T21:24:14Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/commit/17cd07dd1860e044fd0ad8c36d7dbdb0fd72d499",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3890574034"
+        }
+      ],
+      "reviewed": "06ee392306364acc3721306f6aec56d1580c0afd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3889964289"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need it here given it's excluded in weaver.toml?",
+      "created": "2026-08-30T16:59:52Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  statement:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: mariadb\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: conformance\n+            db.query.summary: SELECT conformance.items\n+            db.query.text: SELECT count(*) >= ? FROM conformance.items\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+      - queueSize",
+      "id": "PRRT_kwDOTuzK5c6dinUJ",
+      "opened": "2026-08-30T17:19:43Z",
+      "path": "scenarios/database/contracts/mariadb.yaml",
+      "replies": [
+        {
+          "at": "2026-08-30T21:44:36Z",
+          "body": "for now at least, I'll explore unifying SDK telemetry declarations in a follow-up",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3890619825"
+        }
+      ],
+      "reviewed": "06ee392306364acc3721306f6aec56d1580c0afd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3889976150"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we'll fix it after span type with something like\n\n```yaml\nspans:\n  - type: gen_ai.inference.client\n    kind: client\n    discriminator: [gen_ai.provider.name]\n    # ...\n\nspan_refinements:\n  - id: openai.inference.client\n    ref: gen_ai.inference.client\n    attributes:\n      - ref: gen_ai.provider.name\n        constant: openai  \n```\n\nhttps://github.com/open-telemetry/weaver/pull/1643",
+      "created": "2026-08-30T17:10:26Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"How to recognise database client span types.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Callable, Mapping\n+\n+_SQL_SYSTEMS = frozenset(\n+    {\n+        \"actian.ingres\",\n+        \"cockroachdb\",\n+        \"derby\",\n+        \"firebirdsql\",\n+        \"h2database\",\n+        \"hsqldb\",\n+        \"ibm.db2\",\n+        \"mariadb\",\n+        \"microsoft.sql_server\",\n+        \"mysql\",\n+        \"oracle.db\",\n+        \"other_sql\",\n+        \"postgresql\",\n+        \"sap.maxdb\",\n+        \"sqlite\",\n+        \"trino\",\n+    }\n+)\n+\n+_SYSTEM_SPAN_TYPES = {\n+    \"mariadb\": \"db.mariadb.client\",\n+    \"postgresql\": \"db.postgresql.client\",\n+}",
+      "id": "PRRT_kwDOTuzK5c6dirMG",
+      "opened": "2026-08-30T17:19:43Z",
+      "path": "tools/database/runner/src/database_conformance/_coverage.py",
+      "replies": [],
+      "reviewed": "06ee392306364acc3721306f6aec56d1580c0afd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3889999602"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "long term it'd be cool to have these inside the contract like in HTTP and combined with expectations.\r\n\r\nE.g.\r\n\r\n```yaml\r\nsteps:\r\n  - id: parameterized-select\r\n    action:           # domain-specific, opaque to the runner\r\n      sql: \"SELECT name FROM users WHERE id = ?\"\r\n      params: [123]\r\n    expect:            # domain-agnostic\r\n      spans:\r\n        kind: CLIENT\r\n        attributes:\r\n          db.system.name: postgresql\r\n          db.operation.name: SELECT\r\n          db.collection.name: users\r\n          db.query.text: \"SELECT name FROM users WHERE id = ?\"\r\n      metrics:\r\n        - name: db.client.operation.duration\r\n```\r\n\r\n\r\nor for http\r\n\r\n```yaml\r\nsteps:\r\n  - id: query-string\r\n    action:                                   \r\n      request: {method: GET, path: /users/123, query: \"fields=name&verbose=true\"}\r\n      response: {status: 200, body: '{\"id\": 123, \"name\": \"Alice\"}'}\r\n    expect:  # AI hallucinated format, I mean whatever syntax we already have for matchers\r\n      spans:\r\n        kind: CLIENT\r\n        attributes: {http.request.method: GET, http.response.status_code: 200}\r\n```\r\n\r\nbut that's for https://github.com/open-telemetry/semantic-conventions-conformance/pull/148",
+      "created": "2026-08-30T17:19:37Z",
+      "hunk": "@@ -0,0 +1,91 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.database.jdbc;\n+\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import java.sql.CallableStatement;\n+import java.sql.Connection;\n+import java.sql.DriverManager;\n+import java.sql.PreparedStatement;\n+import java.sql.ResultSet;\n+import java.sql.SQLException;\n+import java.sql.Statement;\n+import java.util.Arrays;\n+\n+/** Exercises individual JDBC execution paths against a relational database. */\n+public final class JdbcScenario {\n+  private JdbcScenario() {}\n+\n+  public static void run(String operation) throws SQLException {\n+    try (Connection connection =\n+        DriverManager.getConnection(\n+            ScenarioEnvironment.require(\"JDBC_URL\"),\n+            ScenarioEnvironment.require(\"JDBC_USER\"),\n+            ScenarioEnvironment.require(\"JDBC_PASSWORD\"))) {\n+      switch (operation) {\n+        case \"statement\":\n+          statement(connection);\n+          break;\n+        case \"prepared_statement\":\n+          preparedStatement(connection);\n+          break;\n+        case \"batch\":\n+          batch(connection);\n+          break;\n+        case \"stored_procedure\":\n+          storedProcedure(connection);\n+          break;\n+        default:\n+          throw new IllegalArgumentException(\"unknown JDBC operation: \" + operation);\n+      }\n+    }\n+  }\n+\n+  private static void statement(Connection connection) throws SQLException {\n+    try (Statement statement = connection.createStatement();\n+        ResultSet result = statement.executeQuery(\"SELECT count(*) >= 0 FROM conformance.items\")) {",
+      "id": "PRRT_kwDOTuzK5c6diurg",
+      "opened": "2026-08-30T17:19:43Z",
+      "path": "scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+      "replies": [],
+      "reviewed": "06ee392306364acc3721306f6aec56d1580c0afd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/120#discussion_r3890021548"
+    }
+  ]
+}

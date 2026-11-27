@@ -1,0 +1,204 @@
+{
+  "head": "0c3af2f2e6bf3f98243951916769da59a5e1f367",
+  "merge": "4fa73e5f5be6f8b5f84927ebee967b564251bb31",
+  "merged": "2026-08-19T22:10:31Z",
+  "missing_roots": 0,
+  "number": 19508,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Resetting to `Context.root()` drops any valid ambient span and baggage active around listener dispatch. `MessagingProcessContextCustomizer` can preserve an ambient parent only when it is present in `parentContext`, so this branch reparents the process span to the message creation context whenever no receive context exists (including the suppressed-receive path). Preserve the current context when no receive context is available.",
+      "created": "2026-08-11T05:31:30Z",
+      "hunk": "@@ -69,15 +69,20 @@ public static AdviceScope enter(Message message) {\n         Context receiveContext = JmsReceiveContextHolder.getReceiveContext(parentContext);\n         if (receiveContext != null) {\n           parentContext = receiveContext;\n+        } else {\n+          parentContext = Context.root();\n         }",
+      "id": "PRRT_kwDODJKVX86YHv1q",
+      "opened": "2026-08-11T05:31:32Z",
+      "path": "instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsMessageListenerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-11T06:46:43Z",
+          "body": "Updated the listener to retain `Context.current()` as `parentContext` when no receive context exists. The instrumenter temporarily makes `Context.root()` current only during remote extraction, preserving ambient span and baggage while satisfying context-leak checks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755802589"
+        }
+      ],
+      "reviewed": "1eb8de6fbd265536815e8afc23d41fedecee4b0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755455186"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Resetting to `Context.root()` drops any valid ambient span and baggage active around listener dispatch. `MessagingProcessContextCustomizer` can preserve an ambient parent only when it is present in `parentContext`, so this branch reparents the process span to the message creation context whenever no receive context exists (including the suppressed-receive path). Preserve the current context when no receive context is available.",
+      "created": "2026-08-11T05:31:31Z",
+      "hunk": "@@ -69,15 +69,19 @@ public static AdviceScope start(Message message) {\n         Context receiveContext = JmsReceiveContextHolder.getReceiveContext(parentContext);\n         if (receiveContext != null) {\n           parentContext = receiveContext;\n+        } else {\n+          parentContext = Context.root();\n         }",
+      "id": "PRRT_kwDODJKVX86YHv2C",
+      "opened": "2026-08-11T05:31:32Z",
+      "path": "instrumentation/spring/spring-jms/spring-jms-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v6_0/SpringJmsMessageListenerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-11T06:46:48Z",
+          "body": "Updated the listener to retain `Context.current()` as `parentContext` when no receive context exists. The instrumenter temporarily makes `Context.root()` current only during remote extraction, preserving ambient span and baggage while satisfying context-leak checks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755803264"
+        }
+      ],
+      "reviewed": "1eb8de6fbd265536815e8afc23d41fedecee4b0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755455214"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The Java test convention requires `val` for an inline attribute-assertion `satisfies(...)` lambda parameter; `value` is the Scala spelling.",
+      "created": "2026-08-11T05:31:31Z",
+      "hunk": "@@ -363,6 +406,18 @@ static AttributeAssertion oldOperation(String operation) {\n     return equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? operation : null);\n   }\n \n+  private static AttributeAssertion emptyBatchMessageCount() {\n+    return satisfies(\n+        MESSAGING_BATCH_MESSAGE_COUNT,\n+        value -> {\n+          if (emitStableMessagingSemconv()) {\n+            value.isZero();\n+          } else {\n+            value.isNull();\n+          }\n+        });",
+      "id": "PRRT_kwDODJKVX86YHv2K",
+      "opened": "2026-08-11T05:31:32Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/AbstractJms1Test.java",
+      "replies": [
+        {
+          "at": "2026-08-11T06:46:53Z",
+          "body": "Renamed the inline attribute-assertion lambda parameter to `val`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755803795"
+        }
+      ],
+      "reviewed": "1eb8de6fbd265536815e8afc23d41fedecee4b0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755455226"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The Java test convention requires `val` for an inline attribute-assertion `satisfies(...)` lambda parameter; `value` is the Scala spelling.",
+      "created": "2026-08-11T05:31:31Z",
+      "hunk": "@@ -315,6 +409,18 @@ private static AttributeAssertion oldOperation(String operation) {\n     return equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? operation : null);\n   }\n \n+  private static AttributeAssertion emptyBatchMessageCount() {\n+    return satisfies(\n+        MESSAGING_BATCH_MESSAGE_COUNT,\n+        value -> {\n+          if (emitStableMessagingSemconv()) {\n+            value.isZero();\n+          } else {\n+            value.isNull();\n+          }\n+        });",
+      "id": "PRRT_kwDODJKVX86YHv2a",
+      "opened": "2026-08-11T05:31:32Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-08-11T06:46:58Z",
+          "body": "Renamed the inline attribute-assertion lambda parameter to `val`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755804263"
+        }
+      ],
+      "reviewed": "1eb8de6fbd265536815e8afc23d41fedecee4b0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755455250"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The Java test convention requires `val` for an inline attribute-assertion `satisfies(...)` lambda parameter; `value` is the Scala spelling.",
+      "created": "2026-08-11T05:31:32Z",
+      "hunk": "@@ -309,6 +326,18 @@ static AttributeAssertion oldOperation(String operation) {\n     return equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? operation : null);\n   }\n \n+  private static AttributeAssertion emptyBatchMessageCount() {\n+    return satisfies(\n+        MESSAGING_BATCH_MESSAGE_COUNT,\n+        value -> {\n+          if (emitStableMessagingSemconv()) {\n+            value.isZero();\n+          } else {\n+            value.isNull();\n+          }\n+        });",
+      "id": "PRRT_kwDODJKVX86YHv2j",
+      "opened": "2026-08-11T05:31:32Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/AbstractJms3Test.java",
+      "replies": [
+        {
+          "at": "2026-08-11T06:47:03Z",
+          "body": "Renamed the inline attribute-assertion lambda parameter to `val`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755804754"
+        }
+      ],
+      "reviewed": "1eb8de6fbd265536815e8afc23d41fedecee4b0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755455279"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions compare only histogram point attributes. Multiple recordings with the same attributes aggregate into one point, so a duplicate duration emission would still pass even though single ownership is a core behavior under test. Also assert that every matched point has a count of one.",
+      "created": "2026-08-11T05:31:32Z",
+      "hunk": "@@ -0,0 +1,93 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.testing.junit;\n+\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.unmodifiableSet;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import java.util.HashSet;\n+import java.util.Set;\n+\n+public final class MessagingMetricsAssertions {\n+\n+  private static final Set<String> STABLE_METRICS =\n+      unmodifiableSet(\n+          new HashSet<>(\n+              asList(\n+                  \"messaging.client.operation.duration\",\n+                  \"messaging.client.sent.messages\",\n+                  \"messaging.client.consumed.messages\",\n+                  \"messaging.process.duration\")));\n+  private static final Set<String> DEPRECATED_METRICS =\n+      unmodifiableSet(\n+          new HashSet<>(\n+              asList(\n+                  \"messaging.publish.duration\",\n+                  \"messaging.receive.duration\",\n+                  \"messaging.receive.messages\")));\n+\n+  public static void assertCounter(\n+      InstrumentationExtension testing,\n+      String instrumentationName,\n+      String metricName,\n+      Attributes attributes) {\n+    testing.waitAndAssertMetrics(\n+        instrumentationName,\n+        metricName,\n+        metrics -> metrics.singleElement().satisfies(metric -> verifyCounter(metric, attributes)));\n+  }\n+\n+  public static void assertHistogram(\n+      InstrumentationExtension testing,\n+      String instrumentationName,\n+      String metricName,\n+      Attributes... attributes) {\n+    testing.waitAndAssertMetrics(\n+        instrumentationName,\n+        metricName,\n+        metrics ->\n+            metrics.singleElement().satisfies(metric -> verifyHistogram(metric, attributes)));\n+  }\n+\n+  public static void assertNoStableMetrics(InstrumentationExtension testing) {\n+    assertThat(testing.metrics()).noneMatch(metric -> STABLE_METRICS.contains(metric.getName()));\n+  }\n+\n+  public static void assertNoMetric(\n+      InstrumentationExtension testing, String instrumentationName, String metricName) {\n+    assertThat(testing.metrics())\n+        .noneMatch(\n+            metric ->\n+                metric.getInstrumentationScopeInfo().getName().equals(instrumentationName)\n+                    && metric.getName().equals(metricName));\n+  }\n+\n+  public static void assertNoDeprecatedMetrics(InstrumentationExtension testing) {\n+    assertThat(testing.metrics())\n+        .noneMatch(metric -> DEPRECATED_METRICS.contains(metric.getName()));\n+  }\n+\n+  private static void verifyCounter(MetricData metric, Attributes attributes) {\n+    assertThat(metric.getLongSumData().getPoints())\n+        .singleElement()\n+        .satisfies(\n+            point -> {\n+              assertThat(point.getValue()).isEqualTo(1);\n+              assertThat(point.getAttributes()).isEqualTo(attributes);\n+            });\n+  }\n+\n+  private static void verifyHistogram(MetricData metric, Attributes... attributes) {\n+    assertThat(metric.getHistogramData().getPoints())\n+        .extracting(point -> point.getAttributes())\n+        .containsExactlyInAnyOrder(attributes);",
+      "id": "PRRT_kwDODJKVX86YHv2v",
+      "opened": "2026-08-11T05:31:32Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/MessagingMetricsAssertions.java",
+      "replies": [
+        {
+          "at": "2026-08-11T06:47:14Z",
+          "body": "Updated `verifyHistogram` to require every matched point to have a count of one before comparing attributes, so duplicate recordings cannot pass through aggregation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755805792"
+        }
+      ],
+      "reviewed": "1eb8de6fbd265536815e8afc23d41fedecee4b0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3755455297"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`shouldStart` uses `currentContext` while `start` uses `parentContext`",
+      "created": "2026-08-12T15:54:13Z",
+      "hunk": "@@ -47,34 +50,47 @@ public static class MessageListenerAdvice {\n \n     public static class AdviceScope {\n       private final MessageWithDestination messageWithDestination;\n+      private final Instrumenter<MessageWithDestination, Void> instrumenter;\n       private final Context context;\n       private final Scope scope;\n \n       private AdviceScope(\n-          MessageWithDestination messageWithDestination, Context context, Scope scope) {\n+          MessageWithDestination messageWithDestination,\n+          Instrumenter<MessageWithDestination, Void> instrumenter,\n+          Context context,\n+          Scope scope) {\n         this.messageWithDestination = messageWithDestination;\n+        this.instrumenter = instrumenter;\n         this.context = context;\n         this.scope = scope;\n       }\n \n       @Nullable\n       public static AdviceScope start(Message message) {\n-        Context parentContext = Context.current();\n+        Context currentContext = Context.current();\n+        Context receiveContext = JmsReceiveContextHolder.getReceiveContext(currentContext);\n+        Context parentContext = receiveContext != null ? receiveContext : currentContext;\n         MessageWithDestination messageWithDestination =\n             MessageWithDestination.create(JavaxMessageAdapter.create(message), null);\n-\n-        if (!consumerProcessInstrumenter().shouldStart(parentContext, messageWithDestination)) {\n-          return null;\n+        Instrumenter<MessageWithDestination, Void> instrumenter =\n+            JmsReceiveContextHolder.isReceiveTelemetryRecorded(currentContext)\n+                ? consumerProcessAfterReceiveInstrumenter()\n+                : consumerProcessInstrumenter();\n+\n+        Context context;\n+        try (Scope ignored = Context.root().makeCurrent()) {\n+          if (!instrumenter.shouldStart(currentContext, messageWithDestination)) {\n+            return null;\n+          }\n+          context = instrumenter.start(parentContext, messageWithDestination);",
+      "id": "PRRT_kwDODJKVX86Yojfy",
+      "opened": "2026-08-12T15:54:13Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageListenerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-12T22:39:05Z",
+          "body": "Fixed in `78bd9baa6b`. The listener now selects `parentContext` once and passes it to both `shouldStart` and `start`: the ambient context for stable messaging, or the recorded receive context for legacy mode when present.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3770871122"
+        }
+      ],
+      "reviewed": "e673b06f453546cfebd566fb77d045adf1381299",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3768049871"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is activating the root context necessary? I think `shouldStart` and `start` don't look at the current context",
+      "created": "2026-08-12T15:54:59Z",
+      "hunk": "@@ -47,34 +50,47 @@ public static class MessageListenerAdvice {\n \n     public static class AdviceScope {\n       private final MessageWithDestination messageWithDestination;\n+      private final Instrumenter<MessageWithDestination, Void> instrumenter;\n       private final Context context;\n       private final Scope scope;\n \n       private AdviceScope(\n-          MessageWithDestination messageWithDestination, Context context, Scope scope) {\n+          MessageWithDestination messageWithDestination,\n+          Instrumenter<MessageWithDestination, Void> instrumenter,\n+          Context context,\n+          Scope scope) {\n         this.messageWithDestination = messageWithDestination;\n+        this.instrumenter = instrumenter;\n         this.context = context;\n         this.scope = scope;\n       }\n \n       @Nullable\n       public static AdviceScope start(Message message) {\n-        Context parentContext = Context.current();\n+        Context currentContext = Context.current();\n+        Context receiveContext = JmsReceiveContextHolder.getReceiveContext(currentContext);\n+        Context parentContext = receiveContext != null ? receiveContext : currentContext;\n         MessageWithDestination messageWithDestination =\n             MessageWithDestination.create(JavaxMessageAdapter.create(message), null);\n-\n-        if (!consumerProcessInstrumenter().shouldStart(parentContext, messageWithDestination)) {\n-          return null;\n+        Instrumenter<MessageWithDestination, Void> instrumenter =\n+            JmsReceiveContextHolder.isReceiveTelemetryRecorded(currentContext)\n+                ? consumerProcessAfterReceiveInstrumenter()\n+                : consumerProcessInstrumenter();\n+\n+        Context context;\n+        try (Scope ignored = Context.root().makeCurrent()) {",
+      "id": "PRRT_kwDODJKVX86YokfK",
+      "opened": "2026-08-12T15:54:59Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageListenerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-12T22:39:05Z",
+          "body": "The root scope is still needed only for the legacy propagating instrumenter because it performs remote extraction and its context-leak guard expects a root current context. I moved `shouldStart` outside that scope and skip root activation for stable and recorded-receive paths; a focused comment explains the remaining scope.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3770871110"
+        }
+      ],
+      "reviewed": "e673b06f453546cfebd566fb77d045adf1381299",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3768055802"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "can't this be replaced with `MessagingIncubatingAttributes.MESSAGING_DESTINATION_SUBSCRIPTION_NAME`?",
+      "created": "2026-08-19T10:45:43Z",
+      "hunk": "@@ -54,6 +61,10 @@\n \n class SpringListenerTest extends AbstractJmsTest {\n \n+  // messaging.destination.subscription.name only exists in the v1.43 messaging semantic conventions\n+  private static final AttributeKey<String> MESSAGING_DESTINATION_SUBSCRIPTION_NAME =",
+      "id": "PRRT_kwDODJKVX86ab1OD",
+      "opened": "2026-08-19T10:45:43Z",
+      "path": "instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringListenerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-19T14:47:43Z",
+          "body": "hoping #19593 will help prevent these going forward",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3814044393"
+        },
+        {
+          "at": "2026-08-19T15:03:41Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508/commits/0c3af2f2e6bf3f98243951916769da59a5e1f367",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3814173542"
+        }
+      ],
+      "reviewed": "bee141d6ec24d021af5031fb47056ddfb51f91ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19508#discussion_r3812266403"
+    }
+  ]
+}

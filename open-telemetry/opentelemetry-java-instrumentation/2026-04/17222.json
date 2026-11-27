@@ -1,0 +1,41 @@
+{
+  "head": "326ca87c64eb0ee926bd62ac0d7e2ce3f86e5322",
+  "merge": "8ef42d5f6c86d1125b695558ec0e0123cc6b2ba0",
+  "merged": "2026-04-01T06:31:00Z",
+  "missing_roots": 0,
+  "number": 17222,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it looks like this asserts that `http.response.status_code=200`, even though response was never read?\n\ncopilot gave me this suggestion:\n\n```diff\n@@ -116,23 +116,24 @@ final class TelemetryProducingWebFilter implements WebFilter, Ordered {\n \n     @Override\n     protected void hookOnCancel() {\n-      end(currentOtelContext, null);\n+      end(currentOtelContext, null, null);\n     }\n \n     private void onTerminal(Context currentContext, @Nullable Throwable t) {\n       ServerHttpResponse response = exchange.getResponse();\n       if (response.isCommitted()) {\n-        end(currentContext, t);\n+        end(currentContext, exchange, t);\n       } else {\n         response.beforeCommit(\n             () -> {\n-              end(currentContext, t);\n+              end(currentContext, exchange, t);\n               return Mono.empty();\n             });\n       }\n     }\n\n-    private void end(Context currentContext, @Nullable Throwable t) {\n+    private void end(\n+        Context currentContext, @Nullable ServerWebExchange response, @Nullable Throwable t) {\n       // Update HTTP route now, because during instrumenter.start()\n       // the HTTP route isn't available from the exchange attributes, but is afterwards\n       HttpServerRoute.update(\n@@ -143,7 +144,7 @@ final class TelemetryProducingWebFilter implements WebFilter, Ordered {\n                   ? null\n                   : WebfluxServerHttpAttributesGetter.INSTANCE.getHttpRoute(exchange),\n           exchange);\n-      instrumenter.end(currentContext, exchange, exchange, t);\n+      instrumenter.end(currentContext, exchange, response, t);\n     }\n   }\n }\n```",
+      "created": "2026-03-30T17:20:29Z",
+      "hunk": "@@ -65,4 +72,24 @@ void noMono() {\n \n     assertTheTraces(1, null, null, null, method, endpoint);\n   }\n+\n+  @Test\n+  void cancelRequest() throws InterruptedException {\n+    ServerEndpoint endpoint = new ServerEndpoint(\"CANCEL\", \"cancel\", 200, null, false);\n+    String method = \"GET\";\n+    AggregatedHttpRequest request = request(endpoint, method);\n+\n+    try (ClientRequestContextCaptor captor = Clients.newContextCaptor()) {\n+      CompletableFuture<AggregatedHttpResponse> future =\n+          client.execute(request).aggregate().toCompletableFuture();\n+      ClientRequestContext clientRequestContext = captor.get();\n+      Thread.sleep(1_000);\n+      clientRequestContext.cancel();\n+      assertThatThrownBy(future::join)\n+          .isInstanceOf(CompletionException.class)\n+          .hasMessage(ResponseCancellationException.class.getName());\n+    }\n+\n+    assertTheTraces(1, null, null, null, method, endpoint);",
+      "id": "PRRT_kwDODJKVX853v1eg",
+      "opened": "2026-03-30T17:20:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/test/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxServerInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-03-30T20:29:19Z",
+          "body": "oh sorry, for some reason I was thinking this was client side instrumentation\r\n\r\nfor server side instrumentation I think what you had before is probably more consistent with other instrumentation where we capture response status code whenever it's set, and not whether or not it happens to get sent over the wire (e.g. client disconnects before it is sent)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17222#discussion_r3012045020"
+        },
+        {
+          "at": "2026-03-31T10:01:24Z",
+          "body": "I believe that with other frameworks client cancellation would manifest as an exception when sending response. Servlet instrumentation reports status as `500` when response is not committed and there is an error. On cancel we could\r\n- use whatever status is reported (defaults to 200)\r\n- leave status to null\r\n- report status when response is committed and otherwise null\r\n\r\nIn https://opentelemetry.io/docs/specs/semconv/http/http-spans/ says for `http.response.status_code`\r\n> Conditionally Required If and only if one was received/sent.\r\n\r\nIn that sense perhaps option 3 would be the best? Note that the behavior of servlet instrumentation does not match this but we probably can't improve it since in servlet instrumentation we might not be able to tell whether the connection is reset and no response will be sent. We assume that when there is an exception server will set the response to 500 which might not be true. For server specific instrumentation like tomcat etc. we might have better chances of figuring this out.\r\nWhich option do you prefer?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17222#discussion_r3014843249"
+        },
+        {
+          "at": "2026-03-31T14:50:47Z",
+          "body": "> In that sense perhaps option 3 would be the best?\r\n\r\n👍 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17222#discussion_r3016441085"
+        }
+      ],
+      "reviewed": "b7d7e4e916323f5a6f31192c5680429b2da45ed4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17222#discussion_r3011162085"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "5478d87eb456558c0c726718795e655efac428a2",
+  "merge": "ec20a725de5c2eace81b50fa0959543dfa8d7c8d",
+  "merged": "2026-09-10T17:29:26Z",
+  "missing_roots": 0,
+  "number": 20093,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This pattern is not restricted to the first line of the block as documented: `find()` will skip the entire `pass` block when the marker appears anywhere later in its body, including in an unrelated explanatory comment. Anchor the marker to the start of the captured block so only the documented placement is honored.",
+      "created": "2026-09-10T12:19:39Z",
+      "hunk": "@@ -34,6 +34,14 @@ public class GradleParser {\n \n   private static final Pattern coreJdkPattern = Pattern.compile(\"coreJdk\\\\.set\\\\(true\\\\)\");\n \n+  /**\n+   * Marker comment that excludes a muzzle directive from the generated documentation. Some pass\n+   * blocks only exist to verify a sub-range or an alternate dependency set, and publishing their\n+   * version range alongside the module's real range is misleading.\n+   */\n+  private static final Pattern docsIgnorePattern =\n+      Pattern.compile(\"//\\\\s*instrumentation-docs:ignore\");",
+      "id": "PRRT_kwDODJKVX86hESdT",
+      "opened": "2026-09-10T12:19:39Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+      "replies": [
+        {
+          "at": "2026-09-10T12:31:16Z",
+          "body": "I think it might be better to relax the wording and say that the comment has to appear in the pass block",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20093#discussion_r3979057049"
+        }
+      ],
+      "reviewed": "e9da9d3b5dc9bc96dab70c3d6edabab3adb97272",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20093#discussion_r3978965078"
+    }
+  ]
+}

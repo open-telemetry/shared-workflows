@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c25784b90bc7ce845134fb578d8d1cda37490640456573c8ff3d9b6cb17eb1d3",
+  "input_digest": "bc8aab9d04c5ca46af09835056637d0d13c9ba147a36b25f8c64e216c0279265",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a15e68c6767d9d7a70c12e493024e6aa1f93705d/.github/scripts/rerun-failed-workflow-jobs.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a15e68c6767d9d7a70c12e493024e6aa1f93705d/.github/workflows/rerun-flaky-pr-jobs.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d1a5e6b0be1013720a3f723647c9d7ae90e3013/.github/scripts/rerun-failed-workflow-jobs.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d1a5e6b0be1013720a3f723647c9d7ae90e3013/.github/workflows/rerun-flaky-pr-jobs.yml"
+      ],
+      "id": "PRRT_kwDODJKVX86Joy2p",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a15e68c6767d9d7a70c12e493024e6aa1f93705d/.github/scripts/rerun-failed-workflow-jobs.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d1a5e6b0be1013720a3f723647c9d7ae90e3013/.github/scripts/rerun-failed-workflow-jobs.py"
+      ],
+      "id": "PRRT_kwDODJKVX86Joy3W",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "head": "81a9ecc4739fbe6be26569cb25858e923b5a8dc5",
+  "merge": "b1563123201efbc3beecfd4d89b594f2d82b7967",
+  "merged": "2026-06-16T13:12:50Z",
+  "missing_roots": 0,
+  "number": 19006,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] The generated Java source is added to the main source set, but only `compileJava` depends on `generateInstrumentationVersionClass`. In mixed Kotlin/Java projects (several instrumentation modules use `org.jetbrains.kotlin.jvm`), `compileKotlin` runs before `compileJava`, and Kotlin compilation can reference Java sources from the source set—so it needs the generated file to exist too. Without wiring this, applying this plugin to a Kotlin-based instrumentation module will fail to compile if Kotlin sources reference the generated `InstrumentationVersion` class.",
+      "created": "2026-06-15T22:10:59Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+import io.opentelemetry.instrumentation.gradle.GenerateInstrumentationVersionClassTask\n+import io.opentelemetry.instrumentation.gradle.InstrumentationVersionClassExtension\n+\n+plugins {\n+  `java-library`\n+}\n+\n+val instrumentationVersionClass = extensions.create<InstrumentationVersionClassExtension>(\"instrumentationVersionClass\")\n+val generatedInstrumentationVersionClassDir = layout.buildDirectory.dir(\"generated/sources/instrumentationVersionClass/java/main\")\n+\n+val generateInstrumentationVersionClass by tasks.registering(GenerateInstrumentationVersionClassTask::class) {\n+  className.set(instrumentationVersionClass.className)\n+  instrumentationVersion.set(project.version.toString())\n+  outputDirectory.set(generatedInstrumentationVersionClassDir)\n+}\n+\n+sourceSets {\n+  main {\n+    java {\n+      srcDir(generatedInstrumentationVersionClassDir)\n+    }\n+  }\n+}\n+\n+tasks.matching { it.name == \"compileJava\" || it.name == \"sourcesJar\" }.configureEach {\n+  dependsOn(generateInstrumentationVersionClass)\n+}",
+      "id": "PRRT_kwDODJKVX86JuPF-",
+      "opened": "2026-06-15T22:10:59Z",
+      "path": "conventions/src/main/kotlin/otel.instrumentation-version-class.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-15T22:19:17Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cd7d9f4b1f5fb335dead9f17a85b6d6e2903b29f.\n\nWired the generated version-class task into Kotlin compile/source tasks as well as Java compile/source tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19006#discussion_r3416902972"
+        }
+      ],
+      "reviewed": "12a62ce39a3f1de03c95b33dd9b2a626d6db8299",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19006#discussion_r3416872607"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Maintainability] `checkstyleMain` excludes only `**/InstrumentationVersion.java`, but the plugin allows configuring an arbitrary fully-qualified class name. If a module sets a different simple class name, the generated source will be checked and may violate header/format rules. Excluding the generated source directory is more robust and matches the actual intent (generated code).",
+      "created": "2026-06-15T22:10:59Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+import io.opentelemetry.instrumentation.gradle.GenerateInstrumentationVersionClassTask\n+import io.opentelemetry.instrumentation.gradle.InstrumentationVersionClassExtension\n+\n+plugins {\n+  `java-library`\n+}\n+\n+val instrumentationVersionClass = extensions.create<InstrumentationVersionClassExtension>(\"instrumentationVersionClass\")\n+val generatedInstrumentationVersionClassDir = layout.buildDirectory.dir(\"generated/sources/instrumentationVersionClass/java/main\")\n+\n+val generateInstrumentationVersionClass by tasks.registering(GenerateInstrumentationVersionClassTask::class) {\n+  className.set(instrumentationVersionClass.className)\n+  instrumentationVersion.set(project.version.toString())\n+  outputDirectory.set(generatedInstrumentationVersionClassDir)\n+}\n+\n+sourceSets {\n+  main {\n+    java {\n+      srcDir(generatedInstrumentationVersionClassDir)\n+    }\n+  }\n+}\n+\n+tasks.matching { it.name == \"compileJava\" || it.name == \"sourcesJar\" }.configureEach {\n+  dependsOn(generateInstrumentationVersionClass)\n+}\n+\n+tasks.withType<Checkstyle>().matching { it.name == \"checkstyleMain\" }.configureEach {\n+  exclude(\"**/InstrumentationVersion.java\")\n+}",
+      "id": "PRRT_kwDODJKVX86JuPGL",
+      "opened": "2026-06-15T22:10:59Z",
+      "path": "conventions/src/main/kotlin/otel.instrumentation-version-class.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-15T22:19:20Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/81a9ecc4739fbe6be26569cb25858e923b5a8dc5.\n\nChanged Checkstyle to exclude the generated version-class source directory instead of only a specific generated filename.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19006#discussion_r3416903114"
+        }
+      ],
+      "reviewed": "12a62ce39a3f1de03c95b33dd9b2a626d6db8299",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19006#discussion_r3416872625"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "eabcab8efc4964803ed965678d51e97173180c32d6dd699d8b66e11180503ef8",
+  "input_digest": "0bd3b22aca4c418d535bb16d53569c31c83c36569c1f53174303d8bf927534bf",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/241285f3df5887a41d67a799a310cd52253515bb/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27537ca1c59aab38529d71075c3f98942fda050e/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a3f80eb05bff4dbfd7fca00dcb5f1a8dce727064"
+      ],
+      "id": "PRRT_kwDODJKVX86rhmfP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1417b44440337a5bc86f55e3885aa0ce5ac614bd/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27537ca1c59aab38529d71075c3f98942fda050e/CHANGELOG.md"
+      ],
+      "id": "PRRT_kwDODJKVX86rkOat",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

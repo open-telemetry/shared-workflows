@@ -1,0 +1,46 @@
+{
+  "head": "0a6e32339c1fc842f01da0dffac2e1b1d61eeb57",
+  "merge": "2dc5d9fd568b6a4b07e4f1d113cc73d2eff946dc",
+  "merged": "2026-06-19T16:13:35Z",
+  "missing_roots": 0,
+  "number": 18994,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This call to `AsyncMethodCallbackUtil.wrap(...)` is not type-compatible with `AsyncMethodCallback<?>` because `wrap` expects `AsyncMethodCallback<T>` (invariant generic). This will fail compilation (or force raw/unchecked behavior depending on how it’s compiled). Use a raw `AsyncMethodCallback` in the advice signature/locals, or add an explicit cast when calling `wrap` so the generic type can be erased safely in this ByteBuddy advice context.",
+      "created": "2026-06-14T03:12:26Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.thrift.v0_13;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+\n+import io.opentelemetry.instrumentation.thrift.v0_13.internal.AsyncMethodCallbackUtil;\n+import io.opentelemetry.instrumentation.thrift.v0_13.internal.ServerInProtocolDecorator;\n+import io.opentelemetry.instrumentation.thrift.v0_13.internal.ServerOutProtocolDecorator;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.thrift.async.AsyncMethodCallback;\n+import org.apache.thrift.server.AbstractNonblockingServer;\n+\n+public final class ThriftAsyncProcessFunctionInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return extendsClass(named(\"org.apache.thrift.AsyncProcessFunction\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"getResultHandler\"), getClass().getName() + \"$GetResultHandlerAdvice\");\n+  }\n+\n+  public static class GetResultHandlerAdvice {\n+\n+    @Advice.AssignReturned.ToReturned\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n+    public static AsyncMethodCallback<?> methodExit(\n+        @Advice.Argument(value = 0) AbstractNonblockingServer.AsyncFrameBuffer fb,\n+        @Advice.Return(readOnly = false) AsyncMethodCallback<?> callback) {\n+      ServerInProtocolDecorator serverInProtocolDecorator =\n+          (ServerInProtocolDecorator) fb.getInputProtocol();\n+      ServerOutProtocolDecorator serverOutProtocolDecorator =\n+          (ServerOutProtocolDecorator) fb.getOutputProtocol();\n+      return AsyncMethodCallbackUtil.wrap(\n+          callback, serverInProtocolDecorator, serverOutProtocolDecorator);\n+    }",
+      "id": "PRRT_kwDODJKVX86JXvLm",
+      "opened": "2026-06-14T03:12:26Z",
+      "path": "instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftAsyncProcessFunctionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-14T04:06:44Z",
+          "body": "Compilation verified successful; no raw types or explicit casts required.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18994#discussion_r3408995467"
+        }
+      ],
+      "reviewed": "633eaec13a5ca886a05361bd79654b46709c42ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18994#discussion_r3408943487"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The wrapper ends the server span *before* delegating to the underlying Thrift result handler callback. Since the original callback is typically responsible for writing/flushing the reply to the output protocol, ending the span first can produce incorrect span timing and can miss/incorrectly attribute failures thrown during response serialization/IO. End the span after the delegated callback returns (e.g., in a `finally`), and if the delegate throws, end the span with that throwable and mark it failed.",
+      "created": "2026-06-14T03:12:26Z",
+      "hunk": "@@ -38,5 +38,30 @@ public void onError(Exception exception) {\n     };\n   }\n \n+  public static <T> AsyncMethodCallback<T> wrap(\n+      AsyncMethodCallback<T> callback,\n+      ServerInProtocolDecorator serverInProtocolDecorator,\n+      ServerOutProtocolDecorator serverOutProtocolDecorator) {\n+    Context context = Context.current();\n+    return new AsyncMethodCallback<T>() {\n+\n+      @Override\n+      public void onComplete(T response) {\n+        serverInProtocolDecorator.endSpan(null, serverOutProtocolDecorator.hasException());\n+        try (Scope ignore = context.makeCurrent()) {\n+          callback.onComplete(response);\n+        }\n+      }\n+\n+      @Override\n+      public void onError(Exception exception) {\n+        serverInProtocolDecorator.endSpan(exception, serverOutProtocolDecorator.hasException());\n+        try (Scope ignore = context.makeCurrent()) {\n+          callback.onError(exception);\n+        }\n+      }",
+      "id": "PRRT_kwDODJKVX86JXvLo",
+      "opened": "2026-06-14T03:12:26Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/AsyncMethodCallbackUtil.java",
+      "replies": [],
+      "reviewed": "633eaec13a5ca886a05361bd79654b46709c42ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18994#discussion_r3408943489"
+    }
+  ]
+}

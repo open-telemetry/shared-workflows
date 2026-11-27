@@ -1,0 +1,157 @@
+{
+  "head": "632fe312ff5a3cbbe2b909a18d6f23a906d7340d",
+  "merge": "01769e668c473074583cc30a5073dbe27dd021ad",
+  "merged": "2026-07-13T22:11:14Z",
+  "missing_roots": 0,
+  "number": 19192,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Endpoint propagation currently depends on the optional connection instrumenter starting. `shouldStart()` returns false when connection telemetry is disabled (the documented default), so this line is never reached; `ConstructorAdvice` then sees no `CONNECT_URI_KEY`, leaving every command without `server.address`/`server.port` under the default configuration. Please establish the URI context independently of the connection span decision (and add a default-config regression test).",
+      "created": "2026-07-11T19:29:20Z",
+      "hunk": "@@ -79,6 +80,7 @@ public static AdviceScope onEnter(@Advice.Argument(1) RedisURI redisUri) {\n       }\n \n       Context context = connectInstrumenter().start(parentContext, redisUri);\n+      context = context.with(CONNECT_URI_KEY, redisUri);",
+      "id": "PRRT_kwDODJKVX86QIvza",
+      "opened": "2026-07-11T19:29:20Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-12T02:31:07Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1529e69391a69701b93e44a54b4365ad02c17f2e.\n\nRedis URI propagation now occurs even when connection telemetry is disabled, with the default and opt-in configurations covered separately.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565501745"
+        }
+      ],
+      "reviewed": "0ffac0a2407e22c95ae8e65e80de2f8c45b1cbaf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3564880386"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "are we sure they all have same address? why can't we capture if empty? is there alt approach for batches?",
+      "created": "2026-07-12T03:59:51Z",
+      "hunk": "@@ -25,19 +26,25 @@ final class LettuceBatchRequest {\n   private final String operationName;\n   @Nullable private final String queryText;\n   @Nullable private final Long batchSize;\n+  @Nullable private final InetSocketAddress address;\n \n   private LettuceBatchRequest(\n-      String operationName, @Nullable String queryText, @Nullable Long batchSize) {\n+      String operationName,\n+      @Nullable String queryText,\n+      @Nullable Long batchSize,\n+      @Nullable InetSocketAddress address) {\n     this.operationName = operationName;\n     this.queryText = queryText;\n     this.batchSize = batchSize;\n+    this.address = address;\n   }\n \n   static LettuceBatchRequest create(List<RedisCommand<?, ?, ?>> commands) {\n     return new LettuceBatchRequest(\n         operationName(commands),\n         queryText(commands),\n-        commands.size() != 1 ? (long) commands.size() : null);\n+        commands.size() != 1 ? (long) commands.size() : null,\n+        commands.isEmpty() ? null : LettuceSingletons.COMMAND_ADDRESS.get(commands.get(0)));",
+      "id": "PRRT_kwDODJKVX86QKy41",
+      "opened": "2026-07-12T04:04:57Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-07-12T04:38:59Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f8b5cd495bd0ddb1da37005314003e48b776122c.\n\nThe batch endpoint now comes directly from the owning DefaultEndpoint instead of the first command.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565670888"
+        }
+      ],
+      "reviewed": "50d2575911b1e15f759e4974700fb7169e689cdf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565621607"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why secondaryPort and not serverPort?",
+      "created": "2026-07-12T04:01:21Z",
+      "hunk": "@@ -67,17 +73,19 @@ protected StatefulRedisConnection<String, String> newContainerConnection() {\n     server.start();\n     cleanup.deferCleanup(server::stop);\n \n-    long serverPort = server.getMappedPort(6379);\n+    secondaryPort = server.getMappedPort(6379);",
+      "id": "PRRT_kwDODJKVX86QKzvA",
+      "opened": "2026-07-12T04:04:57Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/AbstractLettuceClientTest.java",
+      "replies": [
+        {
+          "at": "2026-07-12T04:39:00Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5d43fc5a6be2ae4469742645fbaec2c6324aeba3.\n\nRenamed the disposable container port for clearer server-port semantics.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565670925"
+        }
+      ],
+      "reviewed": "50d2575911b1e15f759e4974700fb7169e689cdf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565626299"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this class feels a bit awkward, any alternatives?",
+      "created": "2026-07-12T04:03:37Z",
+      "hunk": "@@ -390,12 +457,16 @@ private static StatefulRedisConnection<String, String> newContainerConnection()\n     testing.waitForTraces(1);\n     testing.clearData();\n \n-    return statefulConnection;\n+    return new ContainerConnection(statefulConnection, serverPort);\n   }\n \n-  private static AttributeAssertion[] commandAttributes(String operation) {\n-    return new AttributeAssertion[] {\n-      equalTo(maybeStable(DB_SYSTEM), REDIS), equalTo(maybeStable(DB_OPERATION), operation)\n-    };\n+  private static class ContainerConnection {",
+      "id": "PRRT_kwDODJKVX86QK0mt",
+      "opened": "2026-07-12T04:04:57Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceReactiveClientTest.java",
+      "replies": [
+        {
+          "at": "2026-07-12T04:39:01Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/63051fe92c4da4f743cf49ef72a5ba66016bda0b.\n\nReplaced the wrapper and shared port state with callback-scoped connection and port values.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565670966"
+        }
+      ],
+      "reviewed": "befbe0f09945a6c94c7a884884f87d9ef69c6c8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565631615"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "same question as above (better way to track for batches)?",
+      "created": "2026-07-12T04:04:55Z",
+      "hunk": "@@ -12,15 +12,20 @@\n final class LettuceBatchRequest {\n   private final String operationName;\n   @Nullable private final Long batchSize;\n+  @Nullable private final ServerEndpoint serverEndpoint;\n \n-  private LettuceBatchRequest(String operationName, @Nullable Long batchSize) {\n+  private LettuceBatchRequest(\n+      String operationName, @Nullable Long batchSize, @Nullable ServerEndpoint serverEndpoint) {\n     this.operationName = operationName;\n     this.batchSize = batchSize;\n+    this.serverEndpoint = serverEndpoint;\n   }\n \n   static LettuceBatchRequest create(List<RedisCommand<?, ?, ?>> commands) {\n     return new LettuceBatchRequest(\n-        operationName(commands), commands.size() != 1 ? (long) commands.size() : null);\n+        operationName(commands),\n+        commands.size() != 1 ? (long) commands.size() : null,\n+        commands.isEmpty() ? null : LettuceSingletons.COMMAND_ADDRESS.get(commands.get(0)));",
+      "id": "PRRT_kwDODJKVX86QK02A",
+      "opened": "2026-07-12T04:04:57Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-07-12T04:39:02Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3d81b9180f29066eb2a06d59ce5d848872b9fc7a.\n\nThe 4.0 batch endpoint now comes from the owning connection instead of the first command.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565671001"
+        }
+      ],
+      "reviewed": "befbe0f09945a6c94c7a884884f87d9ef69c6c8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565633036"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "in this case we already had an InetSocketAddress, would it make sense to use that insetad of ServerEndpoitn?",
+      "created": "2026-07-12T04:44:15Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.CONNECTION_ADDRESS;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.lambdaworks.redis.ConnectionBuilder;\n+import com.lambdaworks.redis.RedisChannelHandler;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceConnectionInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.lambdaworks.redis.ConnectionBuilder\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"build\").and(takesArguments(0)), getClass().getName() + \"$BuildAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class BuildAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This ConnectionBuilder builder) {\n+      RedisChannelHandler<?, ?> connection = builder.connection();\n+      SocketAddress address = builder.socketAddress();\n+      if (connection != null && address instanceof InetSocketAddress) {\n+        InetSocketAddress inetSocketAddress = (InetSocketAddress) address;\n+        CONNECTION_ADDRESS.set(\n+            connection,\n+            new ServerEndpoint(inetSocketAddress.getHostString(), inetSocketAddress.getPort()));\n+      }",
+      "id": "PRRT_kwDODJKVX86QK89L",
+      "opened": "2026-07-12T04:46:01Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-12T04:57:01Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9bceab8af7068b28c0564581e1a1bf099018cdb7.\n\nThe 4.0 instrumentation now carries the existing InetSocketAddress directly and no longer uses ServerEndpoint.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565696593"
+        }
+      ],
+      "reviewed": "3d81b9180f29066eb2a06d59ce5d848872b9fc7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565678091"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "here we have RedisURI, would it make sense to pass that around instead of ServerEndpoint?",
+      "created": "2026-07-12T04:45:19Z",
+      "hunk": "@@ -51,13 +57,26 @@ public void transform(TypeTransformer transformer) {\n         named(\"flushCommands\").and(takesArguments(0)), getClass().getName() + \"$FlushAdvice\");\n   }\n \n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.This DefaultEndpoint endpoint) {\n+      RedisURI redisUri = currentContext().get(CONNECT_URI_KEY);\n+      if (redisUri != null && redisUri.getHost() != null) {\n+        ENDPOINT_ADDRESS.set(endpoint, new ServerEndpoint(redisUri.getHost(), redisUri.getPort()));",
+      "id": "PRRT_kwDODJKVX86QK9Kc",
+      "opened": "2026-07-12T04:46:01Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceEndpointInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-12T04:57:02Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1628100333f32298146e9fb243ab099a50bbbfaa.\n\nThe 5.0 instrumentation now carries the existing RedisURI directly and no longer uses ServerEndpoint.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565696608"
+        }
+      ],
+      "reviewed": "3d81b9180f29066eb2a06d59ce5d848872b9fc7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19192#discussion_r3565679228"
+    }
+  ]
+}

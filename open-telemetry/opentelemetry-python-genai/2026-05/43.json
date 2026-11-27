@@ -1,0 +1,25 @@
+{
+  "head": "3c7175938feadf398cba516ce563662489ea151c",
+  "merge": "72b5a1123529e77886c356c5cfb80e9876968d95",
+  "merged": "2026-05-22T20:11:23Z",
+  "missing_roots": 0,
+  "number": 43,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "going to merge, I don't think there's a problem with updating python version in these steps, but let me know if I'm missing something, thanks!",
+      "created": "2026-05-22T20:09:17Z",
+      "hunk": "@@ -29,10 +29,10 @@ jobs:\n       - name: Checkout repo @ SHA - ${{ github.sha }}\n         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n \n-      - name: Set up Python 3.11\n+      - name: Set up Python 3.14\n         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0\n         with:\n-          python-version: \"3.11\"\n+          python-version: \"3.14\"",
+      "id": "PRRT_kwDOSbspP86EONRm",
+      "opened": "2026-05-22T20:09:20Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "3c7175938feadf398cba516ce563662489ea151c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/43#discussion_r3290984781"
+    }
+  ]
+}

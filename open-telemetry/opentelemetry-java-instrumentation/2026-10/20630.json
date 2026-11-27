@@ -1,0 +1,31 @@
+{
+  "head": "084f3ff4681814ee8cd8d4b83e26870b774cdf4d",
+  "merge": "51c027da317457034f97456963a86f3415baf8e6",
+  "merged": "2026-10-16T04:55:33Z",
+  "missing_roots": 0,
+  "number": 20630,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please remove this opt-in and instead remove the `thread.id` and `thread.name` assertions from `processAttributes()`, along with unused imports. The default changed intentionally, and these assertions only check that the ID is nonzero and the name is nonblank; they do not verify Kafka Connect behavior. `ThreadDetailsCustomizerProviderTest` already covers thread details being absent by default and present when enabled. Keep the container on the new default and update the PR title and description to match.",
+      "created": "2026-10-16T01:52:08Z",
+      "hunk": "@@ -512,7 +512,9 @@ private void setupKafkaConnect() {\n \n   private static String javaToolOptions() {\n     StringBuilder options =\n-        new StringBuilder(\"-javaagent:/opentelemetry-javaagent.jar -Dotel.javaagent.debug=true\");\n+        new StringBuilder(\n+            \"-javaagent:/opentelemetry-javaagent.jar -Dotel.javaagent.debug=true\"\n+                + \" -Dotel.javaagent.add-thread-details=true\");",
+      "id": "PRRT_kwDODJKVX86tCGp3",
+      "opened": "2026-10-16T01:52:08Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/testing/src/test/java/io/opentelemetry/instrumentation/kafkaconnect/v2_6/KafkaConnectSinkTaskBaseTest.java",
+      "replies": [
+        {
+          "at": "2026-10-16T01:58:50Z",
+          "body": "Removed the container opt-in and the `thread.id` / `thread.name` assertions, including unused imports. `:instrumentation:kafka:kafka-connect-2.6:testing:compileTestJava` passes. Commit: `084f3ff4`. I couldn’t update the PR title or description with the available GitHub tools; suggested title: “Remove incidental thread detail assertions from Kafka Connect tests.”",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20630#discussion_r4290115082"
+        }
+      ],
+      "reviewed": "5bae90cf4e8c57d39e0505b3b4fb86b847b31b4b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20630#discussion_r4290082271"
+    }
+  ]
+}

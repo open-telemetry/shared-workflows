@@ -1,0 +1,31 @@
+{
+  "head": "67549d8ca8803a42d664fdf5536d516cf9dc9ab5",
+  "merge": "4c20de9d51c0bc84a0121b174eed0fa79e030be2",
+  "merged": "2026-06-12T06:36:13Z",
+  "missing_roots": 0,
+  "number": 18970,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `RequestAccess.getTableName(request.getOriginalRequest())` is called twice (once in `onStart` and again inside `getCollectionName`). Since `RequestAccess` uses reflective `MethodHandle` invocation, this adds avoidable overhead on the hot path. You can reuse the already-computed `tableName` when computing `db.collection.name`.",
+      "created": "2026-06-12T03:26:23Z",
+      "hunk": "@@ -56,9 +57,46 @@ public void onStart(AttributesBuilder attributes, Context parentContext, Request\n     if (tableName != null) {\n       attributes.put(AWS_DYNAMODB_TABLE_NAMES, singletonList(tableName));\n     }\n-    if (emitStableDatabaseSemconv() && tableName != null) {\n-      attributes.put(DB_COLLECTION_NAME, tableName);\n+    if (emitStableDatabaseSemconv()) {\n+      attributes.put(DB_COLLECTION_NAME, getCollectionName(request.getOriginalRequest()));\n+    }\n+  }\n+\n+  @Nullable\n+  private static String getCollectionName(Object request) {\n+    String tableName = RequestAccess.getTableName(request);\n+    if (tableName != null) {\n+      return tableName;\n+    }\n+\n+    Map<?, ?> requestItems = RequestAccess.getRequestItems(request);\n+    return requestItems != null ? getSingleCollectionName(requestItems) : null;\n+  }",
+      "id": "PRRT_kwDODJKVX86JAMlj",
+      "opened": "2026-06-12T03:26:23Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-12T03:33:54Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18970#discussion_r3400485233"
+        }
+      ],
+      "reviewed": "cdbe83e5d4bda248f646ca8b2c9463eef1f119a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18970#discussion_r3400455248"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "18ce5c25596108d25eabb105df8e12d37d1fe0be",
+  "merge": "290855da042f379722e8aeaa46197f7af92c7030",
+  "merged": "2026-03-09T15:59:00Z",
+  "missing_roots": 0,
+  "number": 16374,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "network.type removals done in: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16257",
+      "created": "2026-03-05T19:11:05Z",
+      "hunk": "@@ -3021,8 +3021,6 @@ libraries:\n           type: STRING\n         - name: network.peer.port\n           type: LONG\n-        - name: network.type\n-          type: STRING",
+      "id": "PRRT_kwDODJKVX85yaJde",
+      "opened": "2026-03-05T19:30:11Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "4a37e78de596dbcb457c131c3715d760cdbd3707",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16374#discussion_r2891714707"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this is from #16365 where my change to the gradle build file to add the collectMetadata flag got removed/reverted before i committed. I will submit a PR to fix this",
+      "created": "2026-03-05T19:29:47Z",
+      "hunk": "@@ -11210,27 +11200,6 @@ libraries:\n       description: Enables the capture of the experimental consumer attribute `kafka.record.queue_time_ms`.\n       type: boolean\n       default: false\n-    telemetry:",
+      "id": "PRRT_kwDODJKVX85yabuf",
+      "opened": "2026-03-05T19:30:11Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-03-05T19:45:41Z",
+          "body": "fixed in #16394",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16374#discussion_r2891917910"
+        }
+      ],
+      "reviewed": "4a37e78de596dbcb457c131c3715d760cdbd3707",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16374#discussion_r2891825727"
+    }
+  ]
+}

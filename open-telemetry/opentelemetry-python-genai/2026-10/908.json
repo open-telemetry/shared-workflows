@@ -1,0 +1,46 @@
+{
+  "head": "c1d17e08bae509b08e662cf1992cba9cd03ab5d3",
+  "merge": "bf072dbee9abc34980ebd90f246c7f0e2a3f6b22",
+  "merged": "2026-10-20T02:38:36Z",
+  "missing_roots": 0,
+  "number": 908,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Creating `Content(parts=[])` unconditionally turns a candidate whose chunks all have `content=None` (for example, a blocked response) into an empty output message. `to_output_messages()` skips contentless candidates, so this changes existing behavior and differs from non-streamed responses. Leave merged content unset until a chunk supplies content, and add a regression test confirming that an entirely contentless candidate produces no output message in both streaming variants.",
+      "created": "2026-10-16T22:12:56Z",
+      "hunk": "@@ -586,6 +588,41 @@ def _execute(\n     return instrumented_generate_content\n \n \n+def _merge_streamed_candidates(candidates: list[Candidate]) -> list[Candidate]:\n+    \"\"\"Merge the per-chunk candidates of a stream into one candidate per index.\n+\n+    Each streamed chunk carries a fragment of the response; adjacent text\n+    fragments of the same kind are joined so a streamed response is reported\n+    like the equivalent non-streamed one.\n+    \"\"\"\n+    merged: dict[int, Candidate] = {}\n+    for candidate in candidates:\n+        index = candidate.index or 0\n+        target = merged.get(index)\n+        if target is None:\n+            target = merged[index] = Candidate(\n+                index=candidate.index, content=Content(parts=[])\n+            )\n+        if candidate.finish_reason is not None:\n+            target.finish_reason = candidate.finish_reason\n+        if not candidate.content:\n+            continue\n+        if candidate.content.role:\n+            target.content.role = candidate.content.role",
+      "id": "PRRT_kwDOSbspP86tZYYf",
+      "opened": "2026-10-16T22:12:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "690efed148175c028dff9a3716dea64008cc1904",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/908#discussion_r4299827487"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "MikeGoldsmith"
+      },
+      "body": "This will return the items in the order they were received, no necessarily their index order. We could do something like this to guarantee the order:\n\n```suggestion\n    return [merged[index] for index in sorted(merged)]\n```",
+      "created": "2026-10-19T13:12:53Z",
+      "hunk": "@@ -586,6 +588,41 @@ def _execute(\n     return instrumented_generate_content\n \n \n+def _merge_streamed_candidates(candidates: list[Candidate]) -> list[Candidate]:\n+    \"\"\"Merge the per-chunk candidates of a stream into one candidate per index.\n+\n+    Each streamed chunk carries a fragment of the response; adjacent text\n+    fragments of the same kind are joined so a streamed response is reported\n+    like the equivalent non-streamed one.\n+    \"\"\"\n+    merged: dict[int, Candidate] = {}\n+    for candidate in candidates:\n+        index = candidate.index or 0\n+        target = merged.get(index)\n+        if target is None:\n+            target = merged[index] = Candidate(index=candidate.index)\n+        if candidate.finish_reason is not None:\n+            target.finish_reason = candidate.finish_reason\n+        if not candidate.content:\n+            continue\n+        if target.content is None:\n+            target.content = Content(parts=[])\n+        if candidate.content.role:\n+            target.content.role = candidate.content.role\n+        for part in candidate.content.parts or []:\n+            last = target.content.parts[-1] if target.content.parts else None\n+            if (\n+                last is not None\n+                and part.text is not None\n+                and last.text is not None\n+                and bool(part.thought) == bool(last.thought)\n+            ):\n+                last.text += part.text\n+            else:\n+                target.content.parts.append(part.model_copy())\n+    return list(merged.values())",
+      "id": "PRRT_kwDOSbspP86t7rCN",
+      "opened": "2026-10-19T13:16:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [
+        {
+          "at": "2026-10-19T19:57:52Z",
+          "body": "Done in c1d17e0, merged candidates now come back sorted by index, with a test where index 1 streams first.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/908#discussion_r4318225108"
+        }
+      ],
+      "reviewed": "e470616e7d30d3916903b3921ae718bc47c740ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/908#discussion_r4314221576"
+    }
+  ]
+}

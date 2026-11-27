@@ -1,0 +1,386 @@
+{
+  "head": "30728897b8534a73d3adf48d37bc7607c7f56531",
+  "merge": "dfa80e5797f2e9d9560e5462d94d5a6a26f5717d",
+  "merged": "2026-09-01T00:56:39Z",
+  "missing_roots": 0,
+  "number": 296,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`base64.b64decode()` without `validate=True` will silently ignore non-base64 characters, so some malformed inputs may decode to bytes instead of returning `None`. Since callers/tests treat malformed base64 as invalid, decode in strict mode (optionally stripping whitespace) to make the behavior deterministic.",
+      "created": "2026-07-21T21:24:00Z",
+      "hunk": "@@ -75,6 +78,85 @@ def _normalize_role(message: BaseMessage) -> str:\n     return _ROLE_MAP.get(message.type, message.type)\n \n \n+def _decode_base64(data: str) -> Optional[bytes]:\n+    try:\n+        return base64.b64decode(data)\n+    except Exception:  # pylint: disable=broad-exception-caught\n+        return None\n+",
+      "id": "PRRT_kwDOSbspP86SusKs",
+      "opened": "2026-07-21T21:24:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "eaf42a06a9d457d2d4aca219edc29da2bec01c7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3625803960"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog fragment uses inconsistent capitalization for the project/library names; prefer the canonical \"OpenInference\" and \"LangChain\" in user-facing text.",
+      "created": "2026-07-21T21:24:01Z",
+      "hunk": "@@ -0,0 +1 @@\n+(Openinference Migration: Langchain) - Capture multimodal image content (OpenAI ``image_url`` and Anthropic ``image`` blocks) as ``Blob``/``Uri`` message parts.",
+      "id": "PRRT_kwDOSbspP86SusLF",
+      "opened": "2026-07-21T21:24:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/296.added",
+      "replies": [],
+      "reviewed": "eaf42a06a9d457d2d4aca219edc29da2bec01c7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3625803999"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you please add conformance test? thanks!",
+      "created": "2026-08-06T22:24:25Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86XH5Fd",
+      "opened": "2026-08-06T22:42:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-08-10T23:11:05Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3754110094"
+        }
+      ],
+      "reviewed": "eb9e373005bd1bab0c0cc5834bc69f9ff502edbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3732192436"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please update openai and anthropic instrumentations to hahve feature parity.  Ok to do in a separate PR. Thanks!",
+      "created": "2026-08-06T22:25:52Z",
+      "hunk": "@@ -0,0 +1 @@\n+(Openinference Migration: Langchain) - Capture multimodal image content (OpenAI ``image_url`` and Anthropic ``image`` blocks) as ``Blob``/``Uri`` message parts.",
+      "id": "PRRT_kwDOSbspP86XH578",
+      "opened": "2026-08-06T22:42:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/296.added",
+      "replies": [
+        {
+          "at": "2026-08-10T23:09:40Z",
+          "body": "Tracking in this issue - https://github.com/open-telemetry/opentelemetry-python-genai/issues/348",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3754104130"
+        }
+      ],
+      "reviewed": "eb9e373005bd1bab0c0cc5834bc69f9ff502edbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3732197528"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this one actually checks env var and is now used on a hot path, please  use handler.should_capture_content() somewhere up the stack and don't call this method when content capturing is disabled",
+      "created": "2026-08-06T22:28:09Z",
+      "hunk": "@@ -75,6 +80,89 @@ def _normalize_role(message: BaseMessage) -> str:\n     return _ROLE_MAP.get(message.type, message.type)\n \n \n+def _decode_base64(data: str) -> bytes | None:\n+    # Skip the decode entirely when message content is not being captured;\n+    # the resulting bytes would never be emitted under ``NO_CONTENT``.\n+    if get_content_capturing_mode() is ContentCapturingMode.NO_CONTENT:",
+      "id": "PRRT_kwDOSbspP86XH7VB",
+      "opened": "2026-08-06T22:42:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-10T23:10:44Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3754108623"
+        }
+      ],
+      "reviewed": "eb9e373005bd1bab0c0cc5834bc69f9ff502edbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3732205395"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we have this whole method in utils? the data:// is pretty generic approach, nothing specific to openai https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Schemes/data\n",
+      "created": "2026-08-06T22:37:39Z",
+      "hunk": "@@ -75,6 +80,89 @@ def _normalize_role(message: BaseMessage) -> str:\n     return _ROLE_MAP.get(message.type, message.type)\n \n \n+def _decode_base64(data: str) -> bytes | None:\n+    # Skip the decode entirely when message content is not being captured;\n+    # the resulting bytes would never be emitted under ``NO_CONTENT``.\n+    if get_content_capturing_mode() is ContentCapturingMode.NO_CONTENT:\n+        return None\n+    try:\n+        return base64.b64decode(\"\".join(data.split()), validate=True)\n+    except Exception:  # pylint: disable=broad-exception-caught\n+        return None\n+\n+\n+def _media_part(item: dict[str, Any]) -> MessagePart | None:\n+    \"\"\"Convert a LangChain multimodal image content block into a media part.\n+\n+    Handles the two shapes LangChain chat models accept:\n+\n+    - OpenAI style ``{\"type\": \"image_url\", \"image_url\": {\"url\": ...}}`` (or a\n+      bare ``\"image_url\": \"...\"`` string). A ``data:<mime>;base64,<payload>``\n+      URL becomes a :class:`Blob`; any other URL becomes a :class:`Uri`.\n+    - Anthropic style ``{\"type\": \"image\", \"source\": {...}}`` where ``source``\n+      is either ``{\"type\": \"base64\", \"media_type\": ..., \"data\": ...}`` (→\n+      :class:`Blob`) or ``{\"type\": \"url\", \"url\": ...}`` (→ :class:`Uri`).\n+    \"\"\"\n+    block_type = item.get(\"type\")\n+    if block_type == \"image_url\":\n+        image_url = item.get(\"image_url\")\n+        url: str | None = None\n+        if isinstance(image_url, str):\n+            url = image_url\n+        elif isinstance(image_url, dict):\n+            image_url_dict = cast(dict[str, Any], image_url)\n+            raw_url = image_url_dict.get(\"url\")\n+            url = raw_url if isinstance(raw_url, str) else None\n+        if not url:\n+            return None\n+        return _image_from_url(url)\n+    if block_type == \"image\":\n+        source = item.get(\"source\")\n+        if not isinstance(source, dict):\n+            return None\n+        source_dict = cast(dict[str, Any], source)\n+        source_type = source_dict.get(\"type\")\n+        if source_type == \"base64\":\n+            data = source_dict.get(\"data\")\n+            if not isinstance(data, str):\n+                return None\n+            decoded = _decode_base64(data)\n+            if decoded is None:\n+                return None\n+            media_type = source_dict.get(\"media_type\")\n+            return Blob(\n+                mime_type=media_type if isinstance(media_type, str) else None,\n+                modality=\"image\",\n+                content=decoded,\n+            )\n+        if source_type == \"url\":\n+            source_url = source_dict.get(\"url\")\n+            if isinstance(source_url, str) and source_url:\n+                return _image_from_url(source_url)\n+    return None\n+\n+\n+def _image_from_url(url: str) -> MessagePart | None:",
+      "id": "PRRT_kwDOSbspP86XIA_8",
+      "opened": "2026-08-06T22:42:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-06T23:03:27Z",
+          "body": "Yeah make sense, I can then reuse it for openai and anthropic.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3732322348"
+        }
+      ],
+      "reviewed": "eb9e373005bd1bab0c0cc5834bc69f9ff502edbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3732238730"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it's the first time we're using this type in this repo, mind renaming it to BlobPart? Same with Uri, can we rename it to `UriPart` - that's how they are called in semconv and it seems we're inconsistent - https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/non-normative/models.py",
+      "created": "2026-08-06T22:41:50Z",
+      "hunk": "@@ -19,6 +20,8 @@\n     gen_ai_attributes as GenAIAttributes,\n )\n from opentelemetry.util.genai.types import (\n+    Blob,",
+      "id": "PRRT_kwDOSbspP86XIDaX",
+      "opened": "2026-08-06T22:42:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-06T23:28:29Z",
+          "body": "Sounds good. I will make changes in the utils. I believe the same change is needed for some other data classes as well. I think I will make a separate PR to address that.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3732407865"
+        },
+        {
+          "at": "2026-08-07T16:34:59Z",
+          "body": "@lmolkova `Blob` and `Uri` both have previously been used in other instrumentations, `Blob` has been used in the anthropic and google-genai instrumentation and `Uri` in google-genai. I have a PR out which aligns the names with semconv - https://github.com/open-telemetry/opentelemetry-python-genai/pull/365. Should we have backward compatibility aliases for downstream users with deprecation messages?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3737281583"
+        },
+        {
+          "at": "2026-08-14T01:52:03Z",
+          "body": "oh, good catch! not sure how I missed them. Yes, let's do aliases",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3780432294"
+        },
+        {
+          "at": "2026-08-18T23:48:31Z",
+          "body": "@lmolkova This has been addressed in https://github.com/open-telemetry/opentelemetry-python-genai/pull/365. That PR needs to be reviewed and merged before the current one can be updated with the new names for the data classes. PTAL when you have a moment. Thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3808974605"
+        }
+      ],
+      "reviewed": "eb9e373005bd1bab0c0cc5834bc69f9ff502edbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3732252769"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why not \n\n```suggestion\n        if capture_content: \n            invocation.output_messages = make_last_output_message(\n                outputs\n            )\n```\n\n?",
+      "created": "2026-08-14T01:47:21Z",
+      "hunk": "@@ -162,7 +166,10 @@ def on_chain_end(\n             self._invocation_manager.delete_invocation_state(run_id)\n             return\n \n-        invocation.output_messages = make_last_output_message(outputs)\n+        capture_content = self._telemetry_handler.should_capture_content()\n+        invocation.output_messages = make_last_output_message(\n+            outputs, capture_content\n+        )",
+      "id": "PRRT_kwDOSbspP86ZIxSz",
+      "opened": "2026-08-14T01:51:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "837f846eed6da709b2d497be7afe140c210ea323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3780415249"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n        if capture_content:\n            input_messages = to_input_messages(flattened)\n```\n\n?",
+      "created": "2026-08-14T01:47:52Z",
+      "hunk": "@@ -270,7 +277,8 @@ def on_chat_model_start(\n         # :func:`to_input_messages` produce spec-conformant ``InputMessage`` s\n         # with proper roles, tool-call requests, tool results, and reasoning.\n         flattened: list[BaseMessage] = [msg for sub in messages for msg in sub]\n-        input_messages = to_input_messages(flattened)\n+        capture_content = self._telemetry_handler.should_capture_content()\n+        input_messages = to_input_messages(flattened, capture_content)",
+      "id": "PRRT_kwDOSbspP86ZIxu_",
+      "opened": "2026-08-14T01:51:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "837f846eed6da709b2d497be7afe140c210ea323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3780417775"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "does it need to be public? also it seems we can just avoid calling to_input / to_output if content is disabled and add a docstring for public utils methods that is expected from caller to check if content is enabled and not call this method if it's not.\n\n\n```suggestion\ndef _decode_base64(data: str) -> bytes | None:\n```",
+      "created": "2026-08-14T01:51:24Z",
+      "hunk": "@@ -36,6 +41,44 @@ def get_content_capturing_mode() -> ContentCapturingMode:\n         return ContentCapturingMode.NO_CONTENT\n \n \n+def decode_base64(data: str, capture_content: bool = False) -> bytes | None:",
+      "id": "PRRT_kwDOSbspP86ZIzv2",
+      "opened": "2026-08-14T01:51:33Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-17T22:55:33Z",
+          "body": "I think it needs to be public because this method is called directly as well and since we have moved it to the utils, we would need another public method which then calls it internally.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3799391315"
+        },
+        {
+          "at": "2026-08-17T22:56:21Z",
+          "body": "For the second part, it makes sense, and I will make the changes you have suggested in the other comments above.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3799394815"
+        }
+      ],
+      "reviewed": "837f846eed6da709b2d497be7afe140c210ea323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3780429974"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "LangChain's own standard image blocks are silently dropped - only the raw provider shapes are handled. `ImageContentBlock` in langchain-core 1.x is `{\"type\": \"image\", \"url\"/\"base64\", \"mime_type\"}`, and 0.3 uses `source_type` + `data`; neither has a `source` key. Since standard blocks are the documented v1 way to pass images, this misses the common case (the whole message is dropped, not just the image part).\n\nThis fails on the branch - all four cases:\n\n```python\n@pytest.mark.parametrize(\n    \"block,expected\",\n    [\n        ({\"type\": \"image\", \"base64\": B64, \"mime_type\": \"image/png\"}, Blob),\n        ({\"type\": \"image\", \"url\": \"https://example.com/a.png\"}, Uri),\n        ({\"type\": \"image\", \"source_type\": \"base64\", \"data\": B64, \"mime_type\": \"image/png\"}, Blob),\n        ({\"type\": \"image\", \"source_type\": \"url\", \"url\": \"https://e/b.png\"}, Uri),\n    ],\n)\ndef test_langchain_standard_image_blocks_are_captured(block, expected):\n    messages = to_input_messages([HumanMessage(content=[block])])\n    assert messages, \"message dropped entirely - no parts extracted\"\n    assert any(isinstance(p, expected) for p in messages[0].parts)\n```\n\nPlease handle these shapes and add the tests.",
+      "created": "2026-08-22T16:07:34Z",
+      "hunk": "@@ -75,6 +77,59 @@ def _normalize_role(message: BaseMessage) -> str:\n     return _ROLE_MAP.get(message.type, message.type)\n \n \n+def _media_part(item: dict[str, Any]) -> MessagePart | None:\n+    \"\"\"Convert a LangChain multimodal image content block into a media part.\n+\n+    Handles the two shapes LangChain chat models accept:\n+\n+    - OpenAI style ``{\"type\": \"image_url\", \"image_url\": {\"url\": ...}}`` (or a\n+      bare ``\"image_url\": \"...\"`` string). A ``data:<mime>;base64,<payload>``\n+      URL becomes a :class:`Blob`; any other URL becomes a :class:`Uri`.\n+    - Anthropic style ``{\"type\": \"image\", \"source\": {...}}`` where ``source``\n+      is either ``{\"type\": \"base64\", \"media_type\": ..., \"data\": ...}`` (→\n+      :class:`Blob`) or ``{\"type\": \"url\", \"url\": ...}`` (→ :class:`Uri`).\n+    \"\"\"\n+    block_type = item.get(\"type\")\n+    if block_type == \"image_url\":\n+        image_url = item.get(\"image_url\")\n+        url: str | None = None\n+        if isinstance(image_url, str):\n+            url = image_url\n+        elif isinstance(image_url, dict):\n+            image_url_dict = cast(dict[str, Any], image_url)\n+            raw_url = image_url_dict.get(\"url\")\n+            url = raw_url if isinstance(raw_url, str) else None\n+        if not url:\n+            return None\n+        return image_from_url(url)\n+    if block_type == \"image\":",
+      "id": "PRRT_kwDOSbspP86bZyUc",
+      "opened": "2026-08-22T16:08:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "a0bb771bf86ee53ecc3af4a8167cf2de2a160429",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3836433644"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A non-base64 `data:` URL is percent-encoded (RFC 2397), so this stores the escaped text rather than the bytes. Use `urllib.parse.unquote_to_bytes(payload)`.\n\nFails on the branch:\n\n```python\ndef test_image_from_url_percent_encoded_data_url():\n    part = image_from_url(\"data:image/svg+xml,%3Csvg%2F%3E\")\n    assert part.content == b\"<svg/>\"   # got b\"%3Csvg%2F%3E\"\n```\n\nPlease fix and add the test.",
+      "created": "2026-08-22T16:07:34Z",
+      "hunk": "@@ -36,6 +41,46 @@ def get_content_capturing_mode() -> ContentCapturingMode:\n         return ContentCapturingMode.NO_CONTENT\n \n \n+def decode_base64(data: str) -> bytes | None:\n+    \"\"\"Called only when content capture is enabled\n+    (``TelemetryHandler.should_capture_content()``).\n+    \"\"\"\n+    try:\n+        return b64decode(\"\".join(data.split()), validate=True)\n+    except Exception:  # pylint: disable=broad-exception-caught\n+        return None\n+\n+\n+def image_from_url(url: str, *, modality: str = \"image\") -> MessagePart | None:\n+    \"\"\"Return a media part for an image ``url``.\n+\n+    A ``data:<mime>;base64,<payload>`` URL is decoded into a\n+    :class:`~opentelemetry.util.genai.types.Blob`; a ``data:`` URL without\n+    base64 encoding keeps its raw payload bytes; any other URL becomes a\n+    :class:`~opentelemetry.util.genai.types.Uri`. Shared by instrumentations\n+    that parse provider image blocks.\n+\n+    Called only when content capture is enabled\n+    (``TelemetryHandler.should_capture_content()``).\n+    \"\"\"\n+    if url.startswith(\"data:\"):\n+        header, _, payload = url[len(\"data:\") :].partition(\",\")\n+        mime_type = header.split(\";\", 1)[0] or None\n+        if \";base64\" in header:\n+            decoded = decode_base64(payload)\n+            if decoded is None:\n+                return None\n+            content = decoded\n+        else:\n+            content = payload.encode(\"utf-8\")",
+      "id": "PRRT_kwDOSbspP86bZyUf",
+      "opened": "2026-08-22T16:08:49Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "a0bb771bf86ee53ecc3af4a8167cf2de2a160429",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3836433647"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: docstring of a public function should say what it does - this summary line is a caller precondition.",
+      "created": "2026-08-22T16:07:34Z",
+      "hunk": "@@ -36,6 +41,46 @@ def get_content_capturing_mode() -> ContentCapturingMode:\n         return ContentCapturingMode.NO_CONTENT\n \n \n+def decode_base64(data: str) -> bytes | None:\n+    \"\"\"Called only when content capture is enabled",
+      "id": "PRRT_kwDOSbspP86bZyUh",
+      "opened": "2026-08-22T16:08:49Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "a0bb771bf86ee53ecc3af4a8167cf2de2a160429",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3836433649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The langchain package still pins `opentelemetry-util-genai >= 1.1b0`, so the `oldest` job installs the released util-genai and fails on this import:\n\n```\nImportError: cannot import name 'decode_base64' from 'opentelemetry.util.genai.utils'\n```\n\nOther packages that depend on unreleased util-genai use `>= 1.1b0.dev, <2` - langchain's pyproject needs the same bump.",
+      "created": "2026-08-25T05:37:05Z",
+      "hunk": "@@ -29,6 +30,7 @@\n     ToolCallResponse,\n     ToolDefinition,\n )\n+from opentelemetry.util.genai.utils import decode_base64, image_from_url",
+      "id": "PRRT_kwDOSbspP86b8p1Z",
+      "opened": "2026-08-25T05:40:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-25T22:14:19Z",
+          "body": "@lmolkova I don't believe that will work, because the oldest job will still pull 1.1b0 because of the `UV_RESOLUTION=lowest-direct`, env var setting. I think we should bump the pyproject to `>=1.2b0.dev, <2` and the oldest.requirements should still install the editable version of the utils to pull in the unreleased changes. If we don't bump the pyproject then the `check-deps` will fail.\r\n\r\nSide Note: I am still working on this PR, will update the comments once it is ready for another look. Thanks a lot for the feedback so far.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3857911674"
+        },
+        {
+          "at": "2026-08-28T16:46:03Z",
+          "body": "@lmolkova The PR is ready for another look. Thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3882371664"
+        }
+      ],
+      "reviewed": "ad8dd30c1d9f10a963e22a59ab25e59c298010f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3849863382"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Responses-API blocks are missed. langchain-openai passes `{\"type\": \"input_image\", \"image_url\": ...}` (and `input_text`) through verbatim, so with `use_responses_api=True` the image is dropped - and since `to_input_messages` skips messages with no parts, an image-only message disappears from `gen_ai.input.messages` entirely rather than losing just the image.\n\nSame for standard blocks that carry `file_id` instead of `base64`/`url`.\n\nAll four fail on the branch:\n\n```python\n@pytest.mark.parametrize(\n    \"block,expected\",\n    [\n        ({\"type\": \"input_image\", \"image_url\": f\"data:image/png;base64,{B64}\"}, Blob),\n        ({\"type\": \"input_image\", \"image_url\": \"https://example.com/a.png\"}, Uri),\n    ],\n)\ndef test_responses_api_input_image_blocks_are_captured(block, expected):\n    messages = to_input_messages([HumanMessage(content=[block])])\n    assert messages, \"message dropped entirely - no parts extracted\"\n    assert any(isinstance(p, expected) for p in messages[0].parts)\n\n\ndef test_message_survives_unconvertible_image_block():\n    # provider-hosted image, no bytes and no url to record\n    messages = to_input_messages(\n        [HumanMessage(content=[{\"type\": \"image\", \"file_id\": \"file-123\"}])]\n    )\n    assert messages, \"message dropped entirely\"\n\n\ndef test_text_kept_when_image_block_is_unconvertible():\n    messages = to_input_messages(\n        [\n            HumanMessage(\n                content=[\n                    {\"type\": \"input_text\", \"text\": \"what is in this image?\"},\n                    {\"type\": \"input_image\", \"image_url\": \"https://e/a.png\"},\n                ]\n            )\n        ]\n    )\n    assert messages, \"message dropped entirely\"\n    assert any(isinstance(p, Text) for p in messages[0].parts)\n```\n\nPlease handle `input_image`/`input_text`, stop dropping the whole message when no part can be built, and add the tests.",
+      "created": "2026-08-25T05:37:05Z",
+      "hunk": "@@ -75,6 +77,88 @@ def _normalize_role(message: BaseMessage) -> str:\n     return _ROLE_MAP.get(message.type, message.type)\n \n \n+def _blob_from_base64(data: Any, mime_type: Any) -> MessagePart | None:\n+    if not isinstance(data, str):\n+        return None\n+    decoded = decode_base64(data)\n+    if decoded is None:\n+        return None\n+    return Blob(\n+        mime_type=mime_type if isinstance(mime_type, str) else None,\n+        modality=\"image\",\n+        content=decoded,\n+    )\n+\n+\n+def _media_part(item: dict[str, Any]) -> MessagePart | None:\n+    \"\"\"Convert a LangChain multimodal image content block into a media part.\n+\n+    Handles every image block shape LangChain chat models accept:\n+\n+    - OpenAI style ``{\"type\": \"image_url\", \"image_url\": {\"url\": ...}}`` (or a\n+      bare ``\"image_url\": \"...\"`` string). A ``data:<mime>;base64,<payload>``\n+      URL becomes a :class:`Blob`; any other URL becomes a :class:`Uri`.\n+    - Anthropic style ``{\"type\": \"image\", \"source\": {...}}`` where ``source``\n+      is either ``{\"type\": \"base64\", \"media_type\": ..., \"data\": ...}`` (→\n+      :class:`Blob`) or ``{\"type\": \"url\", \"url\": ...}`` (→ :class:`Uri`).\n+    - langchain-core 0.3 standard blocks ``{\"type\": \"image\", \"source_type\":\n+      \"base64\"|\"url\", \"data\"/\"url\": ..., \"mime_type\": ...}``.\n+    - langchain-core 1.x standard blocks ``{\"type\": \"image\",\n+      \"base64\"|\"url\": ..., \"mime_type\": ...}``.\n+    \"\"\"\n+    block_type = item.get(\"type\")",
+      "id": "PRRT_kwDOSbspP86b8p1e",
+      "opened": "2026-08-25T05:40:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-28T16:06:47Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3882102696"
+        }
+      ],
+      "reviewed": "ad8dd30c1d9f10a963e22a59ab25e59c298010f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3849863390"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "#365 landed, so we can start using`BlobPart`/`UriPart` here",
+      "created": "2026-08-25T05:37:05Z",
+      "hunk": "@@ -4,15 +4,21 @@\n import json\n import logging\n import os\n-from base64 import b64encode\n+import urllib.parse\n+from base64 import b64decode, b64encode\n from functools import partial\n from typing import Any\n \n from opentelemetry.util.genai.environment_variables import (\n     OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT,\n     OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT,\n )\n-from opentelemetry.util.genai.types import ContentCapturingMode\n+from opentelemetry.util.genai.types import (\n+    Blob,\n+    ContentCapturingMode,\n+    MessagePart,\n+    Uri,",
+      "id": "PRRT_kwDOSbspP86b8p1h",
+      "opened": "2026-08-25T05:40:16Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-28T15:01:39Z",
+          "body": "Updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3881638702"
+        }
+      ],
+      "reviewed": "ad8dd30c1d9f10a963e22a59ab25e59c298010f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3849863394"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the three new tests instrument manually with monkeypatch + try/finally while this PR converts the rest of the file to the `instrument(..., content_capture=...)` helper. Use the helper here too.",
+      "created": "2026-08-25T05:37:05Z",
+      "hunk": "@@ -196,6 +216,144 @@ def test_chat_openai_gpt_3_5_turbo_model_llm_call_with_error(\n         assert len(logs) == 0\n \n \n+def test_chat_openai_multimodal_image_llm_call(\n+    span_exporter,\n+    tracer_provider,\n+    meter_provider,\n+    logger_provider,\n+    chat_openai_vision,\n+    monkeypatch,\n+    vcr,\n+):\n+    \"\"\"End-to-end: an OpenAI ``image_url`` content block is captured as an\n+    image ``Blob`` part in ``gen_ai.input.messages``.\"\"\"\n+    messages = [\n+        HumanMessage(\n+            content=[\n+                {\"type\": \"text\", \"text\": \"What is in this image?\"},\n+                {\n+                    \"type\": \"image_url\",\n+                    \"image_url\": {\n+                        \"url\": f\"data:image/png;base64,{_REAL_PNG_B64}\"\n+                    },\n+                },\n+            ]\n+        ),\n+    ]\n+\n+    payload = chat_openai_vision._get_request_payload(messages, stop=None)\n+    if \"n\" in payload:\n+        pytest.skip(\n+            \"langchain-openai < 1.0 sends a different request body \"\n+            \"(explicit n/temperature); only the modern cassette is recorded\"\n+        )\n+\n+    # The content-capture flag is cached when the handler is built at\n+    # ``instrument()`` time, so set it before instrumenting (not after).\n+    monkeypatch.setenv(\n+        \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\", \"SPAN_ONLY\"\n+    )\n+    instrumentor = LangChainInstrumentor()\n+    instrumentor.instrument(",
+      "id": "PRRT_kwDOSbspP86b8p1m",
+      "opened": "2026-08-25T05:40:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [
+        {
+          "at": "2026-08-28T15:01:30Z",
+          "body": "Updated the tests and replaced the manual monkeypatch with the helper.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3881637577"
+        }
+      ],
+      "reviewed": "ad8dd30c1d9f10a963e22a59ab25e59c298010f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3849863401"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `_REAL_PNG_BYTES` is unused.",
+      "created": "2026-08-25T05:37:06Z",
+      "hunk": "@@ -56,6 +61,13 @@ def _langchain_openai_version() -> tuple:\n # cannot hold on those versions.\n _supports_reasoning_token_details = _langchain_openai_version() >= (0, 2, 1)\n \n+_REAL_PNG_B64 = (\n+    \"iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAARklEQVR42u3X\"\n+    \"QQ0AIAwAsSnZG4lInJxJwMRICGlyAvq9yF1PFUBAQEBAQBdAXWskICAgICAg\"\n+    \"ICAgICAgIOcKBAQEBPQd6ACUHHNEU5qggAAAAABJRU5ErkJggg==\"\n+)\n+_REAL_PNG_BYTES = base64.b64decode(_REAL_PNG_B64)",
+      "id": "PRRT_kwDOSbspP86b8p1o",
+      "opened": "2026-08-25T05:40:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [
+        {
+          "at": "2026-08-28T15:01:10Z",
+          "body": "It is being used in the updated tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3881635011"
+        }
+      ],
+      "reviewed": "ad8dd30c1d9f10a963e22a59ab25e59c298010f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3849863403"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n(OpenInference Migration: LangChain) - Capture multimodal image content (OpenAI ``image_url`` and Responses API ``input_image``, Anthropic ``image``, and LangChain standard ``image`` blocks) as ``BlobPart``/``UriPart``/``FilePart`` message parts.\n```",
+      "created": "2026-09-01T00:32:20Z",
+      "hunk": "@@ -0,0 +1 @@\n+(OpenInference Migration: LangChain) - Capture multimodal image content (OpenAI ``image_url`` and Responses API ``input_image``, Anthropic ``image``, and LangChain standard ``image`` blocks) as ``Blob``/``Uri``/``File`` message parts.",
+      "id": "PRRT_kwDOSbspP86d7SLS",
+      "opened": "2026-09-01T00:32:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/296.added",
+      "replies": [],
+      "reviewed": "97196334d6d1cf843f5bcd77ca7065913a242856",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#discussion_r3899677615"
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "head": "a5b4ee06890b0edbc353ab4e63b2449f451cc532",
+  "merge": "74af7a020f6c1042fccac6ea0c92b6b52bce53ea",
+  "merged": "2026-11-04T00:36:03Z",
+  "missing_roots": 0,
+  "number": 644,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "None of the three retrieval scenarios exercises a retriever failure, and their committed `data.json` files omit `error.type` from both new signals, leaving this field without the reference coverage required by `.github/instructions/evaluate-reference.instructions.md:40-43`. Add a real library failure case, catch the expected exception outside the instrumented call so telemetry flushes, and regenerate the results to demonstrate an ERROR retrieval span and a duration measurement with matching `error.type`. The span declaration at `model/gen-ai/spans.yaml:458` has the same coverage gap.",
+      "created": "2026-10-28T23:51:17Z",
+      "hunk": "@@ -273,6 +273,25 @@ metrics:\n     attributes:\n       - ref_group: attributes.gen_ai.error\n       - ref_group: attributes.gen_ai.execute_tool.common\n+  - name: gen_ai.retrieval.duration\n+    requirement_level: recommended\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    brief: >\n+      The duration of a single retrieval operation.\n+    note: |\n+      Represents the end-to-end duration of a retrieval pipeline execution, measured from when\n+      the retriever receives the query to when it returns documents or ends with an error.\n+\n+      When this metric is reported alongside a `gen_ai.retrieval` span,\n+      the metric value SHOULD be the same as the span duration.\n+    instrument: histogram\n+    unit: \"s\"\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.error",
+      "id": "PRRT_kwDOSUeMrM6xXWmj",
+      "opened": "2026-10-28T23:51:19Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "882a87c05960277bff9e79059efbe62af068ad7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4407297000"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`data_source_id` is only copied into arbitrary document metadata; it is not configured as an identifier on `InMemoryDocumentStore` or `InMemoryBM25Retriever`. Emitting it here therefore does not demonstrate a data-source ID available to generic Haystack instrumentation, as required by `.github/instructions/evaluate-reference.instructions.md:17-33`. Drop this attribute from the span, span name, and metric unless the scenario obtains an actual library-supported data-source identifier.",
+      "created": "2026-10-28T23:51:17Z",
+      "hunk": "@@ -33,28 +56,38 @@ def run_retrieval():\n     )\n     retriever = InMemoryBM25Retriever(document_store=document_store, top_k=top_k)\n \n-    with _reference_tracer.start_as_current_span(\"retrieval weather-knowledge-base\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"retrieval\")\n-        span.set_attribute(\"gen_ai.data_source.id\", data_source_id)\n-        span.set_attribute(\"gen_ai.retrieval.top_k\", top_k)\n-        span.set_attribute(\"gen_ai.retrieval.query.text\", query_text)\n-        result = retriever.run(query=query_text)\n-        documents = result[\"documents\"]\n-        span.set_attribute(\n-            \"gen_ai.retrieval.documents\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"id\": getattr(document, \"id\", None),\n-                        \"content\": document.content,\n-                        \"title\": document.meta.get(\"title\"),\n-                        \"source_id\": document.meta.get(\"source_id\"),\n-                    }\n-                    for document in documents\n-                ]\n-            ),\n-        )\n-        print(f\"    -> {documents[0].content[:60]}\")\n+    metric_attributes = {\"gen_ai.operation.name\": \"retrieval\", \"gen_ai.data_source.id\": data_source_id}",
+      "id": "PRRT_kwDOSUeMrM6xXWnH",
+      "opened": "2026-10-28T23:51:19Z",
+      "path": "reference/scenarios/haystack/scenario.py",
+      "replies": [],
+      "reviewed": "882a87c05960277bff9e79059efbe62af068ad7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4407297059"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`weather-knowledge-base` is application-defined document metadata, not a data-source identifier understood by `BaseRetriever.invoke`. The custom `WeatherRetriever` does not expose a data-source ID either, so this new metric dimension and sampling attribute are not backed by a library-defined input or state. Following `.github/instructions/evaluate-reference.instructions.md:17-33`, omit the ID from the span, span name, and metric, or use a retriever API that actually exposes one.",
+      "created": "2026-10-28T23:51:18Z",
+      "hunk": "@@ -113,25 +136,35 @@ def _get_relevant_documents(self, query: str):\n         top_k=top_k,\n     )\n \n-    with _reference_tracer.start_as_current_span(\"retrieval weather-knowledge-base\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"retrieval\")\n-        span.set_attribute(\"gen_ai.data_source.id\", data_source_id)\n-        span.set_attribute(\"gen_ai.retrieval.top_k\", top_k)\n-        span.set_attribute(\"gen_ai.retrieval.query.text\", query_text)\n-        documents = retriever.invoke(query_text)\n-        span.set_attribute(\n-            \"gen_ai.retrieval.documents\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"content\": document.page_content,\n-                        \"source_id\": document.metadata.get(\"source_id\"),\n-                    }\n-                    for document in documents\n-                ]\n-            ),\n-        )\n-        print(f\"    -> {documents[0].page_content[:60]}\")\n+    metric_attributes = {\"gen_ai.operation.name\": \"retrieval\", \"gen_ai.data_source.id\": data_source_id}",
+      "id": "PRRT_kwDOSUeMrM6xXWnY",
+      "opened": "2026-10-28T23:51:19Z",
+      "path": "reference/scenarios/langchain/scenario.py",
+      "replies": [],
+      "reviewed": "882a87c05960277bff9e79059efbe62af068ad7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4407297093"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The only consumer of `top_k` is the scenario's own `WeatherRetriever._get_relevant_documents` implementation, not a limit parameter defined and interpreted by LangChain. This does not demonstrate how generic LangChain instrumentation can obtain `gen_ai.retrieval.top_k`, as required by `.github/instructions/evaluate-reference.instructions.md:17-29`. Drop this emission or use a concrete library retriever with a native limit setting.",
+      "created": "2026-10-28T23:51:18Z",
+      "hunk": "@@ -113,25 +136,35 @@ def _get_relevant_documents(self, query: str):\n         top_k=top_k,\n     )\n \n-    with _reference_tracer.start_as_current_span(\"retrieval weather-knowledge-base\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"retrieval\")\n-        span.set_attribute(\"gen_ai.data_source.id\", data_source_id)\n-        span.set_attribute(\"gen_ai.retrieval.top_k\", top_k)\n-        span.set_attribute(\"gen_ai.retrieval.query.text\", query_text)\n-        documents = retriever.invoke(query_text)\n-        span.set_attribute(\n-            \"gen_ai.retrieval.documents\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"content\": document.page_content,\n-                        \"source_id\": document.metadata.get(\"source_id\"),\n-                    }\n-                    for document in documents\n-                ]\n-            ),\n-        )\n-        print(f\"    -> {documents[0].page_content[:60]}\")\n+    metric_attributes = {\"gen_ai.operation.name\": \"retrieval\", \"gen_ai.data_source.id\": data_source_id}\n+    start_time = time.perf_counter()\n+    with _reference_tracer.start_as_current_span(\n+        f\"retrieval {data_source_id}\", attributes=metric_attributes, record_exception=False\n+    ) as span:\n+        try:\n+            span.set_attribute(\"gen_ai.retrieval.top_k\", top_k)",
+      "id": "PRRT_kwDOSUeMrM6xXWnq",
+      "opened": "2026-10-28T23:51:19Z",
+      "path": "reference/scenarios/langchain/scenario.py",
+      "replies": [],
+      "reviewed": "882a87c05960277bff9e79059efbe62af068ad7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4407297125"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This ID comes from the scenario's constant and arbitrary document `source_id` metadata, not from `VectorStoreIndex` or the retriever's identity/configuration. It therefore does not establish that LlamaIndex instrumentation can capture this data-source identifier at span creation. Per `.github/instructions/evaluate-reference.instructions.md:17-33`, drop it from the span, span name, and metric, or demonstrate an identifier the library actually exposes.",
+      "created": "2026-10-28T23:51:19Z",
+      "hunk": "@@ -84,31 +106,37 @@ def run_retrieval_reference():\n     retriever = index.as_retriever(similarity_top_k=top_k)\n     query_text = \"Seattle weather\"\n \n-    with _reference_tracer.start_as_current_span(\"retrieval weather-knowledge-base\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"retrieval\")\n-        span.set_attribute(\"gen_ai.data_source.id\", data_source_id)\n-        span.set_attribute(\"gen_ai.provider.name\", \"openai\")\n-        span.set_attribute(\"gen_ai.request.model\", request_model)\n-        span.set_attribute(\"gen_ai.retrieval.top_k\", top_k)\n-        span.set_attribute(\"gen_ai.retrieval.query.text\", query_text)\n-        if host:\n-            span.set_attribute(\"server.address\", host)\n-        if port is not None:\n-            span.set_attribute(\"server.port\", port)\n-        nodes = retriever.retrieve(query_text)\n-        span.set_attribute(\n-            \"gen_ai.retrieval.documents\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"content\": node.text,\n-                        \"source_id\": node.metadata.get(\"source_id\"),\n-                    }\n-                    for node in nodes\n-                ]\n-            ),\n-        )\n-        print(f\"    -> {nodes[0].text[:60]}\")\n+    # The query embeddings call inside retrieve() belongs to the embeddings\n+    # instrumentation, so the retrieval span carries no provider, model, or server.\n+    metric_attributes = {\"gen_ai.operation.name\": \"retrieval\", \"gen_ai.data_source.id\": data_source_id}",
+      "id": "PRRT_kwDOSUeMrM6xXWoE",
+      "opened": "2026-10-28T23:51:19Z",
+      "path": "reference/scenarios/llamaindex/scenario.py",
+      "replies": [],
+      "reviewed": "882a87c05960277bff9e79059efbe62af068ad7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4407297169"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Looks like the new `retrieval_client` key is missing from `SPAN_TYPE_ORDER` in `data_files.py`.",
+      "created": "2026-10-30T16:56:22Z",
+      "hunk": "@@ -35,7 +35,8 @@\n     \"a2a_server\": (\"a2a.server\", \"A2A Server\"),\n     \"inference\": (\"gen_ai.client.inference\", \"Inference\"),\n     \"embeddings\": (\"gen_ai.client.embeddings\", \"Embeddings\"),\n-    \"retrieval\": (\"gen_ai.retrieval.client\", \"Retrieval\"),\n+    \"retrieval\": (\"gen_ai.retrieval\", \"Retrieval\"),\n+    \"retrieval_client\": (\"gen_ai.retrieval.client\", \"Retrieval Client\"),",
+      "id": "PRRT_kwDOSUeMrM6yD2VB",
+      "opened": "2026-10-30T17:07:12Z",
+      "path": "reference/src/semconv_genai/semconv_model.py",
+      "replies": [
+        {
+          "at": "2026-11-04T00:26:42Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/commit/2d852ef4ccd1557641088696830b0e98a97c2d06",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4462115585"
+        }
+      ],
+      "reviewed": "1f7fcded6adaebffd1d67e051a20c7a0184dcc3f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4426220142"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Should `gen_ai.retrieval` also include `entity_associations: [\"gen_ai.main_agent\"]` like the other `internal` GenAI spans (`gen_ai.execute_tool.internal`, `gen_ai.invoke_workflow.internal`, etc.) when retrieval runs in-process inside a main agent?",
+      "created": "2026-10-29T02:24:27Z",
+      "hunk": "@@ -432,6 +440,28 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.retrieval\n+    requirement_level: recommended\n+    kind: internal\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`.\n+    brief: >\n+      Describes a retrieval operation - an execution of a framework retrieval pipeline\n+      that returns documents relevant to a query.\n+    stability: development",
+      "id": "PRRT_kwDOSUeMrM6xZMOM",
+      "opened": "2026-11-03T22:13:18Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-04T00:26:32Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/commit/2d852ef4ccd1557641088696830b0e98a97c2d06",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4462114559"
+        }
+      ],
+      "reviewed": "1f7fcded6adaebffd1d67e051a20c7a0184dcc3f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4408092113"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Looks like this note got inserted above the last row of the table (`execute_tool (command)` on line 21), splitting that row off the Markdown table.",
+      "created": "2026-10-29T02:24:28Z",
+      "hunk": "@@ -14,4 +14,8 @@ execution.\n | retrieval | Yes — retriever runs the retrieval | ✅ Implemented |\n | plan | Yes — Plan-and-Execute planning phase | ✅ Implemented |\n | execute_tool | Yes — `BaseTool.invoke()` runs the tool | ✅ Implemented |\n+\n+`gen_ai.retrieval.top_k` is read from `VectorStoreRetriever.search_kwargs[\"k\"]`.",
+      "id": "PRRT_kwDOSUeMrM6xZMOn",
+      "opened": "2026-11-03T22:13:18Z",
+      "path": "reference/scenarios/langchain/README.md",
+      "replies": [
+        {
+          "at": "2026-11-04T00:26:36Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/commit/2d852ef4ccd1557641088696830b0e98a97c2d06",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4462114978"
+        }
+      ],
+      "reviewed": "1f7fcded6adaebffd1d67e051a20c7a0184dcc3f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4408092168"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Now that #647 landed on `main`, should we also set `omit_enum_table: true` on `gen_ai.operation.name` for `gen_ai.retrieval` and `gen_ai.retrieval.duration` when rebasing so `retrieval.md` omits the full enum tables?",
+      "created": "2026-11-02T19:30:40Z",
+      "hunk": "@@ -175,6 +175,14 @@ attribute_groups:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - id: attributes.gen_ai.retrieval.common\n+    visibility: internal\n+    attributes:\n+      - ref: gen_ai.operation.name",
+      "id": "PRRT_kwDOSUeMrM6y1E7F",
+      "opened": "2026-11-03T22:13:18Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-04T00:26:47Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/commit/2d852ef4ccd1557641088696830b0e98a97c2d06",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4462116260"
+        }
+      ],
+      "reviewed": "1f7fcded6adaebffd1d67e051a20c7a0184dcc3f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/644#discussion_r4446807257"
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b8618b336b69a78b3049737d3860e4dd43c068fb97afca20be82eba49faa8985",
+  "input_digest": "6517443f1bbb1e3cff8a911d27d16e3b064e591929318a31902fc167810b143c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a1f029b81a271a689a0cce9b8dd387dc27b51453/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/LegacyBlockingQueueConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a1f029b81a271a689a0cce9b8dd387dc27b51453/instrumentation/spring/spring-rabbit-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/LegacyBlockingQueueConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/version11Test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbit11SimpleMessageListenerContainerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86h7P58",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/59d9bbbaf07e327ba18fd44bc40e5690c46a3dcb/.github/agents/knowledge/javaagent-thread-local-state.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/59d9bbbaf07e327ba18fd44bc40e5690c46a3dcb/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/ScopedThreadValue.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/.github/agents/knowledge/javaagent-thread-local-state.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/ScopedThreadValue.java"
+      ],
+      "id": "PRRT_kwDODJKVX86jNFrd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/59d9bbbaf07e327ba18fd44bc40e5690c46a3dcb/instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/PulsarSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/PulsarSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86jNFr_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ignore/AdditionalLibraryIgnoredTypesConfigurer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ignore/AdditionalLibraryIgnoredTypesConfigurer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lhBTV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lhZFT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lhiHv",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lhqzP",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lhzYm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/SpanLinksBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/SpanLinksBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lh7Yt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6855e53b32f8234571f5a5c19d31212aa56d097/instrumentation/spring/spring-rabbit-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4921d166db23d72afbff660b2d58a7f29c72bbff/instrumentation/spring/spring-rabbit-1.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86liAif",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a32ec35503ff0eef5f3413bd60d7610bb55e6e4148b1a04257f1a364283a9b5b",
+  "input_digest": "a792625d15ffc9eaf4fc2886c904aaacb675112945e2362156b043b3d587f41f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/e8654ae03fca77ac4cd9603b98974842538fdcd8/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_config_span_attributes.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a8b619a2681e7f9a6a923d3f42b5a4c1853af26c/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_config_span_attributes.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a8b619a2681e7f9a6a923d3f42b5a4c1853af26c/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/a8b619a2681e7f9a6a923d3f42b5a4c1853af26c",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/fbe135825b12151fd0ac29d00d32e5fe902373c1"
+      ],
+      "id": "PRRT_kwDOSbspP86sMcb_",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/fbe135825b12151fd0ac29d00d32e5fe902373c1/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a8b619a2681e7f9a6a923d3f42b5a4c1853af26c/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/23f8009d8e4ea9142cff0b43c0f92c2cf7909bf5"
+      ],
+      "id": "PRRT_kwDOSbspP86s--1L",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

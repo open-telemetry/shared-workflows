@@ -1,0 +1,192 @@
+{
+  "head": "4ee03f9643f2244c1128f148d7836538326d1668",
+  "merge": "e66dc6757ce7d6eb338591ecb187d914749f0bda",
+  "merged": "2026-10-20T07:58:53Z",
+  "missing_roots": 0,
+  "number": 20649,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please try aligning the AWS SDK 1.11 and 2.2 library test tasks with the configuration profiles and task names used by their corresponding javaagent tests, instead of changing test selection when `collectMetadata` is enabled.\n\nKeep the baseline library tests on instrumentation defaults. Move optional builder settings that fixtures currently hardcode into explicit test variants, applying the selected settings through the library builders. Use the matching javaagent task names where applicable, such as `testExperimentalAttributes`, `testIndividualHttpErrors`, `testReceiveTelemetry` for SDK 2.2, and `testSqsReceiveTelemetry` for SDK 1.11. Ordinary `Test` tasks sharing existing sources with fixed filters are fine; separate source sets are not required just for metadata collection.\n\nPreserve existing behavioral and regression coverage, including exception-log coverage for the relevant profiles. Keep mixed-configuration regression tests out of collected profiles. Give each collected task an accurate, task-local `metadataConfig` and fixed test selection, and update `check` and `.github/scripts/instrumentations.sh` accordingly. Avoid introducing metadata-only tasks or a single-method filter that applies only during collection.\n\nKeep this focused on the AWS test organization and collection wiring. Preserve the OkHttp change, and leave shared exception-signal/system-property behavior unchanged.",
+      "created": "2026-10-16T18:52:21Z",
+      "hunk": "@@ -87,6 +87,16 @@ tasks {\n     classpath = sourceSets.test.get().runtimeClasspath\n \n     jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"otel.instrumentation.aws-sdk.experimental-span-attributes=true,otel.semconv.exception.signal.preview=logs\",\n+    )\n+    if (otelProps.collectMetadata) {",
+      "id": "PRRT_kwDODJKVX86tVfa1",
+      "opened": "2026-10-16T18:52:21Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-16T19:15:47Z",
+          "body": "Updated the AWS library fixtures and profile task wiring in `f7b662fd`: baseline tests now use builder defaults, matching opt-in variants apply settings through library builders, and exception-log tasks use fixed selections. Targeted AWS tests and Spotless pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4298401991"
+        },
+        {
+          "at": "2026-10-16T19:57:54Z",
+          "body": "@copilot Please refine the library configuration naming in this PR. Keep the task names aligned with the javaagent tasks, but don't use javaagent property names as switches for programmatically configured library test fixtures.\n\nUse explicitly test-only properties for those switches, and label the collected library telemetry with the actual builder calls. For example:\n\n```kotlin\nsystemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\nsystemProperty(\n  \"metadataConfig\",\n  \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true)\",\n)\n```\n\nThe library fixture should read the test-only flag and pass it to `setCaptureExperimentalSpanAttributes`. Apply the same distinction to the other builder-controlled options changed here, updating the corresponding fixture reads without changing javaagent behavior. Use comma-separated builder-call labels for combined library profiles.\n\nKeep genuine shared production properties, such as `otel.semconv.exception.signal.preview=logs`, as property conditions in the metadata. Those really do configure the library through shared code. Leave default profiles unlabeled.\n\nUpdate `instrumentation-docs/readme.md` to allow builder-call labels for programmatically configured library profiles. The different labels intentionally keep these library profiles separate from agent profiles instead of implying that library users configure the builder through agent properties. Limit this convention change to the AWS library profiles touched here; no repository-wide migration is needed. Preserve the profile organization, coverage, and OkHttp work from the previous request.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4298765063"
+        }
+      ],
+      "reviewed": "c354efd70a522ab8bce5767810b7ca1e138ab238",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4298198441"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Along with the earlier request to use builder-call metadata labels and test-only fixture flags, please inline the complete `metadataConfig` label in each AWS library test task. Remove the shared `experimentalSpanAttributes` variables from both AWS SDK library build files rather than changing their values to builder-call strings. For combined profiles, keep the complete label in the task, using adjacent string concatenation if needed.\n\nThis matches the neighboring AWS javaagent tasks and the predominant repository pattern. The few examples that extract configuration fragments generate variants from existing suites and append conditions to inherited labels; these AWS tasks declare fixed profiles directly. Keep the task organization and behavior unchanged.",
+      "created": "2026-10-16T23:45:18Z",
+      "hunk": "@@ -82,17 +82,100 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val experimentalSpanAttributes = \"otel.instrumentation.aws-sdk.experimental-span-attributes=true\"",
+      "id": "PRRT_kwDODJKVX86tafbf",
+      "opened": "2026-10-16T23:45:18Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-16T23:59:02Z",
+          "body": "Updated and pushed as `9ed505ec`: AWS library tasks now inline full builder-call labels, use test-only fixture flags, and retain the logs property condition. I also updated the instrumentation docs; focused library and javaagent profile tests and Spotless passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300367707"
+        }
+      ],
+      "reviewed": "f7b662fdb784b755a8ed3c1bfd9a0ceac7477fe4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300302181"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please use the same agent-versus-plain-library selection pattern as `AbstractAwsSdkTest.captureExperimentalSpanAttributes()` for these three shared methods:\n\n- SDK 1.11: `AbstractSqsTracingTest.receiveTelemetryEnabled()`.\n- SDK 2.2: `AbstractAws2SqsBaseTest.receiveTelemetryEnabled()`.\n- SDK 2.2: `AbstractAws2ClientRecordHttpErrorTest.isRecordIndividualHttpErrorEnabled()`.\n\nHave the shared methods read the production property for `AgentInstrumentationExtension` and the corresponding test-only flag for plain-library fixtures. For example, the SDK 1.11 method would be:\n\n```java\nprotected boolean receiveTelemetryEnabled() {\n  return testing() instanceof AgentInstrumentationExtension\n      ? Boolean.getBoolean(\n          \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\")\n      : Boolean.getBoolean(\"test.messagingReceiveTelemetryEnabled\");\n}\n```\n\nUse `getTesting()` for SDK 2.2 and `test.recordIndividualHttpError` for its HTTP-error option. Remove the now-redundant plain-library overrides in SDK 1.11 `SqsTracingTest`, SDK 2.2 `Aws2SqsTracingTest`, and the new SDK 2.2 `Aws2ClientRecordHttpErrorTest`.\n\nKeep the SDK 1.11 library-autoconfigure override reading the production property, since that fixture uses property-based configuration despite its library extension. Also keep `Aws2ClientNotRecordHttpErrorTest`'s explicit `return false` override, which intentionally fixes the regression scenario's configuration. This is a consistency cleanup; preserve task wiring, metadata labels, and behavior.",
+      "created": "2026-10-17T00:22:41Z",
+      "hunk": "@@ -88,9 +87,8 @@ public abstract class AbstractSqsTracingTest extends AbstractAwsSdkTest {\n   private static AmazonSQSAsync sqsClient;\n \n   protected boolean receiveTelemetryEnabled() {\n-    return !(testing() instanceof AgentInstrumentationExtension)\n-        || Boolean.getBoolean(\n-            \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\");\n+    return Boolean.getBoolean(",
+      "id": "PRRT_kwDODJKVX86ta3pJ",
+      "opened": "2026-10-17T00:22:41Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [
+        {
+          "at": "2026-10-17T00:35:47Z",
+          "body": "Implemented in `6a9f8c61`: the shared AWS helpers now select production properties for agent fixtures and test-only flags for plain-library fixtures, and the redundant plain-library overrides were removed. Focused tests and Spotless passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300512510"
+        }
+      ],
+      "reviewed": "9ed505ec7f199807e8da7d1697adb329e29dcdbb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300463964"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Restricting this task to `S3ClientTest` excludes the inherited `SqsTracingTest.testDeleteMessageError`, which emits `messaging.settle.exception` in logs mode. S3 exercises `rpc.client.call.exception`, and no other collected AWS 1.11 task enables exception logs, so the generated event inventory omits the SQS event. Include the SQS error test in this profile.",
+      "created": "2026-10-17T01:53:53Z",
+      "hunk": "@@ -52,13 +52,83 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  test {\n+    filter.excludeTestsMatching(\"SqsTracingTest.testProcessingOwnershipDisablesRawProcessSpansForResponse\")\n+  }\n+\n+  val testExperimentalAttributes = register<Test>(\"testExperimentalAttributes\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true)\",\n+    )\n+    filter {\n+      excludeTestsMatching(\"SqsSuppressReceiveSpansTest\")\n+      excludeTestsMatching(\"SqsTracingTest.testProcessingOwnershipDisablesRawProcessSpansForResponse\")\n+      excludeTestsMatching(\"SqsTracingTest.testDisableSqsMessageCreateSpans*\")\n+      excludeTestsMatching(\"SqsTracingTest.testNoopTelemetryDoesNotInjectInvalidCreationContext\")\n+      excludeTestsMatching(\"SqsTracingTest.testDisableSqsMessageCreateSpansPreservesCustomContext\")\n+      excludeTestsMatching(\"SqsTracingTest.testBatchLinksSurviveLaterRequestClone\")\n+    }\n+  }\n+\n+  val testSqsReceiveTelemetry = register<Test>(\"testSqsReceiveTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"test.messagingReceiveTelemetryEnabled\",\n+      \"true\",\n+    )\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true),\" +\n+        \"AwsSdkTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true)\",\n+    )\n+    filter {\n+      includeTestsMatching(\"SqsTracingTest\")\n+      excludeTestsMatching(\"SqsTracingTest.testDisableSqsMessageCreateSpans*\")\n+      excludeTestsMatching(\"SqsTracingTest.testNoopTelemetryDoesNotInjectInvalidCreationContext\")\n+      excludeTestsMatching(\"SqsTracingTest.testDisableSqsMessageCreateSpansPreservesCustomContext\")\n+      excludeTestsMatching(\"SqsTracingTest.testBatchLinksSurviveLaterRequestClone\")\n+    }\n+  }\n+\n   val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n     jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true),\" +\n+        \"otel.semconv.exception.signal.preview=logs\",\n+    )\n+    filter.includeTestsMatching(\"S3ClientTest\")",
+      "id": "PRRT_kwDODJKVX86tbquf",
+      "opened": "2026-10-17T01:53:54Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "0436f00dd1f35b05d608262ca5197d1c385dd87d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300806011"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This filter excludes the inherited `Aws2SqsDefaultPropagatorTest.testDeleteMessageError` from the logs JVM. That operation emits `messaging.settle.exception`, which the selected `Aws2ClientTest` does not exercise. No other collected AWS 2.2 profile enables exception logs, so the generated event inventory omits the SQS event. Include the default-propagator SQS error test here.",
+      "created": "2026-10-17T01:53:54Z",
+      "hunk": "@@ -82,17 +82,109 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testExperimentalAttributes = register<Test>(\"testExperimentalAttributes\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true)\",\n+    )\n+    filter {\n+      excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansTest\")\n+      excludeTestsMatching(\"Aws2SqsW3cPropagatorTest\")\n+      excludeTestsMatching(\"Aws2SqsW3cPropagatorAndXrayPropagatorTest\")\n+      excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansDefaultPropagatorTest\")\n+      excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansW3cPropagatorTest\")\n+      excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansW3cPropagatorAndXrayPropagatorTest\")\n+      excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testDuplicateTracingInterceptor\")\n+      excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testDisableSqsMessageCreateSpans\")\n+      excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testNoopTelemetryDoesNotInjectInvalidCreationContext\")\n+      excludeTestsMatching(\"Aws2ClientNotRecordHttpErrorTest\")\n+      excludeTestsMatching(\"Aws2ClientRecordHttpErrorTest\")\n+    }\n+  }\n+\n+  val testReceiveTelemetry = register<Test>(\"testReceiveTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"test.messagingReceiveTelemetryEnabled\",\n+      \"true\",\n+    )\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true),\" +\n+        \"AwsSdkTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true)\",\n+    )\n+    filter {\n+      includeTestsMatching(\"Aws2SqsDefaultPropagatorTest\")\n+      excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testDuplicateTracingInterceptor\")\n+      excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testDisableSqsMessageCreateSpans\")\n+      excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testNoopTelemetryDoesNotInjectInvalidCreationContext\")\n+    }\n+  }\n+\n+  val testIndividualHttpErrors = register<Test>(\"testIndividualHttpErrors\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"test.recordIndividualHttpError\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setRecordIndividualHttpError(true)\",\n+    )\n+    filter.includeTestsMatching(\"Aws2ClientRecordHttpErrorTest\")\n+  }\n+\n   val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n \n     jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true),\" +\n+        \"otel.semconv.exception.signal.preview=logs\",\n+    )\n+    filter.includeTestsMatching(\"Aws2ClientTest\")",
+      "id": "PRRT_kwDODJKVX86tbqu5",
+      "opened": "2026-10-17T01:53:54Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "0436f00dd1f35b05d608262ca5197d1c385dd87d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300806045"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This collected profile also selects `internal.SqsProcessMetricsIsolationTest`. That regression fixture enables and disables receive telemetry independently of this task and never enables experimental attributes. Its `waitAndAssertMetrics(...)` calls therefore collect telemetry under the wrong profile label, including metrics from the synthetic `test-camel` scope. Exclude this fixture from the collection variant, as required by `instrumentation-docs/readme.md:52,64-67`; it remains covered by the baseline `test` task.",
+      "created": "2026-10-17T01:53:54Z",
+      "hunk": "@@ -82,17 +82,109 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testExperimentalAttributes = register<Test>(\"testExperimentalAttributes\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true)\",\n+    )\n+    filter {",
+      "id": "PRRT_kwDODJKVX86tbquo",
+      "opened": "2026-10-17T01:53:54Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T02:29:18Z",
+          "body": "Addressed in 3e597c69a6f92ab8b07fc791fb11b4f34adba59f.\n\nSqsProcessMetricsIsolationTest creates telemetry with receive telemetry both enabled and disabled, omits the experimental-attributes builder setting, and asserts metrics from the synthetic test-camel scope. It therefore does not match the experimental collection label, as documented in instrumentation-docs/readme.md:41-53,61-67. Excluded only this fixture from testExperimentalAttributes. Its baseline test task still passed all 3 regression tests; the collected experimental profile contains no isolation test and fresh telemetry contains no test-camel scope.\n\n<!-- copilot-loop:0a2ec222ce3af4c53190fe573da6e2dbc8cbe18316e72c727a79cb71c20d9bd6:4300806028:0e64fc6e9c9143dcb93eadedc906d551 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300917647"
+        }
+      ],
+      "reviewed": "0436f00dd1f35b05d608262ca5197d1c385dd87d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4300806028"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] @copilot Please give synthetic header capture the same metadata treatment in library tests as in agent tests, and update this PR's guidance and AWS profiles accordingly.\n\nSynthetic HTTP and messaging headers are fixture setup: their attributes are filtered out of the published inventory. `metadataConfig` survives as `when` and Ecosystem Explorer displays non-default conditions verbatim, so documenting the fixture's selector or nested builder expression exposes test details without corresponding published telemetry.\n\nPlease make these changes in this PR:\n\n- Extend the canonical policy in `instrumentation-docs/readme.md` and `.github/instructions/instrumentation-gradle.instructions.md` to agent, plain-library, and library-autoconfigure tests. Synthetic capture may be enabled in baseline fixtures and omitted from `metadataConfig`, regardless of whether it is supplied through test-exporter configuration, a builder, or production properties that the integration actually reads. Do not require capture-only variants, flags, or empty overrides solely for metadata collection.\n- Align the examples and linked guidance in `gradle-conventions.md`, `testing-experimental-flags.md`, and `testing-general-patterns.md`. Keep the complete policy in the canonical collection docs and link to it rather than maintaining competing versions. Show synthetic header setup in a baseline library builder, with only meaningful opt-in settings in variant labels.\n- Apply that policy to the AWS SDK 1.11 and 2.2 library profiles here. Preserve header assertions and focused selector/default-behavior coverage; do not make synthetic capture a separately documented telemetry mode.\n- Add focused regression coverage in the existing instrumentation-docs parser tests for filtering synthetic messaging headers alongside HTTP headers, while preserving ordinary attributes and meaningful profile conditions. Do not silently strip configuration expressions from labels in the generator; correct labels at their source.\n- Audit other collected HTTP and messaging library profiles for this specific problem and report any independent follow-ups needed, without unrelated test cleanup.\n\nKeep the exception limited to synthetic fixture capture whose attributes are filtered from the inventory. Genuine non-default telemetry options still need accurate conditions: builder-controlled library options use builder labels, actual production-property configuration uses property labels, and test-only flags are never published conditions. Do not imply that agent properties configure a plain-library builder when they do not. Production defaults and supported header configuration documentation must remain unchanged.\n\nRun the focused AWS profiles and relevant metadata tests, then inspect generated output to confirm synthetic selectors are absent from `when` labels and genuine opt-in telemetry remains separated from default telemetry. No Ecosystem Explorer schema or UI change is needed. The matching Kafka fixture/profile changes are assigned separately on #20645.",
+      "created": "2026-10-17T03:31:10Z",
+      "hunk": "@@ -68,8 +68,12 @@ or test failure that CI will report.\n   including inherited settings, except for the shared synthetic header capture described below.\n   Inspect JVM properties, fixtures, and library builders; split or\n   filter collected tasks that mix profiles under one label. Label non-default metric selectors,\n-  not Java source-set names; document runtime prerequisites separately. Use comma-separated flat\n-  `key=value` conditions without `-D`, with consistent spelling and ordering for the same mode.\n+  not Java source-set names; document runtime prerequisites separately. For actual JVM-property\n+  configuration, use flat `key=value` conditions without `-D`. For programmatically configured\n+  library options, label the actual builder calls, such as",
+      "id": "PRRT_kwDODJKVX86tcZDd",
+      "opened": "2026-10-17T03:31:10Z",
+      "path": ".github/instructions/instrumentation-gradle.instructions.md",
+      "replies": [
+        {
+          "at": "2026-10-17T03:43:37Z",
+          "body": "Updated and pushed as `c1bf513e`. The canonical policy now covers agent, plain-library, and library-autoconfigure fixtures; linked guidance points to it, and parser coverage verifies synthetic HTTP/messaging headers are filtered while the logs condition remains intact. AWS baseline capture and opt-in labels were preserved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4301157286"
+        }
+      ],
+      "reviewed": "3e597c69a6f92ab8b07fc791fb11b4f34adba59f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4301111290"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This registers a classpath-compatibility variant for metadata collection. Its `Aws2ClientDynamodbTest` runs the same `AbstractAws2ClientCoreTest` tests and builder settings already covered by `Aws2ClientTest` in `testExperimentalAttributes`, so collection repeats coverage without adding a distinct telemetry profile. `instrumentation-docs/readme.md:63-68` explicitly excludes compatibility-only variants. Remove this entry and the task's `metadataConfig` block, but keep `testCoreOnlyExperimentalAttributes` in `check` for compatibility coverage.",
+      "created": "2026-10-17T03:46:30Z",
+      "hunk": "@@ -46,12 +46,24 @@ readonly INSTRUMENTATIONS=(\n   \"aws-sdk:aws-sdk-1.11:javaagent:testExperimentalAttributes\"\n   \"aws-sdk:aws-sdk-1.11:javaagent:testSqs\"\n   \"aws-sdk:aws-sdk-1.11:javaagent:testSqsReceiveTelemetry\"\n+  \"aws-sdk:aws-sdk-1.11:library:testExperimentalAttributes\"\n+  \"aws-sdk:aws-sdk-1.11:library:testSqsReceiveTelemetry\"\n+  \"aws-sdk:aws-sdk-1.11:library:testExceptionSignalLogs\"\n+  \"aws-sdk:aws-sdk-1.11:library:testSecretsManager\"\n+  \"aws-sdk:aws-sdk-1.11:library:testSecretsManagerExperimentalAttributes\"\n   \"aws-sdk:aws-sdk-2.2:javaagent:test\"\n   \"aws-sdk:aws-sdk-2.2:javaagent:testBedrockRuntime\"\n   \"aws-sdk:aws-sdk-2.2:javaagent:testBedrockRuntimeCaptureMessageContent\"\n   \"aws-sdk:aws-sdk-2.2:javaagent:testExperimentalAttributes\"\n   \"aws-sdk:aws-sdk-2.2:javaagent:testIndividualHttpErrors\"\n   \"aws-sdk:aws-sdk-2.2:javaagent:testReceiveTelemetry\"\n+  \"aws-sdk:aws-sdk-2.2:library:testExperimentalAttributes\"\n+  \"aws-sdk:aws-sdk-2.2:library:testIndividualHttpErrors\"\n+  \"aws-sdk:aws-sdk-2.2:library:testReceiveTelemetry\"\n+  \"aws-sdk:aws-sdk-2.2:library:testExceptionSignalLogs\"\n+  \"aws-sdk:aws-sdk-2.2:library:testCoreOnlyExperimentalAttributes\"",
+      "id": "PRRT_kwDODJKVX86tchrw",
+      "opened": "2026-10-17T03:46:30Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [
+        {
+          "at": "2026-10-17T04:23:08Z",
+          "body": "Addressed in 4e03c8012edb9b56b3dcda96c8f9d4fc52a8a4a7.\n\nConfirmed that Aws2ClientDynamodbTest inherits AbstractAws2ClientCoreTest, which is also inherited through AbstractAws2ClientTest by Aws2ClientTest. Both fixtures configure identical AwsSdkTelemetry builder options. The collected testExperimentalAttributes task already runs Aws2ClientTest with experimental attributes enabled. Removed the compatibility-only task from instrumentations.sh and removed its metadataConfig block, as required by instrumentation-docs/readme.md and instrumentation-gradle.instructions.md. Kept its experimental flag, source set, runtime classpath, and check dependency unchanged. Focused tests and formatting passed.\n\n<!-- copilot-loop:5af25f0fb492c07d3db900e3c3d627dc848445d0069957a43368225473f08d70:4301167998:d40d0d90d5704f9fbf3fca7958ca43cb -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4301341932"
+        }
+      ],
+      "reviewed": "a16073ad22b029b79b2b1dcc19e11d127c1bab0a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4301167998"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "A bit weird to see these 3 tests individually listed since that class only has these 3 tests. Is it so to ensure that the test of the super class are run? There is also `Aws2SqsTracingTest` that extends from the same super class.",
+      "created": "2026-10-19T13:08:31Z",
+      "hunk": "@@ -38,8 +38,65 @@ testing {\n   suites {\n     named<JvmTestSuite>(\"test\") {\n       executions {\n+        register(\"ExperimentalAttributes\") {\n+          systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+          systemProperty(\n+            \"metadataConfig\",\n+            \"AwsSdkTelemetryBuilder.setCaptureExperimentalSpanAttributes(true)\",\n+          )\n+          filter {\n+            excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansTest\")\n+            excludeTestsMatching(\"Aws2SqsW3cPropagatorTest\")\n+            excludeTestsMatching(\"Aws2SqsW3cPropagatorAndXrayPropagatorTest\")\n+            excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansDefaultPropagatorTest\")\n+            excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansW3cPropagatorTest\")\n+            excludeTestsMatching(\"Aws2SqsSuppressReceiveSpansW3cPropagatorAndXrayPropagatorTest\")\n+            excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testDuplicateTracingInterceptor\")\n+            excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testDisableSqsMessageCreateSpans\")\n+            excludeTestsMatching(\"Aws2SqsDefaultPropagatorTest.testNoopTelemetryDoesNotInjectInvalidCreationContext\")",
+      "id": "PRRT_kwDODJKVX86t7kjN",
+      "opened": "2026-10-19T13:08:31Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-19T16:35:43Z",
+          "body": "4ee03f9643f2244c1128f148d7836538326d1668",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4316320747"
+        }
+      ],
+      "reviewed": "08f5bc571ce6de58828c0c8843a1effbcf473654",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20649#discussion_r4314179891"
+    }
+  ]
+}

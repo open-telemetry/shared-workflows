@@ -1,0 +1,97 @@
+{
+  "head": "ae2861d3639be29b6692e3287079e3880c4b217d",
+  "merge": "ed1e993f1a6e003c08da6682f869f2f97ae03296",
+  "merged": "2026-10-05T15:20:45Z",
+  "missing_roots": 0,
+  "number": 20369,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Remove deprecated `setCapturedRequestHeaders` and `setCapturedResponseHeaders` methods from\n  HTTP library telemetry builders. Use `setRequestHeaders` and `setResponseHeaders`\n```",
+      "created": "2026-10-04T00:07:27Z",
+      "hunk": "@@ -2,6 +2,14 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Remove deprecated `setCapturedRequestHeaders` and `setCapturedResponseHeaders` methods from\n+  non-Ktor HTTP library telemetry builders. Use `setRequestHeaders` and `setResponseHeaders`",
+      "id": "PRRT_kwDODJKVX86otOrY",
+      "opened": "2026-10-04T00:07:27Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "1360e8300fa4db7eb2d369018ba095bbfdc1ac52",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20369#discussion_r4175483112"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-04T00:08:33Z",
+      "hunk": "@@ -2,6 +2,14 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Remove deprecated `setCapturedRequestHeaders` and `setCapturedResponseHeaders` methods from\n+  HTTP library telemetry builders. Use `setRequestHeaders` and `setResponseHeaders`\n+  with `IncludeExclude` selectors instead. Selector patterns interpret `*` and `?` as wildcards\n+  rather than literal header-name characters.\n+  Deprecated header-capture methods in the stable `instrumentation-api` artifact remain available.",
+      "id": "PRRT_kwDODJKVX86otPDB",
+      "opened": "2026-10-04T00:08:33Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "7d8f56ad4c99ee9d7df87c6960feb403a0b4fd46",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20369#discussion_r4175485614"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This states that the methods were removed from all HTTP library telemetry builders, but this PR explicitly leaves Ktor for #20378 and Ktor 1.0 still exposes these exact `setCaptured*Headers` methods. As written, the release notes incorrectly announce a Ktor breaking change; qualify the scope until the Ktor change lands.",
+      "created": "2026-10-04T15:27:37Z",
+      "hunk": "@@ -2,6 +2,13 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Remove deprecated `setCapturedRequestHeaders` and `setCapturedResponseHeaders` methods from\n+  HTTP library telemetry builders. Use `setRequestHeaders` and `setResponseHeaders`\n+  with `IncludeExclude` selectors instead. Selector patterns interpret `*` and `?` as wildcards\n+  rather than literal header-name characters.",
+      "id": "PRRT_kwDODJKVX86oz7Va",
+      "opened": "2026-10-04T15:27:37Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "d2f50119e494cbc12fd1788d943d5805ed409694",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20369#discussion_r4178251026"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "accidentally removed?",
+      "created": "2026-10-05T07:54:16Z",
+      "hunk": "@@ -32,20 +30,18 @@\n \n abstract class AbstractSpringServerLibraryTest extends AbstractSpringServerTest {\n \n-  // org.restlet.routing.Route is deprecated in 2.0 but not deprecated in later versions",
+      "id": "PRRT_kwDODJKVX86o8jXJ",
+      "opened": "2026-10-05T07:54:16Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/test/java/io/opentelemetry/instrumentation/restlet/v2_0/spring/AbstractSpringServerLibraryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T14:47:19Z",
+          "body": "ae2861d3639be29b6692e3287079e3880c4b217d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20369#discussion_r4185316458"
+        }
+      ],
+      "reviewed": "b1ae7828664a986fcb37a8ac81e047375088a32d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20369#discussion_r4181786769"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "accidentally removed?",
+      "created": "2026-10-05T07:54:26Z",
+      "hunk": "@@ -57,7 +53,6 @@ protected Restlet wrapRestlet(Restlet restlet, String path) {\n     return tracingFilter;\n   }\n \n-  // org.restlet.routing.Route is deprecated in 2.0 but not deprecated in later versions",
+      "id": "PRRT_kwDODJKVX86o8jkK",
+      "opened": "2026-10-05T07:54:26Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/test/java/io/opentelemetry/instrumentation/restlet/v2_0/spring/AbstractSpringServerLibraryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T14:47:19Z",
+          "body": "ae2861d3639be29b6692e3287079e3880c4b217d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20369#discussion_r4185316483"
+        }
+      ],
+      "reviewed": "b1ae7828664a986fcb37a8ac81e047375088a32d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20369#discussion_r4181787968"
+    }
+  ]
+}

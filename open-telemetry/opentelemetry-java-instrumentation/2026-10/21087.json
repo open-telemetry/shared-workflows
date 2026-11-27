@@ -1,0 +1,67 @@
+{
+  "head": "1ff536fd13e30b6b347eede5c5b24c420688df5d",
+  "merge": "c3caccb679c25925d8edf42b6ac3fa57be13ddcb",
+  "merged": "2026-10-30T20:35:44Z",
+  "missing_roots": 0,
+  "number": 21087,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Please retain `1.3.8.RELEASE` for this regression fixture. `Repackager` embeds the loader from its own release, so this update makes `LegacySpringBootLogCorrelationSmokeTest` exercise the 1.5 loader instead of the intended 1.3 loader. The existing loader-class-name check does not distinguish these versions, so the test can pass while losing 1.3 log-correlation coverage.",
+      "created": "2026-10-30T14:10:54Z",
+      "hunk": "@@ -7,7 +7,7 @@ buildscript {\n     mavenCentral()\n   }\n   dependencies {\n-    classpath(\"org.springframework.boot:spring-boot-loader-tools:1.3.8.RELEASE\")\n+    classpath(\"org.springframework.boot:spring-boot-loader-tools:1.5.22.RELEASE\")",
+      "id": "PRRT_kwDODJKVX86x_5J9",
+      "opened": "2026-10-30T14:10:55Z",
+      "path": "smoke-tests/images/spring-boot-1.3/build.gradle.kts",
+      "replies": [],
+      "reviewed": "30158aaf6e32431c0b6f4e04b4900f44e04e2c36",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21087#discussion_r4424540584"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with these two scoped changes, preserving all unrelated dependency updates.\n\nRestore org.springframework.boot:spring-boot-loader-tools to 1.3.8.RELEASE in smoke-tests/images/spring-boot-1.3/build.gradle.kts. In .github/renovate.json5 add a packageRules entry with matchFileNames: ['smoke-tests/images/spring-boot-1.3/build.gradle.kts'], matchPackageNames: ['org.springframework.boot:spring-boot-loader-tools'], and enabled: false. Include a short comment explaining that this preserves the Spring Boot 1.3.8 classloader regression fixture. Repackager embeds its own release's loader; Boot 1.5 lacks the getResource/getResources overrides that the 1.3 regression exercises, despite sharing the same class name. Keep the fixture assertions unchanged.\n\nRevert the Error Prone core upgrade from 2.50.0 to 2.51.0 in dependencyManagement/build.gradle.kts and examples/distro/buildSrc/src/main/kotlin/otel.nullaway-conventions.gradle.kts. Keep core at 2.50.0 because the 2.51.0 SafeRE memory regression is unresolved for this build, tracked at https://github.com/google/error-prone/issues/6230. Preserve the independent gradle-errorprone-plugin update and other dependency updates. Do not add heap increases or warning suppressions to accommodate 2.51.0.\n\nRun the narrow relevant configuration/format validation where feasible. Acceptance criteria: the regression fixture still uses exactly 1.3.8.RELEASE, Renovate will no longer update that dependency in that one file, both Error Prone core pins remain 2.50.0, and unrelated changes remain intact.",
+      "created": "2026-10-30T16:53:05Z",
+      "hunk": "@@ -7,7 +7,7 @@ buildscript {\n     mavenCentral()\n   }\n   dependencies {\n-    classpath(\"org.springframework.boot:spring-boot-loader-tools:1.3.8.RELEASE\")\n+    classpath(\"org.springframework.boot:spring-boot-loader-tools:1.5.22.RELEASE\")",
+      "id": "PRRT_kwDODJKVX86yDxUx",
+      "opened": "2026-10-30T16:53:05Z",
+      "path": "smoke-tests/images/spring-boot-1.3/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-30T17:01:15Z",
+          "body": "Applied in `1ff536fd`: restored the Spring Boot 1.3.8 fixture and both Error Prone 2.50.0 pins, and disabled Renovate updates for that loader dependency in the fixture file.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21087#discussion_r4426273279"
+        }
+      ],
+      "reviewed": "4e56ca061be5a9e3ab9d079a029c09740ec4cde0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21087#discussion_r4426187561"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR description still lists the Spring Boot loader tools upgrade, but this rule preserves 1.3.8. It also lists Error Prone 2.51.0, while `dependencyManagement/build.gradle.kts` and the distro example remain on 2.50.0. Please refresh the update table and release notes so reviewers can see which upgrades are actually included.",
+      "created": "2026-10-30T17:04:03Z",
+      "hunk": "@@ -352,6 +352,16 @@\n       ],\n       enabled: false\n     },\n+    {\n+      // preserves the Spring Boot 1.3.8 classloader regression fixture\n+      matchFileNames: [\n+        'smoke-tests/images/spring-boot-1.3/build.gradle.kts',\n+      ],\n+      matchPackageNames: [\n+        'org.springframework.boot:spring-boot-loader-tools',\n+      ],\n+      enabled: false,",
+      "id": "PRRT_kwDODJKVX86yEDC3",
+      "opened": "2026-10-30T17:04:03Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-10-30T17:09:01Z",
+          "body": "Updated the PR description to match the final diff. It now explicitly says Error Prone core stays at 2.50.0 and the Spring Boot fixture stays at loader-tools 1.3.8.RELEASE, with the scoped Renovate exclusion. The stale upgrade table and release notes are removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21087#discussion_r4426354830"
+        }
+      ],
+      "reviewed": "1ff536fd13e30b6b347eede5c5b24c420688df5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21087#discussion_r4426304228"
+    }
+  ]
+}

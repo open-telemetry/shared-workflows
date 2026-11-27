@@ -1,0 +1,292 @@
+{
+  "head": "82a660c1af4db9a63402bcabf70a4053dce9836f",
+  "merge": "3f834678ed705542fe626e59d7eacd7c175206b4",
+  "merged": "2026-08-14T19:29:00Z",
+  "missing_roots": 0,
+  "number": 33,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why?",
+      "created": "2026-08-14T04:26:25Z",
+      "hunk": "@@ -14,6 +14,15 @@\n       \"matchUpdateTypes\": [\"minor\", \"major\"],\n       \"schedule\": [\"before 8am on Monday\"]\n     },\n+    {\n+      // One PR per scenario directory. A scenario's dependencies move\n+      // together — the library, its instrumentation and the SDK — and a bump\n+      // is only meaningful once its data.json has been regenerated, which is\n+      // per directory.\n+      \"groupName\": \"{{packageFileDir}}\",\n+      \"matchFileNames\": [\"scenarios/**/pyproject.toml\"],\n+      \"schedule\": [\"before 8am on Monday\"]\n+    },",
+      "id": "PRRT_kwDOTuzK5c6ZKluU",
+      "opened": "2026-08-14T04:30:22Z",
+      "path": ".github/renovate.json5",
+      "replies": [],
+      "reviewed": "357710bb147b75b2527f5e4bc33b4f83a65790fd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781107057"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "are these on the renovate radar?",
+      "created": "2026-08-14T04:27:04Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+[project]\n+name = \"anthropic-opentelemetry-conformance\"\n+version = \"0.0.0\"\n+requires-python = \">=3.12\"\n+dependencies = [\n+    \"anthropic==0.122.0\",\n+    \"opentelemetry-api==1.44.0\",\n+    \"opentelemetry-sdk==1.44.0\",\n+    \"opentelemetry-exporter-otlp-proto-grpc==1.44.0\",\n+    \"opentelemetry-distro==0.65b0\",\n+    \"opentelemetry-util-genai==1.0b0\",\n+    \"opentelemetry-instrumentation-genai-anthropic==1.0b0\",",
+      "id": "PRRT_kwDOTuzK5c6ZKmHr",
+      "opened": "2026-08-14T04:30:22Z",
+      "path": "scenarios/gen-ai/python/anthropic/opentelemetry-anthropic/pyproject.toml",
+      "replies": [],
+      "reviewed": "357710bb147b75b2527f5e4bc33b4f83a65790fd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781109381"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "rename folder to bedrock, keep instrumentation / lib as botocore",
+      "created": "2026-08-14T04:28:32Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: botocore",
+      "id": "PRRT_kwDOTuzK5c6ZKm5v",
+      "opened": "2026-08-14T04:30:22Z",
+      "path": "scenarios/gen-ai/python/bedrock/opentelemetry-botocore/conformance.yaml",
+      "replies": [],
+      "reviewed": "357710bb147b75b2527f5e4bc33b4f83a65790fd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781114190"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`allOf` is an intersection, but this branch always converts it into an object schema and discards properties declared alongside `allOf`. For example, a valid primitive schema such as `{\"allOf\": [{\"type\": \"string\"}, {\"minLength\": 1}]}` now produces `{}`, while an object with its own `properties` loses those fields. This contradicts the helper's guarantee that it builds a satisfying value; compose the base schema with every branch without forcing the result to `type: object`.",
+      "created": "2026-08-14T04:31:58Z",
+      "hunk": "@@ -29,6 +29,111 @@ def mock_tool_argument_value(name, schema):\n     return f\"mock-{name}\"\n \n \n+# Fixed answers for the string formats a client is most likely to parse back\n+# into a typed value. A plain \"mock-<name>\" would fail that parse.\n+_MOCK_STRING_FORMATS = {\n+    \"date-time\": \"2023-11-14T22:13:20Z\",\n+    \"date\": \"2023-11-14\",\n+    \"time\": \"22:13:20\",\n+    \"uuid\": \"00000000-0000-4000-8000-000000000000\",\n+    \"email\": \"mock@example.com\",\n+    \"uri\": \"https://example.com/mock\",\n+}\n+\n+\n+def _resolve(schema, root):\n+    \"\"\"Follow a local ``$ref`` to the fragment it names.\n+\n+    Any schema generated from a class rather than written by hand puts nested\n+    types in ``$defs`` and refers to them, so a generator that does not follow\n+    the reference answers a nested object with a string.\n+    \"\"\"\n+    seen = set()\n+    while isinstance(schema, dict) and \"$ref\" in schema:\n+        reference = schema[\"$ref\"]\n+        if reference in seen or not reference.startswith(\"#/\"):\n+            return {}\n+        seen.add(reference)\n+        target = root\n+        for step in reference[2:].split(\"/\"):\n+            if not isinstance(target, dict) or step not in target:\n+                return {}\n+            target = target[step]\n+        schema = target\n+    return schema or {}\n+\n+\n+def _first_usable(alternatives, root):\n+    \"\"\"The first branch of an anyOf/oneOf that is not the null of an optional.\"\"\"\n+    for alternative in alternatives:\n+        resolved = _resolve(alternative, root)\n+        if resolved.get(\"type\") != \"null\":\n+            return resolved\n+    return {}\n+\n+\n+def mock_json_schema_value(schema, name=\"value\", root=None, depth=0):\n+    \"\"\"Build a deterministic value satisfying a JSON Schema fragment.\n+\n+    Structured-output requests carry the schema the answer has to match, so the\n+    answer is generated from it rather than from a fixed payload: any scenario's\n+    schema is served without adding a branch here.\n+    \"\"\"\n+    root = schema if root is None else root\n+    schema = _resolve(schema, root)\n+    # A model that refers to itself has no finite answer, so the nesting is cut\n+    # off with an empty value rather than recursing forever.\n+    if depth > 8:\n+        return {}\n+\n+    for keyword in (\"anyOf\", \"oneOf\"):\n+        alternatives = schema.get(keyword)\n+        if alternatives:\n+            return mock_json_schema_value(\n+                _first_usable(alternatives, root), name, root, depth + 1\n+            )\n+    if schema.get(\"allOf\"):\n+        # allOf means every branch applies at once, so they are merged rather\n+        # than picked between.\n+        merged = {\"type\": \"object\", \"properties\": {}}\n+        for alternative in schema[\"allOf\"]:",
+      "id": "PRRT_kwDOTuzK5c6ZKo7C",
+      "opened": "2026-08-14T04:31:59Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/_common.py",
+      "replies": [],
+      "reviewed": "357710bb147b75b2527f5e4bc33b4f83a65790fd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781126495"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This contract says every inference-shaped request carries all supported sampling options, but the added structured-output, multimodal, tool-calling, automatic-tool-calling, agent, and workflow requests generally set only `max_tokens` and `temperature`. Either narrow this statement to the `inference` and `streaming` classes, or add the documented options to the other scenarios; otherwise future contributors will treat the current scenarios as violating their own contract.",
+      "created": "2026-08-14T04:31:58Z",
+      "hunk": "@@ -0,0 +1,141 @@\n+# GenAI scenarios\n+\n+Scenario programs checked against the\n+[GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai).\n+\n+How to run a directory, and what its `conformance.yaml` may declare, is in the\n+[runner's README](../../tools/runner/README.md). What makes a run a *GenAI*\n+run (the registry pin, the advice policies, the reduction `data.json` is keyed\n+on) is in [`tools/gen-ai/runner`](../../tools/gen-ai/runner/README.md), and\n+the responses come from the\n+[mock LLM server](../../tools/gen-ai/mock-server/README.md). This file is only\n+about the scenarios themselves.\n+\n+```sh\n+otel-conformance scenarios/gen-ai/python/openai/opentelemetry-openai --report-only\n+```\n+\n+## The scenario tree\n+\n+```\n+scenarios/gen-ai/<language>/<library>/\n+    scenarios/              the programs, one copy, shared\n+    <instrumentation>/      conformance.yaml, pyproject.toml, uv.lock, data.json\n+```\n+\n+`<library>` is the library being exercised. `<instrumentation>` names the\n+instrumentation that produced the telemetry, so `opentelemetry-openai` is the\n+OpenTelemetry instrumentation for the openai client and\n+`opentelemetry-langchain-openai` is the OpenTelemetry langchain\n+instrumentation reaching OpenAI through `langchain-openai`. Both names are\n+labels for reading the tree. The runner never reads a path for meaning, so\n+what a run is about is whatever its `conformance.yaml` declares.\n+\n+**Implementations that call the same client package share their programs**,\n+from `<library>/scenarios/`:\n+\n+```yaml\n+run: uv run --frozen --project . opentelemetry-instrument python ../scenarios/inference.py\n+```\n+\n+An implementation that reaches the provider through a different package\n+cannot run those files, so it keeps its own `scenarios/` beside its\n+`conformance.yaml`. `opentelemetry-langchain-openai` calls `ChatOpenAI`, not\n+`OpenAI`, so it has one; the programs still make the same exchange, which is\n+what keeps the two `data.json` files comparable.\n+\n+```\n+openai/\n+    scenarios/                          the openai SDK programs\n+    opentelemetry-openai/               conformance.yaml, data.json\n+    opentelemetry-langchain-openai/\n+        scenarios/                      the ChatOpenAI programs\n+        conformance.yaml, data.json\n+```\n+\n+`--project .` runs a program in the implementation directory's own\n+environment, which uv syncs from the `pyproject.toml` there. Each\n+implementation gets its own, so zero-code never finds a neighbour's\n+instrumentation installed. That is the constraint on adding an implementation:\n+its environment must hold only its own instrumentation, or someone else's\n+spans land in the results. So a scenario program never names an\n+instrumentation, and never imports OpenTelemetry.\n+\n+## The scenario contract\n+\n+Each class below defines one exchange. Every library makes that same exchange,\n+in its own SDK's names, so their `data.json` files compare directly.\n+\n+Every inference-shaped request carries:\n+\n+- one system instruction and one user turn;\n+- `max_tokens`, `temperature`, `top_p`, `top_k`, `stop_sequences`, `seed`,\n+  `frequency_penalty` and `presence_penalty`, wherever the API has that\n+  parameter. Anthropic has no seed and OpenAI no top-k, so those requests omit\n+  them.",
+      "id": "PRRT_kwDOTuzK5c6ZKo7b",
+      "opened": "2026-08-14T04:31:59Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "357710bb147b75b2527f5e4bc33b4f83a65790fd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781126527"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The two CrewAI early-return paths below copy `CHAT_REFUSAL_RESPONSE` or `CHAT_RESPONSE` and return without calling this helper, so requests on those paths always report the newly hard-coded `default` tier even when they requested `flex` or `priority`. Apply `_served_service_tier(body)` to those responses as is already done for tool, audio, and normal responses.",
+      "created": "2026-08-14T04:31:59Z",
+      "hunk": "@@ -184,6 +188,18 @@\n }\n \n \n+def _served_service_tier(body):\n+    \"\"\"The tier the request is answered on.\n+\n+    The real API reports the tier that actually served the request, so \"auto\"\n+    comes back as the tier it resolved to rather than as \"auto\".\n+    \"\"\"\n+    requested = body.get(\"service_tier\")\n+    if not requested or requested == \"auto\":\n+        return \"default\"\n+    return requested",
+      "id": "PRRT_kwDOTuzK5c6ZKo7r",
+      "opened": "2026-08-14T04:31:59Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "357710bb147b75b2527f5e4bc33b4f83a65790fd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781126551"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Google mock has no branch for `responseSchema`/`responseMimeType`; this request falls through to its fixed plain-text `RESPONSE`. The scenario therefore claims a JSON-schema answer but receives invalid JSON. Add deterministic schema-response handling (and a mock-server test), as the OpenAI structured-output path does.",
+      "created": "2026-08-14T04:38:40Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a google-genai call with a JSON schema answer.\n+\n+Asking for a schema is what ``gen_ai.output.type`` describes, so the request\n+names one rather than only asking for \"some JSON\".\n+\"\"\"\n+\n+from google import genai\n+from google.genai import types\n+\n+client = genai.Client()\n+\n+client.models.generate_content(\n+    model=\"gemini-2.0-flash\",\n+    contents=\"What is the weather in Seattle?\",\n+    config=types.GenerateContentConfig(\n+        system_instruction=\"You are a helpful assistant.\",\n+        response_mime_type=\"application/json\",\n+        response_schema=types.Schema(\n+            type=\"OBJECT\",",
+      "id": "PRRT_kwDOTuzK5c6ZKtBX",
+      "opened": "2026-08-14T04:38:40Z",
+      "path": "scenarios/gen-ai/python/google-genai/scenarios/structured_output.py",
+      "replies": [],
+      "reviewed": "29f04784f462579f49e6057c76b2c757830fba97",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781150669"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This sends two embedding inputs, but the mock's `BATCH_EMBEDDING_RESPONSE` contains only one embedding (`tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py:108-113`). The scenario therefore does not receive a positional result per batched input. Make the mock build one embedding per batch request entry and add a two-input regression test.",
+      "created": "2026-08-14T04:38:40Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: google-genai embeddings.\n+\n+A different operation, so a different span type, which is why this is its own\n+program rather than another call inside inference.py. Batched input and an\n+explicit dimension count, since each is an attribute the conventions declare\n+for this operation.\n+\"\"\"\n+\n+from google import genai\n+from google.genai import types\n+\n+client = genai.Client()\n+\n+client.models.embed_content(\n+    model=\"text-embedding-004\",\n+    contents=[\"Say this is a test\", \"And this is another one\"],\n+    config=types.EmbedContentConfig(output_dimensionality=256),",
+      "id": "PRRT_kwDOTuzK5c6ZKtBh",
+      "opened": "2026-08-14T04:38:40Z",
+      "path": "scenarios/gen-ai/python/google-genai/scenarios/embeddings.py",
+      "replies": [],
+      "reviewed": "29f04784f462579f49e6057c76b2c757830fba97",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3781150683"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\n",
+      "created": "2026-08-14T14:50:46Z",
+      "hunk": "@@ -166,3 +166,111 @@ jobs:\n           python -m pytest \\\n             tools/gen-ai/runner/tests \\\n             tools/http/runner/tests\n+\n+  # The heavy gate: installs every scenario's dependencies, runs the programs,\n+  # and checks the committed data.json files still match what they emit.\n+  scenarios:\n+    name: Scenarios\n+    runs-on: ubuntu-latest\n+    # Eight SDK stacks and a weaver run per scenario: slow, but far short of\n+    # the 6 hour default a hang would burn.",
+      "id": "PRRT_kwDOTuzK5c6ZURO2",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784759330"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nand other comments added in this change",
+      "created": "2026-08-14T14:50:57Z",
+      "hunk": "@@ -166,3 +166,111 @@ jobs:\n           python -m pytest \\\n             tools/gen-ai/runner/tests \\\n             tools/http/runner/tests\n+\n+  # The heavy gate: installs every scenario's dependencies, runs the programs,\n+  # and checks the committed data.json files still match what they emit.",
+      "id": "PRRT_kwDOTuzK5c6ZURed",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784760853"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can't we just reuse existing schedule? why special schedule for scenarios?",
+      "created": "2026-08-14T14:52:33Z",
+      "hunk": "@@ -14,6 +14,11 @@\n       \"matchUpdateTypes\": [\"minor\", \"major\"],\n       \"schedule\": [\"before 8am on Monday\"]\n     },\n+    {\n+      \"groupName\": \"{{packageFileDir}}\",\n+      \"matchFileNames\": [\"scenarios/**/pyproject.toml\"],\n+      \"schedule\": [\"before 8am on Monday\"]\n+    },",
+      "id": "PRRT_kwDOTuzK5c6ZUToX",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": ".github/renovate.json5",
+      "replies": [],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784773334"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "isn't it automatic tool calling in the classification?",
+      "created": "2026-08-14T14:54:35Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: Anthropic tool calling, through langchain.\n+\n+Two round trips driven by hand, matching anthropic/scenarios/tool_calling.py.\n+langchain binds the tools; it does not run them here.\n+\"\"\"\n+\n+from langchain_anthropic import ChatAnthropic\n+from langchain_core.messages import ToolMessage\n+from langchain_core.tools import tool\n+\n+\n+@tool\n+def get_current_weather(location: str) -> str:\n+    \"\"\"Get the current weather in a given location.\"\"\"\n+    return f\"70 degrees and sunny in {location}\"\n+\n+\n+model = ChatAnthropic(\n+    model=\"claude-sonnet-4-20250514\", max_tokens=100, temperature=0.5\n+)\n+with_tools = model.bind_tools([get_current_weather])\n+\n+messages = [\n+    (\"system\", \"You are a helpful assistant.\"),\n+    (\"human\", \"What's the weather in Seattle today?\"),\n+]\n+\n+answer = with_tools.invoke(messages)",
+      "id": "PRRT_kwDOTuzK5c6ZUXl1",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": "scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/scenarios/tool_calling.py",
+      "replies": [],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784794266"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we make langchain create agent spans?",
+      "created": "2026-08-14T14:59:14Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+{\n+  \"spans\": {\n+    \"gen_ai.execute_tool.internal\": [\n+      \"gen_ai.operation.name\",\n+      \"gen_ai.tool.call.arguments\",\n+      \"gen_ai.tool.call.id\",\n+      \"gen_ai.tool.call.result\",\n+      \"gen_ai.tool.description\",\n+      \"gen_ai.tool.name\",\n+      \"gen_ai.tool.type\"\n+    ],\n+    \"gen_ai.inference.client\": [\n+      \"gen_ai.input.messages\",\n+      \"gen_ai.operation.name\",\n+      \"gen_ai.output.messages\",\n+      \"gen_ai.provider.name\",\n+      \"gen_ai.request.max_tokens\",\n+      \"gen_ai.request.model\",\n+      \"gen_ai.request.temperature\",\n+      \"gen_ai.response.finish_reasons\",\n+      \"gen_ai.response.id\",\n+      \"gen_ai.response.model\",\n+      \"gen_ai.tool.definitions\",\n+      \"gen_ai.usage.input_tokens\",\n+      \"gen_ai.usage.output_tokens\"\n+    ],\n+    \"gen_ai.invoke_workflow.internal\": [",
+      "id": "PRRT_kwDOTuzK5c6ZUhDa",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": "scenarios/gen-ai/python/langchain/opentelemetry-langchain/data.json",
+      "replies": [],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784844217"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "no agent span in data.json - why?",
+      "created": "2026-08-14T15:00:04Z",
+      "hunk": "@@ -0,0 +1,20 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a single langchain agent run.\n+\n+No tools, so the run is the agent and the model call it makes and nothing\n+else. That is what makes the agent span readable on its own.\n+\"\"\"\n+\n+from langchain.agents import create_agent\n+from langchain_openai import ChatOpenAI\n+\n+agent = create_agent(\n+    model=ChatOpenAI(model=\"gpt-4o-mini\", temperature=0.5, max_tokens=100),\n+    tools=[],\n+    system_prompt=\"You are a helpful assistant.\",\n+    name=\"weather_assistant\",\n+)\n+\n+agent.invoke({\"messages\": [{\"role\": \"user\", \"content\": \"Say this is a test\"}]})",
+      "id": "PRRT_kwDOTuzK5c6ZUjGm",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": "scenarios/gen-ai/python/langchain/scenarios/invoke_agent.py",
+      "replies": [
+        {
+          "at": "2026-08-14T15:25:19Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/issues/387",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3785065484"
+        }
+      ],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784854413"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO: decide on one file per scenario type or all scenarios in one file.\r\n\r\nMaybe doesn't matter because data.json is merged anyway",
+      "created": "2026-08-14T15:03:31Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+# Working in `scenarios/gen-ai`\n+\n+Read [README.md](README.md) first. It holds the scenario contract, and this\n+file is only the rules for changing the tree.\n+\n+## Adding a library\n+\n+```\n+scenarios/gen-ai/<language>/<library>/\n+    scenarios/<class>.py     one file per scenario class\n+    <instrumentation>/       conformance.yaml, pyproject.toml, uv.lock, data.json\n+```\n+\n+Name `<instrumentation>` after the instrumentation, dropping the\n+`instrumentation` and `genai` parts of the distribution name:\n+`opentelemetry-instrumentation-genai-openai` becomes `opentelemetry-openai`.\n+When the instrumentation reaches the provider through another package, add it:\n+the langchain instrumentation over `langchain-openai` is\n+`opentelemetry-langchain-openai`.\n+\n+- **One file per class**, named after the class, covering exactly the exchange",
+      "id": "PRRT_kwDOTuzK5c6ZUoXY",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": "scenarios/gen-ai/AGENTS.md",
+      "replies": [],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784883424"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-14T15:05:05Z",
+      "hunk": "@@ -0,0 +1,143 @@\n+# GenAI scenarios\n+\n+Scenario programs checked against the\n+[GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai).\n+\n+How to run a directory, and what its `conformance.yaml` may declare, is in the\n+[runner's README](../../tools/runner/README.md). What makes a run a *GenAI*\n+run (the registry pin, the advice policies, the reduction `data.json` is keyed\n+on) is in [`tools/gen-ai/runner`](../../tools/gen-ai/runner/README.md), and\n+the responses come from the\n+[mock LLM server](../../tools/gen-ai/mock-server/README.md). This file is only\n+about the scenarios themselves.\n+\n+```sh\n+otel-conformance scenarios/gen-ai/python/openai/opentelemetry-openai --report-only\n+```\n+\n+## The scenario tree\n+\n+```\n+scenarios/gen-ai/<language>/<library>/\n+    scenarios/              the programs, one copy, shared\n+    <instrumentation>/      conformance.yaml, pyproject.toml, uv.lock, data.json\n+```\n+\n+`<library>` is the library being exercised. `<instrumentation>` names the\n+instrumentation that produced the telemetry, so `opentelemetry-openai` is the\n+OpenTelemetry instrumentation for the openai client and\n+`opentelemetry-langchain-openai` is the OpenTelemetry langchain\n+instrumentation reaching OpenAI through `langchain-openai`. Both names are\n+labels for reading the tree. The runner never reads a path for meaning, so\n+what a run is about is whatever its `conformance.yaml` declares.\n+\n+**Implementations that call the same client package share their programs**,\n+from `<library>/scenarios/`:\n+\n+```yaml\n+run: uv run --frozen --project . opentelemetry-instrument python ../scenarios/inference.py\n+```\n+\n+An implementation that reaches the provider through a different package\n+cannot run those files, so it keeps its own `scenarios/` beside its\n+`conformance.yaml`. `opentelemetry-langchain-openai` calls `ChatOpenAI`, not\n+`OpenAI`, so it has one; the programs still make the same exchange, which is\n+what keeps the two `data.json` files comparable.\n+\n+```\n+openai/\n+    scenarios/                          the openai SDK programs\n+    opentelemetry-openai/               conformance.yaml, data.json\n+    opentelemetry-langchain-openai/\n+        scenarios/                      the ChatOpenAI programs\n+        conformance.yaml, data.json\n+```\n+\n+`--project .` runs a program in the implementation directory's own\n+environment, which uv syncs from the `pyproject.toml` there. Each\n+implementation gets its own, so zero-code never finds a neighbour's\n+instrumentation installed. That is the constraint on adding an implementation:\n+its environment must hold only its own instrumentation, or someone else's\n+spans land in the results. So a scenario program never names an\n+instrumentation, and never imports OpenTelemetry.\n+\n+## The scenario contract\n+\n+Each class below defines one exchange. Every library makes that same exchange,\n+in its own SDK's names, so their `data.json` files compare directly.\n+\n+Every request carries one system instruction and one user turn.\n+\n+`inference` and `streaming` additionally carry every sampling option the\n+conventions have an attribute for and the API accepts: `max_tokens`,\n+`temperature`, `top_p`, `top_k`, `stop_sequences`, `seed`,\n+`frequency_penalty` and `presence_penalty`. Anthropic has no seed and OpenAI\n+no top-k, so those requests omit them. The other classes carry `max_tokens`\n+and `temperature` only, because what they are there to exercise is the\n+exchange, and the sampling attributes are already covered.\n+\n+| Class | Applies to | The exchange | What it is for |\n+| --- | --- | --- | --- |\n+| `inference` | llm client | one non-streaming call | request, response and usage attributes, and both metrics |\n+| `streaming` | llm client | the same call, streamed, consumed to the end | what an instrumentation can only report once the last chunk lands |\n+| `structured_output` | llm client | one call naming a JSON schema | `gen_ai.output.type` |\n+| `multimodal` | llm client | one call per non-text content kind the API takes | the *shape* of recorded content, per-modality token counts |\n+| `embeddings` | llm client | one batched call with an explicit encoding format and dimension count | the embeddings span type |\n+| `tool_calling` | llm client | two round trips: tool definitions and the requested call, then the tool result travelling back as input | tool definitions and calls on both sides of the exchange |\n+| `automatic_tool_calling` | llm client; agentic | the same exchange, with the SDK or framework running the tool and sending the result back | tool execution as a span, not a message |\n+| `invoke_agent` | agentic | one agent run, no tools | the agent span on its own |\n+| `workflow` | agentic | one chain, no agent | the workflow span on its own |\n+\n+*llm client* means an LLM client SDK such as `openai` or `anthropic`.\n+*agentic* means a framework that drives a run, such as `langchain` or\n+`openai-agents`. Keep the groups in separate directories: a directory covers\n+one group. `automatic_tool_calling` is the one class both groups have, so it\n+is the one that compares across them.\n+\n+A library gets a scenario for every class its API supports. Anthropic has no\n+embeddings API, so `anthropic/` has no embeddings scenario. The OpenAI Python\n+SDK does not run tools, so `openai/` has no automatic tool calling scenario. A\n+class the API supports but the instrumentation does not still gets a scenario,\n+and the gap lands in `data.json`.\n+\n+## What is covered\n+\n+| Directory | Instrumentation | Classes |\n+| --- | --- | --- |\n+| `openai/opentelemetry-openai` | `…-genai-openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings |\n+| `openai/opentelemetry-langchain-openai` | `…-genai-langchain` | the same, through `langchain-openai` |\n+| `anthropic/opentelemetry-anthropic` | `…-genai-anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal |\n+| `anthropic/opentelemetry-langchain-anthropic` | `…-genai-langchain` | the same, through `langchain-anthropic`, minus automatic_tool_calling: langchain binds tools but does not run them outside an agent |\n+| `google-genai/opentelemetry-google-genai` | `…-google-genai` | every client class, plus automatic_tool_calling |\n+| `bedrock/opentelemetry-botocore` | `…-botocore` | Bedrock Converse: inference, streaming, tool_calling |\n+| `langchain/opentelemetry-langchain` | `…-genai-langchain` | workflow, invoke_agent, automatic_tool_calling |\n+| `openai-agents/opentelemetry-openai-agents` | `…-genai-openai-agents` | invoke_agent, automatic_tool_calling. The Agents SDK wraps every run in a trace, so the workflow span comes with each of those rather than from a scenario of its own |\n+\n+The conventions also cover retrieval, memory and planning. No instrumentation\n+here emits them, so there is no class for them yet.\n+\n+Each class is one file, and each file gets its own weaver report.\n+\n+## Content capture\n+\n+Every directory sets `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` to\n+`SPAN_AND_EVENT`, so one run covers content on spans and the\n+`gen_ai.client.inference.operation.details` event.\n+`opentelemetry-botocore` reads that variable as a boolean rather than as a\n+mode, so its directory sets `true`; there is no other way to turn content on\n+there.",
+      "id": "PRRT_kwDOTuzK5c6ZUqTt",
+      "opened": "2026-08-14T15:05:56Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "450ce961f097f0567fee411d92e9456e1ef6753b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3784894926"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why no output messages here?",
+      "created": "2026-08-14T15:18:34Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+{\n+  \"spans\": {\n+    \"gen_ai.execute_tool.internal\": [\n+      \"gen_ai.operation.name\",\n+      \"gen_ai.tool.call.arguments\",\n+      \"gen_ai.tool.call.id\",\n+      \"gen_ai.tool.call.result\",\n+      \"gen_ai.tool.description\",\n+      \"gen_ai.tool.name\",\n+      \"gen_ai.tool.type\"\n+    ],\n+    \"gen_ai.inference.client\": [\n+      \"gen_ai.input.messages\",\n+      \"gen_ai.operation.name\",\n+      \"gen_ai.output.messages\",\n+      \"gen_ai.provider.name\",\n+      \"gen_ai.request.max_tokens\",\n+      \"gen_ai.request.model\",\n+      \"gen_ai.request.temperature\",\n+      \"gen_ai.response.finish_reasons\",\n+      \"gen_ai.response.id\",\n+      \"gen_ai.response.model\",\n+      \"gen_ai.tool.definitions\",\n+      \"gen_ai.usage.input_tokens\",\n+      \"gen_ai.usage.output_tokens\"\n+    ],\n+    \"gen_ai.invoke_workflow.internal\": [\n+      \"gen_ai.input.messages\",",
+      "id": "PRRT_kwDOTuzK5c6ZU9Kw",
+      "opened": "2026-08-14T15:18:34Z",
+      "path": "scenarios/gen-ai/python/langchain/opentelemetry-langchain/data.json",
+      "replies": [
+        {
+          "at": "2026-08-14T15:28:02Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/issues/388",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3785089660"
+        }
+      ],
+      "reviewed": "cca5bd0340863f92bdc7bb57bbf05a7ed50a4c7e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3785003981"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The library directory was renamed to `bedrock/` in this PR, and this is the only place that still names the old one.\n\n```suggestion\nShared by every implementation under ``bedrock/``, which is what makes their\n```",
+      "created": "2026-08-14T16:13:55Z",
+      "hunk": "@@ -0,0 +1,28 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a plain Bedrock Converse call.\n+\n+Shared by every implementation under ``botocore/``, which is what makes their",
+      "id": "PRRT_kwDOTuzK5c6ZWIKl",
+      "opened": "2026-08-14T16:16:03Z",
+      "path": "scenarios/gen-ai/python/bedrock/scenarios/inference.py",
+      "replies": [],
+      "reviewed": "f5b3c04ddadca44f23af50b1a9f78aaa86d2e24c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/33#discussion_r3785432644"
+    }
+  ]
+}

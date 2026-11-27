@@ -1,0 +1,106 @@
+{
+  "head": "646d3e9d279bfc2c75468839ed9d8cb98ea07905",
+  "merge": "8d610e9480a400265dfd03411bdaf54683f8423d",
+  "merged": "2026-07-09T19:14:00Z",
+  "missing_roots": 0,
+  "number": 19077,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `declarative_name` for the URL-template-rules config is `java.common.http.client.url_template_rules/development`, but the agent reads this structured list at the key `url_template_rules` with no `/development` suffix (`RegexUrlTemplateCustomizerInitializer.java:35` calls `.get(\"http\").get(\"client\").getStructuredList(\"url_template_rules\", ...)`, and the integration-test resource `instrumentation-api-incubator/.../declarative-config.yaml` nests it as `url_template_rules:` without the suffix). Per the stability convention (`.github/agents/knowledge/config-property-stability.md`), the `/development` suffix marks a distinct experimental YAML key, so a user following this metadata would place rules under a key the agent never reads. The suffix should be dropped so the documented declarative path matches the key actually consumed.\n\nNote: the same incorrect `java.common.http.client.url_template_rules/development` value was added to every metadata.yaml in this PR that documents this config (e.g. apache-httpclient-*, async-http-client-*, netty-*, okhttp-*, ktor-*, play-ws-*, vertx-http-client-*, jetty-httpclient-*, armeria-1.3, akka-http-10.0, pekko-http-1.0, reactor-netty-1.0, ratpack-1.7, spring-web-6.0, jodd-http-4.2, google-http-client-1.19, http-url-connection, kubernetes-client-7.0, apache-httpasyncclient-4.1), and should be corrected in all of them.",
+      "created": "2026-06-25T15:22:18Z",
+      "hunk": "@@ -35,6 +48,29 @@ configurations:\n       `http.client.response.size` metrics.\n     type: boolean\n     default: false\n+  - declarative_name: java.common.http.client.url_template_rules/development",
+      "id": "PRRT_kwDODJKVX86MRG82",
+      "opened": "2026-06-25T15:22:19Z",
+      "path": "instrumentation/java-http-client/metadata.yaml",
+      "replies": [],
+      "reviewed": "c7f51d55210ff8a9d7ccc568df08c656190d8e57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077#discussion_r3475552794"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example uses `java.common.http.client.url_template_rules/development`, but the agent reads this structured list at the key `url_template_rules` (no `/development` suffix), as seen in `RegexUrlTemplateCustomizerInitializer.java` and the `declarative-config.yaml` integration-test resource. The example should drop the suffix so it matches the key the agent actually consumes.",
+      "created": "2026-06-25T15:22:18Z",
+      "hunk": "@@ -202,11 +204,32 @@ configurations:\n   - name: otel.instrumentation.common.db.query-sanitization.enabled\n     declarative_name: java.common.db.query_sanitization.enabled    # Optional: YAML config path\n     description: Enables query sanitization for database queries.\n-    type: boolean               # boolean | string | list | map\n+    type: boolean               # boolean | string | list | map (the flat form)\n     default: true\n     examples:                   # Optional: Example values for this configuration\n       - \"true\"\n       - \"false\"\n+  # Structured-list config: a list of objects in declarative config. `name` may be omitted for\n+  # declarative-only settings (identified solely by `declarative_name`).\n+  - declarative_name: java.common.http.client.url_template_rules/development",
+      "id": "PRRT_kwDODJKVX86MRG97",
+      "opened": "2026-06-25T15:22:19Z",
+      "path": "instrumentation-docs/readme.md",
+      "replies": [],
+      "reviewed": "c7f51d55210ff8a9d7ccc568df08c656190d8e57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077#discussion_r3475552892"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This canonical example uses `java.common.http.client.url_template_rules/development`, but the agent reads this structured list at `url_template_rules` with no `/development` suffix (see `RegexUrlTemplateCustomizerInitializer.java` and the `declarative-config.yaml` test resource, which nests it as `url_template_rules:`). Documenting the `/development`-suffixed key here will lead contributors to copy a declarative path the agent does not consume. Drop the suffix to match the real key.",
+      "created": "2026-06-25T15:22:18Z",
+      "hunk": "@@ -223,14 +223,80 @@ If an instrumentation module has configuration options, they should be documente\n Each configuration should include:\n \n - `name`: The full configuration property name, for example `otel.instrumentation.common.db.query-sanitization.enabled`.\n+  Optional only for declarative-only configs that have no flat property (see Structured Lists below);\n+  such entries must instead provide a `declarative_name`.\n+- `declarative_name` (optional): The declarative configuration YAML key path, for example\n+  `java.common.db.query_sanitization.enabled`.\n - `description`: A brief description of what the configuration does.\n-- `type`: The data type of the configuration value. Supported types are: `boolean`, `string`, `list`, and `map`.\n+- `type`: The data type of the configuration value. Supported types are: `boolean`, `string`, `list`,\n+  and `map`. This describes the **flat** (system property) form.\n - `default`: The default value for the configuration.\n \n If a configuration enables experimental attributes, list them, for example:\n \n > Enables experimental span attributes `couchbase.operation_id` and `couchbase.local.address`.\n \n+#### Structured Lists\n+\n+Some configurations are **lists of objects** in declarative configuration even though their flat\n+system-property form is a scalar or map. For these, keep `type` describing the flat form and add:\n+\n+- `declarative_type`: set to `structured_list`.\n+- `declarative_schema`: the per-item object schema, mirroring the JSON-schema style used by\n+  [opentelemetry-configuration](https://github.com/open-telemetry/opentelemetry-configuration). It\n+  consists of `type: object`, a `required` list, and named `properties` (each with `type`, an\n+  optional `description`, and an optional `default`). The `required` keys must be a subset of\n+  `properties`.\n+\n+For example, `service_peer_mapping` is a `host=service` map as a flat property but a list of\n+`{peer, service_name}` objects in declarative configuration:\n+\n+```yaml\n+configurations:\n+  - name: otel.instrumentation.common.peer-service-mapping\n+    declarative_name: java.common.service_peer_mapping\n+    description: Used to specify a mapping from host names or IP addresses to peer services.\n+    type: map\n+    default: \"\"\n+    declarative_type: structured_list\n+    declarative_schema:\n+      type: object\n+      required: [peer, service_name]\n+      properties:\n+        peer:\n+          type: string\n+          description: Host name or IP address to match against.\n+        service_name:\n+          type: string\n+          description: Peer service name to record for matching peers.\n+```\n+\n+A configuration that exists only in declarative configuration (no flat system property) omits `name`\n+and is identified solely by its `declarative_name`, for example `url_template_rules`:\n+\n+```yaml\n+configurations:\n+  - declarative_name: java.common.http.client.url_template_rules/development",
+      "id": "PRRT_kwDODJKVX86MRG9k",
+      "opened": "2026-06-25T15:22:19Z",
+      "path": "docs/contributing/documenting-instrumentation.md",
+      "replies": [],
+      "reviewed": "c7f51d55210ff8a9d7ccc568df08c656190d8e57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077#discussion_r3475552855"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example uses `java.common.http.client.url_template_rules/development`, but the agent reads this structured list at the key `url_template_rules` with no `/development` suffix (`RegexUrlTemplateCustomizerInitializer.java` and the `declarative-config.yaml` test resource confirm `url_template_rules:` without a suffix). Since this knowledge file guides contributors/agents authoring metadata, the example should use the unsuffixed key to avoid propagating the mismatch.",
+      "created": "2026-06-25T15:22:19Z",
+      "hunk": "@@ -9,12 +9,62 @@\n \n Each configuration entry includes:\n \n-- `name`: Flat system property (e.g., `otel.instrumentation.grpc.emit-message-events`)\n+- `name`: Flat system property (e.g., `otel.instrumentation.grpc.emit-message-events`). Optional\n+  only for declarative-only configs that have no flat property (see Structured Lists); such entries\n+  MUST have a `declarative_name`.\n - `declarative_name`: YAML key path (e.g., `java.grpc.emit_message_events`)\n-- `type`: `boolean`, `string`, `list`, `integer`\n+- `type`: `boolean`, `string`, `list`, `integer`, `map`. Describes the **flat** form.\n - `description`: Human-readable explanation\n - `default`: Default value\n - `examples` (optional): Only for module-specific configs with non-obvious format\n+- `declarative_type` (optional): Overrides the declarative-form shape when it differs from the flat\n+  `type`. Currently only `structured_list` (see Structured Lists).\n+- `declarative_schema` (optional): Per-item object schema, required when\n+  `declarative_type: structured_list` (see Structured Lists).\n+\n+## Structured Lists\n+\n+Some declarative configs are **lists of objects** even though their flat form is a scalar/map. The\n+flat `type` describes the flat system property; `declarative_type: structured_list` plus a\n+`declarative_schema` describe the per-item object shape for the declarative builder. The schema\n+mirrors the JSON-schema style used by opentelemetry-configuration: `type: object`, a `required`\n+list, and named `properties` (each with `type`, optional `description`, optional `default`). The\n+`required` keys must be a subset of `properties`.\n+\n+`service_peer_mapping` — flat form is a `host=service` map, declarative form is a list of\n+`{peer, service_name}`:\n+\n+```yaml\n+- name: otel.instrumentation.common.peer-service-mapping\n+  declarative_name: java.common.service_peer_mapping\n+  description: Used to specify a mapping from host names or IP addresses to peer services.\n+  type: map\n+  default: \"\"\n+  declarative_type: structured_list\n+  declarative_schema:\n+    type: object\n+    required: [peer, service_name]\n+    properties:\n+      peer: { type: string, description: Host name or IP address to match against. }\n+      service_name: { type: string, description: Peer service name to record for matching peers. }\n+```\n+\n+`url_template_rules` is **declarative-only** (no flat property) — it omits `name`:\n+\n+```yaml\n+- declarative_name: java.common.http.client.url_template_rules/development",
+      "id": "PRRT_kwDODJKVX86MRG-e",
+      "opened": "2026-06-25T15:22:19Z",
+      "path": ".github/agents/knowledge/metadata-yaml-format.md",
+      "replies": [],
+      "reviewed": "c7f51d55210ff8a9d7ccc568df08c656190d8e57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077#discussion_r3475552934"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it would be nice if we could have a single definition of common properties somewhere (not necessary now)",
+      "created": "2026-07-08T18:35:43Z",
+      "hunk": "@@ -25,8 +25,21 @@ configurations:\n   - name: otel.instrumentation.common.peer-service-mapping\n     declarative_name: java.common.service_peer_mapping\n     description: Used to specify a mapping from host names or IP addresses to peer services.\n-    type: structured_list\n+    type: map\n     default: \"\"\n+    declarative_type: structured_list\n+    declarative_schema:\n+      type: object\n+      required:\n+        - peer\n+        - service_name\n+      properties:\n+        peer:\n+          type: string\n+          description: Host name or IP address to match against.\n+        service_name:\n+          type: string\n+          description: Peer service name to record for matching peers.",
+      "id": "PRRT_kwDODJKVX86PV9fY",
+      "opened": "2026-07-08T18:36:00Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-4.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-07-09T10:36:39Z",
+          "body": "agreed, I will be following up with that",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077#discussion_r3550890314"
+        }
+      ],
+      "reviewed": "4cc69243e8a1449768b5e4a88929ff0ebf22326e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077#discussion_r3546419908"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This line lists `integer` as a valid `type` value, but `ConfigurationType` has no `INTEGER` constant — the enum value is `INT` (serialized as `int`), and `ConfigurationType.from(\"integer\")` would throw. Existing metadata files use `type: int` (e.g. `instrumentation/runtime-telemetry/metadata.yaml`). Since this line enumerates the valid flat types, `integer` should be `int`.",
+      "created": "2026-07-08T18:43:19Z",
+      "hunk": "@@ -9,12 +9,62 @@\n \n Each configuration entry includes:\n \n-- `name`: Flat system property (e.g., `otel.instrumentation.grpc.emit-message-events`)\n+- `name`: Flat system property (e.g., `otel.instrumentation.grpc.emit-message-events`). Optional\n+  only for declarative-only configs that have no flat property (see Structured Lists); such entries\n+  MUST have a `declarative_name`.\n - `declarative_name`: YAML key path (e.g., `java.grpc.emit_message_events`)\n-- `type`: `boolean`, `string`, `list`, `integer`\n+- `type`: `boolean`, `string`, `list`, `integer`, `map`. Describes the **flat** form.",
+      "id": "PRRT_kwDODJKVX86PWFc6",
+      "opened": "2026-07-08T18:43:20Z",
+      "path": ".github/agents/knowledge/metadata-yaml-format.md",
+      "replies": [],
+      "reviewed": "4cc69243e8a1449768b5e4a88929ff0ebf22326e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077#discussion_r3546464968"
+    }
+  ]
+}

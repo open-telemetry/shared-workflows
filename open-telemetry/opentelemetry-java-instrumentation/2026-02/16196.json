@@ -1,0 +1,52 @@
+{
+  "head": "7c9d8a8115f606e7b5769d5badef07f97bc1cd73",
+  "merge": "c91853d07305edbdfba236c50a38df08cadcebba",
+  "merged": "2026-02-17T14:16:32Z",
+  "missing_roots": 0,
+  "number": 16196,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There should be a blank line between the package statement and the static import statement to follow standard Java formatting conventions. This should be fixed by running `./gradlew spotlessApply` as mentioned in the PR description.\n```suggestion\npackage io.quarkus.gradle.tooling;\n```",
+      "created": "2026-02-16T20:07:51Z",
+      "hunk": "@@ -21,6 +21,7 @@\n  */\n \n package io.quarkus.gradle.tooling;",
+      "id": "PRRT_kwDODJKVX85u6ga_",
+      "opened": "2026-02-16T20:07:52Z",
+      "path": "instrumentation/quarkus-resteasy-reactive/quarkus3-plugin/src/main/java/io/quarkus/gradle/tooling/GradleApplicationModelBuilder.java",
+      "replies": [
+        {
+          "at": "2026-02-16T20:10:15Z",
+          "body": "```suggestion\r\npackage io.quarkus.gradle.tooling;\r\n\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16196#discussion_r2813901753"
+        }
+      ],
+      "reviewed": "aaf78d37ef2e66f6db4d4e85e9ad63c75fd168ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16196#discussion_r2813896675"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There should be a blank line between the package statement and the static import statement to follow standard Java formatting conventions. This should be fixed by running `./gradlew spotlessApply` as mentioned in the PR description.\n```suggestion\npackage io.quarkus.gradle.tooling;\n```",
+      "created": "2026-02-16T20:07:52Z",
+      "hunk": "@@ -21,6 +21,7 @@\n  */\n \n package io.quarkus.gradle.tooling;",
+      "id": "PRRT_kwDODJKVX85u6gbZ",
+      "opened": "2026-02-16T20:07:52Z",
+      "path": "instrumentation/quarkus-resteasy-reactive/quarkus2-plugin/src/main/java/io/quarkus/gradle/tooling/GradleApplicationModelBuilder.java",
+      "replies": [
+        {
+          "at": "2026-02-16T20:10:00Z",
+          "body": "```suggestion\npackage io.quarkus.gradle.tooling;\n\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16196#discussion_r2813901035"
+        }
+      ],
+      "reviewed": "aaf78d37ef2e66f6db4d4e85e9ad63c75fd168ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16196#discussion_r2813896708"
+    }
+  ]
+}

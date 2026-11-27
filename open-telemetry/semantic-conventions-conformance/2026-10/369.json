@@ -1,0 +1,25 @@
+{
+  "head": "620160656a6d2d0d2ee6343ad3c8cb56f7813dec",
+  "merge": "74ca433712d6ba6565c396d98c46d5adf8892bb1",
+  "merged": "2026-10-24T04:06:07Z",
+  "missing_roots": 0,
+  "number": 369,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The streaming return above bypasses this observation handler. With `stream: true`, the same request used by the new observation test still selects the first offered tool (`get_weather`) and emits `call_mock_001`, rather than `final_answer` with `call_mock_002`. A streaming client therefore continues the repeated-tool loop, although the new scenarios use non-streaming requests. Apply the observation-aware selection and call numbering in `_stream_tool_call` too, and extend the regression test to cover both response modes.",
+      "created": "2026-10-23T00:13:36Z",
+      "hunk": "@@ -587,6 +611,18 @@ def chat_completions(deployment=None):\n     if body.get(\"stream\"):\n         return Response(_stream_chat(body), mimetype=\"text/event-stream\")\n \n+    final_answer_tool = _final_answer_after_observation(body)\n+    if final_answer_tool:",
+      "id": "PRRT_kwDOTuzK5c6vbWEz",
+      "opened": "2026-10-23T00:13:36Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "0c2086cc27193d3e7a48ebe2651c1e1fe4d2a9d1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/369#discussion_r4354855009"
+    }
+  ]
+}

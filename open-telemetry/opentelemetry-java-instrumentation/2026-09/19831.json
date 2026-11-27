@@ -1,0 +1,115 @@
+{
+  "head": "3be1fabd9fc66b47dc5f754ffa26f905047ada06",
+  "merge": "2f479f4fd08610102c9aa4eb656db520b2e0bd6d",
+  "merged": "2026-09-09T14:26:40Z",
+  "missing_roots": 0,
+  "number": 19831,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] In stable-semconv mode, this only returns when a configured target was captured. If reflection encounters an unknown connection-string shape (or registration is otherwise missing), `onEnd` writes the contacted node into `server.address`, contradicting this PR's contract that only legacy semconv reports the contacted node and the linked proposal's requirement not to derive stable `server.address` from the selected connection. Stable mode should return unconditionally here; update the fallback test to expect no stable server attributes.",
+      "created": "2026-08-27T04:33:21Z",
+      "hunk": "@@ -87,13 +111,15 @@ public void onEnd(\n       CouchbaseRequestInfo request,\n       @Nullable Void unused,\n       @Nullable Throwable error) {\n-    Endpoint endpoint = request.getEndpoint();\n-    if (endpoint == null) {\n+    if (emitStableDatabaseSemconv() && request.getServerTarget() != null) {\n       return;",
+      "id": "PRRT_kwDODJKVX86cshSz",
+      "opened": "2026-08-27T04:33:21Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-27T04:38:25Z",
+          "body": "Addressed in f60930f51b4eb9afd6a1a511ceb7b3e4b7ea80ca.\n\nAnalysis: Stable database semantic conventions require `server.address` to describe the configured target. A contacted node is only a valid legacy fallback. `onEnd` now skips contacted-node attributes in stable mode even when target capture failed, and the fallback test covers both modes.\n\nUpsides: Stable spans no longer report a selected Couchbase node as the configured server. The test protects the missing-target path in both stable and legacy modes.\n\nDownsides: Stable spans omit server attributes when the instrumentation cannot capture the configured target.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3868763864"
+        }
+      ],
+      "reviewed": "c83d3ac99fb285b387a5fed9bd1c030fc11f72f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3868744060"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This fallback comment is inaccurate in stable-semconv mode: a parsing failure leaves `server.address` absent, and only legacy mode later reports the contacted node. This should be updated so future changes do not reintroduce the selected-node fallback that this PR intentionally removed.",
+      "created": "2026-08-27T23:37:43Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v2_0;\n+\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.CouchbaseServerTarget;\n+import java.lang.reflect.Method;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+// Couchbase 2.x moved its connection string type and changed its seed representation three times.\n+// Reflection keeps this helper compatible across the full range. Prefer allHosts when available\n+// because 2.4-2.6 drop seeds that fail DNS resolution from hosts.\n+public class CouchbaseConnectionStrings {\n+\n+  @Nullable\n+  public static CouchbaseServerTarget target(@Nullable Object connectionString) {\n+    if (connectionString == null) {\n+      return null;\n+    }\n+    try {\n+      Class<?> type = connectionString.getClass();\n+      List<?> seeds = seeds(type, connectionString);\n+      if (seeds == null) {\n+        return null;\n+      }\n+      CouchbaseServerTarget.Builder target = CouchbaseServerTarget.builder();\n+      for (Object seed : seeds) {\n+        addSeed(target, seed);\n+      }\n+      return target.build();\n+    } catch (ReflectiveOperationException | RuntimeException ignored) {\n+      // Fall back to the contacted node when the connection string shape is unknown.",
+      "id": "PRRT_kwDODJKVX86dAxj-",
+      "opened": "2026-08-27T23:37:43Z",
+      "path": "instrumentation/couchbase/couchbase-common-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v2_0/CouchbaseConnectionStrings.java",
+      "replies": [
+        {
+          "at": "2026-08-27T23:44:45Z",
+          "body": "Addressed in 32f5ab5cc1d4feb893263ace09852fd3ae0638df.\n\nAnalysis: The parser returns null when it cannot read the connection string. Stable semantic conventions then omit `server.address`. Legacy semantic conventions add the contacted node in `CouchbaseAttributesGetter.onEnd()`. The corrected comment states both outcomes.\n\nUpsides: The comment now documents the mode-specific behavior and warns against adding a contacted-node fallback to stable spans.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3876714733"
+        }
+      ],
+      "reviewed": "5a4defbb35f39b0651f639e6ca88e1977c01fee8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3876685498"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `DbServerTargetBuilder` preserves configured order unless `setSorted(true)` is enabled (`DbServerTargetBuilder.java:55-63`). As written, targets such as `two.example,one.example` remain unsorted, contradicting this PR's stated contract that Couchbase endpoint tokens are sorted lexicographically before the five-endpoint cap. Enable sorting here and update the order-sensitive parser expectations accordingly.",
+      "created": "2026-09-05T01:35:28Z",
+      "hunk": "@@ -0,0 +1,187 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v2_0;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.lang.reflect.Method;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+// Couchbase 2.x moved its connection string type and changed its seed representation three times.\n+// Reflection keeps this helper compatible across the full range. Prefer allHosts when available\n+// because 2.5.7 through 2.7.7 drop seeds that fail DNS resolution from hosts.\n+public final class CouchbaseConnectionStrings {\n+\n+  private static final int COUCHBASE_DEFAULT_PORT = 11210;\n+  private static final int COUCHBASES_DEFAULT_PORT = 11207;\n+  private static final int HTTP_DEFAULT_PORT = 8091;\n+  private static final ClassValue<Method> ALL_HOSTS =\n+      new ClassValue<Method>() {\n+        @Nullable\n+        @Override\n+        protected Method computeValue(Class<?> type) {\n+          return method(type, \"allHosts\");\n+        }\n+      };\n+  private static final ClassValue<Method> HOSTS =\n+      new ClassValue<Method>() {\n+        @Nullable\n+        @Override\n+        protected Method computeValue(Class<?> type) {\n+          return method(type, \"hosts\");\n+        }\n+      };\n+  private static final ClassValue<Method> SCHEME =\n+      new ClassValue<Method>() {\n+        @Nullable\n+        @Override\n+        protected Method computeValue(Class<?> type) {\n+          return method(type, \"scheme\");\n+        }\n+      };\n+  private static final ClassValue<Method> HOSTNAME =\n+      new ClassValue<Method>() {\n+        @Nullable\n+        @Override\n+        protected Method computeValue(Class<?> type) {\n+          return method(type, \"hostname\");\n+        }\n+      };\n+  private static final ClassValue<Method> PORT =\n+      new ClassValue<Method>() {\n+        @Nullable\n+        @Override\n+        protected Method computeValue(Class<?> type) {\n+          return method(type, \"port\");\n+        }\n+      };\n+\n+  @Nullable\n+  public static DbServerTarget target(@Nullable Object connectionString) {\n+    if (connectionString == null) {\n+      return null;\n+    }\n+    try {\n+      Class<?> type = connectionString.getClass();\n+      List<?> seeds = seeds(type, connectionString);\n+      if (seeds == null) {\n+        return null;\n+      }\n+      DbServerTargetBuilder builder =\n+          DbServerTarget.builder(defaultPort(scheme(type, connectionString)));",
+      "id": "PRRT_kwDODJKVX86ffGpX",
+      "opened": "2026-09-05T01:35:28Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseConnectionStrings.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:50:12Z",
+          "body": "Addressed in 7f4a7e17644c01e8a23cb5f3614072bc70c98373.\n\nAnalysis: The Couchbase target contract sorts rendered endpoint tokens before applying the five-endpoint cap, but DbServerTargetBuilder preserves input order by default. Enabling sorting on the Couchbase builder restores that contract, and the updated parser expectations cover host names, ports, and IPv6 seeds.\n\nUpsides: Stable server.address values are deterministic across equivalent seed orders and follow the documented sort-before-cap behavior.\n\nDownsides: server.address no longer preserves the configured seed order, which is the intended behavior for this logical target.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3963302934"
+        }
+      ],
+      "reviewed": "87e80ee305b4d5f8111b35fa8020688eec6a8fd2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3939012403"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This helper hides the short stable/legacy expected value, so readers must leave each assertion to discover which value is expected in each mode. Inline `emitStableDatabaseSemconv() ? \"127.0.0.1\" : null` at the direct attribute assertions, and compare with `\"127.0.0.1\"` in the already stable-only branch of `serverAddress()`.",
+      "created": "2026-09-05T01:35:28Z",
+      "hunk": "@@ -126,12 +127,21 @@ protected LongAssertConsumer networkPeerPort() {\n     return includesNetworkAttributes() ? val -> val.isNotNull() : val -> val.isNull();\n   }\n \n+  protected String configuredServerAddress() {\n+    return emitStableDatabaseSemconv() ? \"127.0.0.1\" : null;\n+  }",
+      "id": "PRRT_kwDODJKVX86ffGpd",
+      "opened": "2026-09-05T01:35:28Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseTest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:50:14Z",
+          "body": "Addressed in d35b4c0316437a617387179decd80282453cf7a7.\n\nAnalysis: The configuredServerAddress helper only selected between one short literal and null. Inlining that choice at each direct assertion and using the literal in the stable-only serverAddress branch keeps the expected value and semconv mode visible where each assertion is read.\n\nUpsides: The assertions now follow the repository's mode-dependent expectation rule and are easier to understand without navigating to a helper.\n\nDownsides: The same short conditional appears in seven assertions, which is intentional under the test guidance.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3963303130"
+        }
+      ],
+      "reviewed": "87e80ee305b4d5f8111b35fa8020688eec6a8fd2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3939012415"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "what if backend address is `[2001:db8::1]`, is that possible?",
+      "created": "2026-09-08T10:22:44Z",
+      "hunk": "@@ -121,45 +135,67 @@ public void setOperationId(@Nullable String operationId) {\n   }\n \n   @Nullable\n-  public Endpoint getEndpoint() {\n-    return endpoint;\n+  public Node getNode() {\n+    return node;\n   }\n \n-  public void setEndpoint(@Nullable SocketAddress peerAddress, String remoteAddress) {\n+  public void setNode(@Nullable SocketAddress peerAddress, @Nullable String backendAddress) {\n     if (peerAddress == null) {\n       return;\n     }\n-\n-    int portSeparator = remoteAddress.lastIndexOf(':');\n-    String serverAddress = remoteAddress.substring(0, portSeparator);\n-    if (serverAddress.startsWith(\"[\") && serverAddress.endsWith(\"]\")) {\n-      serverAddress = serverAddress.substring(1, serverAddress.length() - 1);\n-    }\n-    int serverPort = Integer.parseInt(remoteAddress.substring(portSeparator + 1));\n-    endpoint = new Endpoint(peerAddress, serverAddress, serverPort);\n+    // Replace both values atomically so retries cannot pair data from different nodes.\n+    node = new Node(peerAddress, backendAddress);\n   }\n \n-  public static final class Endpoint {\n+  public static final class Node {\n+\n     private final SocketAddress peerAddress;\n-    private final String serverAddress;\n-    private final int serverPort;\n+    @Nullable private final String backendAddress;\n+    private final int backendPort;\n \n-    private Endpoint(SocketAddress peerAddress, String serverAddress, int serverPort) {\n+    private Node(SocketAddress peerAddress, @Nullable String backendAddress) {\n       this.peerAddress = peerAddress;\n-      this.serverAddress = serverAddress;\n-      this.serverPort = serverPort;\n+      if (backendAddress == null) {\n+        this.backendAddress = null;\n+        this.backendPort = 0;\n+        return;\n+      }\n+      int portSeparator = backendAddress.lastIndexOf(':');",
+      "id": "PRRT_kwDODJKVX86gMgYJ",
+      "opened": "2026-09-08T10:22:44Z",
+      "path": "instrumentation/couchbase/couchbase-common-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v2_0/CouchbaseRequestInfo.java",
+      "replies": [
+        {
+          "at": "2026-09-08T17:48:44Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831/commits/57bcab51ecc9384feba778e8c183637b4f606275",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3960706848"
+        }
+      ],
+      "reviewed": "759e6f06bf7d50febfbd59187a18e628174d52a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19831#discussion_r3956851089"
+    }
+  ]
+}

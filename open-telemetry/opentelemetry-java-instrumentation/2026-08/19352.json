@@ -1,0 +1,142 @@
+{
+  "head": "04de1f0f2eb16772a83297f4114ead3fa9d3b913",
+  "merge": "4e605f2f593d8483c9463a2209fbd1f1f8fb31ec",
+  "merged": "2026-08-07T14:07:42Z",
+  "missing_roots": 0,
+  "number": 19352,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Stable process spans must link the message creation context even when that context is also their parent (`MessagingProcessInstrumenterFactory.java:37-40`). This assertion checks only the parent, so a regression that drops the required link would still pass. Please assert the producer link here and in the stable failure case below.",
+      "created": "2026-08-05T22:27:35Z",
+      "hunk": "@@ -49,14 +50,47 @@ void shouldCreateSpansForSingleRecordProcess() throws InterruptedException {\n \n     AtomicReference<SpanData> producer = new AtomicReference<>();\n \n+    if (emitStableMessagingSemconv()) {\n+      testing()\n+          .waitAndAssertSortedTraces(\n+              orderByRootSpanKind(SpanKind.INTERNAL, SpanKind.CLIENT),\n+              trace -> {\n+                trace.hasSpansSatisfyingExactly(\n+                    span -> span.hasName(\"producer\"),\n+                    span ->\n+                        span.hasName(spanName(\"testSingleTopic\", \"publish\", \"send\"))\n+                            .hasKind(SpanKind.PRODUCER)\n+                            .hasParent(trace.getSpan(0))\n+                            .hasAttributesSatisfyingExactly(sendAttributes(record)),\n+                    span ->\n+                        span.hasName(spanName(\"testSingleTopic\", \"process\", \"process\"))\n+                            .hasKind(SpanKind.CONSUMER)\n+                            .hasParent(trace.getSpan(1))",
+      "id": "PRRT_kwDODJKVX86Wz4GD",
+      "opened": "2026-08-05T22:27:38Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractSingleRecordVertxKafkaTest.java",
+      "replies": [],
+      "reviewed": "00545038b3e19c177d52d17d2fb0ecdd7609bebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724512161"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] In stable mode the process instrumenter always links the message creation context, including when it is also the parent (`MessagingProcessInstrumenterFactory.java:37-40`). Since this stable no-receive assertion only verifies the parent, it would not catch a dropped producer link. Please assert the link here and in the failure case.",
+      "created": "2026-08-05T22:27:36Z",
+      "hunk": "@@ -50,12 +50,12 @@ void shouldCreateSpansForSingleRecordProcess() throws InterruptedException {\n                 trace.hasSpansSatisfyingExactly(\n                     span -> span.hasName(\"producer\"),\n                     span ->\n-                        span.hasName(\"testSingleTopic publish\")\n+                        span.hasName(spanName(\"testSingleTopic\", \"publish\", \"send\"))\n                             .hasKind(SpanKind.PRODUCER)\n                             .hasParent(trace.getSpan(0))\n                             .hasAttributesSatisfyingExactly(sendAttributes(record)),\n                     span ->\n-                        span.hasName(\"testSingleTopic process\")\n+                        span.hasName(spanName(\"testSingleTopic\", \"process\", \"process\"))\n                             .hasKind(SpanKind.CONSUMER)\n                             .hasParent(trace.getSpan(1))",
+      "id": "PRRT_kwDODJKVX86Wz4Ga",
+      "opened": "2026-08-05T22:27:38Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractSingleRecordNoReceiveTelemetryVertxKafkaTest.java",
+      "replies": [
+        {
+          "at": "2026-08-06T00:11:30Z",
+          "body": "Addressed in 068cc7104bbcc2ae18e49c0f189f5e935d6e6b38: Added exact producer-link assertions next to the stable process-span parent assertions; the shared no-receive classes gate the link assertion on emitStableMessagingSemconv() because they also run under old semconv.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724977577"
+        }
+      ],
+      "reviewed": "00545038b3e19c177d52d17d2fb0ecdd7609bebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724512201"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Each stable per-record process span must link its producer context even though that context is also selected as parent (`MessagingProcessInstrumenterFactory.java:37-40`). These assertions verify only the parent, so the new stable matrix does not prove the required links for the individual records. Add exact producer-link assertions for both records and the failure-path record.",
+      "created": "2026-08-05T22:27:36Z",
+      "hunk": "@@ -144,29 +155,135 @@ void shouldHandleFailureInKafkaBatchListener() throws InterruptedException {\n             trace ->\n                 trace.hasSpansSatisfyingExactly(\n                     span ->\n-                        span.hasName(\"testBatchTopic receive\")\n-                            .hasKind(SpanKind.CONSUMER)\n+                        span.hasName(spanName(\"testBatchTopic\", \"receive\", \"poll\"))\n+                            .hasKind(receiveKind())\n                             .hasNoParent()\n                             .hasAttributesSatisfyingExactly(receiveAttributes(\"testBatchTopic\")),\n \n                     // batch consumer\n                     span ->\n-                        span.hasName(\"testBatchTopic process\")\n+                        span.hasName(spanName(\"testBatchTopic\", \"process\", \"process\"))\n                             .hasKind(SpanKind.CONSUMER)\n                             .hasParent(trace.getSpan(0))\n                             .hasLinks(LinkData.create(producer.get().getSpanContext()))\n                             .hasStatus(StatusData.error())\n                             .hasException(new IllegalArgumentException(\"boom\"))\n                             .hasAttributesSatisfyingExactly(\n-                                batchProcessAttributes(\"testBatchTopic\")),\n+                                withErrorType(batchProcessAttributes(\"testBatchTopic\"))),\n                     span -> span.hasName(\"batch consumer\").hasParent(trace.getSpan(1)),\n \n                     // single consumer\n                     span ->\n-                        span.hasName(\"testBatchTopic process\")\n+                        span.hasName(spanName(\"testBatchTopic\", \"process\", \"process\"))\n                             .hasKind(SpanKind.CONSUMER)\n                             .hasParent(trace.getSpan(0))\n                             .hasAttributesSatisfyingExactly(processAttributes(record)),\n                     span -> span.hasName(\"process error\").hasParent(trace.getSpan(3))));\n   }\n+\n+  private void assertStableBatchSuccess(\n+      KafkaProducerRecord<String, String> record1, KafkaProducerRecord<String, String> record2) {\n+    AtomicReference<SpanData> producer1 = new AtomicReference<>();\n+    AtomicReference<SpanData> producer2 = new AtomicReference<>();\n+\n+    testing()\n+        .waitAndAssertSortedTraces(\n+            orderByRootSpanKind(SpanKind.INTERNAL, SpanKind.CONSUMER, SpanKind.CLIENT),\n+            trace -> {\n+              trace.hasSpansSatisfyingExactly(\n+                  span -> span.hasName(\"producer\"),\n+                  span ->\n+                      span.hasName(spanName(\"testBatchTopic\", \"publish\", \"send\"))\n+                          .hasKind(SpanKind.PRODUCER)\n+                          .hasParent(trace.getSpan(0))\n+                          .hasAttributesSatisfyingExactly(sendAttributes(record1)),\n+                  span ->\n+                      span.hasName(spanName(\"testBatchTopic\", \"process\", \"process\"))\n+                          .hasKind(SpanKind.CONSUMER)\n+                          .hasParent(trace.getSpan(1))\n+                          .hasAttributesSatisfyingExactly(processAttributes(record1)),",
+      "id": "PRRT_kwDODJKVX86Wz4Gt",
+      "opened": "2026-08-05T22:27:38Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsVertxKafkaTest.java",
+      "replies": [],
+      "reviewed": "00545038b3e19c177d52d17d2fb0ecdd7609bebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724512225"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Stable per-record process spans retain an exact link to their message creation context even when that context is their parent (`MessagingProcessInstrumenterFactory.java:37-40`). The no-receive stable run currently checks only parentage here, allowing link regressions to pass. Assert the matching producer link for both records and for the failure-path record.",
+      "created": "2026-08-05T22:27:36Z",
+      "hunk": "@@ -64,25 +64,25 @@ void shouldCreateSpansForBatchReceiveAndProcess() throws InterruptedException {\n \n                   // first record\n                   span ->\n-                      span.hasName(\"testBatchTopic publish\")\n+                      span.hasName(spanName(\"testBatchTopic\", \"publish\", \"send\"))\n                           .hasKind(SpanKind.PRODUCER)\n                           .hasParent(trace.getSpan(0))\n                           .hasAttributesSatisfyingExactly(sendAttributes(record1)),\n                   span ->\n-                      span.hasName(\"testBatchTopic process\")\n+                      span.hasName(spanName(\"testBatchTopic\", \"process\", \"process\"))\n                           .hasKind(SpanKind.CONSUMER)\n                           .hasParent(trace.getSpan(1))",
+      "id": "PRRT_kwDODJKVX86Wz4HA",
+      "opened": "2026-08-05T22:27:38Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsNoReceiveTelemetryVertxKafkaTest.java",
+      "replies": [],
+      "reviewed": "00545038b3e19c177d52d17d2fb0ecdd7609bebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724512258"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Stable process spans always link the creation context, even when it is also used as the parent (`MessagingProcessInstrumenterFactory.java:37-40`). This stable no-receive assertion checks parentage but not the producer link, and the retry/failure assertions below have the same gap. Add exact link assertions for each process attempt.",
+      "created": "2026-08-05T22:27:37Z",
+      "hunk": "@@ -61,44 +68,18 @@ void shouldCreateSpansForSingleRecordProcess() {\n                 trace.hasSpansSatisfyingExactly(\n                     span -> span.hasName(\"producer\"),\n                     span ->\n-                        span.hasName(\"testSingleTopic publish\")\n+                        span.hasName(spanName(\"testSingleTopic\", \"publish\", \"send\"))\n                             .hasKind(SpanKind.PRODUCER)\n                             .hasParent(trace.getSpan(0))\n                             .hasAttributesSatisfyingExactly(\n-                                equalTo(MESSAGING_SYSTEM, \"kafka\"),\n-                                equalTo(MESSAGING_DESTINATION_NAME, \"testSingleTopic\"),\n-                                equalTo(MESSAGING_OPERATION, \"publish\"),\n-                                satisfies(\n-                                    stringKey(\"messaging.client_id\"),\n-                                    val -> val.startsWith(\"producer\")),\n-                                satisfies(\n-                                    MESSAGING_DESTINATION_PARTITION_ID,\n-                                    AbstractStringAssert::isNotEmpty),\n-                                satisfies(\n-                                    MESSAGING_KAFKA_MESSAGE_OFFSET,\n-                                    AbstractLongAssert::isNotNegative),\n-                                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\")),\n+                                sendAttributes(\"testSingleTopic\", \"10\")),\n                     span ->\n-                        span.hasName(\"testSingleTopic process\")\n+                        span.hasName(spanName(\"testSingleTopic\", \"process\", \"process\"))\n                             .hasKind(SpanKind.CONSUMER)\n                             .hasParent(trace.getSpan(1))\n                             .hasAttributesSatisfyingExactly(",
+      "id": "PRRT_kwDODJKVX86Wz4HZ",
+      "opened": "2026-08-05T22:27:38Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/testing/src/main/java/io/opentelemetry/testing/AbstractSpringKafkaNoReceiveTelemetryTest.java",
+      "replies": [],
+      "reviewed": "00545038b3e19c177d52d17d2fb0ecdd7609bebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724512290"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Under stable semconv, the process span must link the producer context even when it becomes that span's parent (`MessagingProcessInstrumenterFactory.java:37-40`). This new stable topology checks only the parent, so it does not cover the required process link; the retry helper has the same omission. Add exact producer-link assertions to both paths.",
+      "created": "2026-08-05T22:27:37Z",
+      "hunk": "@@ -77,75 +84,67 @@ void shouldCreateSpansForSingleRecordProcess() {\n \n     AtomicReference<SpanData> producer = new AtomicReference<>();\n \n+    if (emitStableMessagingSemconv()) {\n+      testing.waitAndAssertSortedTraces(\n+          orderByRootSpanKind(SpanKind.INTERNAL, SpanKind.CLIENT),\n+          trace -> {\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"producer\"),\n+                span ->\n+                    span.hasName(spanName(\"testSingleTopic\", \"publish\", \"send\"))\n+                        .hasKind(SpanKind.PRODUCER)\n+                        .hasParent(trace.getSpan(0))\n+                        .hasAttributesSatisfyingExactly(\n+                            producerAttributes(\"testSingleTopic\", \"10\")),\n+                span ->\n+                    span.hasName(spanName(\"testSingleTopic\", \"process\", \"process\"))\n+                        .hasKind(SpanKind.CONSUMER)\n+                        .hasParent(trace.getSpan(1))\n+                        .hasAttributesSatisfyingExactly(",
+      "id": "PRRT_kwDODJKVX86Wz4Hu",
+      "opened": "2026-08-05T22:27:38Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+      "replies": [],
+      "reviewed": "00545038b3e19c177d52d17d2fb0ecdd7609bebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724512314"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Stable process spans always link the message creation context, including when it is also their parent (`MessagingProcessInstrumenterFactory.java:37-40`). This stable assertion verifies only parentage, so dropping that link would not fail the new matrix. Add an exact producer-link assertion here and in the receive-disabled stable path.",
+      "created": "2026-08-05T22:27:37Z",
+      "hunk": "@@ -162,13 +169,44 @@ protected void testSingleRecordProcess(\n   private static void assertWithReceiveTelemetry(SenderRecord<String, String, Object> record) {\n     AtomicReference<SpanData> producerSpan = new AtomicReference<>();\n \n+    if (emitStableMessagingSemconv()) {\n+      testing.waitAndAssertSortedTraces(\n+          orderByRootSpanKind(SpanKind.INTERNAL, SpanKind.CLIENT),\n+          trace -> {\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"producer\"),\n+                span ->\n+                    span.hasName(spanName(\"testTopic\", \"publish\", \"send\"))\n+                        .hasKind(SpanKind.PRODUCER)\n+                        .hasParent(trace.getSpan(0))\n+                        .hasAttributesSatisfyingExactly(sendAttributes(record)),\n+                span ->\n+                    span.hasName(spanName(\"testTopic\", \"process\", \"process\"))\n+                        .hasKind(SpanKind.CONSUMER)\n+                        .hasParent(trace.getSpan(1))\n+                        .hasAttributesSatisfyingExactly(processAttributes(record)),",
+      "id": "PRRT_kwDODJKVX86Wz4IA",
+      "opened": "2026-08-05T22:27:38Z",
+      "path": "instrumentation/reactor/reactor-kafka-1.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/kafka/v1_0/AbstractReactorKafkaTest.java",
+      "replies": [],
+      "reviewed": "00545038b3e19c177d52d17d2fb0ecdd7609bebc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3724512342"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `MessagingIncubatingAttributes.MESSAGING_CLIENT_ID`",
+      "created": "2026-08-06T15:06:35Z",
+      "hunk": "@@ -264,4 +350,82 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n                       .hasAttributesSatisfyingExactly(assertions);\n                 }));\n   }\n+\n+  private static List<AttributeAssertion> producerAttributes(String topic, boolean includeKey) {\n+    List<AttributeAssertion> assertions =\n+        new ArrayList<>(\n+            messagingAttributes(topic, \"publish\", \"send\", \"send\", \"producer\", includeKey));\n+    assertions.add(\n+        satisfies(MESSAGING_DESTINATION_PARTITION_ID, val -> val.isInstanceOf(String.class)));\n+    assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, includeKey ? \"10\" : null));\n+    assertions.add(\n+        equalTo(\n+            stringKey(\"messaging.kafka.bootstrap.servers\"),\n+            EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null));\n+    addOffsetAssertions(assertions, 0);\n+    return assertions;\n+  }\n+\n+  private static List<AttributeAssertion> messagingAttributes(\n+      String topic,\n+      String oldOperation,\n+      String operationName,\n+      String operationType,\n+      String clientIdSuffix,\n+      boolean startsWith) {\n+    List<AttributeAssertion> assertions =\n+        new ArrayList<>(\n+            asList(\n+                equalTo(MESSAGING_SYSTEM, KAFKA),\n+                equalTo(MESSAGING_DESTINATION_NAME, topic),\n+                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n+                equalTo(\n+                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n+                equalTo(\n+                    MESSAGING_OPERATION_TYPE,\n+                    emitStableMessagingSemconv() ? operationType : null)));\n+    if (emitOldMessagingSemconv()) {\n+      assertions.add(\n+          satisfies(\n+              stringKey(\"messaging.client_id\"),\n+              val -> {\n+                if (startsWith) {\n+                  val.startsWith(clientIdSuffix);\n+                } else {\n+                  val.endsWith(clientIdSuffix);\n+                }\n+              }));\n+    }\n+    if (emitStableMessagingSemconv()) {\n+      assertions.add(\n+          satisfies(\n+              stringKey(\"messaging.client.id\"),",
+      "id": "PRRT_kwDODJKVX86XCE0v",
+      "opened": "2026-08-06T15:06:35Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+      "replies": [
+        {
+          "at": "2026-08-07T03:52:26Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352/commits/b55ed5e26467808e8f8b2e705e62e8cbf7ce8204",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3733314673"
+        }
+      ],
+      "reviewed": "f3c4c167b88c1763cb5a368164dc84b8129d96f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19352#discussion_r3729960610"
+    }
+  ]
+}

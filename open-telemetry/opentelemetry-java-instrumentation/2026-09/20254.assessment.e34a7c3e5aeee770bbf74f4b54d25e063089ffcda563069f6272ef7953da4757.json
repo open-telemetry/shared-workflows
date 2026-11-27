@@ -1,0 +1,38 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4bab581372bf74c7c013490d7ea81f610a6d772b29e4e1ddbf8863e5355e254b",
+  "input_digest": "e34a7c3e5aeee770bbf74f4b54d25e063089ffcda563069f6272ef7953da4757",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/533ab47fb3c48d578b289d28e9751463149cb5ad/instrumentation/gwt-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/533ab47fb3c48d578b289d28e9751463149cb5ad/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/533ab47fb3c48d578b289d28e9751463149cb5ad/.github/scripts/metadata-ci-collect.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53ba04f3361fcf3603cf2956fbe96a8a58598994/instrumentation/gwt-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53ba04f3361fcf3603cf2956fbe96a8a58598994/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53ba04f3361fcf3603cf2956fbe96a8a58598994/.github/scripts/metadata-ci-collect.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ba00262566402c9328d9343c87aa50718cbc53a5"
+      ],
+      "id": "PRRT_kwDODJKVX86mLqGn",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/533ab47fb3c48d578b289d28e9751463149cb5ad/instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/533ab47fb3c48d578b289d28e9751463149cb5ad/instrumentation/gwt-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53ba04f3361fcf3603cf2956fbe96a8a58598994/instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53ba04f3361fcf3603cf2956fbe96a8a58598994/instrumentation/gwt-2.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86mLqGx",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

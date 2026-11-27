@@ -1,0 +1,115 @@
+{
+  "head": "02fd0b13e7ad3219d593decfabeb6fe973029988",
+  "merge": "ca3e6d675498bc8e3266aeac5f05003efe9b8cbf",
+  "merged": "2026-09-15T01:17:09Z",
+  "missing_roots": 0,
+  "number": 20122,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This repository-wide cleanup is incomplete. The same simple mode selector still exists in `instrumentation/reactor/reactor-kafka-1.0/testing/.../AbstractReactorKafkaTest.java:211,227,397-399`, and equivalent `oldOperation`/`operationName`/`operationType` helpers remain in `Jms2InstrumentationTest.java:162-183,485-500`, `rocketmq-client-4.8/.../AbstractRocketMqClientTest.java:648-678`, and `spring-pulsar-1.0/.../AbstractSpringPulsarTest.java:183-246`. Because this PR closes #19984, whose stated scope is applying the rule across the repository, please inline the remaining short mode-dependent expectations too.",
+      "created": "2026-09-12T18:01:24Z",
+      "hunk": "@@ -123,7 +123,8 @@ void shouldCreateSpansForSingleRecordProcess() {\n     }\n \n     testing.waitAndAssertSortedTraces(\n-        orderByRootSpanKind(SpanKind.INTERNAL, receiveKind()),\n+        orderByRootSpanKind(\n+            SpanKind.INTERNAL, emitStableMessagingSemconv() ? SpanKind.CLIENT : SpanKind.CONSUMER),",
+      "id": "PRRT_kwDODJKVX86hyTE_",
+      "opened": "2026-09-12T18:01:24Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+      "replies": [
+        {
+          "at": "2026-09-12T18:14:40Z",
+          "body": "Addressed in 7af97987b7380eddcbde82ddf6b7ed2316e92355.\n\nAnalysis: The cited helpers only wrapped short semantic convention conditionals, so they hid expected old and stable values at assertion sites. The same helper pattern also remained in Spring JMS 2.0. Inlining the selectors follows the test rule while preserving each mode's expected values. The RocketMQ destination helper remains because it performs a documented namespace derivation rather than only selecting an expected value.\n\nUpsides: Every short mode-dependent expected value is visible where asserted, and the repository-wide cleanup includes the additional Spring JMS instance.\n\nDownsides: The repeated conditionals make the tests longer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997112310"
+        }
+      ],
+      "reviewed": "848465854ca2a0b68f8fab6cbaa24777a7d3dd0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997080650"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This assertion still hides the stable-only subscription expectation behind `subscriptionName(...)` at line 193. The same helper remains at four call sites in this file, unlike the operation expectations inlined here; please inline those short ternaries and remove the helper so this cleanup consistently follows the test rule.",
+      "created": "2026-09-12T18:21:52Z",
+      "hunk": "@@ -176,9 +181,14 @@ void capturesDurableConsumerName() throws JMSException {\n                         .hasAttributesSatisfyingExactly(\n                             equalTo(MESSAGING_SYSTEM, \"jms\"),\n                             messagingDestinationName(\"someTopic\", false),\n-                            oldOperation(\"receive\"),\n-                            operationName(\"receive\"),\n-                            operationType(\"receive\"),\n+                            equalTo(\n+                                MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"receive\" : null),\n+                            equalTo(\n+                                MESSAGING_OPERATION_NAME,\n+                                emitStableMessagingSemconv() ? \"receive\" : null),\n+                            equalTo(\n+                                MESSAGING_OPERATION_TYPE,\n+                                emitStableMessagingSemconv() ? \"receive\" : null),",
+      "id": "PRRT_kwDODJKVX86hya78",
+      "opened": "2026-09-12T18:21:53Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-09-12T18:30:34Z",
+          "body": "Addressed in eb46d195386f1cf76dfb5c887cb48cd49632f10f.\n\nAnalysis: Each helper only selected a short expected value based on the messaging semantic convention mode. Inlining every call in the cited classes exposes both expected values at the assertion and preserves the existing default and stable behavior.\n\nUpsides: Subscription and span-name expectations are visible at each assertion, and the helper methods no longer obscure mode-specific values.\n\nDownsides: Repeated span-name conditionals make the Spring Kafka test longer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997151028"
+        }
+      ],
+      "reviewed": "7af97987b7380eddcbde82ddf6b7ed2316e92355",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997128983"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The span name in this same assertion is still selected through `spanName(...)`, so the old and stable expected values remain hidden even though the adjacent kind selector was inlined. The Java test rule explicitly calls out `spanName(...)`-style helpers; please inline the remaining call sites in this class and remove the helper.",
+      "created": "2026-09-12T18:21:53Z",
+      "hunk": "@@ -139,7 +140,7 @@ void shouldCreateSpansForSingleRecordProcess() {\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n                     span.hasName(spanName(\"testSingleTopic\", \"receive\", \"poll\"))\n-                        .hasKind(receiveKind())\n+                        .hasKind(emitStableMessagingSemconv() ? SpanKind.CLIENT : SpanKind.CONSUMER)",
+      "id": "PRRT_kwDODJKVX86hya8B",
+      "opened": "2026-09-12T18:21:53Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+      "replies": [
+        {
+          "at": "2026-09-12T18:30:36Z",
+          "body": "Addressed in eb46d195386f1cf76dfb5c887cb48cd49632f10f.\n\nAnalysis: Each helper only selected a short expected value based on the messaging semantic convention mode. Inlining every call in the cited classes exposes both expected values at the assertion and preserves the existing default and stable behavior.\n\nUpsides: Subscription and span-name expectations are visible at each assertion, and the helper methods no longer obscure mode-specific values.\n\nDownsides: Repeated span-name conditionals make the Spring Kafka test longer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997151093"
+        }
+      ],
+      "reviewed": "7af97987b7380eddcbde82ddf6b7ed2316e92355",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997128993"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `receiveAttributes()` still delegates the stable-only subscription expectation to `subscriptionName()` a few lines below, leaving this short mode-dependent value hidden while the operation expectations are now inline. Please inline `equalTo(MESSAGING_DESTINATION_SUBSCRIPTION_NAME, emitStableMessagingSemconv() ? OTEL_SUBSCRIPTION : null)` here and remove the helper.",
+      "created": "2026-09-12T18:21:53Z",
+      "hunk": "@@ -216,9 +216,9 @@ private static AttributeAssertion bodySize() {\n   protected List<AttributeAssertion> receiveAttributes() {\n     return asList(\n         equalTo(MESSAGING_SYSTEM, \"pulsar\"),\n-        oldOperation(\"receive\"),\n-        operationName(\"receive\"),\n-        operationType(\"receive\"),\n+        equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"receive\" : null),\n+        equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"receive\" : null),\n+        equalTo(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"receive\" : null),",
+      "id": "PRRT_kwDODJKVX86hya8D",
+      "opened": "2026-09-12T18:21:53Z",
+      "path": "instrumentation/spring/spring-pulsar-1.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/pulsar/v1_0/AbstractSpringPulsarTest.java",
+      "replies": [
+        {
+          "at": "2026-09-12T18:30:38Z",
+          "body": "Addressed in eb46d195386f1cf76dfb5c887cb48cd49632f10f.\n\nAnalysis: Each helper only selected a short expected value based on the messaging semantic convention mode. Inlining every call in the cited classes exposes both expected values at the assertion and preserves the existing default and stable behavior.\n\nUpsides: Subscription and span-name expectations are visible at each assertion, and the helper methods no longer obscure mode-specific values.\n\nDownsides: Repeated span-name conditionals make the Spring Kafka test longer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997151155"
+        }
+      ],
+      "reviewed": "7af97987b7380eddcbde82ddf6b7ed2316e92355",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997128999"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The repository-wide cleanup is still incomplete: the same short mode selector remains in `spring-kafka-2.7/testing/.../AbstractSpringKafkaNoReceiveTelemetryTest.java:76,446-447`, `kafka-clients-0.11/.../KafkaClientSuppressReceiveSpansTest.java:83,179-182`, and `vertx-kafka-client-3.6/.../AbstractVertxKafkaTest.java:311-316` (with its callers). `.github/instructions/java-tests.instructions.md:88-99` explicitly requires `spanName(...)`-style mode-dependent expectations to be inline, and #19984 calls for applying this across the repository. Please inline these remaining selectors as well.",
+      "created": "2026-09-12T22:19:05Z",
+      "hunk": "@@ -123,12 +132,16 @@ void shouldCreateSpansForSingleRecordProcess() {\n     }\n \n     testing.waitAndAssertSortedTraces(\n-        orderByRootSpanKind(SpanKind.INTERNAL, receiveKind()),\n+        orderByRootSpanKind(\n+            SpanKind.INTERNAL, emitStableMessagingSemconv() ? SpanKind.CLIENT : SpanKind.CONSUMER),\n         trace -> {\n           trace.hasSpansSatisfyingExactly(\n               span -> span.hasName(\"producer\"),\n               span ->\n-                  span.hasName(spanName(\"testSingleTopic\", \"publish\", \"send\"))\n+                  span.hasName(\n+                          emitStableMessagingSemconv()\n+                              ? \"send testSingleTopic\"\n+                              : \"testSingleTopic publish\")",
+      "id": "PRRT_kwDODJKVX86h0MYV",
+      "opened": "2026-09-12T22:19:06Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:45:20Z",
+          "body": "The PR description was ambiguous here. #19984 tracks the repository-wide cleanup, but this PR is only one incremental batch and does not close the issue. The cited Kafka helpers are outside this PR's scope and will remain for follow-up work. I updated the description to make that scope explicit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r4010261625"
+        }
+      ],
+      "reviewed": "02fd0b13e7ad3219d593decfabeb6fe973029988",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20122#discussion_r3997829090"
+    }
+  ]
+}

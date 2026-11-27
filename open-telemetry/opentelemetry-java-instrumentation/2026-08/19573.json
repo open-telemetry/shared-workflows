@@ -1,0 +1,73 @@
+{
+  "head": "cc364d80a13e7b1af67ce766e76083ef04923e8e",
+  "merge": "7465f28abff2ee473f5a2406f1d9c5a421fabc1e",
+  "merged": "2026-08-14T06:55:13Z",
+  "missing_roots": 0,
+  "number": 19573,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`enabledNew` is read with a default (`false`), so the code can’t distinguish “new key absent” from “new key explicitly set to false”. With `experimental.package-emitter.enabled=false` and deprecated `package-emitter.enabled=true`, this will still warn even though the replacement setting is present and should take precedence. Consider reading the new value as a nullable `Boolean` (no default) and only consulting/warning on the deprecated key when the replacement is absent.",
+      "created": "2026-08-13T17:46:31Z",
+      "hunk": "@@ -36,7 +36,7 @@ public void beforeAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemet\n \n     boolean enabledNew = newPackageEmitterConfig.getBoolean(\"enabled\", false);\n     boolean enabledOld = oldPackageEmitterConfig.getBoolean(\"enabled\", false);\n-    if (enabledOld) {\n+    if (enabledOld && !enabledNew) {\n       logger.warning(\n           \"otel.instrumentation.runtime-telemetry.package-emitter.enabled is deprecated and will\"\n               + \" be removed in 3.0. Use\"",
+      "id": "PRRT_kwDODJKVX86ZB2AF",
+      "opened": "2026-08-13T17:46:32Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarAnalyzerInstaller.java",
+      "replies": [
+        {
+          "at": "2026-08-13T18:21:29Z",
+          "body": "Addressed in 055c54788c1a5b1b92e39af2e42d2524e1e0532b.\n\nAnalysis: The defaulted replacement read erased the distinction between an absent setting and an explicit false value. Resolve the nullable replacement first, consult the deprecated setting only when absent, and isolate this compatibility logic in the runtime-telemetry library so it can be tested without crossing the javaagent classloader boundary.\n\nUpsides: Explicit false now takes precedence without a warning, deprecated true and false values both warn when applied as fallback, and parameterized tests verify the complete precedence and warning matrix.\n\nDownsides: Adds a small internal resolver class to the runtime-telemetry library.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19573#discussion_r3778015495"
+        }
+      ],
+      "reviewed": "e4e0b83b4422742132ec22cb2be271c5013b9213",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19573#discussion_r3777743587"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The updated precedence/warning behavior for `enabled` would benefit from explicit test coverage for (1) replacement key present (true/false) + deprecated key present => no deprecation warning, and (2) replacement key absent + deprecated key present => deprecation warning emitted. Adding assertions that capture and verify warning logs would prevent regressions in the warning-suppression behavior this PR is targeting.",
+      "created": "2026-08-13T17:46:31Z",
+      "hunk": "@@ -36,7 +36,7 @@ public void beforeAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemet\n \n     boolean enabledNew = newPackageEmitterConfig.getBoolean(\"enabled\", false);\n     boolean enabledOld = oldPackageEmitterConfig.getBoolean(\"enabled\", false);\n-    if (enabledOld) {\n+    if (enabledOld && !enabledNew) {",
+      "id": "PRRT_kwDODJKVX86ZB2Al",
+      "opened": "2026-08-13T17:46:32Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarAnalyzerInstaller.java",
+      "replies": [
+        {
+          "at": "2026-08-13T18:21:31Z",
+          "body": "Addressed in 055c54788c1a5b1b92e39af2e42d2524e1e0532b.\n\nAnalysis: The defaulted replacement read erased the distinction between an absent setting and an explicit false value. Resolve the nullable replacement first, consult the deprecated setting only when absent, and isolate this compatibility logic in the runtime-telemetry library so it can be tested without crossing the javaagent classloader boundary.\n\nUpsides: Explicit false now takes precedence without a warning, deprecated true and false values both warn when applied as fallback, and parameterized tests verify the complete precedence and warning matrix.\n\nDownsides: Adds a small internal resolver class to the runtime-telemetry library.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19573#discussion_r3778015658"
+        }
+      ],
+      "reviewed": "e4e0b83b4422742132ec22cb2be271c5013b9213",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19573#discussion_r3777743629"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new helper is duplicated in both the GraphQL 12.0 and 20.0 instrumentations with identical logic. If both versions are expected to keep the same precedence/warning behavior, consider extracting the helper into a shared utility (or shared base class) used by both instrumentations to reduce duplication and lower the chance of future behavior drift.",
+      "created": "2026-08-13T17:46:32Z",
+      "hunk": "@@ -69,25 +69,30 @@ private static final class Configuration {\n       this.dataFetcherEnabled = config.get(\"data_fetcher\").getBoolean(\"enabled\", false);\n       this.trivialDataFetcherEnabled =\n           config.get(\"trivial_data_fetcher\").getBoolean(\"enabled\", false);\n-      Boolean deprecatedAddOperationNameToSpanName =\n-          SemconvStability.v3Preview()\n-              ? null\n-              : config.get(\"add_operation_name_to_span_name\").getBoolean(\"enabled\");\n-      if (deprecatedAddOperationNameToSpanName != null) {\n-        // Support the deprecated config key until 3.0.\n-        logger.warning(\n-            \"The otel.instrumentation.graphql.add-operation-name-to-span-name.enabled setting is\"\n-                + \" deprecated and will be removed in 3.0. Use \"\n-                + \"otel.instrumentation.graphql.operation-name-in-span-name.enabled instead.\");\n+      this.operationNameInSpanNameEnabled = getOperationNameInSpanNameEnabled(config);\n+    }\n+\n+    private static boolean getOperationNameInSpanNameEnabled(DeclarativeConfigProperties config) {\n+      Boolean operationNameInSpanNameEnabled =\n+          config.get(\"operation_name_in_span_name\").getBoolean(\"enabled\");\n+      if (operationNameInSpanNameEnabled != null) {\n+        return operationNameInSpanNameEnabled;\n+      }",
+      "id": "PRRT_kwDODJKVX86ZB2BB",
+      "opened": "2026-08-13T17:46:32Z",
+      "path": "instrumentation/graphql-java/graphql-java-20.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/graphql/v20_0/GraphqlSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-13T18:21:32Z",
+          "body": "No code change.\n\nAnalysis: The two `GraphqlSingletons` classes belong to separate versioned javaagent modules. Their only shared GraphQL dependency is a library-instrumentation module, and moving javaagent-only declarative configuration, `SemconvStability`, and startup logging into that library would violate the library/javaagent boundary. A new shared javaagent module is not justified for this small compatibility shim, which is scheduled for removal in 3.0.\n\nUpsides: Keeps each versioned instrumentation self-contained, preserves the existing module boundary, and makes the deprecated code straightforward to remove alongside each version’s other compatibility logic.\n\nDownsides: The small helper remains duplicated until the deprecated GraphQL setting is removed in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19573#discussion_r3778015809"
+        }
+      ],
+      "reviewed": "e4e0b83b4422742132ec22cb2be271c5013b9213",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19573#discussion_r3777743667"
+    }
+  ]
+}

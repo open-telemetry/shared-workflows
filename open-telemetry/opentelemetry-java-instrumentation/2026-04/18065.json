@@ -1,0 +1,55 @@
+{
+  "head": "a030b34198746b6f3e751f673a2b58aee9db8a46",
+  "merge": "afaa6481f63eb1380a244898cd231de709c21ca2",
+  "merged": "2026-04-20T13:39:36Z",
+  "missing_roots": 0,
+  "number": 18065,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@jaydeluca looks like `otel.instrumentation.graphql.capture-query` is listed twice",
+      "created": "2026-04-20T11:33:10Z",
+      "hunk": "@@ -4778,16 +4787,27 @@ libraries:\n   javaagent_target_versions:\n   - com.graphql-java:graphql-java:[12,20)\n   configurations:\n+  - name: otel.instrumentation.graphql.capture-query\n+    description: Whether to capture the query in `graphql.document` span attribute.\n+    type: boolean\n+    default: true\n   - name: otel.instrumentation.graphql.query-sanitization.enabled\n+    declarative_name: java.graphql.query_sanitization.enabled\n     description: Enables sanitization of sensitive information from queries so they\n       aren't added as span attributes.\n     type: boolean\n     default: true\n   - name: otel.instrumentation.graphql.operation-name-in-span-name.enabled\n+    declarative_name: java.graphql.operation_name_in_span_name.enabled\n     description: |\n       Whether GraphQL operation name is added to the span name. WARNING: The GraphQL operation name is provided by the client and can have high cardinality. Use only when the server is not exposed to malicious clients.\n     type: boolean\n     default: false\n+  - name: otel.instrumentation.graphql.capture-query",
+      "id": "PRRT_kwDODJKVX858LQbW",
+      "opened": "2026-04-20T11:33:10Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "cb443ab7bf05b0d54aaf1f4c0ce70f87cd8eda90",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18065#discussion_r3110296115"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    declarative_name: java.graphql.capture_query\n    description: Whether to capture the query in `graphql.document` span attribute.\n```",
+      "created": "2026-04-20T12:58:05Z",
+      "hunk": "@@ -4778,16 +4787,27 @@ libraries:\n   javaagent_target_versions:\n   - com.graphql-java:graphql-java:[12,20)\n   configurations:\n+  - name: otel.instrumentation.graphql.capture-query\n+    description: Whether to capture the query in `graphql.document` span attribute.",
+      "id": "PRRT_kwDODJKVX858Mq9p",
+      "opened": "2026-04-20T12:58:05Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "cb443ab7bf05b0d54aaf1f4c0ce70f87cd8eda90",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18065#discussion_r3110783215"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-20T12:58:22Z",
+      "hunk": "@@ -4778,16 +4787,27 @@ libraries:\n   javaagent_target_versions:\n   - com.graphql-java:graphql-java:[12,20)\n   configurations:\n+  - name: otel.instrumentation.graphql.capture-query\n+    description: Whether to capture the query in `graphql.document` span attribute.\n+    type: boolean\n+    default: true\n   - name: otel.instrumentation.graphql.query-sanitization.enabled\n+    declarative_name: java.graphql.query_sanitization.enabled\n     description: Enables sanitization of sensitive information from queries so they\n       aren't added as span attributes.\n     type: boolean\n     default: true\n   - name: otel.instrumentation.graphql.operation-name-in-span-name.enabled\n+    declarative_name: java.graphql.operation_name_in_span_name.enabled\n     description: |\n       Whether GraphQL operation name is added to the span name. WARNING: The GraphQL operation name is provided by the client and can have high cardinality. Use only when the server is not exposed to malicious clients.\n     type: boolean\n     default: false\n+  - name: otel.instrumentation.graphql.capture-query\n+    declarative_name: java.graphql.capture_query\n+    description: Whether to capture the query in the `graphql.document` span attribute.\n+    type: boolean\n+    default: true",
+      "id": "PRRT_kwDODJKVX858MrQ8",
+      "opened": "2026-04-20T12:58:21Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "cb443ab7bf05b0d54aaf1f4c0ce70f87cd8eda90",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18065#discussion_r3110784826"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "01d7e1509417742ebc6ade450b1c3e8768e825fa0aa5c5edb7524b638501d9bb",
+  "input_digest": "d82fb70350de8d7ac2e5b8210d847b349e319f74db907aed72e07ea7f70f3a82",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX85wS5O3",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fbe37fb7eb60b8f8ee8f39e8eb1f0ba0e7c44eb8/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fbe37fb7eb60b8f8ee8f39e8eb1f0ba0e7c44eb8/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b1aa5335f79f51b86827c3356dfbd71894750abe/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX85wS54V",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85wkAEt",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78bc71497ffc0fd3db7dbbf5a9465d532a509cc0/instrumentation/opensearch/opensearch-rest-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b1aa5335f79f51b86827c3356dfbd71894750abe/instrumentation/opensearch/opensearch-rest-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/OpenSearchRestAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX85wsXe2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

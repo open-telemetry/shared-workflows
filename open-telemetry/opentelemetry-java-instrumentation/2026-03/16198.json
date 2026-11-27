@@ -1,0 +1,36 @@
+{
+  "head": "f422351ac7852544c92b6ffed1df593cd60e7e68",
+  "merge": "e9f4665c4da200af1aea36544f03276be82ecb79",
+  "merged": "2026-03-09T10:31:50Z",
+  "missing_roots": 0,
+  "number": 16198,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "??",
+      "created": "2026-02-17T02:06:43Z",
+      "hunk": "@@ -154,7 +154,7 @@\n > - **POM License**: Apache License, Version 2.0 - [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)\n \n **35** **Group:** `io.opentelemetry` **Name:** `opentelemetry-sdk-trace` **Version:** `1.59.0`\n-> - **POM Project URL**: [https://github.com/open-telemetry/opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java)\n+> - **POM Project URL**: [https://github.com/JCTools](https://github.com/JCTools)",
+      "id": "PRRT_kwDODJKVX85u8tcP",
+      "opened": "2026-02-17T02:06:48Z",
+      "path": "licenses/licenses.md",
+      "replies": [
+        {
+          "at": "2026-02-17T09:12:46Z",
+          "body": "Should be because `opentelemetry-sdk-trace` jar includes `META-INF/maven/org.jctools/jctools-core`\r\ncc @jack-berg ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16198#discussion_r2815770377"
+        },
+        {
+          "at": "2026-02-17T14:43:28Z",
+          "body": "Probably not? JC tools is shaded in but doesn't seem necessary to include meta files of shaded deps. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16198#discussion_r2817407743"
+        }
+      ],
+      "reviewed": "42a4fe300f2572f71c0d7b12a2642054ed1fe151",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16198#discussion_r2814648218"
+    }
+  ]
+}

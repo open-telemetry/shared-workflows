@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "485e467b1f45dc5f0451b040cbfd940601826ac8bc7ff28a6fa155402bebc857",
+  "input_digest": "f60dfbe68abd6f00288411257cd149ba1ce1ee9957a87cac5a969a67ae99ad46",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0dbe886d51265e235f8b95caf2dde083d5d9a228/instrumentation/gwt-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65b73f0b02c3d4cb05a6ee69148adbf20fc548b0/instrumentation/gwt-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/515c85f4f6799bbd2b5ae4815a618d3a289e4bd5"
+      ],
+      "id": "PRRT_kwDODJKVX86wehkF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/515c85f4f6799bbd2b5ae4815a618d3a289e4bd5/instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65b73f0b02c3d4cb05a6ee69148adbf20fc548b0/instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cadfee7f77f43c3aaaac329dbe69ecc8a2a8db8c"
+      ],
+      "id": "PRRT_kwDODJKVX86wgIZ5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

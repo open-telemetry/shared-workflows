@@ -1,0 +1,31 @@
+{
+  "head": "ae0cb82b08cbf1bafc26aec463e493b4e0bbce82",
+  "merge": "4cd4b73019d4ce3d2794e8572cff9142090728f5",
+  "merged": "2026-10-18T14:05:07Z",
+  "missing_roots": 0,
+  "number": 20671,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete this PR's suite-owned test-execution migration by moving shared Test-task settings from project-wide `tasks.withType<Test>().configureEach` blocks, including equivalent `withType<Test>()` blocks inside `tasks`, into `configureEach` inside the existing default `test` suite's `executions` block for the subprojects listed below. This is a structural cleanup, not an intentional behavior change. These subprojects only have the default suite and its execution variants.\n\nKeep one `executions` block per suite. Preserve every setting's value, condition, and effective scope so the default execution and all existing variants receive the same shared settings as before. Keep default-only filters, exclusions, and variant-specific settings in their current scopes, and preserve task names, metadata profiles, dependencies, classpaths, and check coverage. Do not add suites, variants, or telemetry labels, migrate deferred modules, or broaden the PR. In particular, leave suffix spelling such as `register(\"AddBaggage\")` unchanged and do not modify the helper's `suite.name + suffix` naming behavior.\n\n- `instrumentation/jboss-logmanager/jboss-logmanager-appender-1.1/javaagent/build.gradle.kts`: move both shared experimental log-attribute JVM flags for JBoss LogManager and JUL.\n- `instrumentation/log4j/log4j-appender-1.2/javaagent/build.gradle.kts`: move the shared experimental code-attribute and log-attribute JVM flags.\n- `instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts`: move shared `testLatestDeps`, the experimental log/code/marker-attribute JVM flags, and the shared conditional disablement currently configured through `withType<Test>()` under `denyUnsafe`. Preserve the full existing disablement condition and ensure it still applies to the default execution and every variant.\n- `instrumentation/log4j/log4j-appender-2.17/library/build.gradle.kts`: move shared `testLatestDeps`.\n\nThe other three subprojects in this PR have no identified omission of this kind. Leave their execution configuration and naming unchanged.\n\nRemove the corresponding global Test configuration blocks once their settings are covered by the suite. Preserve existing comments that explain non-obvious constraints. Validate the affected modules with the repository's documented formatting and focused checks, and update this existing PR without changing its draft/ready state. Acceptance: the listed single-suite subprojects own these shared settings through `test.executions.configureEach`, with no change in effective test behavior.",
+      "created": "2026-10-18T00:13:24Z",
+      "hunk": "@@ -39,42 +41,31 @@ tasks {\n     )\n     systemProperty(\"testMdcConfiguration\", \"new\")\n   }\n+}\n \n-  val testCaptureTemplateAndArguments = register<Test>(\"testCaptureTemplateAndArguments\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n-    jvmArgs(\n-      \"-Dotel.instrumentation.jboss-logmanager.experimental.capture-template=true\",\n-      \"-Dotel.instrumentation.jboss-logmanager.experimental.capture-arguments=true\",\n-    )\n-  }\n-\n-  val testLegacyMdcAttributes = register<Test>(\"testLegacyMdcAttributes\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.instrumentation.jboss-logmanager.experimental.capture-mdc-attributes=legacy\")\n-    systemProperty(\"testMdcConfiguration\", \"legacy\")\n-  }\n-\n-  val testExcludedOnlyMdcAttributes = register<Test>(\"testExcludedOnlyMdcAttributes\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n+testing {\n+  suites {\n+    named<JvmTestSuite>(\"test\") {\n+      executions {",
+      "id": "PRRT_kwDODJKVX86tlzwE",
+      "opened": "2026-10-18T00:13:23Z",
+      "path": "instrumentation/jboss-logmanager/jboss-logmanager-appender-1.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-18T00:31:47Z",
+          "body": "Addressed in ae0cb82b. Shared settings now live in the four existing `test.executions.configureEach` blocks, including the unchanged `denyUnsafe` condition. Default-only selectors, variant settings, suffixes, and the other three builds remain untouched. Formatting, library tests (114 cases), execution API tests, and `check` dry runs passed. Agent tests and runtime disablement verification were blocked by missing generated shaded API JARs (`v1_38` after regenerating `v1_15`).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20671#discussion_r4305132751"
+        }
+      ],
+      "reviewed": "5f0d74b368c8778538447d89d70b0683b0204b70",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20671#discussion_r4305086681"
+    }
+  ]
+}

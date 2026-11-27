@@ -1,0 +1,25 @@
+{
+  "head": "fc644e7898573a4d4975e12c08fb8809aed2f943",
+  "merge": "9a379ce0ed751b9b0f346a1d361dd261cc7b0fad",
+  "merged": "2026-01-06T08:44:19Z",
+  "missing_roots": 0,
+  "number": 15767,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this config is not relevant to this instrumentation",
+      "created": "2026-01-05T15:23:10Z",
+      "hunk": "@@ -45,7 +45,3 @@ dependencies {\n \n   latestDepTestLibrary(\"org.restlet:org.restlet:1.+\") // see restlet-2.0 module\n }\n-\n-tasks.withType<Test>().configureEach {\n-  jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")",
+      "id": "PRRT_kwDODJKVX85oDVWF",
+      "opened": "2026-01-05T15:23:10Z",
+      "path": "instrumentation/restlet/restlet-1.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "fc644e7898573a4d4975e12c08fb8809aed2f943",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15767#discussion_r2661872950"
+    }
+  ]
+}

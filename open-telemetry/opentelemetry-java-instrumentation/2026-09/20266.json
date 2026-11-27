@@ -1,0 +1,82 @@
+{
+  "head": "2a196f7b25e6e51160026f408569382ac675384d",
+  "merge": "e5d674d66d2bf6ebdc4bebe6d9b0e9ac7eda7a97",
+  "merged": "2026-09-30T17:58:42Z",
+  "missing_roots": 0,
+  "number": 20266,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  for Ratpack handlers (controller spans are disabled by default), and enables HTTP client spans and\n  HTTP client metrics.\n```",
+      "created": "2026-09-27T03:01:31Z",
+      "hunk": "@@ -1,10 +1,45 @@\n display_name: Ratpack\n description: >\n-  This instrumentation enriches HTTP server spans with route information, and enables controller\n-  spans for Ratpack handlers (controller spans are disabled by default).\n+  This instrumentation enriches HTTP server spans with route information, enables controller spans\n+  for Ratpack handlers (controller spans are disabled by default), and enables HTTP client spans and\n+  HTTP client metrics for Ratpack 1.7 and later.",
+      "id": "PRRT_kwDODJKVX86mW4kN",
+      "opened": "2026-09-27T03:01:31Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/metadata.yaml",
+      "replies": [],
+      "reviewed": "c48ec54d0d23891380ba7bee03f98810c6562009",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20266#discussion_r4113898474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  latestDepTestLibrary(\"io.ratpack:ratpack-core:1.6.+\") // see test suite below\n  latestDepTestLibrary(\"io.ratpack:ratpack-test:1.6.+\") // see test suite below\n```",
+      "created": "2026-09-29T17:42:38Z",
+      "hunk": "@@ -27,21 +39,18 @@ dependencies {\n     testImplementation(\"com.sun.activation:jakarta.activation:1.2.2\")\n   }\n \n-  latestDepTestLibrary(\"io.ratpack:ratpack-core:1.6.+\") // see ratpack-1.7 module\n-  latestDepTestLibrary(\"io.ratpack:ratpack-test:1.6.+\") // see ratpack-1.7 module\n+  latestDepTestLibrary(\"io.ratpack:ratpack-core:1.6.+\")\n+  latestDepTestLibrary(\"io.ratpack:ratpack-test:1.6.+\")",
+      "id": "PRRT_kwDODJKVX86nOXP9",
+      "opened": "2026-09-29T17:42:38Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "304bb130854b40e5ebe67bbb074464f522be90a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20266#discussion_r4136528429"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could add a comment that http client instrumentation is for 1.7+",
+      "created": "2026-09-30T11:43:11Z",
+      "hunk": "@@ -3,21 +3,26 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.ratpack.v1_7;\n+package io.opentelemetry.javaagent.instrumentation.ratpack.v1_4.httpclient;\n \n import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n import static java.util.Arrays.asList;\n \n import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import java.util.List;\n import net.bytebuddy.matcher.ElementMatcher;\n \n @AutoService(InstrumentationModule.class)\n-public class RatpackInstrumentationModule extends InstrumentationModule {\n-  public RatpackInstrumentationModule() {\n-    super(\"ratpack\", \"ratpack-1.7\");\n+public class RatpackHttpClientInstrumentationModule extends InstrumentationModule {",
+      "id": "PRRT_kwDODJKVX86ng4c-",
+      "opened": "2026-09-30T11:43:10Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/ratpack/v1_4/httpclient/RatpackHttpClientInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-30T14:52:36Z",
+          "body": "30c66fa92e3cabde252339852db452a1042b1861",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20266#discussion_r4145990031"
+        }
+      ],
+      "reviewed": "c49423ec07dca169cc0d004bd83cceac428595e9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20266#discussion_r4144187719"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this is to be removed in 3.0?",
+      "created": "2026-09-30T11:43:39Z",
+      "hunk": "@@ -50,24 +59,64 @@ configurations.configureEach {\n   }\n }\n \n+val version17Test = testing.suites.register<JvmTestSuite>(\"version17Test\") {\n+  dependencies {\n+    implementation(project(\":instrumentation:ratpack:ratpack-1.4:testing\"))\n+    implementation(project(\":instrumentation:ratpack:ratpack-1.7:library\"))\n+    val ratpackVersion = baseVersion(\"1.7.0\").orLatest()\n+    implementation(\"io.ratpack:ratpack-core:$ratpackVersion\")\n+    implementation(\"io.ratpack:ratpack-test:$ratpackVersion\")\n+  }\n+}\n+\n tasks {\n+  processResources {",
+      "id": "PRRT_kwDODJKVX86ng5Sm",
+      "opened": "2026-09-30T11:43:39Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-30T14:52:36Z",
+          "body": "6bf53dc865abe85355e799d9dad02b3206752c2d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20266#discussion_r4145990021"
+        }
+      ],
+      "reviewed": "c49423ec07dca169cc0d004bd83cceac428595e9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20266#discussion_r4144192691"
+    }
+  ]
+}

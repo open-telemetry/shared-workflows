@@ -1,0 +1,66 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c84ba785623761e22c83a97c0cc038615863ea9f3e73346cf11340314bdeb501",
+  "input_digest": "5f05bfe769e984749510cb0f4b494e7ee5a0832caeec277e90e51a12d9c5e0d2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f341ed6a6cb1ef469467fa0b8dab0247bf7e486c/smoke-tests/src/test/resources/ibmhttpsurlconnection/test.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f341ed6a6cb1ef469467fa0b8dab0247bf7e486c/smoke-tests/src/main/java/io/opentelemetry/smoketest/AbstractTestContainerManager.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24a0df5c4e0a78890e952442e753599f96ff70dc/smoke-tests/src/test/resources/ibmhttpsurlconnection/test.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24a0df5c4e0a78890e952442e753599f96ff70dc/smoke-tests/src/main/java/io/opentelemetry/smoketest/AbstractTestContainerManager.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d954283e8e29690d2834551fc50e6cf8d80bc848"
+      ],
+      "id": "PRRT_kwDODJKVX86c5oVl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f341ed6a6cb1ef469467fa0b8dab0247bf7e486c/smoke-tests/src/main/java/io/opentelemetry/smoketest/ImageVersions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24a0df5c4e0a78890e952442e753599f96ff70dc/smoke-tests/src/main/java/io/opentelemetry/smoketest/ImageVersions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3a249218ced6aa4180ffb58ebd0c5c47f4753611"
+      ],
+      "id": "PRRT_kwDODJKVX86c5oWA",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be6833e3133cb1eb5160c3af330e910787f61568/smoke-tests/src/main/java/io/opentelemetry/smoketest/AbstractTestContainerManager.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be6833e3133cb1eb5160c3af330e910787f61568/smoke-tests/src/test/resources/declarative-config.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24a0df5c4e0a78890e952442e753599f96ff70dc/smoke-tests/src/test/resources/declarative-config.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1ed8059acb11d8f7fd1891e2c9d646c87cd62ffc"
+      ],
+      "id": "PRRT_kwDODJKVX86c8kqG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ed8059acb11d8f7fd1891e2c9d646c87cd62ffc/smoke-tests/src/main/java/io/opentelemetry/smoketest/AbstractTestContainerManager.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24a0df5c4e0a78890e952442e753599f96ff70dc/smoke-tests/src/main/java/io/opentelemetry/smoketest/AbstractTestContainerManager.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d954283e8e29690d2834551fc50e6cf8d80bc848"
+      ],
+      "id": "PRRT_kwDODJKVX86dF_Kw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86dPEar",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86dF_Kw",
+      "status": "duplicate"
+    }
+  ]
+}

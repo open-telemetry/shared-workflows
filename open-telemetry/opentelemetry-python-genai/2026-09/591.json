@@ -1,0 +1,97 @@
+{
+  "head": "3becf6ecd2381153854630c1442c0c5d3ff07b01",
+  "merge": "f49a77066ce708d48bac740b506252e84ea6fefb",
+  "merged": "2026-09-09T22:17:04Z",
+  "missing_roots": 0,
+  "number": 591,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`__copy__` returning `copy(self.__wrapped__)` will generally drop the tracing wrapper (and, depending on what `__wrapped__` is, may return an uninstrumented callable). This undermines the goal of copying *wrapped* DSPy methods while keeping behavior consistent (including emitting spans). Instead, `__copy__` should return a new `_CopyableBoundFunctionWrapper` (or even `self`) that retains `_self_wrapper`/`_self_enabled` and binding; and `__deepcopy__` should similarly return a bound wrapper tied to the deep-copied instance, without falling back to `copy(self)` (which currently routes through the problematic `__copy__` path).",
+      "created": "2026-09-03T18:31:28Z",
+      "hunk": "@@ -40,32 +41,80 @@\n _REACT_V2_CLASS = \"ReActV2\"\n \n \n+class _CopyableBoundFunctionWrapper(BoundFunctionWrapper[Any, Any]):\n+    \"\"\"BoundFunctionWrapper that supports copy and deepcopy.\"\"\"\n+\n+    def __copy__(self) -> Any:\n+        wrapped: Any = self.__wrapped__\n+        return copy(wrapped)\n+\n+    def __deepcopy__(self, memo: dict[Any, Any]) -> Any:\n+        if self._self_instance is not None:\n+            copied_instance: Any = deepcopy(self._self_instance, memo)\n+            attr_name: str | None = getattr(self, \"__name__\", None)\n+            if attr_name and hasattr(copied_instance, attr_name):\n+                return getattr(copied_instance, attr_name)\n+        return copy(self)",
+      "id": "PRRT_kwDOSbspP86fCEpc",
+      "opened": "2026-09-03T18:31:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "55c4e27c6214ec98175a3b4b20a81ceeedec48b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/591#discussion_r3927514252"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`wrap_object()` expects an actual module/object as `target` and an attribute name (typically not a dotted path). In this patch, callers pass `tool_module` / `_REACT_MODULE` (module name strings) and names like `\"Tool.__call__\"` / `\"ReAct.forward\"`, which likely breaks patching at runtime (e.g., `AttributeError` on a `str`, or failure to resolve dotted attributes). Consider implementing `_wrap_function` to (1) import the module when given a string, (2) resolve dotted attribute paths to the owner object + final attribute, and (3) `getattr`/`setattr` the wrapped attribute using `_CopyableFunctionWrapper`. This preserves the previous `wrap_function_wrapper` behavior while enabling the custom wrapper class.",
+      "created": "2026-09-03T18:31:29Z",
+      "hunk": "@@ -40,32 +41,80 @@\n _REACT_V2_CLASS = \"ReActV2\"\n \n \n+class _CopyableBoundFunctionWrapper(BoundFunctionWrapper[Any, Any]):\n+    \"\"\"BoundFunctionWrapper that supports copy and deepcopy.\"\"\"\n+\n+    def __copy__(self) -> Any:\n+        wrapped: Any = self.__wrapped__\n+        return copy(wrapped)\n+\n+    def __deepcopy__(self, memo: dict[Any, Any]) -> Any:\n+        if self._self_instance is not None:\n+            copied_instance: Any = deepcopy(self._self_instance, memo)\n+            attr_name: str | None = getattr(self, \"__name__\", None)\n+            if attr_name and hasattr(copied_instance, attr_name):\n+                return getattr(copied_instance, attr_name)\n+        return copy(self)\n+\n+\n+class _CopyableFunctionWrapper(FunctionWrapper[Any, Any]):\n+    \"\"\"FunctionWrapper that supports copy and deepcopy.\"\"\"\n+\n+    __bound_function_wrapper__ = _CopyableBoundFunctionWrapper\n+\n+    def __copy__(self) -> _CopyableFunctionWrapper:\n+        wrapped: Any = self.__wrapped__\n+        wrapper: Any = self._self_wrapper\n+        return _CopyableFunctionWrapper(\n+            copy(wrapped),\n+            wrapper,\n+            self._self_enabled,\n+        )\n+\n+    def __deepcopy__(self, memo: dict[Any, Any]) -> _CopyableFunctionWrapper:\n+        wrapped: Any = self.__wrapped__\n+        wrapper: Any = self._self_wrapper\n+        return _CopyableFunctionWrapper(\n+            deepcopy(wrapped, memo),\n+            wrapper,\n+            self._self_enabled,\n+        )\n+\n+\n+def _wrap_function(\n+    target: Any,\n+    name: str,\n+    wrapper: Callable[..., Any],\n+) -> None:\n+    wrap_object(target, name, _CopyableFunctionWrapper, (wrapper,))",
+      "id": "PRRT_kwDOSbspP86fCEp4",
+      "opened": "2026-09-03T18:31:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "55c4e27c6214ec98175a3b4b20a81ceeedec48b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/591#discussion_r3927514303"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `if hasattr(tool, \"acall\"):` block is redundant because the test is already guarded by `@pytest.mark.skipif(not hasattr(dspy.Tool, \"acall\"), ...)`. Keeping the runtime branch makes the test easier to accidentally “pass” without asserting anything (if conditions ever diverge), and adds unnecessary indentation. Suggest removing the `if` and unindenting the assertions; also the inner `import dspy` is redundant since the module already imports `dspy` at the top for the skipif condition.",
+      "created": "2026-09-03T18:31:29Z",
+      "hunk": "@@ -35,3 +38,91 @@ def test_instrument_with_global_providers() -> None:\n     instrumentor = DSPyInstrumentor()\n     instrumentor.instrument()\n     instrumentor.uninstrument()\n+\n+\n+def test_copy_and_deepcopy_wrapped_callables(\n+    instrument_dspy: DSPyInstrumentor,\n+    span_exporter,\n+) -> None:\n+    import copy\n+\n+    import dspy\n+\n+    tool = dspy.Tool(\n+        func=lambda x: f\"result:{x}\", name=\"test_tool\", desc=\"A test tool\"\n+    )\n+    react = dspy.ReAct(\"question -> answer\", tools=[tool])\n+\n+    tool_copy = copy.copy(tool)\n+    tool_deepcopy = copy.deepcopy(tool)\n+    call_copy = copy.copy(tool.__call__)\n+    call_deepcopy = copy.deepcopy(tool.__call__)\n+\n+    assert tool_copy(x=\"foo\") == \"result:foo\"\n+    assert tool_deepcopy(x=\"bar\") == \"result:bar\"\n+    assert call_copy(x=\"baz\") == \"result:baz\"\n+    assert call_deepcopy(x=\"qux\") == \"result:qux\"\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 4\n+    for span in spans:\n+        assert span.name == \"execute_tool test_tool\"\n+\n+    react_copy = copy.copy(react)\n+    react_deepcopy = copy.deepcopy(react)\n+    forward_copy = copy.copy(react.forward)\n+    forward_deepcopy = copy.deepcopy(react.forward)\n+\n+    assert react_copy is not None\n+    assert react_deepcopy is not None\n+    assert forward_copy is not None\n+    assert forward_deepcopy is not None\n+\n+    try:\n+        import dspy.predict.react_v2\n+\n+        react_v2_cls = getattr(dspy.predict.react_v2, \"ReActV2\", None)\n+        if react_v2_cls is not None:\n+            react_v2 = react_v2_cls(\"question -> answer\", tools=[tool])\n+            assert copy.copy(react_v2) is not None\n+            assert copy.deepcopy(react_v2) is not None\n+            assert copy.copy(react_v2.forward) is not None\n+            assert copy.deepcopy(react_v2.forward) is not None\n+    except (ImportError, AttributeError):\n+        pass\n+\n+\n+@pytest.mark.skipif(\n+    not hasattr(dspy.Tool, \"acall\"),\n+    reason=\"dspy.Tool.acall not available in this DSPy version\",\n+)\n+@pytest.mark.anyio\n+async def test_copy_and_deepcopy_async_tool(\n+    instrument_dspy: DSPyInstrumentor,\n+    span_exporter,\n+) -> None:\n+    import copy\n+\n+    import dspy\n+\n+    async def async_fn(x: str) -> str:\n+        return f\"async:{x}\"\n+\n+    tool = dspy.Tool(\n+        func=async_fn, name=\"async_test_tool\", desc=\"An async test tool\"\n+    )\n+    if hasattr(tool, \"acall\"):\n+        tool_copy = copy.copy(tool)\n+        tool_deepcopy = copy.deepcopy(tool)\n+        acall_copy = copy.copy(tool.acall)\n+        acall_deepcopy = copy.deepcopy(tool.acall)\n+\n+        assert await tool_copy.acall(x=\"foo\") == \"async:foo\"\n+        assert await tool_deepcopy.acall(x=\"bar\") == \"async:bar\"\n+        assert await acall_copy(x=\"baz\") == \"async:baz\"\n+        assert await acall_deepcopy(x=\"qux\") == \"async:qux\"\n+\n+        spans = span_exporter.get_finished_spans()\n+        assert len(spans) == 4\n+        for span in spans:\n+            assert span.name == \"execute_tool async_test_tool\"",
+      "id": "PRRT_kwDOSbspP86fCEqX",
+      "opened": "2026-09-03T18:31:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "55c4e27c6214ec98175a3b4b20a81ceeedec48b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/591#discussion_r3927514345"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The `owner` argument requires wrapt >= 1.17, but the package declares no wrapt bound and gets `wrapt >= 1.0.0` transitively from `opentelemetry-instrumentation`. On 1.14/1.15/1.16 every copy raises:\r\n\r\n```\r\nTypeError: FunctionWrapperBase() takes at most 6 arguments (7 given)\r\n```\r\n\r\nadd `wrapt >= 1.17` to `dependencies` (portkey already declares wrapt). The `oldest` env won't catch this - wrapt is transitive, so `lowest-direct` still resolves the newest.",
+      "created": "2026-09-04T23:00:44Z",
+      "hunk": "@@ -40,32 +47,146 @@\n _REACT_V2_CLASS = \"ReActV2\"\n \n \n+if TYPE_CHECKING:\n+    _BoundFunctionWrapper = BoundFunctionWrapper[Any, Any]\n+    _FunctionWrapper = FunctionWrapper[Any, Any]\n+else:\n+    _BoundFunctionWrapper = BoundFunctionWrapper\n+    _FunctionWrapper = FunctionWrapper\n+\n+\n+class _CopyableBoundFunctionWrapper(_BoundFunctionWrapper):\n+    \"\"\"BoundFunctionWrapper that supports copy and deepcopy.\"\"\"\n+\n+    def __init__(\n+        self,\n+        wrapped: Any,\n+        instance: Any = None,\n+        wrapper: Any = None,\n+        enabled: Any = None,\n+        binding: str = \"callable\",\n+        parent: Any = None,\n+        owner: Any = None,\n+        *args: Any,\n+        **kwargs: Any,\n+    ) -> None:\n+        init_args: tuple[Any, ...] = (\n+            wrapped,\n+            instance,\n+            wrapper,\n+            enabled,\n+            binding,\n+            parent,\n+            owner,\n+            *args,\n+        )\n+        super().__init__(*init_args, **kwargs)",
+      "id": "PRRT_kwDOSbspP86fdqgs",
+      "opened": "2026-09-04T23:03:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-08T15:39:35Z",
+          "body": "Ack upgraded to 1.17",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/591#discussion_r3959650751"
+        }
+      ],
+      "reviewed": "8cd8c38a8abfc16b807204a2a9618f5c535a31ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/591#discussion_r3938429672"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The tests only copy a bound method directly, which is not what DSPy does. The case that actually breaks today is a module tree holding an instrumented bound method - e.g. the agent-as-tool pattern:\n\n```python\nsub = dspy.ReAct(\"question -> answer\", tools=[...])\ntool = dspy.Tool(func=sub.forward, name=\"subagent\", desc=\"d\")\nouter = dspy.ReAct(\"question -> answer\", tools=[tool])\ncopy.deepcopy(outer)   # NotImplementedError without this PR\n```\n\nWorth covering that instead of / in addition to the direct-copy cases, and asserting the copied module still emits spans when called (right now the ReAct copies are only checked for `is not None`).\n\nAlso the `try/except (ImportError, AttributeError): pass` around ReActV2 means that block silently asserts nothing on versions where it does exist and something else goes wrong - a `pytest.importorskip` would fail loudly instead.",
+      "created": "2026-09-04T23:00:44Z",
+      "hunk": "@@ -35,3 +41,81 @@ def test_instrument_with_global_providers() -> None:\n     instrumentor = DSPyInstrumentor()\n     instrumentor.instrument()\n     instrumentor.uninstrument()\n+\n+\n+def test_copy_and_deepcopy_wrapped_callables(\n+    instrument_dspy: DSPyInstrumentor,\n+    span_exporter,\n+) -> None:\n+    tool = dspy.Tool(\n+        func=lambda x: f\"result:{x}\", name=\"test_tool\", desc=\"A test tool\"\n+    )\n+    react = dspy.ReAct(\"question -> answer\", tools=[tool])\n+\n+    tool_copy = copy.copy(tool)\n+    tool_deepcopy = copy.deepcopy(tool)\n+    call_copy = copy.copy(tool.__call__)\n+    call_deepcopy = copy.deepcopy(tool.__call__)\n+\n+    assert tool_copy(x=\"foo\") == \"result:foo\"\n+    assert tool_deepcopy(x=\"bar\") == \"result:bar\"\n+    assert call_copy(x=\"baz\") == \"result:baz\"\n+    assert call_deepcopy(x=\"qux\") == \"result:qux\"\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 4\n+    for span in spans:\n+        assert span.name == \"execute_tool test_tool\"\n+\n+    react_copy = copy.copy(react)\n+    react_deepcopy = copy.deepcopy(react)\n+    forward_copy = copy.copy(react.forward)\n+    forward_deepcopy = copy.deepcopy(react.forward)\n+\n+    assert react_copy is not None\n+    assert react_deepcopy is not None\n+    assert forward_copy is not None\n+    assert forward_deepcopy is not None\n+\n+    try:\n+        react_v2_mod = import_module(\"dspy.predict.react_v2\")\n+        react_v2_cls = getattr(react_v2_mod, \"ReActV2\", None)\n+        if react_v2_cls is not None:\n+            react_v2 = react_v2_cls(\"question -> answer\", tools=[tool])\n+            assert copy.copy(react_v2) is not None\n+            assert copy.deepcopy(react_v2) is not None\n+            assert copy.copy(react_v2.forward) is not None\n+            assert copy.deepcopy(react_v2.forward) is not None\n+    except (ImportError, AttributeError):",
+      "id": "PRRT_kwDOSbspP86fdqgw",
+      "opened": "2026-09-04T23:03:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_instrumentor.py",
+      "replies": [
+        {
+          "at": "2026-09-08T15:39:22Z",
+          "body": "Ack added a test like that and a test around reactv2 missing",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/591#discussion_r3959648741"
+        }
+      ],
+      "reviewed": "8cd8c38a8abfc16b807204a2a9618f5c535a31ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/591#discussion_r3938429676"
+    }
+  ]
+}

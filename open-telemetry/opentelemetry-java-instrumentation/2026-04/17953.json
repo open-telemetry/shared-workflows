@@ -1,0 +1,25 @@
+{
+  "head": "fac673c6b7544a449f4c46f69521f1bf3236ac19",
+  "merge": "585cfaf69e4201016f28597ee048eec2b3889167",
+  "merged": "2026-04-18T22:43:08Z",
+  "missing_roots": 0,
+  "number": 17953,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // class present in 6.4+ rest client\n    return hasClassesNamed(\"org.elasticsearch.client.Request\")\n        // class introduced in 7.0.0\n        .and(not(hasClassesNamed(\"org.elasticsearch.client.RestClient$InternalRequest\")));\n```",
+      "created": "2026-04-18T21:57:26Z",
+      "hunk": "@@ -23,10 +23,14 @@ public ElasticsearchRest6InstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    // class present in 6.4+ rest client\n-    return hasClassesNamed(\"org.elasticsearch.client.Request\")\n-        // class introduced in 7.0.0\n-        .and(not(hasClassesNamed(\"org.elasticsearch.client.RestClient$InternalRequest\")));\n+    return hasClassesNamed(\n+            // added in 6.4.0\n+            \"org.elasticsearch.client.Request\")\n+        .and(\n+            not(\n+                hasClassesNamed(\n+                    // added in 7.0.0\n+                    \"org.elasticsearch.client.RestClient$InternalRequest\")));",
+      "id": "PRRT_kwDODJKVX857-Ttz",
+      "opened": "2026-04-18T21:57:26Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-6.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v6_4/ElasticsearchRest6InstrumentationModule.java",
+      "replies": [],
+      "reviewed": "fbd8472291333c2b0d09da6861f950df03ddec06",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17953#discussion_r3105894435"
+    }
+  ]
+}

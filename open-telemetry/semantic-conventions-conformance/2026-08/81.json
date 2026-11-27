@@ -1,0 +1,31 @@
+{
+  "head": "9281078c2946ba850622a078c9a437ce21c68256",
+  "merge": "192c906f4f02b74ecf2a288dd22c8797e897f4d6",
+  "merged": "2026-08-25T01:31:29Z",
+  "missing_roots": 0,
+  "number": 81,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The samples do not exercise either target-mismatch branch introduced by the policy. This server span has the wrong method and no `http.route`, so only the generic method-token rule can fire; likewise, no client sample supplies `url.template`. Add cases with the expected method plus a target that differs from an explicit route/template, and assert `http_span_name_format`, so the behavior called out in the PR remains covered.",
+      "created": "2026-08-24T20:26:57Z",
+      "hunk": "@@ -0,0 +1,171 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"HTTP advice policy behavior.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+import subprocess\n+from pathlib import Path\n+from typing import Any\n+\n+import pytest\n+\n+from http_conformance import DOMAIN\n+from opentelemetry.conformance import WeaverNotInstalledError, check_weaver\n+\n+_POLICIES = Path(__file__).parents[1] / \"src/http_conformance/policies\"\n+_HTTP_POLICY_IDS = {\"http_route_not_present\", \"http_span_name_format\"}\n+\n+\n+def _server_span(name: str, route: str | None = None) -> dict[str, Any]:\n+    attributes: dict[str, object] = {\n+        \"http.request.method\": \"GET\",\n+        \"url.path\": \"/health\",\n+        \"url.scheme\": \"http\",\n+        \"client.address\": \"127.0.0.1\",\n+        \"network.protocol.version\": \"1.1\",\n+        \"server.address\": \"localhost\",\n+    }\n+    if route is not None:\n+        attributes[\"http.route\"] = route\n+    return _span(name, \"server\", attributes)\n+\n+\n+def _client_span(name: str) -> dict[str, Any]:\n+    return _span(\n+        name,\n+        \"client\",\n+        {\n+            \"http.request.method\": \"GET\",\n+            \"network.protocol.version\": \"1.1\",\n+            \"server.address\": \"example.com\",\n+            \"server.port\": 443,\n+            \"url.full\": \"https://example.com/health\",\n+        },\n+    )\n+\n+\n+def _span(\n+    name: str, kind: str, attributes: dict[str, object]\n+) -> dict[str, Any]:\n+    return {\n+        \"span\": {\n+            \"name\": name,\n+            \"kind\": kind,\n+            \"attributes\": [\n+                {\"name\": key, \"value\": value}\n+                for key, value in attributes.items()\n+            ],\n+        }\n+    }\n+\n+\n+@pytest.fixture(scope=\"module\")\n+def policy_advice(\n+    tmp_path_factory: pytest.TempPathFactory,\n+) -> dict[tuple[str, str], dict[str, dict[str, Any]]]:\n+    try:\n+        check_weaver()\n+        registry = DOMAIN.registry\n+    except (WeaverNotInstalledError, OSError, RuntimeError) as error:\n+        pytest.skip(f\"HTTP policy test unavailable: {error}\")\n+\n+    root = tmp_path_factory.mktemp(\"http-policy\")\n+    input_path = root / \"input.json\"\n+    report_dir = root / \"report\"\n+    input_path.write_text(\n+        json.dumps(\n+            [\n+                _server_span(\"GET /health\"),\n+                _server_span(\n+                    \"GET /users/{id}\",\n+                    route=\"/users/{id}\",\n+                ),\n+                _server_span(\"GET\"),\n+                _client_span(\"HTTP GET\"),\n+                _server_span(\"POST /wrong-method\"),",
+      "id": "PRRT_kwDOTuzK5c6b1662",
+      "opened": "2026-08-24T20:26:57Z",
+      "path": "tools/http/runner/tests/test_http_policy.py",
+      "replies": [
+        {
+          "at": "2026-08-24T20:45:25Z",
+          "body": "Addressed in e34195e39c6d028ad3feaa74e6a2975297787524.\n\nAnalysis: The fixture now gives the server an explicit route and the client an explicit URL template. Both samples use the expected GET method and a different target, so they reach the target-mismatch rules instead of the generic method-token rule.\n\nUpsides: The tests now cover both target-mismatch branches and protect the route and template comparisons from regressions.\n\nDownsides: The client fixture helper gains one optional argument.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/81#discussion_r3847328995"
+        }
+      ],
+      "reviewed": "f15fccd7e408c8470ebf60a776f0d0b043b5e1f6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/81#discussion_r3847193978"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "head": "fb8c80f00da0fc7ba6a8a6d6b729eedf91b8bc4f",
+  "merge": "efba62a177e63cb37fa7531f0d72cd6266bb9c12",
+  "merged": "2026-06-09T09:45:43Z",
+  "missing_roots": 0,
+  "number": 18892,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc for this helper doesn’t mention that the exception event extractor is only applied when the exception-signal preview is configured to emit exceptions as logs. Without that, it reads like it also affects the normal span-exception event path, but `Experimental.setExceptionEventExtractor(...)` is only used when `otel.semconv.exception.signal.preview` enables log emission.",
+      "created": "2026-06-03T22:14:16Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.faas;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n+import io.opentelemetry.instrumentation.api.internal.Experimental;\n+\n+/** Utilities for configuring FaaS exception events. */\n+public final class FaasExceptionEventExtractors {\n+\n+  /** Configures the FaaS invocation exception event name and severity. */",
+      "id": "PRRT_kwDODJKVX86G6FJV",
+      "opened": "2026-06-03T22:14:17Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/faas/FaasExceptionEventExtractors.java",
+      "replies": [
+        {
+          "at": "2026-06-03T23:39:42Z",
+          "body": "Addressed — updated the Javadoc on all the exception-event helpers to note that the extractor only takes effect when emitting exceptions as logs is enabled via the `otel.semconv.exception.signal.preview` flag.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3352543787"
+        }
+      ],
+      "reviewed": "27e39b64af5d1b9f1ed96bbaef73cd928a4334ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3352242758"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change introduces a new behavior under `otel.semconv.exception.signal.preview=logs`: Lambda invocation failures should now produce an exception log record with event name `faas.invocation.exception` (and the span should no longer have an exception event when running in `logs` mode). There doesn’t appear to be coverage for the `preview=logs` execution path in the AWS Lambda tests, so this could regress silently.",
+      "created": "2026-06-03T22:14:17Z",
+      "hunk": "@@ -19,11 +21,12 @@ public final class AwsLambdaFunctionInstrumenterFactory {\n   public static AwsLambdaFunctionInstrumenter createInstrumenter(OpenTelemetry openTelemetry) {\n     return new AwsLambdaFunctionInstrumenter(\n         openTelemetry,\n-        Instrumenter.builder(\n-                openTelemetry,\n-                \"io.opentelemetry.aws-lambda-core-1.0\",\n-                AwsLambdaFunctionInstrumenterFactory::spanName)\n-            .addAttributesExtractor(new AwsLambdaFunctionAttributesExtractor())\n+        setFaasInvocationExceptionEventExtractor(\n+                Instrumenter.builder(\n+                        openTelemetry,\n+                        \"io.opentelemetry.aws-lambda-core-1.0\",\n+                        AwsLambdaFunctionInstrumenterFactory::spanName)",
+      "id": "PRRT_kwDODJKVX86G6FJx",
+      "opened": "2026-06-03T22:14:17Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-06-04T00:42:19Z",
+          "body": "Added coverage for the `preview=logs` path. `AbstractAwsLambdaTest.handlerTracedWithException` is now mode-aware: in default mode it asserts the span carries the exception event, and under `emitExceptionAsLogs()` it asserts no span exception event plus a `faas.invocation.exception` log record (Severity.ERROR) with the exception attributes. This runs via a new per-module `testExceptionSignalLogs` Gradle task (library + javaagent). A `FaasExceptionEventExtractorsTest` unit test in `instrumentation-api-incubator` covers the extractor directly as well.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3352747700"
+        }
+      ],
+      "reviewed": "27e39b64af5d1b9f1ed96bbaef73cd928a4334ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3352242796"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In `handlerTracedWithException()`, when `emitExceptionAsSpanEvents()` is false (e.g., `otel.semconv.exception.signal.preview=logs`), the test currently does not assert that the span has *no* exception event. This means a regression where exceptions are still recorded as span events in `logs` mode would not be caught. You can keep the test mode-aware while still asserting the absence by always calling `hasException(...)` with `null` when span events are disabled (this pattern is used elsewhere in the repo).",
+      "created": "2026-06-04T23:10:16Z",
+      "hunk": "@@ -80,13 +91,38 @@ void handlerTracedWithException() {\n         .waitAndAssertTraces(\n             trace ->\n                 trace.hasSpansSatisfyingExactly(\n-                    span ->\n-                        span.hasName(\"my_function\")\n-                            .hasKind(SpanKind.SERVER)\n-                            .hasStatus(StatusData.error())\n-                            .hasException(thrown)\n-                            .hasAttributesSatisfyingExactly(\n-                                equalTo(FAAS_INVOCATION_ID, \"1-22-333\"))));\n+                    span -> {\n+                      span.hasName(\"my_function\")\n+                          .hasKind(SpanKind.SERVER)\n+                          .hasStatus(StatusData.error())\n+                          .hasAttributesSatisfyingExactly(equalTo(FAAS_INVOCATION_ID, \"1-22-333\"));\n+                      if (emitExceptionAsSpanEvents()) {\n+                        span.hasException(thrown);\n+                      }",
+      "id": "PRRT_kwDODJKVX86HOCcj",
+      "opened": "2026-06-04T23:10:16Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/testing/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AbstractAwsLambdaTest.java",
+      "replies": [
+        {
+          "at": "2026-06-05T00:14:38Z",
+          "body": "Fixed. `handlerTracedWithException()` now always calls `span.hasException(emitExceptionAsSpanEvents() ? thrown : null)`, so default mode still asserts the exception event and logs mode explicitly asserts that no span exception event is present. I also normalized the AWS Lambda javaagent Test-task setup so the preview task inherits the same shared JVM args / `collectMetadata` configuration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3359587732"
+        }
+      ],
+      "reviewed": "708e377fb6de17a7ace413778a5ecd1502288dc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3359404318"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `assertInvocationExceptionLog()` only asserts that exception attributes are non-null. This can miss regressions where the wrong exception type/message gets logged (or values are truncated/overwritten) while still producing some attributes. Since this test deterministically throws `IllegalArgumentException(\"bad argument\")`, it should assert the exact `exception.type` and `exception.message` values (keeping stacktrace as non-null).",
+      "created": "2026-06-05T00:25:32Z",
+      "hunk": "@@ -80,13 +91,36 @@ void handlerTracedWithException() {\n         .waitAndAssertTraces(\n             trace ->\n                 trace.hasSpansSatisfyingExactly(\n-                    span ->\n-                        span.hasName(\"my_function\")\n-                            .hasKind(SpanKind.SERVER)\n-                            .hasStatus(StatusData.error())\n-                            .hasException(thrown)\n-                            .hasAttributesSatisfyingExactly(\n-                                equalTo(FAAS_INVOCATION_ID, \"1-22-333\"))));\n+                    span -> {\n+                      span.hasName(\"my_function\")\n+                          .hasKind(SpanKind.SERVER)\n+                          .hasStatus(StatusData.error())\n+                          .hasAttributesSatisfyingExactly(equalTo(FAAS_INVOCATION_ID, \"1-22-333\"));\n+                      span.hasException(emitExceptionAsSpanEvents() ? thrown : null);\n+                    }));\n+\n+    if (emitExceptionAsLogs()) {\n+      assertInvocationExceptionLog();\n+    }\n+  }\n+\n+  private void assertInvocationExceptionLog() {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing().logRecords().stream()\n+                      .filter(log -> \"faas.invocation.exception\".equals(log.getEventName()))\n+                      .collect(toList());\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.ERROR)\n+                  .hasEventName(\"faas.invocation.exception\")\n+                  .hasAttributesSatisfyingExactly(\n+                      satisfies(EXCEPTION_TYPE, val -> val.isNotNull()),\n+                      satisfies(EXCEPTION_MESSAGE, val -> val.isNotNull()),\n+                      satisfies(EXCEPTION_STACKTRACE, val -> val.isNotNull()));",
+      "id": "PRRT_kwDODJKVX86HOrMt",
+      "opened": "2026-06-05T00:25:32Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/testing/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AbstractAwsLambdaTest.java",
+      "replies": [
+        {
+          "at": "2026-06-06T00:17:00Z",
+          "body": "No code change needed. This comment was against an earlier version that only checked the exception attributes for non-null values; the current assertion uses `hasException(thrown)`, which verifies the deterministic `IllegalArgumentException(\"bad argument\")` exception details while keeping the attribute count check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3366009973"
+        }
+      ],
+      "reviewed": "9427f79f4ac5ca2bedb1cf374473b0856a3ca61b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3359628492"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[API] `setFaasInvocationExceptionEventExtractor(...)` forces callers to pick a concrete response type just to satisfy generics. Accepting `InstrumenterBuilder<REQUEST, ?>` (like other exception-event helper methods) keeps the helper usable even when the builder is held in a wildcard-typed variable.",
+      "created": "2026-06-06T22:13:43Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.faas.internal;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n+import io.opentelemetry.instrumentation.api.internal.Experimental;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class FaasExceptionEventExtractors {\n+\n+  /**\n+   * Configures the FaaS invocation exception event name and severity. Only takes effect when\n+   * emitting exceptions as logs is enabled via the {@code otel.semconv.exception.signal.preview}\n+   * flag.\n+   */\n+  @CanIgnoreReturnValue\n+  public static <REQUEST, RESPONSE>\n+      InstrumenterBuilder<REQUEST, RESPONSE> setFaasInvocationExceptionEventExtractor(\n+          InstrumenterBuilder<REQUEST, RESPONSE> builder) {\n+    Experimental.setExceptionEventExtractor(\n+        builder,\n+        (logRecordBuilder, context, request) -> {\n+          logRecordBuilder.setEventName(\"faas.invocation.exception\");\n+          logRecordBuilder.setSeverity(Severity.ERROR);\n+        });\n+    return builder;\n+  }",
+      "id": "PRRT_kwDODJKVX86Hm9bs",
+      "opened": "2026-06-06T22:13:43Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/faas/internal/FaasExceptionEventExtractors.java",
+      "replies": [
+        {
+          "at": "2026-06-06T23:34:22Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fb8c80f00da0fc7ba6a8a6d6b729eedf91b8bc4f.\n\nChanged the FaaS helper to match the existing exception-event setup shape: accept `InstrumenterBuilder<REQUEST, ?>`, return `void`, and remove the chainable return.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3368447754"
+        }
+      ],
+      "reviewed": "ee3b12120a5ec032777fdcb68787e71a60bd7f5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18892#discussion_r3368351347"
+    }
+  ]
+}

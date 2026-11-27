@@ -1,0 +1,31 @@
+{
+  "head": "57797a1855bfdc9ccae04a5c0db6c944dea4e898",
+  "merge": "b70582f42c4103eadfb117ca0852939fa720c7a3",
+  "merged": "2026-06-17T18:33:10Z",
+  "missing_roots": 0,
+  "number": 296,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The variable name `is_remote` is now misleading: the logic checks the span kind (client vs internal), not whether remote server attributes are present. This makes the control flow harder to read and maintain.",
+      "created": "2026-06-16T22:58:21Z",
+      "hunk": "@@ -25,18 +25,19 @@ def _matches_spec(op_name: str, attrs: dict[str, object], span_type_key: str) ->\n def classify_span(span_name: str, span_kind: str, span_attrs: dict[str, object]) -> set[str]:\n     \"\"\"Classify a span into GenAI span types using model-backed discriminators.\n \n-    ``span_name`` and ``span_kind`` are accepted to match the shared\n-    ``ClassifySpan`` signature but are not used: GenAI classification is\n-    attribute-driven (``gen_ai.operation.name`` plus discriminator attrs).\n+    ``span_name`` is accepted to match the shared ``ClassifySpan`` signature\n+    but is not used. ``span_kind`` disambiguates the two ``invoke_agent`` span\n+    types; the rest of the classification is attribute-driven\n+    (``gen_ai.operation.name`` plus discriminator attrs).\n     \"\"\"\n-    del span_name, span_kind  # unused; accepted for signature compatibility\n+    del span_name  # unused; accepted for signature compatibility\n     op_name = str(span_attrs.get(\"gen_ai.operation.name\", \"\")).lower()\n     detected = {key for key in SPAN_SPECS if _matches_spec(op_name, span_attrs, key)}\n \n     # invoke_agent is represented as two span types (client vs internal) that\n-    # share op_name/discriminator_attrs; disambiguate by remote-server attrs.\n+    # share op_name/discriminator_attrs; disambiguate by span kind.\n     if \"invoke_agent_client\" in detected or \"invoke_agent_internal\" in detected:\n-        is_remote = _has_any_attr(span_attrs, \"server.address\", \"server.port\")\n+        is_remote = span_kind.lower() == \"client\"\n         detected.discard(\"invoke_agent_client\" if not is_remote else \"invoke_agent_internal\")",
+      "id": "PRRT_kwDOSUeMrM6KDgd-",
+      "opened": "2026-06-16T22:58:21Z",
+      "path": "reference/src/semconv_genai/classify.py",
+      "replies": [
+        {
+          "at": "2026-06-17T18:18:51Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/57797a1855bfdc9ccae04a5c0db6c944dea4e898.\n\nRenamed the boolean to `is_client_span` so it matches the span-kind check.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/296#discussion_r3430516620"
+        }
+      ],
+      "reviewed": "558cac9a11bb469f4b1d6d5140cc2aa16884914f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/296#discussion_r3424511031"
+    }
+  ]
+}

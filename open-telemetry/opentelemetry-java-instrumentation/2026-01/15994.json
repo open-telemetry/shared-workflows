@@ -1,0 +1,25 @@
+{
+  "head": "b0af04d06898cd9637ffe57e83b8bf3956fb6089",
+  "merge": "18b477f8bdce895b0a62bfef9e6cc14ee0e87d16",
+  "merged": "2026-01-28T09:09:30Z",
+  "missing_roots": 0,
+  "number": 15994,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "summary is only `BATCH` because the individual summaries are different (inserting into different tables)",
+      "created": "2026-01-27T21:38:08Z",
+      "hunk": "@@ -1680,10 +1768,7 @@ void testMultiBatch(String system, Connection conn, String username, String url)\n                 trace.hasSpansSatisfyingExactly(\n                     span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n                     span ->\n-                        span.hasName(\n-                                emitStableDatabaseSemconv()\n-                                    ? \"BATCH INSERT jdbcunittest\"\n-                                    : \"jdbcunittest\")\n+                        span.hasName(emitStableDatabaseSemconv() ? \"BATCH\" : \"jdbcunittest\")",
+      "id": "PRRT_kwDODJKVX85rUSIX",
+      "opened": "2026-01-27T21:39:27Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "26593017392631abe91d32b8e63b019465b453bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15994#discussion_r2733928297"
+    }
+  ]
+}

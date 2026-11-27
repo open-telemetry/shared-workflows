@@ -1,0 +1,486 @@
+{
+  "head": "a6738481b0bea0ca5d18ab8be0df78f096469eec",
+  "merge": "16b2b16120a3b6ccb2231178697c399f8848d0d3",
+  "merged": "2026-11-17T03:17:24Z",
+  "missing_roots": 0,
+  "number": 1013,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The previous full-payload comparison checked the tool count and the entire parameter schema. These replacement assertions ignore both, so dropped/corrupted `parameters` or extra definitions now pass this test during the serialization migration. Normalize tuples recursively and keep the full comparison, consistent with the [instrumentation test requirements](.github/instructions/instrumentation.instructions.md#6-tests).",
+      "created": "2026-10-29T16:02:43Z",
+      "hunk": "@@ -796,8 +789,10 @@ async def test_chat_tool_definitions(\n     assert attrs is not None\n     if definitions_key and content_capture == ContentCapturingMode.SPAN_ONLY:\n         definitions = attrs[gen_ai_attributes.GEN_AI_TOOL_DEFINITIONS]\n-        assert isinstance(definitions, str)\n-        assert json.loads(definitions) == [{\"type\": \"function\", **function}]\n+        assert isinstance(definitions, tuple)\n+        assert definitions[0][\"type\"] == \"function\"\n+        assert definitions[0][\"name\"] == function[\"name\"]\n+        assert definitions[0][\"description\"] == function[\"description\"]",
+      "id": "PRRT_kwDOSbspP86xo313",
+      "opened": "2026-10-29T16:02:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-10-29T18:58:19Z",
+          "body": "Ack fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4416637401"
+        }
+      ],
+      "reviewed": "34eb57d298de2a3d3cddfdeeb05b62737fd3c091",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4414734542"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.prompt.variable` is still `template[string]` in the [registry on the linked semconv PR](https://github.com/open-telemetry/semantic-conventions-genai/blob/a09408c62058e3524aa5c4bc37e4b9b40aa031f4/model/gen-ai/registry.yaml). This change emits integers, arrays, and maps for non-string prompt variables on both spans and events, violating that contract. Preserve the previous safe string serialization for prompt variables and restore their string-valued test expectations.",
+      "created": "2026-10-29T16:02:44Z",
+      "hunk": "@@ -548,10 +532,12 @@ def serialize(items: Sequence[Any]) -> Any:\n             serialize(tool_definitions) if tool_definitions else None,\n         ),\n     )\n-    result = {key: value for key, value in optional_attrs if value is not None}\n+    result: dict[str, AttributeValue] = {\n+        key: value for key, value in optional_attrs if value is not None\n+    }\n     if prompt_variables:\n         for k, v in prompt_variables.items():\n-            serialized = _json_dumps_unless_str(v)\n+            serialized = object_to_any_value(v)",
+      "id": "PRRT_kwDOSbspP86xo331",
+      "opened": "2026-10-29T16:02:44Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "34eb57d298de2a3d3cddfdeeb05b62737fd3c091",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4414734752"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This guard skips schema validation whenever a content attribute is a string, so the obsolete JSON-string encoding now passes this policy without a violation. These attributes must be structured arrays; for example, a string-valued `gen_ai.input.messages` should fail the array schema rather than bypass it. Remove the guard and validate every value whose attribute has a loaded schema.",
+      "created": "2026-10-29T16:02:44Z",
+      "hunk": "@@ -22,17 +22,15 @@ deny contains result if {\n \tinput.sample.attribute\n \tattr_name := input.sample.attribute.name\n \tattr_value := input.sample.attribute.value\n-\tis_string(attr_value)\n+\tnot is_string(attr_value)",
+      "id": "PRRT_kwDOSbspP86xo33L",
+      "opened": "2026-10-29T16:02:44Z",
+      "path": "policies/genai_content_validation.rego",
+      "replies": [],
+      "reviewed": "34eb57d298de2a3d3cddfdeeb05b62737fd3c091",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4414734667"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Could we validate the restored content against the schemas too? Weaver drops the nested maps before validation, so it checks an empty array instead of the actual messages. Restoring them here doesn’t rerun those checks, meaning a message missing a required field like `parts` can still pass conformance. ",
+      "created": "2026-10-30T16:32:27Z",
+      "hunk": "@@ -212,6 +291,11 @@ def run_conformance(\n         logger_provider.force_flush()\n \n         report = weaver.end(timeout=120)\n+        _enrich_report_samples(",
+      "id": "PRRT_kwDOSbspP86yDTQT",
+      "opened": "2026-10-30T16:32:28Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [
+        {
+          "at": "2026-10-30T18:25:39Z",
+          "body": "Ack.. installed json schema and now check the attribute value against the schema",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4427126167"
+        },
+        {
+          "at": "2026-10-31T18:55:07Z",
+          "body": "let's not do this, it's a throw away hack. Instead, let's validate schema in unit tests. It's needed for corner cases conformance won't evet test \n\nWeaver/conformance repo are going to support it properly soon - https://github.com/open-telemetry/weaver/pull/1873",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432906232"
+        }
+      ],
+      "reviewed": "44256cfe830e816362105c69cab293cc64e8fd68",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4425988267"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: stale - blobs are recorded as bytes now, not re-encoded by the JSON encoder.\n\n```suggestion\n```",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -113,7 +113,9 @@\n # Canonical base64, so the payloads round-trip unchanged through the span\n # attribute (the GenAI JSON encoder re-encodes blob bytes).",
+      "id": "PRRT_kwDOSbspP86yTgA5",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837490"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Schema validation only runs for dict/list/tuple values, so a content attribute that regresses to a JSON string is skipped here. Validating regardless of type would cover that and let us drop the rego policy. The span and log branches are also identical - a shared helper would remove the copy:\n\n```python\ndef _enrich_attributes(sample_attrs: list[dict[str, Any]], attrs: Mapping[str, Any]) -> None:\n    for attr_entry in sample_attrs:\n        name = attr_entry.get(\"name\")\n        if name not in attrs:\n            continue\n        val = _normalize_sample_value(attrs[name])\n        attr_entry[\"value\"] = val\n        if name in _CONTENT_SCHEMA_FILES:\n            _validate_content_attribute(attr_entry, name, val)\n```",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -178,10 +207,146 @@ def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n     return counts\n \n \n+def _normalize_sample_value(val: Any) -> Any:\n+    if isinstance(val, (tuple, list)):\n+        return [_normalize_sample_value(x) for x in val]\n+    if isinstance(val, dict):\n+        return {k: _normalize_sample_value(v) for k, v in val.items()}\n+    return val\n+\n+\n+_CONTENT_SCHEMA_FILES: dict[str, str] = {\n+    \"gen_ai.input.messages\": \"gen-ai-input-messages.json\",\n+    \"gen_ai.output.messages\": \"gen-ai-output-messages.json\",\n+    \"gen_ai.system_instructions\": \"gen-ai-system-instructions.json\",\n+    \"gen_ai.tool.definitions\": \"gen-ai-tool-definitions.json\",\n+    \"gen_ai.retrieval.documents\": \"gen-ai-retrieval-documents.json\",\n+}\n+\n+\n+@functools.cache\n+def _get_content_validators() -> dict[str, Draft202012Validator]:\n+    import jsonschema\n+\n+    from opentelemetry.test_util_genai._setup_weaver import (\n+        _provision_genai_root,\n+    )\n+\n+    schema_dir = _provision_genai_root() / \"model\" / \"gen-ai\"\n+    validators: dict[str, Draft202012Validator] = {}\n+    for attr_name, filename in _CONTENT_SCHEMA_FILES.items():\n+        schema_path = schema_dir / filename\n+        if schema_path.is_file():\n+            schema = json.loads(schema_path.read_text(encoding=\"utf-8\"))\n+            validators[attr_name] = jsonschema.Draft202012Validator(schema)\n+    return validators\n+\n+\n+def _validate_content_attribute(\n+    attr_entry: dict[str, Any],\n+    name: str,\n+    val: Any,\n+) -> None:\n+    validators = _get_content_validators()\n+    validator = validators.get(name)\n+    if validator is None or val is None:\n+        return\n+\n+    errors = sorted(validator.iter_errors(val), key=lambda e: str(e.path))\n+    live_check = attr_entry.setdefault(\"live_check_result\", {})\n+    all_advice: list[dict[str, Any]] = [\n+        a\n+        for a in live_check.get(\"all_advice\", [])\n+        if a.get(\"id\") != \"genai_content_schema\"\n+    ]\n+    if errors:\n+        error_messages = [err.message for err in errors]\n+        signal_name = next(\n+            (a.get(\"signal_name\") for a in all_advice if a.get(\"signal_name\")),\n+            None,\n+        )\n+        signal_type = next(\n+            (a.get(\"signal_type\") for a in all_advice if a.get(\"signal_type\")),\n+            None,\n+        )\n+        finding: dict[str, Any] = {\n+            \"id\": \"genai_content_schema\",\n+            \"level\": \"violation\",\n+            \"context\": {\n+                \"attribute\": name,\n+                \"errors\": error_messages,\n+            },\n+            \"message\": (\n+                f\"Attribute '{name}' value does not conform to the GenAI schema: \"\n+                f\"{error_messages}\"\n+            ),\n+            \"signal_name\": signal_name,\n+            \"signal_type\": signal_type,\n+            \"type\": \"PolicyFinding\",\n+        }\n+        all_advice.append(finding)\n+        live_check[\"highest_advice_level\"] = \"violation\"\n+    live_check[\"all_advice\"] = all_advice\n+\n+\n+def _enrich_report_samples(\n+    report: LiveCheckReport,\n+    finished_spans: Sequence[ReadableSpan],\n+    finished_logs: Sequence[Any],\n+) -> None:\n+    # Weaver drops KvlistValue (maps) during OTLP-to-JSON conversion, resulting in\n+    # empty lists [] or None for structured content attributes (messages, tool definitions).\n+    # Re-hydrate them from the emitted spans/logs so scenario validate() checks succeed,\n+    # and validate the restored content against the semconv GenAI JSON schemas.\n+    report.__dict__.pop(\"violations\", None)\n+    span_idx = 0\n+    log_idx = 0\n+    for entry in report.get(\"samples\", []):\n+        if \"span\" in entry and span_idx < len(finished_spans):\n+            span = finished_spans[span_idx]\n+            span_idx += 1\n+            if span.attributes:\n+                for attr_entry in entry[\"span\"].get(\"attributes\", []):\n+                    name = attr_entry.get(\"name\")\n+                    if name in span.attributes:\n+                        orig = span.attributes[name]\n+                        if isinstance(orig, (dict, list, tuple)):\n+                            val = _normalize_sample_value(orig)\n+                            attr_entry[\"value\"] = val\n+                            if name in _CONTENT_SCHEMA_FILES:\n+                                _validate_content_attribute(\n+                                    attr_entry, name, val\n+                                )",
+      "id": "PRRT_kwDOSbspP86yTgAl",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [
+        {
+          "at": "2026-11-03T20:24:23Z",
+          "body": "Ack added this function and called it in both places",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4460030129"
+        }
+      ],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837461"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The same tuple->list normalizer is now copy-pasted in 6 places (`anthropic` x3 `_to_lists`, openai `normalize_span_value`, langchain `_normalize_tuples_to_lists`, smolagents `_normalize_span_value`, plus this one). What about a public helper in `test_util_genai` that also checks the type and the schema, so every unit test that reads a content attribute validates its shape for free, not only conformance runs?\n\n```python\n# opentelemetry/test_util_genai/content.py\ndef to_json_like(value: Any) -> Any:\n    if isinstance(value, (tuple, list)):\n        return [to_json_like(v) for v in value]\n    if isinstance(value, Mapping):\n        return {k: to_json_like(v) for k, v in value.items()}\n    return value\n\n\ndef get_content_attribute(attrs: Mapping[str, Any], name: str) -> list[dict[str, Any]]:\n    value = attrs[name]\n    assert isinstance(value, tuple), f\"{name}: expected structured value, got {type(value).__name__}\"\n    normalized = to_json_like(value)\n    validator = content_validators().get(name)  # today's _get_content_validators\n    if validator is not None:\n        errors = [e.message for e in validator.iter_errors(normalized)]\n        assert not errors, f\"{name} does not match the semconv schema: {errors}\"\n    return normalized\n```\n\nIf provisioning the semconv repo is too heavy for regular envs, the validator could no-op when `jsonschema`/schemas are unavailable.",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -178,10 +207,146 @@ def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n     return counts\n \n \n+def _normalize_sample_value(val: Any) -> Any:",
+      "id": "PRRT_kwDOSbspP86yTgAn",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [
+        {
+          "at": "2026-11-03T20:24:08Z",
+          "body": "Good catch ! Added a helper in util tests to do all this",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4460027546"
+        }
+      ],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837463"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "No test asserts the structured value of workflow messages - `test_workflow_context_manager_with_messages` only checks the operation name and doesn't enable content capture. Something like:\n\n```python\n    @patch(\n        \"opentelemetry.util.genai.handler.get_content_capturing_mode\",\n        return_value=ContentCapturingMode.SPAN_ONLY,\n    )\n    def test_workflow_messages_recorded_as_structured_values(self, _mock_cap) -> None:\n        handler = TelemetryHandler(tracer_provider=self.tracer_provider)\n        with handler.workflow(\"wf\") as inv:\n            inv.input_messages = [InputMessage(role=\"user\", parts=[TextPart(content=\"hello\")])]\n            inv.output_messages = [\n                OutputMessage(role=\"assistant\", parts=[TextPart(content=\"hi\")], finish_reason=\"stop\")\n            ]\n\n        attrs = self._get_finished_spans()[0].attributes\n        self.assertEqual(\n            attrs[GenAI.GEN_AI_INPUT_MESSAGES],\n            ({\"role\": \"user\", \"parts\": ({\"type\": \"text\", \"content\": \"hello\"},), \"name\": None},),\n        )\n        self.assertEqual(\n            attrs[GenAI.GEN_AI_OUTPUT_MESSAGES],\n            ({\"role\": \"assistant\", \"parts\": ({\"type\": \"text\", \"content\": \"hi\"},), \"finish_reason\": \"stop\", \"name\": None},),\n        )\n```",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -142,13 +142,13 @@ def _get_messages_for_span(self) -> dict[str, AttributeValue]:\n         optional_attrs = (\n             (\n                 GenAI.GEN_AI_INPUT_MESSAGES,\n-                gen_ai_json_dumps([asdict(m) for m in self.input_messages])\n+                object_to_any_value(self.input_messages)",
+      "id": "PRRT_kwDOSbspP86yTgAp",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-03T20:23:35Z",
+          "body": "Ack added test_workflow_messages_recorded_as_structured_values",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4460021455"
+        }
+      ],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837467"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`gen_ai.tool.definitions` value isn't asserted in util tests - `test_tool_definitions_on_span` only checks the key exists. Worth pinning the shape, including nested `parameters`:\n\n```python\n        attrs = self.span_exporter.get_finished_spans()[0].attributes\n        assert attrs[GenAI.GEN_AI_TOOL_DEFINITIONS] == (\n            {\n                \"name\": \"get_weather\",\n                \"description\": \"Get the weather\",\n                \"parameters\": {\"type\": \"object\", \"properties\": {}},\n                \"type\": \"function\",\n            },\n        )\n```",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -548,7 +547,9 @@ def serialize(items: Sequence[Any]) -> Any:\n             serialize(tool_definitions) if tool_definitions else None,",
+      "id": "PRRT_kwDOSbspP86yTgAs",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-03T20:23:09Z",
+          "body": "Ack added the assertion",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4460016974"
+        }
+      ],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837473"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `serialize` is now a one-line wrapper; inlining `object_to_any_value(list(...))` at the four call sites would drop it.",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -523,9 +523,8 @@ def get_content_attributes(\n         )\n     )\n \n-    def serialize(items: Sequence[Any]) -> Any:\n-        dicts = [asdict(item) for item in items]\n-        return gen_ai_json_dumps(dicts) if for_span else dicts\n+    def serialize(items: Sequence[object]) -> AttributeValue | None:\n+        return object_to_any_value(list(items))",
+      "id": "PRRT_kwDOSbspP86yTgAt",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-03T20:21:12Z",
+          "body": "Ack.. removed this function entirely",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4459998134"
+        }
+      ],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This misses tool call arguments/result, retrieval documents and workflow messages, and it's breaking for anyone parsing these as JSON strings (the PR template says non-breaking).\n\n```suggestion\nBREAKING: Record structured GenAI content attributes (input/output messages, system instructions, tool definitions, tool call arguments and result, retrieval documents) as structured values instead of JSON strings.\n```",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record structured GenAI content attributes (messages, system instructions, and tool definitions) on spans as collections rather than JSON strings.",
+      "id": "PRRT_kwDOSbspP86yTgAv",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "util/opentelemetry-util-genai/.changelog/1013.changed",
+      "replies": [],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837477"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the SDK always returns a tuple here; checking the exact type catches a regression back to a list or string.\n\n```suggestion\n    assert isinstance(payload, tuple)\n```",
+      "created": "2026-10-31T18:32:36Z",
+      "hunk": "@@ -125,8 +125,8 @@ def _get_messages_from_attr(\n ) -> list[dict[str, Any]]:\n     payload = span_attrs.get(attribute_name)\n     assert payload is not None\n-    assert isinstance(payload, str)\n-    return json.loads(payload)\n+    assert isinstance(payload, (list, tuple))",
+      "id": "PRRT_kwDOSbspP86yTgBB",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432837503"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This normalizer is copy-pasted across packages (anthropic x3 `_to_lists`, langchain `_normalize_tuples_to_lists`, smolagents `_normalize_span_value`). Unit tests also only compare against hand-written literals or spot-check a field, so a missing required field (e.g. `parts`) still passes. What about one shared helper in `test_util_genai` that unit tests use to read content attributes? It would check the exact type and validate against the pinned semconv schemas:\n\n```python\n# util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/content.py\nfrom __future__ import annotations\n\nimport functools\nimport json\nfrom collections.abc import Mapping\nfrom typing import Any\n\nimport jsonschema\n\nfrom opentelemetry.test_util_genai._setup_weaver import _provision_genai_root\n\n_SCHEMA_FILES = {\n    \"gen_ai.input.messages\": \"gen-ai-input-messages.json\",\n    \"gen_ai.output.messages\": \"gen-ai-output-messages.json\",\n    \"gen_ai.system_instructions\": \"gen-ai-system-instructions.json\",\n    \"gen_ai.tool.definitions\": \"gen-ai-tool-definitions.json\",\n    \"gen_ai.retrieval.documents\": \"gen-ai-retrieval-documents.json\",\n}\n\n\n@functools.cache\ndef _validator(name: str) -> jsonschema.Draft202012Validator:\n    path = _provision_genai_root() / \"model\" / \"gen-ai\" / _SCHEMA_FILES[name]\n    return jsonschema.Draft202012Validator(json.loads(path.read_text(encoding=\"utf-8\")))\n\n\ndef _to_json_like(value: Any, path: str) -> Any:\n    # SDK attributes store sequences as tuples; anything else (list, JSON string,\n    # dataclass) means the value wasn't converted to AnyValue.\n    if isinstance(value, tuple):\n        return [_to_json_like(v, f\"{path}[{i}]\") for i, v in enumerate(value)]\n    if isinstance(value, Mapping):\n        return {k: _to_json_like(v, f\"{path}.{k}\") for k, v in value.items()}\n    assert value is None or isinstance(value, (str, bool, int, float, bytes)), (\n        f\"{path}: unexpected {type(value).__name__}\"\n    )\n    return value\n\n\ndef get_content_attribute(attributes: Mapping[str, Any], name: str) -> list[dict[str, Any]]:\n    \"\"\"Return a structured GenAI content attribute as plain lists/dicts.\n\n    Asserts the value is a structured sequence and matches the semconv JSON schema.\n    \"\"\"\n    value = attributes[name]\n    assert isinstance(value, tuple), f\"{name}: expected tuple, got {type(value).__name__}\"\n    normalized = _to_json_like(value, name)\n    errors = [e.message for e in _validator(name).iter_errors(normalized)]\n    assert not errors, f\"{name} does not match the semconv schema: {errors}\"\n    return normalized\n```\n\nThen the per-package helpers become `get_content_attribute(span.attributes, GenAI.GEN_AI_INPUT_MESSAGES)`, and `jsonschema` moves from `dev-requirements-conformance.txt` to the shared test deps. The schema download is pinned via `versions.env` and cached under `SEMCONV_CACHE`, so it happens once per env.",
+      "created": "2026-10-31T18:37:53Z",
+      "hunk": "@@ -780,8 +782,16 @@ def assert_completion_attributes(\n     )\n \n \n+def normalize_span_value(value: Any) -> Any:",
+      "id": "PRRT_kwDOSbspP86yTibB",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432853018"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit\n\n```suggestion\n```\n\nwe automated this in post-release, but it can't remove comments ",
+      "created": "2026-10-31T18:39:36Z",
+      "hunk": "@@ -24,3 +24,7 @@\n # portkey-ai 1.0.0 pins typing-extensions==4.7.1; without this, newer transitive deps (e.g.\n # anyio>=4.15) push resolution past the declared portkey-ai floor.\n typing-extensions==4.7.1\n+\n+# Drop this once opentelemetry-util-genai 1.4b0 is published.",
+      "id": "PRRT_kwDOSbspP86yTjJx",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/requirements.oldest.txt",
+      "replies": [
+        {
+          "at": "2026-11-03T20:20:58Z",
+          "body": "Ack removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4459995872"
+        }
+      ],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432857862"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n-e util/opentelemetry-util-genai\n```\n\nsame as before can't automate removing comments",
+      "created": "2026-10-31T18:40:22Z",
+      "hunk": "@@ -33,3 +33,7 @@ tqdm==4.66.3\n # from opentelemetry-util-genai).\n wrapt==1.17.0\n \n+# Drop this once opentelemetry-util-genai 1.4b0 is published.\n+-e util/opentelemetry-util-genai\n+\n+",
+      "id": "PRRT_kwDOSbspP86yTjf-",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432860096"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n-e util/opentelemetry-util-genai\n```",
+      "created": "2026-10-31T18:40:39Z",
+      "hunk": "@@ -24,3 +24,7 @@\n # AgentScope 1.0.x imports streamablehttp_client, removed in MCP 2.\n mcp<2\n \n+# Drop this once opentelemetry-util-genai 1.4b0 is published.\n+-e util/opentelemetry-util-genai\n+\n+",
+      "id": "PRRT_kwDOSbspP86yTjnx",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432860877"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "and here",
+      "created": "2026-10-31T18:40:54Z",
+      "hunk": "@@ -26,3 +26,7 @@\n # pyproject.toml or the instruments extra. This is the version smolagents 1.24.0\n # declares in its openai extra.\n openai>=1.58.1\n+\n+# Drop this once opentelemetry-util-genai 1.4b0 is published.\n+-e util/opentelemetry-util-genai\n+",
+      "id": "PRRT_kwDOSbspP86yTjvC",
+      "opened": "2026-10-31T18:55:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/tests/requirements.oldest.txt",
+      "replies": [
+        {
+          "at": "2026-11-03T20:20:43Z",
+          "body": "Ack",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4459993638"
+        }
+      ],
+      "reviewed": "8f192937d47f997709e315e69f55559154da4f7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432861590"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The conformance schema-validation workaround is still here. Could we remove it and keep schema validation in unit tests? weaver will validate schema for complex objects, so this is a throw-away hack\r\n\r\nsee \r\nhttps://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4432906232",
+      "created": "2026-11-04T04:43:29Z",
+      "hunk": "@@ -178,10 +207,141 @@ def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n     return counts\n \n \n+def _normalize_sample_value(val: Any) -> Any:\n+    if isinstance(val, (tuple, list)):\n+        return [_normalize_sample_value(x) for x in val]\n+    if isinstance(val, dict):\n+        return {k: _normalize_sample_value(v) for k, v in val.items()}\n+    return val\n+\n+\n+_CONTENT_SCHEMA_FILES: dict[str, str] = {\n+    \"gen_ai.input.messages\": \"gen-ai-input-messages.json\",\n+    \"gen_ai.output.messages\": \"gen-ai-output-messages.json\",\n+    \"gen_ai.system_instructions\": \"gen-ai-system-instructions.json\",\n+    \"gen_ai.tool.definitions\": \"gen-ai-tool-definitions.json\",\n+    \"gen_ai.retrieval.documents\": \"gen-ai-retrieval-documents.json\",\n+}\n+\n+\n+@functools.cache\n+def _get_content_validators() -> dict[str, Draft202012Validator]:\n+    import jsonschema\n+\n+    from opentelemetry.test_util_genai._setup_weaver import (\n+        _provision_genai_root,\n+    )\n+\n+    schema_dir = _provision_genai_root() / \"model\" / \"gen-ai\"\n+    validators: dict[str, Draft202012Validator] = {}\n+    for attr_name, filename in _CONTENT_SCHEMA_FILES.items():\n+        schema_path = schema_dir / filename\n+        if schema_path.is_file():\n+            schema = json.loads(schema_path.read_text(encoding=\"utf-8\"))\n+            validators[attr_name] = jsonschema.Draft202012Validator(schema)\n+    return validators\n+\n+\n+def _validate_content_attribute(",
+      "id": "PRRT_kwDOSbspP86zcwqH",
+      "opened": "2026-11-04T04:43:29Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [
+        {
+          "at": "2026-11-04T14:27:18Z",
+          "body": "Woops.. removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4468767044"
+        }
+      ],
+      "reviewed": "c4dd20a7116d15d5702ddb17450dd63862ac3feb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4463676393"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The removed assertion checked that intermediate `tool output` was absent from the entire captured output. Checking only the first part now allows an extra tool-result part or message to pass unnoticed. Assert the complete output parts and message count to retain that coverage, as required by the [instrumentation test rules](.github/instructions/instrumentation.instructions.md#6-tests).",
+      "created": "2026-11-11T19:32:36Z",
+      "hunk": "@@ -721,8 +729,7 @@ def fake_stream(*args, **kwargs):\n         GenAIAttributes.GEN_AI_OUTPUT_MESSAGES\n     )\n     assert output_messages is not None\n-    assert \"final answer\" in output_messages\n-    assert \"tool output\" not in output_messages\n+    assert output_messages[0][\"parts\"][0][\"content\"] == \"final answer\"",
+      "id": "PRRT_kwDOSbspP862VG18",
+      "opened": "2026-11-11T19:32:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_stream.py",
+      "replies": [],
+      "reviewed": "c56ec11b700b5fa4d447e5822e315ea5358bf0d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4542395730"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Concurrent span completion can reach the separate OTLP and in-memory processors in different orders, so positional matching can copy one span's attributes onto another report entry. This overwrites even intact values such as `gen_ai.operation.name` while retaining the other span's name and findings; the log branch has the same assumption. Match records by stable identity, or validate the in-memory records separately instead of rewriting report entries positionally.",
+      "created": "2026-11-11T19:32:37Z",
+      "hunk": "@@ -178,10 +203,62 @@ def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n     return counts\n \n \n+def _normalize_sample_value(val: Any) -> Any:\n+    if isinstance(val, (tuple, list)):\n+        return [_normalize_sample_value(x) for x in val]\n+    if isinstance(val, dict):\n+        return {k: _normalize_sample_value(v) for k, v in val.items()}\n+    return val\n+\n+\n+def _enrich_attributes(\n+    sample_attrs: list[dict[str, Any]], attrs: Mapping[str, Any]\n+) -> None:\n+    for attr_entry in sample_attrs:\n+        name = attr_entry.get(\"name\")\n+        if name not in attrs:\n+            continue\n+        attr_entry[\"value\"] = _normalize_sample_value(attrs[name])\n+\n+\n+def _enrich_report_samples(\n+    report: LiveCheckReport,\n+    finished_spans: Sequence[ReadableSpan],\n+    finished_logs: Sequence[Any],\n+) -> None:\n+    # Weaver drops KvlistValue (maps) during OTLP-to-JSON conversion, resulting in\n+    # empty lists [] or None for structured content attributes (messages, tool definitions).\n+    # Re-hydrate them from the emitted spans/logs so scenario validate() checks succeed.\n+    span_idx = 0\n+    log_idx = 0\n+    for entry in report.get(\"samples\", []):\n+        if \"span\" in entry and span_idx < len(finished_spans):\n+            span = finished_spans[span_idx]\n+            span_idx += 1",
+      "id": "PRRT_kwDOSbspP862VG2w",
+      "opened": "2026-11-11T19:32:38Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [],
+      "reviewed": "c56ec11b700b5fa4d447e5822e315ea5358bf0d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4542395828"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Pinned Weaver v0.26.1 drops map elements from arrays, so the content policy validates `[]` rather than the emitted messages. Restoring those values after `weaver.end()` does not rerun schema validation, allowing malformed messages such as `[{}]` to pass conformance. Validate the recovered content against the pinned schemas before accepting the scenario, or use a Weaver version that preserves structured values during policy evaluation.",
+      "created": "2026-11-11T19:32:37Z",
+      "hunk": "@@ -212,6 +293,11 @@ def run_conformance(\n         logger_provider.force_flush()\n \n         report = weaver.end(timeout=120)\n+        _enrich_report_samples(\n+            report,\n+            span_exporter.get_finished_spans(),\n+            log_exporter.get_finished_logs(),\n+        )",
+      "id": "PRRT_kwDOSbspP862VG3W",
+      "opened": "2026-11-11T19:32:38Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [],
+      "reviewed": "c56ec11b700b5fa4d447e5822e315ea5358bf0d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4542395885"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "On a cold cache, this assertion downloads the GenAI registry and its dependencies from GitHub, making ordinary mocked and cassette-backed tests require live network access. The downloader bypasses VCR and raises on network failure, so those tests fail offline or wait for download timeouts. Package the pinned schemas locally or provision them explicitly before the test run so content assertions themselves need no network access.",
+      "created": "2026-11-11T19:32:38Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import functools\n+import json\n+from collections.abc import Mapping\n+from typing import Any\n+\n+import jsonschema\n+\n+from opentelemetry.test_util_genai._setup_weaver import _provision_genai_root\n+\n+_SCHEMA_FILES: dict[str, str] = {\n+    \"gen_ai.input.messages\": \"gen-ai-input-messages.json\",\n+    \"gen_ai.output.messages\": \"gen-ai-output-messages.json\",\n+    \"gen_ai.system_instructions\": \"gen-ai-system-instructions.json\",\n+    \"gen_ai.tool.definitions\": \"gen-ai-tool-definitions.json\",\n+    \"gen_ai.retrieval.documents\": \"gen-ai-retrieval-documents.json\",\n+}\n+\n+\n+@functools.cache\n+def _validator(name: str) -> jsonschema.Draft202012Validator:\n+    path = _provision_genai_root() / \"model\" / \"gen-ai\" / _SCHEMA_FILES[name]\n+    return jsonschema.Draft202012Validator(\n+        json.loads(path.read_text(encoding=\"utf-8\"))",
+      "id": "PRRT_kwDOSbspP862VG4D",
+      "opened": "2026-11-11T19:32:38Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/content.py",
+      "replies": [],
+      "reviewed": "c56ec11b700b5fa4d447e5822e315ea5358bf0d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4542395952"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For same-name spans, this matcher skips missing scalar attributes and accepts the first partial match; a sample carrying `gen_ai.response.id=response-2` can therefore receive messages from a span without that ID. The name-only and first-span fallbacks also substitute unrelated content, making conformance assertions inspect the wrong operation. Require an unambiguous match using all sampled scalars and available identity information, and fail explicitly when correlation is missing or ambiguous.",
+      "created": "2026-11-12T15:54:27Z",
+      "hunk": "@@ -178,10 +203,129 @@ def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n     return counts\n \n \n+def _normalize_sample_value(val: Any) -> Any:\n+    if isinstance(val, (tuple, list)):\n+        return [_normalize_sample_value(x) for x in val]\n+    if isinstance(val, dict):\n+        return {k: _normalize_sample_value(v) for k, v in val.items()}\n+    return val\n+\n+\n+def _enrich_attributes(\n+    sample_attrs: list[dict[str, Any]], attrs: Mapping[str, Any]\n+) -> None:\n+    from opentelemetry.test_util_genai.content import (\n+        SCHEMA_FILES,\n+        validate_content_attribute,\n+    )\n+\n+    for attr_entry in sample_attrs:\n+        name = attr_entry.get(\"name\")\n+        if name not in attrs:\n+            continue\n+        raw_val = attrs[name]\n+        if name in SCHEMA_FILES:\n+            attr_entry[\"value\"] = validate_content_attribute(name, raw_val)\n+        elif isinstance(raw_val, (dict, list, tuple, bytes)):\n+            attr_entry[\"value\"] = _normalize_sample_value(raw_val)\n+\n+\n+def _sample_scalar_attrs(\n+    sample_attrs: list[dict[str, Any]],\n+) -> dict[str, Any]:\n+    return {\n+        a[\"name\"]: a.get(\"value\")\n+        for a in sample_attrs\n+        if \"name\" in a and isinstance(a.get(\"value\"), (str, int, float, bool))\n+    }\n+\n+\n+def _match_span(\n+    sample_span: dict[str, Any],\n+    remaining_spans: list[ReadableSpan],\n+) -> ReadableSpan | None:\n+    sample_name = sample_span.get(\"name\")\n+    sample_scalars = _sample_scalar_attrs(sample_span.get(\"attributes\", []))\n+    for idx, span in enumerate(remaining_spans):\n+        if span.name != sample_name:\n+            continue\n+        span_attrs = span.attributes or {}\n+        if all(\n+            span_attrs.get(k) == v\n+            for k, v in sample_scalars.items()\n+            if k in span_attrs\n+            and isinstance(span_attrs[k], (str, int, float, bool))",
+      "id": "PRRT_kwDOSbspP862s-Je",
+      "opened": "2026-11-12T15:54:28Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [],
+      "reviewed": "f507eff345f88165e438a14ab96fba3ef5b14bbc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4552804603"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The published `README.rst` still promises JSON `null` for unset retrieval fields and describes span content as JSON strings, but this change emits structured values and omits unset optional dataclass fields. Consumers following those instructions will use the wrong decoding and field-access logic. Update the Retrieval Documents and content-format sections to match, following the [user-facing documentation guidance](AGENTS.md#user-facing-docs).",
+      "created": "2026-11-12T15:54:27Z",
+      "hunk": "@@ -246,7 +246,7 @@ def _get_content_attributes_for_span(self) -> dict[str, AttributeValue]:\n             ),\n             (\n                 GenAI.GEN_AI_RETRIEVAL_DOCUMENTS,\n-                gen_ai_json_dumps(self._data.retrieval_documents)\n+                object_to_any_value(list(self._data.retrieval_documents))",
+      "id": "PRRT_kwDOSbspP862s-Ka",
+      "opened": "2026-11-12T15:54:28Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "f507eff345f88165e438a14ab96fba3ef5b14bbc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4552804708"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "On a cold cache, this assertion downloads the registry and its dependencies from GitHub, with the new HTTP patches bypassing VCR. Ordinary cassette-backed tests now fail offline or during a download outage. Bundle the pinned schemas locally, or provision them explicitly before tests with an offline cache option, so content assertions do not initiate downloads.",
+      "created": "2026-11-12T16:09:20Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import functools\n+import json\n+from collections.abc import Mapping\n+from typing import Any\n+\n+import jsonschema\n+\n+from opentelemetry.test_util_genai._setup_weaver import _provision_genai_root\n+\n+_SCHEMA_FILES: dict[str, str] = {\n+    \"gen_ai.input.messages\": \"gen-ai-input-messages.json\",\n+    \"gen_ai.output.messages\": \"gen-ai-output-messages.json\",\n+    \"gen_ai.system_instructions\": \"gen-ai-system-instructions.json\",\n+    \"gen_ai.tool.definitions\": \"gen-ai-tool-definitions.json\",\n+    \"gen_ai.retrieval.documents\": \"gen-ai-retrieval-documents.json\",\n+}\n+\n+\n+@functools.cache\n+def _validator(name: str) -> jsonschema.Draft202012Validator:\n+    path = _provision_genai_root() / \"model\" / \"gen-ai\" / _SCHEMA_FILES[name]",
+      "id": "PRRT_kwDOSbspP862tZvl",
+      "opened": "2026-11-12T16:09:21Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/content.py",
+      "replies": [],
+      "reviewed": "245003777e4f8130513246c3e3edf0ed8c30e56f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4552991156"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Two valid calls to the same tool can have identical scalar attributes but different structured arguments, so both match the same report sample. This assertion then aborts conformance even though the telemetry is valid. Correlate samples with captured spans using stable trace/span identifiers, preserving those in the report if necessary, rather than requiring matching spans to have identical payloads.",
+      "created": "2026-11-14T03:28:18Z",
+      "hunk": "@@ -178,10 +203,186 @@ def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n     return counts\n \n \n+def _normalize_sample_value(val: Any) -> Any:\n+    if isinstance(val, (tuple, list)):\n+        return [_normalize_sample_value(x) for x in val]\n+    if isinstance(val, dict):\n+        return {k: _normalize_sample_value(v) for k, v in val.items()}\n+    return val\n+\n+\n+def _enrich_attributes(\n+    sample_attrs: list[dict[str, Any]], attrs: Mapping[str, Any]\n+) -> None:\n+    for attr_entry in sample_attrs:\n+        name = attr_entry.get(\"name\")\n+        if name not in attrs:\n+            continue\n+        attr_entry[\"value\"] = _normalize_sample_value(attrs[name])\n+\n+\n+def _sample_scalar_attrs(\n+    sample_attrs: list[dict[str, Any]],\n+) -> dict[str, Any]:\n+    return {\n+        a[\"name\"]: a.get(\"value\")\n+        for a in sample_attrs\n+        if \"name\" in a and isinstance(a.get(\"value\"), (str, int, float, bool))\n+    }\n+\n+\n+def _span_matches_sample(\n+    span: ReadableSpan,\n+    sample_span: dict[str, Any],\n+    sample_scalars: dict[str, Any],\n+) -> bool:\n+    if span.name != sample_span.get(\"name\"):\n+        return False\n+    sample_kind = sample_span.get(\"kind\")\n+    if sample_kind and span.kind.name.lower() != str(sample_kind).lower():\n+        return False\n+    sample_status = (sample_span.get(\"status\") or {}).get(\"code\")\n+    if (\n+        sample_status\n+        and span.status.status_code.name.lower() != str(sample_status).lower()\n+    ):\n+        return False\n+    span_attrs = span.attributes or {}\n+    return all(\n+        k in span_attrs and span_attrs[k] == v\n+        for k, v in sample_scalars.items()\n+    )\n+\n+\n+def _match_span(\n+    sample_span: dict[str, Any],\n+    remaining_spans: list[ReadableSpan],\n+) -> ReadableSpan:\n+    sample_scalars = _sample_scalar_attrs(sample_span.get(\"attributes\", []))\n+    matches = [\n+        idx\n+        for idx, span in enumerate(remaining_spans)\n+        if _span_matches_sample(span, sample_span, sample_scalars)\n+    ]\n+    assert matches, (\n+        f\"Could not correlate report span {sample_span.get('name')!r} \"\n+        f\"(scalars={sample_scalars}) with any finished span\"\n+    )\n+    if len(matches) > 1:\n+        matched_attrs = [\n+            dict(remaining_spans[i].attributes or {}) for i in matches\n+        ]\n+        assert all(a == matched_attrs[0] for a in matched_attrs[1:]), (\n+            f\"Ambiguous report span {sample_span.get('name')!r} \"\n+            f\"(scalars={sample_scalars}) matched {len(matches)} distinct spans\"\n+        )",
+      "id": "PRRT_kwDOSbspP863YN-b",
+      "opened": "2026-11-14T03:28:19Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [
+        {
+          "at": "2026-11-16T21:14:46Z",
+          "body": "Weaver's `SampleSpan` JSON output does not preserve `trace_id` or `span_id` (unlike `SampleLog`), and `execute_tool` spans carry distinct `gen_ai.tool.call.id` scalar attributes. This enrichment helper is also a temporary bridge until upstream Weaver supports `KvlistValue` directly (https://github.com/open-telemetry/weaver/pull/1873).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4591667019"
+        }
+      ],
+      "reviewed": "77295ff23c0d1def39391fa065e59f96a2269876",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4571222860"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Since weaver drops maps, nothing validates structured content against the schema until open-telemetry/weaver#1873 ships - e.g. the anthropic multimodal scenario passes with `bytes` blob content that the schema rejects. This re-hydration only feeds hand-written scenario asserts that unit tests already cover via `get_content_attribute`. What about dropping it (plus the in-memory exporters) and skipping the content checks in scenarios until the weaver bump?",
+      "created": "2026-11-17T02:53:41Z",
+      "hunk": "@@ -178,10 +203,186 @@ def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n     return counts\n \n \n+def _normalize_sample_value(val: Any) -> Any:\n+    if isinstance(val, (tuple, list)):\n+        return [_normalize_sample_value(x) for x in val]\n+    if isinstance(val, dict):\n+        return {k: _normalize_sample_value(v) for k, v in val.items()}\n+    return val\n+\n+\n+def _enrich_attributes(\n+    sample_attrs: list[dict[str, Any]], attrs: Mapping[str, Any]\n+) -> None:\n+    for attr_entry in sample_attrs:\n+        name = attr_entry.get(\"name\")\n+        if name not in attrs:\n+            continue\n+        attr_entry[\"value\"] = _normalize_sample_value(attrs[name])\n+\n+\n+def _sample_scalar_attrs(\n+    sample_attrs: list[dict[str, Any]],\n+) -> dict[str, Any]:\n+    return {\n+        a[\"name\"]: a.get(\"value\")\n+        for a in sample_attrs\n+        if \"name\" in a and isinstance(a.get(\"value\"), (str, int, float, bool))\n+    }\n+\n+\n+def _span_matches_sample(\n+    span: ReadableSpan,\n+    sample_span: dict[str, Any],\n+    sample_scalars: dict[str, Any],\n+) -> bool:\n+    if span.name != sample_span.get(\"name\"):\n+        return False\n+    sample_kind = sample_span.get(\"kind\")\n+    if sample_kind and span.kind.name.lower() != str(sample_kind).lower():\n+        return False\n+    sample_status = (sample_span.get(\"status\") or {}).get(\"code\")\n+    if (\n+        sample_status\n+        and span.status.status_code.name.lower() != str(sample_status).lower()\n+    ):\n+        return False\n+    span_attrs = span.attributes or {}\n+    return all(\n+        k in span_attrs and span_attrs[k] == v\n+        for k, v in sample_scalars.items()\n+    )\n+\n+\n+def _match_span(\n+    sample_span: dict[str, Any],\n+    remaining_spans: list[ReadableSpan],\n+) -> ReadableSpan:\n+    sample_scalars = _sample_scalar_attrs(sample_span.get(\"attributes\", []))\n+    matches = [\n+        idx\n+        for idx, span in enumerate(remaining_spans)\n+        if _span_matches_sample(span, sample_span, sample_scalars)\n+    ]\n+    assert matches, (\n+        f\"Could not correlate report span {sample_span.get('name')!r} \"\n+        f\"(scalars={sample_scalars}) with any finished span\"\n+    )\n+    if len(matches) > 1:\n+        matched_attrs = [\n+            dict(remaining_spans[i].attributes or {}) for i in matches\n+        ]\n+        assert all(a == matched_attrs[0] for a in matched_attrs[1:]), (\n+            f\"Ambiguous report span {sample_span.get('name')!r} \"\n+            f\"(scalars={sample_scalars}) matched {len(matches)} distinct spans\"\n+        )\n+    return remaining_spans.pop(matches[0])\n+\n+\n+def _log_matches_sample(\n+    log: Any,\n+    sample_log: dict[str, Any],\n+    sample_scalars: dict[str, Any],\n+) -> bool:\n+    log_record = getattr(log, \"log_record\", log)\n+    sample_span_id = sample_log.get(\"span_id\")\n+    sample_trace_id = sample_log.get(\"trace_id\")\n+    sample_event_name = sample_log.get(\"event_name\")\n+    span_id = getattr(log_record, \"span_id\", None)\n+    trace_id = getattr(log_record, \"trace_id\", None)\n+    event_name = getattr(log_record, \"event_name\", None)\n+    if sample_span_id and (\n+        not isinstance(span_id, int) or f\"{span_id:016x}\" != sample_span_id\n+    ):\n+        return False\n+    if sample_trace_id and (\n+        not isinstance(trace_id, int) or f\"{trace_id:032x}\" != sample_trace_id\n+    ):\n+        return False\n+    if sample_event_name and event_name != sample_event_name:\n+        return False\n+    log_attrs = getattr(log_record, \"attributes\", None) or {}\n+    return all(\n+        k in log_attrs and log_attrs[k] == v for k, v in sample_scalars.items()\n+    )\n+\n+\n+def _match_log(\n+    sample_log: dict[str, Any],\n+    remaining_logs: list[Any],\n+) -> Any:\n+    sample_scalars = _sample_scalar_attrs(sample_log.get(\"attributes\", []))\n+    matches = [\n+        idx\n+        for idx, log in enumerate(remaining_logs)\n+        if _log_matches_sample(log, sample_log, sample_scalars)\n+    ]\n+    assert matches, (\n+        f\"Could not correlate report log {sample_log.get('event_name')!r} \"\n+        f\"(span_id={sample_log.get('span_id')}, scalars={sample_scalars}) \"\n+        \"with any finished log record\"\n+    )\n+    if len(matches) > 1:\n+        matched_attrs = [\n+            dict(\n+                getattr(\n+                    getattr(\n+                        remaining_logs[i], \"log_record\", remaining_logs[i]\n+                    ),\n+                    \"attributes\",\n+                    None,\n+                )\n+                or {}\n+            )\n+            for i in matches\n+        ]\n+        assert all(a == matched_attrs[0] for a in matched_attrs[1:]), (\n+            f\"Ambiguous report log {sample_log.get('event_name')!r} \"\n+            f\"(span_id={sample_log.get('span_id')}, scalars={sample_scalars}) \"\n+            f\"matched {len(matches)} distinct log records\"\n+        )\n+    return remaining_logs.pop(matches[0])\n+\n+\n+def _enrich_report_samples(",
+      "id": "PRRT_kwDOSbspP864P3iF",
+      "opened": "2026-11-17T03:01:12Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [],
+      "reviewed": "a6738481b0bea0ca5d18ab8be0df78f096469eec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013#discussion_r4594681466"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "5efc61308c507e4340b01a78c82699be2ac2a9c9",
+  "merge": "d43deb05f4c5eb3f3b53038818af46b6178be411",
+  "merged": "2026-08-13T13:22:53Z",
+  "missing_roots": 0,
+  "number": 19522,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This javaagent helper is only referenced from the same package, so making it public exposes more API than needed, and repository Java style explicitly says not to add `final` to classes under `javaagent/src/main`. Please keep it package-private and non-final.",
+      "created": "2026-08-12T00:27:49Z",
+      "hunk": "@@ -0,0 +1,107 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.servlet.common;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+public final class ServletConfig {",
+      "id": "PRRT_kwDODJKVX86YaulC",
+      "opened": "2026-08-12T00:27:49Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/ServletConfig.java",
+      "replies": [
+        {
+          "at": "2026-08-12T00:34:33Z",
+          "body": "Addressed in 20e3d21d8d6c0d4248059434fbcc400e7ade002e.\n\nAnalysis: ServletConfig is only consumed within its javaagent package, so package-private visibility is sufficient, and javaagent implementation classes intentionally remain non-final.\n\nUpsides: Keeps the helper out of the exposed implementation surface and follows the javaagent class-style rule.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3762756886"
+        }
+      ],
+      "reviewed": "e0cab13a351e6f81ba3e46b892d99476818e3da6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3762728596"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR promises that the deprecated setter remains an include-only alias, but all existing callers were migrated and no test invokes this forwarding path. Please retain coverage that calls `setCaptureRequestParameters(...)` and verifies the selected parameter is captured so this compatibility contract cannot regress.",
+      "created": "2026-08-12T00:27:49Z",
+      "hunk": "@@ -73,20 +77,45 @@ public static void setCaptureEnduserId(\n   }\n \n   /**\n-   * Sets the request parameters to be captured as span attributes.\n+   * Sets which request parameters should be captured as span attributes.\n    *\n    * <p>Request parameters will be captured as attributes with the format {@code\n    * servlet.request.parameter.<name>}.\n    *\n+   * <p>Parameter names and selector patterns are matched case-sensitively. {@code ?} matches any\n+   * single character and {@code *} matches any number of characters, including none. Excluded\n+   * patterns take precedence over included patterns. An absent or empty selector captures no\n+   * parameters; a selector with only excluded patterns captures every parameter that it does not\n+   * exclude.\n+   *\n+   * @param builder the telemetry builder\n+   * @param requestParameters request parameter selector\n+   * @see javax.servlet.ServletRequest#getParameterNames()\n+   * @see javax.servlet.ServletRequest#getParameterValues(String)\n+   */\n+  public static void setRequestParameters(\n+      ServletTelemetryBuilder builder, IncludeExclude requestParameters) {\n+    if (setRequestParameters != null) {\n+      setRequestParameters.accept(builder, requestParameters);\n+    } else if (setCapturedRequestParameters != null && requestParameters.getExcluded().isEmpty()) {\n+      setCapturedRequestParameters.accept(builder, requestParameters.getIncluded());\n+    }\n+  }\n+\n+  /**\n+   * Sets the request parameters to be captured as span attributes.\n+   *\n+   * @deprecated Use {@link #setRequestParameters(ServletTelemetryBuilder, IncludeExclude)} instead.\n+   *     Will be removed in 3.0.\n    * @param builder the telemetry builder\n    * @param captureRequestParameters request parameter names to capture\n    * @see javax.servlet.ServletRequest#getParameterValues(String)\n    */\n+  @Deprecated // to be removed in 3.0\n   public static void setCaptureRequestParameters(\n       ServletTelemetryBuilder builder, Collection<String> captureRequestParameters) {\n-    if (setCapturedRequestParameters != null) {\n-      setCapturedRequestParameters.accept(builder, captureRequestParameters);\n-    }\n+    setRequestParameters(\n+        builder, IncludeExclude.builder().setIncluded(captureRequestParameters).build());",
+      "id": "PRRT_kwDODJKVX86YaulZ",
+      "opened": "2026-08-12T00:27:49Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/internal/Experimental.java",
+      "replies": [
+        {
+          "at": "2026-08-12T00:34:34Z",
+          "body": "Addressed in fb962f707a6ecb117e1b78a804804b6d52a88727.\n\nAnalysis: The existing servlet 3.0 and 5.0 library fixtures already verify that `test-parameter` is captured. Configuring those fixtures through the deprecated setter directly exercises its include-only forwarding contract, with member-scoped suppressions documenting the intentional compatibility coverage.\n\nUpsides: Prevents regressions in both deprecated aliases while reusing the existing end-to-end request-parameter assertions.\n\nDownsides: The fixtures intentionally depend on deprecated APIs until those APIs are removed in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3762756998"
+        }
+      ],
+      "reviewed": "e0cab13a351e6f81ba3e46b892d99476818e3da6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3762728635"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR promises that the deprecated setter remains an include-only alias, but all existing callers were migrated and no test invokes this forwarding path. Please retain coverage that calls `setCaptureRequestParameters(...)` and verifies the selected parameter is captured so this compatibility contract cannot regress.",
+      "created": "2026-08-12T00:27:49Z",
+      "hunk": "@@ -73,20 +77,45 @@ public static void setCaptureEnduserId(\n   }\n \n   /**\n-   * Sets the request parameters to be captured as span attributes.\n+   * Sets which request parameters should be captured as span attributes.\n    *\n    * <p>Request parameters will be captured as attributes with the format {@code\n    * servlet.request.parameter.<name>}.\n    *\n+   * <p>Parameter names and selector patterns are matched case-sensitively. {@code ?} matches any\n+   * single character and {@code *} matches any number of characters, including none. Excluded\n+   * patterns take precedence over included patterns. An absent or empty selector captures no\n+   * parameters; a selector with only excluded patterns captures every parameter that it does not\n+   * exclude.\n+   *\n+   * @param builder the telemetry builder\n+   * @param requestParameters request parameter selector\n+   * @see jakarta.servlet.ServletRequest#getParameterNames()\n+   * @see jakarta.servlet.ServletRequest#getParameterValues(String)\n+   */\n+  public static void setRequestParameters(\n+      ServletTelemetryBuilder builder, IncludeExclude requestParameters) {\n+    if (setRequestParameters != null) {\n+      setRequestParameters.accept(builder, requestParameters);\n+    } else if (setCapturedRequestParameters != null && requestParameters.getExcluded().isEmpty()) {\n+      setCapturedRequestParameters.accept(builder, requestParameters.getIncluded());\n+    }\n+  }\n+\n+  /**\n+   * Sets the request parameters to be captured as span attributes.\n+   *\n+   * @deprecated Use {@link #setRequestParameters(ServletTelemetryBuilder, IncludeExclude)} instead.\n+   *     Will be removed in 3.0.\n    * @param builder the telemetry builder\n    * @param captureRequestParameters request parameter names to capture\n    * @see jakarta.servlet.ServletRequest#getParameterValues(String)\n    */\n+  @Deprecated // to be removed in 3.0\n   public static void setCaptureRequestParameters(\n       ServletTelemetryBuilder builder, Collection<String> captureRequestParameters) {\n-    if (setCapturedRequestParameters != null) {\n-      setCapturedRequestParameters.accept(builder, captureRequestParameters);\n-    }\n+    setRequestParameters(\n+        builder, IncludeExclude.builder().setIncluded(captureRequestParameters).build());",
+      "id": "PRRT_kwDODJKVX86Yaulo",
+      "opened": "2026-08-12T00:27:49Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v5_0/internal/Experimental.java",
+      "replies": [
+        {
+          "at": "2026-08-12T00:34:35Z",
+          "body": "Addressed in fb962f707a6ecb117e1b78a804804b6d52a88727.\n\nAnalysis: The existing servlet 3.0 and 5.0 library fixtures already verify that `test-parameter` is captured. Configuring those fixtures through the deprecated setter directly exercises its include-only forwarding contract, with member-scoped suppressions documenting the intentional compatibility coverage.\n\nUpsides: Prevents regressions in both deprecated aliases while reusing the existing end-to-end request-parameter assertions.\n\nDownsides: The fixtures intentionally depend on deprecated APIs until those APIs are removed in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3762757086"
+        }
+      ],
+      "reviewed": "e0cab13a351e6f81ba3e46b892d99476818e3da6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3762728661"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use the `String...` overloads\n```suggestion\n\nServletTelemetryBuilder builder = ServletTelemetry.builder(openTelemetry);\nExperimental.setRequestParameters(\n    builder,\n    IncludeExclude.builder()\n        .setIncluded(\"user-*\", \"search-?\")\n        .setExcluded(\"password\", \"*-token\")\n        .build());\n```",
+      "created": "2026-08-13T07:26:34Z",
+      "hunk": "@@ -48,3 +48,23 @@ ServletTelemetry telemetry = ServletTelemetry.create(openTelemetry);\n // Create telemetry producing servlet filter\n Filter filter = telemetry.createFilter();\n ```\n+\n+### Capture selected request parameters\n+\n+```java\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.servlet.v3_0.ServletTelemetryBuilder;\n+import io.opentelemetry.instrumentation.servlet.v3_0.internal.Experimental;\n+import java.util.Arrays;\n+\n+ServletTelemetryBuilder builder = ServletTelemetry.builder(openTelemetry);\n+Experimental.setRequestParameters(\n+    builder,\n+    IncludeExclude.builder()\n+        .setIncluded(Arrays.asList(\"user-*\", \"search-?\"))\n+        .setExcluded(Arrays.asList(\"password\", \"*-token\"))\n+        .build());",
+      "id": "PRRT_kwDODJKVX86Y2NLG",
+      "opened": "2026-08-13T07:26:34Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/README.md",
+      "replies": [
+        {
+          "at": "2026-08-13T12:19:57Z",
+          "body": "Done in a7d9e0301eecf0e78d2f11ecfd0d3f66d1e8b3d4 — switched both this and the servlet-5.0 README to the `String...` overloads, which also drops the `java.util.Arrays` import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3775251788"
+        }
+      ],
+      "reviewed": "9bd7a667684909759357f92884ff1d31eebdc527",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19522#discussion_r3773278757"
+    }
+  ]
+}

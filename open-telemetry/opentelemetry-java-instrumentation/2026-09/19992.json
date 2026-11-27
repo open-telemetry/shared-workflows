@@ -1,0 +1,73 @@
+{
+  "head": "7a740bb1a04c4958c1f99de4107c1a11c0b22bec",
+  "merge": "1850366613b785bfab93d8448ca68fcf8e8c787a",
+  "merged": "2026-09-07T18:03:04Z",
+  "missing_roots": 0,
+  "number": 19992,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The semconv-specific article linked above still gives the opposite instruction: `.github/agents/knowledge/testing-semconv-stability.md:98-107` says non-1:1 mappings should use separate `emitOld*()` / `emitStable*()` `if` blocks and remain `/dup`-safe. Since the knowledge index directs semconv reviews to that article, agents can continue producing the pattern this PR is intended to prevent. Update that article in this PR so the guidance is consistent.",
+      "created": "2026-09-07T05:04:22Z",
+      "hunk": "@@ -276,11 +276,35 @@ site.\n | `otel.semconv-stability.opt-in=…`              | `emitStableDatabaseSemconv()`, `emitOldDatabaseSemconv()`, `emitStableCodeSemconv()`, etc.                         | `io.opentelemetry.instrumentation.api.internal.SemconvStability`                |\n | `otel.instrumentation.<module>.experimental-*` | per-module `EXPERIMENTAL_ATTRIBUTES` constant — see [testing-experimental-flags.md](testing-experimental-flags.md) | within the test class                                                           |\n \n-### Inline conditional expected values\n+### Mode-dependent expected values\n \n-Push the ternary as deep as possible — into the `equalTo` value or single attribute key —\n-rather than duplicating two whole `hasAttributesSatisfyingExactly(...)` blocks under a\n-`flag ? a : b`. The assertion API treats `null` as \"expect attribute absent\":\n+Database instrumentation tests run either the default or stable database\n+semconv mode. Do not add `database/dup` test tasks or expand assertions to\n+cover both modes at once. Duplicate-mode coverage belongs in tests for the\n+semconv stability API itself.\n+\n+Use `SemconvStabilityUtil.maybeStable(...)` when old and stable database keys\n+carry the same expected value:\n+\n+```java\n+equalTo(maybeStable(DB_SYSTEM), ELASTICSEARCH)\n+equalTo(maybeStable(DB_OPERATION), \"info\")\n+```\n+\n+Do not replace these with separate null-gated assertions for the old and stable\n+keys:\n+\n+```java\n+equalTo(DB_SYSTEM, emitOldDatabaseSemconv() ? ELASTICSEARCH : null)\n+equalTo(DB_SYSTEM_NAME, emitStableDatabaseSemconv() ? ELASTICSEARCH : null)\n+```\n+\n+When no established semconv utility applies, put the ternary inside the\n+`equalTo` value or single attribute key. Do not duplicate two whole\n+`hasAttributesSatisfyingExactly(...)` blocks under a `flag ? a : b`. This\n+includes attributes that exist in only one mode and attributes whose expected\n+values differ by mode. The assertion API treats `null` as \"expect attribute",
+      "id": "PRRT_kwDODJKVX86fyko4",
+      "opened": "2026-09-07T05:04:23Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [
+        {
+          "at": "2026-09-07T16:32:37Z",
+          "body": "Addressed in 4a55ae7a95c5ba447512d48f7b0212fc1fa061d9.\n\nAnalysis: The semconv article directed agents to conditional assertion blocks for non-1:1 mappings. The general guidance requires mode checks at each expected value instead. The article now uses that form and explains how it covers RPC duplicate mode.\n\nUpsides: Agents receive consistent guidance from both knowledge articles. The example preserves duplicate-mode coverage without hiding the expected attributes.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19992#discussion_r3951427979"
+        }
+      ],
+      "reviewed": "4086a66c2d14a05ee71eed0a7975f80ba29adab9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19992#discussion_r3946681417"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This “Good” example still demonstrates the paired null-gated assertions rejected at lines 286–300. Because `DB_SYSTEM` maps directly to `DB_SYSTEM_NAME` with the same expected value, show `maybeStable(DB_SYSTEM)` instead.",
+      "created": "2026-09-07T05:04:22Z",
+      "hunk": "@@ -290,13 +314,36 @@ span.hasName(testLatestDeps() ? \"GET\" : \"HTTP GET\")\n .hasParent(trace.getSpan(testLatestDeps() ? 0 : 1))\n ```\n \n-Keep short conditional expected values directly in the assertion, even when several\n-assertions repeat the same condition. Do not extract the branch selection into helpers such\n-as `spanName(...)`, `oldOrExperimental(value)`, or `expectedNamespace()`. Those helpers hide\n-the expected values at the point where a reader needs them. The conventional\n-`experimental(value)` helper is the exception — it unambiguously means the value is expected\n-only when experimental attributes are enabled, and `null` otherwise, so keep it instead of\n-inlining `EXPERIMENTAL_ATTRIBUTES ? value : null`.\n+Keep short conditional expected values directly in the assertion when no\n+established semconv utility applies, even when several assertions repeat the\n+same condition. Do not extract the branch selection into helpers such as\n+`spanName(...)`, `oldOrExperimental(value)`, or `expectedNamespace()`. Those\n+helpers hide the expected values at the point where a reader needs them. The\n+conventional `experimental(value)` helper is the exception. It means the value\n+is expected only when experimental attributes are enabled, and `null`\n+otherwise, so keep it instead of inlining\n+`EXPERIMENTAL_ATTRIBUTES ? value : null`.\n+\n+A helper may obtain the mode flag or derive a value from test data. It should\n+not choose between short expected values on the assertion's behalf, build or\n+augment a `List<AttributeAssertion>` with mode-dependent entries, or otherwise\n+hide the expected assertion shape. Keep helpers for genuinely nontrivial\n+derivation only:\n+\n+```java\n+// Bad: the helper conditionally builds a list and hides the expected shape.\n+private static List<AttributeAssertion> databaseAttributes() {\n+  List<AttributeAssertion> attributes = new ArrayList<>();\n+  if (emitStableDatabaseSemconv()) {\n+    attributes.add(equalTo(DB_SYSTEM_NAME, ELASTICSEARCH));\n+  }\n+  return attributes;\n+}\n+assertNodeListTarget(span, databaseAttributes());\n \n-A helper may obtain the mode flag or perform nontrivial derivation from test data. It should\n-not choose between short expected values on the assertion's behalf.\n+// Good: each mode-dependent expectation remains visible at the assertion.\n+assertNodeListTarget(\n+    span,\n+    equalTo(DB_SYSTEM, emitStableDatabaseSemconv() ? null : ELASTICSEARCH),\n+    equalTo(DB_SYSTEM_NAME, emitStableDatabaseSemconv() ? ELASTICSEARCH : null));",
+      "id": "PRRT_kwDODJKVX86fykpR",
+      "opened": "2026-09-07T05:04:23Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [
+        {
+          "at": "2026-09-07T16:32:38Z",
+          "body": "Addressed in 1c3c24c4de40e4c42855408ad2ad503d92b8c2b8.\n\nAnalysis: Both good examples used separate old and stable assertions for a direct key mapping with the same value. They now use `maybeStable(DB_SYSTEM)` as the preceding rule requires.\n\nUpsides: The examples reinforce the rule instead of contradicting it. Agents see the preferred utility at the point where they compare good and bad assertion shapes.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19992#discussion_r3951428098"
+        }
+      ],
+      "reviewed": "4086a66c2d14a05ee71eed0a7975f80ba29adab9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19992#discussion_r3946681453"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This “Good” example contradicts the rule immediately above: `DB_SYSTEM` → `DB_SYSTEM_NAME` is a direct mapping and both branches expect `ELASTICSEARCH`, so this is exactly the paired null-gated form that lines 78–87 prohibit. Use `maybeStable(DB_SYSTEM)` here so the example reinforces the new guidance.",
+      "created": "2026-09-07T05:04:22Z",
+      "hunk": "@@ -70,20 +70,56 @@ Same shape applies to `String.length()`, `Map.size()`, and `array.length` →\n   when `value` is already an `int` — the `equalTo(AttributeKey<Long>, int)`\n   overload exists.\n \n-## [Testing] Inline Conditional Expected Values\n+## [Testing] Mode-Dependent Expected Values\n \n-- Keep short conditional expected values directly in the assertion, especially\n-  span names and attribute values:\n+- Database instrumentation tests run either the default or stable database\n+  semconv mode. Do not add `database/dup` test tasks or expand assertions to\n+  cover both modes at once.\n+- Use `SemconvStabilityUtil.maybeStable(...)` when old and stable database keys\n+  carry the same expected value:\n+\n+  ```java\n+  equalTo(maybeStable(DB_SYSTEM), ELASTICSEARCH);\n+  equalTo(maybeStable(DB_OPERATION), \"info\");\n+  ```\n+\n+  Do not replace these with separate null-gated assertions for the old and\n+  stable keys.\n+- Keep short conditional expected values directly in the assertion when the\n+  expected values differ by mode or an attribute exists in only one mode:\n \n   ```java\n   span.hasName(emitStableMessagingSemconv() ? \"send orders\" : \"orders publish\");\n   equalTo(ERROR_TYPE, emitStableDatabaseSemconv() ? \"42601\" : null);\n   ```\n \n - Do not extract the ternary into a helper such as `spanName(...)`,\n-  `oldOrExperimental(value)`, or `expectedNamespace()`. Inline it even when\n-  several assertions repeat the same condition. Seeing both expected values at\n-  the assertion is more useful than deduplicating a short expression.\n+  `oldOrExperimental(value)`, or `expectedNamespace()` when no established\n+  semconv utility applies. Seeing both expected values at the assertion is more\n+  useful than deduplicating a short expression.\n+- Do not hide mode-dependent expectations in a helper that builds or augments a\n+  `List<AttributeAssertion>`, such as `databaseAttributes()`, and passes it to\n+  an assertion helper. Keep each individual attribute expectation at the\n+  assertion site; retain helpers only for genuinely nontrivial derivation:\n+\n+  ```java\n+  // Bad: the helper conditionally builds a list and hides the expected shape.\n+  private static List<AttributeAssertion> databaseAttributes() {\n+    List<AttributeAssertion> attributes = new ArrayList<>();\n+    if (emitStableDatabaseSemconv()) {\n+      attributes.add(equalTo(DB_SYSTEM_NAME, ELASTICSEARCH));\n+    }\n+    return attributes;\n+  }\n+  assertNodeListTarget(span, databaseAttributes());\n+\n+  // Good: each mode-dependent expectation remains visible at the assertion.\n+  assertNodeListTarget(\n+      span,\n+      equalTo(DB_SYSTEM, emitStableDatabaseSemconv() ? null : ELASTICSEARCH),\n+      equalTo(DB_SYSTEM_NAME, emitStableDatabaseSemconv() ? ELASTICSEARCH : null));",
+      "id": "PRRT_kwDODJKVX86fykpg",
+      "opened": "2026-09-07T05:04:23Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-07T16:32:40Z",
+          "body": "Addressed in 1c3c24c4de40e4c42855408ad2ad503d92b8c2b8.\n\nAnalysis: Both good examples used separate old and stable assertions for a direct key mapping with the same value. They now use `maybeStable(DB_SYSTEM)` as the preceding rule requires.\n\nUpsides: The examples reinforce the rule instead of contradicting it. Agents see the preferred utility at the point where they compare good and bad assertion shapes.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19992#discussion_r3951428205"
+        }
+      ],
+      "reviewed": "4086a66c2d14a05ee71eed0a7975f80ba29adab9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19992#discussion_r3946681472"
+    }
+  ]
+}

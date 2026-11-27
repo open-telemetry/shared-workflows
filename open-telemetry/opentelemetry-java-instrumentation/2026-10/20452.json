@@ -1,0 +1,46 @@
+{
+  "head": "da855574e07afcad14ae84c525b8ad831a6db251",
+  "merge": "e1f1ae5da9c4db24b90610f26f04d413cfe5669b",
+  "merged": "2026-10-12T06:27:46Z",
+  "missing_roots": 0,
+  "number": 20452,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nlatestDepTestLibrary(\"org.apache.pulsar:pulsar-client:4.+\") // see test suite below\nlatestDepTestLibrary(\"org.apache.pulsar:pulsar-client-admin:4.+\") // see test suite below\n```",
+      "created": "2026-10-11T17:32:43Z",
+      "hunk": "@@ -18,12 +24,53 @@ dependencies {\n   testImplementation(\"org.testcontainers:testcontainers-pulsar\")\n   testLibrary(\"org.apache.pulsar:pulsar-client-admin:2.8.0\")\n \n-  // api changes in pulsar client v5\n+  // Pulsar 5 uses a different artifact and is covered by version5Test.\n   latestDepTestLibrary(\"org.apache.pulsar:pulsar-client:4.+\") // documented limitation\n   latestDepTestLibrary(\"org.apache.pulsar:pulsar-client-admin:4.+\") // documented limitation",
+      "id": "PRRT_kwDODJKVX86rP1Kx",
+      "opened": "2026-10-11T17:32:43Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "539a85ad43fd1bc5b6856df37086da8015717850",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20452#discussion_r4242520505"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This suite discovers both `PulsarClientTest` from `src/test/java` and `PulsarClientV5Test`; because both extend `AbstractPulsarClientTest`, JUnit runs the four inherited tests twice and starts a separate Pulsar broker for each class. This adds a costly duplicate container/test cycle. Consider making the v5 class extend `PulsarClientTest` and filtering this suite to execute only that subclass, so it inherits the legacy coverage and adds the v5 cases in one fixture lifecycle.",
+      "created": "2026-10-11T19:00:38Z",
+      "hunk": "@@ -18,12 +24,52 @@ dependencies {\n   testImplementation(\"org.testcontainers:testcontainers-pulsar\")\n   testLibrary(\"org.apache.pulsar:pulsar-client-admin:2.8.0\")\n \n-  // api changes in pulsar client v5\n-  latestDepTestLibrary(\"org.apache.pulsar:pulsar-client:4.+\") // documented limitation\n-  latestDepTestLibrary(\"org.apache.pulsar:pulsar-client-admin:4.+\") // documented limitation\n+  // Pulsar 5 uses a different artifact and is covered by version5Test.\n+  latestDepTestLibrary(\"org.apache.pulsar:pulsar-client:4.+\") // see test suite below\n+  latestDepTestLibrary(\"org.apache.pulsar:pulsar-client-admin:4.+\") // see test suite below\n+}\n+\n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"version5Test\") {\n+      sources {\n+        java {\n+          setSrcDirs(listOf(\"src/test/java\", \"src/version5Test/java\"))",
+      "id": "PRRT_kwDODJKVX86rQgs1",
+      "opened": "2026-10-11T19:00:38Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-12T03:52:34Z",
+          "body": "Addressed in da855574e07afcad14ae84c525b8ad831a6db251.\n\nThe frozen suite compiled src/test/java and src/version5Test/java and excluded only the suppression class, selecting both PulsarClientTest and PulsarClientV5Test. Both inherited four base tests and the broker lifecycle. Candidate commit 1 selects only PulsarClientV5Test, now extending PulsarClientTest, so it retains every legacy test and the synchronous/asynchronous v5 cases while using one inherited fixture lifecycle. Actual JUnit dry-run reports contain exactly that subclass and every inherited method once.\n\n<!-- copilot-loop:4e44b1d3477d313692704d29db06ce7f41d688a8708e9e8ad1e91d12f71553b9:4242802437:53502cf586454de59644daab56a42002 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20452#discussion_r4244527647"
+        }
+      ],
+      "reviewed": "b745fc7c82eed59583eb47a5caed1a3d1127b1f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20452#discussion_r4242802437"
+    }
+  ]
+}

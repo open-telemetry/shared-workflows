@@ -1,0 +1,88 @@
+{
+  "head": "a5aff787401630fe58f4d5d9e53ddb03f4eacae0",
+  "merge": "a2e516982291a191834f3a49fe74cbcb75410563",
+  "merged": "2026-11-17T03:21:39Z",
+  "missing_roots": 0,
+  "number": 1058,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The header path (`x-amzn-bedrock-input-token-count`) is the common case on real responses, but no test combines the header with cache tokens in the body. Something like this in `test_invoke_model.py` would cover it:\n\n```python\ndef test_extract_invoke_model_response_headers_with_cache(tracer_provider) -> None:\n    handler = TelemetryHandler(tracer_provider=tracer_provider)\n    with handler.inference(provider=\"aws.bedrock\") as invocation:\n        extract_invoke_model_response(\n            {\n                \"ResponseMetadata\": {\n                    \"HTTPHeaders\": {\n                        \"x-amzn-bedrock-input-token-count\": \"10\",\n                        \"x-amzn-bedrock-output-token-count\": \"5\",\n                    }\n                }\n            },\n            json.dumps(\n                {\n                    \"usage\": {\n                        \"input_tokens\": 10,\n                        \"output_tokens\": 5,\n                        \"cache_read_input_tokens\": 4,\n                        \"cache_creation_input_tokens\": 2,\n                    }\n                }\n            ).encode(),\n            invocation,\n        )\n        assert invocation.input_tokens == 16\n        assert invocation.cache_read_input_tokens == 4\n        assert invocation.cache_write_input_tokens == 2\n```",
+      "created": "2026-11-12T04:22:43Z",
+      "hunk": "@@ -662,13 +662,19 @@ def extract_invoke_model_response(\n                 usage.get(\"cacheReadInputTokens\"),\n             )\n         )\n-        invocation.cache_creation_input_tokens = _safe_int(\n+        invocation.cache_write_input_tokens = _safe_int(\n             _first_not_none(\n                 usage.get(\"cache_creation_input_tokens\"),\n                 usage.get(\"cacheWriteInputTokens\"),\n             )\n         )\n \n+        invocation.input_tokens = _total_input_tokens(\n+            invocation.input_tokens,\n+            invocation.cache_read_input_tokens,\n+            invocation.cache_write_input_tokens,\n+        )",
+      "id": "PRRT_kwDOSbspP862d5rk",
+      "opened": "2026-11-12T04:28:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-13T16:38:39Z",
+          "body": "Good catch! I'll add that test (I confirmed on a real Claude-on-Bedrock call that the header excludes cache tokens, so 16 is right).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4566000313"
+        },
+        {
+          "at": "2026-11-17T02:14:40Z",
+          "body": "I've added the `test_extract_invoke_model_response_headers_with_cache` covering the header path with cache tokens (asserts input_tokens == 16, i.e. 10 + 4 + 2). Thank you!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4594412549"
+        }
+      ],
+      "reviewed": "d4a786c38e1224bbc0dcda2e57e73e11f2a6f22a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4546282653"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This changes `gen_ai.usage.input_tokens` for users, so it needs a changelog fragment, e.g. `instrumentation/opentelemetry-instrumentation-genai-bedrock/.changelog/1058.fixed`:\n\n```\nInclude cache read and cache write tokens in `gen_ai.usage.input_tokens` for InvokeModel and InvokeModelWithResponseStream.\n```\n\nnit: the `_total_input_tokens` docstring still says it's about Converse `inputTokens` only - worth updating now that InvokeModel uses it too.",
+      "created": "2026-11-12T04:22:43Z",
+      "hunk": "@@ -662,13 +662,19 @@ def extract_invoke_model_response(\n                 usage.get(\"cacheReadInputTokens\"),\n             )\n         )\n-        invocation.cache_creation_input_tokens = _safe_int(\n+        invocation.cache_write_input_tokens = _safe_int(\n             _first_not_none(\n                 usage.get(\"cache_creation_input_tokens\"),\n                 usage.get(\"cacheWriteInputTokens\"),\n             )\n         )\n \n+        invocation.input_tokens = _total_input_tokens(",
+      "id": "PRRT_kwDOSbspP862d5rp",
+      "opened": "2026-11-12T04:28:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-13T16:39:09Z",
+          "body": "Will do! Adding the 1058.fixed fragment with that line, and updating the _total_input_tokens docstring since InvokeModel uses it now too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4566005797"
+        },
+        {
+          "at": "2026-11-17T02:15:01Z",
+          "body": "I've included the 1058.fixed changelog fragment and updated the _total_input_tokens docstring to mention InvokeModel too",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4594415175"
+        }
+      ],
+      "reviewed": "d4a786c38e1224bbc0dcda2e57e73e11f2a6f22a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4546282662"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we change it to _self_cache_write_input_tokens too?",
+      "created": "2026-11-12T04:28:05Z",
+      "hunk": "@@ -467,16 +467,19 @@ def _on_stream_end(self) -> None:\n         if finish_reason:\n             self._self_invocation.finish_reasons = [finish_reason]\n \n-        if self._self_input_tokens is not None:\n-            self._self_invocation.input_tokens = self._self_input_tokens\n+        self._self_invocation.input_tokens = _total_input_tokens(\n+            self._self_input_tokens,\n+            self._self_cache_read_input_tokens,\n+            self._self_cache_creation_input_tokens,",
+      "id": "PRRT_kwDOSbspP862d-0I",
+      "opened": "2026-11-12T04:28:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/stream.py",
+      "replies": [
+        {
+          "at": "2026-11-13T16:39:25Z",
+          "body": "Yes, I left that internal variable as-is to keep the rename minimal, but agreed it should be _self_cache_write_input_tokens for consistency. I'll rename it across the stream wrappers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4566008535"
+        },
+        {
+          "at": "2026-11-17T02:15:11Z",
+          "body": "done, renamed it to _self_cache_write_input_tokens across both stream wrappers",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4594416427"
+        }
+      ],
+      "reviewed": "d4a786c38e1224bbc0dcda2e57e73e11f2a6f22a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1058#discussion_r4546318382"
+    }
+  ]
+}

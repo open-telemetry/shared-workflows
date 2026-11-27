@@ -1,0 +1,75 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c8cbfbefbdd0e5a96cf42f3ce31cee7a51cfe2079375fabd327dbef6e0d20cb8",
+  "input_digest": "18ccbd32c38c8bf65da867f323d920e43dedfb04d28a525cd9dc58eb8111ffe1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51bc6d2ddace4aec3dde765a2b3351573729b445/instrumentation-docs/readme.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51bc6d2ddace4aec3dde765a2b3351573729b445/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/instrumentation-docs/readme.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1e211c358fddb09d1ef25ba5cd18684572b0135a"
+      ],
+      "id": "PRRT_kwDODJKVX86h7IWP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51bc6d2ddace4aec3dde765a2b3351573729b445/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedEventParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51bc6d2ddace4aec3dde765a2b3351573729b445/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EventParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedEventParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EventParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1e211c358fddb09d1ef25ba5cd18684572b0135a"
+      ],
+      "id": "PRRT_kwDODJKVX86h7IWd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51bc6d2ddace4aec3dde765a2b3351573729b445/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EventParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EventParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedEventParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1e211c358fddb09d1ef25ba5cd18684572b0135a"
+      ],
+      "id": "PRRT_kwDODJKVX86h7IWi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51bc6d2ddace4aec3dde765a2b3351573729b445/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/InstrumentationTestRunner.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51bc6d2ddace4aec3dde765a2b3351573729b445/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/CollectedEvent.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/InstrumentationTestRunner.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/MetaDataCollector.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1e211c358fddb09d1ef25ba5cd18684572b0135a"
+      ],
+      "id": "PRRT_kwDODJKVX86h7IWs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/273d57ebb10084884facae104a2939a46c5d537b/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/MetaDataCollector.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ce71a19389b9b36016ad58961b00f525107484a/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/MetaDataCollector.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ko1hn",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

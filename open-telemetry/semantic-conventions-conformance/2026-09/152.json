@@ -1,0 +1,100 @@
+{
+  "head": "415b150e2965cc5903f7828ca0ba9e5739ec8005",
+  "merge": "af914ba3f2477cec4dafb043360317171e48c822",
+  "merged": "2026-09-06T21:02:09Z",
+  "missing_roots": 0,
+  "number": 152,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This range now selects only Python 3.14 even though the unchanged explanation immediately above documents that CrewAI's `chromadb` dependency does not work on 3.14. The scenario therefore targets the one interpreter it explicitly cannot run on; retain the existing upper bound until that dependency is compatible.\n\nThis issue also appears on line 10 of the same file.",
+      "created": "2026-08-31T01:10:24Z",
+      "hunk": "@@ -3,14 +3,14 @@ name = \"crewai-openllmetry-conformance\"\n version = \"0.0.0\"\n # chromadb, which crewai pulls in, imports pydantic v1, and that shim does\n # not work on Python 3.14.\n-requires-python = \">=3.12,<3.14\"\n+requires-python = \">=3.14,<3.15\"",
+      "id": "PRRT_kwDOTuzK5c6dlgSd",
+      "opened": "2026-08-31T01:10:25Z",
+      "path": "scenarios/gen-ai/python/crewai/openllmetry/pyproject.toml",
+      "replies": [],
+      "reviewed": "e0d98c553b288fa38932d8fa3f69834e8c1d8f7c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/152#discussion_r3891097874"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This range now selects only Python 3.14 even though the unchanged explanation immediately above documents that CrewAI's `chromadb` dependency does not work on 3.14. The scenario therefore targets the one interpreter it explicitly cannot run on; retain the existing upper bound until that dependency is compatible.\n\nThis issue also appears on line 10 of the same file.",
+      "created": "2026-08-31T01:10:24Z",
+      "hunk": "@@ -3,14 +3,14 @@ name = \"crewai-openinference-conformance\"\n version = \"0.0.0\"\n # chromadb, which crewai pulls in, imports pydantic v1, and that shim does\n # not work on Python 3.14.\n-requires-python = \">=3.12,<3.14\"\n+requires-python = \">=3.14,<3.15\"",
+      "id": "PRRT_kwDOTuzK5c6dlgSg",
+      "opened": "2026-08-31T01:10:25Z",
+      "path": "scenarios/gen-ai/python/crewai/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "e0d98c553b288fa38932d8fa3f69834e8c1d8f7c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/152#discussion_r3891097883"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This manifest is updated to ADK 2.8.0 and OpenTelemetry 1.44.0/0.65b0, but the committed `uv.lock` still pins ADK 2.7.1 and OpenTelemetry 1.42.0/0.63b0. The `--frozen` scenario commands therefore keep using the previous dependency set. Regenerate and commit the lockfile, then regenerate `data.json`.",
+      "created": "2026-08-31T01:10:24Z",
+      "hunk": "@@ -3,15 +3,15 @@ name = \"google-adk-native-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-adk==2.7.1\",\n+    \"google-adk==2.8.0\",",
+      "id": "PRRT_kwDOTuzK5c6dlgSi",
+      "opened": "2026-08-31T01:10:25Z",
+      "path": "scenarios/gen-ai/python/google-adk/native/pyproject.toml",
+      "replies": [],
+      "reviewed": "e0d98c553b288fa38932d8fa3f69834e8c1d8f7c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/152#discussion_r3891097888"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment now says ADK caps the SDK below the version used by other directories, but these changed pins are the same 1.44.0/0.65b0 versions used elsewhere. Remove or update the obsolete explanation so it does not describe a constraint that no longer exists.",
+      "created": "2026-08-31T01:10:25Z",
+      "hunk": "@@ -3,13 +3,13 @@ name = \"google-adk-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-adk==2.7.1\",\n-    \"openinference-instrumentation-google-adk==0.1.20\",\n+    \"google-adk==2.8.0\",\n+    \"openinference-instrumentation-google-adk==0.1.24\",\n     # ADK caps the SDK below the version the other directories pin.\n-    \"opentelemetry-api==1.42.0\",\n-    \"opentelemetry-sdk==1.42.0\",\n-    \"opentelemetry-exporter-otlp-proto-grpc==1.42.0\",\n-    \"opentelemetry-distro==0.63b0\",\n+    \"opentelemetry-api==1.44.0\",",
+      "id": "PRRT_kwDOTuzK5c6dlgS2",
+      "opened": "2026-08-31T01:10:25Z",
+      "path": "scenarios/gen-ai/python/google-adk/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "e0d98c553b288fa38932d8fa3f69834e8c1d8f7c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/152#discussion_r3891097915"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This manifest is updated to ADK 2.8.0, its instrumentation 0.1.24, and OpenTelemetry 1.44.0/0.65b0, but the committed `uv.lock` still pins 2.7.1, 0.1.20, and OpenTelemetry 1.42.0/0.63b0. The `--frozen` scenario commands therefore keep using the previous dependency set. Regenerate and commit the lockfile, then regenerate `data.json`.",
+      "created": "2026-08-31T01:10:25Z",
+      "hunk": "@@ -3,13 +3,13 @@ name = \"google-adk-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-adk==2.7.1\",\n-    \"openinference-instrumentation-google-adk==0.1.20\",\n+    \"google-adk==2.8.0\",\n+    \"openinference-instrumentation-google-adk==0.1.24\",",
+      "id": "PRRT_kwDOTuzK5c6dlgSm",
+      "opened": "2026-08-31T01:10:25Z",
+      "path": "scenarios/gen-ai/python/google-adk/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "e0d98c553b288fa38932d8fa3f69834e8c1d8f7c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/152#discussion_r3891097894"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These pins now resolve to the same OpenTelemetry versions as `tools/python/pyproject.toml`, so the preceding claim that ADK forces this scenario below `otel-conformance-python` is no longer true. Other native scenarios use that shared runner (for example, `agent-framework/native/pyproject.toml:11-18`); remove the obsolete workaround and switch this scenario's command to the shared runner, or document a remaining concrete incompatibility.",
+      "created": "2026-08-31T01:10:25Z",
+      "hunk": "@@ -3,15 +3,15 @@ name = \"google-adk-native-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-adk==2.7.1\",\n+    \"google-adk==2.8.0\",\n     # ADK caps the SDK below what the runner's own package resolves to, so\n     # these scenarios take the zero-code agent instead of\n     # `otel-conformance-python`. Nothing else here is instrumented, so the\n     # agent finds no instrumentation to load and only sets the SDK up.\n-    \"opentelemetry-api==1.42.0\",\n-    \"opentelemetry-sdk==1.42.0\",\n-    \"opentelemetry-exporter-otlp-proto-grpc==1.42.0\",\n-    \"opentelemetry-distro==0.63b0\",\n+    \"opentelemetry-api==1.44.0\",\n+    \"opentelemetry-sdk==1.44.0\",\n+    \"opentelemetry-exporter-otlp-proto-grpc==1.44.0\",\n+    \"opentelemetry-distro==0.65b0\",",
+      "id": "PRRT_kwDOTuzK5c6dlgSu",
+      "opened": "2026-08-31T01:10:25Z",
+      "path": "scenarios/gen-ai/python/google-adk/native/pyproject.toml",
+      "replies": [],
+      "reviewed": "e0d98c553b288fa38932d8fa3f69834e8c1d8f7c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/152#discussion_r3891097903"
+    }
+  ]
+}

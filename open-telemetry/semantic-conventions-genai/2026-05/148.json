@@ -1,0 +1,55 @@
+{
+  "head": "8f24f0eb3877f34ae666c3ba0b37029ff2d38cbf",
+  "merge": "65746289be1d8193c87c82b69de40eb4e6036434",
+  "merged": "2026-05-18T20:16:15Z",
+  "missing_roots": 0,
+  "number": 148,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`databaseId` isn't needed if we publish via `gh release edit` instead of `gh api PATCH` (see suggestion below).\n\n```suggestion\n          info=$(gh release view \"$TAG\" --json isDraft 2>/dev/null || true)\n```",
+      "created": "2026-05-12T01:11:46Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+name: Release (dev)\n+\n+on:\n+  workflow_dispatch:\n+\n+permissions:\n+  contents: write\n+\n+jobs:\n+  release:\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 15\n+    steps:\n+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+\n+      - name: Compute tag from model/manifest.yaml\n+        id: tag\n+        run: |\n+          version=$(awk '/^schema_url:/ { n = split($2, parts, \"/\"); print parts[n]; exit }' model/manifest.yaml)\n+          if [ -z \"$version\" ]; then\n+            echo \"Could not parse version from model/manifest.yaml\"\n+            exit 1\n+          fi\n+          echo \"tag=v${version}\" >> \"$GITHUB_OUTPUT\"\n+          echo \"Tag: v${version}\"\n+\n+      - name: Find draft release matching schema_url\n+        id: draft\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+          TAG: ${{ steps.tag.outputs.tag }}\n+        run: |\n+          info=$(gh release view \"$TAG\" --json databaseId,isDraft 2>/dev/null || true)",
+      "id": "PRRT_kwDOSUeMrM6BQ5qs",
+      "opened": "2026-05-12T01:21:14Z",
+      "path": ".github/workflows/release-dev.yml",
+      "replies": [],
+      "reviewed": "a2e1581fcac4179a5905500bca430b9dac3097e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/148#discussion_r3223069769"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Drop the `release_id` step output — no longer needed if we key the publish step off `$TAG`.\n\n```suggestion\n          fi\n          echo \"Draft release '${TAG}' matches model/manifest.yaml schema_url.\"\n```",
+      "created": "2026-05-12T01:11:47Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+name: Release (dev)\n+\n+on:\n+  workflow_dispatch:\n+\n+permissions:\n+  contents: write\n+\n+jobs:\n+  release:\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 15\n+    steps:\n+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+\n+      - name: Compute tag from model/manifest.yaml\n+        id: tag\n+        run: |\n+          version=$(awk '/^schema_url:/ { n = split($2, parts, \"/\"); print parts[n]; exit }' model/manifest.yaml)\n+          if [ -z \"$version\" ]; then\n+            echo \"Could not parse version from model/manifest.yaml\"\n+            exit 1\n+          fi\n+          echo \"tag=v${version}\" >> \"$GITHUB_OUTPUT\"\n+          echo \"Tag: v${version}\"\n+\n+      - name: Find draft release matching schema_url\n+        id: draft\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+          TAG: ${{ steps.tag.outputs.tag }}\n+        run: |\n+          info=$(gh release view \"$TAG\" --json databaseId,isDraft 2>/dev/null || true)\n+          if [ -z \"$info\" ]; then\n+            existing_drafts=$(gh release list --limit 20 --json tagName,isDraft \\\n+              --jq '[.[] | select(.isDraft) | .tagName] | join(\", \")')\n+            echo \"Expected a draft release with tag '${TAG}' (derived from model/manifest.yaml schema_url).\"\n+            if [ -n \"$existing_drafts\" ]; then\n+              echo \"Existing draft tags: ${existing_drafts}\"\n+              echo \"Either rename the draft to '${TAG}', or update model/manifest.yaml schema_url to match the draft's tag.\"\n+            else\n+              echo \"No draft releases exist. See RELEASING.md.\"\n+            fi\n+            exit 1\n+          fi\n+          is_draft=$(echo \"$info\" | jq -r .isDraft)\n+          if [ \"$is_draft\" != \"true\" ]; then\n+            echo \"Release '${TAG}' is already published; refusing to re-release.\"\n+            exit 1\n+          fi\n+          echo \"release_id=$(echo \"$info\" | jq -r .databaseId)\" >> \"$GITHUB_OUTPUT\"\n+          echo \"Draft release '${TAG}' matches model/manifest.yaml schema_url.\"",
+      "id": "PRRT_kwDOSUeMrM6BQ5q4",
+      "opened": "2026-05-12T01:21:14Z",
+      "path": ".github/workflows/release-dev.yml",
+      "replies": [],
+      "reviewed": "a2e1581fcac4179a5905500bca430b9dac3097e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/148#discussion_r3223069782"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Use `gh release edit` instead of the lower-level REST PATCH — it's the idiomatic gh CLI for this and lets us key off `$TAG` directly, avoiding the `release_id` plumbing.\n\n```suggestion\n          TAG: ${{ steps.tag.outputs.tag }}\n        run: |\n          gh release edit \"$TAG\" \\\n            --draft=false \\\n            --target \"${{ github.sha }}\"\n```",
+      "created": "2026-05-12T01:11:47Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+name: Release (dev)\n+\n+on:\n+  workflow_dispatch:\n+\n+permissions:\n+  contents: write\n+\n+jobs:\n+  release:\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 15\n+    steps:\n+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+\n+      - name: Compute tag from model/manifest.yaml\n+        id: tag\n+        run: |\n+          version=$(awk '/^schema_url:/ { n = split($2, parts, \"/\"); print parts[n]; exit }' model/manifest.yaml)\n+          if [ -z \"$version\" ]; then\n+            echo \"Could not parse version from model/manifest.yaml\"\n+            exit 1\n+          fi\n+          echo \"tag=v${version}\" >> \"$GITHUB_OUTPUT\"\n+          echo \"Tag: v${version}\"\n+\n+      - name: Find draft release matching schema_url\n+        id: draft\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+          TAG: ${{ steps.tag.outputs.tag }}\n+        run: |\n+          info=$(gh release view \"$TAG\" --json databaseId,isDraft 2>/dev/null || true)\n+          if [ -z \"$info\" ]; then\n+            existing_drafts=$(gh release list --limit 20 --json tagName,isDraft \\\n+              --jq '[.[] | select(.isDraft) | .tagName] | join(\", \")')\n+            echo \"Expected a draft release with tag '${TAG}' (derived from model/manifest.yaml schema_url).\"\n+            if [ -n \"$existing_drafts\" ]; then\n+              echo \"Existing draft tags: ${existing_drafts}\"\n+              echo \"Either rename the draft to '${TAG}', or update model/manifest.yaml schema_url to match the draft's tag.\"\n+            else\n+              echo \"No draft releases exist. See RELEASING.md.\"\n+            fi\n+            exit 1\n+          fi\n+          is_draft=$(echo \"$info\" | jq -r .isDraft)\n+          if [ \"$is_draft\" != \"true\" ]; then\n+            echo \"Release '${TAG}' is already published; refusing to re-release.\"\n+            exit 1\n+          fi\n+          echo \"release_id=$(echo \"$info\" | jq -r .databaseId)\" >> \"$GITHUB_OUTPUT\"\n+          echo \"Draft release '${TAG}' matches model/manifest.yaml schema_url.\"\n+\n+      - name: Package registry\n+        run: make package-dev\n+\n+      - name: Upload artifacts to draft\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+          TAG: ${{ steps.tag.outputs.tag }}\n+        run: |\n+          gh release upload \"$TAG\" \\\n+            .build/package/manifest.yaml \\\n+            .build/package/resolved.yaml \\\n+            --clobber\n+\n+      - name: Publish release\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+          RELEASE_ID: ${{ steps.draft.outputs.release_id }}\n+        run: |\n+          gh api \\\n+            --method PATCH \\\n+            \"/repos/${{ github.repository }}/releases/${RELEASE_ID}\" \\\n+            -F draft=false \\\n+            -F target_commitish=\"${{ github.sha }}\"",
+      "id": "PRRT_kwDOSUeMrM6BQ5q8",
+      "opened": "2026-05-12T01:21:14Z",
+      "path": ".github/workflows/release-dev.yml",
+      "replies": [],
+      "reviewed": "a2e1581fcac4179a5905500bca430b9dac3097e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/148#discussion_r3223069786"
+    }
+  ]
+}

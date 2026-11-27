@@ -1,0 +1,54 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "eca37076b0bd2b1fbc977884bbd7261c0fadcba99411811485ecfefb419d4c44",
+  "input_digest": "6fdcbff579ed275a557cdd61e8a082400920729a48d057a5eede228f1e43eb65",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e5a537296136f35b8a2aac63972f80cac006654/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingExceptionEventExtractors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c34534fc2da55b230113e56d2a81954e3373c02/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingExceptionEventExtractors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c34534fc2da55b230113e56d2a81954e3373c02/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingExceptionEventExtractors.java"
+      ],
+      "id": "PRRT_kwDODJKVX86G6EEW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/70287df0bc8cd9ef4b3a05ead140d0b2e48215d8/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c34534fc2da55b230113e56d2a81954e3373c02/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86HOC5H",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/68a8372bc0edd919a440f8eb66fb156e52c86dba/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingExceptionEventExtractorsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c34534fc2da55b230113e56d2a81954e3373c02/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingExceptionEventExtractorsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HOre3",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aafe54c93fb22ce3fbfb530f7b3b85db706218cb/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/WrapperTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c34534fc2da55b230113e56d2a81954e3373c02/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/WrapperTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HbH08",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "head": "39bf878918083afe813f2a9cb1ba0b03fc14d9a6",
+  "merge": "6ef09036604bde1a8572e28215839f135b3d2b14",
+  "merged": "2026-09-01T14:57:03Z",
+  "missing_roots": 0,
+  "number": 19517,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR states that the legacy/default path is unchanged, but this early return also runs when stable messaging conventions are disabled. Kafka Connect may invoke `SinkTask.put` with an empty collection, and such calls previously continued into the existing process instrumenter; they now produce no span. Either preserve the prior path for legacy mode or document this additional tracing behavior change.",
+      "created": "2026-08-11T18:49:01Z",
+      "hunk": "@@ -58,6 +58,10 @@ private AdviceScope(KafkaConnectTask task, Context context, Scope scope) {\n \n       @Nullable\n       public static AdviceScope start(Collection<SinkRecord> records) {\n+        if (records.isEmpty()) {\n+          return null;\n+        }",
+      "id": "PRRT_kwDODJKVX86YVwb_",
+      "opened": "2026-08-11T18:49:01Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/SinkTaskInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-11T19:05:15Z",
+          "body": "Fixed in d9401aa6824579a858f08b4adecb21375467f9ce. Empty SinkTask.put batches are now skipped only when stable messaging conventions are active, preserving the prior legacy/default process span path. Focused default and stable Connect tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3760910333"
+        }
+      ],
+      "reviewed": "4d4e6b5d15357ba849c2c7dccdbbbd8f1a0bf3f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3760799433"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Stable Kafka client receive operations are still active here (the test harness explicitly filters their standalone `poll` spans in `KafkaConnectSinkTaskBaseTest.java:166-174`), and the shared receive instrumenter records `messaging.client.consumed.messages`. Registering the same counter unconditionally on the Connect process instrumenter therefore counts each delivered record twice in stable/default-preview mode. Add this fallback only when receive telemetry is effectively disabled, and add an assertion covering both instrumentation scopes so this ownership rule is enforced.",
+      "created": "2026-08-11T18:49:01Z",
+      "hunk": "@@ -42,7 +44,9 @@ public class KafkaConnectSingletons {\n                     new KafkaConnectAttributesGetter(),\n                     MessagingOperationType.PROCESS,\n                     PROCESS_OPERATION_NAME))\n-            .addSpanLinksExtractor(spanLinksExtractor);\n+            .addSpanLinksExtractor(spanLinksExtractor)\n+            .addOperationMetrics(MessagingProcessMetrics.get())\n+            .addOperationMetrics(MessagingConsumerMetrics.getConsumedMessages());",
+      "id": "PRRT_kwDODJKVX86YVwbi",
+      "opened": "2026-08-11T18:49:01Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-11T19:05:13Z",
+          "body": "Fixed in 8810e559f827b9eee234b80538dc9135b3324def. The Connect process consumed-message fallback is now registered only when receive telemetry is not explicitly enabled. The new explicit-receive task asserts Kafka client receive ownership and no process-owned consumed count; the unset counterpart asserts the process fallback.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3760910086"
+        }
+      ],
+      "reviewed": "4d4e6b5d15357ba849c2c7dccdbbbd8f1a0bf3f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3760799389"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This cache cannot reclaim completed batches: `Cache.weak()` weakens only the key while retaining values strongly, but each `BatchTracker` value retains the same `Context` key through `consumerContext` (and through its retained source records). This creates a key → value → key reachability cycle, so every polled batch and all its records remain reachable for the worker lifetime. Avoid retaining the context from the value (for example, retain only delivery-tracking state/data), or explicitly remove the entry when batch aggregation is complete.",
+      "created": "2026-08-20T22:56:42Z",
+      "hunk": "@@ -7,19 +7,43 @@\n \n import static java.util.stream.Collectors.toCollection;\n \n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.internal.cache.Cache;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaConsumerContext;\n+import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaConsumerContextUtil;\n+import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaInstrumenterFactory;\n+import java.util.ArrayList;\n import java.util.Collection;\n+import java.util.Collections;\n+import java.util.IdentityHashMap;\n import java.util.LinkedHashSet;\n+import java.util.List;\n import java.util.Set;\n+import java.util.function.Consumer;\n import javax.annotation.Nullable;\n+import org.apache.kafka.clients.consumer.ConsumerRecord;\n import org.apache.kafka.connect.sink.SinkRecord;\n \n public class KafkaConnectTask {\n \n+  // A JDK type is used as the field type because sink tasks run in a Kafka Connect plugin\n+  // classloader, which has its own copies of the instrumentation helper classes.\n+  private static final VirtualField<SinkRecord, Consumer<Boolean>> RECEIVE_DELIVERY_FIELD =\n+      VirtualField.find(SinkRecord.class, Consumer.class);\n+\n+  // One shared batch callback per polled batch (keyed by the receive context, which is the same\n+  // object instance for every ConsumerRecord in the same poll). Weak keys so the entry is reclaimed\n+  // once the batch's context becomes unreachable.\n+  private static final Cache<Context, BatchTracker> batchTrackers = Cache.weak();",
+      "id": "PRRT_kwDODJKVX86a_AG7",
+      "opened": "2026-08-20T22:56:42Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectTask.java",
+      "replies": [
+        {
+          "at": "2026-08-20T23:10:17Z",
+          "body": "Addressed in d3bf1d96af88cebfec34d32fd1e43e98c684a617.\n\nAnalysis: The root cause is that `BatchTracker` retained `consumerContext` to\ncall `createDeliveryTracker` lazily on `accept()`. The fix moves batch delivery\ntracking into a new public nested class `BatchDeliveryCallback` inside\n`KafkaInstrumenterFactory`. The factory method `createBatchDeliveryCallback`\nextracts the `DeliveryTracker` from the `KafkaConsumerContext` eagerly at\nconstruction time and stores only `@Nullable DeliveryTracker` and\n`List<DeliveryTracker.DeliveryKey>` — no `Context` reference and no\n`ConsumerRecord` references. `KafkaConnectTask.batchCallbacks` maps the receive\n`Context` (batch identity key) to a `BatchDeliveryCallback`; because the\ncallback holds no back-reference to its key the entry is reclaimed as soon as\nthe batch's Context becomes weakly reachable.\n\nUpsides: Eliminates the key→value→key retention cycle so polled batches and\ntheir records are collected normally. Delivery-tracking state is consolidated in\n`KafkaInstrumenterFactory`, where `DeliveryKey` and `DeliveryTracker` are\npackage-accessible, keeping `KafkaConnectTask` free of tracking internals.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3826047518"
+        }
+      ],
+      "reviewed": "47cb36b5f738ce50aeee84294d5a0d310b65a43d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3825979463"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The 1,024-entry cap limits failed operations, but each entry retains one `String` plus a `HashSet` node for every record in the failed batch. A repeatedly failing task therefore retains up to `1024 * max.poll.records` keys (about 512,000 at Kafka's default, and much more when configured), per sink task, which can consume substantial heap during the exact failure mode this tracker handles. Please store offsets compactly (for example, partition offset ranges like the shared Kafka `DeliveryTracker.PendingFailure`) or impose a bound on total retained delivery keys, not only operation count.",
+      "created": "2026-08-20T23:30:46Z",
+      "hunk": "@@ -0,0 +1,105 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.kafkaconnect.v2_6;\n+\n+import io.opentelemetry.instrumentation.api.internal.cache.Cache;\n+import java.util.ArrayDeque;\n+import java.util.ArrayList;\n+import java.util.Deque;\n+import java.util.HashSet;\n+import java.util.Iterator;\n+import java.util.List;\n+import java.util.Set;\n+import org.apache.kafka.connect.sink.SinkRecord;\n+\n+class KafkaConnectDeliveryTracker {\n+\n+  // bounded so that a task that never recovers cannot grow this without limit\n+  private static final int MAX_PENDING_FAILED_OPERATIONS = 1024;\n+\n+  private final Cache<Object, Deque<Set<String>>> pendingFailedDeliveries = Cache.weak();\n+\n+  DeliveryState start(KafkaConnectTask task) {\n+    List<String> deliveryKeys = deliveryKeys(task);\n+    Deque<Set<String>> operations =\n+        pendingFailedDeliveries.computeIfAbsent(\n+            task.getTaskIdentity(), unused -> new ArrayDeque<>());\n+    long consumedMessagesCount;\n+    synchronized (operations) {\n+      consumedMessagesCount =\n+          deliveryKeys.stream().filter(key -> !isPendingFailed(operations, key)).count();\n+    }\n+    return new DeliveryState(deliveryKeys, operations, consumedMessagesCount);\n+  }\n+\n+  void end(DeliveryState state, boolean successful) {\n+    synchronized (state.operations) {\n+      removeFromOperations(state.operations, state.deliveryKeys);\n+      if (!successful && !state.deliveryKeys.isEmpty()) {\n+        state.operations.addFirst(new HashSet<>(state.deliveryKeys));\n+        if (state.operations.size() > MAX_PENDING_FAILED_OPERATIONS) {\n+          state.operations.removeLast();\n+        }",
+      "id": "PRRT_kwDODJKVX86a_Y8X",
+      "opened": "2026-08-20T23:30:46Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectDeliveryTracker.java",
+      "replies": [
+        {
+          "at": "2026-08-20T23:39:06Z",
+          "body": "Addressed in 989f4fcc10adda2c9dc3e230bf562029476598b1.\n\nAnalysis: The per-record `String` key in `Set<String>` stored one object per\nrecord per failed operation, so 1,024 operations * 500 records * ~60 bytes per\nkey = ~30 MB per sink task in the worst case. The fix replaces `Set<String>` with\n`Map<String, List<long[]>>` per operation, where the map key is the partition\ncanonical string and the value is a list of non-overlapping [minOffset, maxOffset]\npairs. Consecutive offsets in a polled batch — the common case — collapse to a\nsingle two-element array per partition, so a typical 500-record single-partition\nbatch stores two longs (~16 bytes) instead of 500 strings (~30 KB). The total\nworst-case memory with 1,024 operations is now O(operations * partitions * ranges)\nrather than O(operations * records). The implementation correctly handles range\nsplitting when a subset retry removes an offset from the middle of a range, and\npreserves all correctness properties exercised by the existing tests.\n\nUpsides: Reduces worst-case retained heap from O(operations * records) to\nO(operations * partitions), matching the approach already used by the shared\nKafka `DeliveryTracker`. Existing correctness tests still pass unchanged.\n\nDownsides: Slightly more code. Middle-range removal (splitting a range when a\nmiddle offset is retried alone) adds a small conditional branch that is unlikely\nto execute in practice, since Kafka Connect retries contiguous tails of a batch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3826172766"
+        }
+      ],
+      "reviewed": "c7d93262c1e72a8699d869730f9eee1511012637",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3826136443"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Kafka Connect retries a `RetriableException` by reprocessing the same retained `messageBatch`, so the same `SinkRecord` reaches `put()` again. Because this receive-owned marker is never cleared, every retry remains excluded from the process count; only the original receive is counted, contrary to the stated per-delivery-attempt behavior. Clear the marker after it suppresses the first process count so subsequent `put()` attempts are counted, and cover a receive-owned failed attempt followed by a retry.",
+      "created": "2026-08-21T21:12:11Z",
+      "hunk": "@@ -35,6 +46,34 @@ KafkaConnectBatchRecordAttributes getBatchRecordAttributes() {\n     return batchRecordAttributes;\n   }\n \n+  // marks the transformed SinkRecord as receive-owned when the source ConsumerRecord was already\n+  // counted by a kafka-clients receive operation, so the Connect process operation does not count\n+  // the same delivery a second time. target is null when the transform filtered the record.\n+  public static void copyReceiveOperation(\n+      ConsumerRecord<?, ?> source, @Nullable SinkRecord target) {\n+    if (target == null) {\n+      return;\n+    }\n+    KafkaConsumerContext consumerContext = KafkaConsumerContextUtil.get(source);\n+    Context context = consumerContext.getContext();\n+    if (context != null && KafkaConsumerContextUtil.hasReceiveOperation(context)) {\n+      RECEIVE_OWNED_FIELD.set(target, true);\n+    }\n+  }\n+\n+  // counts the records of this put() invocation that were not already counted by a receive\n+  // operation, so that a batch partially owned by receive telemetry counts only the remainder,\n+  // and every put() invocation, including failed and redelivered ones, counts its own attempt.\n+  long countUnmarkedRecords() {\n+    long count = 0;\n+    for (SinkRecord record : records) {\n+      if (!Boolean.TRUE.equals(RECEIVE_OWNED_FIELD.get(record))) {\n+        count++;\n+      }",
+      "id": "PRRT_kwDODJKVX86bS5Um",
+      "opened": "2026-08-21T21:12:12Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectTask.java",
+      "replies": [
+        {
+          "at": "2026-08-21T21:23:05Z",
+          "body": "Addressed in 5d40589bdb5466a645bb69ee0fb2a7f41ab9643c.\n\nAnalysis: `countUnmarkedRecords()` checks the receive-owned marker to avoid double-counting records that a kafka-clients receive operation already counted. Kafka Connect holds the same `messageBatch` list across retries of a `RetriableException`, so the same `SinkRecord` objects reach `put()` again. Since the marker was never cleared, every retry was also excluded, so only the first `put()` attempt counted anything for receive-owned records. The fix clears the marker immediately after it suppresses a count, so each subsequent `put()` call -- whether a retry or a new batch -- counts those records as a fresh attempt. A new unit test covers a mixed batch where one record is receive-owned on the first call and both records are counted on a simulated retry.\n\nUpsides: Retried `put()` calls now count their own delivery attempt for receive-owned records, matching the stated per-delivery-attempt behavior. The marker-clear logic is cheap (one field write per suppressed record) and leaves the first-put semantics unchanged.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3833815231"
+        }
+      ],
+      "reviewed": "e587b6d308bdb3aabf41ed1c1bf9c029e6a3aae3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19517#discussion_r3833755794"
+    }
+  ]
+}

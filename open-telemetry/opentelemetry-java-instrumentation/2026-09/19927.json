@@ -1,0 +1,55 @@
+{
+  "head": "e2f00ba77070ad9ed2435f30f97d294bc2682619",
+  "merge": "ec849981aaa5adff2cefa0c7bea12b50a647a83a",
+  "merged": "2026-09-01T02:55:03Z",
+  "missing_roots": 0,
+  "number": 19927,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workflow now sends the selector to the shared Community instance, but this job does not receive a credential and `http_get_json()` sends no authentication header. That instance protects build/test dashboard data, so the first `/tests-data/top` request will fail instead of producing selection outputs. Please plumb an appropriately scoped secret into this step and update the client to authenticate, or defer this URL switch until that support exists.",
+      "created": "2026-08-31T21:44:44Z",
+      "hunk": "@@ -37,7 +37,7 @@ jobs:\n       - name: Find top flaky test\n         id: select\n         env:\n-          DEVELOCITY_URL: https://develocity.opentelemetry.io\n+          DEVELOCITY_URL: https://community.develocity.cloud",
+      "id": "PRRT_kwDODJKVX86d4v88",
+      "opened": "2026-08-31T21:44:45Z",
+      "path": ".github/workflows/flaky-test-remediation.yml",
+      "replies": [],
+      "reviewed": "e2f00ba77070ad9ed2435f30f97d294bc2682619",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19927#discussion_r3898653644"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new default targets the authenticated Community instance, while every request still goes through `http_get_json()` without credentials. Standalone/default invocations will therefore fail on the first dashboard-data request. Add credential handling (with the required build-data scope), rather than changing only the base URL.",
+      "created": "2026-08-31T21:44:45Z",
+      "hunk": "@@ -22,7 +22,7 @@\n \n from _paths import OUT_DIR, SELECTED, SKIP\n \n-DEFAULT_DEVELOCITY_URL = \"https://develocity.opentelemetry.io\"\n+DEFAULT_DEVELOCITY_URL = \"https://community.develocity.cloud\"",
+      "id": "PRRT_kwDODJKVX86d4v9T",
+      "opened": "2026-08-31T21:44:45Z",
+      "path": ".github/scripts/flaky-test-remediation/1-select-flaky-test.py",
+      "replies": [],
+      "reviewed": "e2f00ba77070ad9ed2435f30f97d294bc2682619",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19927#discussion_r3898653686"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changing the documented default to the Community instance makes the following “unauthenticated; no access key needed” statement inaccurate and contradicts the migration caveat in this PR. Update this section to describe the Community instance's authentication requirement and the credential configuration added for the selector.",
+      "created": "2026-08-31T21:44:45Z",
+      "hunk": "@@ -52,5 +52,5 @@ and opens an automated draft PR when Copilot produces a change.\n \n ## Environment\n \n-`DEVELOCITY_URL` (defaults to `https://develocity.opentelemetry.io`). The\n+`DEVELOCITY_URL` (defaults to `https://community.develocity.cloud`). The",
+      "id": "PRRT_kwDODJKVX86d4v9o",
+      "opened": "2026-08-31T21:44:45Z",
+      "path": ".github/scripts/flaky-test-remediation/README.md",
+      "replies": [],
+      "reviewed": "e2f00ba77070ad9ed2435f30f97d294bc2682619",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19927#discussion_r3898653722"
+    }
+  ]
+}

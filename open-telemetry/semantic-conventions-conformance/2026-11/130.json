@@ -1,0 +1,78 @@
+{
+  "head": "95f82772e4cf531c1275b8e3396b53fba535e62b",
+  "merge": "c3fc0ae3650b984b0448dc4f868da839b73a1992",
+  "merged": "2026-11-03T21:34:46Z",
+  "missing_roots": 0,
+  "number": 130,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`freepdb1` is the PDB/service name, but semconv defines Oracle `db.namespace` as `DB_UNIQUE_NAME` (`FREE` in this image). The other contracts expect the semconv value (e.g. PostgreSQL's `conformance|conformance`), so this bakes Java's current behavior into a cross-language contract. Same for the other three scenarios. Maybe expect the semconv value and track the Java gap (the PDB name fits `oracle.db.pdb` / `oracle.db.service`)?\n\n```suggestion\n              db.namespace: FREE\n```",
+      "created": "2026-11-03T06:18:31Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+backend: oracle\n+description: The SQL scenarios every language executes against Oracle Database.\n+\n+scenarios:\n+  - description: Runs a direct query.\n+    action:\n+      kind: query\n+      sql: SELECT CASE WHEN count(*) >= 0 THEN 1 ELSE 0 END FROM conformance.items\n+    expect:\n+      spans:\n+        - match:\n+            attributes:\n+              db.system.name: oracle.db\n+          expect:\n+            count: 1\n+            attributes:\n+              db.namespace: freepdb1",
+      "id": "PRRT_kwDOTuzK5c6zADxR",
+      "opened": "2026-11-03T06:22:26Z",
+      "path": "tools/database/sql-test-client/contracts/oracle.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:17:20Z",
+          "body": "8b31eea30bc7f14eb4dff5033903db07b0ac7430",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/130#discussion_r4458091812"
+        },
+        {
+          "at": "2026-11-03T20:33:55Z",
+          "body": "related\r\n- https://github.com/open-telemetry/semantic-conventions/issues/2147#issuecomment-6614502232\r\n- https://github.com/open-telemetry/semantic-conventions-conformance/issues/384#issuecomment-6614730601",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/130#discussion_r4460119910"
+        }
+      ],
+      "reviewed": "1eac2e946a22db01dd477271009fc2e94ee39663",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/130#discussion_r4451497234"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the container is always fresh, so the drop block isn't needed - the other schemas just create.",
+      "created": "2026-11-03T06:18:31Z",
+      "hunk": "@@ -0,0 +1,28 @@\n+-- Copyright The OpenTelemetry Authors\n+-- SPDX-License-Identifier: Apache-2.0\n+\n+WHENEVER OSERROR EXIT FAILURE\n+WHENEVER SQLERROR EXIT FAILURE\n+\n+BEGIN\n+    EXECUTE IMMEDIATE 'DROP TABLE items PURGE';\n+EXCEPTION\n+    WHEN OTHERS THEN\n+        IF SQLCODE != -942 THEN\n+            RAISE;\n+        END IF;\n+END;\n+/",
+      "id": "PRRT_kwDOTuzK5c6zADxY",
+      "opened": "2026-11-03T06:22:26Z",
+      "path": "tools/database/runner/src/database_conformance/oracle.sql",
+      "replies": [
+        {
+          "at": "2026-11-03T17:21:22Z",
+          "body": "d88cd194cdc439bbc7319aa4f702b4f1714bf364",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/130#discussion_r4458137912"
+        }
+      ],
+      "reviewed": "1eac2e946a22db01dd477271009fc2e94ee39663",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/130#discussion_r4451497247"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit, non-blocking: is `{call …}` meant to exercise the JDBC escape-syntax handling? It's fine while only Java runs this contract. But the contract describes itself as shared by every language, and other Oracle drivers (python-oracledb, node-oracledb) don't accept escape syntax. If the native form is fine, `CALL conformance.noop()` would match the MariaDB and PostgreSQL contracts. If the escape syntax is intended, a short comment saying so would help whoever adds the next language.",
+      "created": "2026-11-03T06:51:19Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+backend: oracle\n+description: The SQL scenarios every language executes against Oracle Database.\n+\n+scenarios:\n+  - description: Runs a direct query.\n+    action:\n+      kind: query\n+      sql: SELECT CASE WHEN count(*) >= 0 THEN 1 ELSE 0 END FROM conformance.items\n+    expect:\n+      spans:\n+        - match:\n+            attributes:\n+              db.system.name: oracle.db\n+          expect:\n+            count: 1\n+            attributes:\n+              db.namespace: freepdb1\n+              db.query.summary: SELECT conformance.items\n+              db.query.text: SELECT CASE WHEN count(*) >= ? THEN ? ELSE ? END FROM conformance.items\n+              server.address: 127.0.0.1\n+              server.port:\n+                present: true\n+      metrics:\n+        - db.client.operation.duration\n+      events: []\n+\n+  - description: Binds an integer to a prepared query.\n+    action:\n+      kind: prepared_query\n+      sql: SELECT name FROM conformance.items WHERE id = ${1}\n+      parameters:\n+        - type: integer\n+          value: -1\n+    expect:\n+      spans:\n+        - match:\n+            attributes:\n+              db.system.name: oracle.db\n+          expect:\n+            count: 1\n+            attributes:\n+              db.namespace: freepdb1\n+              db.query.summary: SELECT conformance.items\n+              db.query.text: SELECT name FROM conformance.items WHERE id = ?\n+              server.address: 127.0.0.1\n+              server.port:\n+                present: true\n+      metrics:\n+        - db.client.operation.duration\n+      events: []\n+\n+  - description: Executes two inserts as one batch.\n+    action:\n+      kind: batch\n+      statements:\n+        - INSERT INTO conformance.items (id, name) VALUES (1, 'first')\n+        - INSERT INTO conformance.items (id, name) VALUES (2, 'second')\n+    expect:\n+      spans:\n+        - match:\n+            attributes:\n+              db.system.name: oracle.db\n+          expect:\n+            count: 1\n+            attributes:\n+              db.namespace: freepdb1\n+              db.operation.batch.size: 2\n+              db.query.summary: BATCH INSERT conformance.items\n+              db.query.text: INSERT INTO conformance.items (id, name) VALUES (?, ?)\n+              server.address: 127.0.0.1\n+              server.port:\n+                present: true\n+      metrics:\n+        - db.client.operation.duration\n+      events: []\n+\n+  - description: Calls the no-op stored procedure.\n+    action:\n+      kind: stored_procedure\n+      sql: '{call conformance.noop()}'",
+      "id": "PRRT_kwDOTuzK5c6zAh0_",
+      "opened": "2026-11-03T06:51:34Z",
+      "path": "tools/database/sql-test-client/contracts/oracle.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:28:25Z",
+          "body": "1f6a257d69887a831926bd7f3d120efb057c59b4",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/130#discussion_r4458217262"
+        }
+      ],
+      "reviewed": "1eac2e946a22db01dd477271009fc2e94ee39663",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/130#discussion_r4451689810"
+    }
+  ]
+}

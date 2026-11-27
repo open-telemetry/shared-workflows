@@ -1,0 +1,25 @@
+{
+  "head": "5ac5592181f158a8816a0cbd79627d1c03f1c1c7",
+  "merge": "145dfd638c9ed797317e518adae50c3138b96273",
+  "merged": "2026-05-04T14:43:49Z",
+  "missing_roots": 0,
+  "number": 18555,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    String serverRoute = route != null ? route : defaultServerRoute();\n```",
+      "created": "2026-05-04T13:47:30Z",
+      "hunk": "@@ -124,7 +126,7 @@ void request(\n                 ? 401 // Response.Status.UNAUTHORIZED.statusCode\n                 : 200); // Response.Status.OK.statusCode\n \n-    String serverRoute = route != null ? route : defaultServerRoute();\n+    @Nullable String serverRoute = route != null ? route : defaultServerRoute();",
+      "id": "PRRT_kwDODJKVX85_XPvU",
+      "opened": "2026-05-04T13:47:30Z",
+      "path": "instrumentation/jaxrs/jaxrs-common/testing/src/main/java/io/opentelemetry/instrumentation/jaxrs/AbstractJaxRsFilterTest.java",
+      "replies": [],
+      "reviewed": "3ff57a8e349f950f53d6ad07c7042dd9019e8ab5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18555#discussion_r3181986490"
+    }
+  ]
+}

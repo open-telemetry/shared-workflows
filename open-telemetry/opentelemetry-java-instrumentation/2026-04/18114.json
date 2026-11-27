@@ -1,0 +1,36 @@
+{
+  "head": "8fcd0710b9bc5a33c6d715b0eb7e974a6cc9e468",
+  "merge": "6eb413764ba563cb759bbe1bc2afff28a5374e22",
+  "merged": "2026-04-30T20:06:07Z",
+  "missing_roots": 0,
+  "number": 18114,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this because link checks are now part of lint? can we split it out so that link checks aren't a required status check? or are you thinking that with the link check only applying to diffs it shouldn't cause PRs to get blocked?",
+      "created": "2026-04-29T19:44:56Z",
+      "hunk": "@@ -44,28 +44,27 @@ jobs:\n     with:\n       cache-read-only: true\n \n-  # this is not a required check to avoid blocking pull requests if external links break\n-  markdown-check:\n+  lint:\n     # release branches are excluded because the README.md javaagent download link has to be updated\n     # on release branches before the release download has been published\n     if: \"!startsWith(github.ref_name, 'release/') && !startsWith(github.base_ref, 'release/')\"\n-    uses: ./.github/workflows/reusable-link-check.yml\n-\n-  markdown-lint-check:\n-    uses: ./.github/workflows/reusable-markdown-lint-check.yml\n+    uses: ./.github/workflows/reusable-lint-check.yml\n \n   required-status-check:\n     needs:\n       - common\n       - test-latest-deps\n       - muzzle\n-      - markdown-lint-check\n+      - lint\n     runs-on: ubuntu-latest\n     if: always()\n     steps:\n       - if: |\n           needs.common.result != 'success' ||\n           needs.test-latest-deps.result != 'success' ||\n           needs.muzzle.result != 'success' ||\n-          needs.markdown-lint-check.result != 'success'\n+          (\n+            !startsWith(github.base_ref, 'release/') &&\n+            needs.lint.result != 'success'\n+          )",
+      "id": "PRRT_kwDODJKVX85-jK56",
+      "opened": "2026-04-29T19:44:56Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-04-30T14:49:50Z",
+          "body": "> is this because link checks are now part of lint? \r\n\r\nyes\r\n\r\n> can we split it out so that link checks aren't a required status check?\r\n\r\nin flint that's currently not possible - but could be added\r\n\r\n> or are you thinking that with the link check only applying to diffs it shouldn't cause PRs to get blocked?\r\n\r\nyes - that was the idea\r\n\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18114#discussion_r3168794767"
+        },
+        {
+          "at": "2026-04-30T15:26:54Z",
+          "body": "ok, let's try it\r\n\r\ncc @laurit ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18114#discussion_r3169032108"
+        }
+      ],
+      "reviewed": "d88cabf9305f2c3709001a14a5ad3d228c10e6c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18114#discussion_r3163722238"
+    }
+  ]
+}

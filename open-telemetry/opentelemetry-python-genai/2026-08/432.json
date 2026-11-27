@@ -1,0 +1,70 @@
+{
+  "head": "78fa44f0c7fdeb8c615371c8eaffd45f58f36be4",
+  "merge": "9a5767e15e5dd7a130e57e6910c542adbc1ded52",
+  "merged": "2026-08-21T04:12:31Z",
+  "missing_roots": 0,
+  "number": 432,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If the version bump remains repository-wide (updating `eachdist.ini` and all package version files), the PR body should not say it only bumps the single package version.",
+      "created": "2026-08-20T19:05:55Z",
+      "hunk": "@@ -92,76 +96,61 @@ jobs:\n                             \"$RELEASE_TAG\"\n \n       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        if: inputs.sync_main\n         with:\n           ref: main\n \n+      - name: Install uv\n+        if: inputs.sync_main\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1\n+\n       - name: Copy changelog updates to main\n+        if: inputs.sync_main\n         env:\n           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n         run: ./scripts/merge_changelog_to_main.sh\n \n       - name: Regenerate instrumentations README\n+        if: inputs.sync_main\n         run: python ./scripts/generate_instrumentation_readme.py\n \n+      - name: Bump package version on main after release\n+        if: inputs.sync_main && inputs.bump_after_release && steps.target.outputs.on_main == 'true'\n+        run: uv run ./scripts/version_utils.py bump --package \"${PACKAGE_NAME}\" --dev\n+\n       - name: Use CLA approved github bot\n+        if: inputs.sync_main\n         run: .github/scripts/use-cla-approved-github-bot.sh\n \n       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0\n+        if: inputs.sync_main\n         id: otelbot-token\n         with:\n           client-id: ${{ vars.OTELBOT_CLIENT_ID }}\n           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}\n \n-      - name: Open pull request for changelog updates on main\n-        env:\n-          GITHUB_TOKEN: ${{ steps.otelbot-token.outputs.token }}\n-        run: |\n-          message=\"Copy changelog updates for ${PACKAGE_NAME} v${VERSION}\"\n-          body=\"Copy changelog updates for \\`${PACKAGE_NAME}\\` v\\`${VERSION}\\`.\"\n-          branch=\"otelbot/changelog-${PACKAGE_NAME}-${VERSION}\"\n-\n-          changes=0\n-          if [[ -z $PRIOR_VERSION_WHEN_PATCH ]]; then\n-            if ! git diff --quiet; then\n-              changes=1\n-            fi\n-          else\n-            changes=1\n-          fi\n-\n-          if [[ $changes == 0 ]]; then\n-            echo \"No changelog updates needed on main\"\n-            exit 0\n-          fi\n-\n-          git commit -a -m \"$message\"\n-          git push origin HEAD:\"$branch\"\n-          gh pr create --title \"$message\" \\\n-                       --body \"$body\" \\\n-                       --head \"$branch\" \\\n-                       --base main\n-\n-      - name: Bump package version on main after release\n-        if: inputs.bump_after_release && steps.target.outputs.on_main == 'true'\n+      - name: Open pull request for post-release updates on main\n+        if: inputs.sync_main\n         env:\n           GITHUB_TOKEN: ${{ steps.otelbot-token.outputs.token }}\n         run: |\n-          git checkout main\n-          git pull origin main\n-\n-          uv run ./scripts/version_utils.py bump --dev\n-\n           if git diff --quiet; then\n-            echo \"No version bump needed\"\n+            echo \"No updates needed on main\"\n             exit 0\n           fi\n \n-          message=\"Bump version to next dev version after releasing v${VERSION}\"\n-          branch=\"otelbot/bump-after-v${VERSION}\"\n+          if [[ -n \"$PRIOR_VERSION_WHEN_PATCH\" ]]; then\n+            message=\"[chore] Finalize patch release for ${PACKAGE_NAME} v${VERSION}\"\n+            body=\"Copy patch changelog updates to main and regenerate instrumentation README for \\`${PACKAGE_NAME}\\` v\\`${VERSION}\\`.\"\n+          else\n+            message=\"[chore] Finalize release for ${PACKAGE_NAME} v${VERSION}\"\n+            body=\"Regenerate instrumentation README and bump package version for \\`${PACKAGE_NAME}\\` to next dev version after releasing v\\`${VERSION}\\`.\"\n+          fi",
+      "id": "PRRT_kwDOSbspP86a7Vw7",
+      "opened": "2026-08-20T19:05:56Z",
+      "path": ".github/workflows/_release-finalize.yml",
+      "replies": [],
+      "reviewed": "df77c3d10cd9ae7cd74b4400b438129bb1f1eabe",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/432#discussion_r3824545494"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This bumps only the released package to the next minor `.dev` version but leaves `eachdist.ini` (repo prerelease version) unchanged. The CI `check-versions` gate enforces that all package versions share the same major.minor as `eachdist.ini`, so this PR will create a version mismatch on main after a single-package release. Use the repository-wide bump here (as before) so versions stay aligned.",
+      "created": "2026-08-20T19:05:55Z",
+      "hunk": "@@ -92,76 +96,61 @@ jobs:\n                             \"$RELEASE_TAG\"\n \n       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        if: inputs.sync_main\n         with:\n           ref: main\n \n+      - name: Install uv\n+        if: inputs.sync_main\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1\n+\n       - name: Copy changelog updates to main\n+        if: inputs.sync_main\n         env:\n           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n         run: ./scripts/merge_changelog_to_main.sh\n \n       - name: Regenerate instrumentations README\n+        if: inputs.sync_main\n         run: python ./scripts/generate_instrumentation_readme.py\n \n+      - name: Bump package version on main after release\n+        if: inputs.sync_main && inputs.bump_after_release && steps.target.outputs.on_main == 'true'\n+        run: uv run ./scripts/version_utils.py bump --package \"${PACKAGE_NAME}\" --dev",
+      "id": "PRRT_kwDOSbspP86a7Vwd",
+      "opened": "2026-08-20T19:05:56Z",
+      "path": ".github/workflows/_release-finalize.yml",
+      "replies": [],
+      "reviewed": "df77c3d10cd9ae7cd74b4400b438129bb1f1eabe",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/432#discussion_r3824545449"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`finalize` can run even if the `github-release` matrix job fails because the condition only checks `enumerate` and `publish`. That can open a post-release PR even though GitHub Releases were not created successfully. Gate this job on the `github-release` result as well (note: job IDs with hyphens require bracket syntax in expressions).",
+      "created": "2026-08-20T19:05:56Z",
+      "hunk": "@@ -114,12 +114,13 @@ jobs:\n       package: ${{ matrix.package }}\n       ref: ${{ needs.enumerate.outputs.ref }}\n       on_main: true\n+      sync_main: false\n       bump_after_release: false\n     secrets: inherit\n \n-  bump-main:\n-    needs: [enumerate, publish, finalize]\n-    if: always() && needs.enumerate.result == 'success'\n+  finalize:\n+    needs: [enumerate, publish, github-release]\n+    if: always() && needs.enumerate.result == 'success' && needs.publish.result == 'success'",
+      "id": "PRRT_kwDOSbspP86a7VxW",
+      "opened": "2026-08-20T19:05:56Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [],
+      "reviewed": "df77c3d10cd9ae7cd74b4400b438129bb1f1eabe",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/432#discussion_r3824545532"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The README is generated before the version bump, so this commit pairs a table built from the pre-bump `.dev` versions with the bumped `version.py` files. `misc / generate` regenerates the table on the resulting PR and fails. The same swap is needed in `_release-finalize.yml`, where the regeneration also precedes the gated bump.\n\n```suggestion\n      - name: Bump repository version to next dev version\n        run: uv run ./scripts/version_utils.py bump --dev\n\n      - name: Regenerate instrumentations README\n        run: python ./scripts/generate_instrumentation_readme.py\n```",
+      "created": "2026-08-20T19:26:24Z",
+      "hunk": "@@ -128,6 +129,15 @@ jobs:\n         with:\n           ref: main\n \n+      - name: Install uv\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1\n+\n+      - name: Regenerate instrumentations README\n+        run: python ./scripts/generate_instrumentation_readme.py\n+\n+      - name: Bump repository version to next dev version\n+        run: uv run ./scripts/version_utils.py bump --dev",
+      "id": "PRRT_kwDOSbspP86a7sg9",
+      "opened": "2026-08-20T19:27:43Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [],
+      "reviewed": "dc084f44c520965f5fb8cb7ffd1e1cef66c1b42d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/432#discussion_r3824684618"
+    }
+  ]
+}

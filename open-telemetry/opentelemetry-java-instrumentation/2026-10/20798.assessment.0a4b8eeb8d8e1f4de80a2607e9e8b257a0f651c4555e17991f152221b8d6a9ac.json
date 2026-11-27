@@ -1,0 +1,223 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "71baefe49b7e48985c0b286c8dd20959135bff1b333a8199f410932b139e9954",
+  "input_digest": "0a4b8eeb8d8e1f4de80a2607e9e8b257a0f651c4555e17991f152221b8d6a9ac",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/edfc0d6b8c49f30eee6a8e72082296d74e25f32d/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/edfc0d6b8c49f30eee6a8e72082296d74e25f32d/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uo3_B",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/edfc0d6b8c49f30eee6a8e72082296d74e25f32d/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uo3_Z",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vBIFu",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86uo3_Z",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cfd56408ae1dfd014dae17bb801aef27c160a5df/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cfd56408ae1dfd014dae17bb801aef27c160a5df/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbCallbackInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cfd56408ae1dfd014dae17bb801aef27c160a5df/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbImplInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbCallbackInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbImplInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbExecutorCallbackInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vBy6K",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b673158efa13afa5d26688b0f5830cf0cbe3ec91/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b673158efa13afa5d26688b0f5830cf0cbe3ec91/instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryLifecycleTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b673158efa13afa5d26688b0f5830cf0cbe3ec91/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClient24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryLifecycleTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClient24Test.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vCOnn",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbCallbackInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbCallbackInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vISmc",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vIjrd",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vISmc",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dbc9da7577e1248c515ce6adc47f24d1442cfdb1/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dbc9da7577e1248c515ce6adc47f24d1442cfdb1/instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryLifecycleTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryLifecycleTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClient24Test.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vyZvQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1db7bc832c4ecc3bf10d0697b802a3a60961fb/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1db7bc832c4ecc3bf10d0697b802a3a60961fb/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vyoLY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vz71N",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vyoLY",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c17dfe295e9bcd43709ae64b9be6f16937b7678d/instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryLifecycleTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryLifecycleTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ccf29125bbcf40f659d94df35ef758f2309a46f8"
+      ],
+      "id": "PRRT_kwDODJKVX86v0Np_",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26627ef38b1fd0e9fec37cf8ac06bdb7b7681cb5/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v1jiW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/84d3636dda709becc2fcff2ef1799f14debac54d/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/84d3636dda709becc2fcff2ef1799f14debac54d/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClient24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClient24Test.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v51km",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v6CyA",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86v1jiW",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0cef725c196d68c1bafd23f21094e0513808da48/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0cef725c196d68c1bafd23f21094e0513808da48/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbCallbackInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbCallbackInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v6CyL",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v6HHR",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86v1jiW",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/122fa0a79dd1be6d09883389a1126e3e4cd52557/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wHwiW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0fd7b8eb1b9a56e471013a6de6add902ba7ee012/instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86wR9Hx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wSahi",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wR9Hx",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f17f8e49d049d6c26d6237e684c3ea5fa70668bc/instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ccf29125bbcf40f659d94df35ef758f2309a46f8/instrumentation/influxdb-2.4/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86wTJgU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

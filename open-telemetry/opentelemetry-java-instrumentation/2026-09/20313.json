@@ -1,0 +1,25 @@
+{
+  "head": "76acd1f55318f0e59f8eecd3f3c3658396ed0c04",
+  "merge": "db8de10e4af585dc185107edb5a32e7aae5ec330",
+  "merged": "2026-09-29T09:04:59Z",
+  "missing_roots": 0,
+  "number": 20313,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Keep the Quarkus Gradle plugin and platform BOM on the same release line. The 3.39.5 plugin is coupled to Quarkus build/bootstrap internals, while this resolves the application and deployment artifacts from 3.40.0; that cross-minor mix is unsupported and can break augmentation or produce an inconsistent application model. Use 3.39.5 for both here, or update both to 3.40.0 once that plugin version is available.",
+      "created": "2026-09-29T03:22:37Z",
+      "hunk": "@@ -17,11 +17,11 @@ plugins {\n   id(\"java\")\n \n   id(\"com.google.cloud.tools.jib\")\n-  id(\"io.quarkus\") version \"3.39.4\"\n+  id(\"io.quarkus\") version \"3.39.5\"\n }\n \n dependencies {\n-  implementation(enforcedPlatform(\"io.quarkus:quarkus-bom:3.39.4\"))\n+  implementation(enforcedPlatform(\"io.quarkus:quarkus-bom:3.40.0\"))",
+      "id": "PRRT_kwDODJKVX86m8jiC",
+      "opened": "2026-09-29T03:22:38Z",
+      "path": "smoke-tests/images/quarkus/build.gradle.kts",
+      "replies": [],
+      "reviewed": "b0afe162d408d25f9b7295126de4dc9525e51320",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20313#discussion_r4129299074"
+    }
+  ]
+}

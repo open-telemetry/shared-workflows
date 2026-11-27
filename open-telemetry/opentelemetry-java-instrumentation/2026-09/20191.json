@@ -1,0 +1,85 @@
+{
+  "head": "664296d4cc073cf7acb008cc4a284c477768429a",
+  "merge": "67708df8054b727de623ce9e1b311857eab548bc",
+  "merged": "2026-09-22T06:25:56Z",
+  "missing_roots": 0,
+  "number": 20191,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    \"io.helidon.webserver:helidon-webserver#+\": \"4.5.5\",\n```",
+      "created": "2026-09-21T07:51:21Z",
+      "hunk": "@@ -151,7 +151,7 @@\n     \"io.grpc:grpc-protobuf#+\": \"1.84.0\",\n     \"io.grpc:grpc-services#+\": \"1.84.0\",\n     \"io.grpc:grpc-stub#+\": \"1.84.0\",\n-    \"io.helidon.webserver:helidon-webserver#+\": \"4.5.5\",\n+    \"io.helidon.webserver:helidon-webserver#+\": \"27.0.0\",",
+      "id": "PRRT_kwDODJKVX86kRWyT",
+      "opened": "2026-09-21T07:51:21Z",
+      "path": ".github/config/latest-dep-versions.json",
+      "replies": [],
+      "reviewed": "dceb6aaf302f41b684b820b97b659724e7b6fd8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20191#discussion_r4060173110"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR description says this is only an auto-generated dependency-pin update, but this registration introduces new runtime Vert.x instrumentation and reflection-based compatibility behavior. Please update the description to explain the Vert.x 5.2 compatibility change and its rationale so the behavioral scope is reviewable.",
+      "created": "2026-09-21T12:09:29Z",
+      "hunk": "@@ -49,6 +49,7 @@ public List<TypeInstrumentation> typeInstrumentations() {\n         new CommandSchedulerInstrumentation(),\n         new DriverInstrumentation(),\n         new PoolInstrumentation(),\n+        new CloseablePoolInstrumentation(),",
+      "id": "PRRT_kwDODJKVX86kV938",
+      "opened": "2026-09-21T12:09:30Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "3b9bf8f67420ac9bb9dce212349a69b7a57c4e39",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20191#discussion_r4061958768"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] `unwrapPool` performs work rather than returning a stored singleton, so statically importing it conflicts with the holder call-site convention. Keep the call qualified as `VertxSqlClientSingletons.unwrapPool(pool)` so its owner remains explicit.",
+      "created": "2026-09-21T12:09:29Z",
+      "hunk": "@@ -10,6 +10,7 @@\n import static io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.common.v4_0.VertxSqlClientUtil.getDbSystemNameFromClassName;\n import static io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.common.v4_0.VertxSqlClientUtil.resolveDbSystemName;\n import static io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.common.v4_0.VertxSqlClientUtil.wrapContext;\n+import static io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.v5_0.VertxSqlClientSingletons.unwrapPool;",
+      "id": "PRRT_kwDODJKVX86kV93c",
+      "opened": "2026-09-21T12:09:30Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/PoolInstrumentation.java",
+      "replies": [],
+      "reviewed": "3b9bf8f67420ac9bb9dce212349a69b7a57c4e39",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20191#discussion_r4061958720"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This exception is intentionally unused; name it `ignored` to follow the repository's catch-variable convention.\n\nThis issue also appears on line 243 of the same file.",
+      "created": "2026-09-21T12:09:30Z",
+      "hunk": "@@ -191,5 +197,53 @@ public static List<SqlConnectOptions> getBuilderDatabases(Object clientBuilder)\n         : null;\n   }\n \n+  public static Pool unwrapPool(Pool pool) {\n+    Pool unwrapped;\n+    do {\n+      unwrapped = WRAPPED_POOL.get(pool);\n+      if (unwrapped != null) {\n+        pool = unwrapped;\n+      }\n+    } while (unwrapped != null);\n+    return pool;\n+  }\n+\n+  public static void attachWrappedPool(Pool pool, Object closeableResource) {\n+    if (CLOSEABLE_RESOURCE_GET == null\n+        || CLOSEABLE_RESOURCE_CLASS == null\n+        || !CLOSEABLE_RESOURCE_CLASS.isInstance(closeableResource)) {\n+      return;\n+    }\n+\n+    try {\n+      Object wrapped = CLOSEABLE_RESOURCE_GET.invoke(closeableResource);\n+      if (wrapped instanceof Pool) {\n+        WRAPPED_POOL.set(pool, (Pool) wrapped);\n+      }\n+    } catch (InvocationTargetException | IllegalAccessException ignored) {\n+      // ignore\n+    }\n+  }\n+\n+  private static Class<?> findCloseableResourceClass() {\n+    try {\n+      return Class.forName(\"io.vertx.core.internal.CloseableResource\");\n+    } catch (ClassNotFoundException e) {",
+      "id": "PRRT_kwDODJKVX86kV94R",
+      "opened": "2026-09-21T12:09:30Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientSingletons.java",
+      "replies": [],
+      "reviewed": "3b9bf8f67420ac9bb9dce212349a69b7a57c4e39",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20191#discussion_r4061958803"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "probably will conflict with https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20050",
+      "created": "2026-09-21T16:31:03Z",
+      "hunk": "@@ -191,5 +197,53 @@ public static List<SqlConnectOptions> getBuilderDatabases(Object clientBuilder)\n         : null;\n   }\n \n+  public static Pool unwrapPool(Pool pool) {",
+      "id": "PRRT_kwDODJKVX86kbyfW",
+      "opened": "2026-09-21T16:31:03Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientSingletons.java",
+      "replies": [],
+      "reviewed": "664296d4cc073cf7acb008cc4a284c477768429a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20191#discussion_r4064230173"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "39d927b621a8a18d88f876b229aa0d5534b637f1",
+  "merge": "149fa6933a6bae618308fbf6f9149403d7b64ff7",
+  "merged": "2026-08-18T09:15:44Z",
+  "missing_roots": 0,
+  "number": 19676,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This version is required to stay aligned with the plugin, but `settings.gradle.kts:10` still provides `org.graalvm.buildtools.native` 1.1.8. Consequently the native smoke tests continue running plugin 1.1.8 while resolving 1.1.9 reachability metadata, and the PR does not actually perform the advertised runtime plugin upgrade. Please update the settings plugin version to 1.1.9 so all three declarations remain aligned.",
+      "created": "2026-08-18T01:42:26Z",
+      "hunk": "@@ -10,7 +10,7 @@\n import org.graalvm.buildtools.gradle.dsl.GraalVMReachabilityMetadataRepositoryExtension\n \n // Keep this in sync with the org.graalvm.buildtools.native plugin version in settings.gradle.kts.\n-val graalvmReachabilityMetadataVersion = \"1.1.8\"\n+val graalvmReachabilityMetadataVersion = \"1.1.9\"",
+      "id": "PRRT_kwDODJKVX86Z9DAG",
+      "opened": "2026-08-18T01:42:27Z",
+      "path": "conventions/src/main/kotlin/otel.spring-native-test-conventions.gradle.kts",
+      "replies": [],
+      "reviewed": "39d927b621a8a18d88f876b229aa0d5534b637f1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19676#discussion_r3800282948"
+    }
+  ]
+}

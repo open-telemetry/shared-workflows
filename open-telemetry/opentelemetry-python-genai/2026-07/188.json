@@ -1,0 +1,191 @@
+{
+  "head": "febe547b2853be3018a64a669297e8998bae2514",
+  "merge": "1a628a1b44a930d91e2d0c99c44d781bf037d4dc",
+  "merged": "2026-07-22T06:19:02Z",
+  "missing_roots": 0,
+  "number": 188,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `or` here changes behavior for valid falsy values (e.g., `stop=[]` or `stop=\"\"`). Prefer a `None` check so an explicitly provided value is preserved instead of falling back to `stop_sequences`.",
+      "created": "2026-06-30T19:29:17Z",
+      "hunk": "@@ -232,10 +233,10 @@ def on_chat_model_start(\n             top_p = params.get(\"top_p\")\n             frequency_penalty = params.get(\"frequency_penalty\")\n             presence_penalty = params.get(\"presence_penalty\")\n-            stop_sequences = params.get(\"stop\")\n+            stop_sequences = params.get(\"stop\") or params.get(\"stop_sequences\")",
+      "id": "PRRT_kwDOSbspP86NYoTO",
+      "opened": "2026-06-30T19:29:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-03T07:28:05Z",
+          "body": "Applied in 242dc03.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3518187418"
+        }
+      ],
+      "reviewed": "9d0e2d1b033332442a307b97da95fd85d4a4d220",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3501336101"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `or` here can drop valid falsy values (e.g., `max_completion_tokens=0`) and incorrectly fall back to `max_tokens`. Use a `None` check to preserve an explicitly set value.",
+      "created": "2026-06-30T19:29:17Z",
+      "hunk": "@@ -232,10 +233,10 @@ def on_chat_model_start(\n             top_p = params.get(\"top_p\")\n             frequency_penalty = params.get(\"frequency_penalty\")\n             presence_penalty = params.get(\"presence_penalty\")\n-            stop_sequences = params.get(\"stop\")\n+            stop_sequences = params.get(\"stop\") or params.get(\"stop_sequences\")\n             seed = params.get(\"seed\")\n             temperature = params.get(\"temperature\")\n-            max_tokens = params.get(\"max_completion_tokens\")\n+            max_tokens = params.get(\"max_completion_tokens\") or params.get(\"max_tokens\")",
+      "id": "PRRT_kwDOSbspP86NYoTy",
+      "opened": "2026-06-30T19:29:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-03T07:28:27Z",
+          "body": "Applied in 242dc03.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3518189452"
+        }
+      ],
+      "reviewed": "9d0e2d1b033332442a307b97da95fd85d4a4d220",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3501336149"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test asserts the request model attribute using a hard-coded string key; elsewhere in this file the semconv constants are used. Using `gen_ai_attributes.GEN_AI_REQUEST_MODEL` keeps the test aligned with the semconv module and avoids drift if the key changes.",
+      "created": "2026-06-30T19:29:17Z",
+      "hunk": "@@ -181,6 +181,26 @@ def test_us_amazon_nova_lite_v1_0_bedrock_llm_call(\n     assert_bedrock_completion_attributes(spans[0], result)\n \n \n+@pytest.mark.vcr()\n+def test_chat_anthropic_claude_sonnet_llm_call(\n+    span_exporter, start_instrumentation, chat_anthropic_claude_sonnet\n+):\n+    messages = [\n+        SystemMessage(content=\"You are a helpful assistant!\"),\n+        HumanMessage(content=\"What is the capital of France?\"),\n+    ]\n+\n+    result = chat_anthropic_claude_sonnet.invoke(messages)\n+\n+    assert result.content.find(\"The capital of France is Paris\") != -1\n+\n+    # verify spans\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.attributes.get(\"gen_ai.request.model\") == \"claude-sonnet-4-5\"",
+      "id": "PRRT_kwDOSbspP86NYoUH",
+      "opened": "2026-06-30T19:29:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [
+        {
+          "at": "2026-07-03T07:28:20Z",
+          "body": "Applied in 242dc03.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3518188798"
+        }
+      ],
+      "reviewed": "9d0e2d1b033332442a307b97da95fd85d4a4d220",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3501336180"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "nit(blocking): can you please add some coverage for this change in the vcr tests?",
+      "created": "2026-07-13T14:43:00Z",
+      "hunk": "@@ -232,13 +232,17 @@ def on_chat_model_start(\n             top_p = params.get(\"top_p\")\n             frequency_penalty = params.get(\"frequency_penalty\")\n             presence_penalty = params.get(\"presence_penalty\")\n-            stop_sequences = params.get(\"stop\")\n+            stop_sequences = (\n+                params.get(\"stop\")\n+                if params.get(\"stop\") is not None\n+                else params.get(\"stop_sequences\")",
+      "id": "PRRT_kwDOSbspP86Qbeg-",
+      "opened": "2026-07-13T14:45:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-14T19:35:12Z",
+          "body": "Added a VCR test for this branch in cfaa251.\r\nWhile debugging, I noticed that setting model.stop_sequences directly doesn't make it into invocation_params. Using model.bind(stop_sequences=[...]) does, though, which is what this path expects. I verified that with a few local debug prints (removed before committing).\r\nThe test now goes through the bind() path and checks that the span includes the expected stop_sequences attribute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3582072701"
+        },
+        {
+          "at": "2026-07-15T17:16:42Z",
+          "body": "@bhumikadangayach can we refine this a little as\n\n````python\n\n            stop_sequences = params.get(\"stop\")\n            if stop_sequences is None:\n                stop_sequences = params.get(\"stop_sequences\")\n            if stop_sequences is None:\n                stop_sequences = (serialized.get(\"kwargs\") or {}).get(\n                    \"stop_sequences\"\n                )\n\n\n````",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3589357694"
+        },
+        {
+          "at": "2026-07-15T19:41:52Z",
+          "body": "Applied this in 9453b28 — added a third fallback checking serialized[\"kwargs\"][\"stop_sequences\"] for the constructor-time case. Added a new VCR test (test_chat_anthropic_claude_sonnet_stop_sequences_constructor_fallback) covering it, verified against both the latest and oldest supported langchain-anthropic versions. All checks green.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3590260559"
+        }
+      ],
+      "reviewed": "9f399750b06d8b1be74c21eb0bed039511471bea",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3571569314"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): are these cassettes ai generated? If yes, can you please add a header as we have in agents.md file?",
+      "created": "2026-07-13T14:45:17Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+interactions:\n+- request:",
+      "id": "PRRT_kwDOSbspP86Qbhz9",
+      "opened": "2026-07-13T14:45:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_tool_call.yaml",
+      "replies": [
+        {
+          "at": "2026-07-14T19:36:24Z",
+          "body": "Yep, under normal circumstances the cassette would be recorded from a real API call using VCR rather than created manually.\r\nI don't have access to the Anthropic API at the moment, so this one is a temporary synthetic cassette. I added the header AGENTS.md specifies for this case (# TODO: this is generated by AI, re-record) so it's clear it should be replaced with a real recording later.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3582080586"
+        }
+      ],
+      "reviewed": "9f399750b06d8b1be74c21eb0bed039511471bea",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3571588234"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This towncrier fragment is split across two lines and has a trailing space at the end of line 1, which can render oddly in release notes. Towncrier fragments should be a single, clean line.",
+      "created": "2026-07-21T00:24:04Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+Add ChatAnthropic tool-calling test coverage and fix finish_reason extraction for \n+Anthropic responses in LangChain instrumentation.",
+      "id": "PRRT_kwDOSbspP86Sa6u5",
+      "opened": "2026-07-21T00:24:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/188.added",
+      "replies": [],
+      "reviewed": "03f38a7fb5b07c066e2ef06e5358b2b3597a7840",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3618486659"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new ChatAnthropic happy-path test validates only GEN_AI_REQUEST_MODEL, but this PR also changes parameter extraction for max tokens. Add an assertion for GEN_AI_REQUEST_MAX_TOKENS so the max_tokens fallback is covered and protected against regressions.",
+      "created": "2026-07-21T00:24:04Z",
+      "hunk": "@@ -214,6 +216,61 @@ def test_us_amazon_nova_lite_v1_0_bedrock_llm_call(\n     assert_bedrock_completion_attributes(spans[0], result)\n \n \n+@pytest.mark.vcr()\n+def test_chat_anthropic_claude_sonnet_llm_call(\n+    span_exporter, start_instrumentation, chat_anthropic_claude_sonnet\n+):\n+    messages = [\n+        SystemMessage(content=\"You are a helpful assistant!\"),\n+        HumanMessage(content=\"What is the capital of France?\"),\n+    ]\n+\n+    result = chat_anthropic_claude_sonnet.invoke(messages)\n+\n+    assert result.content.find(\"The capital of France is Paris\") != -1\n+\n+    # verify spans\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert (\n+        span.attributes.get(gen_ai_attributes.GEN_AI_REQUEST_MODEL)\n+        == \"claude-sonnet-4-5\"\n+    )\n+",
+      "id": "PRRT_kwDOSbspP86Sa6uf",
+      "opened": "2026-07-21T00:24:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "03f38a7fb5b07c066e2ef06e5358b2b3597a7840",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3618486617"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please update PR title and description, they don't seem to align with changelog",
+      "created": "2026-07-21T00:29:49Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+Add ChatAnthropic tool-calling test coverage and fix finish_reason extraction for ",
+      "id": "PRRT_kwDOSbspP86Sa_8P",
+      "opened": "2026-07-21T00:29:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/188.added",
+      "replies": [
+        {
+          "at": "2026-07-21T18:51:51Z",
+          "body": "Updated both. The title now reflects the ChatAnthropic and tool-calling support, and I've expanded the description to cover the full scope of the changes, including the Anthropic parameter fallbacks, the added test coverage, and the `finish_reason` fix. Let me know if there's anything that still feels out of sync with the changelog.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3624878582"
+        }
+      ],
+      "reviewed": "03f38a7fb5b07c066e2ef06e5358b2b3597a7840",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3618519118"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    assert (\n        span.attributes.get(gen_ai_attributes.GEN_AI_REQUEST_MODEL)\n        == \"claude-sonnet-4-5\"\n    )\n\n    assert (\n        span.attributes.get(gen_ai_attributes.GEN_AI_REQUEST_MAX_TOKENS)\n        == 1024\n    )  \n```",
+      "created": "2026-07-22T06:01:01Z",
+      "hunk": "@@ -214,6 +216,61 @@ def test_us_amazon_nova_lite_v1_0_bedrock_llm_call(\n     assert_bedrock_completion_attributes(spans[0], result)\n \n \n+@pytest.mark.vcr()\n+def test_chat_anthropic_claude_sonnet_llm_call(\n+    span_exporter, start_instrumentation, chat_anthropic_claude_sonnet\n+):\n+    messages = [\n+        SystemMessage(content=\"You are a helpful assistant!\"),\n+        HumanMessage(content=\"What is the capital of France?\"),\n+    ]\n+\n+    result = chat_anthropic_claude_sonnet.invoke(messages)\n+\n+    assert result.content.find(\"The capital of France is Paris\") != -1\n+\n+    # verify spans\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert (\n+        span.attributes.get(gen_ai_attributes.GEN_AI_REQUEST_MODEL)\n+        == \"claude-sonnet-4-5\"\n+    )",
+      "id": "PRRT_kwDOSbspP86S0D8i",
+      "opened": "2026-07-22T06:01:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "984580464545ba3abf9a045b61bff11cb8f4a321",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/188#discussion_r3627816550"
+    }
+  ]
+}

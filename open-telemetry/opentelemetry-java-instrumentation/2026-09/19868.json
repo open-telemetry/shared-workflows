@@ -1,0 +1,262 @@
+{
+  "head": "5b741b79734ff598fa12ddad578370ce6f5f27a7",
+  "merge": "328d915725c02be563c554efede05affdeda24d2",
+  "merged": "2026-09-09T03:55:03Z",
+  "missing_roots": 0,
+  "number": 19868,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getSniServerName(endPoint)` can return null; if it does, the condition at lines 167–168 will still attempt `attributes.put(SERVER_ADDRESS, serverName)`, which can throw at runtime (attributes typically disallow null values). Fix by guarding `serverName != null` before comparing/putting (e.g., early-return when null), and only calling `attributes.put` with a non-null string.",
+      "created": "2026-08-27T15:09:51Z",
+      "hunk": "@@ -132,4 +131,41 @@ public void onEnd(\n       attributes.put(DB_CASSANDRA_IDEMPOTENCE, idempotent);\n     }\n   }\n+\n+  static void updateServerAddressAndPort(\n+      AttributesBuilder attributes, CassandraRequest request, Node coordinator) {\n+    EndPoint endPoint = coordinator.getEndPoint();\n+    if (emitStableDatabaseSemconv() && isSniEndPoint(endPoint)) {\n+      updateStableSniServerAddressAndPort(attributes, coordinator, endPoint);\n+      return;\n+    }\n+    // Preserve the configured target that stable semconv records on span start.\n+    if (emitStableDatabaseSemconv() && request.getServerTarget() != null) {\n+      return;\n+    }\n+    // Legacy semconv still records the proxy under SNI. Custom endpoints may be direct connections.\n+    SocketAddress address = endPoint.resolve();\n+    if (address instanceof InetSocketAddress) {\n+      attributes.put(SERVER_ADDRESS, ((InetSocketAddress) address).getHostString());\n+      attributes.put(SERVER_PORT, ((InetSocketAddress) address).getPort());\n+    }\n+  }\n+\n+  private static void updateStableSniServerAddressAndPort(\n+      AttributesBuilder attributes, Node coordinator, EndPoint endPoint) {\n+    // SniEndPoint.resolve() returns the proxy, performs DNS, and advances the driver's shared\n+    // round-robin counter. The broadcast RPC address identifies the server without those effects.\n+    InetSocketAddress rpcAddress = coordinator.getBroadcastRpcAddress().orElse(null);\n+    if (rpcAddress != null) {\n+      attributes.put(SERVER_ADDRESS, rpcAddress.getHostString());\n+      attributes.put(SERVER_PORT, rpcAddress.getPort());\n+      return;\n+    }\n+    // Cloud deployments use the host id as the SNI name, not an address.\n+    String serverName = getSniServerName(endPoint);\n+    UUID hostId = coordinator.getHostId();\n+    if (hostId == null || !hostId.toString().equals(serverName)) {\n+      attributes.put(SERVER_ADDRESS, serverName);\n+    }",
+      "id": "PRRT_kwDODJKVX86c3lIX",
+      "opened": "2026-08-27T15:09:52Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-27T17:07:33Z",
+          "body": "No code change.\n\nAnalysis: AttributesBuilder.put accepts a nullable value and omits the attribute when that value is null. A guard would duplicate that API behavior and conflict with this repository's rule against redundant null guards on attribute writes.\n\nUpsides: The code stays aligned with the attribute API and repository style. A missing SNI server name safely produces no server.address attribute.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3874003476"
+        }
+      ],
+      "reviewed": "ff49ccdb6763e4557ef3462a816d8ecdeba82df5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3873056275"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`new HashSet<>(programmaticContactPoints)` will throw a `NullPointerException` if the instrumented builder’s `programmaticContactPoints` field is null for any reason (e.g., driver changes or alternative builder initialization paths). A safer approach is to treat null as empty (or ensure the copied set is always non-null) before constructing the `HashSet`.",
+      "created": "2026-08-27T15:09:51Z",
+      "hunk": "@@ -46,8 +49,10 @@ public static class BuildAdvice {\n      */\n     @AssignReturned.ToReturned\n     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static CompletionStage<?> injectTracingSession(@Advice.Return CompletionStage<?> stage) {\n-      return stage.thenApply(new CompletionStageFunction());\n+    public static CompletionStage<?> injectTracingSession(\n+        @Advice.Return CompletionStage<?> stage,\n+        @Advice.FieldValue(\"programmaticContactPoints\") Set<EndPoint> programmaticContactPoints) {\n+      return stage.thenApply(new CompletionStageFunction(new HashSet<>(programmaticContactPoints)));",
+      "id": "PRRT_kwDODJKVX86c3lJK",
+      "opened": "2026-08-27T15:09:52Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/SessionBuilderInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T17:07:35Z",
+          "body": "No code change.\n\nAnalysis: Every SessionBuilder constructor in the supported driver range initializes programmaticContactPoints to a new HashSet before buildAsync can run. The instrumentation already depends on that field's name and type through Advice.FieldValue, so treating an impossible null as empty would mask an incompatible driver change rather than preserve a supported initialization path.\n\nUpsides: The advice keeps an exact snapshot of the driver-owned set and fails closed under its existing Throwable suppression if an unsupported driver breaks the field contract.\n\nDownsides: The instrumentation continues to rely on the driver field contract that its field injection already requires.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3874003708"
+        }
+      ],
+      "reviewed": "ff49ccdb6763e4557ef3462a816d8ecdeba82df5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3873056351"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getServerAddress()` and `getServerPort()` each call `getServerTarget(request)`, which (in stable mode) iterates over `request.getSession().getMetadata().getNodes().values()` to detect SNI. This duplicates the node scan for every span start. Consider computing and caching the “effective” server target once per request (e.g., store a derived target / `isSniSession` flag on `CassandraRequest` at creation time) so both getters can return without rescanning.",
+      "created": "2026-08-27T15:09:52Z",
+      "hunk": "@@ -50,6 +52,20 @@ public Long getDbOperationBatchSize(CassandraRequest request) {\n     return request.getBatchSize();\n   }\n \n+  @Override\n+  @Nullable\n+  public String getServerAddress(CassandraRequest request) {\n+    CassandraServerTarget serverTarget = getServerTarget(request);\n+    return serverTarget == null ? null : serverTarget.getAddress();\n+  }\n+\n+  @Override\n+  @Nullable\n+  public Integer getServerPort(CassandraRequest request) {\n+    CassandraServerTarget serverTarget = getServerTarget(request);\n+    return serverTarget == null ? null : serverTarget.getPort();\n+  }",
+      "id": "PRRT_kwDODJKVX86c3lJx",
+      "opened": "2026-08-27T15:09:52Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-27T17:07:36Z",
+          "body": "Addressed in a33e3e6babec7cc8a3f0c7b6df0c3b64f41b7c51.\n\nAnalysis: CassandraRequest now derives its effective server target once during request creation. The SQL attribute getters read that stored value, so address and port extraction no longer scan session metadata independently.\n\nUpsides: Each request scans metadata at most once, requests without a configured target skip the scan, and SNI behavior remains shared by both server attributes.\n\nDownsides: Request creation now performs the one required metadata scan when stable database semantic conventions are active and a configured target exists.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3874003893"
+        }
+      ],
+      "reviewed": "ff49ccdb6763e4557ef3462a816d8ecdeba82df5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3873056397"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This does not actually avoid resolving the SNI proxy when a span ends. The same instrumenter also runs `CassandraSqlAttributesGetter#getNetworkPeerInetSocketAddress`; that method calls `coordinator.getEndPoint().resolve()`, and the network extractor reaches it for both peer address and peer port. For `SniEndPoint`, each call performs DNS and advances the shared round-robin counter, so every SNI operation still has the side effect this branch is intended to prevent. Please special-case SNI in the network getter as well—either omit `network.peer.*` here or source the already-resolved response channel rather than invoking `resolve()`.",
+      "created": "2026-08-27T17:20:02Z",
+      "hunk": "@@ -132,4 +131,41 @@ public void onEnd(\n       attributes.put(DB_CASSANDRA_IDEMPOTENCE, idempotent);\n     }\n   }\n+\n+  static void updateServerAddressAndPort(\n+      AttributesBuilder attributes, CassandraRequest request, Node coordinator) {\n+    EndPoint endPoint = coordinator.getEndPoint();\n+    if (emitStableDatabaseSemconv() && isSniEndPoint(endPoint)) {\n+      updateStableSniServerAddressAndPort(attributes, coordinator, endPoint);\n+      return;\n+    }\n+    // Preserve the configured target that stable semconv records on span start.\n+    if (emitStableDatabaseSemconv() && request.getServerTarget() != null) {\n+      return;\n+    }\n+    // Legacy semconv still records the proxy under SNI. Custom endpoints may be direct connections.\n+    SocketAddress address = endPoint.resolve();\n+    if (address instanceof InetSocketAddress) {\n+      attributes.put(SERVER_ADDRESS, ((InetSocketAddress) address).getHostString());\n+      attributes.put(SERVER_PORT, ((InetSocketAddress) address).getPort());\n+    }\n+  }\n+\n+  private static void updateStableSniServerAddressAndPort(\n+      AttributesBuilder attributes, Node coordinator, EndPoint endPoint) {\n+    // SniEndPoint.resolve() returns the proxy, performs DNS, and advances the driver's shared\n+    // round-robin counter. The broadcast RPC address identifies the server without those effects.\n+    InetSocketAddress rpcAddress = coordinator.getBroadcastRpcAddress().orElse(null);",
+      "id": "PRRT_kwDODJKVX86c6O0t",
+      "opened": "2026-08-27T17:20:02Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-27T17:24:27Z",
+          "body": "Addressed in 714580b1cdfb2c0585860f4a4eff6b8ab5baf34a.\n\nAnalysis: The network peer getter now detects SNI before calling EndPoint.resolve() when stable database semantic conventions are active. It returns no peer socket address for that case because the driver response channel address is not available through the current getter inputs. Legacy semantic conventions keep their existing proxy peer behavior.\n\nUpsides: Stable SNI spans avoid proxy DNS lookups and shared round-robin counter changes. The focused test verifies that resolve() is skipped in stable mode and retained in legacy mode.\n\nDownsides: Stable SNI spans omit network.peer.address and network.peer.port because no side-effect-free peer address is available.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3874125106"
+        }
+      ],
+      "reviewed": "a33e3e6babec7cc8a3f0c7b6df0c3b64f41b7c51",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3874093639"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only sorts the complete target when there are no configured contact points; otherwise it preserves the configured order and merely sorts the programmatic suffix. That contradicts the PR’s stated deterministic sorting rule (and means the five-endpoint cap can select a different subset for equivalent configurations). Enable `setSorted(true)` for the combined target in all cases and update the order-preservation test expectations accordingly.",
+      "created": "2026-09-04T18:29:06Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;\n+import static io.opentelemetry.javaagent.instrumentation.cassandra.v4_0.CassandraEndPoints.isDefaultEndPoint;\n+import static java.util.Collections.emptyList;\n+\n+import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;\n+import com.datastax.oss.driver.api.core.context.DriverContext;\n+import com.datastax.oss.driver.api.core.metadata.EndPoint;\n+import com.datastax.oss.driver.api.core.session.Session;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.ArrayList;\n+import java.util.Comparator;\n+import java.util.List;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+class CassandraServerTarget {\n+\n+  private static final int DEFAULT_PORT = 9042;\n+\n+  @Nullable\n+  static DbServerTarget of(Session session, Set<EndPoint> programmaticContactPoints) {\n+    try {\n+      DriverContext context = session.getContext();\n+      DriverExecutionProfile config = context.getConfig().getDefaultProfile();\n+      // The basic.contact-points option has no default, so the single-argument lookup would throw\n+      // when a session names its contact points on the builder alone.\n+      List<String> configuredContactPoints = config.getStringList(CONTACT_POINTS, emptyList());\n+      DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT);\n+      for (String contactPoint : configuredContactPoints) {\n+        addContactPoint(target, contactPoint);\n+      }\n+      List<InetSocketAddress> resolvedProgrammaticContactPoints = new ArrayList<>();\n+      for (EndPoint endPoint : programmaticContactPoints) {\n+        if (!isDefaultEndPoint(endPoint)) {\n+          return null;\n+        }\n+        SocketAddress address = endPoint.resolve();\n+        if (!(address instanceof InetSocketAddress)) {\n+          return null;\n+        }\n+        resolvedProgrammaticContactPoints.add((InetSocketAddress) address);\n+      }\n+      if (configuredContactPoints.isEmpty()) {\n+        target.setSorted(true);\n+      } else {\n+        resolvedProgrammaticContactPoints.sort(\n+            Comparator.comparing(CassandraServerTarget::asContactPoint));\n+      }",
+      "id": "PRRT_kwDODJKVX86fZzIw",
+      "opened": "2026-09-04T18:29:06Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-07T19:16:37Z",
+          "body": "Addressed in dcc0efca464301b3a3bf76aeead000bcafbce106.\n\nAnalysis: The target builder sorted only sessions without configured contact points. Sessions with both configured and programmatic endpoints kept the configured prefix and sorted only the programmatic suffix. Sorting the builder's complete endpoint list gives equivalent configurations one stable target before the endpoint cap is applied.\n\nUpsides: Equivalent endpoint sets now produce the same server.address and retain the same first five endpoints regardless of source or insertion order. The implementation also delegates ordering to the shared target builder instead of maintaining a separate partial sort.\n\nDownsides: Configured contact point order is no longer preserved in server.address.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3952165769"
+        }
+      ],
+      "reviewed": "17aabbf223ac5c5de92ef355d3f1bac7223460b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3936883181"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Stripping brackets before validation makes malformed bracketed hostnames and IPv4 addresses valid targets: for example, `[node.example.com]:9042` is emitted as `node.example.com`. Brackets are only valid here for an IPv6 literal (and the shared target builder would reject the other bracketed forms), so require the unwrapped value to be IPv6 or omit the whole target.",
+      "created": "2026-09-07T22:39:52Z",
+      "hunk": "@@ -0,0 +1,108 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;\n+import static io.opentelemetry.javaagent.instrumentation.cassandra.v4_0.CassandraEndPoints.isDefaultEndPoint;\n+import static java.util.Collections.emptyList;\n+\n+import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;\n+import com.datastax.oss.driver.api.core.context.DriverContext;\n+import com.datastax.oss.driver.api.core.metadata.EndPoint;\n+import com.datastax.oss.driver.api.core.session.Session;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.List;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+class CassandraServerTarget {\n+\n+  private static final int DEFAULT_PORT = 9042;\n+\n+  @Nullable\n+  static DbServerTarget of(Session session, Set<EndPoint> programmaticContactPoints) {\n+    try {\n+      DriverContext context = session.getContext();\n+      DriverExecutionProfile config = context.getConfig().getDefaultProfile();\n+      // The basic.contact-points option has no default, so the single-argument lookup would throw\n+      // when a session names its contact points on the builder alone.\n+      List<String> configuredContactPoints = config.getStringList(CONTACT_POINTS, emptyList());\n+      DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+      for (String contactPoint : configuredContactPoints) {\n+        addContactPoint(target, contactPoint);\n+      }\n+      for (EndPoint endPoint : programmaticContactPoints) {\n+        if (!isDefaultEndPoint(endPoint)) {\n+          return null;\n+        }\n+        SocketAddress address = endPoint.resolve();\n+        if (!(address instanceof InetSocketAddress)) {\n+          return null;\n+        }\n+        InetSocketAddress inetAddress = (InetSocketAddress) address;\n+        if (!isSafeHost(inetAddress.getHostString())) {\n+          return null;\n+        }\n+        target.addEndpoint(inetAddress);\n+      }\n+      return target.build();\n+    } catch (RuntimeException ignored) {\n+      // A session that cannot describe its configuration has no stable server target.\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  static DbServerTarget of(@Nullable List<String> contactPoints) {\n+    if (contactPoints == null || contactPoints.isEmpty()) {\n+      return null;\n+    }\n+    DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+    for (String contactPoint : contactPoints) {\n+      addContactPoint(target, contactPoint);\n+    }\n+    return target.build();\n+  }\n+\n+  private static void addContactPoint(DbServerTargetBuilder target, @Nullable String contactPoint) {\n+    if (contactPoint == null) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    int separator = contactPoint.lastIndexOf(':');\n+    if (separator < 0) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    String host = contactPoint.substring(0, separator);\n+    if (host.startsWith(\"[\")) {\n+      if (!host.endsWith(\"]\")) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+      host = host.substring(1, host.length() - 1);\n+    }",
+      "id": "PRRT_kwDODJKVX86gCjBh",
+      "opened": "2026-09-07T22:39:53Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:01:07Z",
+          "body": "Addressed in 4282543f1b23569e3d308803c6656c161c925de7.\n\nAnalysis: The parser removed brackets before the shared builder could reject bracketed hostnames and IPv4 addresses. It also passed negative parsed ports to an API that reserves negative values for omitted ports. Requiring bracketed values to contain an IPv6 literal and rejecting negative parsed ports preserves valid Cassandra contact points while dropping malformed ones.\n\nUpsides: Malformed bracketed hosts and explicit negative ports can no longer produce valid server targets. Parameterized tests cover each rejected form.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3960804868"
+        }
+      ],
+      "reviewed": "2f361ebadf34c9d6f358e5c78c9e68e4996ef2d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3952937860"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A negative configured port is silently converted to Cassandra's default port here. `DbServerTargetBuilder.addEndpoint` treats every negative value as its “port omitted” sentinel, so a malformed entry such as `node.example.com:-1` becomes the valid target `node.example.com` instead of causing the target to be omitted. Reject negative parsed ports before passing them to the builder.",
+      "created": "2026-09-07T22:39:52Z",
+      "hunk": "@@ -0,0 +1,108 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;\n+import static io.opentelemetry.javaagent.instrumentation.cassandra.v4_0.CassandraEndPoints.isDefaultEndPoint;\n+import static java.util.Collections.emptyList;\n+\n+import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;\n+import com.datastax.oss.driver.api.core.context.DriverContext;\n+import com.datastax.oss.driver.api.core.metadata.EndPoint;\n+import com.datastax.oss.driver.api.core.session.Session;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.List;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+class CassandraServerTarget {\n+\n+  private static final int DEFAULT_PORT = 9042;\n+\n+  @Nullable\n+  static DbServerTarget of(Session session, Set<EndPoint> programmaticContactPoints) {\n+    try {\n+      DriverContext context = session.getContext();\n+      DriverExecutionProfile config = context.getConfig().getDefaultProfile();\n+      // The basic.contact-points option has no default, so the single-argument lookup would throw\n+      // when a session names its contact points on the builder alone.\n+      List<String> configuredContactPoints = config.getStringList(CONTACT_POINTS, emptyList());\n+      DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+      for (String contactPoint : configuredContactPoints) {\n+        addContactPoint(target, contactPoint);\n+      }\n+      for (EndPoint endPoint : programmaticContactPoints) {\n+        if (!isDefaultEndPoint(endPoint)) {\n+          return null;\n+        }\n+        SocketAddress address = endPoint.resolve();\n+        if (!(address instanceof InetSocketAddress)) {\n+          return null;\n+        }\n+        InetSocketAddress inetAddress = (InetSocketAddress) address;\n+        if (!isSafeHost(inetAddress.getHostString())) {\n+          return null;\n+        }\n+        target.addEndpoint(inetAddress);\n+      }\n+      return target.build();\n+    } catch (RuntimeException ignored) {\n+      // A session that cannot describe its configuration has no stable server target.\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  static DbServerTarget of(@Nullable List<String> contactPoints) {\n+    if (contactPoints == null || contactPoints.isEmpty()) {\n+      return null;\n+    }\n+    DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+    for (String contactPoint : contactPoints) {\n+      addContactPoint(target, contactPoint);\n+    }\n+    return target.build();\n+  }\n+\n+  private static void addContactPoint(DbServerTargetBuilder target, @Nullable String contactPoint) {\n+    if (contactPoint == null) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    int separator = contactPoint.lastIndexOf(':');\n+    if (separator < 0) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    String host = contactPoint.substring(0, separator);\n+    if (host.startsWith(\"[\")) {\n+      if (!host.endsWith(\"]\")) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+      host = host.substring(1, host.length() - 1);\n+    }\n+    try {\n+      int port = Integer.parseInt(contactPoint.substring(separator + 1));\n+      if (!isSafeHost(host)) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+      target.addEndpoint(host, port);\n+    } catch (NumberFormatException ignored) {\n+      target.addEndpoint((String) null, -1);\n+    }",
+      "id": "PRRT_kwDODJKVX86gCjBx",
+      "opened": "2026-09-07T22:39:53Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:01:08Z",
+          "body": "Addressed in 4282543f1b23569e3d308803c6656c161c925de7.\n\nAnalysis: The parser removed brackets before the shared builder could reject bracketed hostnames and IPv4 addresses. It also passed negative parsed ports to an API that reserves negative values for omitted ports. Requiring bracketed values to contain an IPv6 literal and rejecting negative parsed ports preserves valid Cassandra contact points while dropping malformed ones.\n\nUpsides: Malformed bracketed hosts and explicit negative ports can no longer produce valid server targets. Parameterized tests cover each rejected form.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3960805093"
+        }
+      ],
+      "reviewed": "2f361ebadf34c9d6f358e5c78c9e68e4996ef2d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3952937883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could add `// visible for testing` if it is package private only for tests",
+      "created": "2026-09-08T13:39:56Z",
+      "hunk": "@@ -132,4 +128,15 @@ public void onEnd(\n       attributes.put(DB_CASSANDRA_IDEMPOTENCE, idempotent);\n     }\n   }\n+\n+  static void updateServerAddressAndPort(AttributesBuilder attributes, Node coordinator) {",
+      "id": "PRRT_kwDODJKVX86gQu6G",
+      "opened": "2026-09-08T13:39:56Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-09T03:32:12Z",
+          "body": "- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20048\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20049",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3964387158"
+        }
+      ],
+      "reviewed": "e27f9c8426bb52cc0bb4448ce0ffe7ed6d8abab8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3958496989"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Port validation allows `0` (and does not guard > 65535). This conflicts with the unit test expectation that `node.example.com:0` is invalid, and it can also produce malformed `server.address` output. Consider validating `port` as `port <= 0 || port > 65535` (and treating any invalid port as a hard failure for the entire target).",
+      "created": "2026-09-08T18:19:32Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerEndpointUtil.isIpv6Literal;\n+import static io.opentelemetry.javaagent.instrumentation.cassandra.v4_0.CassandraEndPoints.isDefaultEndPoint;\n+import static java.util.Collections.emptyList;\n+\n+import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;\n+import com.datastax.oss.driver.api.core.context.DriverContext;\n+import com.datastax.oss.driver.api.core.metadata.EndPoint;\n+import com.datastax.oss.driver.api.core.session.Session;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.List;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+class CassandraServerTarget {\n+\n+  private static final int DEFAULT_PORT = 9042;\n+\n+  @Nullable\n+  static DbServerTarget of(Session session, Set<EndPoint> programmaticContactPoints) {\n+    try {\n+      DriverContext context = session.getContext();\n+      DriverExecutionProfile config = context.getConfig().getDefaultProfile();\n+      // The basic.contact-points option has no default, so the single-argument lookup would throw\n+      // when a session names its contact points on the builder alone.\n+      List<String> configuredContactPoints = config.getStringList(CONTACT_POINTS, emptyList());\n+      DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+      for (String contactPoint : configuredContactPoints) {\n+        addContactPoint(target, contactPoint);\n+      }\n+      for (EndPoint endPoint : programmaticContactPoints) {\n+        if (!isDefaultEndPoint(endPoint)) {\n+          return null;\n+        }\n+        SocketAddress address = endPoint.resolve();\n+        if (!(address instanceof InetSocketAddress)) {\n+          return null;\n+        }\n+        InetSocketAddress inetAddress = (InetSocketAddress) address;\n+        if (!isSafeHost(inetAddress.getHostString())) {\n+          return null;\n+        }\n+        target.addEndpoint(inetAddress);\n+      }\n+      return target.build();\n+    } catch (RuntimeException ignored) {\n+      // A session that cannot describe its configuration has no stable server target.\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  static DbServerTarget of(@Nullable List<String> contactPoints) {\n+    if (contactPoints == null || contactPoints.isEmpty()) {\n+      return null;\n+    }\n+    DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+    for (String contactPoint : contactPoints) {\n+      addContactPoint(target, contactPoint);\n+    }\n+    return target.build();\n+  }\n+\n+  private static void addContactPoint(DbServerTargetBuilder target, @Nullable String contactPoint) {\n+    if (contactPoint == null) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    int separator = contactPoint.lastIndexOf(':');\n+    if (separator < 0) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    String host = contactPoint.substring(0, separator);\n+    if (host.startsWith(\"[\")) {\n+      if (!host.endsWith(\"]\")) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+      host = host.substring(1, host.length() - 1);\n+      if (!isIpv6Literal(host)) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+    }\n+    try {\n+      int port = Integer.parseInt(contactPoint.substring(separator + 1));\n+      if (port < 0 || !isSafeHost(host)) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+      target.addEndpoint(host, port);\n+    } catch (NumberFormatException ignored) {",
+      "id": "PRRT_kwDODJKVX86gW_yw",
+      "opened": "2026-09-08T18:19:33Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:47:11Z",
+          "body": "No code change.\n\nAnalysis: `DbServerTargetBuilder.addEndpoint` is the shared validation boundary for database targets. It accepts only ports from 1 through 65535. It also rejects malformed hostnames, credentials, query delimiters, path delimiters, and whitespace. An invalid endpoint marks the builder incomplete, so `build()` drops the whole target. The focused Cassandra tests already pass for port zero, credentials, and path or query material. Calling `addEndpoint(null, -1)` deliberately marks malformed parser input as incomplete through that same contract.\n\nUpsides: Keeping validation in the shared builder avoids a second Cassandra-specific copy of the host and port rules. All database target users keep one omission policy.\n\nDownsides: The Cassandra parser depends on the shared internal builder contract, which is intentional because both classes ship and change together in this repository.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3961168797"
+        }
+      ],
+      "reviewed": "4282543f1b23569e3d308803c6656c161c925de7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3960947605"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `target.addEndpoint((String) null, -1)` as a sentinel for invalid input makes correctness depend on `DbServerTargetBuilder`'s internal handling of invalid endpoints. A clearer approach is to have `addContactPoint(...)` return a boolean (valid/invalid) and have `of(...)` return `null` immediately when any contact point is malformed/unsafe, making the omission rule explicit and less fragile.",
+      "created": "2026-09-08T18:19:32Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerEndpointUtil.isIpv6Literal;\n+import static io.opentelemetry.javaagent.instrumentation.cassandra.v4_0.CassandraEndPoints.isDefaultEndPoint;\n+import static java.util.Collections.emptyList;\n+\n+import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;\n+import com.datastax.oss.driver.api.core.context.DriverContext;\n+import com.datastax.oss.driver.api.core.metadata.EndPoint;\n+import com.datastax.oss.driver.api.core.session.Session;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.List;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+class CassandraServerTarget {\n+\n+  private static final int DEFAULT_PORT = 9042;\n+\n+  @Nullable\n+  static DbServerTarget of(Session session, Set<EndPoint> programmaticContactPoints) {\n+    try {\n+      DriverContext context = session.getContext();\n+      DriverExecutionProfile config = context.getConfig().getDefaultProfile();\n+      // The basic.contact-points option has no default, so the single-argument lookup would throw\n+      // when a session names its contact points on the builder alone.\n+      List<String> configuredContactPoints = config.getStringList(CONTACT_POINTS, emptyList());\n+      DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+      for (String contactPoint : configuredContactPoints) {\n+        addContactPoint(target, contactPoint);\n+      }\n+      for (EndPoint endPoint : programmaticContactPoints) {\n+        if (!isDefaultEndPoint(endPoint)) {\n+          return null;\n+        }\n+        SocketAddress address = endPoint.resolve();\n+        if (!(address instanceof InetSocketAddress)) {\n+          return null;\n+        }\n+        InetSocketAddress inetAddress = (InetSocketAddress) address;\n+        if (!isSafeHost(inetAddress.getHostString())) {\n+          return null;\n+        }\n+        target.addEndpoint(inetAddress);\n+      }\n+      return target.build();\n+    } catch (RuntimeException ignored) {\n+      // A session that cannot describe its configuration has no stable server target.\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  static DbServerTarget of(@Nullable List<String> contactPoints) {\n+    if (contactPoints == null || contactPoints.isEmpty()) {\n+      return null;\n+    }\n+    DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+    for (String contactPoint : contactPoints) {\n+      addContactPoint(target, contactPoint);\n+    }\n+    return target.build();\n+  }\n+\n+  private static void addContactPoint(DbServerTargetBuilder target, @Nullable String contactPoint) {\n+    if (contactPoint == null) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    int separator = contactPoint.lastIndexOf(':');\n+    if (separator < 0) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX86gW_zN",
+      "opened": "2026-09-08T18:19:33Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:47:13Z",
+          "body": "No code change.\n\nAnalysis: `DbServerTargetBuilder.addEndpoint` is the shared validation boundary for database targets. It accepts only ports from 1 through 65535. It also rejects malformed hostnames, credentials, query delimiters, path delimiters, and whitespace. An invalid endpoint marks the builder incomplete, so `build()` drops the whole target. The focused Cassandra tests already pass for port zero, credentials, and path or query material. Calling `addEndpoint(null, -1)` deliberately marks malformed parser input as incomplete through that same contract.\n\nUpsides: Keeping validation in the shared builder avoids a second Cassandra-specific copy of the host and port rules. All database target users keep one omission policy.\n\nDownsides: The Cassandra parser depends on the shared internal builder contract, which is intentional because both classes ship and change together in this repository.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3961169002"
+        }
+      ],
+      "reviewed": "4282543f1b23569e3d308803c6656c161c925de7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3960947649"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This integration test adds `127.0.0.2:9042` as a contact point, which is typically unreachable in CI and could introduce session build delays or flakes if the driver attempts to connect to it during bootstrap/reconnect. To keep the test deterministic, prefer multiple *reachable* contact points (e.g., same node via different host strings like `cassandraHost` and `cassandraIp`, or `localhost` and `127.0.0.1`) while still exercising multi-endpoint target formatting.",
+      "created": "2026-09-08T18:19:33Z",
+      "hunk": "@@ -24,4 +40,48 @@ protected String getInstrumentationName() {\n   protected InstrumentationExtension testing() {\n     return testing;\n   }\n+\n+  @Test\n+  void configuredContactPointsRemainSeparateFromTheCoordinator() {\n+    DriverConfigLoader configLoader =\n+        DefaultDriverConfigLoader.builder()\n+            .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(0))\n+            .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(10))\n+            .build();\n+    CqlSession session =\n+        CqlSession.builder()\n+            .addContactPoint(new InetSocketAddress(cassandraHost, cassandraPort))\n+            .addContactPoint(new InetSocketAddress(\"127.0.0.2\", 9042))\n+            .withConfigLoader(configLoader)",
+      "id": "PRRT_kwDODJKVX86gW_0E",
+      "opened": "2026-09-08T18:19:33Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:47:16Z",
+          "body": "Addressed in 99f5b7fc8e5df5167a0eaf10d2e09114905028d1.\n\nAnalysis: The test now configures the container's mapped Cassandra endpoint through both supported sources. The execution profile uses `cassandraIp`, while the session builder uses `cassandraHost`. Both identify the running container and use its mapped port. This preserves a multi-endpoint logical target without asking the driver to manage an unreachable node.\n\nUpsides: Session startup and reconnect work only with reachable endpoints. The test also covers merging execution-profile and programmatic contact points.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3961169395"
+        }
+      ],
+      "reviewed": "4282543f1b23569e3d308803c6656c161c925de7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3960947726"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `isSafeHost` check only filters out hosts containing `:` (unless IPv6), but it does not reject other credential/query delimiters like `@`, `/`, `?`, `#`, whitespace, etc. This can violate the PR’s omission rules (avoiding exposure of credentials/query material) for inputs like `user@host:9042` or `host/path?x=y:9042`. Tighten validation to explicitly reject these characters (and treat them as unsafe).",
+      "created": "2026-09-08T18:19:33Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerEndpointUtil.isIpv6Literal;\n+import static io.opentelemetry.javaagent.instrumentation.cassandra.v4_0.CassandraEndPoints.isDefaultEndPoint;\n+import static java.util.Collections.emptyList;\n+\n+import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;\n+import com.datastax.oss.driver.api.core.context.DriverContext;\n+import com.datastax.oss.driver.api.core.metadata.EndPoint;\n+import com.datastax.oss.driver.api.core.session.Session;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.List;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+class CassandraServerTarget {\n+\n+  private static final int DEFAULT_PORT = 9042;\n+\n+  @Nullable\n+  static DbServerTarget of(Session session, Set<EndPoint> programmaticContactPoints) {\n+    try {\n+      DriverContext context = session.getContext();\n+      DriverExecutionProfile config = context.getConfig().getDefaultProfile();\n+      // The basic.contact-points option has no default, so the single-argument lookup would throw\n+      // when a session names its contact points on the builder alone.\n+      List<String> configuredContactPoints = config.getStringList(CONTACT_POINTS, emptyList());\n+      DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+      for (String contactPoint : configuredContactPoints) {\n+        addContactPoint(target, contactPoint);\n+      }\n+      for (EndPoint endPoint : programmaticContactPoints) {\n+        if (!isDefaultEndPoint(endPoint)) {\n+          return null;\n+        }\n+        SocketAddress address = endPoint.resolve();\n+        if (!(address instanceof InetSocketAddress)) {\n+          return null;\n+        }\n+        InetSocketAddress inetAddress = (InetSocketAddress) address;\n+        if (!isSafeHost(inetAddress.getHostString())) {\n+          return null;\n+        }\n+        target.addEndpoint(inetAddress);\n+      }\n+      return target.build();\n+    } catch (RuntimeException ignored) {\n+      // A session that cannot describe its configuration has no stable server target.\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  static DbServerTarget of(@Nullable List<String> contactPoints) {\n+    if (contactPoints == null || contactPoints.isEmpty()) {\n+      return null;\n+    }\n+    DbServerTargetBuilder target = DbServerTarget.builder(DEFAULT_PORT).setSorted(true);\n+    for (String contactPoint : contactPoints) {\n+      addContactPoint(target, contactPoint);\n+    }\n+    return target.build();\n+  }\n+\n+  private static void addContactPoint(DbServerTargetBuilder target, @Nullable String contactPoint) {\n+    if (contactPoint == null) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    int separator = contactPoint.lastIndexOf(':');\n+    if (separator < 0) {\n+      target.addEndpoint((String) null, -1);\n+      return;\n+    }\n+    String host = contactPoint.substring(0, separator);\n+    if (host.startsWith(\"[\")) {\n+      if (!host.endsWith(\"]\")) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+      host = host.substring(1, host.length() - 1);\n+      if (!isIpv6Literal(host)) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+    }\n+    try {\n+      int port = Integer.parseInt(contactPoint.substring(separator + 1));\n+      if (port < 0 || !isSafeHost(host)) {\n+        target.addEndpoint((String) null, -1);\n+        return;\n+      }\n+      target.addEndpoint(host, port);\n+    } catch (NumberFormatException ignored) {\n+      target.addEndpoint((String) null, -1);\n+    }\n+  }\n+\n+  private static boolean isSafeHost(String host) {\n+    return host.indexOf(':') < 0 || isIpv6Literal(host);\n+  }",
+      "id": "PRRT_kwDODJKVX86gW_zk",
+      "opened": "2026-09-08T18:19:33Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:47:14Z",
+          "body": "No code change.\n\nAnalysis: `DbServerTargetBuilder.addEndpoint` is the shared validation boundary for database targets. It accepts only ports from 1 through 65535. It also rejects malformed hostnames, credentials, query delimiters, path delimiters, and whitespace. An invalid endpoint marks the builder incomplete, so `build()` drops the whole target. The focused Cassandra tests already pass for port zero, credentials, and path or query material. Calling `addEndpoint(null, -1)` deliberately marks malformed parser input as incomplete through that same contract.\n\nUpsides: Keeping validation in the shared builder avoids a second Cassandra-specific copy of the host and port rules. All database target users keep one omission policy.\n\nDownsides: The Cassandra parser depends on the shared internal builder contract, which is intentional because both classes ship and change together in this repository.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3961169219"
+        }
+      ],
+      "reviewed": "4282543f1b23569e3d308803c6656c161c925de7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19868#discussion_r3960947683"
+    }
+  ]
+}

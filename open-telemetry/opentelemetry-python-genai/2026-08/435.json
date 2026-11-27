@@ -1,0 +1,166 @@
+{
+  "head": "a964505a4eb68483eaf2cf5f1b1eb370dc855764",
+  "merge": "406a9d9999cb02953c1296b6b26fccf14bb137b4",
+  "merged": "2026-08-21T03:52:33Z",
+  "missing_roots": 0,
+  "number": 435,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The http client import prefers `httpx` when it is installed, even if `httpx2` is also present. Under Anthropic 1.x this can cause `raw_response.parse(to=httpx.Response)` to pass the wrong `Response` type. Prefer `httpx2` when available (fall back to `httpx`).\n\nThis issue also appears on line 430 of the same file.",
+      "created": "2026-08-20T23:12:03Z",
+      "hunk": "@@ -9,11 +9,19 @@\n import os\n from pathlib import Path\n \n-import httpx\n import pytest\n+\n+try:\n+    import httpx\n+except ImportError:\n+    import httpx2 as httpx",
+      "id": "PRRT_kwDOSbspP86a_Lts",
+      "opened": "2026-08-20T23:12:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "f0c704e7676c291d2dfcebca91d1fefdb7c501cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826054540"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The http client import prefers `httpx` when it is installed, even if `httpx2` is also present. Under Anthropic 1.x this can cause `raw_response.parse(to=httpx.Response)` to pass the wrong `Response` type. Prefer `httpx2` when available (fall back to `httpx`).\n\nThis issue also appears on line 249 of the same file.",
+      "created": "2026-08-20T23:12:04Z",
+      "hunk": "@@ -6,11 +6,19 @@\n import inspect\n import json\n \n-import httpx\n import pytest\n+\n+try:\n+    import httpx\n+except ImportError:\n+    import httpx2 as httpx",
+      "id": "PRRT_kwDOSbspP86a_Lt9",
+      "opened": "2026-08-20T23:12:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+      "replies": [],
+      "reviewed": "f0c704e7676c291d2dfcebca91d1fefdb7c501cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826054563"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    except _http_lib.ResponseNotRead:\n        return False\n```\nAvoid string-matching exception class names. Import `_http_lib` via `try: import httpx as _http_lib except ImportError: import httpx2 as _http_lib` at the top level like in OpenAI.",
+      "created": "2026-08-20T23:45:43Z",
+      "hunk": "@@ -429,8 +428,11 @@ def _body_was_read(http_response: Any) -> bool:\n         return False\n     try:\n         http_response.content  # pylint: disable=pointless-statement\n-    except httpx.ResponseNotRead:\n-        return False\n+    except RuntimeError as error:",
+      "id": "PRRT_kwDOSbspP86a_jDX",
+      "opened": "2026-08-20T23:49:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/_raw_response.py",
+      "replies": [],
+      "reviewed": "19ec759f568a9658ff5a5085a171a3a0c14fcc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826198282"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`get_server_address_and_port` was not updated to filter default ports (80, 443) or handle string base URLs. Use structural `getattr` with `urlparse` fallback and default port filtering:\n\n```python\ndef get_server_address_and_port(\n    client: Any,\n) -> tuple[str | None, int | None]:\n    base_url = getattr(client, \"base_url\", None)\n    if not base_url:\n        return None, None\n\n    server_address = getattr(base_url, \"host\", None)\n    server_port = getattr(base_url, \"port\", None)\n\n    if server_address is None:\n        parsed = urlparse(str(base_url))\n        server_address = parsed.hostname\n        server_port = parsed.port\n\n    if server_port in (80, 443):\n        server_port = None\n\n    return server_address, server_port\n```",
+      "created": "2026-08-20T23:45:43Z",
+      "hunk": "@@ -33,7 +33,10 @@\n if TYPE_CHECKING:\n     from collections.abc import Iterable, Mapping\n \n-    import httpx\n+    try:\n+        import httpx2 as _http_lib\n+    except ImportError:\n+        import httpx as _http_lib",
+      "id": "PRRT_kwDOSbspP86a_jDd",
+      "opened": "2026-08-20T23:49:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [],
+      "reviewed": "19ec759f568a9658ff5a5085a171a3a0c14fcc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826198290"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Also update `docs-requirements.txt`, `examples/manual/requirements.txt`, and `examples/zero-code/requirements.txt` to `anthropic>=1.0.0` and update `uv.lock`.",
+      "created": "2026-08-20T23:45:43Z",
+      "hunk": "@@ -37,7 +37,7 @@\n # This variant of the requirements aims to test the system using\n # the newest supported version of external dependencies.\n \n-anthropic\n+anthropic < 2",
+      "id": "PRRT_kwDOSbspP86a_jDk",
+      "opened": "2026-08-20T23:49:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "19ec759f568a9658ff5a5085a171a3a0c14fcc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826198298"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please add unit tests for `get_server_address_and_port`",
+      "created": "2026-08-20T23:45:43Z",
+      "hunk": "@@ -404,23 +412,27 @@ def test_sync_messages_create_with_all_params(\n     model = \"claude-sonnet-4-20250514\"\n     messages = [{\"role\": \"user\", \"content\": \"Say hello.\"}]\n \n-    anthropic_client.messages.create(\n-        model=model,\n-        max_tokens=50,\n-        messages=messages,\n-        temperature=0.7,\n-        top_p=0.9,\n-        top_k=40,\n-        stop_sequences=[\"STOP\"],\n-    )\n+    kwargs = {\n+        \"model\": model,\n+        \"max_tokens\": 50,\n+        \"messages\": messages,\n+        \"stop_sequences\": [\"STOP\"],\n+    }\n+    if \"temperature\" in _create_params:\n+        kwargs.update(temperature=0.7, top_p=0.9, top_k=40)\n+",
+      "id": "PRRT_kwDOSbspP86a_jDp",
+      "opened": "2026-08-20T23:49:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "19ec759f568a9658ff5a5085a171a3a0c14fcc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826198304"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why under type checking only? ",
+      "created": "2026-08-20T23:47:11Z",
+      "hunk": "@@ -33,7 +33,10 @@\n if TYPE_CHECKING:\n     from collections.abc import Iterable, Mapping\n \n-    import httpx\n+    try:",
+      "id": "PRRT_kwDOSbspP86a_j9F",
+      "opened": "2026-08-20T23:49:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [
+        {
+          "at": "2026-08-21T02:41:33Z",
+          "body": "It was under TYPE_CHECKING because it was initially used only for postponed type annotations, so a runtime import seemed unnecessary. I left it there to avoid choosing between httpx and httpx2 at runtime.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826870017"
+        }
+      ],
+      "reviewed": "19ec759f568a9658ff5a5085a171a3a0c14fcc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826203875"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it should not be under type checking",
+      "created": "2026-08-20T23:50:36Z",
+      "hunk": "@@ -31,7 +31,10 @@\n     _sdk_accumulate_event = None\n \n if TYPE_CHECKING:\n-    import httpx\n+    try:",
+      "id": "PRRT_kwDOSbspP86a_mCM",
+      "opened": "2026-08-20T23:50:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "19ec759f568a9658ff5a5085a171a3a0c14fcc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826216892"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    try:\n        import httpx2 as _http_lib\n    except ImportError:\n        import httpx as _http_lib\n```",
+      "created": "2026-08-20T23:50:49Z",
+      "hunk": "@@ -6,11 +6,19 @@\n import inspect\n import json\n \n-import httpx\n import pytest\n+\n+try:\n+    import httpx\n+except ImportError:\n+    import httpx2 as httpx",
+      "id": "PRRT_kwDOSbspP86a_mMe",
+      "opened": "2026-08-20T23:50:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+      "replies": [],
+      "reviewed": "19ec759f568a9658ff5a5085a171a3a0c14fcc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3826217848"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\r\n```\r\n\r\nit can't live there since util don't and can't depend on httpx and can't do\r\n\r\n```\r\n    base_client = getattr(client_instance, \"_client\", None)\r\n    base_url = getattr(base_client, \"base_url\", None\r\n```",
+      "created": "2026-08-21T03:19:30Z",
+      "hunk": "@@ -210,15 +214,28 @@ def extract_params(  # pylint: disable=too-many-locals\n     )\n \n \n+# TODO: Move this cross-instrumentation URL extraction to\n+# opentelemetry-util-genai instead of maintaining provider-specific copies.",
+      "id": "PRRT_kwDOSbspP86bBnPN",
+      "opened": "2026-08-21T03:21:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [],
+      "reviewed": "978721b893617007c0f25e1b5f5df37d0b2decd5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/435#discussion_r3827021772"
+    }
+  ]
+}

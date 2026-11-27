@@ -1,0 +1,31 @@
+{
+  "head": "7fabd78ff0c6385ac45d95829bac8e62a11accb2",
+  "merge": "71a39486d5b060db7f54d944fac6c00503c5b48e",
+  "merged": "2026-06-09T18:47:06Z",
+  "missing_roots": 0,
+  "number": 18883,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether introducing a separate `structured_list` type conveys any meaningful information to the end user. Without an example nobody is going to be able to figure out how to use it, would we loose anything if they type was just `list`? Or perhaps the intent is that `list` means a comma separated list/list of primitive values and `structured_list` means a complex list? Not really opposed to adding it just trying to understand what this tells to the end user.\nAnother use case for `structured_list` could be url template rules in https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/http/RegexUrlTemplateCustomizerInitializer.java I believe these aren't currently documented as part of the metadata. They are special in the sense that they are expressed only with declarative config and don't have an equivalent system property.",
+      "created": "2026-06-03T07:13:40Z",
+      "hunk": "@@ -30,9 +30,9 @@ configurations:\n     type: list\n     default: \"\"\n   - name: otel.instrumentation.common.peer-service-mapping\n-    declarative_name: java.common.peer_service_mapping\n+    declarative_name: java.common.service_peer_mapping\n     description: Used to specify a mapping from host names or IP addresses to peer services.\n-    type: map\n+    type: structured_list",
+      "id": "PRRT_kwDODJKVX86GqSVk",
+      "opened": "2026-06-03T07:13:40Z",
+      "path": "instrumentation/akka/akka-http-10.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-03T09:56:49Z",
+          "body": "> Wondering whether introducing a separate structured_list type conveys any meaningful information to the end user. Without an example nobody is going to be able to figure out how to use it\r\n\r\nProbably not on it's own. I had been thinking about creating a custom mapping in the explorer for when we display these ones, but to your point, normal users who are browsing this raw information wouldn't benefit much from it.\r\n\r\n>  Or perhaps the intent is that list means a comma separated list/list of primitive values and structured_list means a complex list?\r\n\r\nYea this was my thought, that it indicated that there was some sort of schema for the values, but hadn't come up with a good way to convey what that schema actually is.\r\n\r\nRight now we have a way to include `examples`, but for peer service the example is actually different for system property vs declarative. Since we have name / declarative_name, maybe it would also make sense to have examples / declarative_examples",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18883#discussion_r3347529767"
+        }
+      ],
+      "reviewed": "7fabd78ff0c6385ac45d95829bac8e62a11accb2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18883#discussion_r3346602487"
+    }
+  ]
+}

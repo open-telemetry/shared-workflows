@@ -1,0 +1,160 @@
+{
+  "head": "9a141bf17fb0e189b0788b71a9a7bddaa3d887ba",
+  "merge": "c4de80080df3def06cccce2745130b098c060c9e",
+  "merged": "2026-10-23T19:58:41Z",
+  "missing_roots": 0,
+  "number": 979,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:39:09Z",
+      "hunk": "@@ -24,4 +24,3 @@\n fastapi >= 0.100.0\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv6pP",
+      "opened": "2026-10-23T19:39:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363541821"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:39:21Z",
+      "hunk": "@@ -9,5 +9,4 @@\n aiobotocore == 2.25.2\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv64M",
+      "opened": "2026-10-23T19:39:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363543364"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:39:30Z",
+      "hunk": "@@ -6,4 +6,3 @@\n numpy >= 1.26.0\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv7DU",
+      "opened": "2026-10-23T19:39:30Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363544603"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:39:40Z",
+      "hunk": "@@ -38,4 +38,3 @@ opentelemetry-instrumentation-genai-openai[instruments]==1.2b0\n httpx==0.27.2\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv7N1",
+      "opened": "2026-10-23T19:39:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363545742"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:39:48Z",
+      "hunk": "@@ -21,4 +21,3 @@\n llama-index-llms-openai==0.7.10\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv7YJ",
+      "opened": "2026-10-23T19:39:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363546785"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:39:56Z",
+      "hunk": "@@ -29,4 +29,3 @@ importlib-metadata==6.11.0\n packaging==24.0\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv7hD",
+      "opened": "2026-10-23T19:39:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363547738"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:40:06Z",
+      "hunk": "@@ -32,4 +32,3 @@ importlib-metadata==6.11.0\n packaging==24.0\n \n # The stream execution hook is not released yet.",
+      "id": "PRRT_kwDOSbspP86vv7s5",
+      "opened": "2026-10-23T19:40:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363548967"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:40:14Z",
+      "hunk": "@@ -34,4 +34,3 @@ tqdm==4.66.1\n wrapt==1.17.0\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv718",
+      "opened": "2026-10-23T19:40:14Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363549989"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:40:24Z",
+      "hunk": "@@ -25,4 +25,3 @@\n mcp<2\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv8By",
+      "opened": "2026-10-23T19:40:24Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363551274"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-23T19:40:34Z",
+      "hunk": "@@ -26,4 +26,3 @@\n fsspec==2026.6.0\n \n # Drop this once opentelemetry-util-genai 1.3b0 is published.",
+      "id": "PRRT_kwDOSbspP86vv8N3",
+      "opened": "2026-10-23T19:40:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cd26517715a635ed6addce268b3ba539da4fd99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/979#discussion_r4363552554"
+    }
+  ]
+}

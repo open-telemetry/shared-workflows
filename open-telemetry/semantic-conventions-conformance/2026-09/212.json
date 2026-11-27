@@ -1,0 +1,25 @@
+{
+  "head": "7a1b49ce4a57d71ceb302be9bc67ad960e2535a3",
+  "merge": "d916991f6761ea1424f99528cd3b0128e972ae14",
+  "merged": "2026-09-20T14:14:23Z",
+  "missing_roots": 0,
+  "number": 212,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This job later runs `bundle install` in both Ruby scenario directories, but each scenario Gemfile requires Ruby `>= 3.4`, `< 3.5` and its lockfile records Ruby 3.4.10. Running those steps under 4.0.7 will therefore fail Bundler's Ruby-version validation before the tests run. Update both scenario Gemfile constraints and regenerate their lockfiles for Ruby 4.0.7, or keep this job on Ruby 3.4.\n\nThis issue also appears on line 413 of the same file.",
+      "created": "2026-09-15T04:54:28Z",
+      "hunk": "@@ -97,7 +97,7 @@ jobs:\n       - name: Set up Ruby\n         uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1\n         with:\n-          ruby-version: \"3.4\"\n+          ruby-version: \"4.0.7\"",
+      "id": "PRRT_kwDOTuzK5c6iYGHq",
+      "opened": "2026-09-15T04:54:29Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "536f45a6bd68ca908559391a74f5b7f5fa808423",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/212#discussion_r4012049109"
+    }
+  ]
+}

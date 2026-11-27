@@ -1,0 +1,55 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a749fc6c94c66d14f50a16f13b657369269aa00d6929b3bb036ed4c0a6ebb5e3",
+  "input_digest": "e841bb3049d8ee12cf2a3fea2673697c4f5d0c4939b8ac54c7c0ce7e2f91c696",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30680d225ed69a11fccb5a60d2f83dbf5a3f18a4/instrumentation/rocketmq/rocketmq-client-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30680d225ed69a11fccb5a60d2f83dbf5a3f18a4/instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/fixedVersionUnitTests/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqReceiveSpanLinksExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30680d225ed69a11fccb5a60d2f83dbf5a3f18a4/instrumentation/rocketmq/rocketmq-client-5.0/javaagent-unit-tests/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1702fc245fd317560316cf7d2526653431c89ef7/instrumentation/rocketmq/rocketmq-client-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1702fc245fd317560316cf7d2526653431c89ef7/instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/fixedVersionUnitTests/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqReceiveSpanLinksExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1702fc245fd317560316cf7d2526653431c89ef7/instrumentation/rocketmq/rocketmq-client-5.0/javaagent-unit-tests/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a9508e3f1d917fd73f6dc37a159a6451b56075b5"
+      ],
+      "id": "PRRT_kwDODJKVX866cEfq",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9508e3f1d917fd73f6dc37a159a6451b56075b5/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1702fc245fd317560316cf7d2526653431c89ef7/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b5a86d417197cf33eef627bc783b6123c8874b57"
+      ],
+      "id": "PRRT_kwDODJKVX866j7YC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9508e3f1d917fd73f6dc37a159a6451b56075b5/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1702fc245fd317560316cf7d2526653431c89ef7/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b5a86d417197cf33eef627bc783b6123c8874b57"
+      ],
+      "id": "PRRT_kwDODJKVX866j7cj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX866onq7",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX866j7YC",
+      "status": "duplicate"
+    }
+  ]
+}

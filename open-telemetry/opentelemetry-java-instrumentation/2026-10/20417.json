@@ -1,0 +1,139 @@
+{
+  "head": "d7d7f23501b3d10cc27d63b3028ae523adae949e",
+  "merge": "70fc89b1739b79b19872589611e5004e26362c03",
+  "merged": "2026-10-08T09:47:45Z",
+  "missing_roots": 0,
+  "number": 20417,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This breaking-change note omits removal of the appender's transitive `opentelemetry-log4j-context-data-2.17-autoconfigure` dependency. Existing standalone users relying on it for Log4j layout trace/span IDs will silently lose those fields after upgrading unless they add it explicitly, so include that migration step in the release notes.",
+      "created": "2026-10-07T04:00:35Z",
+      "hunk": "@@ -4,6 +4,17 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove Log4j appender correlation reconstructed from trace-ID, span-ID, and\n+  trace-flags strings.\n+  For standalone asynchronous logging, configure\n+  `log4j2.ContextDataInjector=io.opentelemetry.instrumentation.log4j.appender.v2_17.OpenTelemetryAppenderContextDataInjector`\n+  to carry the full OpenTelemetry context; Java agent correlation remains supported.",
+      "id": "PRRT_kwDODJKVX86pwCFz",
+      "opened": "2026-10-07T04:00:35Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "b029d6b4cb856fc40c4d14bfae9188c700188dde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4202920298"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could move this to separate v3 migration notes section",
+      "created": "2026-10-07T10:43:51Z",
+      "hunk": "@@ -148,28 +148,38 @@ The `otel.event.name` key is supported in `MapMessage` entries and context data\n \n #### Async Loggers\n \n-When using Log4j async loggers, for example `AsyncRoot`, `AsyncLogger`, or Log4j's built-in\n-`AsyncAppender`, Log4j creates the `LogEvent` on the application thread and later invokes appenders\n-on a background thread. To make the `OpenTelemetryAppender` emit logs with the application thread's\n-full OpenTelemetry `Context`, configure Log4j to use the OpenTelemetry appender context data\n-injector:\n+Correlation no longer reconstructs a span context from `trace_id`, `span_id`,",
+      "id": "PRRT_kwDODJKVX86p3az6",
+      "opened": "2026-10-07T10:43:50Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/README.md",
+      "replies": [],
+      "reviewed": "af1b9aef4064d17608802a803abf4639ce19ca46",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4205927341"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could move this to v3 migration notes section. Not sure about mentioning `v3-preview` flag since it will get removed.",
+      "created": "2026-10-07T10:45:17Z",
+      "hunk": "@@ -50,6 +50,16 @@ These keys can be customized using the following system properties or environmen\n | `otel.instrumentation.common.logging.span-id-key`     | `OTEL_INSTRUMENTATION_COMMON_LOGGING_SPAN_ID_KEY`     |\n | `otel.instrumentation.common.logging.trace-flags-key` | `OTEL_INSTRUMENTATION_COMMON_LOGGING_TRACE_FLAGS_KEY` |\n \n+The deprecated `otel.instrumentation.common.logging.trace-id`, `.span-id`, and",
+      "id": "PRRT_kwDODJKVX86p3cmV",
+      "opened": "2026-10-07T10:45:17Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/README.md",
+      "replies": [],
+      "reviewed": "af1b9aef4064d17608802a803abf4639ce19ca46",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4205939017"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This rewrite no longer supplies any of the removed `trace_id`, `span_id`, or `trace_flags` keys, so it would still pass if the legacy fallback were accidentally restored. Since ignoring those keys is the breaking behavior in this PR, add a case that populates the legacy declarative keys and verifies all three getters retain their defaults (or use the replacement values).",
+      "created": "2026-10-07T19:11:54Z",
+      "hunk": "@@ -21,20 +21,40 @@\n class CommonConfigTest {\n \n   @Test\n-  void deprecatedLoggingKeyIgnoredInV3Preview() {\n+  void loggingKeys() {",
+      "id": "PRRT_kwDODJKVX86qDlfE",
+      "opened": "2026-10-07T19:11:55Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-10-07T20:42:19Z",
+          "body": "Addressed in 4cfd2e7a8b5f5b4bad15092b2c3b408ff50422ec.\n\nAnalysis: Warranted: the tests no longer exercised the removed legacy paths. Adds regression coverage: legacy keys/properties are populated while replacements are absent, asserting defaults (or, for Spring, default MDC names).\n\nUpsides: Guards the breaking behavior.\n\nDownsides: Slightly larger tests.\n\n<!-- copilot-loop:9867695d5435aff3b072290b0533f92465d272cc45347211633aa5b357d41fd5:4210916582:603a7a5a06424d379bc43fbac63b25d3 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4211763621"
+        }
+      ],
+      "reviewed": "bb3ca8ab7c08beb47553035384fb702a1df9d94f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4210916582"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The replacement test covers defaults and supported keys, but no longer proves that the removed legacy configuration is ignored. Add coverage with the old declarative keys and the old direct system-property fallback populated, then assert that `ContextDataKeys` still returns the defaults or replacement values; otherwise either legacy path could be reintroduced unnoticed.",
+      "created": "2026-10-07T19:11:54Z",
+      "hunk": "@@ -18,16 +18,27 @@\n class ContextDataKeysTest {\n \n   @Test\n-  void deprecatedLoggingKeyIgnoredInV3Preview() {\n+  void loggingKeys() {",
+      "id": "PRRT_kwDODJKVX86qDlgA",
+      "opened": "2026-10-07T19:11:55Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/test/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeysTest.java",
+      "replies": [
+        {
+          "at": "2026-10-07T20:43:28Z",
+          "body": "Addressed in 4cfd2e7a8b5f5b4bad15092b2c3b408ff50422ec.\n\nAnalysis: Warranted: the tests no longer exercised the removed legacy paths. Adds regression coverage: legacy keys/properties are populated while replacements are absent, asserting defaults (or, for Spring, default MDC names).\n\nUpsides: Guards the breaking behavior.\n\nDownsides: Slightly larger tests.\n\n<!-- copilot-loop:9867695d5435aff3b072290b0533f92465d272cc45347211633aa5b357d41fd5:4210916671:ecab045474b74c25aecfed4a56127add -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4211774172"
+        }
+      ],
+      "reviewed": "bb3ca8ab7c08beb47553035384fb702a1df9d94f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4210916671"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Removing the fallback here changes the Spring starter independently of `CommonConfig`, but the existing `mdcAppender` test only supplies the replacement names. Add a Spring test/variant that supplies the three legacy properties and verifies the MDC uses the default key names, so this 3.0 removal cannot regress.",
+      "created": "2026-10-07T19:11:55Z",
+      "hunk": "@@ -492,49 +492,28 @@ private static void initializeMdcAppenderFromProperties(\n     String traceIdKey =\n         getLoggingProperty(\n             applicationEnvironmentPreparedEvent.getEnvironment(),\n-            \"otel.instrumentation.common.logging.trace-id-key\",\n-            \"otel.instrumentation.common.logging.trace-id\");\n+            \"otel.instrumentation.common.logging.trace-id-key\");",
+      "id": "PRRT_kwDODJKVX86qDlgl",
+      "opened": "2026-10-07T19:11:55Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [
+        {
+          "at": "2026-10-07T20:44:44Z",
+          "body": "Addressed in 4cfd2e7a8b5f5b4bad15092b2c3b408ff50422ec.\n\nAnalysis: Warranted: the tests no longer exercised the removed legacy paths. Adds regression coverage: legacy keys/properties are populated while replacements are absent, asserting defaults (or, for Spring, default MDC names).\n\nUpsides: Guards the breaking behavior.\n\nDownsides: Slightly larger tests.\n\n<!-- copilot-loop:9867695d5435aff3b072290b0533f92465d272cc45347211633aa5b357d41fd5:4210916730:567f8df271da4144b7a12f329446e2a8 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4211785520"
+        }
+      ],
+      "reviewed": "bb3ca8ab7c08beb47553035384fb702a1df9d94f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4210916730"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This migration note covers only the flat properties, but this PR also removes the stable declarative keys `java.common.logging.trace_id`, `span_id`, and `trace_flags` and stops reading them. Document their `_key` replacements as well so file-based configuration users have an actionable 3.0 migration path.",
+      "created": "2026-10-08T04:28:54Z",
+      "hunk": "@@ -4,6 +4,17 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove Log4j appender correlation reconstructed from trace-ID, span-ID, and\n+  trace-flags strings.\n+  For standalone asynchronous logging, configure\n+  `log4j2.ContextDataInjector=io.opentelemetry.instrumentation.log4j.appender.v2_17.OpenTelemetryAppenderContextDataInjector`\n+  to carry the full OpenTelemetry context; Java agent correlation remains supported.\n+  The appender no longer brings in\n+  `io.opentelemetry.instrumentation:opentelemetry-log4j-context-data-2.17-autoconfigure`\n+  transitively; add it separately if Log4j layouts need trace or span IDs.\n+  Replace `otel.instrumentation.common.logging.trace-id`, `.span-id`, and\n+  `.trace-flags` with `.trace-id-key`, `.span-id-key`, and `.trace-flags-key`,\n+  respectively.",
+      "id": "PRRT_kwDODJKVX86qMfie",
+      "opened": "2026-10-08T04:28:54Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-08T04:49:23Z",
+          "body": "Addressed in 984cacf3287e7b62047a57af3f0cdc6b4a83c3c9.\n\nAnalysis: Valid: tests confirm java.common.logging.trace_id is replaced by trace_id_key; the note covered only flat properties.\n\nUpsides: Complete migration guidance.\n\nDownsides: None significant.\n\n<!-- copilot-loop:c4c6a49713711705387ef250a724cb343d015dab91dfb8eb24b59b65db945760:4214665633:d75323912b714431aa582f8eebcf2bd7 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4214833306"
+        }
+      ],
+      "reviewed": "c1b70b953d5d45eef5fa29721ca037c8de1e496b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20417#discussion_r4214665633"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "29cac577579e01d73be1d00a6f3e68d4fc65809b",
+  "merge": "881f6425914a7df004a29890f42a3139f0c46998",
+  "merged": "2026-04-30T20:47:03Z",
+  "missing_roots": 0,
+  "number": 18410,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(and same below)\n\n```suggestion\n```",
+      "created": "2026-04-29T20:56:30Z",
+      "hunk": "@@ -39,6 +43,10 @@ static class Liberty20Jdk11 extends LibertySmokeTest {}\n   @AppServer(version = \"20.0.0.12\", jdk = \"11-openj9\")\n   static class Liberty20Jdk11Openj9 extends LibertySmokeTest {}\n \n+  /*\n+   * OpenLiberty 21.0.0.12\n+   */\n+",
+      "id": "PRRT_kwDODJKVX85-kRWX",
+      "opened": "2026-04-29T20:56:30Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/LibertySmokeTest.java",
+      "replies": [],
+      "reviewed": "ac9ab419f44faa8795969b442d90d850e11efb27",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18410#discussion_r3164114159"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you remove all of these comments? thanks",
+      "created": "2026-04-30T19:34:26Z",
+      "hunk": "@@ -27,6 +27,9 @@ static SmokeTestOptions<AppServerImage> configureOptions(\n                 Duration.ofMinutes(3), \".*server is ready to run a smarter planet.*\"));\n   }\n \n+  /*\n+   * OpenLiberty 20.0.0.12\n+   */",
+      "id": "PRRT_kwDODJKVX85-174r",
+      "opened": "2026-04-30T19:34:26Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/LibertySmokeTest.java",
+      "replies": [
+        {
+          "at": "2026-04-30T19:43:31Z",
+          "body": "Oops, sorry. Brain fart. Saw the red, but interpeted as remove the extra space 😢 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18410#discussion_r3170439995"
+        }
+      ],
+      "reviewed": "bb45273f9ae162db111d527b4cbc65bf17e5b5ac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18410#discussion_r3170395807"
+    }
+  ]
+}

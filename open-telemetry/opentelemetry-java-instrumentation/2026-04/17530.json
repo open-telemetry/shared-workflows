@@ -1,0 +1,57 @@
+{
+  "head": "0492746b39fbcae5f2cbd802e5ddd921d41bbc37",
+  "merge": "0e10a9bbf7d3eec20640bd6ab2fff31a68f19ce1",
+  "merged": "2026-04-13T17:32:47Z",
+  "missing_roots": 0,
+  "number": 17530,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess we could place this in a helper method since it is duplicated in 2 places.\nSince the agent instrumentation makes a copy of the `ProducerRecord` when there is an exception wondering whether we could use a similar approach here too. Would the following work?\n```java\ndiff --git a/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java b/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java\nindex c70b543d3d..b92094fdf0 100644\n--- a/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java\n+++ b/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java\n@@ -5,23 +5,18 @@\n\n package io.opentelemetry.instrumentation.kafkaclients.v2_6.internal;\n\n-import static java.util.logging.Level.WARNING;\n-\n import io.opentelemetry.context.Context;\n import io.opentelemetry.context.Scope;\n import io.opentelemetry.context.propagation.TextMapPropagator;\n-import io.opentelemetry.context.propagation.TextMapSetter;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n-import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaHeadersSetter;\n import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaProducerRequest;\n+import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaPropagation;\n import java.util.concurrent.Future;\n import java.util.function.BiFunction;\n-import java.util.logging.Logger;\n import org.apache.kafka.clients.producer.Callback;\n import org.apache.kafka.clients.producer.Producer;\n import org.apache.kafka.clients.producer.ProducerRecord;\n import org.apache.kafka.clients.producer.RecordMetadata;\n-import org.apache.kafka.common.header.Headers;\n\n /**\n  * Helper for producer-side instrumentation.\n@@ -30,9 +25,6 @@ import org.apache.kafka.common.header.Headers;\n  * at any time.\n  */\n public class KafkaProducerTelemetry {\n-  private static final Logger logger = Logger.getLogger(KafkaProducerTelemetry.class.getName());\n-\n-  private static final TextMapSetter<Headers> SETTER = KafkaHeadersSetter.INSTANCE;\n\n   private final TextMapPropagator propagator;\n   private final Instrumenter<KafkaProducerRequest, RecordMetadata> producerInstrumenter;\n@@ -52,24 +44,25 @@ public class KafkaProducerTelemetry {\n    *\n    * @param record the producer record to inject span info.\n    */\n-  public <K, V> void buildAndInjectSpan(ProducerRecord<K, V> record, String clientId) {\n+  public <K, V> ProducerRecord<K, V> buildAndInjectSpan(\n+      ProducerRecord<K, V> record, String clientId) {\n     Context parentContext = Context.current();\n\n     KafkaProducerRequest request = KafkaProducerRequest.create(record, clientId);\n     if (!producerInstrumenter.shouldStart(parentContext, request)) {\n-      return;\n+      return record;\n     }\n\n     Context context = producerInstrumenter.start(parentContext, request);\n-    if (producerPropagationEnabled) {\n-      try {\n-        propagator.inject(context, record.headers(), SETTER);\n-      } catch (Throwable t) {\n-        // it can happen if headers are read only (when record is sent second time)\n-        logger.log(WARNING, \"failed to inject span context. sending record second time?\", t);\n+    try {\n+      if (producerPropagationEnabled) {\n+        return KafkaPropagation.propagateContext(propagator, context, record);\n       }\n+    } finally {\n+      producerInstrumenter.end(context, request, null, null);\n     }\n-    producerInstrumenter.end(context, request, null, null);\n+\n+    return record;\n   }\n\n   /**\n@@ -93,7 +86,7 @@ public class KafkaProducerTelemetry {\n\n     Context context = producerInstrumenter.start(parentContext, request);\n     if (producerPropagationEnabled) {\n-      propagator.inject(context, record.headers(), SETTER);\n+      record = KafkaPropagation.propagateContext(propagator, context, record);\n     }\n\n     try (Scope ignored = context.makeCurrent()) {\ndiff --git a/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryProducerInterceptor.java b/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryProducerInterceptor.java\nindex 0e8fa05cad..17673d3637 100644\n--- a/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryProducerInterceptor.java\n+++ b/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryProducerInterceptor.java\n@@ -32,7 +32,7 @@ public class OpenTelemetryProducerInterceptor<K, V> implements ProducerIntercept\n   @CanIgnoreReturnValue\n   public ProducerRecord<K, V> onSend(ProducerRecord<K, V> producerRecord) {\n     if (producerTelemetry != null) {\n-      producerTelemetry.buildAndInjectSpan(producerRecord, clientId);\n+      return producerTelemetry.buildAndInjectSpan(producerRecord, clientId);\n     }\n     return producerRecord;\n   }\ndiff --git a/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaPropagation.java b/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaPropagation.java\nindex 0c389a4472..b184b726fc 100644\n--- a/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaPropagation.java\n+++ b/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaPropagation.java\n@@ -7,6 +7,7 @@ package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapPropagator;\n import io.opentelemetry.javaagent.tooling.muzzle.NoMuzzle;\n import org.apache.kafka.clients.ApiVersions;\n import org.apache.kafka.clients.producer.ProducerRecord;\n@@ -50,8 +51,14 @@ public final class KafkaPropagation {\n\n   public static <K, V> ProducerRecord<K, V> propagateContext(\n       Context context, ProducerRecord<K, V> record) {\n+    return propagateContext(\n+        GlobalOpenTelemetry.getPropagators().getTextMapPropagator(), context, record);\n+  }\n+\n+  public static <K, V> ProducerRecord<K, V> propagateContext(\n+      TextMapPropagator propagator, Context context, ProducerRecord<K, V> record) {\n     try {\n-      inject(context, record);\n+      inject(propagator, context, record);\n     } catch (IllegalStateException e) {\n       // headers must be read-only from reused record. try again with new one.\n       record =\n@@ -63,15 +70,14 @@ public final class KafkaPropagation {\n               record.value(),\n               record.headers());\n\n-      inject(context, record);\n+      inject(propagator, context, record);\n     }\n     return record;\n   }\n\n-  private static <K, V> void inject(Context context, ProducerRecord<K, V> record) {\n-    GlobalOpenTelemetry.getPropagators()\n-        .getTextMapPropagator()\n-        .inject(context, record.headers(), SETTER);\n+  private static <K, V> void inject(\n+      TextMapPropagator propagator, Context context, ProducerRecord<K, V> record) {\n+    propagator.inject(context, record.headers(), SETTER);\n   }\n\n   private KafkaPropagation() {}\n```",
+      "created": "2026-04-06T12:08:31Z",
+      "hunk": "@@ -93,7 +93,12 @@ public <K, V> Future<RecordMetadata> buildAndInjectSpan(\n \n     Context context = producerInstrumenter.start(parentContext, request);\n     if (producerPropagationEnabled) {\n-      propagator.inject(context, record.headers(), SETTER);\n+      try {",
+      "id": "PRRT_kwDODJKVX855BSky",
+      "opened": "2026-04-06T12:08:31Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-04-06T12:09:48Z",
+          "body": "That makes sense to me, will double-check",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17530#discussion_r3039353778"
+        },
+        {
+          "at": "2026-04-07T20:37:23Z",
+          "body": "Agreed with your suggestion, I've applied this change since it makes sense to centralise that logic in `KafkaPropagation`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17530#discussion_r3047732194"
+        }
+      ],
+      "reviewed": "1ca95892ab0c9a283c4a798fed0df4c279d56237",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17530#discussion_r3039348354"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "alternatively could use a mock, but this is fine too",
+      "created": "2026-04-06T12:10:16Z",
+      "hunk": "@@ -57,4 +61,29 @@ void testProducerExceptionPropagatesToCaller() {\n         .isInstanceOf(IllegalStateException.class)\n         .hasMessage(\"can't invoke\");\n   }\n+\n+  @Test\n+  @SuppressWarnings({\"unchecked\"})\n+  void testProducerHandlesReadOnlyHeaders() {\n+    Producer<String, String> producer =",
+      "id": "PRRT_kwDODJKVX855BT24",
+      "opened": "2026-04-06T12:10:16Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/ExceptionHandlingTest.java",
+      "replies": [
+        {
+          "at": "2026-04-07T20:12:25Z",
+          "body": "I guess it may be more readable with a mock, I just went with this approach because it mirrors the setup of the existing tests in this same file. Your call though, I'd happily change it to use a mock if preferred!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17530#discussion_r3047612934"
+        }
+      ],
+      "reviewed": "1ca95892ab0c9a283c4a798fed0df4c279d56237",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17530#discussion_r3039355744"
+    }
+  ]
+}

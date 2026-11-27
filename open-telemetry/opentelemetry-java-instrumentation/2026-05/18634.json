@@ -1,0 +1,55 @@
+{
+  "head": "fa5ee966fe82b0c28ec11d8d909958c725566806",
+  "merge": "53261dcf6096f2f89c04c8a00690ead580eae7d7",
+  "merged": "2026-05-11T09:56:58Z",
+  "missing_roots": 0,
+  "number": 18634,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        // must be an anonymous class, not a lambda: a lambda here would trigger\n        // LambdaMetafactory.spinInnerClass -> defineClass -> re-entrant indy bootstrap\n        new PrivilegedAction<CallSite>() {\n```",
+      "created": "2026-05-09T17:22:09Z",
+      "hunk": "@@ -117,8 +117,12 @@ private static CallSite bootstrap(\n     // callsite resolution needs privileged access to call Class#getClassLoader() and\n     // MethodHandles$Lookup#findStatic\n     return java.security.AccessController.doPrivileged(\n-        (PrivilegedAction<CallSite>)\n-            () -> internalBootstrap(lookup, adviceMethodName, adviceMethodType, args));\n+        new PrivilegedAction<CallSite>() {",
+      "id": "PRRT_kwDODJKVX86A1gi7",
+      "opened": "2026-05-09T17:24:09Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyBootstrap.java",
+      "replies": [],
+      "reviewed": "df5c5379fd349705be7bedd212e7072c50a30e35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18634#discussion_r3213500230"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ignoredClassLoaders` is a mutable static that’s read on the class-definition hot path and updated via `setIgnoredClassLoadersPredicate(...)`. As written it isn’t `volatile` (or otherwise safely published), so other threads may keep seeing the old predicate after installation. Also, the setter accepts `null`, which would lead to an NPE later. Consider (1) making the field `volatile` (or using an `AtomicReference`), (2) rejecting `null` (e.g., defaulting to a predicate that always returns false), and (3) reducing the setter visibility to package-private since it’s only used within `io.opentelemetry.javaagent.tooling` (per minimal-visibility guidance).",
+      "created": "2026-05-11T08:13:27Z",
+      "hunk": "@@ -11,15 +11,22 @@\n import io.opentelemetry.javaagent.bootstrap.DefineClassHelper.Handler;\n import java.util.HashSet;\n import java.util.Set;\n+import java.util.function.Predicate;\n import org.objectweb.asm.ClassReader;\n \n public class DefineClassHandler implements Handler {\n   public static final DefineClassHandler INSTANCE = new DefineClassHandler();\n   private static final ThreadLocal<DefineClassContextImpl> defineClassContext =\n       ThreadLocal.withInitial(() -> DefineClassContextImpl.NOP);\n \n+  private static Predicate<ClassLoader> ignoredClassLoaders = (classLoader) -> false;\n+\n   private DefineClassHandler() {}\n \n+  public static void setIgnoredClassLoadersPredicate(Predicate<ClassLoader> predicate) {\n+    ignoredClassLoaders = predicate;\n+  }",
+      "id": "PRRT_kwDODJKVX86BAjZU",
+      "opened": "2026-05-11T08:13:28Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/DefineClassHandler.java",
+      "replies": [],
+      "reviewed": "03c4b2e84f143620a463a588a07cafde0165b67a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18634#discussion_r3217271336"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`beforeDefineClass(...)` passes `classLoader` directly into `ignoredClassLoaders.test(...)`, but `classLoader` can be `null` for bootstrap-loaded classes. Today the predicate set from `AgentInstaller` handles null, but since `setIgnoredClassLoadersPredicate(...)` is public and doesn’t document/enforce null handling, this is easy to misuse and would cause an NPE on the class-definition path. Consider guarding here (`classLoader != null && ...`) and/or enforcing a non-null, null-tolerant predicate in the setter.",
+      "created": "2026-05-11T08:13:28Z",
+      "hunk": "@@ -30,6 +37,11 @@ && new String(classBytes, ISO_8859_1).startsWith(\"J9ROMCLASSCOOKIE\"))) {\n       return null;\n     }\n \n+    // skip ignore class loaders, class is not going to be instrumented anyway\n+    if (ignoredClassLoaders.test(classLoader)) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX86BAjaJ",
+      "opened": "2026-05-11T08:13:28Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/DefineClassHandler.java",
+      "replies": [],
+      "reviewed": "03c4b2e84f143620a463a588a07cafde0165b67a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18634#discussion_r3217271403"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "75ed3df599ecb15c09809eb559764e1b346117f6",
+  "merge": "54f90a6228e1c972826554e05d5a134a03ccee2c",
+  "merged": "2026-05-22T17:39:41Z",
+  "missing_roots": 0,
+  "number": 18826,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the `threadsSeen.add(...)` in the terminal `.map(...)` means the later `threadsSeen` assertions no longer cover the terminal stage. This makes the comment/intent (“none of the stages…”) misleading and can hide stage-4 running on the caller thread (which the PR description suggests is expected). Consider either updating the later assertion/comment to explicitly scope the check to FuturePool-serviced stages, or recording the terminal stage thread separately and asserting the intended behavior.",
+      "created": "2026-05-22T06:39:53Z",
+      "hunk": "@@ -172,7 +172,6 @@ void futurePoolMultiLayerPropagatesContextAcrossPools() throws Exception {\n                     .map(\n                         fn1(\n                             abc -> {\n-                              threadsSeen.add(Thread.currentThread().getName());\n                               testing.runWithSpan(\"stage-4-terminal\", () -> {});\n                               return abc + \"d\";",
+      "id": "PRRT_kwDODJKVX86EBapE",
+      "opened": "2026-05-22T06:39:53Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/TwitterUtilCoreInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "75ed3df599ecb15c09809eb559764e1b346117f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18826#discussion_r3286371307"
+    }
+  ]
+}

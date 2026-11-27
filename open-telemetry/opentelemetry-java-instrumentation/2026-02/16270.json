@@ -1,0 +1,66 @@
+{
+  "head": "ff7ef39f89d4d7bc957635a88ffa98e83869cb74",
+  "merge": "592fa15fcf20989fbce683f0b4ab74bb361f1de0",
+  "merged": "2026-02-24T16:55:21Z",
+  "missing_roots": 0,
+  "number": 16270,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is cool, would prefer not to point to custom renovate config outside of open-telemetry org though since renovate is so closely tied to security, what's the impact of not doing this?",
+      "created": "2026-02-24T01:42:30Z",
+      "hunk": "@@ -3,6 +3,7 @@\n   extends: [\n     'config:best-practices',\n     'helpers:pinGitHubActionDigestsToSemver',\n+    'github>grafana/flint',",
+      "id": "PRRT_kwDODJKVX85wRcgR",
+      "opened": "2026-02-24T01:45:15Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-02-24T05:40:06Z",
+          "body": "it's just a couple of reusable settings - I'll update to inline them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16270#discussion_r2844635502"
+        },
+        {
+          "at": "2026-02-24T07:13:09Z",
+          "body": "Done — inlined the relevant custom manager (the one that keeps SHA-pinned `raw.githubusercontent.com` URLs in `mise.toml` up to date via `github-tags` datasource). The other managers in the flint preset aren't needed here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16270#discussion_r2844989812"
+        }
+      ],
+      "reviewed": "bf215dc1535c8db3c03bd7aab3ebf83abff81220",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16270#discussion_r2843986966"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "vaadin should stay",
+      "created": "2026-02-24T07:15:01Z",
+      "hunk": "@@ -28,6 +24,5 @@ exclude = [\n   '^https://central.sonatype.com/artifact/io.opentelemetry.instrumentation/opentelemetry-helidon-4.3$',\n   # flaky links\n   '^http://www.slf4j.org.*',\n-  '^https://logback.qos.ch/.*',\n-  '^https://vaadin.com/$'\n+  '^https://logback.qos.ch/.*'",
+      "id": "PRRT_kwDODJKVX85wUPfg",
+      "opened": "2026-02-24T07:15:01Z",
+      "path": ".github/config/lychee.toml",
+      "replies": [],
+      "reviewed": "d576f9d6fb7424795224d76d29a092e4af206e3f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16270#discussion_r2844995711"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "that should not be needed",
+      "created": "2026-02-24T07:31:52Z",
+      "hunk": "@@ -29,5 +25,7 @@ exclude = [\n   # flaky links\n   '^http://www.slf4j.org.*',\n   '^https://logback.qos.ch/.*',\n-  '^https://vaadin.com/$'\n+  '^https://vaadin.com/$',\n+  # line-number anchors are rendered by JavaScript, lychee cannot verify them",
+      "id": "PRRT_kwDODJKVX85wUaWq",
+      "opened": "2026-02-24T07:31:52Z",
+      "path": ".github/config/lychee.toml",
+      "replies": [],
+      "reviewed": "9b88d0ebfd2e18bfdd34f74ec502b96eb933ae98",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16270#discussion_r2845053810"
+    }
+  ]
+}

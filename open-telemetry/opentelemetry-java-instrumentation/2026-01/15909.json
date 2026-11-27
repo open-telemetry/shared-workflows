@@ -1,0 +1,25 @@
+{
+  "head": "7f3e7068c2a8050c6c1339d523d491482772a554",
+  "merge": "71638fbf1d25ce6e88db84dc7a9bb465dc0f4cbe",
+  "merged": "2026-01-21T14:54:04Z",
+  "missing_roots": 0,
+  "number": 15909,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "SqlClientSpanNameExtractor portion of this class is handled in #15896",
+      "created": "2026-01-18T03:39:36Z",
+      "hunk": "@@ -136,11 +136,16 @@ private GenericDbClientSpanNameExtractor(DbClientAttributesGetter<REQUEST, ?> ge\n \n     @Override\n     public String extract(REQUEST request) {\n-      String namespace = getter.getDbNamespace(request);\n-      String operationName = getter.getDbOperationName(request);\n       if (SemconvStability.emitStableDatabaseSemconv()) {\n+        String querySummary = getter.getDbQuerySummary(request);\n+        if (querySummary != null) {\n+          return querySummary;\n+        }\n+        String operationName = getter.getDbOperationName(request);\n         return computeSpanNameStable(getter, request, operationName, null, null);\n       }\n+      String namespace = getter.getDbNamespace(request);\n+      String operationName = getter.getDbOperationName(request);\n       return computeSpanName(namespace, operationName, null, null);",
+      "id": "PRRT_kwDODJKVX85p3qP0",
+      "opened": "2026-01-18T03:39:37Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientSpanNameExtractor.java",
+      "replies": [],
+      "reviewed": "7f3e7068c2a8050c6c1339d523d491482772a554",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15909#discussion_r2702068489"
+    }
+  ]
+}

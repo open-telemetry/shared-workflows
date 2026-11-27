@@ -1,0 +1,262 @@
+{
+  "head": "d913c3b6ff2e19d7862df909b6179d24b92d1677",
+  "merge": "ddc053ae775eb2eb5a7f85feb2390707a5ff242d",
+  "merged": "2026-08-02T00:06:50Z",
+  "missing_roots": 0,
+  "number": 18974,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as the WebMVC 6.0 module: `test` excludes `**/boot/**` and `**/filter/**`, but `testControllerTelemetry` doesn’t narrow its scope to those tests. This likely causes duplicate execution of most tests and does not guarantee the excluded tests run only under the specialized configuration. Add `include(\\\"**/boot/**\\\", \\\"**/filter/**\\\")` (or an equivalent filter) to `testControllerTelemetry` to ensure the split is effective.",
+      "created": "2026-06-12T08:20:41Z",
+      "hunk": "@@ -48,12 +48,21 @@ tasks {\n     jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n \n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+  }\n+\n+  test {\n+    exclude(\"**/boot/**\", \"**/filter/**\")\n+  }\n+\n+  val testControllerTelemetry by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n     systemProperty(",
+      "id": "PRRT_kwDODJKVX86JD0U3",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778763"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "As written, `test` excludes `**/boot/**` and `**/filter/**`, but `testControllerTelemetry` does not include only those excluded tests (it will run the full test suite again). This risks both (a) running many tests twice and (b) not actually isolating the excluded tests as intended. Consider adding `include(\\\"**/boot/**\\\", \\\"**/filter/**\\\")` to `testControllerTelemetry` (and optionally excluding those patterns from other custom Test tasks) so the excluded tests are run exactly once under the controller-telemetry JVM args.",
+      "created": "2026-06-12T08:20:41Z",
+      "hunk": "@@ -45,6 +45,18 @@ tasks {\n     // required on jdk17\n     jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n+  }\n+\n+  test {\n+    exclude(\"**/boot/**\", \"**/filter/**\")\n+  }\n+\n+  val testControllerTelemetry by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n     jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86JD0Ud",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778723"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The list items under `telemetry:` appear to be indented at the same level as the `telemetry:` key. In YAML, sequence items must be indented under their parent key (e.g., `telemetry:` then `  - when: ...`). As shown, this is likely invalid YAML and may break doc generation/parsing. Indent the `- when:` entries (and their nested blocks) one level deeper under `telemetry:`.",
+      "created": "2026-06-12T08:20:42Z",
+      "hunk": "@@ -15389,7 +15389,7 @@ libraries:\n     type: boolean\n     default: false\n   telemetry:\n-  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true\n+  - when: default\n     metrics:",
+      "id": "PRRT_kwDODJKVX86JD0V1",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-06-17T16:06:11Z",
+          "body": "the yaml format is fine",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3428638698"
+        }
+      ],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778846"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`test` excludes `**/server/**` and `testControllerTelemetry` includes only `**/server/**`, but `testStableSemconv` does not exclude `**/server/**`. That means server tests will run at least twice (controller telemetry task + stable semconv task), increasing CI time and potentially mixing intended test matrices. If the intent is to mirror the WebFlux split, update `testStableSemconv` to `exclude(\\\"**/server/**\\\")` and (if needed) introduce a dedicated `testControllerTelemetryStableSemconv` task for `**/server/**` + stable semconv.",
+      "created": "2026-06-12T08:20:42Z",
+      "hunk": "@@ -54,20 +54,44 @@ tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n     systemProperty(\"ratpack14Test\", true) // used in AbstractRatpackHttpClientTest\n-    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n-    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n+  }\n+\n+  test {\n+    exclude(\"**/server/**\")\n+  }\n+\n+  val testControllerTelemetry by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    include(\"**/server/**\")\n+    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86JD0VD",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778780"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`test` excludes `**/server/**` and `testControllerTelemetry` includes only `**/server/**`, but `testStableSemconv` does not exclude `**/server/**`. That means server tests will run at least twice (controller telemetry task + stable semconv task), increasing CI time and potentially mixing intended test matrices. If the intent is to mirror the WebFlux split, update `testStableSemconv` to `exclude(\\\"**/server/**\\\")` and (if needed) introduce a dedicated `testControllerTelemetryStableSemconv` task for `**/server/**` + stable semconv.",
+      "created": "2026-06-12T08:20:42Z",
+      "hunk": "@@ -54,20 +54,44 @@ tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n     systemProperty(\"ratpack14Test\", true) // used in AbstractRatpackHttpClientTest\n-    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n-    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n+  }\n+\n+  test {\n+    exclude(\"**/server/**\")\n+  }\n+\n+  val testControllerTelemetry by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    include(\"**/server/**\")\n+    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"otel.instrumentation.common.experimental.controller-telemetry.enabled=true\"\n+    )\n   }\n \n   val testStableSemconv by registering(Test::class) {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n+    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n     jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")",
+      "id": "PRRT_kwDODJKVX86JD0VT",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778800"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The default `test` task now excludes `**/server/**`, but `testExceptionSignalLogs` does not exclude or include any patterns, so it will run server tests as well (in addition to the dedicated controller-telemetry tasks). If server tests are meant to run only in the controller-telemetry tasks, add `exclude(\\\"**/server/**\\\")` here to avoid duplicate execution and longer builds.",
+      "created": "2026-06-12T08:20:42Z",
+      "hunk": "@@ -93,6 +116,7 @@ tasks {\n   val testExceptionSignalLogs by registering(Test::class) {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n+    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n     jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")",
+      "id": "PRRT_kwDODJKVX86JD0Vk",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778824"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The list items under `telemetry:` appear to be indented at the same level as the `telemetry:` key. In YAML, sequence items must be indented under their parent key (e.g., `telemetry:` then `  - when: ...`). As shown, this is likely invalid YAML and may break doc generation/parsing. Indent the `- when:` entries (and their nested blocks) one level deeper under `telemetry:`.",
+      "created": "2026-06-12T08:20:43Z",
+      "hunk": "@@ -15461,6 +15463,8 @@ libraries:\n         type: STRING\n       - name: url.full\n         type: STRING\n+  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true,otel.semconv-stability.opt-in=service.peer\n+    spans:",
+      "id": "PRRT_kwDODJKVX86JD0W4",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778933"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The list items under `telemetry:` appear to be indented at the same level as the `telemetry:` key. In YAML, sequence items must be indented under their parent key (e.g., `telemetry:` then `  - when: ...`). As shown, this is likely invalid YAML and may break doc generation/parsing. Indent the `- when:` entries (and their nested blocks) one level deeper under `telemetry:`.",
+      "created": "2026-06-12T08:20:43Z",
+      "hunk": "@@ -15422,13 +15422,15 @@ libraries:\n         type: LONG\n       - name: url.full\n         type: STRING\n+  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true\n+    spans:",
+      "id": "PRRT_kwDODJKVX86JD0WC",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-06-17T16:06:11Z",
+          "body": "yaml format is fine",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3428639645"
+        }
+      ],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778866"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The list items under `telemetry:` appear to be indented at the same level as the `telemetry:` key. In YAML, sequence items must be indented under their parent key (e.g., `telemetry:` then `  - when: ...`). As shown, this is likely invalid YAML and may break doc generation/parsing. Indent the `- when:` entries (and their nested blocks) one level deeper under `telemetry:`.",
+      "created": "2026-06-12T08:20:43Z",
+      "hunk": "@@ -15422,13 +15422,15 @@ libraries:\n         type: LONG\n       - name: url.full\n         type: STRING\n+  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true\n+    spans:\n     - span_kind: INTERNAL\n       attributes:\n       - name: code.function\n         type: STRING\n       - name: code.namespace\n         type: STRING\n-  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true,otel.semconv-stability.opt-in=service.peer\n+  - when: otel.semconv-stability.opt-in=service.peer\n     metrics:",
+      "id": "PRRT_kwDODJKVX86JD0Wb",
+      "opened": "2026-06-12T08:20:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3401778897"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "looking at the results of this, it doesn't change anything in the documented telemetry, so i think we can undo the file and consider ratpack as fine as-is.",
+      "created": "2026-06-17T15:12:37Z",
+      "hunk": "@@ -54,20 +54,44 @@ tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n     systemProperty(\"ratpack14Test\", true) // used in AbstractRatpackHttpClientTest\n-    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n-    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n+  }\n+\n+  test {\n+    exclude(\"**/server/**\")\n+  }\n+\n+  val testControllerTelemetry by registering(Test::class) {",
+      "id": "PRRT_kwDODJKVX86KQwF_",
+      "opened": "2026-06-17T16:06:11Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3429281098"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this didn't result in any changes in the resulting telemetry, so we can revert all the changes in this file",
+      "created": "2026-06-17T15:59:38Z",
+      "hunk": "@@ -48,12 +48,21 @@ tasks {\n     jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n \n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+  }",
+      "id": "PRRT_kwDODJKVX86KRup2",
+      "opened": "2026-06-17T16:06:11Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3429625745"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this didn't result in any changes in the resulting telemetry, so we can revert all the changes in this file",
+      "created": "2026-06-17T15:59:46Z",
+      "hunk": "@@ -45,6 +45,18 @@ tasks {\n     // required on jdk17\n     jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n+  }\n+\n+  test {",
+      "id": "PRRT_kwDODJKVX86KRu1n",
+      "opened": "2026-06-17T16:06:11Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3429626747"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this is an interesting approach, but at the moment we have a pattern of listing the tests in [this file](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/.github/scripts/instrumentations.sh#L281) to add them to collection. \n\nso instead of using this finalizedBy block we add `spring:spring-webflux:spring-webflux-5.0:javaagent:testControllerTelemetry` and `spring:spring-webflux:spring-webflux-5.0:javaagent:testControllerTelemetryStableSemconv` after line 281",
+      "created": "2026-06-17T16:02:03Z",
+      "hunk": "@@ -102,7 +126,21 @@ tasks {\n   }\n \n   check {\n-    dependsOn(testStableSemconv, testExceptionSignalLogs)\n+    dependsOn(\n+      testControllerTelemetry,\n+      testStableSemconv,\n+      testControllerTelemetryStableSemconv,\n+      testExceptionSignalLogs\n+    )\n+  }\n+\n+  if (otelProps.collectMetadata) {\n+    test {\n+      finalizedBy(testControllerTelemetry)",
+      "id": "PRRT_kwDODJKVX86KRx2B",
+      "opened": "2026-06-17T16:06:11Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3429643407"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "you can also revert the changes to this file, and it will be updated automatically after this is merged",
+      "created": "2026-06-17T16:02:53Z",
+      "hunk": "@@ -15389,7 +15389,7 @@ libraries:\n     type: boolean\n     default: false\n   telemetry:\n-  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true\n+  - when: default",
+      "id": "PRRT_kwDODJKVX86KRzA2",
+      "opened": "2026-06-17T16:06:11Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "d6085e52b96d9afb208adfbee85f89f205fced8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3429650008"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this causes us to lose coverage\n```suggestion\n```",
+      "created": "2026-07-29T18:37:13Z",
+      "hunk": "@@ -93,6 +116,8 @@ tasks {\n   val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n+    exclude(\"**/server/**\")",
+      "id": "PRRT_kwDODJKVX86U3nJE",
+      "opened": "2026-07-29T18:38:52Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "93ba95b6e9c89826ddc6b22dee2f60c95c5972df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3677114524"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "it would be good to indicate why this is excluded\n```suggestion\n    // server tests require controller-telemetry, which is off by default\n    exclude(\"**/server/**\")\n```",
+      "created": "2026-07-29T18:38:22Z",
+      "hunk": "@@ -72,16 +72,39 @@ tasks {\n     // required on jdk17\n     jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n-    jvmArgs(\"-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n \n-    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.experimental.controller-telemetry.enabled=true\")\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n+  test {\n+    exclude(\"**/server/**\")",
+      "id": "PRRT_kwDODJKVX86U3okU",
+      "opened": "2026-07-29T18:38:52Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "93ba95b6e9c89826ddc6b22dee2f60c95c5972df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974#discussion_r3677123000"
+    }
+  ]
+}

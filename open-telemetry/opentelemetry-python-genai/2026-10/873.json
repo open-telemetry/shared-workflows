@@ -1,0 +1,40 @@
+{
+  "head": "54d9450d2ff41cbb666e2a204ad5435432b240d8",
+  "merge": "14413b9c90a3207585f322a290bb26ab477e7d51",
+  "merged": "2026-10-13T15:32:26Z",
+  "missing_roots": 0,
+  "number": 873,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`set_request_content` is called from the SDK exception and stream-manager `finally` paths without a guard. If the SDK rejects an invalid/partial iterator item (for example, a message iterator yields an integer), `get_input_messages` raises while processing the snapshot and replaces the SDK's original exception; the same extraction failure can also turn a successful call into an instrumentation error. Keep telemetry extraction best-effort so ordinary extraction failures cannot escape.",
+      "created": "2026-10-11T18:09:16Z",
+      "hunk": "@@ -55,6 +56,19 @@\n     )\n \n \n+def set_request_content(\n+    invocation: InferenceInvocation,\n+    capture: IteratorCapture[dict[str, Any]] | None,\n+) -> None:\n+    if capture is None:\n+        return\n+    snapshot = cast(\"dict[str, Any]\", capture.snapshot(unconsumed=()))\n+    params = extract_params(**snapshot)\n+    invocation.input_messages = get_input_messages(params.messages)\n+    invocation.system_instruction = get_system_instruction(params.system)\n+    invocation.tool_definitions = get_tool_definitions(params.tools)",
+      "id": "PRRT_kwDOSbspP86rQHHa",
+      "opened": "2026-10-11T18:09:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [],
+      "reviewed": "171f03efeb793d04065deba77d074409d97f6c6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/873#discussion_r4242637104"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This fragment does not match the added heading's generated anchor: the heading is “Capturing properties that may contain iterators,” so this link currently lands at a nonexistent section. Update the fragment to keep the review guidance navigable.",
+      "created": "2026-10-11T18:09:17Z",
+      "hunk": "@@ -54,6 +54,9 @@ prefer opt-in or additive. Breaking changes need explicit justification in the P\n - Message content, prompts, and tool call arguments must only be set through the util's content\n   capture path — never as unconditional span/log attributes.\n - Adding attributes to invocations produced by the util is fine.\n+- Flag captured request iterators that bypass `IteratorCapture`, eager consumption or replay,\n+  wrapping unrelated arguments, capture when disabled, and snapshots taken before SDK consumption.\n+  See [request property capture](../../AGENTS.md#capturing-request-properties-that-may-contain-iterators).",
+      "id": "PRRT_kwDOSbspP86rQHHr",
+      "opened": "2026-10-11T18:09:17Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "171f03efeb793d04065deba77d074409d97f6c6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/873#discussion_r4242637128"
+    }
+  ]
+}

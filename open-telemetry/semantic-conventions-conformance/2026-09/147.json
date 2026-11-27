@@ -1,0 +1,136 @@
+{
+  "head": "76f625bde79b0d2cc33ab3051e845a245618e246",
+  "merge": "20cfd63b18e7d6e2ed31aead838ddba5427a41b9",
+  "merged": "2026-09-10T01:26:17Z",
+  "missing_roots": 0,
+  "number": 147,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This step only runs the shared HTTP-contract and helper tests. The new Net::HTTP and Rack package tests under `scenarios/http/ruby/**/test` are never invoked here or by the scenario matrix (which only runs `otel-conformance`), so regressions in HTTPS/request construction and Rack shutdown can pass CI. Install each locked scenario bundle and run both package Rakefiles in CI.",
+      "created": "2026-08-30T00:46:22Z",
+      "hunk": "@@ -93,6 +93,20 @@ jobs:\n           npm --prefix scenarios/http/js run format:check\n           npm --prefix scenarios/http/js test\n \n+      - name: Set up Ruby\n+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1\n+        with:\n+          ruby-version: \"3.4\"\n+          bundler-cache: true\n+          working-directory: tools/http/test-client/ruby\n+\n+      - name: Test Ruby\n+        working-directory: tools/http/test-client/ruby\n+        run: |\n+          bundle exec rake\n+          bundle exec ruby -I../../../ruby/scenario-support/lib ../../../ruby/scenario-support/test/scenario_support_test.rb\n+          bundle exec ruby -I../../../ruby/scenario-support/lib -I../../../ruby/scenario-sdk/lib ../../../ruby/scenario-sdk/test/scenario_sdk_test.rb",
+      "id": "PRRT_kwDOTuzK5c6ddwuI",
+      "opened": "2026-08-30T00:46:23Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-30T03:12:23Z",
+          "body": "Addressed in 6b6d105466ee91d7ab94f0a4e45bd34acc879a29.\n\nAnalysis: The existing Ruby CI step uses the tools bundle and cannot discover tests inside either scenario package. Dedicated steps install each package from its committed lockfile and invoke its default Rake task.\n\nUpsides: CI now covers Net::HTTP request construction, HTTPS behavior, and Rack server shutdown with the dependency versions used by each scenario.\n\nDownsides: The lint job performs two extra bundle installs and adds the runtime of seven package tests.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3888332185"
+        }
+      ],
+      "reviewed": "a305ab68eb61e3109ec9a93dbe1e5c827131c586",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3888096910"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Signal-specific OTLP protocol variables take precedence over `OTEL_EXPORTER_OTLP_PROTOCOL`. Because the ambient environment is otherwise preserved, an existing `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc` (or metrics/logs equivalent) makes an HTTP-selected package speak gRPC to this HTTP bridge. Inject the three signal-specific protocol variables alongside their endpoints so the package-level selection cannot be shadowed.",
+      "created": "2026-08-30T00:46:23Z",
+      "hunk": "@@ -275,19 +280,31 @@ def _resolve_path(self, value: str) -> str:\n     def _execute(\n         self, scenario: ScenarioSpec, otlp_endpoint: str\n     ) -> subprocess.CompletedProcess[str]:\n+        otlp = {\n+            \"OTEL_EXPORTER_OTLP_ENDPOINT\": otlp_endpoint,\n+            \"OTEL_EXPORTER_OTLP_PROTOCOL\": self._spec.otlp_protocol,\n+            \"OTEL_METRIC_EXPORT_INTERVAL\": str(\n+                METRIC_EXPORT_INTERVAL_MILLIS\n+            ),\n+        }\n+        if self._spec.otlp_protocol == \"http/protobuf\":\n+            otlp.update(\n+                {\n+                    \"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT\": (\n+                        f\"{otlp_endpoint}/v1/traces\"\n+                    ),\n+                    \"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT\": (\n+                        f\"{otlp_endpoint}/v1/metrics\"\n+                    ),\n+                    \"OTEL_EXPORTER_OTLP_LOGS_ENDPOINT\": (\n+                        f\"{otlp_endpoint}/v1/logs\"",
+      "id": "PRRT_kwDOTuzK5c6ddwuR",
+      "opened": "2026-08-30T00:46:23Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_session.py",
+      "replies": [
+        {
+          "at": "2026-08-30T03:12:25Z",
+          "body": "Addressed in 5641fdf1415d8129c80a13624cb598a36fb8ba28.\n\nAnalysis: OpenTelemetry SDKs prefer signal-specific protocol variables over the generic protocol variable. The runner now injects its selected protocol for traces, metrics, and logs, so ambient values cannot redirect a signal to another transport.\n\nUpsides: Every signal uses the transport selected by the package for both gRPC and HTTP scenarios. The HTTP test proves that ambient gRPC values are replaced.\n\nDownsides: Scenario processes receive three more runner-controlled environment variables.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3888332220"
+        }
+      ],
+      "reviewed": "a305ab68eb61e3109ec9a93dbe1e5c827131c586",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3888096922"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The 64 MiB limit applies only to the compressed request. `gzip.decompress` can expand a small accepted body to an arbitrarily large allocation, so a malformed local exporter can exhaust the runner before protobuf parsing. Decompress through a bounded stream and reject output larger than `_MAX_BODY_BYTES` (and add a compressed expansion-limit test).",
+      "created": "2026-08-30T03:16:25Z",
+      "hunk": "@@ -0,0 +1,356 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"An OTLP/HTTP receiver that forwards protobuf requests to OTLP/gRPC.\"\"\"\n+\n+from __future__ import annotations\n+\n+import gzip\n+import logging\n+import re\n+import socket\n+import sys\n+import threading\n+import time\n+import urllib.error\n+import urllib.request\n+from http import HTTPStatus\n+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer\n+from types import TracebackType\n+from typing import Callable, Protocol, cast\n+from urllib.parse import urlsplit\n+\n+import grpc\n+from google.protobuf.message import DecodeError, Message\n+\n+from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (\n+    ExportLogsServiceRequest,\n+    ExportLogsServiceResponse,\n+)\n+from opentelemetry.proto.collector.logs.v1.logs_service_pb2_grpc import (\n+    LogsServiceStub,\n+)\n+from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (\n+    ExportMetricsServiceRequest,\n+    ExportMetricsServiceResponse,\n+)\n+from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc import (\n+    MetricsServiceStub,\n+)\n+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (\n+    ExportTraceServiceRequest,\n+    ExportTraceServiceResponse,\n+)\n+from opentelemetry.proto.collector.trace.v1.trace_service_pb2_grpc import (\n+    TraceServiceStub,\n+)\n+\n+logger = logging.getLogger(__name__)\n+\n+_CONTENT_TYPE = \"application/x-protobuf\"\n+_HEALTH_PATH = \"/health\"\n+_MAX_BODY_BYTES = 64 * 1024 * 1024\n+_STARTUP_TIMEOUT_SECONDS = 5.0\n+_UPSTREAM_TIMEOUT_SECONDS = 30.0\n+_CONTENT_LENGTH = re.compile(r\"[0-9]+\")\n+\n+_Forward = Callable[[bytes], bytes]\n+\n+\n+class _Export(Protocol):\n+    def __call__(\n+        self,\n+        request: Message,\n+        *,\n+        timeout: float,\n+    ) -> Message: ...\n+\n+\n+class _Stub(Protocol):\n+    Export: _Export\n+\n+\n+class OtlpHttpBridge:\n+    \"\"\"Receive OTLP/HTTP protobuf and forward it to an OTLP/gRPC endpoint.\"\"\"\n+\n+    def __init__(self, grpc_endpoint: str) -> None:\n+        target = _grpc_target(grpc_endpoint)\n+        self._channel = grpc.insecure_channel(target)\n+        traces = cast(\"_Stub\", TraceServiceStub(self._channel))\n+        metrics = cast(\"_Stub\", MetricsServiceStub(self._channel))\n+        logs = cast(\"_Stub\", LogsServiceStub(self._channel))\n+        self._routes: dict[str, _Forward] = {\n+            \"/v1/traces\": lambda body: self._export(\n+                body,\n+                ExportTraceServiceRequest,\n+                ExportTraceServiceResponse,\n+                traces.Export,\n+            ),\n+            \"/v1/metrics\": lambda body: self._export(\n+                body,\n+                ExportMetricsServiceRequest,\n+                ExportMetricsServiceResponse,\n+                metrics.Export,\n+            ),\n+            \"/v1/logs\": lambda body: self._export(\n+                body,\n+                ExportLogsServiceRequest,\n+                ExportLogsServiceResponse,\n+                logs.Export,\n+            ),\n+        }\n+        self._server = _BridgeServer((\"127.0.0.1\", 0), self)\n+        self._thread: threading.Thread | None = None\n+        self._closed = False\n+\n+    @property\n+    def url(self) -> str:\n+        return f\"http://127.0.0.1:{self._server.server_port}\"\n+\n+    def forwarder(self, path: str) -> _Forward | None:\n+        return self._routes.get(path)\n+\n+    def start(self) -> OtlpHttpBridge:\n+        if self._closed:\n+            raise RuntimeError(\"OTLP/HTTP bridge is closed\")\n+        if self._thread is not None:\n+            return self\n+\n+        self._thread = threading.Thread(\n+            target=self._server.serve_forever,\n+            name=\"otel-conformance-otlp-http\",\n+            daemon=True,\n+        )\n+        self._thread.start()\n+        try:\n+            self._wait_for_health()\n+        except BaseException:\n+            self.close()\n+            raise\n+        return self\n+\n+    def _wait_for_health(self) -> None:\n+        deadline = time.monotonic() + _STARTUP_TIMEOUT_SECONDS\n+        while time.monotonic() < deadline:\n+            try:\n+                with urllib.request.urlopen(  # noqa: S310\n+                    f\"{self.url}{_HEALTH_PATH}\", timeout=0.5\n+                ) as response:\n+                    if response.status == HTTPStatus.OK:\n+                        return\n+            except (urllib.error.URLError, TimeoutError, OSError):\n+                pass\n+            time.sleep(0.01)\n+        raise RuntimeError(\n+            f\"OTLP/HTTP bridge did not become healthy on {self.url}\"\n+        )\n+\n+    def _export(\n+        self,\n+        body: bytes,\n+        request_type: type[Message],\n+        response_type: type[Message],\n+        export: _Export,\n+    ) -> bytes:\n+        request = request_type()\n+        request.ParseFromString(body)\n+        response = export(request, timeout=_UPSTREAM_TIMEOUT_SECONDS)\n+        if not isinstance(response, response_type):\n+            raise RuntimeError(\n+                f\"OTLP/gRPC returned {type(response).__name__}, \"\n+                f\"expected {response_type.__name__}\"\n+            )\n+        return response.SerializeToString()\n+\n+    def close(self) -> None:\n+        if self._closed:\n+            return\n+        self._closed = True\n+        if self._thread is not None:\n+            self._server.shutdown()\n+            self._thread.join()\n+            self._thread = None\n+        self._server.server_close()\n+        self._channel.close()\n+\n+    def __enter__(self) -> OtlpHttpBridge:\n+        return self.start()\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc: BaseException | None,\n+        traceback: TracebackType | None,\n+    ) -> None:\n+        self.close()\n+\n+\n+class _BridgeServer(ThreadingHTTPServer):\n+    daemon_threads = True\n+\n+    def __init__(\n+        self,\n+        address: tuple[str, int],\n+        bridge: OtlpHttpBridge,\n+    ) -> None:\n+        self.bridge = bridge\n+        super().__init__(address, _Handler)\n+\n+    def handle_error(\n+        self,\n+        request: socket.socket | tuple[bytes, socket.socket],\n+        client_address: tuple[str, int],\n+    ) -> None:\n+        error = sys.exc_info()[1]\n+        if isinstance(\n+            error,\n+            (BrokenPipeError, ConnectionAbortedError, ConnectionResetError),\n+        ):\n+            return\n+        super().handle_error(request, client_address)\n+\n+\n+class _Handler(BaseHTTPRequestHandler):\n+    def do_GET(self) -> None:  # noqa: N802\n+        if self.path == _HEALTH_PATH:\n+            self._respond(HTTPStatus.OK, b\"ok\\n\")\n+            return\n+        self._error(HTTPStatus.NOT_FOUND, \"unknown endpoint\")\n+\n+    def do_POST(self) -> None:  # noqa: N802\n+        server = cast(\"_BridgeServer\", self.server)\n+        forward = server.bridge.forwarder(self.path)\n+        if forward is None:\n+            self._error(HTTPStatus.NOT_FOUND, \"unknown OTLP endpoint\")\n+            return\n+\n+        length = self._content_length()\n+        if length is None:\n+            return\n+        encoding = self.headers.get(\"Content-Encoding\", \"identity\").lower()\n+        if encoding not in {\"identity\", \"gzip\"}:\n+            self._error(\n+                HTTPStatus.UNSUPPORTED_MEDIA_TYPE,\n+                f\"unsupported content encoding: {encoding}\",\n+            )\n+            return\n+        content_type = self.headers.get(\"Content-Type\", \"\").lower()\n+        if content_type != _CONTENT_TYPE:\n+            self._error(\n+                HTTPStatus.UNSUPPORTED_MEDIA_TYPE,\n+                f\"content type must be {_CONTENT_TYPE}\",\n+            )\n+            return\n+\n+        body = self.rfile.read(length)\n+        if len(body) != length:\n+            self._error(\n+                HTTPStatus.BAD_REQUEST,\n+                f\"content length was {length}, received {len(body)} bytes\",\n+            )\n+            return\n+        if encoding == \"gzip\":\n+            try:\n+                body = gzip.decompress(body)\n+            except (gzip.BadGzipFile, EOFError, OSError):",
+      "id": "PRRT_kwDOTuzK5c6deY6m",
+      "opened": "2026-08-30T03:16:25Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_otlp_http.py",
+      "replies": [
+        {
+          "at": "2026-08-30T03:22:12Z",
+          "body": "Addressed in 6fc4b7773a03023879223681b938b045b7c23309.\n\nAnalysis: `gzip.decompress` allocates the full expanded body before the bridge can inspect its size. Reading at most `_MAX_BODY_BYTES + 1` bytes through `gzip.GzipFile` detects oversized output without allocating an unbounded result.\n\nUpsides: Compressed and uncompressed requests now share the same payload limit. The focused test covers a small gzip request that expands past that limit.\n\nDownsides: The bridge returns HTTP 413 for compressed payloads that previously reached protobuf parsing.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3888348067"
+        }
+      ],
+      "reviewed": "5641fdf1415d8129c80a13624cb598a36fb8ba28",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3888338579"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "simi"
+      },
+      "body": "Wouldn't be possible to add env `BUNDLE_GEMFILE` and enable caching here directly over manual one?",
+      "created": "2026-08-31T18:19:14Z",
+      "hunk": "@@ -321,6 +348,19 @@ jobs:\n         with:\n           global-json-file: scenarios/${{ matrix.domain }}/${{ matrix.language }}/global.json\n \n+      - name: Set up Ruby\n+        if: matrix.language == 'ruby'\n+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1\n+        with:\n+          ruby-version: \"3.4\"",
+      "id": "PRRT_kwDOTuzK5c6d0_xL",
+      "opened": "2026-08-31T18:19:14Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-31T20:13:03Z",
+          "body": "let me know if this is on the right track: https://github.com/open-telemetry/semantic-conventions-conformance/commit/9359e3a43e022795b3783494237dceb6335ab33e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3897991621"
+        }
+      ],
+      "reviewed": "21b25705d1738da5956cabadc71772d660597a98",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3897160259"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The runner does not provide signal-specific endpoints: `_session.py` injects only the generic base endpoint and removes the traces/metrics/logs endpoint variables. Clarify that the Ruby exporters append these paths so this setup guidance matches the actual contract.",
+      "created": "2026-08-31T22:30:10Z",
+      "hunk": "@@ -156,6 +181,18 @@ publishes that project and `run` starts what it published from\n `dotnet/artifacts/scenario-runtime/`. A `conformance.yaml` therefore names\n neither a configuration nor an assembly path.\n \n+Ruby exporters use OTLP/HTTP protobuf, so each Ruby package selects it at the\n+package level:\n+\n+```yaml\n+otlp_protocol: http/protobuf\n+```\n+\n+The runner gives the package an HTTP endpoint and signal-specific\n+`/v1/traces`, `/v1/metrics`, and `/v1/logs` endpoints. Its local bridge accepts\n+those protobuf requests and forwards them to Weaver over gRPC. Packages that\n+use the default `grpc` protocol continue to export directly to Weaver.",
+      "id": "PRRT_kwDOTuzK5c6d5lNN",
+      "opened": "2026-08-31T22:30:11Z",
+      "path": "scenarios/http/README.md",
+      "replies": [
+        {
+          "at": "2026-08-31T22:32:50Z",
+          "body": "Addressed in aee6242cf81ab696a90bdc37944dbff7cb0d2570.\n\nAnalysis: The runner injects only OTEL_EXPORTER_OTLP_ENDPOINT for HTTP packages. The Ruby exporters derive each signal endpoint by appending its standard path, so the scenario guide must distinguish the runner-provided base endpoint from the exporter-derived paths.\n\nUpsides: The setup guide now matches the runner contract and explains how requests reach each bridge route.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3899008959"
+        }
+      ],
+      "reviewed": "9359e3a43e022795b3783494237dceb6335ab33e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3898991063"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: only a tracer provider is configured, so both Ruby `data.json` files have `\"metrics\": {}` while every other HTTP scenario covers `http.client.request.duration` / `http.server.request.duration`.",
+      "created": "2026-08-30T16:51:20Z",
+      "hunk": "@@ -0,0 +1,45 @@\n+# frozen_string_literal: true\n+\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+require \"opentelemetry/sdk\"\n+require \"opentelemetry/exporter/otlp\"\n+require \"opentelemetry/conformance/scenario_support\"\n+\n+module OpenTelemetry\n+  module Conformance\n+    # The tracing SDK owned by an explicitly instrumented Ruby scenario.\n+    module ScenarioSdk\n+      module_function\n+\n+      # Runs a workload with exactly one instrumentation and the OTLP exporter.\n+      def run(instrumentation:)\n+        unless instrumentation.is_a?(String) && !instrumentation.strip.empty?\n+          raise ArgumentError, \"instrumentation must be a nonblank name\"\n+        end\n+\n+        ScenarioEnvironment.require(\"OTEL_EXPORTER_OTLP_ENDPOINT\")\n+        exporter = OpenTelemetry::Exporter::OTLP::Exporter.new\n+        processor =\n+          OpenTelemetry::SDK::Trace::Export::BatchSpanProcessor.new(exporter)",
+      "id": "PRRT_kwDOTuzK5c6dij-9",
+      "opened": "2026-09-06T04:20:41Z",
+      "path": "tools/ruby/scenario-sdk/lib/opentelemetry/conformance/scenario_sdk.rb",
+      "replies": [
+        {
+          "at": "2026-09-10T00:27:47Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147/commits/48799a0099cd9aa19a145ba41fea15f3e28bdb08",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3974282632"
+        }
+      ],
+      "reviewed": "a3f1439290dc8f5ad7f1fb07b74a7f48cc26d776",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/147#discussion_r3889955996"
+    }
+  ]
+}

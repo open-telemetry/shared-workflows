@@ -1,0 +1,31 @@
+{
+  "head": "31c4d6d97f32ce8e6b74b6cf7d5ca4c6947db62b",
+  "merge": "4e1caca0d91c5c3fd8a7f8a10064e0563d9a4367",
+  "merged": "2026-10-22T19:42:45Z",
+  "missing_roots": 0,
+  "number": 945,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Let's test this through the public API only - checking `_callback_handler` internals is not reliable and does not validate anything end user gets. Invoking the agent and asserting on the exported span would match what users see:\r\n\r\n```suggestion\r\n    if asynchronous:\r\n        await agent.ainvoke(inputs)\r\n    else:\r\n        agent.invoke(inputs)\r\n\r\n    span = finished_span(span_exporter, \"invoke_agent\")\r\n    attrs = span.attributes\r\n    assert attrs is not None\r\n    assert GenAI.GEN_AI_AGENT_NAME not in attrs\r\n    if content_capture == ContentCapturingMode.SPAN_ONLY:\r\n        (message,) = json.loads(attrs[GenAI.GEN_AI_INPUT_MESSAGES])\r\n        assert message[\"parts\"] == [{\"type\": \"text\", \"content\": \"hello\"}]\r\n    else:\r\n        assert GenAI.GEN_AI_INPUT_MESSAGES not in attrs\r\n        assert GenAI.GEN_AI_OUTPUT_MESSAGES not in attrs\r\n```",
+      "created": "2026-10-22T03:05:27Z",
+      "hunk": "@@ -383,6 +384,61 @@ async def test_chain_input_and_output_capture(\n         assert GenAI.GEN_AI_OUTPUT_MESSAGES not in attrs\n \n \n+@pytest.mark.skipif(\n+    not hasattr(langchain.agents, \"create_agent\"),\n+    reason=\"create_agent requires a newer langchain version\",\n+)\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\"asynchronous\", [False, True], ids=[\"sync\", \"async\"])\n+async def test_unnamed_agent_respects_content_capture(\n+    asynchronous: bool,\n+    content_capture: ContentCapturingMode,\n+    span_exporter: InMemorySpanExporter,\n+    instrument_langchain: None,\n+) -> None:\n+    inputs = {\"messages\": [HumanMessage(content=\"hello\")]}\n+    agent = langchain.agents.create_agent(\n+        FakeChatModel(responses=[AIMessage(content=\"done\")]), tools=[]\n+    )\n+    stream = agent.astream(inputs) if asynchronous else agent.stream(inputs)\n+    try:\n+        if asynchronous:\n+            assert await anext(stream)\n+        else:\n+            assert next(stream)\n+        # NO_CONTENT also filters exported attributes; inspect the live input.\n+        handler = LangChainInstrumentor()._callback_handler\n+        assert handler is not None\n+        (invocation,) = [\n+            state.invocation\n+            for state in handler._invocation_manager._invocations.values()\n+            if isinstance(state.invocation, LocalAgentInvocation)\n+        ]\n+    finally:\n+        if asynchronous:\n+            async for _ in stream:\n+                pass\n+        else:\n+            for _ in stream:\n+                pass\n+\n+    if content_capture == ContentCapturingMode.NO_CONTENT:\n+        assert invocation.input_messages == []\n+    else:\n+        (message,) = invocation.input_messages\n+        assert message.parts[0].content == \"hello\"\n+    span = finished_span(span_exporter, \"invoke_agent\")\n+    attrs = span.attributes\n+    assert attrs is not None\n+    assert GenAI.GEN_AI_AGENT_NAME not in attrs\n+    if content_capture == ContentCapturingMode.SPAN_ONLY:\n+        (message,) = json.loads(attrs[GenAI.GEN_AI_INPUT_MESSAGES])\n+        assert message[\"parts\"] == [{\"type\": \"text\", \"content\": \"hello\"}]\n+    else:\n+        assert GenAI.GEN_AI_INPUT_MESSAGES not in attrs\n+        assert GenAI.GEN_AI_OUTPUT_MESSAGES not in attrs",
+      "id": "PRRT_kwDOSbspP86vCEjk",
+      "opened": "2026-10-22T03:07:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-10-22T16:00:11Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/945#discussion_r4350598384"
+        }
+      ],
+      "reviewed": "a3f4924d9abc437bb0288fdefc82e0e8327d4d4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/945#discussion_r4344154824"
+    }
+  ]
+}

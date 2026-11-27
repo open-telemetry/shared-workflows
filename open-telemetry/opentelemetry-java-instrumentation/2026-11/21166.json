@@ -1,0 +1,99 @@
+{
+  "head": "861ff2e2c817cc8f875084ba4954dcca58da84db",
+  "merge": "bb59701f9ba2a25cd65415c9394db6442722c4f9",
+  "merged": "2026-11-20T05:15:39Z",
+  "missing_roots": 0,
+  "number": 21166,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix its failing CI, preserving the Spotless 8.11.0 upgrade and existing behavior. Do not create an additional PR.\n\nThe downloaded CI logs for Build pull request run 41649018746 show two failures. Job 125962123887, build / common / examples, fails in the standalone examples/distro build at :smoke-tests:spotlessJavaCheck. Its formatter reports a violation in examples/distro/smoke-tests/src/test/java/com/example/javaagent/smoketest/SmokeTest.java near line 124, where the resource-attribute filter lambda needs the new formatter's layout. Run the standalone build's narrowest spotlessApply task from examples/distro, rather than hand-editing generated formatting. Check other independently built examples affected by this formatter upgrade and apply their own formatter only where needed. Keep these changes formatting-only.\n\nJob 125962125280, build / common / test2 (17, hotspot), fails CamelPropagationUtilTest initialization in :instrumentation:camel-2.20:javaagent-unit-tests:test. CamelPropagationUtilTest.setUp calls GlobalOpenTelemetry.set at line 35 after CamelMessagingAttributesGetterTest.selectors has initialized BaseSpanDecorator through DecoratorRegistry, which calls GlobalOpenTelemetry.get and installs the default global. The log's cause records BaseSpanDecorator.<clinit> -> DecoratorRegistry.<clinit> -> CamelMessagingAttributesGetterTest.request -> selectors. Fix this concrete test-global-state ownership issue with the repository's existing test isolation patterns, resetting GlobalOpenTelemetry before this class registers its propagating instance and cleaning up its global state afterward. Preserve its propagation assertions and production behavior. Exercise CamelPropagationUtilTest together with CamelMessagingAttributesGetterTest and the full Camel unit-test task, not only the propagation class alone; cover the observed preceding global initialization without depending on incidental test order. Do not disable tests, relax assertions, change production behavior, or add broad retries.\n\nThe failed CodeQL check 125962636718 reports five alerts on pre-existing code: two disabled-CSRF annotations in the Spring MVC 6 test fixture SecurityConfig.java, two path-expression annotations in javaagent-bootstrap AgentClassLoader.java, and one in muzzle ReferenceCollector.java. The inspected PR patches change formatting only, not those security operations. Do not modify security behavior, add suppressions, or dismiss alerts to make this formatter-upgrade PR green. Report any genuine newly introduced issue with evidence instead.\n\nRead CONTRIBUTING.md and the applicable repository instructions. Run spotlessApply directly before validation, never preliminary spotlessCheck, and use Java 25 for the build with the supported Java 17 test setting where applicable. Validate the standalone distro formatting/build and the affected Camel unit tests with the narrowest applicable commands. Do not use --rerun-tasks, clean, or bypass the build cache for normal validation. Limit changes to the evidenced failures and formatter-required output; retain the existing PR draft/ready state. Do not change PR title or description.",
+      "created": "2026-11-03T17:02:51Z",
+      "hunk": "@@ -1,7 +1,7 @@\n plugins {\n   `kotlin-dsl`\n   // When updating, update below in dependencies too\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"\n }\n ",
+      "id": "PRRT_kwDODJKVX86zPX_o",
+      "opened": "2026-11-03T17:02:51Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T17:33:00Z",
+          "body": "Updated directly in commits `e8e91b17` and `c397bdd3`. The standalone distro formatter check and both focused and full Camel unit tests pass (Java 17 test runtime). The broader distro smoke-test build hit backend timeouts in service-dependent tests; the independent extension formatter task could not resolve the snapshot muzzle plugin.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4458266162"
+        }
+      ],
+      "reviewed": "5390113281e23da7560cdce9296306a76445a69d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4457928460"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the remaining standalone-example formatting for this Spotless 8.11.0 update directly on this PR. The previous attempt fixed examples/distro/smoke-tests but missed another subproject. Preserve the upgrade, existing runtime behavior, and the delivered Camel isolation fix.\n\nThe new CI failure is Build pull request run 41684203569, job 126086396344, build / common / examples: https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/41684203569/job/126086396344?pr=21166. The distro smoke-tests build now passes, but the same examples/distro build then fails :instrumentation:servlet-3:spotlessJavaCheck in examples/distro/instrumentation/servlet-3/src/test/java/com/example/javaagent/instrumentation/DemoServlet3InstrumentationTest.java near line 80. The log shows instrumentation.waitAndAssertTraces(trace -> ...) requires the upgraded formatter's lambda layout.\n\nRun ./gradlew spotlessApply from examples/distro for all its subprojects, not just :smoke-tests. Then inspect other independent example builds exercised by .github/workflows/build-common.yml and run each applicable build's formatter so this upgrade does not leave more missed example formatting. Use the repository formatter, not hand-edited output. Commit only formatter-required changes. Keep production behavior and test assertions unchanged; do not add suppressions, disable checks, or change dependency versions to avoid formatting. If an independent build cannot resolve the snapshot muzzle plugin, inspect the existing local.init.gradle.kts CI initialization and use its supported build setup rather than skipping that build silently. Report any remaining blocker with the exact command and error.\n\nValidate the distro formatting across all subprojects and the other affected independent example formatting, using the narrowest relevant commands and the repository's Java 25 build requirements. Apply formatting before validation, never preliminary spotlessCheck. Do not use clean, --rerun-tasks, or disable normal caches. The separate testLatestDeps3 failure in job 126086396144 is :instrumentation:hystrix-1.4:javaagent:test exceeding its timeout, not an evidenced formatter regression; do not change Hystrix or increase its timeout as part of this formatting-only follow-up.\n\nUpdate this PR directly. Do not create a new PR or change this PR's title, description, or draft/ready state. Read CONTRIBUTING.md and applicable repository instructions.",
+      "created": "2026-11-03T18:08:25Z",
+      "hunk": "@@ -1,7 +1,7 @@\n plugins {\n   `kotlin-dsl`\n   // When updating, update below in dependencies too\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"\n }\n ",
+      "id": "PRRT_kwDODJKVX86zRB79",
+      "opened": "2026-11-03T18:08:25Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T18:36:53Z",
+          "body": "Applied Spotless formatting across `examples/distro` and `examples/extension`, using the CI local-publish setup and init script. Both builds’ `spotlessCheck` tasks pass. The formatting-only changes are in commit `e5440183`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4458924279"
+        }
+      ],
+      "reviewed": "c397bdd356fc372d6e4cc2be4cd16945424b7ea0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4458634904"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Rebuild this PR on the latest main after the other PRs have merged. Work on the existing `renovate/main-spotless-packages` branch, not a new branch or PR. Keep the original Spotless version bump and the Camel test-isolation fix, but regenerate all formatting instead of replaying the old formatting commits.\n\nUse JDK 25. Ensure no other coding task is updating this branch. Run these commands from a clean repository root, stopping on any failure or cherry-pick conflict. Preserve main's newly merged behavior when resolving conflicts.\n\n```bash\nset -euo pipefail\n\ntest -z \"$(git status --porcelain)\"\n\ngit fetch origin\nold_head=\"$(git rev-parse origin/renovate/main-spotless-packages)\"\n\ngit switch renovate/main-spotless-packages\ngit reset --hard origin/main\n\ngit cherry-pick 31424912036f4caed973c9de404c6256509226be\ngit cherry-pick --empty=drop c397bdd356fc372d6e4cc2be4cd16945424b7ea0\n\nexport JAVA_HOME=\"$(dirname \"$(dirname \"$(readlink -f \"$(command -v java)\")\")\")\"\njava -version\n\n./gradlew spotlessApply\n./gradlew -p conventions spotlessApply\n./gradlew -p benchmark-overhead spotlessApply\n\n./gradlew publishToMavenLocal\n./gradlew -p gradle-plugins publishToMavenLocal\n\ninit_script=\"$PWD/.github/scripts/local.init.gradle.kts\"\n./gradlew -p examples/distro spotlessApply --init-script \"$init_script\"\n./gradlew -p examples/extension spotlessApply --init-script \"$init_script\"\n\ngit diff --check\ngit --no-pager diff --stat\ngit add -u\ngit commit \\\n  -m \"Apply Spotless 8.11.0 formatting\" \\\n  -m \"Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>\"\n\ngit --no-pager diff --stat origin/main...HEAD\n\ngit push origin HEAD:refs/heads/renovate/main-spotless-packages \\\n  \"--force-with-lease=refs/heads/renovate/main-spotless-packages:$old_head\"\n```\n\nDo not cherry-pick the previous formatting commits. Format all distro subprojects, not just smoke-tests. Keep production behavior and test assertions unchanged. Do not change this PR's title, description, or draft/ready state. If the push lease fails, stop rather than overriding someone else's update.",
+      "created": "2026-11-03T18:59:39Z",
+      "hunk": "@@ -1,7 +1,7 @@\n plugins {\n   `kotlin-dsl`\n   // When updating, update below in dependencies too\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"\n }\n ",
+      "id": "PRRT_kwDODJKVX86zSQbj",
+      "opened": "2026-11-03T18:59:39Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T19:13:10Z",
+          "body": "I merged latest `main` locally as `b2ef1560` and regenerated root, conventions, and benchmark formatting. Per the stop-on-failure instruction, I stopped when `./gradlew publishToMavenLocal` failed compiling the newly merged JDBC code: Error Prone rejects `URLDecoder.decode(value, \"UTF-8\")` in `MysqlHostParser.java:230` and suggests the `Charset` overload. I did not alter that production code or run the remaining publication/example commands; the partial merge and formatter work were not pushed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4459305994"
+        }
+      ],
+      "reviewed": "e544018332eeb2f37dd538451c1875b8db8c2c37",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4459162012"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Rebuild this PR on the latest main. Work on the existing `renovate/main-spotless-packages` branch, not a new branch or PR. Keep the original Spotless version bump and the Camel test-isolation fix, but regenerate all formatting instead of replaying the old formatting commits.\n\nUse JDK 25. Ensure no other coding task is updating this branch. Run these commands from a clean repository root, stopping on any failure or cherry-pick conflict. Preserve main's newly merged behavior when resolving conflicts.\n\n```bash\nset -euo pipefail\n\ntest -z \"$(git status --porcelain)\"\n\ngit fetch origin\nold_head=\"$(git rev-parse origin/renovate/main-spotless-packages)\"\n\ngit switch renovate/main-spotless-packages\ngit reset --hard origin/main\n\ngit cherry-pick 31424912036f4caed973c9de404c6256509226be\ngit cherry-pick --empty=drop c397bdd356fc372d6e4cc2be4cd16945424b7ea0\n\nexport JAVA_HOME=\"$(dirname \"$(dirname \"$(readlink -f \"$(command -v java)\")\")\")\"\njava -version\n\n./gradlew spotlessApply\n./gradlew -p conventions spotlessApply\n./gradlew -p benchmark-overhead spotlessApply\n\n./gradlew publishToMavenLocal\n./gradlew -p gradle-plugins publishToMavenLocal\n\ninit_script=\"$PWD/.github/scripts/local.init.gradle.kts\"\n./gradlew -p examples/distro spotlessApply --init-script \"$init_script\"\n./gradlew -p examples/extension spotlessApply --init-script \"$init_script\"\n\ngit diff --check\ngit --no-pager diff --stat\ngit add -u\ngit commit \\\n  -m \"Apply Spotless 8.11.0 formatting\" \\\n  -m \"Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>\"\n\ngit --no-pager diff --stat origin/main...HEAD\n\ngit push origin HEAD:refs/heads/renovate/main-spotless-packages \\\n  \"--force-with-lease=refs/heads/renovate/main-spotless-packages:$old_head\"\n```\n\nDo not cherry-pick the previous formatting commits. Format all distro subprojects, not just smoke-tests. Keep production behavior and test assertions unchanged. Do not change this PR's title, description, or draft/ready state. If the push lease fails, stop rather than overriding someone else's update.",
+      "created": "2026-11-06T19:36:05Z",
+      "hunk": "@@ -1,7 +1,7 @@\n plugins {\n   `kotlin-dsl`\n   // When updating, update below in dependencies too\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"",
+      "id": "PRRT_kwDODJKVX860qaBn",
+      "opened": "2026-11-06T19:36:05Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T19:40:21Z",
+          "body": "I stopped when `git cherry-pick 31424912036f4caed973c9de404c6256509226be` failed to write its commit: the configured GPG signing service returned `Bad Request`. The Spotless patch was applied, but no cherry-pick commit was created. Per your stop-on-failure instruction, I did not retry, run formatting, or publish; the remote branch remains at `d65ad0a1`. The local branch has been reset to latest `main` with the upgrade patch staged. The signing service needs to be available before this rebuild can continue.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4496795337"
+        },
+        {
+          "at": "2026-11-06T20:07:25Z",
+          "body": "@copilot Update this existing PR directly on `renovate/main-spotless-packages`. Renovate has rebuilt the Spotless 8.11.0 bump as `f813b6b889e8a7b9714fb2f83b991dc4504a3a79`, directly on current main `2f41ac96861754d27f6b368c1697527556561280`. Keep that version bump and regenerate all formatter-required output. Do not replay old formatting commits.\n\nRead CONTRIBUTING.md and applicable repository instructions. Select JDK 25 and make JAVA_HOME match it before Gradle. Run these formatting and CI local-publication commands, stopping and reporting exact errors if blocked:\n\n```bash\n./gradlew spotlessApply\n./gradlew -p conventions spotlessApply\n./gradlew -p benchmark-overhead spotlessApply\n./gradlew publishToMavenLocal\n./gradlew -p gradle-plugins publishToMavenLocal\ninit_script=\"$PWD/.github/scripts/local.init.gradle.kts\"\n./gradlew -p examples/distro spotlessApply --init-script \"$init_script\"\n./gradlew -p examples/extension spotlessApply --init-script \"$init_script\"\n```\n\nFormat every distro subproject, not just smoke-tests. Use repository formatters, not hand-edited formatting.\n\nIf the Camel isolation fix from `c397bdd356fc372d6e4cc2be4cd16945424b7ea0` is absent, reapply its code changes without cherry-picking: in CamelPropagationUtilTest, call GlobalOpenTelemetry.resetForTest() before the BeforeAll registration and again in an AfterAll cleanup. Preserve propagation assertions and production behavior. Exercise CamelPropagationUtilTest together with CamelMessagingAttributesGetterTest and the full `:instrumentation:camel-2.20:javaagent-unit-tests:test` task, using the supported Java 17 test runtime setting where applicable. Cover the observed preceding global initialization without relying on incidental test order.\n\nApply formatting directly before validation, with no preliminary spotlessCheck. Validate formatting across the root and independent builds using relevant narrow commands. Do not run clean, cleanTest, --rerun-tasks, disable caches, weaken checks or assertions, add suppressions, or modify unrelated production behavior. Do not change unrelated CodeQL/security code or Hystrix timeouts.\n\nCreate fresh commits using your normal supported signed-commit workflow and push them to this PR's existing branch. Do not cherry-pick, reset, rebase, force-push, create another PR, or change the PR title, description, or draft/ready state. Do not disable signing if signing fails. Report exact validation commands, results, and remaining blockers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4497045716"
+        }
+      ],
+      "reviewed": "d65ad0a184d1a62b5967d1513c286ac470b8d27a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21166#discussion_r4496757877"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "head": "d4d2d514224b9a01c37dd9e1e209a641bf7911d8",
+  "merge": "cfc967fb8187974c0d8a4a389235b0cb3d4367e4",
+  "merged": "2026-06-02T20:32:58Z",
+  "missing_roots": 0,
+  "number": 18846,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Because the `MessageDigest` instance is reused via `ThreadLocal`, it should be explicitly reset at the start of each digest computation. While `md.digest()` resets state on success, if an IOException (or other runtime exception) happens before `digest()` is called, the `MessageDigest` may retain partial state and corrupt the next checksum computed on the same thread. Fix by calling `md.reset()` at the beginning of the `computeDigest(InputStream, MessageDigest)` method (and preferably ensuring reset happens even on failure).",
+      "created": "2026-05-25T11:48:08Z",
+      "hunk": "@@ -210,7 +210,7 @@ private static String computeDigest(InputStream inputStream, MessageDigest md)\n     byte[] buffer = new byte[8192];\n     while (dis.read(buffer) != -1) {}\n     byte[] digest = md.digest();\n-    return String.format(Locale.ROOT, \"%040x\", new BigInteger(1, digest));\n+    return String.format(Locale.ROOT, \"%064x\", new BigInteger(1, digest));",
+      "id": "PRRT_kwDODJKVX86EiSKq",
+      "opened": "2026-05-25T11:48:09Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [],
+      "reviewed": "caff3b37367a37d90a06ca169cb661201cf068f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18846#discussion_r3297957433"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new Javadoc is less specific than the previous SHA-1 version and doesn’t describe the output format that callers/tests rely on. Please document that this returns a lowercase hex-encoded SHA-256 digest (64 characters), so consumers know how to validate/parse it.\n",
+      "created": "2026-05-25T11:48:09Z",
+      "hunk": "@@ -185,9 +185,9 @@ String packageDescription() {\n     return name + \" by \" + vendor;\n   }\n \n-  /** Returns the SHA1 hash of this file, e.g. {@code 30d16ec2aef6d8094c5e2dce1d95034ca8b6cb42}. */\n-  String computeSha1() {\n-    return sha1Checksum;\n+  /** Returns the SHA-256 hash of this file. */",
+      "id": "PRRT_kwDODJKVX86EiSK_",
+      "opened": "2026-05-25T11:48:09Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [],
+      "reviewed": "caff3b37367a37d90a06ca169cb661201cf068f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18846#discussion_r3297957464"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Hex encoding via `new BigInteger(... )` + `String.format(...)` is relatively allocation-heavy and can be a hotspot if many archives are analyzed. Consider switching to a dedicated hex encoder over the digest bytes (e.g., a small local byte-to-hex routine) for lower overhead and clearer intent. This also avoids hard-coding width formatting that would need manual updates if the algorithm changes again.",
+      "created": "2026-05-25T11:48:09Z",
+      "hunk": "@@ -210,7 +210,7 @@ private static String computeDigest(InputStream inputStream, MessageDigest md)\n     byte[] buffer = new byte[8192];\n     while (dis.read(buffer) != -1) {}\n     byte[] digest = md.digest();\n-    return String.format(Locale.ROOT, \"%040x\", new BigInteger(1, digest));\n+    return String.format(Locale.ROOT, \"%064x\", new BigInteger(1, digest));",
+      "id": "PRRT_kwDODJKVX86EiSLN",
+      "opened": "2026-05-25T11:48:09Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [],
+      "reviewed": "caff3b37367a37d90a06ca169cb661201cf068f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18846#discussion_r3297957482"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could you add a test that verifies the result of this method. Something like\n```java\nassertThat(toHex(\"hello\".getBytes(StandardCharsets.UTF_8))).isEqualTo(\"68656c6c6f\");\n```\nshould be enough.",
+      "created": "2026-06-02T11:52:14Z",
+      "hunk": "@@ -206,11 +206,23 @@ private static String computeDigest(JarFile jarFile, JarEntry jarEntry, MessageD\n   private static String computeDigest(InputStream inputStream, MessageDigest md)\n       throws IOException {\n     md.reset();\n-    DigestInputStream dis = new DigestInputStream(inputStream, md);\n-    byte[] buffer = new byte[8192];\n-    while (dis.read(buffer) != -1) {}\n-    byte[] digest = md.digest();\n-    return String.format(Locale.ROOT, \"%040x\", new BigInteger(1, digest));\n+    try (DigestInputStream digestInputStream = new DigestInputStream(inputStream, md)) {\n+      byte[] buffer = new byte[8192];\n+      while (digestInputStream.read(buffer) != -1) {}\n+      return toHex(md.digest());\n+    } finally {\n+      md.reset();\n+    }\n+  }\n+\n+  private static String toHex(byte[] bytes) {",
+      "id": "PRRT_kwDODJKVX86Gafls",
+      "opened": "2026-06-02T11:52:14Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [],
+      "reviewed": "65c69df77ac905fc05ac3e2a33637876d3240298",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18846#discussion_r3340942631"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "previously the `MessageDigest` was reset at the start of the method. Now it is reset both at the start and end. I think it should be enough to just reset it at the end.",
+      "created": "2026-06-02T11:53:01Z",
+      "hunk": "@@ -206,11 +206,23 @@ private static String computeDigest(JarFile jarFile, JarEntry jarEntry, MessageD\n   private static String computeDigest(InputStream inputStream, MessageDigest md)\n       throws IOException {\n     md.reset();\n-    DigestInputStream dis = new DigestInputStream(inputStream, md);\n-    byte[] buffer = new byte[8192];\n-    while (dis.read(buffer) != -1) {}\n-    byte[] digest = md.digest();\n-    return String.format(Locale.ROOT, \"%040x\", new BigInteger(1, digest));\n+    try (DigestInputStream digestInputStream = new DigestInputStream(inputStream, md)) {\n+      byte[] buffer = new byte[8192];\n+      while (digestInputStream.read(buffer) != -1) {}\n+      return toHex(md.digest());\n+    } finally {\n+      md.reset();",
+      "id": "PRRT_kwDODJKVX86GagVY",
+      "opened": "2026-06-02T11:53:00Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [],
+      "reviewed": "65c69df77ac905fc05ac3e2a33637876d3240298",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18846#discussion_r3340946675"
+    }
+  ]
+}

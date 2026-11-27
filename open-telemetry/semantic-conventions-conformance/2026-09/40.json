@@ -1,0 +1,556 @@
+{
+  "head": "5c0c3207cfc237a526cc638a873c341522f5d946",
+  "merge": "1cf01ef68147a543d4e3022fd1d4edb1753e65de",
+  "merged": "2026-09-10T02:13:55Z",
+  "missing_roots": 0,
+  "number": 40,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`otel-conformance-go build` writes the binary into a `build/` subdirectory, but the code never creates that directory. `go build -o <dir>/build/scenario` fails on a clean checkout with \"no such file or directory\" if `build/` doesn't already exist.",
+      "created": "2026-08-16T05:14:00Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"``otel-conformance-go``: builds and runs a Go conformance scenario.\n+\n+Every Go scenario is built and started the same way — compile the package in\n+the scenario directory, then execute what came out — so the toolchain lives\n+here rather than being restated in each ``conformance.yaml``.\n+\n+Two subcommands, matching the two phases a package has:\n+\n+``build``\n+    What a package's ``setup:`` runs. Compiles the scenario ahead of the\n+    measured run, so no toolchain is on the clock and no compilation shows up\n+    as the scenario's own work.\n+\n+``run``\n+    What a scenario's ``run:`` runs. Executes the built binary by absolute\n+    path, which is the reason this exists at all: Windows resolves a relative\n+    command against the *calling* process's directory rather than the working\n+    directory it is given, and only there does the binary need an ``.exe``\n+    suffix. Naming the binary in a scenario file would make the file\n+    platform-specific.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import os\n+import subprocess\n+import sys\n+from pathlib import Path\n+from typing import Sequence\n+\n+# The file that marks the root of the Go module a scenario belongs to. Only\n+# reported on: `go build` finds it itself, but a scenario outside a module\n+# fails deep inside the toolchain rather than here.\n+MODULE_MARKER = \"go.mod\"\n+\n+# Where the binary goes, relative to the scenario directory. Beside the\n+# scenario rather than under the module root: unlike a Gradle project, a Go\n+# scenario's package *is* its directory, so there is nothing to flatten.\n+BUILD_DIR = \"build\"\n+\n+BINARY = \"scenario\"\n+\n+\n+class LayoutError(RuntimeError):\n+    \"\"\"The Go module could not be found from where this was run.\"\"\"\n+\n+\n+def module_root(start: Path | None = None) -> Path:\n+    \"\"\"The directory holding :data:`MODULE_MARKER`, at or above ``start``.\"\"\"\n+    here = (start or Path.cwd()).resolve()\n+    for candidate in (here, *here.parents):\n+        if (candidate / MODULE_MARKER).is_file():\n+            return candidate\n+    raise LayoutError(\n+        f\"no {MODULE_MARKER} at or above {here} — `otel-conformance-go` runs \"\n+        \"from a scenario directory inside a Go conformance module\"\n+    )\n+\n+\n+def binary(directory: Path) -> Path:\n+    \"\"\"Where ``directory``'s scenario binary is built.\n+\n+    Absolute, and carrying the platform's executable suffix, so the same\n+    ``conformance.yaml`` runs on every platform.\n+    \"\"\"\n+    return (\n+        directory.resolve()\n+        / BUILD_DIR\n+        / (BINARY + (\".exe\" if os.name == \"nt\" else \"\"))\n+    )\n+\n+\n+def build_command(directory: Path) -> list[str]:\n+    \"\"\"The ``go build`` invocation for the scenario in ``directory``.\"\"\"\n+    return [\"go\", \"build\", \"-o\", str(binary(directory)), \".\"]\n+\n+\n+def run_command(\n+    directory: Path, arguments: Sequence[str] = ()\n+) -> list[str]:\n+    \"\"\"The invocation of what :func:`build_command` produced.\"\"\"\n+    return [str(binary(directory)), *arguments]\n+\n+\n+def main(argv: Sequence[str] | None = None) -> int:\n+    parser = argparse.ArgumentParser(\n+        prog=\"otel-conformance-go\",\n+        description=__doc__,\n+        formatter_class=argparse.RawDescriptionHelpFormatter,\n+    )\n+    subcommands = parser.add_subparsers(dest=\"command\", required=True)\n+\n+    subcommands.add_parser(\n+        \"build\", help=\"compile the scenario in the current directory\"\n+    )\n+\n+    run = subcommands.add_parser(\"run\", help=\"run the built scenario\")\n+    run.add_argument(\n+        \"arguments\",\n+        nargs=argparse.REMAINDER,\n+        help=\"arguments passed to the scenario, verbatim\",\n+    )\n+\n+    arguments = parser.parse_args(argv)\n+    directory = Path.cwd()\n+    module_root(directory)\n+\n+    if arguments.command == \"build\":\n+        command = build_command(directory)\n+    else:\n+        command = run_command(directory, arguments.arguments)\n+",
+      "id": "PRRT_kwDOTuzK5c6Zky0N",
+      "opened": "2026-08-16T05:14:01Z",
+      "path": "tools/go/src/otel_conformance_go/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-16T05:24:33Z",
+          "body": "Pushing back on this one: `go build -o` creates the parent directory itself, so there is nothing to fix.\n\nThe factual half is right — there is no `mkdir` anywhere in the launcher. But the conclusion does not follow, and CI is the proof. `build/` is gitignored and never committed, so the GitHub runner checks out a tree where it cannot exist; the `Scenarios` job then ran `setup:` and both scenarios executed with no \"no such file or directory\" in the log. I also confirmed it directly:\n\n```\nbuild exists before: False\n$ go build -o \"$PWD/build/scenario.exe\" .\nexit=0  build exists after: True\n```\n\nAdding a `mkdir` would be dead code justified by a misreading, so I would rather leave it out.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3791015417"
+        }
+      ],
+      "reviewed": "be5873c80edea38b419c4b3a02e9fce2e6f2430f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3791001153"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Spelling/grammar in the test name: `directorys` reads like a typo and makes the test harder to scan.",
+      "created": "2026-08-16T05:14:01Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"The Go toolchain a scenario directory no longer has to restate.\"\"\"\n+\n+from __future__ import annotations\n+\n+import os\n+from pathlib import Path\n+\n+import otel_conformance_go\n+import pytest\n+from otel_conformance_go import (\n+    MODULE_MARKER,\n+    LayoutError,\n+    binary,\n+    build_command,\n+    module_root,\n+    run_command,\n+)\n+\n+\n+@pytest.fixture\n+def root(tmp_path: Path) -> Path:\n+    (tmp_path / MODULE_MARKER).write_text(\"\", encoding=\"utf-8\")\n+    return tmp_path\n+\n+\n+class TestFindingTheModule:\n+    def test_it_is_found_from_a_scenario_directory(self, root: Path) -> None:\n+        \"\"\"How deep a scenario sits is the layout's business, not its own.\"\"\"\n+        scenario = root / \"net-http\" / \"otelhttp\" / \"server\"\n+        scenario.mkdir(parents=True)\n+\n+        assert module_root(scenario) == root\n+\n+    def test_the_module_root_itself_counts(self, root: Path) -> None:\n+        assert module_root(root) == root\n+\n+    def test_being_outside_a_module_says_so(self, tmp_path: Path) -> None:\n+        with pytest.raises(LayoutError, match=MODULE_MARKER):\n+            module_root(tmp_path)\n+\n+\n+class TestBuilding:\n+    def test_it_builds_the_scenario_directorys_own_package(",
+      "id": "PRRT_kwDOTuzK5c6Zky0R",
+      "opened": "2026-08-16T05:14:01Z",
+      "path": "tools/go/tests/test_scenario.py",
+      "replies": [
+        {
+          "at": "2026-08-16T05:24:38Z",
+          "body": "Fixed — renamed to `test_it_builds_the_package_in_the_scenario_directory`.\n\nThe file itself also moved to `tools/go/tests/test_go_scenario.py`: no `tests/` directory here has an `__init__.py`, so pytest imports every test module top level and this file's original name collided with `tools/java/tests/test_scenario.py`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3791015492"
+        }
+      ],
+      "reviewed": "be5873c80edea38b419c4b3a02e9fce2e6f2430f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3791001161"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`RunServer` blocks on `scenario.WaitForEOF()` even if `server.Serve(listener)` returns an error immediately. In that failure mode the process stays alive until the driver times out and kills it, and you lose the actual startup error that would explain why the server never bound.",
+      "created": "2026-08-16T05:14:01Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package scenarios is what the net/http client and server scenarios do, with\n+// no OpenTelemetry in it.\n+//\n+// Every instrumentation of net/http runs this same traffic; what differs is\n+// only how it is attached, which each launch package supplies as the hooks\n+// below. Whether an instrumentation is code or an out-of-process agent is\n+// therefore not something the workload knows about.\n+package scenarios\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net\"\n+\t\"net/http\"\n+\t\"strconv\"\n+\t\"time\"\n+\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenario\"\n+\thttpcontract \"github.com/open-telemetry/semantic-conventions-conformance/tools/http/test-client/go\"\n+)\n+\n+// Middleware wraps the whole mux, which is where a net/http instrumentation\n+// that starts server spans attaches.\n+type Middleware func(http.Handler) http.Handler\n+\n+// routes are the framework-native declaration of the contract's paths.\n+//\n+// Go 1.22's ServeMux takes the method and the path template in the pattern\n+// itself, so this is the route in net/http's own model rather than a shape\n+// invented for the conformance run. ServeMux reports back the pattern a\n+// request matched, on the request, which is where an instrumentation reads\n+// http.route from — so the declaration below is the whole of what makes the\n+// route observable, with nothing to attach per route.\n+var routes = []string{\n+\t\"GET /health\",\n+\t\"GET /users/{userId}\",\n+\t\"POST /items\",\n+\t\"GET /status/{code}\",\n+}\n+\n+// Idle connections a driver leaves behind should not outlive the run, and a\n+// server that never times out reading headers is a lint finding in its own\n+// right.\n+const readHeaderTimeout = 10 * time.Second\n+\n+// RunServer hosts the shared HTTP exchanges until the driver says stop.\n+//\n+// The requests are sent by otel-http-drive from another process, so nothing\n+// this binary links can instrument the sender and record client spans in a\n+// server scenario's report. It listens on the port the driver chose and shuts\n+// down when the driver closes its standard input, which is what gives the SDK\n+// a chance to flush.\n+func RunServer(middleware Middleware) error {\n+\tif middleware == nil {\n+\t\tmiddleware = func(handler http.Handler) http.Handler { return handler }\n+\t}\n+\n+\tport, err := httpcontract.ScenarioPort()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\n+\tmux := http.NewServeMux()\n+\tfor _, pattern := range routes {\n+\t\tmux.Handle(pattern, answer())\n+\t}\n+\n+\tlistener, err := net.Listen(\"tcp\", net.JoinHostPort(\"127.0.0.1\", strconv.Itoa(port)))\n+\tif err != nil {\n+\t\treturn fmt.Errorf(\"listening on port %d: %w\", port, err)\n+\t}\n+\n+\tserver := &http.Server{\n+\t\tHandler:           middleware(mux),\n+\t\tReadHeaderTimeout: readHeaderTimeout,\n+\t}\n+\tserved := make(chan error, 1)\n+\tgo func() { served <- server.Serve(listener) }()\n+\n+\tstopped := scenario.WaitForEOF()\n+\tif err := server.Shutdown(context.Background()); err != nil {\n+\t\tstopped = errors.Join(stopped, err)\n+\t}\n+\tif err := <-served; err != nil && !errors.Is(err, http.ErrServerClosed) {\n+\t\tstopped = errors.Join(stopped, err)\n+\t}\n+\treturn stopped",
+      "id": "PRRT_kwDOTuzK5c6Zky0V",
+      "opened": "2026-08-16T05:14:01Z",
+      "path": "scenarios/http/go/net-http/scenarios/server.go",
+      "replies": [
+        {
+          "at": "2026-08-16T05:24:46Z",
+          "body": "Good catch — fixed in 0a5c6c1. `RunServer` now selects over both, so `Serve` returning on its own is reported instead of being followed by a wait that could never end:\n\n```go\nselect {\ncase err := <-served:\n\tif err == nil {\n\t\terr = errors.New(\"the server stopped accepting connections\")\n\t}\n\treturn err\ncase stopped = <-stopping:\n}\n```\n\nThe failure mode you describe is worse than a lost message here, because the driver's cleanup is best effort on Windows — a scenario that hung this way could leave a process holding the port for the next run.\n\n`ErrServerClosed` only comes from `Shutdown` or `Close`, neither of which has been called at that point, so any return in the first branch is a real failure and a nil one gets a message rather than a silent success.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3791015700"
+        }
+      ],
+      "reviewed": "be5873c80edea38b419c4b3a02e9fce2e6f2430f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3791001167"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `go` directive in go.mod must be `major.minor` (e.g., `go 1.25`). Using a patch version (`go 1.25.0`) can cause `go` tooling (and `actions/setup-go` when using `go-version-file`) to fail with a malformed Go version error. If you want to pin an exact patch for CI, use the `toolchain` directive separately.",
+      "created": "2026-08-17T03:54:50Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/tools/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6Zr7kn",
+      "opened": "2026-08-17T03:54:52Z",
+      "path": "tools/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-17T03:57:22Z",
+          "body": "No code change.\n\nAnalysis: `go 1.25.0` is valid in a Go module. Go 1.25.0 accepted all three files, and `go mod edit -json` returned `1.25.0` for each directive. The exact-head `Lint` job also passed `actions/setup-go` with `scenarios/http/go/go.mod` as `go-version-file`, then ran Go vet and tests.\n\nUpsides: Keeping the directives preserves the intended minimum patch version and matches the Go version that CI selects from the module file.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3793715206"
+        }
+      ],
+      "reviewed": "03038c170d52b1ab86c62453bebeeed87b1f8fff",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3793707972"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `go` directive in go.mod must be `major.minor` (e.g., `go 1.25`). Using a patch version (`go 1.25.0`) can cause `go` tooling (and `actions/setup-go` when using `go-version-file`) to fail with a malformed Go version error. If you want to pin an exact patch for CI, use the `toolchain` directive separately.",
+      "created": "2026-08-17T03:54:51Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6Zr7k8",
+      "opened": "2026-08-17T03:54:52Z",
+      "path": "scenarios/http/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-17T03:57:23Z",
+          "body": "No code change.\n\nAnalysis: `go 1.25.0` is valid in a Go module. Go 1.25.0 accepted all three files, and `go mod edit -json` returned `1.25.0` for each directive. The exact-head `Lint` job also passed `actions/setup-go` with `scenarios/http/go/go.mod` as `go-version-file`, then ran Go vet and tests.\n\nUpsides: Keeping the directives preserves the intended minimum patch version and matches the Go version that CI selects from the module file.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3793715255"
+        }
+      ],
+      "reviewed": "03038c170d52b1ab86c62453bebeeed87b1f8fff",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3793708004"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `go` directive in go.mod must be `major.minor` (e.g., `go 1.25`). Using a patch version (`go 1.25.0`) can cause `go` tooling (and `actions/setup-go` when using `go-version-file`) to fail with a malformed Go version error. If you want to pin an exact patch for CI, use the `toolchain` directive separately.",
+      "created": "2026-08-17T03:54:51Z",
+      "hunk": "@@ -0,0 +1,3 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/tools/http/test-client/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6Zr7lY",
+      "opened": "2026-08-17T03:54:52Z",
+      "path": "tools/http/test-client/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-17T03:57:24Z",
+          "body": "No code change.\n\nAnalysis: `go 1.25.0` is valid in a Go module. Go 1.25.0 accepted all three files, and `go mod edit -json` returned `1.25.0` for each directive. The exact-head `Lint` job also passed `actions/setup-go` with `scenarios/http/go/go.mod` as `go-version-file`, then ran Go vet and tests.\n\nUpsides: Keeping the directives preserves the intended minimum patch version and matches the Go version that CI selects from the module file.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3793715310"
+        }
+      ],
+      "reviewed": "03038c170d52b1ab86c62453bebeeed87b1f8fff",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3793708040"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`go build -o <scenarioDir>/build/scenario` will fail if the `build/` directory doesn't already exist (Go doesn't create parent dirs for `-o`). Create `binary(directory).parent` (e.g., `mkdir(parents=True, exist_ok=True)`) when handling the `build` subcommand before invoking `go build`.",
+      "created": "2026-08-24T18:21:07Z",
+      "hunk": "@@ -0,0 +1,134 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"``otel-conformance-go``: builds and runs a Go conformance scenario.\n+\n+Every Go scenario is built and started the same way — compile the package in\n+the scenario directory, then execute what came out — so the toolchain lives\n+here rather than being restated in each ``conformance.yaml``.\n+\n+Two subcommands, matching the two phases a package has:\n+\n+``build``\n+    What a package's ``setup:`` runs. Compiles the scenario ahead of the\n+    measured run, so no toolchain is on the clock and no compilation shows up\n+    as the scenario's own work.\n+\n+``run``\n+    What a scenario's ``run:`` runs. Executes the built binary by absolute\n+    path, which is the reason this exists at all: Windows resolves a relative\n+    command against the *calling* process's directory rather than the working\n+    directory it is given, and only there does the binary need an ``.exe``\n+    suffix. Naming the binary in a scenario file would make the file\n+    platform-specific. Everything after ``run`` is the scenario's own, passed\n+    on verbatim.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import os\n+import subprocess\n+import sys\n+from pathlib import Path\n+from typing import Sequence\n+\n+# The file that marks the root of the Go module a scenario belongs to. Only\n+# reported on: `go build` finds it itself, but a scenario outside a module\n+# fails deep inside the toolchain rather than here.\n+MODULE_MARKER = \"go.mod\"\n+\n+# Where the binary goes, relative to the scenario directory. Beside the\n+# scenario rather than under the module root: a Go scenario's package *is* its\n+# directory, so there is nothing to flatten.\n+BUILD_DIR = \"build\"\n+\n+BINARY = \"scenario\"\n+\n+# The subcommand whose remaining words belong to the scenario rather than to\n+# this program.\n+RUN = \"run\"\n+\n+\n+class LayoutError(RuntimeError):\n+    \"\"\"The Go module could not be found from where this was run.\"\"\"\n+\n+\n+def module_root(start: Path | None = None) -> Path:\n+    \"\"\"The directory holding :data:`MODULE_MARKER`, at or above ``start``.\"\"\"\n+    here = (start or Path.cwd()).resolve()\n+    for candidate in (here, *here.parents):\n+        if (candidate / MODULE_MARKER).is_file():\n+            return candidate\n+    raise LayoutError(\n+        f\"no {MODULE_MARKER} at or above {here} — `otel-conformance-go` runs \"\n+        \"from a scenario directory inside a Go conformance module\"\n+    )\n+\n+\n+def binary(directory: Path) -> Path:\n+    \"\"\"Where ``directory``'s scenario binary is built.\n+\n+    Absolute, and carrying the platform's executable suffix, so the same\n+    ``conformance.yaml`` runs on every platform.\n+    \"\"\"\n+    return (\n+        directory.resolve()\n+        / BUILD_DIR\n+        / (BINARY + (\".exe\" if os.name == \"nt\" else \"\"))\n+    )\n+\n+\n+def build_command(directory: Path) -> list[str]:\n+    \"\"\"The ``go build`` invocation for the scenario in ``directory``.\"\"\"\n+    return [\"go\", \"build\", \"-o\", str(binary(directory)), \".\"]",
+      "id": "PRRT_kwDOTuzK5c6bzh6v",
+      "opened": "2026-08-24T18:21:07Z",
+      "path": "tools/go/src/otel_conformance_go/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-24T18:25:11Z",
+          "body": "Addressed in bbbe2987d4761effaad5061a701603b25ab5f38e.\n\nAnalysis: The build command writes into a per-scenario build directory. The helper now creates that directory before starting `go build`, and the test covers a clean scenario directory.\n\nUpsides: A first build succeeds on a fresh checkout, and repeated builds remain idempotent.\n\nDownsides: The build step creates the output directory before Go validates or compiles the package.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846296149"
+        }
+      ],
+      "reviewed": "d9a3f5b21f5a8759420a806c6e3bb1296d929670",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846266197"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`go build -o <scenarioDir>/build/scenario` will fail if the `build/` directory doesn't already exist (Go doesn't create parent dirs for `-o`). Create `binary(directory).parent` (e.g., `mkdir(parents=True, exist_ok=True)`) when handling the `build` subcommand before invoking `go build`.",
+      "created": "2026-08-24T18:21:07Z",
+      "hunk": "@@ -0,0 +1,134 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"``otel-conformance-go``: builds and runs a Go conformance scenario.\n+\n+Every Go scenario is built and started the same way — compile the package in\n+the scenario directory, then execute what came out — so the toolchain lives\n+here rather than being restated in each ``conformance.yaml``.\n+\n+Two subcommands, matching the two phases a package has:\n+\n+``build``\n+    What a package's ``setup:`` runs. Compiles the scenario ahead of the\n+    measured run, so no toolchain is on the clock and no compilation shows up\n+    as the scenario's own work.\n+\n+``run``\n+    What a scenario's ``run:`` runs. Executes the built binary by absolute\n+    path, which is the reason this exists at all: Windows resolves a relative\n+    command against the *calling* process's directory rather than the working\n+    directory it is given, and only there does the binary need an ``.exe``\n+    suffix. Naming the binary in a scenario file would make the file\n+    platform-specific. Everything after ``run`` is the scenario's own, passed\n+    on verbatim.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import os\n+import subprocess\n+import sys\n+from pathlib import Path\n+from typing import Sequence\n+\n+# The file that marks the root of the Go module a scenario belongs to. Only\n+# reported on: `go build` finds it itself, but a scenario outside a module\n+# fails deep inside the toolchain rather than here.\n+MODULE_MARKER = \"go.mod\"\n+\n+# Where the binary goes, relative to the scenario directory. Beside the\n+# scenario rather than under the module root: a Go scenario's package *is* its\n+# directory, so there is nothing to flatten.\n+BUILD_DIR = \"build\"\n+\n+BINARY = \"scenario\"\n+\n+# The subcommand whose remaining words belong to the scenario rather than to\n+# this program.\n+RUN = \"run\"\n+\n+\n+class LayoutError(RuntimeError):\n+    \"\"\"The Go module could not be found from where this was run.\"\"\"\n+\n+\n+def module_root(start: Path | None = None) -> Path:\n+    \"\"\"The directory holding :data:`MODULE_MARKER`, at or above ``start``.\"\"\"\n+    here = (start or Path.cwd()).resolve()\n+    for candidate in (here, *here.parents):\n+        if (candidate / MODULE_MARKER).is_file():\n+            return candidate\n+    raise LayoutError(\n+        f\"no {MODULE_MARKER} at or above {here} — `otel-conformance-go` runs \"\n+        \"from a scenario directory inside a Go conformance module\"\n+    )\n+\n+\n+def binary(directory: Path) -> Path:\n+    \"\"\"Where ``directory``'s scenario binary is built.\n+\n+    Absolute, and carrying the platform's executable suffix, so the same\n+    ``conformance.yaml`` runs on every platform.\n+    \"\"\"\n+    return (\n+        directory.resolve()\n+        / BUILD_DIR\n+        / (BINARY + (\".exe\" if os.name == \"nt\" else \"\"))\n+    )\n+\n+\n+def build_command(directory: Path) -> list[str]:\n+    \"\"\"The ``go build`` invocation for the scenario in ``directory``.\"\"\"\n+    return [\"go\", \"build\", \"-o\", str(binary(directory)), \".\"]\n+\n+\n+def run_command(\n+    directory: Path, arguments: Sequence[str] = ()\n+) -> list[str]:\n+    \"\"\"The invocation of what :func:`build_command` produced.\"\"\"\n+    return [str(binary(directory)), *arguments]\n+\n+\n+def main(argv: Sequence[str] | None = None) -> int:\n+    parser = argparse.ArgumentParser(\n+        prog=\"otel-conformance-go\",\n+        description=__doc__,\n+        formatter_class=argparse.RawDescriptionHelpFormatter,\n+    )\n+    subcommands = parser.add_subparsers(dest=\"command\", required=True)\n+\n+    subcommands.add_parser(\n+        \"build\", help=\"compile the scenario in the current directory\"\n+    )\n+\n+    subcommands.add_parser(\n+        RUN,\n+        help=\"run the built scenario; what follows is the scenario's own\",\n+    )\n+\n+    # Split off rather than declared as a trailing positional: argparse reads\n+    # a leading `-` as an option of this program whatever a positional's\n+    # `nargs` says, so `run --flag` would be refused before the scenario ever\n+    # saw it. `build` keeps being parsed strictly, so a typo there still says\n+    # so.\n+    words = list(sys.argv[1:] if argv is None else argv)\n+    scenario_arguments: list[str] = []\n+    if words and words[0] == RUN:\n+        words, scenario_arguments = words[:1], words[1:]\n+\n+    arguments = parser.parse_args(words)\n+    directory = Path.cwd()\n+    module_root(directory)\n+\n+    if arguments.command == RUN:\n+        command = run_command(directory, scenario_arguments)\n+    else:",
+      "id": "PRRT_kwDOTuzK5c6bzh7L",
+      "opened": "2026-08-24T18:21:07Z",
+      "path": "tools/go/src/otel_conformance_go/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-24T18:25:13Z",
+          "body": "Addressed in bbbe2987d4761effaad5061a701603b25ab5f38e.\n\nAnalysis: The build command writes into a per-scenario build directory. The helper now creates that directory before starting `go build`, and the test covers a clean scenario directory.\n\nUpsides: A first build succeeds on a fresh checkout, and repeated builds remain idempotent.\n\nDownsides: The build step creates the output directory before Go validates or compiles the package.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846296306"
+        }
+      ],
+      "reviewed": "d9a3f5b21f5a8759420a806c6e3bb1296d929670",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846266250"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `go` directive typically uses `major.minor` (e.g., `go 1.25`) rather than including a patch (`1.25.0`). Using a patch version here can cause avoidable churn (e.g., `go mod tidy` normalizations) and may not be interpreted consistently by tooling that reads `go-version-file` (like `actions/setup-go`). Consider switching to `go 1.25` (and, if you truly need a specific patch toolchain, use the `toolchain go1.25.x` directive instead). This applies similarly to the other newly added `go.mod` files in this PR.",
+      "created": "2026-08-24T18:43:25Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/tools/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6bz9RN",
+      "opened": "2026-08-24T18:43:26Z",
+      "path": "tools/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-24T18:54:34Z",
+          "body": "No code change.\n\nAnalysis: Go 1.21 and newer allow a patch release in the `go` directive. These modules require Go 1.25.0, and `go mod tidy -diff` keeps that directive unchanged in all three modules. The workflow also passes `scenarios/http/go/go.mod` directly to `actions/setup-go` v7, which supports this form.\n\nUpsides: Keeping `go 1.25.0` records the exact minimum Go release and matches current Go module tooling.\n\nDownsides: Older third-party tools that have not adopted the current `go.mod` version syntax may reject the directive.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846511108"
+        }
+      ],
+      "reviewed": "eeaa872fe843e94ba96586e43236620512ee173c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846430221"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "URL construction via string concatenation can produce incorrect URLs when `baseURL` ends with a trailing slash (e.g., `http://host:port/` + `/users/123` => `//users/123`). That can change routing on some servers/proxies and makes inputs less robust. Consider normalizing `baseURL` once (e.g., trimming a trailing `/`) or using a URL join routine to safely combine the base and contract paths.",
+      "created": "2026-08-24T18:43:26Z",
+      "hunk": "@@ -0,0 +1,81 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+package httpcontract\n+\n+import (\n+\t\"fmt\"\n+\t\"reflect\"\n+\t\"strings\"\n+)\n+\n+// Sender sends one request using the HTTP client library under test. body is\n+// empty for a request that carries none.\n+type Sender func(method, url, body string) (Response, error)\n+\n+// Drive sends Requests at baseURL through send, checking every answer.\n+//\n+// Only a client scenario needs this: it is the sender, so the requests have to\n+// leave the library under test. A server scenario is driven from outside its\n+// own process by otel-http-drive and never sends anything.\n+//\n+// No health check: the runner starts the mock server a client scenario calls\n+// and waits for it to answer before running the scenario at all.\n+func Drive(baseURL string, send Sender) error {\n+\tif strings.TrimSpace(baseURL) == \"\" {\n+\t\treturn contractError(\"base URL must not be blank\")\n+\t}\n+\trequests, err := Requests()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tfor _, exchange := range requests {\n+\t\tresponse, err := send(exchange.Method, baseURL+exchange.Path, exchange.Body)",
+      "id": "PRRT_kwDOTuzK5c6bz9Rn",
+      "opened": "2026-08-24T18:43:26Z",
+      "path": "tools/http/test-client/go/client.go",
+      "replies": [
+        {
+          "at": "2026-08-24T18:54:36Z",
+          "body": "Addressed in 107945ca933aab494446fe83085159c3d5c76d85.\n\nAnalysis: Contract paths start with a slash, so `Drive` now removes trailing slashes from the base URL before it appends those paths. A focused test covers a caller that supplies a trailing slash.\n\nUpsides: Each request keeps one separator between the server address and contract path, so servers and proxies receive the intended route.\n\nDownsides: A base URL whose trailing slash carries unusual semantic meaning is normalized before requests are sent.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846511351"
+        }
+      ],
+      "reviewed": "eeaa872fe843e94ba96586e43236620512ee173c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846430266"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Drive` is a reusable library helper but it unconditionally writes to stdout. This makes it harder to reuse in contexts that need clean output and can create noisy logs in CI/runs. Consider moving printing to the scenario binaries, or injecting an optional logger/`io.Writer` (or gating output behind a verbosity flag/env var) so callers control side effects.",
+      "created": "2026-08-24T18:43:26Z",
+      "hunk": "@@ -0,0 +1,81 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+package httpcontract\n+\n+import (\n+\t\"fmt\"\n+\t\"reflect\"\n+\t\"strings\"\n+)\n+\n+// Sender sends one request using the HTTP client library under test. body is\n+// empty for a request that carries none.\n+type Sender func(method, url, body string) (Response, error)\n+\n+// Drive sends Requests at baseURL through send, checking every answer.\n+//\n+// Only a client scenario needs this: it is the sender, so the requests have to\n+// leave the library under test. A server scenario is driven from outside its\n+// own process by otel-http-drive and never sends anything.\n+//\n+// No health check: the runner starts the mock server a client scenario calls\n+// and waits for it to answer before running the scenario at all.\n+func Drive(baseURL string, send Sender) error {\n+\tif strings.TrimSpace(baseURL) == \"\" {\n+\t\treturn contractError(\"base URL must not be blank\")\n+\t}\n+\trequests, err := Requests()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tfor _, exchange := range requests {\n+\t\tresponse, err := send(exchange.Method, baseURL+exchange.Path, exchange.Body)\n+\t\tif err != nil {\n+\t\t\treturn fmt.Errorf(\"%s %s: %w\", exchange.Method, exchange.Path, err)\n+\t\t}\n+\t\tfmt.Printf(\"%s %s -> %d %s\\n\",\n+\t\t\texchange.Method, exchange.Path, response.StatusCode, abbreviate(response.Body))",
+      "id": "PRRT_kwDOTuzK5c6bz9Ry",
+      "opened": "2026-08-24T18:43:26Z",
+      "path": "tools/http/test-client/go/client.go",
+      "replies": [
+        {
+          "at": "2026-08-24T18:54:39Z",
+          "body": "Addressed in 6490aa3f7bf30dfb7f2ef23c53dc80e14fcd209f.\n\nAnalysis: `Drive` now accepts an `io.Writer` for progress output instead of writing to stdout directly. The scenario passes `os.Stdout`, while tests and other callers can use `io.Discard` or capture the output.\n\nUpsides: Callers control logging, output errors are returned, and scenario binaries retain their current progress lines.\n\nDownsides: Callers must supply one additional argument when they invoke `Drive`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846511706"
+        }
+      ],
+      "reviewed": "eeaa872fe843e94ba96586e43236620512ee173c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846430289"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The contract discovery behavior is critical to scenario reliability (env override via `OTEL_HTTP_CONTRACT`, upward directory walk, and the terminal error when not found), but the added tests don’t appear to cover these paths. Consider adding focused tests for: (1) `OTEL_HTTP_CONTRACT` overriding discovery, (2) successful upward search from a nested working directory, and (3) not-found behavior producing the expected diagnostic.",
+      "created": "2026-08-24T18:43:26Z",
+      "hunk": "@@ -0,0 +1,188 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package httpcontract is the HTTP conformance exchanges, as Go reads them.\n+//\n+// The traffic is written down once, in tools/http/test-client/contract.json,\n+// so a Go scenario and a scenario in any other language are measured against\n+// the same requests and their coverage files stay comparable. Every Go\n+// framework shares this package rather than restating the answers, while\n+// server scenarios declare their routes in their framework's native form.\n+//\n+// Only the standard library, so importing it next to a scenario drags no\n+// dependency into a run.\n+package httpcontract\n+\n+import (\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"sync\"\n+)\n+\n+// ContentType is what every route answers, so a scenario has one content type\n+// rather than a rule per route.\n+const ContentType = \"application/json\"\n+\n+// UserAgent is fixed rather than the HTTP library's default, so a server\n+// scenario sees the same client whichever language sent the requests.\n+const UserAgent = \"otel-http-conformance/1\"\n+\n+// PathVariable names the contract explicitly. //go:embed cannot reach outside\n+// its own package directory, so the contract is found at run time; this is the\n+// escape hatch for a binary run away from the checkout it was built in.\n+const PathVariable = \"OTEL_HTTP_CONTRACT\"\n+\n+// checkoutPath is where the contract sits in a checkout, searched for upwards\n+// from the working directory — which the runner sets to the scenario\n+// directory, and `go test` to the package's own.\n+const checkoutPath = \"tools/http/test-client/contract.json\"\n+\n+// Exchange is one concrete request and the answer the contract requires.\n+//\n+// Body is empty for a request that carries none. The only substitution in\n+// ResponseBody is the literal ${requestBody}, for the body that arrived.\n+type Exchange struct {\n+\tMethod       string `json:\"method\"`\n+\tPath         string `json:\"path\"`\n+\tBody         string `json:\"body\"`\n+\tStatus       int    `json:\"status\"`\n+\tResponseBody string `json:\"responseBody\"`\n+\tReadiness    bool   `json:\"readiness\"`\n+\t// What the request is in the sequence for — the attribute it should make\n+\t// an instrumentation record. Carried as data rather than as a comment so\n+\t// every language reading the contract has it too.\n+\tDescription string `json:\"description\"`\n+}\n+\n+// RenderResponseBody is the response body with the request body inserted.\n+func (e Exchange) RenderResponseBody(requestBody string) string {\n+\tif requestBody == \"\" {\n+\t\trequestBody = \"{}\"\n+\t}\n+\treturn strings.ReplaceAll(e.ResponseBody, \"${requestBody}\", requestBody)\n+}\n+\n+// Response is a status and a body: what a request came back as, and what a\n+// route answers. One type for both directions, because they are the same pair.\n+type Response struct {\n+\tStatusCode int\n+\tBody       string\n+}\n+\n+// Error is a server answering something the contract does not describe.\n+type Error struct{ message string }\n+\n+func (e *Error) Error() string { return e.message }\n+\n+func contractError(format string, arguments ...any) error {\n+\treturn &Error{message: fmt.Sprintf(format, arguments...)}\n+}\n+\n+type document struct {\n+\tRequests []Exchange `json:\"requests\"`\n+}\n+\n+// Read once: the contract is a constant for the life of a scenario, and every\n+// route handler asks for it.\n+var loaded = sync.OnceValues(load)\n+\n+// Exchanges is every exchange the contract describes, including readiness, in\n+// order.\n+func Exchanges() ([]Exchange, error) {\n+\treturn loaded()\n+}\n+\n+// Requests is the measured requests to send, in order.\n+func Requests() ([]Exchange, error) {\n+\texchanges, err := Exchanges()\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tmeasured := make([]Exchange, 0, len(exchanges))\n+\tfor _, exchange := range exchanges {\n+\t\tif !exchange.Readiness {\n+\t\t\tmeasured = append(measured, exchange)\n+\t\t}\n+\t}\n+\treturn measured, nil\n+}\n+\n+// Lookup is the exchange answering \"method path\", if the contract describes\n+// one. It returns an error when the contract cannot be loaded.\n+func Lookup(method, path string) (Exchange, bool, error) {\n+\texchanges, err := Exchanges()\n+\tif err != nil {\n+\t\treturn Exchange{}, false, err\n+\t}\n+\tpath = withoutQuery(path)\n+\tfor _, exchange := range exchanges {\n+\t\tif exchange.Method == method && withoutQuery(exchange.Path) == path {\n+\t\t\treturn exchange, true, nil\n+\t\t}\n+\t}\n+\treturn Exchange{}, false, nil\n+}\n+\n+func withoutQuery(path string) string {\n+\tif query := strings.IndexByte(path, '?'); query != -1 {\n+\t\treturn path[:query]\n+\t}\n+\treturn path\n+}\n+\n+// parse reads json so two bodies compare by structure rather than by spacing.\n+func parse(body string) (any, error) {\n+\tvar parsed any\n+\tif err := json.Unmarshal([]byte(body), &parsed); err != nil {\n+\t\treturn nil, contractError(\"not JSON: %s\", body)\n+\t}\n+\treturn parsed, nil\n+}\n+\n+func load() ([]Exchange, error) {\n+\tpath, err := locate()\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\traw, err := os.ReadFile(path) //nolint:gosec // the local contract path is intentional\n+\tif err != nil {\n+\t\treturn nil, fmt.Errorf(\"could not read %s: %w\", path, err)\n+\t}\n+\tvar parsed document\n+\tif err := json.Unmarshal(raw, &parsed); err != nil {\n+\t\treturn nil, fmt.Errorf(\"could not parse %s: %w\", path, err)\n+\t}\n+\tif len(parsed.Requests) == 0 {\n+\t\treturn nil, fmt.Errorf(\"%s describes no requests\", path)\n+\t}\n+\treturn parsed.Requests, nil\n+}\n+\n+func locate() (string, error) {\n+\tif declared := os.Getenv(PathVariable); declared != \"\" {\n+\t\treturn declared, nil\n+\t}\n+\tdirectory, err := os.Getwd()\n+\tif err != nil {\n+\t\treturn \"\", err\n+\t}\n+\tfor {\n+\t\tcandidate := filepath.Join(directory, filepath.FromSlash(checkoutPath))\n+\t\tif _, err := os.Stat(candidate); err == nil {\n+\t\t\treturn candidate, nil\n+\t\t} else if !errors.Is(err, os.ErrNotExist) {\n+\t\t\treturn \"\", fmt.Errorf(\"could not inspect %s: %w\", candidate, err)\n+\t\t}\n+\t\tparent := filepath.Dir(directory)\n+\t\tif parent == directory {\n+\t\t\treturn \"\", errors.New(\n+\t\t\t\t\"no \" + checkoutPath + \" at or above the working directory — \" +\n+\t\t\t\t\t\"set \" + PathVariable + \" to run away from a checkout\")\n+\t\t}\n+\t\tdirectory = parent\n+\t}\n+}",
+      "id": "PRRT_kwDOTuzK5c6bz9SH",
+      "opened": "2026-08-24T18:43:26Z",
+      "path": "tools/http/test-client/go/contract.go",
+      "replies": [
+        {
+          "at": "2026-08-24T18:54:41Z",
+          "body": "Addressed in b7a3b77cd9830a01172270b3906374fc4eceb1b7.\n\nAnalysis: Focused tests now exercise the explicit `OTEL_HTTP_CONTRACT` path, discovery from a nested working directory, and the terminal diagnostic when no contract exists.\n\nUpsides: Changes to any contract lookup path now fail a small unit test with a direct diagnostic.\n\nDownsides: The tests temporarily change the process working directory, so they must remain non-parallel.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846511967"
+        }
+      ],
+      "reviewed": "eeaa872fe843e94ba96586e43236620512ee173c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846430316"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `go` directive in `go.mod` is typically declared as `major.minor` (e.g., `go 1.25`) rather than including a patch (`1.25.0`). Using `major.minor` avoids surprising behavior in tools that expect that format and better matches Go’s language-version semantics; if you need to pin a patch toolchain, consider using a separate `toolchain go1.25.x` directive instead.",
+      "created": "2026-08-24T19:13:03Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/tools/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6b0iTQ",
+      "opened": "2026-08-24T19:13:04Z",
+      "path": "tools/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-24T19:22:17Z",
+          "body": "No code change.\n\nAnalysis: Go 1.21 and newer allow a patch release in the `go` directive. These modules require Go 1.25.0, and `go mod tidy -diff` keeps that directive unchanged in all three modules. The workflow also passes `scenarios/http/go/go.mod` directly to `actions/setup-go` v7, which supports this form.\n\nUpsides: Keeping `go 1.25.0` records the exact minimum Go release and matches current Go module tooling.\n\nDownsides: Older third-party tools that have not adopted the current `go.mod` version syntax may reject the directive.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846725858"
+        }
+      ],
+      "reviewed": "b7a3b77cd9830a01172270b3906374fc4eceb1b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846654060"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as other `go.mod` files in this PR: consider changing the `go` directive to `go 1.25` (major.minor). Patch-level pinning is better expressed via the `toolchain` directive if needed, and `major.minor` tends to be the most compatible with downstream tooling.",
+      "created": "2026-08-24T19:13:03Z",
+      "hunk": "@@ -0,0 +1,3 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/tools/http/test-client/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6b0iTz",
+      "opened": "2026-08-24T19:13:04Z",
+      "path": "tools/http/test-client/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-24T19:22:19Z",
+          "body": "No code change.\n\nAnalysis: Go 1.21 and newer allow a patch release in the `go` directive. These modules require Go 1.25.0, and `go mod tidy -diff` keeps that directive unchanged in all three modules. The workflow also passes `scenarios/http/go/go.mod` directly to `actions/setup-go` v7, which supports this form.\n\nUpsides: Keeping `go 1.25.0` records the exact minimum Go release and matches current Go module tooling.\n\nDownsides: Older third-party tools that have not adopted the current `go.mod` version syntax may reject the directive.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846726043"
+        }
+      ],
+      "reviewed": "b7a3b77cd9830a01172270b3906374fc4eceb1b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846654104"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Consider using `go 1.25` instead of `go 1.25.0` for the module Go version. This improves compatibility with tooling that parses the `go` directive as a language version (major.minor), and keeps patch-level toolchain concerns separate.",
+      "created": "2026-08-24T19:13:03Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6b0iUC",
+      "opened": "2026-08-24T19:13:04Z",
+      "path": "scenarios/http/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-24T19:22:21Z",
+          "body": "No code change.\n\nAnalysis: Go 1.21 and newer allow a patch release in the `go` directive. These modules require Go 1.25.0, and `go mod tidy -diff` keeps that directive unchanged in all three modules. The workflow also passes `scenarios/http/go/go.mod` directly to `actions/setup-go` v7, which supports this form.\n\nUpsides: Keeping `go 1.25.0` records the exact minimum Go release and matches current Go module tooling.\n\nDownsides: Older third-party tools that have not adopted the current `go.mod` version syntax may reject the directive.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846726239"
+        }
+      ],
+      "reviewed": "b7a3b77cd9830a01172270b3906374fc4eceb1b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846654131"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Respond`/`Lookup` are exercised with paths that may include query strings (e.g., `/users/123?fields=...`), but the server passes `request.URL.Path`, which intentionally strips the query. While the current implementation ignores queries for lookup, passing the full request target (e.g., `request.URL.RequestURI()` or `request.URL.Path` plus `RawQuery`) would better match the contract inputs and avoids subtle breakage if the contract ever adds query-specific exchanges.",
+      "created": "2026-08-24T19:13:04Z",
+      "hunk": "@@ -0,0 +1,145 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package scenarios is what the net/http client and server scenarios do, with\n+// no OpenTelemetry in it.\n+//\n+// Every instrumentation of net/http runs this same traffic; what differs is\n+// only how it is attached, which each launch package supplies as the hooks\n+// below. Whether an instrumentation is code or an out-of-process agent is\n+// therefore not something the workload knows about.\n+package scenarios\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net\"\n+\t\"net/http\"\n+\t\"strconv\"\n+\t\"time\"\n+\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenario\"\n+\thttpcontract \"github.com/open-telemetry/semantic-conventions-conformance/tools/http/test-client/go\"\n+)\n+\n+// Middleware wraps the whole mux, which is where a net/http instrumentation\n+// that starts server spans attaches.\n+type Middleware func(http.Handler) http.Handler\n+\n+// routes are the framework-native declaration of the contract's paths.\n+//\n+// Go 1.22's ServeMux takes the method and the path template in the pattern\n+// itself, so this is the route in net/http's own model rather than a shape\n+// invented for the conformance run. ServeMux reports back the pattern a\n+// request matched, on the request, which is where an instrumentation reads\n+// http.route from — so the declaration below is the whole of what makes the\n+// route observable, with nothing to attach per route.\n+var routes = []string{\n+\t\"GET /health\",\n+\t\"GET /users/{userId}\",\n+\t\"POST /items\",\n+\t\"GET /status/{code}\",\n+}\n+\n+const (\n+\t// A server that never times out reading request headers is a lint finding\n+\t// in its own right. An idle keep-alive connection needs no deadline,\n+\t// because Shutdown closes idle connections when the driver says stop.\n+\treadHeaderTimeout = 10 * time.Second\n+\n+\t// Leave enough time for the driver to report a shutdown error before its\n+\t// own process timeout expires.\n+\tshutdownTimeout = 10 * time.Second\n+)\n+\n+// RunServer hosts the shared HTTP exchanges until the driver says stop.\n+//\n+// The requests are sent by otel-http-drive from another process, so nothing\n+// this binary links can instrument the sender and record client spans in a\n+// server scenario's report. It listens on the port the driver chose and shuts\n+// down when the driver closes its standard input, which is what gives the SDK\n+// a chance to flush.\n+func RunServer(middleware Middleware) error {\n+\tif middleware == nil {\n+\t\tmiddleware = func(handler http.Handler) http.Handler { return handler }\n+\t}\n+\n+\tport, err := httpcontract.ScenarioPort()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tif _, err := httpcontract.Exchanges(); err != nil {\n+\t\treturn err\n+\t}\n+\n+\tmux := http.NewServeMux()\n+\tfor _, pattern := range routes {\n+\t\tmux.Handle(pattern, answer())\n+\t}\n+\n+\tlistener, err := net.Listen(\"tcp\", net.JoinHostPort(\"127.0.0.1\", strconv.Itoa(port)))\n+\tif err != nil {\n+\t\treturn fmt.Errorf(\"listening on port %d: %w\", port, err)\n+\t}\n+\n+\tserver := &http.Server{\n+\t\tHandler:           middleware(mux),\n+\t\tReadHeaderTimeout: readHeaderTimeout,\n+\t}\n+\tserved := make(chan error, 1)\n+\tgo func() { served <- server.Serve(listener) }()\n+\n+\tstopping := make(chan error, 1)\n+\tgo func() { stopping <- scenario.WaitForEOF() }()\n+\n+\tvar stopped error\n+\tselect {\n+\tcase err := <-served:\n+\t\t// Serve gave up before the driver said stop, so nothing was ever going\n+\t\t// to be measured. Reporting it here rather than going on to wait for\n+\t\t// standard input is what turns a hang into a message: otherwise the\n+\t\t// process would hold the port until the driver's timeout killed it,\n+\t\t// and the one line explaining why would go with it.\n+\t\tif err == nil {\n+\t\t\terr = errors.New(\"the server stopped accepting connections\")\n+\t\t}\n+\t\treturn err\n+\tcase stopped = <-stopping:\n+\t}\n+\n+\tshutdownContext, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)\n+\terr = server.Shutdown(shutdownContext)\n+\tcancelShutdown()\n+\tif err != nil {\n+\t\tstopped = errors.Join(stopped, fmt.Errorf(\"shutting down server: %w\", err))\n+\t\tif err := server.Close(); err != nil {\n+\t\t\tstopped = errors.Join(stopped, fmt.Errorf(\"closing server: %w\", err))\n+\t\t}\n+\t}\n+\tif err := <-served; err != nil && !errors.Is(err, http.ErrServerClosed) {\n+\t\tstopped = errors.Join(stopped, err)\n+\t}\n+\treturn stopped\n+}\n+\n+// answer looks the concrete request up in the contract. Identical for every Go\n+// framework, which is why only the route declaration above is net/http's.\n+func answer() http.Handler {\n+\treturn http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {\n+\t\tbody, err := io.ReadAll(request.Body)\n+\t\tif err != nil {\n+\t\t\thttp.Error(writer, err.Error(), http.StatusBadRequest)\n+\t\t\treturn\n+\t\t}\n+\t\tresponse, err := httpcontract.Respond(request.Method, request.URL.Path, string(body))",
+      "id": "PRRT_kwDOTuzK5c6b0iUW",
+      "opened": "2026-08-24T19:13:04Z",
+      "path": "scenarios/http/go/net-http/scenarios/server.go",
+      "replies": [
+        {
+          "at": "2026-08-24T19:22:23Z",
+          "body": "Addressed in 1efac653985149ec79570de2cd2eae8827302658.\n\nAnalysis: The server now passes `request.URL.RequestURI()` to the shared contract. A focused test confirms that the request target includes the raw query string.\n\nUpsides: The shared contract receives the same path and query that the client sent, so future query-specific exchanges do not require a server fix.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846726434"
+        }
+      ],
+      "reviewed": "b7a3b77cd9830a01172270b3906374fc4eceb1b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846654162"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When JSON parsing fails, the returned error drops the underlying `json.Unmarshal` failure detail, which can make debugging malformed responses harder. Consider including (or wrapping) the original unmarshal error while keeping the message prefix stable (tests currently check for `not JSON`), and consider abbreviating the body in the error to avoid extremely large error strings.",
+      "created": "2026-08-24T19:13:04Z",
+      "hunk": "@@ -0,0 +1,188 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package httpcontract is the HTTP conformance exchanges, as Go reads them.\n+//\n+// The traffic is written down once, in tools/http/test-client/contract.json,\n+// so a Go scenario and a scenario in any other language are measured against\n+// the same requests and their coverage files stay comparable. Every Go\n+// framework shares this package rather than restating the answers, while\n+// server scenarios declare their routes in their framework's native form.\n+//\n+// Only the standard library, so importing it next to a scenario drags no\n+// dependency into a run.\n+package httpcontract\n+\n+import (\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"sync\"\n+)\n+\n+// ContentType is what every route answers, so a scenario has one content type\n+// rather than a rule per route.\n+const ContentType = \"application/json\"\n+\n+// UserAgent is fixed rather than the HTTP library's default, so a server\n+// scenario sees the same client whichever language sent the requests.\n+const UserAgent = \"otel-http-conformance/1\"\n+\n+// PathVariable names the contract explicitly. //go:embed cannot reach outside\n+// its own package directory, so the contract is found at run time; this is the\n+// escape hatch for a binary run away from the checkout it was built in.\n+const PathVariable = \"OTEL_HTTP_CONTRACT\"\n+\n+// checkoutPath is where the contract sits in a checkout, searched for upwards\n+// from the working directory — which the runner sets to the scenario\n+// directory, and `go test` to the package's own.\n+const checkoutPath = \"tools/http/test-client/contract.json\"\n+\n+// Exchange is one concrete request and the answer the contract requires.\n+//\n+// Body is empty for a request that carries none. The only substitution in\n+// ResponseBody is the literal ${requestBody}, for the body that arrived.\n+type Exchange struct {\n+\tMethod       string `json:\"method\"`\n+\tPath         string `json:\"path\"`\n+\tBody         string `json:\"body\"`\n+\tStatus       int    `json:\"status\"`\n+\tResponseBody string `json:\"responseBody\"`\n+\tReadiness    bool   `json:\"readiness\"`\n+\t// What the request is in the sequence for — the attribute it should make\n+\t// an instrumentation record. Carried as data rather than as a comment so\n+\t// every language reading the contract has it too.\n+\tDescription string `json:\"description\"`\n+}\n+\n+// RenderResponseBody is the response body with the request body inserted.\n+func (e Exchange) RenderResponseBody(requestBody string) string {\n+\tif requestBody == \"\" {\n+\t\trequestBody = \"{}\"\n+\t}\n+\treturn strings.ReplaceAll(e.ResponseBody, \"${requestBody}\", requestBody)\n+}\n+\n+// Response is a status and a body: what a request came back as, and what a\n+// route answers. One type for both directions, because they are the same pair.\n+type Response struct {\n+\tStatusCode int\n+\tBody       string\n+}\n+\n+// Error is a server answering something the contract does not describe.\n+type Error struct{ message string }\n+\n+func (e *Error) Error() string { return e.message }\n+\n+func contractError(format string, arguments ...any) error {\n+\treturn &Error{message: fmt.Sprintf(format, arguments...)}\n+}\n+\n+type document struct {\n+\tRequests []Exchange `json:\"requests\"`\n+}\n+\n+// Read once: the contract is a constant for the life of a scenario, and every\n+// route handler asks for it.\n+var loaded = sync.OnceValues(load)\n+\n+// Exchanges is every exchange the contract describes, including readiness, in\n+// order.\n+func Exchanges() ([]Exchange, error) {\n+\treturn loaded()\n+}\n+\n+// Requests is the measured requests to send, in order.\n+func Requests() ([]Exchange, error) {\n+\texchanges, err := Exchanges()\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tmeasured := make([]Exchange, 0, len(exchanges))\n+\tfor _, exchange := range exchanges {\n+\t\tif !exchange.Readiness {\n+\t\t\tmeasured = append(measured, exchange)\n+\t\t}\n+\t}\n+\treturn measured, nil\n+}\n+\n+// Lookup is the exchange answering \"method path\", if the contract describes\n+// one. It returns an error when the contract cannot be loaded.\n+func Lookup(method, path string) (Exchange, bool, error) {\n+\texchanges, err := Exchanges()\n+\tif err != nil {\n+\t\treturn Exchange{}, false, err\n+\t}\n+\tpath = withoutQuery(path)\n+\tfor _, exchange := range exchanges {\n+\t\tif exchange.Method == method && withoutQuery(exchange.Path) == path {\n+\t\t\treturn exchange, true, nil\n+\t\t}\n+\t}\n+\treturn Exchange{}, false, nil\n+}\n+\n+func withoutQuery(path string) string {\n+\tif query := strings.IndexByte(path, '?'); query != -1 {\n+\t\treturn path[:query]\n+\t}\n+\treturn path\n+}\n+\n+// parse reads json so two bodies compare by structure rather than by spacing.\n+func parse(body string) (any, error) {\n+\tvar parsed any\n+\tif err := json.Unmarshal([]byte(body), &parsed); err != nil {\n+\t\treturn nil, contractError(\"not JSON: %s\", body)",
+      "id": "PRRT_kwDOTuzK5c6b0iUq",
+      "opened": "2026-08-24T19:13:04Z",
+      "path": "tools/http/test-client/go/contract.go",
+      "replies": [
+        {
+          "at": "2026-08-24T19:22:24Z",
+          "body": "Addressed in ace049106fb7836c739cdf01ba2aef85e2c12ee3.\n\nAnalysis: Contract errors can now wrap an underlying cause. A JSON parse failure wraps the `json.Unmarshal` error and includes only an abbreviated response body while preserving the `not JSON` prefix.\n\nUpsides: Callers can inspect the syntax error with `errors.As`, diagnostics explain why parsing failed, and large response bodies do not flood logs.\n\nDownsides: JSON parse error messages now include additional syntax details.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846726651"
+        }
+      ],
+      "reviewed": "b7a3b77cd9830a01172270b3906374fc4eceb1b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3846654193"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The handler ignores the error from writing the response body. This can hide client disconnects/short writes and make failures harder to diagnose. Consider checking the `io.WriteString` error; at minimum, record/return it (noting headers may already be sent), or use `http.Error` only before `WriteHeader`.",
+      "created": "2026-08-25T18:55:25Z",
+      "hunk": "@@ -0,0 +1,131 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package scenarios defines net/http workloads independently of instrumentation.\n+//\n+// Instrumentation-specific commands supply the client transport or server\n+// middleware.\n+package scenarios\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net\"\n+\t\"net/http\"\n+\t\"strconv\"\n+\t\"time\"\n+\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenario\"\n+\thttpcontract \"github.com/open-telemetry/semantic-conventions-conformance/tools/http/test-client/go\"\n+)\n+\n+// Middleware wraps the whole mux, which is where a net/http instrumentation\n+// that starts server spans attaches.\n+type Middleware func(http.Handler) http.Handler\n+\n+// routes declare the contract with ServeMux's method-and-template patterns.\n+// ServeMux records the matched pattern on the request for instrumentation.\n+var routes = []string{\n+\t\"GET /health\",\n+\t\"GET /users/{userId}\",\n+\t\"POST /items\",\n+\t\"GET /status/{code}\",\n+}\n+\n+const (\n+\t// Bound header reads without timing out idle keep-alive connections, which\n+\t// Shutdown closes.\n+\treadHeaderTimeout = 10 * time.Second\n+\n+\t// Leave enough time for the driver to report a shutdown error before its\n+\t// own process timeout expires.\n+\tshutdownTimeout = 10 * time.Second\n+)\n+\n+// RunServer hosts the shared HTTP exchanges until the driver says stop.\n+//\n+// The external driver prevents client spans in this server run. Closing stdin\n+// stops the server and gives the SDK a chance to flush.\n+func RunServer(middleware Middleware) error {\n+\tif middleware == nil {\n+\t\tmiddleware = func(handler http.Handler) http.Handler { return handler }\n+\t}\n+\n+\tport, err := httpcontract.ScenarioPort()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tif _, err := httpcontract.Exchanges(); err != nil {\n+\t\treturn err\n+\t}\n+\n+\tmux := http.NewServeMux()\n+\tfor _, pattern := range routes {\n+\t\tmux.Handle(pattern, answer())\n+\t}\n+\n+\tlistener, err := net.Listen(\"tcp\", net.JoinHostPort(\"127.0.0.1\", strconv.Itoa(port)))\n+\tif err != nil {\n+\t\treturn fmt.Errorf(\"listening on port %d: %w\", port, err)\n+\t}\n+\n+\tserver := &http.Server{\n+\t\tHandler:           middleware(mux),\n+\t\tReadHeaderTimeout: readHeaderTimeout,\n+\t}\n+\tserved := make(chan error, 1)\n+\tgo func() { served <- server.Serve(listener) }()\n+\n+\tstopping := make(chan error, 1)\n+\tgo func() { stopping <- scenario.WaitForEOF() }()\n+\n+\tvar stopped error\n+\tselect {\n+\tcase err := <-served:\n+\t\t// Return immediately if Serve fails; waiting for stdin would leave the\n+\t\t// process hung until the driver's timeout.\n+\t\tif err == nil {\n+\t\t\terr = errors.New(\"the server stopped accepting connections\")\n+\t\t}\n+\t\treturn err\n+\tcase stopped = <-stopping:\n+\t}\n+\n+\tshutdownContext, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)\n+\terr = server.Shutdown(shutdownContext)\n+\tcancelShutdown()\n+\tif err != nil {\n+\t\tstopped = errors.Join(stopped, fmt.Errorf(\"shutting down server: %w\", err))\n+\t\tif err := server.Close(); err != nil {\n+\t\t\tstopped = errors.Join(stopped, fmt.Errorf(\"closing server: %w\", err))\n+\t\t}\n+\t}\n+\tif err := <-served; err != nil && !errors.Is(err, http.ErrServerClosed) {\n+\t\tstopped = errors.Join(stopped, err)\n+\t}\n+\treturn stopped\n+}\n+\n+func answer() http.Handler {\n+\treturn http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {\n+\t\tbody, err := io.ReadAll(request.Body)\n+\t\tif err != nil {\n+\t\t\thttp.Error(writer, err.Error(), http.StatusBadRequest)\n+\t\t\treturn\n+\t\t}\n+\t\tresponse, err := httpcontract.Respond(request.Method, requestTarget(request), string(body))\n+\t\tif err != nil {\n+\t\t\thttp.Error(writer, err.Error(), http.StatusInternalServerError)\n+\t\t\treturn\n+\t\t}\n+\t\twriter.Header().Set(\"Content-Type\", httpcontract.ContentType)\n+\t\twriter.WriteHeader(response.StatusCode)\n+\t\t_, _ = io.WriteString(writer, response.Body)",
+      "id": "PRRT_kwDOTuzK5c6cM1-A",
+      "opened": "2026-08-25T18:55:25Z",
+      "path": "scenarios/http/go/net-http/scenarios/server.go",
+      "replies": [
+        {
+          "at": "2026-08-25T19:14:23Z",
+          "body": "Addressed in d1764fd8332ab6a7e5121bbe3f2af98bfbe9b20f.\n\nAnalysis: The handler cannot return a write error through `net/http`, and the response headers have already been sent. Logging the error records client disconnects and short writes without attempting to send a second response.\n\nUpsides: Response body write failures now appear in the server log with their cause.\n\nDownsides: A failed write adds one log entry, but the handler still cannot repair or replace a partial response.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856392977"
+        }
+      ],
+      "reviewed": "798919660522a133fcc4b400c1717c43f7bb91a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856233802"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Setting `go 1.25.0` establishes the module’s minimum Go toolchain/language version, which can break developers/CI environments that haven’t upgraded yet. If the code doesn’t require 1.25-specific features, consider lowering this to the project’s intended minimum (and keeping all Go modules aligned); if 1.25 is required, it would help to document that minimum in the Go/CI docs.",
+      "created": "2026-08-25T18:55:25Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+module github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go\n+\n+go 1.25.0",
+      "id": "PRRT_kwDOTuzK5c6cM1-h",
+      "opened": "2026-08-25T18:55:25Z",
+      "path": "scenarios/http/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-08-25T19:14:24Z",
+          "body": "Addressed in 5550e86c2dccef2a6ee34829bc71846256e57077.\n\nAnalysis: The pinned OpenTelemetry v1.45.0, otelhttp v0.70.0, and gRPC v1.83.0 modules each declare Go 1.25.0. Lowering this module would conflict with those dependencies. The Go scenario documentation now states the shared minimum and notes that CI reads this module file.\n\nUpsides: Developers can see the required Go version before building, and the three Go modules remain aligned with their dependencies.\n\nDownsides: The documented minimum must change if the dependency or toolchain policy changes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856393158"
+        }
+      ],
+      "reviewed": "798919660522a133fcc4b400c1717c43f7bb91a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856233849"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "String slicing here truncates by bytes, which can split multi-byte UTF-8 runes and produce invalid text in the progress output. Consider truncating by rune count (or using a UTF-8-safe truncation helper) so logs remain valid across non-ASCII response bodies.",
+      "created": "2026-08-25T19:34:06Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+package httpcontract\n+\n+import (\n+\t\"fmt\"\n+\t\"io\"\n+\t\"reflect\"\n+\t\"strings\"\n+)\n+\n+// Sender sends one request using the HTTP client library under test. body is\n+// empty for a request that carries none.\n+type Sender func(method, url, body string) (Response, error)\n+\n+// Drive sends Requests at baseURL through send, checking every answer and\n+// writing one progress line per response to output.\n+//\n+// Only a client scenario needs this: it is the sender, so the requests have to\n+// leave the library under test. A server scenario is driven from outside its\n+// own process by otel-http-drive and never sends anything.\n+//\n+// No health check: the runner starts the mock server a client scenario calls\n+// and waits for it to answer before running the scenario at all.\n+func Drive(baseURL string, output io.Writer, send Sender) error {\n+\tif strings.TrimSpace(baseURL) == \"\" {\n+\t\treturn contractError(\"base URL must not be blank\")\n+\t}\n+\tif output == nil {\n+\t\treturn contractError(\"output must not be nil\")\n+\t}\n+\tbaseURL = strings.TrimRight(baseURL, \"/\")\n+\trequests, err := Requests()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tfor _, exchange := range requests {\n+\t\tresponse, err := send(exchange.Method, baseURL+exchange.Path, exchange.Body)\n+\t\tif err != nil {\n+\t\t\treturn fmt.Errorf(\"%s %s: %w\", exchange.Method, exchange.Path, err)\n+\t\t}\n+\t\tif _, err := fmt.Fprintf(output, \"%s %s -> %d %s\\n\",\n+\t\t\texchange.Method, exchange.Path, response.StatusCode, abbreviate(response.Body)); err != nil {\n+\t\t\treturn fmt.Errorf(\"writing result for %s %s: %w\",\n+\t\t\t\texchange.Method, exchange.Path, err)\n+\t\t}\n+\t\tif err := Verify(exchange, response); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t}\n+\treturn nil\n+}\n+\n+// Verify checks one answer against the exchange that describes it.\n+//\n+// A server answering different traffic from the rest fails the run rather than\n+// quietly producing a coverage file that cannot be compared with the others.\n+func Verify(exchange Exchange, response Response) error {\n+\tif response.StatusCode != exchange.Status {\n+\t\treturn contractError(\n+\t\t\t\"%s %s answered %d, but the contract's request answers %d\",\n+\t\t\texchange.Method, exchange.Path, response.StatusCode, exchange.Status)\n+\t}\n+\n+\t// Parsed, not compared as text: whitespace and key order are a language's\n+\t// choice of JSON writer, and neither is part of the contract.\n+\twant, err := parse(exchange.RenderResponseBody(exchange.Body))\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tgot, err := parse(response.Body)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tif !reflect.DeepEqual(got, want) {\n+\t\treturn contractError(\n+\t\t\t\"%s %s answered %v, but the contract's request answers %v\",\n+\t\t\texchange.Method, exchange.Path, got, want)\n+\t}\n+\treturn nil\n+}\n+\n+func abbreviate(value string) string {\n+\tsingleLine := strings.NewReplacer(\"\\r\", \" \", \"\\n\", \" \").Replace(value)\n+\tif len(singleLine) <= 60 {\n+\t\treturn singleLine\n+\t}\n+\treturn singleLine[:60]",
+      "id": "PRRT_kwDOTuzK5c6cNs5W",
+      "opened": "2026-08-25T19:34:07Z",
+      "path": "tools/http/test-client/go/client.go",
+      "replies": [
+        {
+          "at": "2026-08-25T19:41:16Z",
+          "body": "Addressed in 8fbbcaeb129aca64c0f754171edd2797f2509aa0.\n\nAnalysis: Go string offsets count bytes, so the previous boundary could cut through a UTF-8 encoding. The abbreviation now converts long values to runes before slicing, and a regression test places a multi-byte character across the old boundary.\n\nUpsides: Progress output remains valid UTF-8 and keeps exactly 60 characters.\n\nDownsides: Abbreviating a value longer than 60 bytes allocates a rune slice.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856627320"
+        }
+      ],
+      "reviewed": "5550e86c2dccef2a6ee34829bc71846256e57077",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856570797"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Hard-coding `os.Stdin` makes `WaitForEOF` difficult to unit test and less reusable (e.g., if a caller wants to wait on a different reader). Consider introducing a helper like `WaitForEOF(r io.Reader) error` and keeping `WaitForEOF()` as a thin wrapper around it to improve testability and composability.",
+      "created": "2026-08-25T19:34:06Z",
+      "hunk": "@@ -0,0 +1,40 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package scenario is what a Go scenario needs before any telemetry: what the\n+// runner told it, and how it learns the runner is finished with it.\n+//\n+// It carries no OpenTelemetry dependency at all, which is the point. A\n+// scenario measuring an out-of-process agent must be able to reach the runner\n+// and the shutdown protocol without linking an SDK it never asked for, so\n+// these live apart from [scenariosdk]. Nothing here is specific to a domain.\n+package scenario\n+\n+import (\n+\t\"fmt\"\n+\t\"io\"\n+\t\"os\"\n+)\n+\n+// Require returns the environment variable named by name or an error.\n+func Require(name string) (string, error) {\n+\tvalue := os.Getenv(name)\n+\tif value == \"\" {\n+\t\treturn \"\", fmt.Errorf(\"required environment variable is missing: %s\", name)\n+\t}\n+\treturn value, nil\n+}\n+\n+// WaitForEOF blocks until standard input closes, which is how the driver says\n+// stop.\n+//\n+// A closed pipe rather than a signal: it means the same thing on every\n+// platform, and returning is what gives an SDK the chance to flush, so a\n+// scenario that exits any other way reports less than it produced. The\n+// protocol is the same in every domain.\n+func WaitForEOF() error {\n+\tif _, err := io.Copy(io.Discard, os.Stdin); err != nil {\n+\t\treturn fmt.Errorf(\"reading standard input: %w\", err)\n+\t}\n+\treturn nil\n+}",
+      "id": "PRRT_kwDOTuzK5c6cNs6D",
+      "opened": "2026-08-25T19:34:07Z",
+      "path": "tools/go/scenario/scenario.go",
+      "replies": [
+        {
+          "at": "2026-08-25T19:41:17Z",
+          "body": "Addressed in 9fa9c7f446be7b156a63668447ef299cbbb6f059.\n\nAnalysis: `WaitForEOF` now reads an injected `io.Reader`, with tests for EOF and read errors. `RunServer` now receives a caller-owned stop channel and starts no input goroutine. The command entry point owns the process-scoped stdin reader, while in-process callers can supply a channel with their own lifetime.\n\nUpsides: The EOF protocol is directly testable and reusable, and an early server failure cannot leave an input goroutine owned by `RunServer`.\n\nDownsides: The new `RunServer` and `WaitForEOF` parameters require callers to provide the stop source and input reader.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856627559"
+        }
+      ],
+      "reviewed": "5550e86c2dccef2a6ee34829bc71846256e57077",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856570865"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `server.Serve(listener)` returns early with an error, `RunServer` returns immediately but the `WaitForEOF()` goroutine remains blocked on stdin until process exit. If `RunServer` is ever used in-process (e.g., in tests or as a library), this becomes a goroutine leak. Consider making the stdin-wait cancelable (e.g., `scenario.WaitForEOF(ctx)`), or restructuring so the EOF wait isn’t left running when the server fails early.",
+      "created": "2026-08-25T19:34:07Z",
+      "hunk": "@@ -0,0 +1,134 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package scenarios defines net/http workloads independently of instrumentation.\n+//\n+// Instrumentation-specific commands supply the client transport or server\n+// middleware.\n+package scenarios\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"log\"\n+\t\"net\"\n+\t\"net/http\"\n+\t\"strconv\"\n+\t\"time\"\n+\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenario\"\n+\thttpcontract \"github.com/open-telemetry/semantic-conventions-conformance/tools/http/test-client/go\"\n+)\n+\n+// Middleware wraps the whole mux, which is where a net/http instrumentation\n+// that starts server spans attaches.\n+type Middleware func(http.Handler) http.Handler\n+\n+// routes declare the contract with ServeMux's method-and-template patterns.\n+// ServeMux records the matched pattern on the request for instrumentation.\n+var routes = []string{\n+\t\"GET /health\",\n+\t\"GET /users/{userId}\",\n+\t\"POST /items\",\n+\t\"GET /status/{code}\",\n+}\n+\n+const (\n+\t// Bound header reads without timing out idle keep-alive connections, which\n+\t// Shutdown closes.\n+\treadHeaderTimeout = 10 * time.Second\n+\n+\t// Leave enough time for the driver to report a shutdown error before its\n+\t// own process timeout expires.\n+\tshutdownTimeout = 10 * time.Second\n+)\n+\n+// RunServer hosts the shared HTTP exchanges until the driver says stop.\n+//\n+// The external driver prevents client spans in this server run. Closing stdin\n+// stops the server and gives the SDK a chance to flush.\n+func RunServer(middleware Middleware) error {\n+\tif middleware == nil {\n+\t\tmiddleware = func(handler http.Handler) http.Handler { return handler }\n+\t}\n+\n+\tport, err := httpcontract.ScenarioPort()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tif _, err := httpcontract.Exchanges(); err != nil {\n+\t\treturn err\n+\t}\n+\n+\tmux := http.NewServeMux()\n+\tfor _, pattern := range routes {\n+\t\tmux.Handle(pattern, answer())\n+\t}\n+\n+\tlistener, err := net.Listen(\"tcp\", net.JoinHostPort(\"127.0.0.1\", strconv.Itoa(port)))\n+\tif err != nil {\n+\t\treturn fmt.Errorf(\"listening on port %d: %w\", port, err)\n+\t}\n+\n+\tserver := &http.Server{\n+\t\tHandler:           middleware(mux),\n+\t\tReadHeaderTimeout: readHeaderTimeout,\n+\t}\n+\tserved := make(chan error, 1)\n+\tgo func() { served <- server.Serve(listener) }()\n+\n+\tstopping := make(chan error, 1)\n+\tgo func() { stopping <- scenario.WaitForEOF() }()\n+\n+\tvar stopped error\n+\tselect {\n+\tcase err := <-served:\n+\t\t// Return immediately if Serve fails; waiting for stdin would leave the\n+\t\t// process hung until the driver's timeout.\n+\t\tif err == nil {\n+\t\t\terr = errors.New(\"the server stopped accepting connections\")\n+\t\t}\n+\t\treturn err\n+\tcase stopped = <-stopping:\n+\t}",
+      "id": "PRRT_kwDOTuzK5c6cNs6m",
+      "opened": "2026-08-25T19:34:07Z",
+      "path": "scenarios/http/go/net-http/scenarios/server.go",
+      "replies": [
+        {
+          "at": "2026-08-25T19:41:18Z",
+          "body": "Addressed in 9fa9c7f446be7b156a63668447ef299cbbb6f059.\n\nAnalysis: `WaitForEOF` now reads an injected `io.Reader`, with tests for EOF and read errors. `RunServer` now receives a caller-owned stop channel and starts no input goroutine. The command entry point owns the process-scoped stdin reader, while in-process callers can supply a channel with their own lifetime.\n\nUpsides: The EOF protocol is directly testable and reusable, and an early server failure cannot leave an input goroutine owned by `RunServer`.\n\nDownsides: The new `RunServer` and `WaitForEOF` parameters require callers to provide the stop source and input reader.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856627761"
+        }
+      ],
+      "reviewed": "5550e86c2dccef2a6ee34829bc71846256e57077",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3856570912"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Lookup` strips the query string before matching, which makes later exchanges that differ only by query unreachable. In the current contract, both `/users/123` and `/users/123?fields=...` exist; a lookup for the query form will always return the first (`/users/123`) exchange, so the query-specific exchange is never selected. Prefer an exact match (including query) when present, and only fall back to query-less matching when no exact match exists.",
+      "created": "2026-08-30T02:29:00Z",
+      "hunk": "@@ -0,0 +1,191 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package httpcontract is the HTTP conformance exchanges, as Go reads them.\n+//\n+// The traffic is written down once, in tools/http/test-client/contract.json,\n+// so a Go scenario and a scenario in any other language are measured against\n+// the same requests and their coverage files stay comparable. Every Go\n+// framework shares this package rather than restating the answers, while\n+// server scenarios declare their routes in their framework's native form.\n+//\n+// Only the standard library, so importing it next to a scenario drags no\n+// dependency into a run.\n+package httpcontract\n+\n+import (\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"sync\"\n+)\n+\n+// ContentType is what every route answers, so a scenario has one content type\n+// rather than a rule per route.\n+const ContentType = \"application/json\"\n+\n+// UserAgent is fixed rather than the HTTP library's default, so a server\n+// scenario sees the same client whichever language sent the requests.\n+const UserAgent = \"otel-http-conformance/1\"\n+\n+// PathVariable names the contract explicitly. //go:embed cannot reach outside\n+// its own package directory, so the contract is found at run time; this is the\n+// escape hatch for a binary run away from the checkout it was built in.\n+const PathVariable = \"OTEL_HTTP_CONTRACT\"\n+\n+// checkoutPath is where the contract sits in a checkout, searched for upwards\n+// from the working directory — which the runner sets to the scenario\n+// directory, and `go test` to the package's own.\n+const checkoutPath = \"tools/http/test-client/contract.json\"\n+\n+// Exchange is one concrete request and the answer the contract requires.\n+//\n+// Body is empty for a request that carries none. The only substitution in\n+// ResponseBody is the literal ${requestBody}, for the body that arrived.\n+type Exchange struct {\n+\tMethod       string `json:\"method\"`\n+\tPath         string `json:\"path\"`\n+\tBody         string `json:\"body\"`\n+\tStatus       int    `json:\"status\"`\n+\tResponseBody string `json:\"responseBody\"`\n+\tReadiness    bool   `json:\"readiness\"`\n+\tDescription  string `json:\"description\"`\n+}\n+\n+// RenderResponseBody is the response body with the request body inserted.\n+func (e Exchange) RenderResponseBody(requestBody string) string {\n+\tif requestBody == \"\" {\n+\t\trequestBody = \"{}\"\n+\t}\n+\treturn strings.ReplaceAll(e.ResponseBody, \"${requestBody}\", requestBody)\n+}\n+\n+// Response is the status and body returned by a request or route.\n+type Response struct {\n+\tStatusCode int\n+\tBody       string\n+}\n+\n+// Error reports a contract validation failure.\n+type Error struct {\n+\tmessage string\n+\tcause   error\n+}\n+\n+func (e *Error) Error() string { return e.message }\n+\n+func (e *Error) Unwrap() error { return e.cause }\n+\n+func contractError(format string, arguments ...any) error {\n+\treturn &Error{message: fmt.Sprintf(format, arguments...)}\n+}\n+\n+type document struct {\n+\tRequests []Exchange `json:\"requests\"`\n+}\n+\n+// Read once: the contract is a constant for the life of a scenario, and every\n+// route handler asks for it.\n+var loaded = sync.OnceValues(load)\n+\n+// Exchanges is every exchange the contract describes, including readiness, in\n+// order.\n+func Exchanges() ([]Exchange, error) {\n+\treturn loaded()\n+}\n+\n+// Requests is the measured requests to send, in order.\n+func Requests() ([]Exchange, error) {\n+\texchanges, err := Exchanges()\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tmeasured := make([]Exchange, 0, len(exchanges))\n+\tfor _, exchange := range exchanges {\n+\t\tif !exchange.Readiness {\n+\t\t\tmeasured = append(measured, exchange)\n+\t\t}\n+\t}\n+\treturn measured, nil\n+}\n+\n+// Lookup is the exchange answering \"method path\", if the contract describes\n+// one. It returns an error when the contract cannot be loaded.\n+func Lookup(method, path string) (Exchange, bool, error) {\n+\texchanges, err := Exchanges()\n+\tif err != nil {\n+\t\treturn Exchange{}, false, err\n+\t}\n+\tpath = withoutQuery(path)\n+\tfor _, exchange := range exchanges {\n+\t\tif exchange.Method == method && withoutQuery(exchange.Path) == path {\n+\t\t\treturn exchange, true, nil\n+\t\t}\n+\t}\n+\treturn Exchange{}, false, nil\n+}",
+      "id": "PRRT_kwDOTuzK5c6deMaA",
+      "opened": "2026-08-30T02:29:01Z",
+      "path": "tools/http/test-client/go/contract.go",
+      "replies": [
+        {
+          "at": "2026-08-30T02:32:16Z",
+          "body": "Addressed in 6328ff4fb2c7d4c0fecbce54f0d80d318569b5aa.\n\nAnalysis: `Lookup` normalized the requested path before its only scan, so contract order hid an exact query-specific exchange behind the earlier plain path. Scanning for an exact method and path first makes every declared exchange reachable. A second normalized scan preserves the server's existing route fallback for query strings that the contract does not list exactly.\n\nUpsides: Query-specific exchanges now win when present, unknown query strings still map to the matching route, and tests cover both branches.\n\nDownsides: A lookup without an exact match scans the small contract twice.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3888268367"
+        }
+      ],
+      "reviewed": "6c2ede8baeb3efa27fa3edc1f0c48b3b953919a6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3888263190"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When parsing the contract-provided expected response body fails, Verify returns the raw parse error without method/path context, which makes it harder to identify which exchange in the contract is malformed. Wrap the error the same way the response-body parse error is wrapped.",
+      "created": "2026-08-31T02:08:01Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+package httpcontract\n+\n+import (\n+\t\"fmt\"\n+\t\"io\"\n+\t\"reflect\"\n+\t\"strings\"\n+)\n+\n+const progressBodyLimit = 60\n+\n+// Sender sends one request using the HTTP client library under test. body is\n+// empty for a request that carries none.\n+type Sender func(method, url, body string) (Response, error)\n+\n+// Drive sends Requests at baseURL through send, checking every answer and\n+// writing one progress line per response to output.\n+//\n+// Only a client scenario needs this: it is the sender, so the requests have to\n+// leave the library under test. A server scenario is driven from outside its\n+// own process by otel-http-drive and never sends anything.\n+//\n+// No health check: the runner starts the mock server a client scenario calls\n+// and waits for it to answer before running the scenario at all.\n+func Drive(baseURL string, output io.Writer, send Sender) error {\n+\tif strings.TrimSpace(baseURL) == \"\" {\n+\t\treturn contractError(\"base URL must not be blank\")\n+\t}\n+\tif output == nil {\n+\t\treturn contractError(\"output must not be nil\")\n+\t}\n+\tif send == nil {\n+\t\treturn contractError(\"sender must not be nil\")\n+\t}\n+\tbaseURL = strings.TrimRight(baseURL, \"/\")\n+\trequests, err := Requests()\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tfor _, exchange := range requests {\n+\t\tresponse, err := send(exchange.Method, baseURL+exchange.Path, exchange.Body)\n+\t\tif err != nil {\n+\t\t\treturn fmt.Errorf(\"%s %s: %w\", exchange.Method, exchange.Path, err)\n+\t\t}\n+\t\tif _, err := fmt.Fprintf(output, \"%s %s -> %d %s\\n\",\n+\t\t\texchange.Method, exchange.Path, response.StatusCode, abbreviate(response.Body)); err != nil {\n+\t\t\treturn fmt.Errorf(\"writing result for %s %s: %w\",\n+\t\t\t\texchange.Method, exchange.Path, err)\n+\t\t}\n+\t\tif err := Verify(exchange, response); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t}\n+\treturn nil\n+}\n+\n+// Verify checks one answer against the exchange that describes it.\n+//\n+// A server answering different traffic from the rest fails the run rather than\n+// quietly producing a coverage file that cannot be compared with the others.\n+func Verify(exchange Exchange, response Response) error {\n+\tif response.StatusCode != exchange.Status {\n+\t\treturn contractError(\n+\t\t\t\"%s %s answered %d, but the contract's request answers %d\",\n+\t\t\texchange.Method, exchange.Path, response.StatusCode, exchange.Status)\n+\t}\n+\n+\t// Parsed, not compared as text: whitespace and key order are a language's\n+\t// choice of JSON writer, and neither is part of the contract.\n+\twant, err := parse(exchange.RenderResponseBody(exchange.Body))\n+\tif err != nil {\n+\t\treturn err\n+\t}",
+      "id": "PRRT_kwDOTuzK5c6dl6bU",
+      "opened": "2026-08-31T02:08:02Z",
+      "path": "tools/http/test-client/go/client.go",
+      "replies": [
+        {
+          "at": "2026-08-31T02:12:23Z",
+          "body": "Addressed in a126a3a9443c906017dfbbb815689a20241bd1ec.\n\nAnalysis: Verify parses the expected response before it parses the received response. Both parse failures identify the invalid JSON, but only the received-response path names the exchange. Wrapping the expected-response error with the exchange method and path gives both failures the same context while preserving the Error and json.SyntaxError chains through %w.\n\nUpsides: A malformed responseBody entry identifies the exact contract exchange, and the regression test covers this error path.\n\nDownsides: The expected-response parse error gains a method and path prefix. No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3891272279"
+        }
+      ],
+      "reviewed": "e72100a12c62063e9c49f88f1fd783ca08a923bb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3891259203"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`scenariosdk` has no tests. Its two jobs are failing fast when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset and flushing on shutdown, and neither is covered - the JS equivalent (`tools/js/scenario-sdk/test/index.test.js`) unit-tests exactly that.\n\n`scenario.Require` is untested too, though `WaitForEOF` next to it is.",
+      "created": "2026-08-30T16:53:06Z",
+      "hunk": "@@ -0,0 +1,106 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Package scenariosdk is the OpenTelemetry SDK a scenario configures for\n+// itself.\n+//\n+// Only a scenario measuring explicit library instrumentation needs this; one\n+// measuring an out-of-process agent gets its telemetry without linking any of\n+// it. Go has no autoconfiguration package in the SDK, so the wiring the runner\n+// depends on — OTLP over gRPC to the endpoint it injected, and a flush before\n+// the process exits — is written down once here rather than in each scenario.\n+package scenariosdk\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"time\"\n+\n+\t\"go.opentelemetry.io/otel\"\n+\t\"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc\"\n+\t\"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc\"\n+\t\"go.opentelemetry.io/otel/propagation\"\n+\tsdkmetric \"go.opentelemetry.io/otel/sdk/metric\"\n+\tsdktrace \"go.opentelemetry.io/otel/sdk/trace\"\n+\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenario\"\n+)\n+\n+// EndpointVariable is where the runner publishes the collector it started for\n+// this scenario. The exporters read it themselves; it is required here so a\n+// misconfigured run fails rather than exporting nowhere.\n+const EndpointVariable = \"OTEL_EXPORTER_OTLP_ENDPOINT\"\n+\n+const shutdownTimeout = 10 * time.Second\n+\n+// SDK is the providers a scenario installed, and how it flushes them.\n+type SDK struct {\n+\ttracerProvider *sdktrace.TracerProvider\n+\tmeterProvider  *sdkmetric.MeterProvider\n+}\n+\n+// Initialize installs the SDK globally, failing early rather than exporting\n+// nowhere.\n+//\n+// Globally because that is where instrumentation libraries look by default, so\n+// a scenario's own code stays about the library under test rather than about\n+// plumbing a provider through it.\n+func Initialize(ctx context.Context) (*SDK, error) {",
+      "id": "PRRT_kwDOTuzK5c6dikyd",
+      "opened": "2026-09-06T04:15:03Z",
+      "path": "tools/go/scenariosdk/scenariosdk.go",
+      "replies": [
+        {
+          "at": "2026-09-09T22:24:32Z",
+          "body": "3b70319d68b2177ccafefd894b940dcabe0ed1a2",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3973545936"
+        }
+      ],
+      "reviewed": "fe50359d6d73143a5c52b6023221a0067ff758bd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3889960692"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: no formatting gate for Go. Java runs spotless and JS runs `format:check` in this same job, so `gofmt -l` (failing on non-empty output) would keep Go in line.",
+      "created": "2026-08-30T16:53:06Z",
+      "hunk": "@@ -109,6 +109,19 @@ jobs:\n           dotnet build http-dotnet-conformance.slnx\n           dotnet test http-dotnet-conformance.slnx --no-build\n \n+      - name: Set up Go\n+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0\n+        with:\n+          go-version-file: scenarios/http/go/go.mod\n+\n+      # Each directory is a separate Go module, so check and test them\n+      # independently.\n+      - name: Build Go\n+        run: |\n+          for module in tools/go tools/http/test-client/go scenarios/http/go; do\n+            (cd \"$module\" && go vet ./... && go test ./...)",
+      "id": "PRRT_kwDOTuzK5c6dikye",
+      "opened": "2026-09-06T04:15:03Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-09-09T22:24:32Z",
+          "body": "cfc3e128523c31f6335f55107668ffc13faa1e0b",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3973545940"
+        }
+      ],
+      "reviewed": "fe50359d6d73143a5c52b6023221a0067ff758bd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/40#discussion_r3889960694"
+    }
+  ]
+}

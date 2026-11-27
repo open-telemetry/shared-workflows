@@ -1,0 +1,31 @@
+{
+  "head": "02c2599236bab0911bfce76498989588c1cac762",
+  "merge": "e7f9c156f102766c73bbf69d11fce93d14d20776",
+  "merged": "2026-10-27T07:00:29Z",
+  "missing_roots": 0,
+  "number": 20992,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove redundant default histogram bucket-boundary assertions from instrumentation/rmi/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rmi/RmiTest.java. Remove the .hasBucketBoundaries(...) check from the duration metric point assertions. Remove the now-unused DURATION_BUCKETS constant as well. The shared RpcClientMetricsTest and RpcServerMetricsTest already cover these default boundaries, and this instrumentation registers the shared metrics without customizing them. Preserve all remaining assertions and coverage, including preview gating, default-mode absence, metric names, units, counts, attributes, successful/failed calls, interface/method identity, and existing dual-mode coverage. Do not replace these checks with another form of boundary assertion. Leave production code, metadata, and shared metrics tests unchanged. Run the narrowest relevant spotlessApply directly before the relevant existing module tests, and report any validation blockers. Do not create another PR, change this PR's base or draft/ready state, or edit its title or description.",
+      "created": "2026-10-27T00:14:43Z",
+      "hunk": "@@ -256,6 +265,46 @@ void remoteInterfaceIdentity(\n                             equalTo(RPC_SERVICE, emitOldRpcSemconv() ? \"rmi.app.Server\" : null),\n                             equalTo(\n                                 RPC_METHOD, emitPreviewRpcSemconv() ? rpcMethod : methodName))));\n+\n+    assertDurationMetrics(clientService + \"/\" + methodName, rpcMethod, null);\n+  }\n+\n+  private static void assertDurationMetrics(\n+      String clientMethod, String serverMethod, String errorType) {\n+    if (!emitPreviewRpcSemconv()) {\n+      assertThat(testing.metrics())\n+          .filteredOn(\n+              metric ->\n+                  metric.getInstrumentationScopeInfo().getName().equals(\"io.opentelemetry.rmi\"))\n+          .isEmpty();\n+      return;\n+    }\n+\n+    assertDurationMetric(\"rpc.client.call.duration\", clientMethod, errorType);\n+    assertDurationMetric(\"rpc.server.call.duration\", serverMethod, errorType);\n+  }\n+\n+  private static void assertDurationMetric(String metricName, String rpcMethod, String errorType) {\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.rmi\",\n+        metricName,\n+        metrics ->\n+            metrics.satisfiesExactly(\n+                metric ->\n+                    assertThat(metric)\n+                        .hasName(metricName)\n+                        .hasUnit(\"s\")\n+                        .hasHistogramSatisfying(\n+                            histogram ->\n+                                histogram.hasPointsSatisfying(\n+                                    point ->\n+                                        point\n+                                            .hasCount(1)\n+                                            .hasBucketBoundaries(DURATION_BUCKETS)",
+      "id": "PRRT_kwDODJKVX86wgQA4",
+      "opened": "2026-10-27T00:14:42Z",
+      "path": "instrumentation/rmi/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rmi/RmiTest.java",
+      "replies": [
+        {
+          "at": "2026-10-27T00:22:28Z",
+          "body": "Removed the redundant bucket-boundary assertion and unused constant. Spotless and the default, preview, and `rpc/dup` RMI tests passed. Commit: `9e4fc047`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20992#discussion_r4383909246"
+        }
+      ],
+      "reviewed": "6718d249218ad12426a3eb28be6157263dfd1d79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20992#discussion_r4383868162"
+    }
+  ]
+}

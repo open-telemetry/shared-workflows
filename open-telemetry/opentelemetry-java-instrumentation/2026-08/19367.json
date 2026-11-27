@@ -1,0 +1,55 @@
+{
+  "head": "2e8c12fe8895644c7214c9fdebeeaa4d31ef6ea8",
+  "merge": "4764fa58775bb5339decdcacf5642c02b858efec",
+  "merged": "2026-08-03T12:03:43Z",
+  "missing_roots": 0,
+  "number": 19367,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`configuration_refs` still points at `common.controller-telemetry.enabled`, but the telemetry block is now unconditional (`when: default`). If controller telemetry is meant to gate these metrics/spans, this change will enable them even when the flag is off. Consider restoring the original `when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true` for this block, or update `configuration_refs` and the gating strategy to reflect the new intended behavior.",
+      "created": "2026-08-02T03:03:39Z",
+      "hunk": "@@ -13272,7 +13272,7 @@ libraries:\n   configuration_refs:\n   - common.controller-telemetry.enabled\n   telemetry:\n-  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true\n+  - when: default\n     metric_refs:\n     - http.client.request.duration-98bb5f3b\n     spans:",
+      "id": "PRRT_kwDODJKVX86VtKX4",
+      "opened": "2026-08-02T03:03:40Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "c4d6e4f6ab2f6111bf797c91230493e54ae8be20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19367#discussion_r3697532008"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The INTERNAL span definition is duplicated verbatim across two adjacent `when` blocks. If the schema allows it, consider deduplicating (e.g., via YAML anchors/aliases or a shared ref mechanism) to reduce the chance of these blocks drifting out of sync when attributes change.",
+      "created": "2026-08-02T03:03:39Z",
+      "hunk": "@@ -13292,13 +13292,23 @@ libraries:\n         type: LONG\n       - name: url.full\n         type: STRING\n+  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true\n+    spans:\n     - span_kind: INTERNAL\n       attributes:\n       - name: code.function\n         type: STRING\n       - name: code.namespace\n         type: STRING\n   - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true,otel.semconv-stability.opt-in=service.peer\n+    spans:\n+    - span_kind: INTERNAL\n+      attributes:\n+      - name: code.function\n+        type: STRING\n+      - name: code.namespace\n+        type: STRING",
+      "id": "PRRT_kwDODJKVX86VtKYO",
+      "opened": "2026-08-02T03:03:40Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "c4d6e4f6ab2f6111bf797c91230493e54ae8be20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19367#discussion_r3697532044"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "After this change, the `otel.semconv-stability.opt-in=service.peer` block no longer includes the INTERNAL span, and that span is now only present when controller-telemetry is enabled. If the INTERNAL span is semconv-related (rather than controller-telemetry-related), it likely belongs under the semconv-only `when` block as before. If this behavior change is intended, adding a short inline comment near these `when` blocks explaining the rationale would prevent future confusion.",
+      "created": "2026-08-02T03:03:40Z",
+      "hunk": "@@ -13292,13 +13292,23 @@ libraries:\n         type: LONG\n       - name: url.full\n         type: STRING\n+  - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true\n+    spans:\n     - span_kind: INTERNAL\n       attributes:\n       - name: code.function\n         type: STRING\n       - name: code.namespace\n         type: STRING\n   - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true,otel.semconv-stability.opt-in=service.peer\n+    spans:\n+    - span_kind: INTERNAL\n+      attributes:\n+      - name: code.function\n+        type: STRING\n+      - name: code.namespace\n+        type: STRING\n+  - when: otel.semconv-stability.opt-in=service.peer\n     metric_refs:\n     - http.client.request.duration-98bb5f3b\n     spans:",
+      "id": "PRRT_kwDODJKVX86VtKYa",
+      "opened": "2026-08-02T03:03:40Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "c4d6e4f6ab2f6111bf797c91230493e54ae8be20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19367#discussion_r3697532066"
+    }
+  ]
+}

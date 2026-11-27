@@ -1,0 +1,100 @@
+{
+  "head": "7c98eb848f5d8dfec1afda98acbeb9b9e5d34d33",
+  "merge": "3c894c56e6dbace005ff12b4beb8ae8e4c83d5ff",
+  "merged": "2026-08-02T23:04:58Z",
+  "missing_roots": 0,
+  "number": 19159,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Pending the discussion in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3564889077, I think we should avoid process-local `-N` suffixes here. If no stable name exists, use a stable fallback and let duplicates merge so metric identities remain consistent across restarts.",
+      "created": "2026-07-13T21:23:04Z",
+      "hunk": "@@ -75,8 +79,20 @@ private static BatchCallback createMeters(\n         pendingRequestsForConnection);\n   }\n \n+  private static String getPoolName(IdentityDataSourceKey key) {\n+    PooledDataSource dataSource = key.dataSource;\n+    String dataSourceName = dataSource.getDataSourceName();\n+    if (dataSourceName == null || dataSourceName.equals(dataSource.getIdentityToken())) {\n+      return generatedPoolNames.computeIfAbsent(\n+          key, unused -> DEFAULT_POOL_NAME + \"-\" + idGenerator.getAndIncrement());",
+      "id": "PRRT_kwDODJKVX86Qixf2",
+      "opened": "2026-07-13T21:23:03Z",
+      "path": "instrumentation/c3p0-0.9/library/src/main/java/io/opentelemetry/instrumentation/c3p0/v0_9/ConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "5f0d3a0d7a2c9ed789b6e2ffafd353a69f97f512",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19159#discussion_r3574238106"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I don't think this `getDbName()` fallback can ever fire. `ParseContext.build()` sets `dbNamespace` whenever it parsed a namespace or a database name, and the only two spots that set the `dbName` override (`MssqlUrlParser` and `JtdsUrlParser`) set the namespace in that same branch. Anything else comes back as `DbInfo.DEFAULT` with both null. Note also: `getDbName()` will be removed soon in 3.0.\r\n\r\n```suggestion\r\n    String dbNamespace = dbInfo.getDbNamespace();\r\n```",
+      "created": "2026-08-02T04:45:47Z",
+      "hunk": "@@ -5,16 +5,63 @@\n \n package io.opentelemetry.javaagent.instrumentation.c3p0.v0_9;\n \n+import com.mchange.v2.c3p0.DriverManagerDataSource;\n+import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;\n+import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.c3p0.v0_9.C3p0Telemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.sql.ConnectionPoolDataSource;\n+import javax.sql.DataSource;\n \n public class C3p0Singletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"c3p0\";\n   private static final C3p0Telemetry telemetry = C3p0Telemetry.create(GlobalOpenTelemetry.get());\n \n   public static C3p0Telemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static String getDataSourceName(AbstractPoolBackedDataSource dataSource) {\n+    ConnectionPoolDataSource poolDataSource = dataSource.getConnectionPoolDataSource();\n+    if (!(poolDataSource instanceof WrapperConnectionPoolDataSource)) {\n+      return DEFAULT_DATA_SOURCE_NAME;\n+    }\n+\n+    DataSource nestedDataSource =\n+        ((WrapperConnectionPoolDataSource) poolDataSource).getNestedDataSource();\n+    if (!(nestedDataSource instanceof DriverManagerDataSource)) {\n+      return DEFAULT_DATA_SOURCE_NAME;\n+    }\n+\n+    DriverManagerDataSource driverManagerDataSource = (DriverManagerDataSource) nestedDataSource;\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(\n+            driverManagerDataSource.getJdbcUrl(), driverManagerDataSource.getProperties());\n+\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace =\n+        dbInfo.getDbNamespace() != null ? dbInfo.getDbNamespace() : dbInfo.getDbName();",
+      "id": "PRRT_kwDODJKVX86Vt8Y2",
+      "opened": "2026-08-02T04:48:26Z",
+      "path": "instrumentation/c3p0-0.9/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/c3p0/v0_9/C3p0Singletons.java",
+      "replies": [],
+      "reviewed": "b4e52b81d91b47251fe92576e39894b8aefaddfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19159#discussion_r3697856384"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The PR description still describes an earlier design that isn't what landed here: it talks about generated names like `c3p0-1`, keeping that generated name stable for the data source's lifetime, and removing the generated name state on unregister. This implementation instead derives `server.address:server.port/db.namespace` from the nested JDBC data source, falls back to the literal `c3p0`, and keeps no state at all. Could you update the Summary and Changes sections to match? The derived-endpoint approach is the one semconv actually recommends for an unnamed pool, so it's worth describing accurately.",
+      "created": "2026-08-02T04:45:47Z",
+      "hunk": "@@ -5,16 +5,63 @@\n \n package io.opentelemetry.javaagent.instrumentation.c3p0.v0_9;\n \n+import com.mchange.v2.c3p0.DriverManagerDataSource;\n+import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;\n+import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.c3p0.v0_9.C3p0Telemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.sql.ConnectionPoolDataSource;\n+import javax.sql.DataSource;\n \n public class C3p0Singletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"c3p0\";",
+      "id": "PRRT_kwDODJKVX86Vt8Yu",
+      "opened": "2026-08-02T04:48:26Z",
+      "path": "instrumentation/c3p0-0.9/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/c3p0/v0_9/C3p0Singletons.java",
+      "replies": [],
+      "reviewed": "b4e52b81d91b47251fe92576e39894b8aefaddfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19159#discussion_r3697856374"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same thing I mentioned on the tomcat-jdbc and DBCP versions of this: `serverAddress` can be a literal IPv6 address, and appending `:port` straight onto it gives `2001:db8::1:5432`, which reads as a bare address rather than address + port. Worth bracketing here, the same way `UrlParsingUtils.buildShortUrl` does when it builds `db.connection_string`. #19366 has landed, so on main `getServerAddress()` comes back unbracketed; the extra `startsWith(\"[\")` check keeps this correct until you merge that in.\r\n\r\n```suggestion\r\n    StringBuilder result = new StringBuilder();\r\n    if (serverAddress != null) {\r\n      if (serverAddress.indexOf(':') >= 0 && !serverAddress.startsWith(\"[\")) {\r\n        result.append('[').append(serverAddress).append(']');\r\n      } else {\r\n        result.append(serverAddress);\r\n      }\r\n      if (serverPort != null) {\r\n        result.append(':').append(serverPort);\r\n      }\r\n    }\r\n```\r\n\r\nCould you also add a name-derivation test with an IPv6 URL, e.g. `jdbc:postgresql://[2001:db8::1]:5432/orders` -> `[2001:db8::1]:5432/orders`?",
+      "created": "2026-08-02T04:45:48Z",
+      "hunk": "@@ -5,16 +5,63 @@\n \n package io.opentelemetry.javaagent.instrumentation.c3p0.v0_9;\n \n+import com.mchange.v2.c3p0.DriverManagerDataSource;\n+import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;\n+import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.c3p0.v0_9.C3p0Telemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.sql.ConnectionPoolDataSource;\n+import javax.sql.DataSource;\n \n public class C3p0Singletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"c3p0\";\n   private static final C3p0Telemetry telemetry = C3p0Telemetry.create(GlobalOpenTelemetry.get());\n \n   public static C3p0Telemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static String getDataSourceName(AbstractPoolBackedDataSource dataSource) {\n+    ConnectionPoolDataSource poolDataSource = dataSource.getConnectionPoolDataSource();\n+    if (!(poolDataSource instanceof WrapperConnectionPoolDataSource)) {\n+      return DEFAULT_DATA_SOURCE_NAME;\n+    }\n+\n+    DataSource nestedDataSource =\n+        ((WrapperConnectionPoolDataSource) poolDataSource).getNestedDataSource();\n+    if (!(nestedDataSource instanceof DriverManagerDataSource)) {\n+      return DEFAULT_DATA_SOURCE_NAME;\n+    }\n+\n+    DriverManagerDataSource driverManagerDataSource = (DriverManagerDataSource) nestedDataSource;\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(\n+            driverManagerDataSource.getJdbcUrl(), driverManagerDataSource.getProperties());\n+\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace =\n+        dbInfo.getDbNamespace() != null ? dbInfo.getDbNamespace() : dbInfo.getDbName();\n+\n+    StringBuilder result = new StringBuilder();\n+    if (serverAddress != null) {\n+      result.append(serverAddress);\n+      if (serverPort != null) {\n+        result.append(':').append(serverPort);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86Vt8Y6",
+      "opened": "2026-08-02T04:48:26Z",
+      "path": "instrumentation/c3p0-0.9/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/c3p0/v0_9/C3p0Singletons.java",
+      "replies": [],
+      "reviewed": "b4e52b81d91b47251fe92576e39894b8aefaddfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19159#discussion_r3697856393"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Every other module that needs JDBC classes on the test agent depends on the jdbc javaagent module instead of a separately shaded jar (same thing @jaydeluca raised on the tomcat-jdbc one). That's also how the parser actually reaches this module in the released agent, so the test setup ends up closer to production. I tried this locally and all five tests here still pass.\r\n\r\n```suggestion\r\n  testInstrumentation(project(\":instrumentation:jdbc:javaagent\"))\r\n```\r\n\r\nThe `compileOnly` shadow dependency above should stay as is — that's what gives you the parser signature with `DbInfo` relocated into the bootstrap package.",
+      "created": "2026-08-02T04:45:48Z",
+      "hunk": "@@ -15,8 +15,21 @@ dependencies {\n   library(\"com.mchange:c3p0:0.9.2\")\n \n   implementation(project(\":instrumentation:c3p0-0.9:library\"))\n+  bootstrap(project(\":instrumentation:jdbc:bootstrap\"))\n+  compileOnly(\n+    project(\n+      path = \":instrumentation:jdbc:library\",\n+      configuration = \"shadow\",\n+    ),\n+  )\n \n   testImplementation(project(\":instrumentation:c3p0-0.9:testing\"))\n+  testInstrumentation(\n+    project(\n+      path = \":instrumentation:jdbc:library\",\n+      configuration = \"shadow\",\n+    ),\n+  )",
+      "id": "PRRT_kwDODJKVX86Vt8Y8",
+      "opened": "2026-08-02T04:48:26Z",
+      "path": "instrumentation/c3p0-0.9/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "b4e52b81d91b47251fe92576e39894b8aefaddfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19159#discussion_r3697856396"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Superseding what I said above about keeping the `startsWith(\"[\")` check. #19160 and #19173 have since merged, so `main` now carries two copies of this block, and both drop that check - #19366 made `ParseContext.host()` strip brackets, so `DbInfo.getServerAddress()` always holds the bare address and the guard can't fire. The merged copies also name the builder `poolName` rather than `result`. Worth matching them exactly so the later cleanup is trivial.\n\n```suggestion\n    StringBuilder poolName = new StringBuilder();\n    if (serverAddress != null) {\n      if (serverAddress.indexOf(':') >= 0) {\n        poolName.append('[').append(serverAddress).append(']');\n      } else {\n        poolName.append(serverAddress);\n      }\n      if (serverPort != null) {\n        poolName.append(':').append(serverPort);\n      }\n    }\n    if (dbNamespace != null) {\n      if (poolName.length() > 0) {\n        poolName.append('/');\n      }\n      poolName.append(dbNamespace);\n    }\n\n    return poolName.length() == 0 ? DEFAULT_DATA_SOURCE_NAME : poolName.toString();\n```\n\nI opened #19370 to fold the copies into one shared helper.",
+      "created": "2026-08-02T19:36:53Z",
+      "hunk": "@@ -5,16 +5,66 @@\n \n package io.opentelemetry.javaagent.instrumentation.c3p0.v0_9;\n \n+import com.mchange.v2.c3p0.DriverManagerDataSource;\n+import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;\n+import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.c3p0.v0_9.C3p0Telemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.sql.ConnectionPoolDataSource;\n+import javax.sql.DataSource;\n \n public class C3p0Singletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"c3p0\";\n   private static final C3p0Telemetry telemetry = C3p0Telemetry.create(GlobalOpenTelemetry.get());\n \n   public static C3p0Telemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static String getDataSourceName(AbstractPoolBackedDataSource dataSource) {\n+    ConnectionPoolDataSource poolDataSource = dataSource.getConnectionPoolDataSource();\n+    if (!(poolDataSource instanceof WrapperConnectionPoolDataSource)) {\n+      return DEFAULT_DATA_SOURCE_NAME;\n+    }\n+\n+    DataSource nestedDataSource =\n+        ((WrapperConnectionPoolDataSource) poolDataSource).getNestedDataSource();\n+    if (!(nestedDataSource instanceof DriverManagerDataSource)) {\n+      return DEFAULT_DATA_SOURCE_NAME;\n+    }\n+\n+    DriverManagerDataSource driverManagerDataSource = (DriverManagerDataSource) nestedDataSource;\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(\n+            driverManagerDataSource.getJdbcUrl(), driverManagerDataSource.getProperties());\n+\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace = dbInfo.getDbNamespace();\n+\n+    StringBuilder result = new StringBuilder();\n+    if (serverAddress != null) {\n+      if (serverAddress.indexOf(':') >= 0 && !serverAddress.startsWith(\"[\")) {\n+        result.append('[').append(serverAddress).append(']');\n+      } else {\n+        result.append(serverAddress);\n+      }\n+      if (serverPort != null) {\n+        result.append(':').append(serverPort);\n+      }\n+    }\n+    if (dbNamespace != null) {\n+      if (result.length() > 0) {\n+        result.append('/');\n+      }\n+      result.append(dbNamespace);\n+    }\n+\n+    return result.length() == 0 ? DEFAULT_DATA_SOURCE_NAME : result.toString();",
+      "id": "PRRT_kwDODJKVX86Vz6h-",
+      "opened": "2026-08-02T19:51:06Z",
+      "path": "instrumentation/c3p0-0.9/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/c3p0/v0_9/C3p0Singletons.java",
+      "replies": [],
+      "reviewed": "ea0d08229d67fecbcde18e6e0137a831a48655cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19159#discussion_r3700118662"
+    }
+  ]
+}

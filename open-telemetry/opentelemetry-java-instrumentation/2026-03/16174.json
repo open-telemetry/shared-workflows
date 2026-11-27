@@ -1,0 +1,137 @@
+{
+  "head": "b5c04afb984ed16fca27db4e5c5c23ab1ca75e23",
+  "merge": "674303681eeffd33d1a9d8558e793dea19df865d",
+  "merged": "2026-03-04T19:01:32Z",
+  "missing_roots": 0,
+  "number": 16174,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "any reason we are not using the same descriptions here as in code",
+      "created": "2026-02-16T08:46:56Z",
+      "hunk": "@@ -19,6 +19,7 @@ Those metrics are defined in the [JVM runtime metrics semantic conventions](http\n | [jvm.cpu.time](https://opentelemetry.io/docs/specs/semconv/runtime/jvm-metrics/#metric-jvmcputime)                                    | stable           | Counter       | s                 |                                       | CPU time used by the process as reported by the JVM |\n | [jvm.cpu.recent_utilization](https://opentelemetry.io/docs/specs/semconv/runtime/jvm-metrics/#metric-jvmcpurecent_utilization)        | stable           | Gauge         | 1                 |                                       | Recent CPU utilization for process reported by JVM  |\n | [jvm.file_descriptor.count](https://opentelemetry.io/docs/specs/semconv/runtime/jvm-metrics/#metric-jvmfile_descriptorcount)          | experimental     | UpDownCounter | {file_descriptor} |                                       | Number of open file descriptors                     |\n+| [jvm.file_descriptor.limit](https://opentelemetry.io/docs/specs/semconv/runtime/jvm-metrics/#metric-jvmfile_descriptorlimit)          | experimental     | UpDownCounter | {file_descriptor} |                                       | Limit (if any) of open file descriptors             |",
+      "id": "PRRT_kwDODJKVX85uyzEn",
+      "opened": "2026-02-16T08:46:56Z",
+      "path": "instrumentation/jmx-metrics/library/jvm.md",
+      "replies": [
+        {
+          "at": "2026-02-16T09:05:28Z",
+          "body": "No, this has been fixed in 160dfd2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2811339921"
+        }
+      ],
+      "reviewed": "02ea0ec4712f534413b7fd2b052d42982a06b99a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2811271360"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "[for reviewer] I've extended existing tests as-is, but I think what we really should have is no metric/data-point produced when the source value is negative instead of having a zero. Here when no limit it set (thus negative value) it does produces a limit of zero, which is incorrect and will thus be interpreted/filtered by the consumer. Do we have a way to express that using the metrics API at registration time ?",
+      "created": "2026-02-16T11:18:20Z",
+      "hunk": "@@ -44,39 +43,49 @@ void setUp() {\n   // verify that mock is called with the correct value\n   void registerObservers() {\n     when(osBean.getOpenFileDescriptorCount()).thenReturn(42L);\n+    when(osBean.getMaxFileDescriptorCount()).thenReturn(100L);\n     ExperimentalFileDescriptor.registerObservers(testing.getOpenTelemetry(), osBean);\n \n     testing.waitAndAssertMetrics(\n         \"io.opentelemetry.runtime-telemetry-java8\",\n-        \"jvm.file_descriptor.count\",\n-        metrics ->\n-            metrics.anySatisfy(\n-                metricData ->\n-                    assertThat(metricData)\n-                        .hasInstrumentationScope(EXPECTED_SCOPE)\n-                        .hasDescription(\"Number of open file descriptors as reported by the JVM.\")\n-                        .hasUnit(\"{file_descriptor}\")\n-                        .hasLongSumSatisfying(\n-                            sum -> sum.hasPointsSatisfying(point -> point.hasValue(42)))));\n+        metric ->\n+            metric\n+                .hasName(\"jvm.file_descriptor.count\")\n+                .hasInstrumentationScope(EXPECTED_SCOPE)\n+                .hasDescription(\"Number of open file descriptors as reported by the JVM.\")\n+                .hasUnit(\"{file_descriptor}\")\n+                .hasLongSumSatisfying(sum -> sum.hasPointsSatisfying(point -> point.hasValue(42))),\n+        metric ->\n+            metric\n+                .hasName(\"jvm.file_descriptor.limit\")\n+                .hasInstrumentationScope(EXPECTED_SCOPE)\n+                .hasDescription(\"Measure of max open file descriptors as reported by the JVM.\")\n+                .hasUnit(\"{file_descriptor}\")\n+                .hasLongSumSatisfying(\n+                    sum -> sum.hasPointsSatisfying(point -> point.hasValue(100))));\n   }\n \n   @Test\n   // Verify that no metrics are emitted with non-zero values\n   void registerObservers_NegativeValue() {\n     when(osBean.getOpenFileDescriptorCount()).thenReturn(-1L);\n+    when(osBean.getMaxFileDescriptorCount()).thenReturn(-1L);\n     ExperimentalFileDescriptor.registerObservers(testing.getOpenTelemetry(), osBean);\n-\n     testing.waitAndAssertMetrics(\n         \"io.opentelemetry.runtime-telemetry-java8\",\n-        \"jvm.file_descriptor.count\",\n-        metrics ->\n-            metrics.allSatisfy(\n-                metricData ->\n-                    assertThat(metricData)\n-                        .hasInstrumentationScope(EXPECTED_SCOPE)\n-                        .hasDescription(\"Number of open file descriptors as reported by the JVM.\")\n-                        .hasUnit(\"{file_descriptor}\")\n-                        .hasLongSumSatisfying(\n-                            sum -> sum.hasPointsSatisfying(point -> point.hasValue(0)))));\n+        metric ->\n+            metric\n+                .hasName(\"jvm.file_descriptor.count\")\n+                .hasInstrumentationScope(EXPECTED_SCOPE)\n+                .hasDescription(\"Number of open file descriptors as reported by the JVM.\")\n+                .hasUnit(\"{file_descriptor}\")\n+                .hasLongSumSatisfying(sum -> sum.hasPointsSatisfying(point -> point.hasValue(0))),\n+        metric ->\n+            metric\n+                .hasName(\"jvm.file_descriptor.limit\")\n+                .hasInstrumentationScope(EXPECTED_SCOPE)\n+                .hasDescription(\"Measure of max open file descriptors as reported by the JVM.\")\n+                .hasUnit(\"{file_descriptor}\")\n+                .hasLongSumSatisfying(sum -> sum.hasPointsSatisfying(point -> point.hasValue(0))));",
+      "id": "PRRT_kwDODJKVX85u0p_m",
+      "opened": "2026-02-16T11:18:20Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/test/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/FileDescriptorTest.java",
+      "replies": [
+        {
+          "at": "2026-02-16T19:15:31Z",
+          "body": "I think we have limited options:\r\n\r\n- Close the instrument when we see a negative observation\r\n- Check before registering the instrument and don't register it in the first place\r\n- Send `-1`\r\n\r\nDo you know if this can happen in practice, or is just theoretical?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2813760604"
+        },
+        {
+          "at": "2026-02-17T08:25:30Z",
+          "body": "For the case at hand, I think this is mostly theoretical, as the implementation in the [JVM implementation](https://github.com/openjdk/jdk/blob/03703f347df7d3507ffeaf45e32be8bec6403b7d/src/java.base/unix/native/libnio/ch/IOUtil.c#L152) should always return a non-negative value and `Integer.MAX_VALUE` in the worst case (which could also be something we'd like to filter-out).\r\n\r\nI don't know why we haven't seen this while implementing https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/13589 to filter negative metric values in `jmx-metrics`, if I understand this correctly we should have had metrics with type updowncounter to report zeroes instead of filtering negative values. I will probably need to investigate this further.\r\n\r\nAmong all the suggested options, closing the instrument seems the most \"clean\" way to solve this, are there any particular downside apart from the extra complexity ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2815586000"
+        },
+        {
+          "at": "2026-02-17T17:32:39Z",
+          "body": "> Among all the suggested options, closing the instrument seems the most \"clean\" way to solve this, are there any particular downside apart from the extra complexity ?\r\n\r\nit seems good to me also\r\n\r\ncc @jack-berg",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2818214154"
+        },
+        {
+          "at": "2026-02-17T17:44:52Z",
+          "body": "I don't understand why a 0 value is being reported here. Given that the registered callback has `if (value >= 0)`, no metric should be exported. \n\nIs it asserting against data from a previous collection? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2818272739"
+        },
+        {
+          "at": "2026-02-17T19:18:21Z",
+          "body": "I think because UpDownCounters are always exported as cumulative",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2818667117"
+        },
+        {
+          "at": "2026-02-17T23:34:11Z",
+          "body": "Async instruments manage their own state and should stop reporting immediately when a callback stops recording values for a series. This is true regardless if aggregation temporality.\n\nI'm away from my computer now but will dig up a unit test that demonstrates this when I'm back",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2819577334"
+        },
+        {
+          "at": "2026-02-18T10:22:37Z",
+          "body": "Interestingly, making the test methods execute in a different order make the current test fail, so my hypothesis here is that:\r\n- the first test registers the instrument and captures a value\r\n- the second test should not capture a value, but because the instrument is registered we still get a zero value.\r\n\r\nIf we close the instrument, how can we ensure that it gets re-opened whenever the metric becomes available in the future ? With `jmx-metrics` we have a \"bean discovery\" scheduled task that could be used to re-register things later when needed.\r\nIs there any kind of \"conditional instrument\" that could be toggled on and off at will ?\r\n\r\nIn practice, this might not be an issue if\r\n- the underlying resource limit can't be modified at runtime for the duration of the JVM execution\r\n- there is no transition from \"with limit\" to \"no limit\", so it's either set at startup or not set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2821518424"
+        },
+        {
+          "at": "2026-02-18T17:33:50Z",
+          "body": "maybe you don't need to close it, just don't record the measurement when it's -1?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2823584944"
+        },
+        {
+          "at": "2026-02-19T09:40:54Z",
+          "body": "This is exactly what the implementation of this metric does, and also what is implemented for jmx metrics, the call to `.record(...)` is just skipped if the value is negative. With JMX metrics for now we don't yet test the actual metric values, only the mapping, which explains why this might have not been seen earlier.\r\n\r\n@jack-berg if you have some time to look at this, I'd be interested to know what could be wrong here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2826622432"
+        },
+        {
+          "at": "2026-02-25T20:58:18Z",
+          "body": "@SylvainJuge any luck tracking this down?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2855446045"
+        },
+        {
+          "at": "2026-02-26T14:26:57Z",
+          "body": "@trask I think @SylvainJuge already summed it up. If the value is negative it is not recorded. If a value has not been recoded the instrument won't be reported. Once a value has been recoded the instrument is reported which makes the tests flaky as `registerObservers_NegativeValue` now will see different values depending on whether it runs first or after `registerObservers`.\n\n> the underlying resource limit can't be modified at runtime for the duration of the JVM execution\n> there is no transition from \"with limit\" to \"no limit\", so it's either set at startup or not set.\n\n`prlimit` should let one change the limits for a running process https://man7.org/linux/man-pages/man1/prlimit.1.html\nNote that according to an AI `getMaxFileDescriptorCount` does not return a negative value when no limit is set but rather `Long.MAX_VALUE`. `-1` is returned when the limit can't be retrieved.\nI think the current implementation is fine. The only thing that needs to be changed is that test methods must be made to run in a predictable order with `@TestMethodOrder(MethodOrderer.OrderAnnotation.class)` and `org.junit.jupiter.api.Order` annotations, a comment that explains why this is needed should also be added.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2859345392"
+        },
+        {
+          "at": "2026-02-26T15:03:16Z",
+          "body": "Test order sounds like it would fix it, but I think this also indicates an underlying issue in the test harness's ability to isolate tests from each other. \r\n\r\nHere's a minimal (passing) test that demonstrates the behavior I'm talking about: https://github.com/open-telemetry/opentelemetry-java/compare/main...jack-berg:opentelemetry-java:async-demo",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2859545060"
+        },
+        {
+          "at": "2026-03-03T16:36:27Z",
+          "body": "Thanks @jack-berg, your example allows to prove that there is in fact no metric sample produced when there is no call to `.record(...)`.\r\n\r\nI think the overall problem we have here is that the test checks for the presence of a given metric and we have no convenient way to test the absence of one.\r\n\r\nSo, in order to make the test reliable and still relevant, we can test both negative and non-negative values in the same method by making the mock return multiple values, I've implemented this in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174/changes/03118454f4096a8bdd24add2eabd233913cb19b6, removing the condition in the implementation make the test fail.\r\n\r\nRegarding the fact that the implementation might return `Long.MAX_VALUE`, this is also covered in this test, but it works without explicitly ignoring it so maybe by a happy accident.\r\n\r\nAlso, this should be quite rare to get it because I expect most OSes to use some default value rather than \"no limit\".",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2879316618"
+        },
+        {
+          "at": "2026-03-03T21:14:11Z",
+          "body": "> we have no convenient way to test the absence of one\r\n\r\nI think we typically use `Thread.sleep(100)` → `clearData()` → `Thread.sleep(100)` → assert empty pattern, e.g.\r\n\r\n- Connection pool tests: [HikariCP](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/hikaricp-3.0/testing/src/main/java/io/opentelemetry/instrumentation/hikaricp/AbstractHikariInstrumentationTest.java#L75-L99), [C3P0](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/c3p0-0.9/testing/src/main/java/io/opentelemetry/instrumentation/c3p0/AbstractC3p0InstrumentationTest.java#L60-L82), [Apache DBCP](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/apache-dbcp-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachedbcp/AbstractApacheDbcpInstrumentationTest.java#L68-L91), [Vibur DBCP](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/vibur-dbcp-11.0/testing/src/main/java/io/opentelemetry/instrumentation/viburdbcp/AbstractViburInstrumentationTest.java#L67-L84), [Alibaba Druid](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/alibaba-druid-1.0/testing/src/main/java/io/opentelemetry/instrumentation/alibabadruid/AbstractDruidInstrumentationTest.java#L65-L88)\r\n- Dropwizard metrics: [DropwizardMetricsTest](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/dropwizard/dropwizard-metrics-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/dropwizardmetrics/DropwizardMetricsTest.java#L53-L62)\r\n- Runtime metrics: [RuntimeMetricsTest](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/runtime-telemetry/runtime-telemetry-java17/library/src/test/java/io/opentelemetry/instrumentation/runtimemetrics/java17/RuntimeMetricsTest.java#L95-L103)\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2880511616"
+        },
+        {
+          "at": "2026-03-04T13:37:13Z",
+          "body": "Thanks @trask, I'll try to reuse that when needed, do you think/prefer me to rework the test here ? I think it should be ok to be merged as-is.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2883847516"
+        }
+      ],
+      "reviewed": "e1e2cb4abdf75c23eac8c54b363fd8c05df83ea2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2811913985"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add limit here?",
+      "created": "2026-02-25T20:57:32Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85wyBaY",
+      "opened": "2026-02-25T20:58:18Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/test/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/FileDescriptorTest.java",
+      "replies": [],
+      "reviewed": "38b2692ce6cc2c116f53efda04c60a6ee7e4ae07",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16174#discussion_r2855442257"
+    }
+  ]
+}

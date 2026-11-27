@@ -1,0 +1,77 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8b15919b46953807afef017163eaed88d9833476ae6af65e9c4c88b52a0200f3",
+  "input_digest": "c86832ce5788e2a7ff37cc8a09467b0eaffe1722d145e639a423df0eea10dca7",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/daf0171e158a89e8a2ffe8078df1806907f653db/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/ServicePeerResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c4ca65f479ee1e1e3ead7c60734a2ed617b4e9c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/ServicePeerResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/daf0171e158a89e8a2ffe8078df1806907f653db/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c4ca65f479ee1e1e3ead7c60734a2ed617b4e9c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX85r6i--",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85r6lM2",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85tRal8",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85tXgFi",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c4ca65f479ee1e1e3ead7c60734a2ed617b4e9c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java"
+      ],
+      "id": "PRRT_kwDODJKVX85tw3cJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c4ca65f479ee1e1e3ead7c60734a2ed617b4e9c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5dfabd7a13d535cdc215071e94b3c742e07114ae"
+      ],
+      "id": "PRRT_kwDODJKVX85tw9dJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85txJxN",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c4ca65f479ee1e1e3ead7c60734a2ed617b4e9c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5dfabd7a13d535cdc215071e94b3c742e07114ae"
+      ],
+      "id": "PRRT_kwDODJKVX85txo68",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

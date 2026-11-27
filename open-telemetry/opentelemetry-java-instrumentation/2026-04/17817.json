@@ -1,0 +1,25 @@
+{
+  "head": "0c4386fab1b1be40f463c099801100143a7f054b",
+  "merge": "0a9f16bf73fa50e6c04a5829dab6f04c37a72b23",
+  "merged": "2026-04-13T20:30:51Z",
+  "missing_roots": 0,
+  "number": 17817,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`doPrivileged` is needed because the call originates from the application code. I think that it would be better if the `doPrivileged` was added in the sdk code, but this could wait for the next release.\n```\nApp - STDERR: Exception in thread \"main\" java.security.AccessControlException: access denied (\"java.lang.RuntimePermission\" \"getClassLoader\")\t\nApp - STDERR: \tat java.security.AccessControlContext.checkPermission(AccessControlContext.java:472)\t\nApp - STDERR: \tat java.security.AccessController.checkPermission(AccessController.java:886)\t\nApp - STDERR: \tat java.lang.SecurityManager.checkPermission(SecurityManager.java:549)\t\nApp - STDERR: \tat java.lang.ClassLoader.checkClassLoaderPermission(ClassLoader.java:1521)\t\nApp - STDERR: \tat java.lang.Thread.getContextClassLoader(Thread.java:1448)\t\nApp - STDERR: \tat io.opentelemetry.sdk.metrics.internal.state.CallbackRegistration.<init>(CallbackRegistration.java:39)\t\nApp - STDERR: \tat io.opentelemetry.sdk.metrics.internal.state.CallbackRegistration.create(CallbackRegistration.java:68)\t\nApp - STDERR: \tat io.opentelemetry.sdk.metrics.InstrumentBuilder.buildLongAsynchronousInstrument(InstrumentBuilder.java:89)\t\nApp - STDERR: \tat io.opentelemetry.sdk.metrics.SdkLongGauge$SdkLongGaugeBuilder.buildWithCallback(SdkLongGauge.java:86)\t\nApp - STDERR: \tat io.opentelemetry.sdk.trace.export.LegacySpanProcessorInstrumentation.buildQueueMetricsOnce(LegacySpanProcessorInstrumentation.java:76)\t\nApp - STDERR: \tat io.opentelemetry.sdk.trace.export.BatchSpanProcessor$Worker.addSpan(BatchSpanProcessor.java:213)\t\nApp - STDERR: \tat io.opentelemetry.sdk.trace.export.BatchSpanProcessor$Worker.access$100(BatchSpanProcessor.java:162)\t\nApp - STDERR: \tat io.opentelemetry.sdk.trace.export.BatchSpanProcessor.onEnd(BatchSpanProcessor.java:103)\t\nApp - STDERR: \tat io.opentelemetry.sdk.trace.MultiSpanProcessor.onEnd(MultiSpanProcessor.java:54)\t\nApp - STDERR: \tat io.opentelemetry.sdk.trace.SdkSpan.endInternal(SdkSpan.java:581)\t\nApp - STDERR: \tat io.opentelemetry.sdk.trace.SdkSpan.end(SdkSpan.java:548)\t\nApp - STDERR: \tat io.opentelemetry.javaagent.instrumentation.opentelemetryapi.trace.ApplicationSpan.end(ApplicationSpan.java:164)\t\nApp - STDERR: \tat io.opentelemetry.smoketest.securitymanager.Main.main(Main.java:24)\n```",
+      "created": "2026-04-13T07:53:39Z",
+      "hunk": "@@ -123,6 +123,10 @@ private void installTransformers() {\n     // https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/10921\n     InetAddressClassFileTransformer transformer = new InetAddressClassFileTransformer();\n     instrumentation.addTransformer(transformer, true);\n+    // transforms Thread getContextClassLoader and setContextClassLoader calls in",
+      "id": "PRRT_kwDODJKVX856dfFK",
+      "opened": "2026-04-13T07:53:39Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+      "replies": [],
+      "reviewed": "051548fded96eb424b23c113ac0da8c618dd7e8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17817#discussion_r3071567037"
+    }
+  ]
+}

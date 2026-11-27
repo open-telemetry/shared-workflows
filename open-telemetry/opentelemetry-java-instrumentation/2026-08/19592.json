@@ -1,0 +1,31 @@
+{
+  "head": "c6e3c5ddbe78357ae7f55eea05102ab0dba89a98",
+  "merge": "3ad8eb231ed5968d928743a3e491a84ba273fc22",
+  "merged": "2026-08-17T06:50:42Z",
+  "missing_roots": 0,
+  "number": 19592,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please add a regression test for this ordering. The existing legacy receive-disabled tests verify the extracted producer parent, but they do not exercise a current context that suppresses the receive instrumenter, so they also pass when `shouldStart` is evaluated before extraction. Covering that case would ensure the receive span is created/suppressed based on the extracted producer context and prevent the original bug from returning.",
+      "created": "2026-08-14T19:16:07Z",
+      "hunk": "@@ -210,6 +207,9 @@ public static Context startAndEndConsumerReceive(\n         parent = propagator.extract(parent, request, MessageTextMapGetter.INSTANCE);\n       }\n     }\n+    if (!consumerReceiveInstrumenter.shouldStart(parent, request)) {",
+      "id": "PRRT_kwDODJKVX86ZZABi",
+      "opened": "2026-08-14T19:16:08Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/PulsarSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-14T20:05:27Z",
+          "body": "No code change.\n\nAnalysis: The suggested scenario cannot distinguish the ordering with the configured propagators. `TextMapPropagator.extract(parent, ...)` derives from and retains non-propagated entries in `parent`, including `SpanKey.CONSUMER_RECEIVE` and the general instrumentation-suppression flag. A focused test that added the receive suppression key to the caller context confirmed that the current head still suppresses the receive span after extraction, exactly as it did before this change. Existing legacy receive-disabled tests already verify the observable behavior of using the extracted producer span as the receive span's parent.\n\nUpsides: Avoids asserting incorrect extraction semantics or changing ambient context and baggage behavior solely to make the proposed test pass, while preserving the `shouldStart`/start parent-context consistency fixed by this PR.\n\nDownsides: No default-propagator regression test can fail solely on this ordering; the consistency invariant remains structural.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19592#discussion_r3786830223"
+        }
+      ],
+      "reviewed": "c6e3c5ddbe78357ae7f55eea05102ab0dba89a98",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19592#discussion_r3786536009"
+    }
+  ]
+}

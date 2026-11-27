@@ -1,0 +1,125 @@
+{
+  "head": "39fbbab08d06e664f4a4eb2b7f6fbbae6c657e71",
+  "merge": "59e6efe6c0be45a9da78f8f3c21c5d6ac4488ed1",
+  "merged": "2026-09-04T22:08:18Z",
+  "missing_roots": 0,
+  "number": 520,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`test_cancelled_task_sets_error_status` can hang for up to 60s (or indefinitely on `started.wait()`) if cancellation doesn’t propagate as expected, which makes failures slow and can stall CI. Use `asyncio.wait_for` around both the startup wait and the awaited task so the test fails fast.\n\nThis issue also appears on line 158 of the same file.",
+      "created": "2026-09-01T07:34:19Z",
+      "hunk": "@@ -0,0 +1,187 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for how ``GenAIInvocation.__exit__`` finalizes on ``BaseException``.\n+\n+``asyncio.CancelledError``, ``KeyboardInterrupt``, ``SystemExit`` and\n+``GeneratorExit`` derive from ``BaseException`` but not from ``Exception``. An\n+``__exit__`` that only recognizes ``Exception`` finalizes them through the\n+success path, so a cancelled operation is exported as a successful one.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from unittest import TestCase\n+\n+import pytest\n+\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import SimpleSpanProcessor\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.trace.status import StatusCode\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+\n+\n+class _InvocationExitTestBase(TestCase):\n+    def setUp(self) -> None:\n+        self.span_exporter = InMemorySpanExporter()\n+        self.tracer_provider = TracerProvider()\n+        self.tracer_provider.add_span_processor(\n+            SimpleSpanProcessor(self.span_exporter)\n+        )\n+        self.handler = TelemetryHandler(tracer_provider=self.tracer_provider)\n+\n+    def _only_span(self):\n+        spans = self.span_exporter.get_finished_spans()\n+        self.assertEqual(len(spans), 1)\n+        return spans[0]\n+\n+\n+class InvocationExitBaseExceptionTest(_InvocationExitTestBase):\n+    \"\"\"A ``BaseException`` leaving the block must be recorded as a failure.\"\"\"\n+\n+    def test_cancelled_error_sets_error_status(self) -> None:\n+        with pytest.raises(asyncio.CancelledError):\n+            with self.handler.workflow(\"wf\"):\n+                raise asyncio.CancelledError()\n+\n+        self.assertEqual(\n+            self._only_span().status.status_code, StatusCode.ERROR\n+        )\n+\n+    def test_cancelled_error_sets_error_type(self) -> None:\n+        with pytest.raises(asyncio.CancelledError):\n+            with self.handler.workflow(\"wf\"):\n+                raise asyncio.CancelledError()\n+\n+        self.assertEqual(\n+            self._only_span().attributes[\"error.type\"],\n+            \"asyncio.exceptions.CancelledError\",\n+        )\n+\n+    def test_keyboard_interrupt_sets_error_status(self) -> None:\n+        with pytest.raises(KeyboardInterrupt):\n+            with self.handler.workflow(\"wf\"):\n+                raise KeyboardInterrupt()\n+\n+        span = self._only_span()\n+        self.assertEqual(span.status.status_code, StatusCode.ERROR)\n+        self.assertEqual(span.attributes[\"error.type\"], \"KeyboardInterrupt\")\n+\n+    def test_system_exit_sets_error_status(self) -> None:\n+        with pytest.raises(SystemExit):\n+            with self.handler.workflow(\"wf\"):\n+                raise SystemExit(1)\n+\n+        span = self._only_span()\n+        self.assertEqual(span.status.status_code, StatusCode.ERROR)\n+        self.assertEqual(span.attributes[\"error.type\"], \"SystemExit\")\n+\n+    def test_generator_exit_sets_error_status(self) -> None:\n+        # Documents the deliberate consequence of guarding on BaseException:\n+        # an invocation abandoned via generator close is a failed invocation.\n+        # No `with <invocation>:` block in this repository contains a yield,\n+        # so this path is not reachable from the shipped instrumentations.\n+        with pytest.raises(GeneratorExit):\n+            with self.handler.workflow(\"wf\"):\n+                raise GeneratorExit()\n+\n+        span = self._only_span()\n+        self.assertEqual(span.status.status_code, StatusCode.ERROR)\n+        self.assertEqual(span.attributes[\"error.type\"], \"GeneratorExit\")\n+\n+    def test_cancelled_task_sets_error_status(self) -> None:\n+        \"\"\"The realistic path: a real awaited task cancelled by asyncio.\"\"\"\n+\n+        async def scenario() -> None:\n+            started = asyncio.Event()\n+\n+            async def work() -> None:\n+                with self.handler.workflow(\"wf\"):\n+                    started.set()\n+                    await asyncio.sleep(60)\n+\n+            task = asyncio.ensure_future(work())\n+            await started.wait()\n+            task.cancel()\n+            with pytest.raises(asyncio.CancelledError):\n+                await task",
+      "id": "PRRT_kwDOSbspP86eApm9",
+      "opened": "2026-09-01T07:34:20Z",
+      "path": "util/opentelemetry-util-genai/tests/test_invocation_base_exception.py",
+      "replies": [
+        {
+          "at": "2026-09-02T12:47:30Z",
+          "body": "Good catch, applied. Both scenarios now bound the startup wait and the awaited\ntask with `asyncio.wait_for` on a shared 5s constant, at both sites.\n\nThe assertions are unchanged. I checked that `wait_for` is transparent here: when\nthe task is cancelled externally it still propagates `CancelledError` and\n`task.cancelled()` is still true, on 3.10 through 3.14. I also checked the guard\ncan actually fire. With `task.cancel()` removed, the two tests fail in about 10s\ntotal instead of stalling for two minutes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3914219150"
+        }
+      ],
+      "reviewed": "02d832ef84052d912b526cfb4cf5172b7aa54e33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3901799073"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Hardcoding the fully-qualified `CancelledError` type string is brittle across Python versions/implementations. Derive the expected value the same way the library does (via `fq_exception_type`) so the test remains stable.\n\nThis issue also appears on line 117 of the same file.",
+      "created": "2026-09-01T07:34:20Z",
+      "hunk": "@@ -0,0 +1,187 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for how ``GenAIInvocation.__exit__`` finalizes on ``BaseException``.\n+\n+``asyncio.CancelledError``, ``KeyboardInterrupt``, ``SystemExit`` and\n+``GeneratorExit`` derive from ``BaseException`` but not from ``Exception``. An\n+``__exit__`` that only recognizes ``Exception`` finalizes them through the\n+success path, so a cancelled operation is exported as a successful one.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from unittest import TestCase\n+\n+import pytest\n+\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import SimpleSpanProcessor\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.trace.status import StatusCode\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+\n+\n+class _InvocationExitTestBase(TestCase):\n+    def setUp(self) -> None:\n+        self.span_exporter = InMemorySpanExporter()\n+        self.tracer_provider = TracerProvider()\n+        self.tracer_provider.add_span_processor(\n+            SimpleSpanProcessor(self.span_exporter)\n+        )\n+        self.handler = TelemetryHandler(tracer_provider=self.tracer_provider)\n+\n+    def _only_span(self):\n+        spans = self.span_exporter.get_finished_spans()\n+        self.assertEqual(len(spans), 1)\n+        return spans[0]\n+\n+\n+class InvocationExitBaseExceptionTest(_InvocationExitTestBase):\n+    \"\"\"A ``BaseException`` leaving the block must be recorded as a failure.\"\"\"\n+\n+    def test_cancelled_error_sets_error_status(self) -> None:\n+        with pytest.raises(asyncio.CancelledError):\n+            with self.handler.workflow(\"wf\"):\n+                raise asyncio.CancelledError()\n+\n+        self.assertEqual(\n+            self._only_span().status.status_code, StatusCode.ERROR\n+        )\n+\n+    def test_cancelled_error_sets_error_type(self) -> None:\n+        with pytest.raises(asyncio.CancelledError):\n+            with self.handler.workflow(\"wf\"):\n+                raise asyncio.CancelledError()\n+\n+        self.assertEqual(\n+            self._only_span().attributes[\"error.type\"],\n+            \"asyncio.exceptions.CancelledError\",\n+        )",
+      "id": "PRRT_kwDOSbspP86eApnl",
+      "opened": "2026-09-01T07:34:20Z",
+      "path": "util/opentelemetry-util-genai/tests/test_invocation_base_exception.py",
+      "replies": [
+        {
+          "at": "2026-09-02T12:47:32Z",
+          "body": "Declining this one.\n\nDeriving the expected value with `fq_exception_type`, the same helper the code\nunder test uses to produce `error.type`, would make the assertion tautological. It\nwould pass even if `fq_exception_type` returned the wrong string, which is\nprecisely what the test exists to pin. The literal is the oracle.\n\nOn brittleness: I ran the string myself on CPython 3.10.21, 3.11.16, 3.12.2,\n3.13.15 and 3.14.7, which cover every version in the package's classifiers. It is\n`asyncio.exceptions.CancelledError` on all five. If it ever does change, this\nassertion failing is the correct outcome, since `error.type` is an exported\nattribute value and a change there is a change users would see.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3914219449"
+        }
+      ],
+      "reviewed": "02d832ef84052d912b526cfb4cf5172b7aa54e33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3901799140"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Towncrier fragment filenames must be the numeric PR number (e.g., `1234.fixed`); `PRNUMBER.fixed` looks like a placeholder and will prevent changelog aggregation in CI. Rename the fragment to the actual PR number before merging.",
+      "created": "2026-09-01T07:34:20Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record cancellation as a failure: the invocation context manager finalized any non-`Exception` `BaseException` (`asyncio.CancelledError`, `KeyboardInterrupt`, `SystemExit`, `GeneratorExit`) through the success path, so cancelled operations were exported with an unset span status and no `error.type`.",
+      "id": "PRRT_kwDOSbspP86eApoL",
+      "opened": "2026-09-01T07:34:20Z",
+      "path": "util/opentelemetry-util-genai/.changelog/520.fixed",
+      "replies": [
+        {
+          "at": "2026-09-02T12:47:36Z",
+          "body": "Already fixed. The fragment is `.changelog/520.fixed` on the current head; this\nreview ran against the first push.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3914220285"
+        }
+      ],
+      "reviewed": "02d832ef84052d912b526cfb4cf5172b7aa54e33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3901799188"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nI think this code is self-explanatory",
+      "created": "2026-09-01T19:25:29Z",
+      "hunk": "@@ -227,7 +227,15 @@ def __exit__(\n         exc_value: BaseException | None,\n         traceback: TracebackType | None,\n     ) -> None:\n-        if exc_value is not None and isinstance(exc_value, Exception):\n+        # Guard on BaseException, not Exception: asyncio.CancelledError,\n+        # KeyboardInterrupt, SystemExit and GeneratorExit do not derive from\n+        # Exception, and treating them as success reports a cancelled or\n+        # interrupted operation as a completed one. Matches the guard already\n+        # used by the stream wrappers in ``stream.py``.\n+        #\n+        # Returning None (never a truthy value) is load-bearing: suppressing\n+        # CancelledError here would break asyncio cancellation for every caller.",
+      "id": "PRRT_kwDOSbspP86ePoAZ",
+      "opened": "2026-09-01T19:28:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-02T12:47:28Z",
+          "body": "Agreed, applied. Comment block removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3914218847"
+        }
+      ],
+      "reviewed": "009e789167982612bc650ac5a52da449a05b0fe0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3907618789"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you please write this test against the actual langgraph public API. I think it's an existing pattern, but this is very synthetic, does not show how it'd work in real life and we're trying to stop using it.",
+      "created": "2026-09-01T19:28:26Z",
+      "hunk": "@@ -0,0 +1,187 @@\n+# Copyright The OpenTelemetry Authors",
+      "id": "PRRT_kwDOSbspP86ePr1M",
+      "opened": "2026-09-01T19:28:34Z",
+      "path": "util/opentelemetry-util-genai/tests/test_invocation_base_exception.py",
+      "replies": [
+        {
+          "at": "2026-09-02T12:47:34Z",
+          "body": "Happy to. I went to write it and hit something I wanted to check with you first.\n\nlanggraph is instrumented through the langchain package, and that instrumentation\nis callback-based: `on_chain_end` calls `invocation.stop()` and `on_chain_error`\ncalls `invocation.fail(error)` directly. It never uses the invocation as a context\nmanager, so a langgraph-driven test doesn't reach `GenAIInvocation.__exit__`, and\nit passes the same with and without this fix. `on_chain_error` is already typed to\ntake a `BaseException` and hands it straight to `fail()`.\n\nThe place a real-API cancellation test would land in `__exit__` is agno:\n`_tool_call_aexecute` awaits inside `with _start_tool_invocation(...)`. Happy to\nopen that as a separate PR against agno.\n\nWant me to add the langgraph test anyway, or go the agno route?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3914219900"
+        },
+        {
+          "at": "2026-09-02T18:24:05Z",
+          "body": "thanks for the research! \r\n\r\nLet's add langgraph test anyway - it'd assert the behavior is correct regardless of this PR and would be awesome to have a similar fix in the agno. If you believe there is a good candidate for common code to put in util-genai to make it easier (or maybe an additional guidance we can add to agents.md and review instructions), please share!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3917320077"
+        },
+        {
+          "at": "2026-09-04T21:51:50Z",
+          "body": "let's follow up in #630 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3938108791"
+        }
+      ],
+      "reviewed": "009e789167982612bc650ac5a52da449a05b0fe0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/520#discussion_r3907642271"
+    }
+  ]
+}

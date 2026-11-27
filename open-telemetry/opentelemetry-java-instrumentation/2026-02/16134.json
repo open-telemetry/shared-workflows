@@ -1,0 +1,31 @@
+{
+  "head": "bd08d2a8175880a9d0dad63321d549771a0743b4",
+  "merge": "b8f332815163d7c1ddbbde9a27736fc10b467654",
+  "merged": "2026-02-11T07:46:12Z",
+  "missing_roots": 0,
+  "number": 16134,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot no need to deprecate since this class is package protected, just rename is fine",
+      "created": "2026-02-10T20:59:42Z",
+      "hunk": "@@ -7,27 +7,23 @@\n \n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.api.internal.InstrumenterContext;\n-import java.util.HashMap;\n-import java.util.Map;\n \n /**\n  * Helper class for sanitizing sql that keeps sanitization results in {@link InstrumenterContext} so\n  * that each statement would be sanitized only once for given {@link Instrumenter} call.\n+ *\n+ * @deprecated Use {@link SqlQuerySanitizerUtil} instead. This class will be removed in a future\n+ *     release.\n  */\n+@Deprecated",
+      "id": "PRRT_kwDODJKVX85t18up",
+      "opened": "2026-02-10T20:59:42Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlStatementSanitizerUtil.java",
+      "replies": [
+        {
+          "at": "2026-02-10T21:06:24Z",
+          "body": "Done in bd08d2a - removed the deprecated class entirely since it's package-protected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16134#discussion_r2790290368"
+        }
+      ],
+      "reviewed": "1785ac73ab12ed4cc76331927d83b206a52906d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16134#discussion_r2790253331"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "d7600096b07f4aacf8a961a570221da1dba20e91",
+  "merge": "ae24123b370892d0bbe420f80796abac81f15638",
+  "merged": "2026-11-25T19:00:26Z",
+  "missing_roots": 0,
+  "number": 21493,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please drop the changes to this generated file and retain the source metadata fix. `.github/instructions/instrumentation-list.instructions.md:7-8` explicitly reserves updates to `docs/instrumentation-list.yaml` for the nightly metadata workflow; that workflow will propagate the corrected description and omitted default after the metadata change merges.",
+      "created": "2026-11-25T17:10:29Z",
+      "hunk": "@@ -1107,9 +1107,8 @@ definitions:\n       name: otel.instrumentation.rocketmq-client.message-create-spans.enabled\n       declarative_name: java.rocketmq_client.message_create_spans.enabled\n       description: |\n-        Enables per-message Create spans for batch sends. Overrides the common messaging setting. Disabling this retains Send spans and context propagation and does not affect single-message sends.\n+        Enables per-message Create spans for batch sends. Overrides `otel.instrumentation.common.messaging.message-create-spans.enabled` for this instrumentation; when unset, that setting applies. Disabling this retains Send spans and context propagation and does not affect single-message sends.\n       type: boolean",
+      "id": "PRRT_kwDODJKVX868A-hW",
+      "opened": "2026-11-25T17:10:30Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "1f99b39675c4f11fa3ecd6813e2b1347dcfff2b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21493#discussion_r4698260743"
+    }
+  ]
+}

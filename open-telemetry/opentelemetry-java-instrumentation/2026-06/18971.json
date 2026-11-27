@@ -1,0 +1,52 @@
+{
+  "head": "402f49c50aad3996f780c750dd0d31dc8e8eb269",
+  "merge": "44b62ae07ae0ad85b6236c19a4b81cd5075f3bef",
+  "merged": "2026-06-15T16:59:47Z",
+  "missing_roots": 0,
+  "number": 18971,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In v3 preview mode, using the legacy target names (kafka-broker / kafka-connect) currently results in a generic \"configuration not found\" error. Logging an explicit warning when v3 preview is enabled and a legacy name is used would make the failure mode much more actionable.",
+      "created": "2026-06-12T05:12:57Z",
+      "hunk": "@@ -77,4 +79,20 @@ private static void addClasspathRules(String target, JmxTelemetryBuilder builder\n       logger.log(SEVERE, \"Error while loading JMX configuration from classpath \" + resource, e);\n     }\n   }\n+\n+  private static String targetSystemResource(String target, boolean v3Preview) {\n+    if (target.equals(\"kafka-broker\") && !v3Preview) {\n+      logger.log(\n+          WARNING,\n+          \"The kafka-broker JMX target system has been renamed to experimental-kafka-broker.\");\n+      return \"jmx/rules/experimental-kafka-broker.yaml\";\n+    }\n+    if (target.equals(\"kafka-connect\") && !v3Preview) {\n+      logger.log(\n+          WARNING,\n+          \"The kafka-connect JMX target system has been renamed to experimental-kafka-connect.\");\n+      return \"jmx/rules/experimental-kafka-connect.yaml\";\n+    }\n+    return String.format(\"jmx/rules/%s.yaml\", target);\n+  }",
+      "id": "PRRT_kwDODJKVX86JBRt_",
+      "opened": "2026-06-12T05:12:58Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-06-12T05:14:24Z",
+          "body": "this will be documented in release notes for major version bump",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18971#discussion_r3400870888"
+        }
+      ],
+      "reviewed": "402f49c50aad3996f780c750dd0d31dc8e8eb269",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18971#discussion_r3400866436"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "README now uses the experimental Kafka target names, but it doesn’t mention that legacy names (kafka-broker / kafka-connect) are still accepted outside v3 preview (with a warning) and that v3 preview requires the experimental names. Adding this note would prevent user confusion during the transition.",
+      "created": "2026-06-12T05:12:57Z",
+      "hunk": "@@ -28,8 +28,8 @@ No targets are enabled by default. The supported target environments are listed\n - [activemq](library/activemq.md)\n - [camel](library/camel.md)\n - [jetty](library/jetty.md)\n-- [kafka-broker](javaagent/kafka-broker.md)\n-- [kafka-connect](library/kafka-connect.md)\n+- [experimental-kafka-broker](javaagent/kafka-broker.md)\n+- [experimental-kafka-connect](library/kafka-connect.md)\n - [tomcat](library/tomcat.md)",
+      "id": "PRRT_kwDODJKVX86JBRto",
+      "opened": "2026-06-12T05:12:58Z",
+      "path": "instrumentation/jmx-metrics/README.md",
+      "replies": [
+        {
+          "at": "2026-06-12T05:13:28Z",
+          "body": "this is ok just to document latest state",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18971#discussion_r3400868070"
+        }
+      ],
+      "reviewed": "402f49c50aad3996f780c750dd0d31dc8e8eb269",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18971#discussion_r3400866407"
+    }
+  ]
+}

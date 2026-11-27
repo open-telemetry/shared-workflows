@@ -1,0 +1,52 @@
+{
+  "head": "95e2ef0aa47b81ccd4ca49e114be8719b634c82d",
+  "merge": "ea492d31c00c03a46715a4830177258a94c84573",
+  "merged": "2026-11-06T05:46:44Z",
+  "missing_roots": 0,
+  "number": 21215,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the redundant empty execution declarations in this Scala Gradle rollout PR. Remove exactly these 10 empty executions blocks from the following build.gradle.kts files: instrumentation/akka/akka-actor-2.3/javaagent (executions(\"test\", \"version25Test\")); instrumentation/akka/akka-http-10.0/javaagent (executions(\"test\", \"javaRouteTest\")); instrumentation/finatra-2.9/javaagent (executions(\"test\") and its conditionally selected executions(\"latestDepTest\")); instrumentation/pekko/pekko-actor-1.0/javaagent (executions(\"test\", \"scala3Test\")); instrumentation/pekko/pekko-http-1.0/javaagent (executions(\"scala3Test\") and executions(\"tapirTest\")); instrumentation/pekko/pekko-remote-1.0/javaagent (executions(\"test\", \"scala3Test\")); instrumentation/play/play-mvc/play-mvc-2.4/javaagent (executions(\"test\", \"play24Test\")); instrumentation/play/play-mvc/play-mvc-2.6/javaagent (executions(\"play28Test\")). Remove an empty conditional left solely around a removed declaration, and remove the unused executions import in Akka actor, Akka HTTP, Finatra, and Play MVC 2.4.\n\nThese empty blocks add no flags or variants, and existing check dependencies already realize/include the relevant suites. Retain all existing check dependencies, including Finatra's conditional latest-dependency wiring. Keep every nonempty executions block and all registrations, source/compile settings, and compatibility gates unchanged. Verify the removal does not alter suite or variant inclusion.\n\nUpdate this existing PR directly on its existing head branch, not a new PR. Keep the PR's current draft/ready state. Preserve behavior, test discovery, dependency graphs, test task names, configuration flags, metadata profiles, JDK/denyUnsafe gates, agent inputs/providers, and check membership except for the explicitly requested removal of redundant wiring or duplicate compilation. Do not edit PR titles or descriptions.\n\nRead applicable repository guidance. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify relevant check graphs and task configuration in baseline and testLatestDeps modes without first manually realizing all suites. Run focused existing tests where relevant and feasible, and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build, wait for hosted CI, or expand the change into unrelated cleanup. Commit and push the intended changes to this PR's existing head.",
+      "created": "2026-11-06T00:46:12Z",
+      "hunk": "@@ -65,18 +67,18 @@ dependencies {\n   latestDepTestLibrary(\"com.typesafe.akka:akka-actor_2.13:latest.release\")\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"version25Test\") {\n-      dependencies {\n-        val scalaVersion = if (otelProps.testLatestDeps) \"2.13\" else \"2.11\"\n-        implementation(\n-          \"com.typesafe.akka:akka-actor_$scalaVersion:${baseVersion(\"2.5.0\").orLatest(\"2.5.+\")}\",\n-        )\n-        implementation(project(\":instrumentation:executors:testing\"))\n-      }\n+testing.suites {\n+  register<JvmTestSuite>(\"version25Test\") {\n+    dependencies {\n+      val scalaVersion = if (otelProps.testLatestDeps) \"2.13\" else \"2.11\"\n+      implementation(\n+        \"com.typesafe.akka:akka-actor_$scalaVersion:${baseVersion(\"2.5.0\").orLatest(\"2.5.+\")}\",\n+      )\n+      implementation(project(\":instrumentation:executors:testing\"))\n     }\n   }\n+\n+  executions(\"test\", \"version25Test\") {}",
+      "id": "PRRT_kwDODJKVX860VXCJ",
+      "opened": "2026-11-06T00:46:12Z",
+      "path": "instrumentation/akka/akka-actor-2.3/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T00:54:49Z",
+          "body": "Removed the ten empty declarations and four unused imports, leaving suite registrations and conditional `check` wiring intact. Verified baseline and `testLatestDeps` check graphs, and the focused execution DSL test passed. Commit: `6370f4ad`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21215#discussion_r4487851749"
+        }
+      ],
+      "reviewed": "3d9114a32a8fd8b15ebbe2e84ce887f7ff12fde5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21215#discussion_r4487797716"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the following four behavior-preserving build.gradle.kts cleanups to this existing Scala-frameworks PR. Update only the four files listed below, using the existing executions and telemetryConfig helpers from io.opentelemetry.instrumentation.gradle, adding their imports where needed.\n\n1. instrumentation/finatra-2.9/javaagent/build.gradle.kts: replace the controller-telemetry JVM argument and its manually repeated metadataConfig with telemetryConfig(\"otel.instrumentation.common.controller-telemetry.enabled\", \"true\"). Keep this call and its existing shared JVM opens/VM arguments in the existing tasks.withType<Test>().configureEach scope. Do not introduce an unqualified executions block here: it would automatically wire a realized custom suite into check and weaken Finatra's intentionally conditional latest-dependency selection. Preserve that selection and all JDK/denyUnsafe gates.\n\n2. instrumentation/akka/akka-http-10.0/javaagent/build.gradle.kts: move the existing shared Test JVM arguments and testLatestDeps system property from tasks.withType<Test>().configureEach into an unqualified executions { configureEach { ... } } block at the end of the existing testing.suites container, after registrations. Keep the JVM-export rationale with its setting. Retain the task-wide denyUnsafe disablement and check dependency.\n\n3. instrumentation/play/play-mvc/play-mvc-2.4/javaagent/build.gradle.kts: replace the controller-telemetry JVM argument and manual metadataConfig with telemetryConfig(\"otel.instrumentation.common.controller-telemetry.enabled\", \"true\"), and put that call in unqualified executions { configureEach { ... } } at the end of the existing testing.suites container. Remove the now-empty shared Test configuration block, but keep the check dependency and JDK gate.\n\n4. instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts: replace the same controller-telemetry JVM argument/manual metadataConfig pair with the same telemetryConfig call, retaining its current task-wide withType<Test>().configureEach scope. Do not add an unqualified executions block because it would overlap the existing test/play3Test execution blocks; the helper permits only one execution declaration per suite. Preserve those blocks, compilation gates, denyUnsafe gate and check wiring.\n\nAll controller-telemetry JVM values and exact metadataConfig strings must stay unchanged. Preserve all suite registrations, task names, sources, dependencies, baseline/latest selections, JDK/denyUnsafe behavior and test discovery. Do not add variants, change production code or shared conventions, or expand the cleanup to other modules.\n\nUpdate this existing PR directly on its existing head branch, not a new PR. Keep the PR's current draft/ready state. Preserve behavior, test discovery, dependency graphs, test task names, configuration flags, metadata profiles, JDK/denyUnsafe gates, agent inputs/providers, and check membership except for the explicitly requested removal of redundant wiring or duplicate compilation. Do not edit PR titles or descriptions.\n\nRead applicable repository guidance. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify relevant check graphs and task configuration in baseline and testLatestDeps modes without first manually realizing all suites. Run focused existing tests where relevant and feasible, and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build, wait for hosted CI, or expand the change into unrelated cleanup. Commit and push the intended changes to this PR's existing head.",
+      "created": "2026-11-06T01:24:27Z",
+      "hunk": "@@ -41,14 +41,12 @@ dependencies {\n   latestDepTestLibrary(\"com.typesafe.akka:akka-stream_2.13:latest.release\")\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"javaRouteTest\") {\n-      dependencies {\n-        val scalaVersion = if (otelProps.testLatestDeps) \"2.13\" else \"2.12\"\n-        implementation(\"com.typesafe.akka:akka-http_$scalaVersion:${baseVersion(\"10.2.0\").orLatest()}\")\n-        implementation(\"com.typesafe.akka:akka-stream_$scalaVersion:${baseVersion(\"2.6.21\").orLatest()}\")\n-      }\n+testing.suites {",
+      "id": "PRRT_kwDODJKVX860V4yl",
+      "opened": "2026-11-06T01:24:26Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T01:31:23Z",
+          "body": "Applied the requested scope-preserving cleanups in commit `95e2ef0a`. Targeted Spotless, baseline/latest `check` graph dry-runs, and the focused execution DSL test passed; no secrets were found. CodeQL had no supported code changes to analyze.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21215#discussion_r4488073768"
+        }
+      ],
+      "reviewed": "6370f4ad04ddcd359565593960f0b1add7afbd72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21215#discussion_r4488026694"
+    }
+  ]
+}

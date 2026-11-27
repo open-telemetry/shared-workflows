@@ -1,0 +1,172 @@
+{
+  "head": "4487f9a2358ceebff96083e21ba62506eef41351",
+  "merge": "cc93175d71451b50cda11505a28af529a7b72244",
+  "merged": "2026-06-10T00:14:42Z",
+  "missing_roots": 0,
+  "number": 242,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I could not find `id` property on the autogen or ag2 agent classes",
+      "created": "2026-06-04T03:22:36Z",
+      "hunk": "@@ -135,10 +135,6 @@ def _capture_tool_call_id(*_args, tool_call_id=None, **_kwargs):\n                 tools=[get_weather],\n                 max_tool_iterations=2,\n             )\n-            agent_id = getattr(agent, \"id\", None)",
+      "id": "PRRT_kwDOSUeMrM6G8yXJ",
+      "opened": "2026-06-04T03:22:36Z",
+      "path": "reference/scenarios/autogen/scenario.py",
+      "replies": [],
+      "reviewed": "5e4c32ba4fb4c4fdccfcb76055f4f6727729aeb8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3353217822"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "crewai agents are internal, this is just a constructor call, we should not instrument it",
+      "created": "2026-06-04T03:23:17Z",
+      "hunk": "@@ -1,23 +1,12 @@\n {\n   \"spans\": {\n-    \"create_agent\": [",
+      "id": "PRRT_kwDOSUeMrM6G8ys_",
+      "opened": "2026-06-04T03:23:16Z",
+      "path": "reference/scenarios/crewai/data.json",
+      "replies": [],
+      "reviewed": "5e4c32ba4fb4c4fdccfcb76055f4f6727729aeb8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3353219633"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we didn't have an example of invoke_agent for crewai",
+      "created": "2026-06-04T03:24:00Z",
+      "hunk": "@@ -210,6 +193,148 @@ def _capture_completion(*args, **kwargs):\n             print(f\"    -> {str(result)[:60]}\")\n \n \n+def run_agent():",
+      "id": "PRRT_kwDOSUeMrM6G8zAI",
+      "opened": "2026-06-04T03:24:00Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [],
+      "reviewed": "5e4c32ba4fb4c4fdccfcb76055f4f6727729aeb8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3353221312"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The brief line has trailing whitespace after the period. This can cause noisy diffs and may trip whitespace-focused linters/formatters.",
+      "created": "2026-06-04T04:22:51Z",
+      "hunk": "@@ -105,16 +105,16 @@ attribute_groups:\n           Application developers that manage conversation history MAY add conversation id to GenAI and other\n           spans or logs using custom span or log record processors or hooks provided by instrumentation\n           libraries.\n-      - ref: gen_ai.agent.id\n-        requirement_level:\n-          conditionally_required: if applicable.\n       - ref: gen_ai.agent.name\n+        brief: The human-readable name of the invoked GenAI agent.\n         requirement_level:\n           conditionally_required: when available\n       - ref: gen_ai.agent.description\n+        brief: The free-form description of the invoked GenAI agent.\n         requirement_level:\n           conditionally_required: when available\n       - ref: gen_ai.agent.version\n+        brief: The version of the invoked GenAI agent.  ",
+      "id": "PRRT_kwDOSUeMrM6G9Yi0",
+      "opened": "2026-06-04T04:22:52Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "d1999afdc02e8f55324be88dcdac6dfc2b47d18e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3353443122"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This line in the YAML folded note ends with a trailing space after the closing parenthesis, which creates unnecessary whitespace-only diffs and can be flagged by formatting checks.",
+      "created": "2026-06-04T04:22:52Z",
+      "hunk": "@@ -243,8 +243,15 @@ attributes:\n     stability: development\n   - key: gen_ai.agent.id\n     type: string\n-    brief: The unique identifier of the GenAI agent.\n-    examples: ['asst_5j66UpCpwteGg4YSxUnt7lPY']\n+    brief: The unique and stable identifier of the GenAI hosted agent resource.\n+    note: >\n+      For hosted agents, this SHOULD be the provider-assigned stable identifier of the\n+      agent resource such as [AWS Bedrock agent ARN](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_agent_Agent.html) ",
+      "id": "PRRT_kwDOSUeMrM6G9Yjd",
+      "opened": "2026-06-04T04:22:52Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "d1999afdc02e8f55324be88dcdac6dfc2b47d18e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3353443176"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The implementation no longer sets `gen_ai.agent.id` on the plan span, but the nearby comment still explains the patch in terms of recording `gen_ai.agent.{id,name}` and reusing the agent \"whose id we just recorded\". This is now misleading; please update the comment (and the `run_crew_planning` docstring below, which also references `gen_ai.agent.id` on the plan span) to match the new behavior.",
+      "created": "2026-06-04T04:22:52Z",
+      "hunk": "@@ -282,7 +415,6 @@ def _wrapped_handle_crew_planning(self):\n         planner_agent = original_create_planning_agent(self)\n         with _reference_tracer.start_as_current_span(f\"plan {planner_agent.role}\") as plan_span:\n             plan_span.set_attribute(\"gen_ai.operation.name\", \"plan\")\n-            plan_span.set_attribute(\"gen_ai.agent.id\", str(planner_agent.id))\n             plan_span.set_attribute(\"gen_ai.agent.name\", planner_agent.role)\n             self._create_planning_agent = lambda: planner_agent",
+      "id": "PRRT_kwDOSUeMrM6G9Yjt",
+      "opened": "2026-06-04T04:22:52Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [],
+      "reviewed": "d1999afdc02e8f55324be88dcdac6dfc2b47d18e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3353443197"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I think it's pretty clear since you said \"resource\", but it would be to explicitly call out it's not an instance level identifier.",
+      "created": "2026-06-05T21:46:58Z",
+      "hunk": "@@ -243,8 +243,15 @@ attributes:\n     stability: development\n   - key: gen_ai.agent.id\n     type: string\n-    brief: The unique identifier of the GenAI agent.\n-    examples: ['asst_5j66UpCpwteGg4YSxUnt7lPY']\n+    brief: The unique and stable identifier of the GenAI hosted agent resource.\n+    note: >\n+      For hosted agents, this SHOULD be the provider-assigned stable identifier of the",
+      "id": "PRRT_kwDOSUeMrM6HfMuV",
+      "opened": "2026-06-05T21:55:18Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-06-05T23:07:16Z",
+          "body": "There is \n\n>       It's NOT RECOMMENDED to record in-memory agent instance ids on this attribute due to their transient nature.\n\na couple of lines below. Do you think we need more?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3365847381"
+        }
+      ],
+      "reviewed": "7c5c4547a20faeb53102fea5fe0241a1b7be5f0c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3365557871"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\n        brief: The stable unique identifier of the GenAI agent created during this operation.\n```",
+      "created": "2026-06-05T21:48:48Z",
+      "hunk": "@@ -378,16 +378,20 @@ spans:\n       - ref: gen_ai.request.model\n         sampling_relevant: true\n       - ref: gen_ai.agent.id\n+        brief: The unique identifier of the GenAI agent created during this operation.",
+      "id": "PRRT_kwDOSUeMrM6HfOB1",
+      "opened": "2026-06-05T21:55:18Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "7c5c4547a20faeb53102fea5fe0241a1b7be5f0c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3365565771"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\n        brief: The stable unique identifier of the invoked GenAI agent.\n```",
+      "created": "2026-06-05T21:49:06Z",
+      "hunk": "@@ -428,6 +432,10 @@ spans:\n         sampling_relevant: true\n       - ref: server.port\n         sampling_relevant: true\n+      - ref: gen_ai.agent.id\n+        brief: The unique identifier of the invoked GenAI agent.",
+      "id": "PRRT_kwDOSUeMrM6HfORj",
+      "opened": "2026-06-05T21:55:18Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "7c5c4547a20faeb53102fea5fe0241a1b7be5f0c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3365567173"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "MikeGoldsmith"
+      },
+      "body": "nit: I don't think the GCP identifer looks right, it duplicates projects-123 and projects:123",
+      "created": "2026-06-08T11:23:19Z",
+      "hunk": "@@ -56,13 +56,13 @@ Semantic conventions for individual GenAI systems and frameworks MAY specify dif\n | [`gen_ai.operation.name`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Required` | string | The name of the operation being performed. [1] | `chat`; `generate_content`; `text_completion` |\n | [`gen_ai.provider.name`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Required` | string | The Generative AI provider as identified by the client or server instrumentation. [2] | `openai`; `gcp.gen_ai`; `gcp.vertex_ai` |\n | [`error.type`](https://github.com/open-telemetry/semantic-conventions/blob/v1.41.1/docs/registry/attributes/error.md) | ![Stable](https://img.shields.io/badge/-stable-lightgreen) | `Conditionally Required` If the operation ended in an error. | string | Describes a class of error the operation ended with. [3] | `timeout`; `java.net.UnknownHostException`; `server_certificate_invalid`; `500` |\n-| [`gen_ai.agent.description`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` If provided by the application. | string | Free-form description of the GenAI agent provided by the application. | `Helps with math problems`; `Generates fiction stories` |\n-| [`gen_ai.agent.id`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` If applicable. | string | The unique identifier of the GenAI agent. | `asst_5j66UpCpwteGg4YSxUnt7lPY` |\n-| [`gen_ai.agent.name`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` If provided by the application. | string | Human-readable name of the GenAI agent provided by the application. | `Math Tutor`; `Fiction Writer` |\n-| [`gen_ai.agent.version`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` If provided by the application. | string | The version of the GenAI agent. | `1.0.0`; `2025-05-01` |\n-| [`gen_ai.request.model`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` If available. | string | The name of the GenAI model a request is being made to. [4] | `gpt-4` |\n-| [`server.port`](https://github.com/open-telemetry/semantic-conventions/blob/v1.41.1/docs/registry/attributes/server.md) | ![Stable](https://img.shields.io/badge/-stable-lightgreen) | `Conditionally Required` If `server.address` is set. | int | GenAI server port. [5] | `80`; `8080`; `443` |\n-| [`server.address`](https://github.com/open-telemetry/semantic-conventions/blob/v1.41.1/docs/registry/attributes/server.md) | ![Stable](https://img.shields.io/badge/-stable-lightgreen) | `Recommended` | string | GenAI server address. [6] | `example.com`; `10.1.2.80`; `/tmp/my.sock` |\n+| [`gen_ai.agent.description`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` If provided by the application. | string | The free-form description of the GenAI agent created during this operation. | `Helps with math problems`; `Generates fiction stories` |\n+| [`gen_ai.agent.id`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` If applicable. | string | The stable unique identifier of the GenAI agent created during this operation. [4] | `asst_5j66UpCpwteGg4YSxUnt7lPY`; `arn:aws:bedrock:us-east-1:123:agent/42`; `urn:agent:projects-123:projects:123:locations:us-east1:aiplatform:reasoningEngines:456` |",
+      "id": "PRRT_kwDOSUeMrM6HzsI1",
+      "opened": "2026-06-08T11:23:23Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [
+        {
+          "at": "2026-06-10T00:09:08Z",
+          "body": "I thought this too - https://docs.cloud.google.com/agent-registry/concepts#agent-identifier\r\n\r\n> urn:agent:projects-PROJECT_NUMBER:projects:PROJECT_NUMBER:locations:REGION:reasoningEngines:AGENT_ID",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3384611342"
+        }
+      ],
+      "reviewed": "c44f3f413a423d696260ba71cc30741abcc415ed",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/242#discussion_r3372792089"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "fcd773e84c315df263cd1958044b62e86f310a06",
+  "merge": "a2eab5b01acf8df919002d899d874fcb416f8020",
+  "merged": "2026-10-12T15:00:13Z",
+  "missing_roots": 0,
+  "number": 20523,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This transition path now changes telemetry for supported `MapMessage` implementations other than `StringMapMessage` and `StructuredDataMessage`. `LogEventToReplay` wraps those other map messages in `MessageCopy`, so `LogEventMapper` no longer recognizes them as a `MapMessage` and loses their event name, map body rules, and structured attributes when installation completes during capture. Please preserve generic `MapMessage` semantics in the snapshot (or emit the original event in this branch).",
+      "created": "2026-10-12T03:43:14Z",
+      "hunk": "@@ -499,24 +499,27 @@ public void append(LogEvent event) {\n       return;\n     }\n \n+    LogEventToReplay logEventToReplay = new LogEventToReplay(event, captureCodeAttributes);\n+    boolean logReplayLimitWarning = false;\n     Lock readLock = lock.readLock();\n     readLock.lock();\n     try {\n       openTelemetry = this.openTelemetry;\n       if (openTelemetry == null) {\n-        LogEventToReplay logEventToReplay = new LogEventToReplay(event, captureCodeAttributes);\n-\n-        if (!eventsToReplay.offer(logEventToReplay) && !replayLimitWarningLogged.getAndSet(true)) {\n-          String message =\n-              \"numLogsCapturedBeforeOtelInstall value of the OpenTelemetry appender is too small.\";\n-          System.err.println(message);\n-        }\n+        logReplayLimitWarning =\n+            !eventsToReplay.offer(logEventToReplay) && !replayLimitWarningLogged.getAndSet(true);\n       }\n     } finally {\n       readLock.unlock();\n     }\n+    if (logReplayLimitWarning) {\n+      String message =\n+          \"numLogsCapturedBeforeOtelInstall value of the OpenTelemetry appender is too small.\";\n+      System.err.println(message);\n+    }\n     if (openTelemetry != null) {\n-      emit(openTelemetry, event);\n+      // Reuse the snapshot to avoid formatting the original message again.\n+      emit(openTelemetry, logEventToReplay);",
+      "id": "PRRT_kwDODJKVX86rUlPf",
+      "opened": "2026-10-12T03:43:15Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+      "replies": [
+        {
+          "at": "2026-10-12T05:09:41Z",
+          "body": "Addressed in 26ca132112f0bcd6490fad6a75b39b810f5bafc1.\n\nConfirmed: generic map messages previously became MessageCopy, which made LogEventMapper.captureMessage take the plain-message branch. All four regression cases failed with an absent MapEvent event name on the frozen implementation. A MapMessageCopy now preserves generic map semantics, defensively copies the data, and delegates captured format, parameters, formatted text, and throwable to the existing MessageCopy helper. The same four cases now pass and verify body selection, excluded attributes, non-string values, parameter copying, and single formatting during both buffered replay and installation completing during capture.\n\n<!-- copilot-loop:506dd5dc9d520a948b882759976359a15cc5aad184792a73a8df4f21ada92bf1:4244494175:0d995752211f4ef3b0f039a625f6981c -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20523#discussion_r4244836619"
+        }
+      ],
+      "reviewed": "633b83f7e5d9bb80fc03fc628853bfe306846ac3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20523#discussion_r4244494175"
+    }
+  ]
+}

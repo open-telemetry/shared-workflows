@@ -1,0 +1,25 @@
+{
+  "head": "c96a847d4b02fd5ea1a5fa0570c6e62a5dbfb663",
+  "merge": "94287ca6d069b3387eb34246d391ad381c220af9",
+  "merged": "2026-03-16T01:35:44Z",
+  "missing_roots": 0,
+  "number": 16520,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I’m not sure this is necessary. I get the same error during local builds and usually disable the configuration cache. Since this error didn’t happen during previous relese job runs it feels more like bad luck that it happened now.",
+      "created": "2026-03-14T21:39:10Z",
+      "hunk": "@@ -236,6 +236,37 @@ jobs:\n           name: opentelemetry-java-instrumentation-SBOM.zip\n           path: \"sboms/*.json\"\n \n+  publish-dry-run:",
+      "id": "PRRT_kwDODJKVX850Xpw2",
+      "opened": "2026-03-14T21:39:10Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [],
+      "reviewed": "3d0d1269055c77fe019363f7f4e775b4384c3d47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16520#discussion_r2935861129"
+    }
+  ]
+}

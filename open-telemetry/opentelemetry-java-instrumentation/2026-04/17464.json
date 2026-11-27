@@ -1,0 +1,70 @@
+{
+  "head": "d715550feb6eb7c48297608cdad8bf4b51facac0",
+  "merge": "16611828989cced045a72412dcc4616abb52eaa3",
+  "merged": "2026-04-04T15:43:28Z",
+  "missing_roots": 0,
+  "number": 17464,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The deprecation warning for the old `common.database` declarative config is using an internal-looking path string (e.g. `.instrumentation/development.java...`) that doesn’t match what users configure in YAML and is inconsistent with the repo guidance to reference user-facing config keys in warnings. Consider logging the actual YAML keys (e.g. `instrumentation/development: java: common: database: ...`) and/or the corresponding flat property name instead, so the warning is actionable.\n```suggestion\n          \"instrumentation/development: java: common: database: sqlcommenter/development:\"\n              + \" enabled\",\n          \"instrumentation/development: java: common: db: sqlcommenter/development:\"\n              + \" enabled\");\n```",
+      "created": "2026-04-03T23:31:38Z",
+      "hunk": "@@ -54,62 +53,147 @@ public static boolean isSqlCommenterEnabled(\n   public static boolean isSqlCommenterEnabled(\n       OpenTelemetry openTelemetry, String instrumentationName, boolean defaultValue) {\n     Boolean sqlCommenterEnabled =\n-        getSqlCommenterEnabled(\n-            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName));\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName)\n+            .get(\"sqlcommenter/development\")\n+            .getBoolean(\"enabled\");\n     if (sqlCommenterEnabled != null) {\n       return sqlCommenterEnabled;\n     }\n-    return isCommonSqlCommenterEnabled(openTelemetry, defaultValue);\n+\n+    sqlCommenterEnabled = getCommonSqlCommenterEnabled(openTelemetry);\n+    return sqlCommenterEnabled != null ? sqlCommenterEnabled : defaultValue;\n   }\n \n   @Nullable\n   private static Boolean getCommonSqlCommenterEnabled(OpenTelemetry openTelemetry) {\n-    return getCommonDbValue(openTelemetry, DbConfig::getSqlCommenterEnabled);\n+    DeclarativeConfigProperties commonConfig =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\");\n+\n+    Boolean value = commonConfig.get(\"db\").get(\"sqlcommenter/development\").getBoolean(\"enabled\");\n+    if (value != null) {\n+      return value;\n+    }\n+\n+    // this variant was never a regular (non-declarative) configuration property name\n+    Boolean deprecatedValue =\n+        commonConfig.get(\"database\").get(\"sqlcommenter/development\").getBoolean(\"enabled\");\n+    if (deprecatedValue != null) {\n+      warnIfDeprecatedDeclarativeConfigurationUsed(\n+          \".instrumentation/development.java.common.database.sqlcommenter/development.enabled\",\n+          \".instrumentation/development.java.common.db.sqlcommenter/development.enabled\");",
+      "id": "PRRT_kwDODJKVX854zZ_V",
+      "opened": "2026-04-03T23:31:39Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+      "replies": [],
+      "reviewed": "9baa5ff63626dcd94bed0211d48c53ebef4fa3ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17464#discussion_r3034738028"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as above: the warning strings passed here use an internal path format (leading `.` and mixed `.`/`/`) that isn’t what users write in declarative YAML. Please switch the logged deprecated/replacement identifiers to user-facing declarative keys and/or flat property names to make the warning actionable.\n```suggestion\n          \"instrumentation.common.database.statement_sanitizer.enabled\",\n          \"instrumentation.common.db.query_sanitization.enabled\");\n```",
+      "created": "2026-04-03T23:31:38Z",
+      "hunk": "@@ -54,62 +53,147 @@ public static boolean isSqlCommenterEnabled(\n   public static boolean isSqlCommenterEnabled(\n       OpenTelemetry openTelemetry, String instrumentationName, boolean defaultValue) {\n     Boolean sqlCommenterEnabled =\n-        getSqlCommenterEnabled(\n-            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName));\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName)\n+            .get(\"sqlcommenter/development\")\n+            .getBoolean(\"enabled\");\n     if (sqlCommenterEnabled != null) {\n       return sqlCommenterEnabled;\n     }\n-    return isCommonSqlCommenterEnabled(openTelemetry, defaultValue);\n+\n+    sqlCommenterEnabled = getCommonSqlCommenterEnabled(openTelemetry);\n+    return sqlCommenterEnabled != null ? sqlCommenterEnabled : defaultValue;\n   }\n \n   @Nullable\n   private static Boolean getCommonSqlCommenterEnabled(OpenTelemetry openTelemetry) {\n-    return getCommonDbValue(openTelemetry, DbConfig::getSqlCommenterEnabled);\n+    DeclarativeConfigProperties commonConfig =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\");\n+\n+    Boolean value = commonConfig.get(\"db\").get(\"sqlcommenter/development\").getBoolean(\"enabled\");\n+    if (value != null) {\n+      return value;\n+    }\n+\n+    // this variant was never a regular (non-declarative) configuration property name\n+    Boolean deprecatedValue =\n+        commonConfig.get(\"database\").get(\"sqlcommenter/development\").getBoolean(\"enabled\");\n+    if (deprecatedValue != null) {\n+      warnIfDeprecatedDeclarativeConfigurationUsed(\n+          \".instrumentation/development.java.common.database.sqlcommenter/development.enabled\",\n+          \".instrumentation/development.java.common.db.sqlcommenter/development.enabled\");\n+      return deprecatedValue;\n+    }\n+\n+    Boolean deprecatedPropertyValue =\n+        commonConfig.get(\"db_sqlcommenter/development\").getBoolean(\"enabled\");\n+    if (deprecatedPropertyValue != null) {\n+      warnIfDeprecatedExperimentalSystemPropertyUsed(\n+          \"otel.instrumentation.common.experimental.db-sqlcommenter.enabled\",\n+          \"otel.instrumentation.common.db.experimental.sqlcommenter.enabled\");\n+      return deprecatedPropertyValue;\n+    }\n+\n+    return null;\n   }\n \n   @Nullable\n-  private static Boolean getCommonDbValue(\n-      OpenTelemetry openTelemetry, Function<DeclarativeConfigProperties, Boolean> configReader) {\n+  private static Boolean getCommonQuerySanitizationEnabled(OpenTelemetry openTelemetry) {\n     DeclarativeConfigProperties commonConfig =\n         DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\");\n \n-    Boolean value = configReader.apply(commonConfig.get(\"db\"));\n+    Boolean value = commonConfig.get(\"db\").get(\"query_sanitization\").getBoolean(\"enabled\");\n     if (value != null) {\n       return value;\n     }\n \n-    Boolean deprecatedValue = configReader.apply(commonConfig.get(\"database\"));\n-    if (deprecatedValue != null) {\n-      logger.warning(\n-          \"common.database is deprecated in declarative configuration\"\n-              + \" and has been replaced by common.db.\");\n-      return deprecatedValue;\n+    // this variant was never a regular (non-declarative) configuration property name\n+    Boolean deprecatedStatementSanitizerValue =\n+        commonConfig.get(\"database\").get(\"statement_sanitizer\").getBoolean(\"enabled\");\n+    if (deprecatedStatementSanitizerValue != null) {\n+      warnIfDeprecatedDeclarativeConfigurationUsed(\n+          \".instrumentation/development.java.common.database.statement_sanitizer.enabled\",\n+          \".instrumentation/development.java.common.db.query_sanitization.enabled\");",
+      "id": "PRRT_kwDODJKVX854zZ_a",
+      "opened": "2026-04-03T23:31:39Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+      "replies": [],
+      "reviewed": "9baa5ff63626dcd94bed0211d48c53ebef4fa3ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17464#discussion_r3034738037"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo/wording: \"Takes precedent\" should be \"Takes precedence\" (or \"Takes precedence over\"). Also remove the trailing whitespace before the line break to avoid noisy diffs.\n```suggestion\n    description: Enables query sanitization for database queries. Takes precedence over\n```",
+      "created": "2026-04-03T23:31:38Z",
+      "hunk": "@@ -10,13 +10,13 @@ semantic_conventions:\n   - DATABASE_CLIENT_METRICS\n library_link: https://docs.oracle.com/javase/8/docs/api/java/sql/package-summary.html\n configurations:\n-  - name: otel.instrumentation.jdbc.statement-sanitizer.enabled\n-    description: Enables statement sanitization for database queries. Takes precedent to \n-      otel.instrumentation.common.db-statement-sanitizer.enabled.\n+  - name: otel.instrumentation.jdbc.query-sanitization.enabled\n+    description: Enables query sanitization for database queries. Takes precedent to ",
+      "id": "PRRT_kwDODJKVX854zZ_e",
+      "opened": "2026-04-03T23:31:39Z",
+      "path": "instrumentation/jdbc/metadata.yaml",
+      "replies": [],
+      "reviewed": "9baa5ff63626dcd94bed0211d48c53ebef4fa3ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17464#discussion_r3034738042"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo/wording: \"Takes precedent\" should be \"Takes precedence\" (or \"Takes precedence over\") in this documentation entry.\n```suggestion\n      description: Enables query sanitization for database queries. Takes precedence\n        over otel.instrumentation.common.db.query-sanitization.enabled.\n```",
+      "created": "2026-04-03T23:31:38Z",
+      "hunk": "@@ -6593,13 +6593,13 @@ libraries:\n     javaagent_target_versions:\n     - Java 8+\n     configurations:\n-    - name: otel.instrumentation.jdbc.statement-sanitizer.enabled\n-      description: Enables statement sanitization for database queries. Takes precedent\n-        to otel.instrumentation.common.db-statement-sanitizer.enabled.\n+    - name: otel.instrumentation.jdbc.query-sanitization.enabled\n+      description: Enables query sanitization for database queries. Takes precedent\n+        to otel.instrumentation.common.db.query-sanitization.enabled.",
+      "id": "PRRT_kwDODJKVX854zZ_i",
+      "opened": "2026-04-03T23:31:39Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "9baa5ff63626dcd94bed0211d48c53ebef4fa3ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17464#discussion_r3034738048"
+    }
+  ]
+}

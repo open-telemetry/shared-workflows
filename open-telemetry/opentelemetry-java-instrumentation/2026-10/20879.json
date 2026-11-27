@@ -1,0 +1,190 @@
+{
+  "head": "2b190d7afd8c88704c57b9cc8519acf0157b36b6",
+  "merge": "e8417286f55c5eb0a4597b970710c3d6cda1b6d7",
+  "merged": "2026-10-27T16:36:40Z",
+  "missing_roots": 0,
+  "number": 20879,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Please omit the return and parameter `@Nullable` annotations from this new test override. `.github/instructions/java-style.instructions.md:67–68` explicitly excludes these annotations from test code; removing them does not change the null-handling test. This is non-blocking.",
+      "created": "2026-10-23T01:20:53Z",
+      "hunk": "@@ -78,6 +80,15 @@ public String getErrorType(\n     }\n   }\n \n+  private static final class NullErrorTypeGetter extends TestGetter {\n+    @Nullable\n+    @Override\n+    public String getErrorType(\n+        Map<String, String> request, @Nullable Void response, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX86vcIyE",
+      "opened": "2026-10-23T01:20:54Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T01:39:33Z",
+          "body": "Removed the new return and parameter annotations in 3da1f177. The explicit-null omission test and production getter contract are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4355288814"
+        }
+      ],
+      "reviewed": "caaa2c45ade0ef6d24690975a45149c848a0485b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4355198047"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Address the verified test-convention finding from review 5622845145 directly in this existing PR: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4355198047. Remove the return and parameter @Nullable annotations from the newly introduced NullErrorTypeGetter.getErrorType override in RpcAttributesExtractorTest. .github/instructions/java-style.instructions.md explicitly excludes these annotations from test code. Keep the null-omission regression and production getter contracts unchanged; leave unrelated pre-existing test annotations untouched.\n\nThe original RPC task and its latest-head review have completed on caaa2c45ade0ef6d24690975a45149c848a0485b. Delivery inspection confirmed the requested final-getter ownership, explicit protocol fallback delegation, preview gating, and existing gRPC cause semantics. This is only the small review correction to newly introduced test code.\n\nPreserve main as base and draft state. Do not create another PR, change production behavior, expand into other getter families, align span status, or resume held PR #20782. Apply the narrowest applicable spotlessApply directly before relevant central RPC extractor tests in the existing semconv variants where feasible, and report real blockers without unrelated fixes. Leave PR metadata and review-thread replies/resolution to the coordinator.",
+      "created": "2026-10-23T01:26:39Z",
+      "hunk": "@@ -78,6 +80,15 @@ public String getErrorType(\n     }\n   }\n \n+  private static final class NullErrorTypeGetter extends TestGetter {\n+    @Nullable\n+    @Override\n+    public String getErrorType(\n+        Map<String, String> request, @Nullable Void response, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX86vcNDn",
+      "opened": "2026-10-23T01:26:39Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesExtractorTest.java",
+      "replies": [],
+      "reviewed": "caaa2c45ade0ef6d24690975a45149c848a0485b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4355226744"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the user's requested simplification directly to this existing RPC PR #20879. The user approved replacing awkward interface-default fallback delegation with the direct nullable exception-class expression in four non-HTTP getter-family PRs. This assignment is ONLY this PR; do not create another PR or update other branches.\n\nKeep getErrorType() authoritative for the final error.type and retain its default method. In overrides that fall back to the exception-only getter default, replace the fallback-only interface-qualified super.getErrorType(request, response, error) call with the equivalent direct expression: error == null ? null : error.getClass().getName(). A local guard that already proves the throwable is non-null can simply return its class name. Apply this to affected production overrides and changed test fixtures; preserve ordinary inheritance that performs additional classification rather than merely supplying this fallback. Do not introduce a helper, common base class, cross-domain abstraction, flag, or new API to hide the expression.\n\nRevise the affected RpcAttributesGetter.getErrorType Javadoc so it explains the final-value contract and how an override can return the exception class as fallback without recommending or requiring interface-default delegation. Update this PR's existing breaking-change CHANGELOG entry wherever it mandates or demonstrates such delegation, keeping it concise and not adding a second entry. Keep default exception fallback, no-error null, custom classifications, explicit-null omission, and direct extractor writes exactly as implemented. Delegation remains technically possible, but it is no longer the prescribed migration pattern.\n\nAudit gRPC, both AWS SDK generations, Thrift, and Sofa RPC. Keep preview/duplicate/default emission gating unchanged. In particular, preserve exception-class error.type for the existing gRPC server non-error status with an actual cause without changing its UNSET span status.\n\nThis is a behavior-preserving simplification of already verified code. Preserve every existing protocol/service-code precedence rule, selected exception identity, cancellation case, deliberate null omission, _OTHER rule, span status, metrics, lifecycle, and semconv selection. Preserve this PR's current base and draft/ready state. Other getter families, HTTP PR #20881, and held Dubbo PR #20782 are out of scope. HTTP needs its role-specific status/exception/_OTHER default policy and must not be simplified to this expression. Do not implement span-status alignment or make getErrorType mandatory.\n\nFollow CONTRIBUTING.md and applicable repository instructions. Do not add Nullable annotations in test code. Keep focused existing default/custom/null and affected-override tests, adjusting only what this simplification requires. Apply the narrowest applicable spotlessApply directly before the targeted behavioral validation, run relevant central extractor and affected-module tests where feasible, and report genuine blockers without unrelated fixes. Acceptance is no fallback-only super delegation remaining for this getter family in the migrated overrides, equivalent telemetry behavior, and Javadoc/changelog guidance consistent with the direct expression. Leave PR title/body edits and review-thread handling to the coordinator.",
+      "created": "2026-10-23T02:01:43Z",
+      "hunk": "@@ -78,22 +78,24 @@ default String getRpcMethodOriginal(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} value for the operation.",
+      "id": "PRRT_kwDODJKVX86vclVx",
+      "opened": "2026-10-23T02:01:42Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [],
+      "reviewed": "3da1f17718780e2f070510b31c58d2106361b828",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4355393644"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete and refresh this existing RPC PR #20879 directly on its existing head branch. Do not create another PR, change its main base or draft state, or update other branches. The user's settled 3.0 contract is that getErrorType() returns the final error.type and null deliberately omits it, even with a Throwable. Keep RpcAttributesGetter.getErrorType as a default method returning error == null ? null : error.getClass().getName(); the shared extractor must not reinterpret null or add fallback.\n\nAudit the current main implementations, including shared/inherited getters, so all existing protocol classifications and exception fallbacks survive the ownership change. In overrides, use direct nullable exception-class fallback where appropriate, not RpcAttributesGetter.super.getErrorType(). A deliberate omission remains null. Preserve gRPC client/server status distinctions, native exception fallback, cancellation behavior, span status, existing RPC mode gating, and matching span/metric classification. Do not introduce automatic span-status/error-type alignment or new protocol classifications.\n\nStatus emission is independently handled by #20952, which currently has a clean Copilot review. Do not copy its branch into this PR or implement its status API here. The agreed integration rule is that getErrorType and a response-status getter must not call each other: a general status getter can report success. Reuse a separate raw/error-code helper where extraction genuinely overlaps. If #20952 has merged by the time you work, preserve its genuine-code provenance and helper separation when updating from main.\n\nRefresh this PR against current main where needed by merging main into the PR head, not the reverse, and do not rebase. Record the pre-update head and verify it remains on the first-parent chain before pushing. Keep focused authoritative-null and default/fallback coverage and the concise breaking-change documentation. Follow repository instructions and run narrow formatting and relevant tests. Make only changes needed to finish this contract; if it already fully meets it on current main, explain that instead of adding churn. Do not edit the PR title/description, reply to human comments, resolve unrelated threads, merge PRs, or wait for CI. Stop after scoped changes are committed and pushed.",
+      "created": "2026-10-25T19:56:48Z",
+      "hunk": "@@ -78,22 +78,24 @@ default String getRpcMethodOriginal(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} value for the operation.",
+      "id": "PRRT_kwDODJKVX86wEei2",
+      "opened": "2026-10-25T19:56:48Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T20:08:05Z",
+          "body": "Merged current `main` (`dba159d`) into this PR in `7bf0d9e`; the prior head remains on the first-parent chain. The getter audit and focused RPC semconv, gRPC, Sofa, and Thrift tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4372218056"
+        }
+      ],
+      "reviewed": "d8c7b969d1c7ad8fed8d82d27aec9097f8e81696",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4372188066"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20879 directly with a documentation-only refinement. Preserve its existing head branch, base, draft state, and all runtime behavior. Do not create a follow-up PR or update other PRs. The earlier implementation attempt is complete; this is a new, separately scoped user request.\n\nSimplify the getErrorType Javadoc in RpcAttributesGetter. The user rejects migration-oriented emphasis such as \"even when an error was thrown\" and explanations about extractors not supplying fallback. Use the contract \"Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.\" Follow with \"The default implementation returns the exception class name, or {@code null} if there is no exception.\" Remove the override fallback recipe and its example expression, not the useful protocol-specific examples. Retain protocol classification and low-cardinality/custom-value guidance without explaining the old extractor behavior or using unnecessary finality contrasts.\n\nOnly change directly related source documentation. Preserve the default implementation and all other code, tests, telemetry, public signatures, and existing CHANGELOG migration guidance. Do not alter the PR title or description; the coordinator owns metadata. Follow repository Javadoc style and apply the narrow formatting task if needed. Behavioral tests are unnecessary for this documentation-only change. Do not merge main or sibling branches merely for this wording edit, rebase, wait for CI, reply to human comments, or resolve unrelated threads. Commit and push only this scoped documentation refinement to this PR.",
+      "created": "2026-10-25T21:03:15Z",
+      "hunk": "@@ -78,22 +78,24 @@ default String getRpcMethodOriginal(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} value for the operation.",
+      "id": "PRRT_kwDODJKVX86wFAHk",
+      "opened": "2026-10-25T21:03:15Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T21:08:49Z",
+          "body": "Updated the Javadoc as requested, preserving the implementation and all other files. Committed as `2808ab7b`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4372430301"
+        }
+      ],
+      "reviewed": "7bf0d9ed8f494315905f3c120f0bbad2b13f4d78",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4372407342"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * Returns the {@code error.type} value for the operation.\n```",
+      "created": "2026-10-25T23:39:44Z",
+      "hunk": "@@ -78,22 +78,21 @@ default String getRpcMethodOriginal(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.",
+      "id": "PRRT_kwDODJKVX86wGSeU",
+      "opened": "2026-10-25T23:39:44Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [],
+      "reviewed": "2808ab7ba72869ba3a2b4a02661e24f9e1b5f415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4372956811"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20879 directly by integrating its owned raw-RPC-status parent #20952 and resolving the overlap while preserving both PRs' intended behavior. The coordinator has already retargeted this draft PR to copilot/trask-rpc-status-emission. Keep that base and draft state. Do not open another PR, merge PRs, change stack metadata or edit PR titles/descriptions.\n\nVerified inputs: this PR's pre-integration head is d85d0aa65459e1b80e7dbfe1c36d5a2c1643d799 on copilot/rpc-deliverable-implementation; parent #20952 is 043609873257a9f169555f50cd1e8fbfe8af8ef0 on copilot/trask-rpc-status-emission. The parent has been updated from upstream main and its exact-head Copilot review 5647390524 was fully assessed clean. A GitHub-side parent merge returned HTTP 409 without modifying the child, so the conflict resolution belongs in this cloud attempt. Verify both live refs before starting. Begin from the existing child head and merge that exact parent into the child, never the reverse. Preserve the original child head on the final first-parent chain; the integration merge must have the child as first parent and parent #20952 as second parent. Do not rebase, force-push, or bring in newer unrelated branch changes. If the pinned refs unexpectedly changed, report the evidence instead of guessing.\n\nThe user explicitly excluded other authors' PRs #19511 and #20537. They will adapt after these owned PRs merge. Do not import their unmerged SOFA lifecycle redesign or treat them as prerequisites. The intended chain is only #20952 -> #20879.\n\nPreserve the raw status API/emission, tests, semantic-convention gating and all parent-only changes from #20952 while retaining #20879's final getter contract. RpcAttributesGetter.getErrorType must supply the complete classification, with the default returning the original supplied exception class name or null. RpcCommonAttributesExtractor must emit that result directly, with no exception fallback, so an explicit null override remains authoritative. Instrumentation overrides implement the full result explicitly rather than relying on Interface.super.getErrorType. Do not call response-status getters from error getters or error getters from response-status getters. A narrowly named partial protocol-code helper can be shared, but raw response status must never acquire an exception class or a classification-only fallback.\n\nResolve SOFA overlap by preserving #20952's existing synthetic-fallback provenance handling and its suppression of invented raw response status, while retaining legitimate numeric SOFA classifications and adding the original exception-class fallback in the complete error getter. Do not redesign SOFA callbacks or asynchronous ownership. Preserve gRPC client/server-specific status precedence and existing error/metric behavior, and keep Thrift's defined application-exception raw codes distinct from arbitrary transport failures, exception classes and _OTHER classification. Update directly affected parent test expectations where the new complete getter replaces an old null fallback expectation, without changing raw-status expectations or weakening tests.\n\nKeep the RPC breaking-change entry in CHANGELOG.md but remove the redundant recipe telling readers to return an exception class name to retain fallback. Concisely state the released behavior, that the getter returns the final error.type and null omits it even when an exception exists. Migration recipes belong in the PR description, not repeated in the changelog; do not edit PR metadata from cloud. Do not add normal-change changelog entries.\n\nApply repository formatting narrowly and run the smallest affected API/RPC, gRPC, SOFA and Thrift checks in cloud, using existing tests and adding focused regression coverage only where needed. Verify default fallback, explicit null, real protocol codes versus fallback errors, raw-status independence and existing semconv modes. Record exact commands and actual outcomes or explicit blockers. Preserve all unrelated work, public API compatibility, comments written for the current code, metrics and instrumentation identities. Do not wait for CI, reply to humans, resolve review threads or merge PRs. Commit and push the intended integration to this PR's existing head branch, and report the delivered commit and merge parents.",
+      "created": "2026-10-26T04:32:57Z",
+      "hunk": "@@ -78,22 +78,21 @@ default String getRpcMethodOriginal(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the {@code error.type} value for the operation.",
+      "id": "PRRT_kwDODJKVX86wIs2G",
+      "opened": "2026-10-26T04:32:57Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T04:49:02Z",
+          "body": "Integrated the pinned raw-status parent as `ae7765d7`, with the original child as first parent and the pinned parent as second. Focused RPC API, gRPC, SOFA, and Thrift tests passed in default, preview, and duplicate-semconv modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4374038355"
+        }
+      ],
+      "reviewed": "d85d0aa65459e1b80e7dbfe1c36d5a2c1643d799",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4373963392"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * Returns the final {@code error.type} value for the operation.\n```",
+      "created": "2026-10-26T17:03:09Z",
+      "hunk": "@@ -91,22 +91,21 @@ default String getRpcStatusCode(\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} value for the operation, or {@code null} to omit it.",
+      "id": "PRRT_kwDODJKVX86wXfQq",
+      "opened": "2026-10-26T17:03:09Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [],
+      "reviewed": "082b4d3b55121d03aa17102fc828797e07412c7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4380138717"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * Returns the {@code error.type} value for the operation.\n```",
+      "created": "2026-10-26T17:03:59Z",
+      "hunk": "@@ -91,22 +91,21 @@ default String getRpcStatusCode(\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} value for the operation.",
+      "id": "PRRT_kwDODJKVX86wXgdn",
+      "opened": "2026-10-26T17:03:59Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [],
+      "reviewed": "663ca0bee7f44c6757cdca5afabc4586ef5dd008",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4380147134"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20879 directly on its existing head branch. In instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java, remove the nested ternary in getErrorType(): `rpcCode != null ? rpcCode : error == null ? null : error.getClass().getName()`. Use an explicit early return when rpcCode is non-null, followed by the existing simple exception-class fallback ternary. Preserve behavior exactly: a recognized RPC code wins, otherwise return the exception class name when an error exists, otherwise null. Keep this a focused readability change; do not sweep other files, introduce an abstraction, or change error classification, configuration, telemetry, API contracts, or tests' intended behavior. The separate main-branch inventory and possible repository style rule are not part of this assignment. Preserve the PR's base and draft state. Run the narrowest relevant formatter and tests under repository instructions. Update this PR directly, not a separate follow-up PR.",
+      "created": "2026-10-26T17:09:12Z",
+      "hunk": "@@ -51,7 +51,8 @@ public String getRpcMethod(SofaRpcRequest request) {\n   @Nullable\n   public String getErrorType(\n       SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n-    return getSofaRpcCode(error);\n+    String rpcCode = getSofaRpcCode(error);\n+    return rpcCode != null ? rpcCode : error == null ? null : error.getClass().getName();",
+      "id": "PRRT_kwDODJKVX86wXoQd",
+      "opened": "2026-10-26T17:09:12Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T17:16:40Z",
+          "body": "Applied the early-return simplification without changing behavior in `c1602aaa`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4380269390"
+        }
+      ],
+      "reviewed": "57c37cf0aafd2ec39cc023b2c2fd4c88bff1a605",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20879#discussion_r4380198755"
+    }
+  ]
+}

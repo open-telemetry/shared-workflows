@@ -1,0 +1,51 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "82c5a20a7ac6ccbdd09730fca975f67f96af9f9cda7334eb8e2e46fd53efbb6a",
+  "input_digest": "f80f1fbde4098d22d18ee441b5b0f61f0ac0ad898643ccf0b7fb0ca59106a50d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/90944e75f70a634283bada377cc85c97215d6011/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/90944e75f70a634283bada377cc85c97215d6011/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/015bdde05de38a978aa17ed0f260753136664a81/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/015bdde05de38a978aa17ed0f260753136664a81/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JXoH_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/90944e75f70a634283bada377cc85c97215d6011/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/015bdde05de38a978aa17ed0f260753136664a81/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JXoID",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/af23dee054dc2eb122103b51e9953b8948f766ed/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/af23dee054dc2eb122103b51e9953b8948f766ed/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/015bdde05de38a978aa17ed0f260753136664a81/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/015bdde05de38a978aa17ed0f260753136664a81/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JcRpN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Jcb3b",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

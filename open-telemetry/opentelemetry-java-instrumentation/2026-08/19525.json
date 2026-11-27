@@ -1,0 +1,40 @@
+{
+  "head": "0e5bd902d5203f2a1350f972526d3fc5cdc83c0a",
+  "merge": "3547d8adadcb26789a1e5442c5a6564c5d4bd758",
+  "merged": "2026-08-14T06:17:51Z",
+  "missing_roots": 0,
+  "number": 19525,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change removes the `messaging.destination.subscription.name` attribute from the `messaging.client.operation.duration` metric definition. If the instrumentation list is used as a contract by generators/consumers, dropping an attribute can be a breaking change (dashboards/alerts may stop grouping correctly). Consider keeping the attribute and marking it deprecated (or gating it behind the same stability/feature flag mechanism used elsewhere) rather than removing it outright.",
+      "created": "2026-08-12T03:11:31Z",
+      "hunk": "@@ -2033,8 +2033,6 @@ definitions:\n       attributes:\n       - name: messaging.destination.name\n         type: STRING\n-      - name: messaging.destination.subscription.name\n-        type: STRING\n       - name: messaging.operation.name\n         type: STRING\n       - name: messaging.operation.type",
+      "id": "PRRT_kwDODJKVX86YcQY-",
+      "opened": "2026-08-12T03:11:32Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "ee9e83237bfe66d7665bcd042c5017f2d10e7709",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19525#discussion_r3763322925"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The JVM metric refs appear grouped (CPU metrics followed by memory metrics). Adding `jvm.gc.duration` in between breaks that grouping, making the list harder to scan and maintain. Consider moving `jvm.gc.duration` to a GC-related block (or keeping the full list consistently ordered/grouped) so future updates remain predictable.",
+      "created": "2026-08-12T03:11:32Z",
+      "hunk": "@@ -13239,6 +13237,7 @@ libraries:\n     - jvm.cpu.count-ae176c2b\n     - jvm.cpu.recent_utilization-6056df51\n     - jvm.cpu.time-e00d5c75\n+    - jvm.gc.duration-e20d0032\n     - jvm.memory.committed-75750f2f\n     - jvm.memory.limit-13513f5f\n     - jvm.memory.used-0d769189",
+      "id": "PRRT_kwDODJKVX86YcQZK",
+      "opened": "2026-08-12T03:11:32Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "ee9e83237bfe66d7665bcd042c5017f2d10e7709",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19525#discussion_r3763322945"
+    }
+  ]
+}

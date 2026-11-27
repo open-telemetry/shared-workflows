@@ -1,0 +1,140 @@
+{
+  "head": "1038ca4560da0ebbaef87539bad16e3dd700e898",
+  "merge": "fcf38f3b56fddbeb7df8f8cb62d703a5b31831d7",
+  "merged": "2026-09-21T05:26:49Z",
+  "missing_roots": 0,
+  "number": 650,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_json_safe()` treats `bytearray` as already-JSON-safe and returns it unchanged, but `gen_ai_json_dumps` only has a custom encoder for `bytes` (not `bytearray`). If a tool output contains a `bytearray`, span serialization will raise `TypeError` and can leak into the instrumented call path.\n\nConvert `bytearray` to `bytes` (or otherwise normalize it) before returning so the util encoder can base64-encode it consistently.",
+      "created": "2026-09-08T07:00:10Z",
+      "hunk": "@@ -207,6 +214,118 @@ def get_system_instruction(instructions: str | None) -> list[TextPart]:\n     return [TextPart(content=instructions)]\n \n \n+def _parse_tool_call_arguments(arguments: str | None) -> object:\n+    if arguments is None:\n+        return None\n+\n+    try:\n+        return json.loads(arguments)\n+    except (TypeError, ValueError):\n+        return arguments\n+\n+\n+def _get_str(value: object) -> str | None:\n+    return value if isinstance(value, str) else None\n+\n+\n+def _get_call_id(item: object) -> str | None:\n+    \"\"\"Return the pairing id; ``id`` covers a provider omitting ``call_id``.\"\"\"\n+    return _get_str(_get_field(item, \"call_id\")) or _get_str(\n+        _get_field(item, \"id\")\n+    )\n+\n+\n+def _json_safe(value: object) -> object:\n+    \"\"\"Reduce a tool output payload to plain data; it may hold SDK models.\"\"\"\n+    if value is None or isinstance(\n+        value, (str, bool, int, float, bytes, bytearray)\n+    ):\n+        return value",
+      "id": "PRRT_kwDOSbspP86gIPlI",
+      "opened": "2026-09-08T07:00:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "04d0ed1a998c865b9bd12bc5f375af36039aa420",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r3955185338"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_json_safe` currently falls back to `str(value)` for non-Mapping/non-Sequence types like `set`/`frozenset`. `str(set)` is not a stable/structured representation and can be order-dependent, which can make emitted span attributes non-deterministic across runs and harder to compare/debug. Consider adding explicit handling for `set`/`frozenset` (e.g., converting to a sorted list of JSON-safe items, or a deterministic string) before the final `str(value)` fallback.",
+      "created": "2026-09-08T07:37:37Z",
+      "hunk": "@@ -207,6 +214,119 @@ def get_system_instruction(instructions: str | None) -> list[TextPart]:\n     return [TextPart(content=instructions)]\n \n \n+def _parse_tool_call_arguments(arguments: str | None) -> object:\n+    if arguments is None:\n+        return None\n+\n+    try:\n+        return json.loads(arguments)\n+    except (TypeError, ValueError):\n+        return arguments\n+\n+\n+def _get_str(value: object) -> str | None:\n+    return value if isinstance(value, str) else None\n+\n+\n+def _get_call_id(item: object) -> str | None:\n+    \"\"\"Return the pairing id; ``id`` covers a provider omitting ``call_id``.\"\"\"\n+    return _get_str(_get_field(item, \"call_id\")) or _get_str(\n+        _get_field(item, \"id\")\n+    )\n+\n+\n+def _json_safe(value: object) -> object:\n+    \"\"\"Reduce a tool output payload to plain data; it may hold SDK models.\"\"\"\n+    if value is None or isinstance(value, (str, bool, int, float, bytes)):\n+        return value\n+    # The span serializer base64s `bytes` but has no encoder for `bytearray`.\n+    if isinstance(value, bytearray):\n+        return bytes(value)\n+    model_dump = getattr(value, \"model_dump\", None)\n+    if callable(model_dump):\n+        return _json_safe(model_dump())\n+    if isinstance(value, Mapping):\n+        return {str(key): _json_safe(item) for key, item in value.items()}\n+    if isinstance(value, Sequence):\n+        return [_json_safe(item) for item in value]",
+      "id": "PRRT_kwDOSbspP86gI68A",
+      "opened": "2026-09-08T07:37:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-09T22:56:43Z",
+          "body": "Reworked this rather than adding a branch for `set`. `_json_safe` receives three fields. `output` is declared on two item types:\r\n\r\n| field | declared type |\r\n|---|---|\r\n| `function_call.arguments` | `Required[str]` |\r\n| `custom_tool_call.input` | `Required[str]` |\r\n| `function_call_output.output` | `Required[Union[str, ResponseFunctionCallOutputItemListParam]]` |\r\n| `custom_tool_call_output.output` | `Required[Union[str, Iterable[OutputOutputContentList]]]` |\r\n\r\nThe list variant holds `ResponseInputTextContentParam`, `ResponseInputImageContentParam` or `ResponseInputFileContentParam`, and every field on those three is a `str`, a `Literal`, `None`, or a nested `PromptCacheBreakpoint`. Note `input_file.file_data` is `Optional[str]`, a base64 string, so even binary payloads arrive as text.\r\n\r\nSo the reachable value space is: a string, a null, a list, a dict, or an SDK model that a caller replayed from `response.output`. `_json_safe` now handles the five reachable shapes and returns `None` for everything else, instead of falling through to `str(value)`.\r\n\r\n`str(value)` can raise when `__str__` does, and handling every possible type here is not feasible. Those values are not valid input anyway: they fall outside the shape the SDK declares.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r3973761382"
+        }
+      ],
+      "reviewed": "181ddd3537b27f199563d5e5836a0a012a1ac33a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r3955448031"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_is_tool_call_item` rebuilds the `types` tuple on every call (and it’s called inside loops in `get_output_messages_from_response` / `extract_finish_reasons`). Consider computing this once at module load (or memoizing) to avoid repeated tuple construction and keep the hot path minimal.",
+      "created": "2026-09-08T07:37:37Z",
+      "hunk": "@@ -374,6 +460,37 @@ def get_tool_definitions_from_response(\n     return get_tool_definitions(response.tools)\n \n \n+def _is_tool_call_item(item: object) -> bool:\n+    \"\"\"Whether a response output item is a client-side tool call.\"\"\"\n+    types = tuple(\n+        model\n+        for model in (ResponseFunctionToolCall, ResponseCustomToolCall)\n+        if model is not None\n+    )\n+    return bool(types) and isinstance(item, types)",
+      "id": "PRRT_kwDOSbspP86gI68Z",
+      "opened": "2026-09-08T07:37:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-09T22:49:38Z",
+          "body": "good point, just updated this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r3973708031"
+        }
+      ],
+      "reviewed": "181ddd3537b27f199563d5e5836a0a012a1ac33a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r3955448072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\nImport `ResponseCustomToolCall` in an isolated `try...except ImportError` block.\n\nResponses API and `ResponseFunctionToolCall` were added in `openai 1.66.0`, while `ResponseCustomToolCall` was added in `openai 1.99.2`. On versions `1.66.0` through `1.99.1`, bundling this import raises `ImportError` and sets `Response` and `ResponseFunctionToolCall` to `None`, completely disabling Responses API instrumentation.\n\nConsider also adding a test environment to the tox matrix for `openai 1.x` (e.g. `openai==1.66.0`) like we already do for `v2`.",
+      "created": "2026-09-10T18:43:14Z",
+      "hunk": "@@ -39,6 +39,9 @@\n \n try:\n     from openai.types.responses.response import Response\n+    from openai.types.responses.response_custom_tool_call import (\n+        ResponseCustomToolCall,\n+    )",
+      "id": "PRRT_kwDOSbspP86hM8w-",
+      "opened": "2026-09-10T18:44:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-14T03:25:34Z",
+          "body": "thanks! updated this part and also added a test env for `openai 1.x`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r4001992116"
+        }
+      ],
+      "reviewed": "af55552483bc3a72b11fd8d91721ad4d91e1d58a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r3982374301"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if value is None or isinstance(value, (str, int, float, bool)):\n        return value\n    model_dump = getattr(value, \"model_dump\", None)\n    if callable(model_dump):\n        return _json_safe(model_dump())\n    if isinstance(value, Mapping):\n        return {str(key): _json_safe(item) for key, item in value.items()}\n    if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):\n        return [_json_safe(item) for item in value]\n    return None\n```\nWhy do we need `_json_safe` in instrumentation instead of handling SDK models in `opentelemetry-util-genai` (e.g. supporting `model_dump()` in `_GenAiJsonEncoder`)?\n\nIf kept here: the current logic converts `int`, `float`, and `bool` to `None`, and iterates `bytes` as a sequence.",
+      "created": "2026-09-10T18:43:14Z",
+      "hunk": "@@ -222,6 +228,102 @@ def get_system_instruction(instructions: str | None) -> list[TextPart]:\n     return [TextPart(content=instructions)]\n \n \n+def _parse_tool_call_arguments(arguments: str | None) -> object:\n+    if arguments is None:\n+        return None\n+\n+    try:\n+        return json.loads(arguments)\n+    except (TypeError, ValueError):\n+        return arguments\n+\n+\n+def _get_str(value: object) -> str | None:\n+    return value if isinstance(value, str) else None\n+\n+\n+def _get_call_id(item: object) -> str | None:\n+    \"\"\"Return the pairing id; ``id`` covers a provider omitting ``call_id``.\"\"\"\n+    return _get_str(_get_field(item, \"call_id\")) or _get_str(\n+        _get_field(item, \"id\")\n+    )\n+\n+\n+def _json_safe(value: object) -> object:\n+    \"\"\"Reduce a tool output payload to plain data; it may hold SDK models.\"\"\"\n+    if value is None or isinstance(value, str):\n+        return value\n+    model_dump = getattr(value, \"model_dump\", None)\n+    if callable(model_dump):\n+        return _json_safe(model_dump())\n+    if isinstance(value, Mapping):\n+        return {str(key): _json_safe(item) for key, item in value.items()}\n+    if isinstance(value, Sequence):\n+        return [_json_safe(item) for item in value]\n+    return None",
+      "id": "PRRT_kwDOSbspP86hM8xK",
+      "opened": "2026-09-10T18:44:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-14T03:25:32Z",
+          "body": "that's a good point! I moved it to `openai/utils.py` next to `_content_to_parts`, and import it here instead, also applied your change to the function. I kept it out of util-genai because it's specifically for translating openai SDK's payload shape. Thanks for catching that!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r4001991953"
+        }
+      ],
+      "reviewed": "af55552483bc3a72b11fd8d91721ad4d91e1d58a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r3982374318"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "In the Responses API ([API reference](https://platform.openai.com/docs/api-reference/responses/create#responses-create-input)), `input` is a flat list of items where each item has a `type`:\n- `message`: standard user/system message with a `role`.\n- `function_call` / `custom_tool_call`: tool call requested by the assistant.\n- `function_call_output` / `custom_tool_call_output`: tool execution result.\n\nWhen mapping this flat list to `gen_ai.input.messages`:\n1. `message` items map 1:1 to `InputMessage`.\n2. Parallel tool calls are generated by the assistant in a single turn, but arrive as consecutive `function_call` / `custom_tool_call` items. These consecutive items should be merged into a single `InputMessage(role=\"assistant\", parts=[...])`.\n3. Tool outputs (`function_call_output` / `custom_tool_call_output`) should remain individual `InputMessage(role=\"tool\", parts=[...])` messages, one per result.",
+      "created": "2026-09-16T04:15:24Z",
+      "hunk": "@@ -228,6 +242,90 @@ def get_system_instruction(instructions: str | None) -> list[TextPart]:\n     return [TextPart(content=instructions)]\n \n \n+def _parse_tool_call_arguments(arguments: str | None) -> object:\n+    if arguments is None:\n+        return None\n+\n+    try:\n+        return json.loads(arguments)\n+    except (TypeError, ValueError):\n+        return arguments\n+\n+\n+def _get_str(value: object) -> str | None:\n+    return value if isinstance(value, str) else None\n+\n+\n+def _get_call_id(item: object) -> str | None:\n+    \"\"\"Return the pairing id; ``id`` covers a provider omitting ``call_id``.\"\"\"\n+    return _get_str(_get_field(item, \"call_id\")) or _get_str(\n+        _get_field(item, \"id\")\n+    )\n+\n+\n+# Client-side tool calls, by the field holding the call's arguments. A custom\n+# tool takes free-form text where a function takes a JSON arguments string.\n+_TOOL_CALL_ARGUMENT_FIELDS = {\n+    \"function_call\": \"arguments\",\n+    \"custom_tool_call\": \"input\",\n+}\n+_TOOL_OUTPUT_TYPES = frozenset(\n+    {\"function_call_output\", \"custom_tool_call_output\"}\n+)\n+\n+\n+def _get_input_message(item: object) -> InputMessage | None:\n+    \"\"\"Convert one input item; a tool-call turn is flat, not a message.\"\"\"\n+    if InputMessage is None or Role is None:\n+        return None\n+\n+    item_type = _get_field(item, \"type\")\n+\n+    if item_type in _TOOL_CALL_ARGUMENT_FIELDS and ToolCall is not None:\n+        raw = _get_field(item, _TOOL_CALL_ARGUMENT_FIELDS[item_type])\n+        return InputMessage(",
+      "id": "PRRT_kwDOSbspP86iyMyt",
+      "opened": "2026-09-16T04:22:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-16T23:23:14Z",
+          "body": "thanks for pointing it out! I also fixed the same issue for `gen_ai.output.messages`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r4031654497"
+        },
+        {
+          "at": "2026-09-19T04:01:46Z",
+          "body": "Thanks for working on this!\r\n\r\nOne detail regarding `gen_ai.output.messages`: in the Responses API ([API reference](https://platform.openai.com/docs/api-reference/responses/object)), a single model response returns a flat `output` list containing all generated items (reasoning, message/text, and tool calls). For example, when the model generates assistant text and multiple tool calls:\r\n\r\n```json\r\n{\r\n  \"output\": [\r\n    {\r\n      \"type\": \"message\",\r\n      \"role\": \"assistant\",\r\n      \"content\": [{\"type\": \"output_text\", \"text\": \"I will check the weather for both cities.\"}]\r\n    },\r\n    {\r\n      \"type\": \"function_call\",\r\n      \"call_id\": \"call_1\",\r\n      \"name\": \"get_weather\",\r\n      \"arguments\": \"{\\\"location\\\": \\\"Seattle, WA\\\"}\"\r\n    },\r\n    {\r\n      \"type\": \"function_call\",\r\n      \"call_id\": \"call_2\",\r\n      \"name\": \"get_weather\",\r\n      \"arguments\": \"{\\\"location\\\": \\\"Boston, MA\\\"}\"\r\n    }\r\n  ]\r\n}\r\n```\r\n\r\nIn OpenTelemetry GenAI semconv, `gen_ai.output.messages` represents candidate/choice completions generated by the model. Since all these items are produced in a single generation, they should be mapped as parts of a single assistant message:\r\n\r\n```json\r\n[\r\n  {\r\n    \"role\": \"assistant\",\r\n    \"parts\": [\r\n      {\r\n        \"type\": \"text\",\r\n        \"content\": \"I will check the weather for both cities.\"\r\n      },\r\n      {\r\n        \"type\": \"tool_call\",\r\n        \"id\": \"call_1\",\r\n        \"name\": \"get_weather\",\r\n        \"arguments\": {\"location\": \"Seattle, WA\"}\r\n      },\r\n      {\r\n        \"type\": \"tool_call\",\r\n        \"id\": \"call_2\",\r\n        \"name\": \"get_weather\",\r\n        \"arguments\": {\"location\": \"Boston, MA\"}\r\n      }\r\n    ],\r\n    \"finish_reason\": \"tool_call\"\r\n  }\r\n]\r\n```\r\n\r\nSo what we did for putput messages was right (well aligned with what OpenAI thinks about it).\r\n\r\nI see how it's asymmetrical with input messages and that we're forcing out input messages model onto openai Responses API where tool call requests are not messages per se.\r\n\r\nIn chat completions, each tool call request was individual message with unique tool call id, so the choice here is to stay consistent across openai flavors for input messages.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r4052145627"
+        },
+        {
+          "at": "2026-09-21T03:30:33Z",
+          "body": "thanks for the explanation! just wanted to clarify that with the original implementation the same scenario produced three separate messages, so I think that part still needed changes. I've updated it to merge them into one message.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r4059076597"
+        }
+      ],
+      "reviewed": "158d460e235fc7773210d650ed2344ba50a2e653",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/650#discussion_r4022435102"
+    }
+  ]
+}

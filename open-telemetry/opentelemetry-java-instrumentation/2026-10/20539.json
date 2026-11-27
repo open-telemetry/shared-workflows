@@ -1,0 +1,40 @@
+{
+  "head": "6501ded1de1b27a2aea7b4f2672de738e0fb5e0b",
+  "merge": "56cbb4691076a9c1505a54eb35141e1b586eeb69",
+  "merged": "2026-10-12T18:53:09Z",
+  "missing_roots": 0,
+  "number": 20539,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-12T17:27:58Z",
+      "hunk": "@@ -38,6 +38,10 @@ tasks {\n   val testDeclarativeConfig = register<Test>(\"testDeclarativeConfig\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n+    filter {\n+      includeTestsMatching(\"*WithSpanInstrumentationTest.excludedMethod\")\n+      includeTestsMatching(\"*WithSpanInstrumentationTest.deriveAutomaticName\")\n+    }",
+      "id": "PRRT_kwDODJKVX86rj10m",
+      "opened": "2026-10-12T17:27:57Z",
+      "path": "instrumentation/opentelemetry-extension-annotations-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "fe21cdc71bc3de14e653325df73028bcf1df8ec4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20539#discussion_r4250698402"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-12T17:28:07Z",
+      "hunk": "@@ -41,6 +41,10 @@ tasks {\n   val testDeclarativeConfig = register<Test>(\"testDeclarativeConfig\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n+    filter {\n+      includeTestsMatching(\"*WithSpanInstrumentationTest.excludedMethod\")\n+      includeTestsMatching(\"*WithSpanInstrumentationTest.deriveAutomaticName\")\n+    }",
+      "id": "PRRT_kwDODJKVX86rj2BG",
+      "opened": "2026-10-12T17:28:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "fe21cdc71bc3de14e653325df73028bcf1df8ec4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20539#discussion_r4250699660"
+    }
+  ]
+}

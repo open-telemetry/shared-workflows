@@ -1,0 +1,31 @@
+{
+  "head": "4215d2d920c99c795f9dd4ad81320753461dc8af",
+  "merge": "031707d741c438ba947bfe774da2071333b72473",
+  "merged": "2026-07-13T23:26:00Z",
+  "missing_roots": 0,
+  "number": 19150,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Looks like we don't run all tests with Java21 so not all of the metrics are listed. java21 only `jvm.thread.virtual.pinned` is included but for example `jvm.buffer.count` is missing. @jaydeluca is this fine? Should it run more tests to capture other metrics or should it be excluded from metadata collection?",
+      "created": "2026-07-09T07:06:00Z",
+      "hunk": "@@ -14866,6 +14866,111 @@ libraries:\n         type: BOOLEAN\n       - name: jvm.thread.state\n         type: STRING\n+  - when: Java21",
+      "id": "PRRT_kwDODJKVX86PeoxG",
+      "opened": "2026-07-09T07:05:59Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-07-09T10:32:09Z",
+          "body": "i think we should probably run more tests, i'll look more into it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150#discussion_r3550862918"
+        }
+      ],
+      "reviewed": "2872fd399174f2bdf921ee92aa22ee36c51954bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150#discussion_r3549582478"
+    }
+  ]
+}

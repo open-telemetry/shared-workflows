@@ -1,0 +1,46 @@
+{
+  "head": "ed97bb32d5dbc516c211c8366c6679995c4ef9b2",
+  "merge": "cd81c59e87961b6073bea6c6b42e0879d39a0ba5",
+  "merged": "2026-11-25T15:48:36Z",
+  "missing_roots": 0,
+  "number": 21479,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This move removes the published `io.opentelemetry.instrumentation.guava.v10_0.GuavaAsyncOperationEndStrategy` API, including `create()` and `builder()`, along with its non-deprecated builder and standalone artifact. Applications that register this strategy without the agent have no replacement in the new agent-private package. Please retain and publish the library with deprecated public entry points first, and defer their removal to a later minor release.",
+      "created": "2026-11-25T04:28:54Z",
+      "hunk": "@@ -15,19 +15,11 @@\n import io.opentelemetry.instrumentation.api.annotation.support.async.AsyncOperationEndStrategy;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n \n-public final class GuavaAsyncOperationEndStrategy implements AsyncOperationEndStrategy {\n-  // Visible for testing\n+final class GuavaAsyncOperationEndStrategy implements AsyncOperationEndStrategy {",
+      "id": "PRRT_kwDODJKVX867utRG",
+      "opened": "2026-11-25T04:28:54Z",
+      "path": "instrumentation/guava-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/guava/v10_0/GuavaAsyncOperationEndStrategy.java",
+      "replies": [
+        {
+          "at": "2026-11-25T04:30:25Z",
+          "body": "Immediate removal of this alpha artifact and its public strategy/builder APIs was explicitly approved as an exception to deprecation-first for this change. Retaining the library would contradict the requested agent-only consolidation. The non-stable breaking-change entry and PR description document the removal and lack of a replacement library API, and the PR has the breaking change label. No code change is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21479#discussion_r4690406316"
+        }
+      ],
+      "reviewed": "99a6c63ca3ef42eb99949ca52078d457b091b1ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21479#discussion_r4690397086"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please pin this helper-test dependency to Guava `10.0`. The relocated tests exercise ordinary completion, failure, and cancellation rather than a specific version-compatibility path, so `.orLatest()` does not meet the exception to the fixed-version rule in `.github/instructions/instrumentation-gradle.instructions.md:200-202`. Latest-version integration coverage remains in the existing agent suites.",
+      "created": "2026-11-25T15:00:01Z",
+      "hunk": "@@ -31,6 +30,13 @@ dependencies {\n }\n \n testing.suites {\n+  unitTests {\n+    dependencies {\n+      implementation(\"com.google.guava:guava:${baseVersion(\"10.0\").orLatest()}\")",
+      "id": "PRRT_kwDODJKVX8679jdo",
+      "opened": "2026-11-25T15:00:02Z",
+      "path": "instrumentation/guava-10.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "245221e4a69c5100a023361c01b4eeb8853efdbd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21479#discussion_r4696778669"
+    }
+  ]
+}

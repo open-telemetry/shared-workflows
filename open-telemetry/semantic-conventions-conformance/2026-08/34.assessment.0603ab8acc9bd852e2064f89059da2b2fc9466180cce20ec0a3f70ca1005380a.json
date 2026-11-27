@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c72ff19777d3352df76728f790f274f9dede4452d9ee9185b0b8004a1c528f62",
+  "input_digest": "0603ab8acc9bd852e2064f89059da2b2fc9466180cce20ec0a3f70ca1005380a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6650b87340939ff43dc87e202e292a34cdb68e35/tools/gen-ai/runner/src/genai_conformance/weaver.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ded9a0f82b7cee1b9de4d9c2cd1fc449a512787b/tools/gen-ai/runner/src/genai_conformance/weaver.toml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Znpzr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6650b87340939ff43dc87e202e292a34cdb68e35/tools/gen-ai/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ded9a0f82b7cee1b9de4d9c2cd1fc449a512787b/tools/gen-ai/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/1b783e2de7650caeb38bc77a1636a01628a616d6"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Znpzx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6650b87340939ff43dc87e202e292a34cdb68e35/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ded9a0f82b7cee1b9de4d9c2cd1fc449a512787b/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/1b783e2de7650caeb38bc77a1636a01628a616d6"
+      ],
+      "id": "PRRT_kwDOTuzK5c6ZovX1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

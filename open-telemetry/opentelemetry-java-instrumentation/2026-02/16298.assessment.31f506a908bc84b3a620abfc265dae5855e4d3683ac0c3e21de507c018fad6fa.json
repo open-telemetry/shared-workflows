@@ -1,0 +1,27 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9e4f983cb3d554d85178fc6476c7574b42229f211c5c2a705160eb043ad0f4a9",
+  "input_digest": "31f506a908bc84b3a620abfc265dae5855e4d3683ac0c3e21de507c018fad6fa",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX85w61Ed",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/15fc7411a74772970a8f595c681fa2324cd5af4a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56a4853524ada261ab52c4b18318786d42112d32/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56a4853524ada261ab52c4b18318786d42112d32/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcMetricsContextCustomizers.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/01fbee6c00ccfe9c140fa979bc2eed984374e606"
+      ],
+      "id": "PRRT_kwDODJKVX85xDW8S",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

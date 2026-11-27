@@ -1,0 +1,70 @@
+{
+  "head": "5a3bf9f4a83d4f08bdac217688c0d2ad53a6a4a6",
+  "merge": "63f8200eee093730ce845d26ce2aafb621b0807e",
+  "merged": "2026-07-08T22:23:44Z",
+  "missing_roots": 0,
+  "number": 371,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The header comment no longer states the build prerequisites. Since this Makefile still falls back to Docker when a suitable local weaver isn’t found, contributors without a local weaver still need docker/podman available. Please update the comment to reflect the new requirement: “either local weaver >= $(WEAVER_VERSION) OR docker/podman (aliased as docker)”.",
+      "created": "2026-07-08T20:12:13Z",
+      "hunk": "@@ -1,24 +1,46 @@\n # GenAI Semantic Conventions - Makefile\n-# Requires: docker (or podman aliased as docker)\n # The weaver version is pinned in versions.env (WEAVER_VERSION) and run via\n-# the otel/weaver container image -- contributors do not need to install weaver locally.\n+# the otel/weaver container image if a local weaver installation is not found.",
+      "id": "PRRT_kwDOSUeMrM6PXd0A",
+      "opened": "2026-07-08T20:12:14Z",
+      "path": "Makefile",
+      "replies": [],
+      "reviewed": "43e9dddbd4cc36f7e24ec0cd9cacef3483f7a066",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/371#discussion_r3546960191"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`sort -V` is a GNU coreutils extension and is not available on some contributor environments (notably BSD/macOS `sort`). This will cause Makefile parsing to fail even before any targets run. Consider switching to a POSIX-compatible version comparison (e.g., `awk`-based semver compare for x.y.z) or relaxing the requirement (exact match only) to avoid `sort -V`.",
+      "created": "2026-07-08T20:12:13Z",
+      "hunk": "@@ -1,24 +1,46 @@\n # GenAI Semantic Conventions - Makefile\n-# Requires: docker (or podman aliased as docker)\n # The weaver version is pinned in versions.env (WEAVER_VERSION) and run via\n-# the otel/weaver container image -- contributors do not need to install weaver locally.\n+# the otel/weaver container image if a local weaver installation is not found.\n \n # Shared external version pins. Override on the command line when needed, e.g.\n # `make check-policies SEMCONV_VERSION=v1.40.0`.\n VERSION_PINS_FILE := versions.env\n include $(VERSION_PINS_FILE)\n \n-# Run weaver via the pinned container image. The repo is bind-mounted at\n-# /workspace and that is the working directory, so every relative path the\n-# targets below pass to weaver (./model, .build/..., docs/, docs/registry)\n-# resolves the same way it would for a host-installed weaver.\n+# Run weaver locally if available, otherwise run via the pinned container image.\n+# The repo is bind-mounted at /workspace when running in Docker, resolving\n+# relative paths the same way they would on the host.\n+LOCAL_RAW_VERSION := $(shell weaver --version 2>/dev/null)\n+\n+ifeq ($(LOCAL_RAW_VERSION),)\n+    USE_DOCKER := 1\n+else\n+    LOCAL_VERSION := $(shell echo \"$(LOCAL_RAW_VERSION)\" | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1)\n+    REPO_VERSION := $(shell echo \"$(WEAVER_VERSION)\" | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1)\n+    IS_LOWER := $(shell printf \"%s\\n%s\" \"$(LOCAL_VERSION)\" \"$(REPO_VERSION)\" | sort -V | head -n1)\n+    ifeq ($(IS_LOWER),$(LOCAL_VERSION))",
+      "id": "PRRT_kwDOSUeMrM6PXd0e",
+      "opened": "2026-07-08T20:12:14Z",
+      "path": "Makefile",
+      "replies": [],
+      "reviewed": "43e9dddbd4cc36f7e24ec0cd9cacef3483f7a066",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/371#discussion_r3546960227"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `$(shell echo ... >&2)` as a standalone line is brittle and adds an unnecessary shell dependency. GNU make has a built-in `$(warning ...)` function for exactly this use case.",
+      "created": "2026-07-08T20:12:13Z",
+      "hunk": "@@ -1,24 +1,46 @@\n # GenAI Semantic Conventions - Makefile\n-# Requires: docker (or podman aliased as docker)\n # The weaver version is pinned in versions.env (WEAVER_VERSION) and run via\n-# the otel/weaver container image -- contributors do not need to install weaver locally.\n+# the otel/weaver container image if a local weaver installation is not found.\n \n # Shared external version pins. Override on the command line when needed, e.g.\n # `make check-policies SEMCONV_VERSION=v1.40.0`.\n VERSION_PINS_FILE := versions.env\n include $(VERSION_PINS_FILE)\n \n-# Run weaver via the pinned container image. The repo is bind-mounted at\n-# /workspace and that is the working directory, so every relative path the\n-# targets below pass to weaver (./model, .build/..., docs/, docs/registry)\n-# resolves the same way it would for a host-installed weaver.\n+# Run weaver locally if available, otherwise run via the pinned container image.\n+# The repo is bind-mounted at /workspace when running in Docker, resolving\n+# relative paths the same way they would on the host.\n+LOCAL_RAW_VERSION := $(shell weaver --version 2>/dev/null)\n+\n+ifeq ($(LOCAL_RAW_VERSION),)\n+    USE_DOCKER := 1\n+else\n+    LOCAL_VERSION := $(shell echo \"$(LOCAL_RAW_VERSION)\" | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1)\n+    REPO_VERSION := $(shell echo \"$(WEAVER_VERSION)\" | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1)\n+    IS_LOWER := $(shell printf \"%s\\n%s\" \"$(LOCAL_VERSION)\" \"$(REPO_VERSION)\" | sort -V | head -n1)\n+    ifeq ($(IS_LOWER),$(LOCAL_VERSION))\n+        ifneq ($(LOCAL_VERSION),$(REPO_VERSION))\n+            $(shell echo \"warning: local weaver version $(LOCAL_VERSION) is lower than required $(REPO_VERSION). Falling back to Docker.\" >&2)\n+            USE_DOCKER := 1",
+      "id": "PRRT_kwDOSUeMrM6PXd0t",
+      "opened": "2026-07-08T20:12:14Z",
+      "path": "Makefile",
+      "replies": [],
+      "reviewed": "43e9dddbd4cc36f7e24ec0cd9cacef3483f7a066",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/371#discussion_r3546960246"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The local-vs-required version check ignores SemVer prerelease precedence and can accept a prerelease as meeting a stable requirement (e.g., local `0.24.2-rc.1` will be treated as `0.24.2`). Also, if `weaver --version` output doesn’t match the regex, `LOCAL_VERSION` becomes empty and the warning becomes confusing. Consider explicitly falling back to Docker when parsing fails, and treat prerelease as lower than the same stable version.",
+      "created": "2026-07-08T20:19:13Z",
+      "hunk": "@@ -1,24 +1,43 @@\n # GenAI Semantic Conventions - Makefile\n-# Requires: docker (or podman aliased as docker)\n+# Requires: either local weaver >= $(WEAVER_VERSION) OR docker/podman (aliased as docker)\n # The weaver version is pinned in versions.env (WEAVER_VERSION) and run via\n-# the otel/weaver container image -- contributors do not need to install weaver locally.\n+# the otel/weaver container image if a local weaver installation is not found.\n \n # Shared external version pins. Override on the command line when needed, e.g.\n # `make check-policies SEMCONV_VERSION=v1.40.0`.\n VERSION_PINS_FILE := versions.env\n include $(VERSION_PINS_FILE)\n \n-# Run weaver via the pinned container image. The repo is bind-mounted at\n-# /workspace and that is the working directory, so every relative path the\n-# targets below pass to weaver (./model, .build/..., docs/, docs/registry)\n-# resolves the same way it would for a host-installed weaver.\n+# Run weaver locally if available, otherwise run via the pinned container image.\n+# The repo is bind-mounted at /workspace when running in Docker, resolving\n+# relative paths the same way they would on the host.\n+LOCAL_RAW_VERSION := $(shell weaver --version 2>/dev/null)\n+\n+ifeq ($(LOCAL_RAW_VERSION),)\n+    USE_DOCKER := 1\n+else\n+    LOCAL_VERSION := $(shell echo \"$(LOCAL_RAW_VERSION)\" | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1)\n+    REPO_VERSION := $(shell echo \"$(WEAVER_VERSION)\" | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1)\n+    IS_LOWER := $(shell awk -v v1=\"$(LOCAL_VERSION)\" -v v2=\"$(REPO_VERSION)\" 'BEGIN { split(v1, a, \".\"); split(v2, b, \".\"); for (i = 1; i <= 3; i++) { if (a[i]+0 < b[i]+0) { print \"yes\"; exit }; if (a[i]+0 > b[i]+0) { print \"no\"; exit } }; print \"no\" }')\n+    ifeq ($(IS_LOWER),yes)\n+        $(warning local weaver version $(LOCAL_VERSION) is lower than required $(REPO_VERSION). Falling back to Docker.)\n+        USE_DOCKER := 1\n+    else\n+        USE_DOCKER := 0\n+    endif",
+      "id": "PRRT_kwDOSUeMrM6PXkuC",
+      "opened": "2026-07-08T20:19:14Z",
+      "path": "Makefile",
+      "replies": [],
+      "reviewed": "5a3bf9f4a83d4f08bdac217688c0d2ad53a6a4a6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/371#discussion_r3546998518"
+    }
+  ]
+}

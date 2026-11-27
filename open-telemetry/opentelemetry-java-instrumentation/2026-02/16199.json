@@ -1,0 +1,31 @@
+{
+  "head": "e441300f9690c566ef9334b16f467af690fa88ed",
+  "merge": "82621b64122158cca9fcc1446fcaa057e81678da",
+  "merged": "2026-02-17T10:46:06Z",
+  "missing_roots": 0,
+  "number": 16199,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The import block isn’t formatted: there should be a blank line after the `package` statement, and the newly added TimeUnit static imports should be grouped/sorted with the other static imports. Also, `import java.util.concurrent.TimeUnit;` is now unused in this file (no remaining `TimeUnit` references) and should be removed. Running this module’s Spotless/Google Java Format (or manually adjusting) should fix both issues.",
+      "created": "2026-02-17T02:37:47Z",
+      "hunk": "@@ -4,6 +4,8 @@\n  */\n \n package io.opentelemetry;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static java.util.concurrent.TimeUnit.MILLISECONDS;\n \n import static org.assertj.core.api.Assertions.fail;",
+      "id": "PRRT_kwDODJKVX85u845A",
+      "opened": "2026-02-17T02:37:47Z",
+      "path": "benchmark-overhead/src/test/java/io/opentelemetry/OverheadTests.java",
+      "replies": [
+        {
+          "at": "2026-02-17T02:39:17Z",
+          "body": "```suggestion\r\npackage io.opentelemetry;\r\n\r\nimport static java.util.concurrent.TimeUnit.SECONDS;\r\nimport static java.util.concurrent.TimeUnit.MILLISECONDS;\r\n\r\nimport static org.assertj.core.api.Assertions.fail;\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16199#discussion_r2814716290"
+        }
+      ],
+      "reviewed": "7ceaf6636b95130cfa445cba1371c83d8b7165d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16199#discussion_r2814713400"
+    }
+  ]
+}

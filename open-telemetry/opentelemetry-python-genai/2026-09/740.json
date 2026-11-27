@@ -1,0 +1,274 @@
+{
+  "head": "a43f5eaae9a934683baf14a2712bdeb50ef4bc79",
+  "merge": "fb4f9258841f5dbf38facb39271eb466aa9424d5",
+  "merged": "2026-09-22T19:33:12Z",
+  "missing_roots": 0,
+  "number": 740,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Binding collapses `*extra` into one tuple and `**kw` into one dict. `_get_function_args` then emits attributes named after those formal parameters instead of the individual arguments, and `_to_otel_value` does not serialize tuples as structured values, so variadic Google tool functions lose or misrepresent captured arguments compared with the previous per-argument behavior. Expand variadic bindings (or preserve the prior extraction for them) before creating these attributes.",
+      "created": "2026-09-17T20:38:46Z",
+      "hunk": "@@ -46,19 +47,10 @@ def _to_otel_value(python_value):\n def _get_function_args(wrapped_function, function_args, function_kwargs):\n     \"\"\"Records the details about a function invocation as span attributes.\"\"\"\n     function_arg_attr = {}\n-    signature = inspect.signature(wrapped_function)\n-    params = list(signature.parameters.values())\n-    for index, entry in enumerate(function_args):\n-        param_name = f\"args[{index}]\"\n-        if index < len(params):\n-            param_name = params[index].name\n-        function_arg_attr[f\"code.function.parameters.{param_name}.type\"] = (\n-            type(entry).__name__\n-        )\n-        function_arg_attr[f\"code.function.parameters.{param_name}.value\"] = (\n-            _to_otel_value(entry)\n-        )\n-    for key, value in function_kwargs.items():\n+    bound = bind_arguments(\n+        wrapped_function, function_args, function_kwargs, apply_defaults=False\n+    )\n+    for key, value in bound.items():",
+      "id": "PRRT_kwDOSbspP86jhore",
+      "opened": "2026-09-17T20:38:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/tool_call_wrapper.py",
+      "replies": [
+        {
+          "at": "2026-09-18T14:04:39Z",
+          "body": "It does change the existing behavior a bit but i think it's an overall improvement to bind the arguments to the function first",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4047431407"
+        }
+      ],
+      "reviewed": "265188f15c0c1579b07cd3f9fea8f2fd29ab0c00",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4041246173"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This process-global cache holds a strong reference to every distinct callable used as `underlying` and has no size or lifetime bound. Google tool functions and DSPy tool callables can be created dynamically, so long-lived applications can retain discarded tools (and their captured state) indefinitely; use a bounded or weak-key cache with an uncached fallback for non-weakrefable callables.",
+      "created": "2026-09-17T20:38:47Z",
+      "hunk": "@@ -179,3 +183,61 @@ def default(self, o: Any) -> Any:\n )\n \"\"\"Should be used by GenAI instrumentations when serializing objects that may contain\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n+\n+\n+_signature_cache: dict[tuple[object, bool], inspect.Signature] = {}\n+_inspect_signature = inspect.signature",
+      "id": "PRRT_kwDOSbspP86jhor7",
+      "opened": "2026-09-17T20:38:47Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "265188f15c0c1579b07cd3f9fea8f2fd29ab0c00",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4041246231"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`bind_arguments` is a new public helper in the non-private `opentelemetry.util.genai.utils` module, but its public signature exposes `Any` for the callable, argument values, and return mapping. The util API should use the narrowest type that fits arbitrary runtime values (for example `object`) rather than adding another `Any`-typed public surface.",
+      "created": "2026-09-17T20:38:47Z",
+      "hunk": "@@ -179,3 +183,61 @@ def default(self, o: Any) -> Any:\n )\n \"\"\"Should be used by GenAI instrumentations when serializing objects that may contain\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n+\n+\n+_signature_cache: dict[tuple[object, bool], inspect.Signature] = {}\n+_inspect_signature = inspect.signature\n+\n+\n+def _get_signature(func: Callable[..., Any]) -> inspect.Signature:\n+    \"\"\"Return the cached inspect.Signature for a callable.\n+\n+    For bound methods, keying on the underlying function prevents cache churn\n+    across instances, while distinguishing bound methods from unbound functions\n+    to prevent parameter signature mismatch.\n+    \"\"\"\n+    is_bound = getattr(func, \"__self__\", None) is not None\n+    underlying = getattr(func, \"__func__\", None) or func\n+    key: object = (underlying, is_bound)\n+    try:\n+        sig = _signature_cache.get(key)\n+        if sig is None:\n+            sig = _inspect_signature(func)\n+            _signature_cache[key] = sig\n+        return sig\n+    except TypeError:\n+        return _inspect_signature(func)\n+\n+\n+def bind_arguments(\n+    func: Callable[..., Any],\n+    args: tuple[Any, ...],\n+    kwargs: Mapping[str, Any],\n+    *,\n+    apply_defaults: bool = False,\n+) -> dict[str, Any]:",
+      "id": "PRRT_kwDOSbspP86jhosQ",
+      "opened": "2026-09-17T20:38:47Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "265188f15c0c1579b07cd3f9fea8f2fd29ab0c00",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4041246262"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Can we make this dict thread safe by using lru_cache? Say something like\n\n```python\nimport functools\nimport inspect\nfrom collections.abc import Callable\n\n\n@functools.lru_cache(maxsize=1024)\ndef _cached_signature(fn: Callable[..., object], drop_first: bool) -> inspect.Signature:\n    sig = inspect.signature(fn)\n    if drop_first:\n        params = list(sig.parameters.values())[1:]\n        sig = sig.replace(parameters=params)\n    return sig\n\n\ndef _get_signature(func: Callable[..., object]) -> inspect.Signature:\n    # Bound methods are new objects on every attribute access, so key on the\n    # underlying function. Only long-lived definitions are cached; per-call\n    # closures and callable instances would otherwise be pinned in the cache.\n    underlying = getattr(func, \"__func__\", None)\n    if underlying is not None and getattr(func, \"__self__\", None) is not None:\n        return _cached_signature(underlying, True)\n    if inspect.isfunction(func) and \"<locals>\" not in func.__qualname__:\n        return _cached_signature(func, False)\n    return inspect.signature(func)\n",
+      "created": "2026-09-18T20:39:59Z",
+      "hunk": "@@ -179,3 +183,66 @@ def default(self, o: Any) -> Any:\n )\n \"\"\"Should be used by GenAI instrumentations when serializing objects that may contain\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n+\n+\n+_SIGNATURE_CACHE_MAX_SIZE = 1024\n+_signature_cache: dict[tuple[object, bool], inspect.Signature] = {}",
+      "id": "PRRT_kwDOSbspP86j43HV",
+      "opened": "2026-09-18T21:12:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-21T14:35:15Z",
+          "body": "yeah switched to use this.. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4063155894"
+        }
+      ],
+      "reviewed": "0109d83aad607b1e3d1dfcb3c2227dd0ad2cabff",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4050529188"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Can we avoid use of Any by doing something like\n\n```python\ndef get_argument(name: str, func: Callable[..., object], args: tuple[object, ...],\n                 kwargs: Mapping[str, object], default: object = None,\n                 *, apply_defaults: bool = False) -> object: ...\n",
+      "created": "2026-09-18T20:43:12Z",
+      "hunk": "@@ -179,3 +183,66 @@ def default(self, o: Any) -> Any:\n )\n \"\"\"Should be used by GenAI instrumentations when serializing objects that may contain\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n+\n+\n+_SIGNATURE_CACHE_MAX_SIZE = 1024\n+_signature_cache: dict[tuple[object, bool], inspect.Signature] = {}\n+_inspect_signature = inspect.signature\n+\n+\n+def _get_signature(func: Callable[..., object]) -> inspect.Signature:\n+    \"\"\"Return the cached inspect.Signature for a callable.\n+\n+    For bound methods, keying on the underlying function prevents cache churn\n+    across instances, while distinguishing bound methods from unbound functions\n+    to prevent parameter signature mismatch.\n+    \"\"\"\n+    is_bound = getattr(func, \"__self__\", None) is not None\n+    underlying = getattr(func, \"__func__\", None) or func\n+    key: object = (underlying, is_bound)\n+    try:\n+        sig = _signature_cache.get(key)\n+        if sig is not None:\n+            _signature_cache[key] = _signature_cache.pop(key)\n+            return sig\n+        sig = _inspect_signature(func)\n+        _signature_cache[key] = sig\n+        if len(_signature_cache) > _SIGNATURE_CACHE_MAX_SIZE:\n+            del _signature_cache[next(iter(_signature_cache))]\n+        return sig\n+    except TypeError:\n+        return _inspect_signature(func)\n+\n+\n+def bind_arguments(\n+    func: Callable[..., object],\n+    args: tuple[object, ...],\n+    kwargs: Mapping[str, object],\n+    *,\n+    apply_defaults: bool = False,\n+) -> dict[str, object]:\n+    \"\"\"Bind positional and keyword arguments to func's parameters by name.\"\"\"\n+    try:\n+        sig = _get_signature(func)\n+        bound = sig.bind_partial(*args, **kwargs)\n+        if apply_defaults:\n+            bound.apply_defaults()\n+        return dict(bound.arguments)\n+    except (TypeError, ValueError):\n+        return dict(kwargs)\n+\n+\n+def get_argument(\n+    name: str,\n+    func: Callable[..., object],\n+    args: tuple[object, ...],\n+    kwargs: Mapping[str, object],\n+    default: Any = None,",
+      "id": "PRRT_kwDOSbspP86j46cS",
+      "opened": "2026-09-18T21:12:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-21T14:37:31Z",
+          "body": "sure.. is object much better than Any ? Anyway switched to use it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4063177624"
+        }
+      ],
+      "reviewed": "0109d83aad607b1e3d1dfcb3c2227dd0ad2cabff",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4050549824"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Is the telemetry shape change for variadic tool functions intentional?\n\nFor example:\n ```python\ndef weather(**kwargs):\n         ...\n\n weather(city=\"Boston\", units=\"celsius\")\n```\n\nThe existing implementation emits flat parameters:\n\n```text\ncode.function.parameters.city.value\ncode.function.parameters.units.value ```\n\nAfter this change, `bind_arguments()` produces:\n\n```python\n{\"kwargs\": {\"city\": \"Boston\", \"units\": \"celsius\"}}\n```\n\nso telemetry instead contains `code.function.parameters.kwargs.value`. Let me know if this understanding is right.\n\nIf yes, could we preserve the existing extraction for variadic signatures while using signature binding for ordinary parameters?\n\n```python\nsignature = inspect.signature(wrapped_function)\nparameters = list(signature.parameters.values())\n has_variadics = any(\n     parameter.kind\n     in (\n         inspect.Parameter.VAR_POSITIONAL,\n         inspect.Parameter.VAR_KEYWORD,\n    )\n    for parameter in parameters\n )\n\n if has_variadics:\n     # Preserve the existing telemetry representation.\n     bound = {\n         (\n            parameters[index].name\n             if index < len(parameters)\n             else f\"args[{index}]\"\n         ): value\n         for index, value in enumerate(function_args)\n     }\n     bound.update(function_kwargs)\n else:\n    bound = bind_arguments(\n         wrapped_function,\n         function_args,\n        function_kwargs,\n        apply_defaults=False,\n    )\n ```\n\nAdditionally can we add some regression tests for both a `*args` tool and a `**kwargs` tool so the chosen telemetry contract is explicit. Feel free to push back if this an overkill.",
+      "created": "2026-09-18T21:03:18Z",
+      "hunk": "@@ -46,19 +47,10 @@ def _to_otel_value(python_value):\n def _get_function_args(wrapped_function, function_args, function_kwargs):\n     \"\"\"Records the details about a function invocation as span attributes.\"\"\"\n     function_arg_attr = {}\n-    signature = inspect.signature(wrapped_function)\n-    params = list(signature.parameters.values())\n-    for index, entry in enumerate(function_args):\n-        param_name = f\"args[{index}]\"\n-        if index < len(params):\n-            param_name = params[index].name\n-        function_arg_attr[f\"code.function.parameters.{param_name}.type\"] = (\n-            type(entry).__name__\n-        )\n-        function_arg_attr[f\"code.function.parameters.{param_name}.value\"] = (\n-            _to_otel_value(entry)\n-        )\n-    for key, value in function_kwargs.items():\n+    bound = bind_arguments(",
+      "id": "PRRT_kwDOSbspP86j5OXN",
+      "opened": "2026-09-18T21:12:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/tool_call_wrapper.py",
+      "replies": [
+        {
+          "at": "2026-09-21T15:16:57Z",
+          "body": "Switched to do it like you proposed and added a test.. I'd rather have this instrumentation just pass the bound arguments dict to utils where it's json serialized, that's more aligned with what the other instrumentations are doing.. Opened https://github.com/open-telemetry/opentelemetry-python-genai/issues/764 to track this",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4063537564"
+        }
+      ],
+      "reviewed": "0109d83aad607b1e3d1dfcb3c2227dd0ad2cabff",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4050673378"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Both arguments are typically passed positionally, so calling `get_argument` twice repeats `bind_partial` on every AWS call. We could bind once:\n\n```suggestion\n        bound = bind_arguments(wrapped, args, kwargs)\n        operation_name = bound.get(\"operation_name\")\n        raw_params = bound.get(\"api_params\")\n```\n(and import `bind_arguments` instead of `get_argument`).",
+      "created": "2026-09-21T17:37:39Z",
+      "hunk": "@@ -166,8 +167,8 @@ def _wrapper(\n         if service_name != BEDROCK_RUNTIME:\n             return wrapped(*args, **kwargs)\n \n-        operation_name = args[0] if args else kwargs.get(\"operation_name\")\n-        raw_params = args[1] if len(args) > 1 else kwargs.get(\"api_params\")\n+        operation_name = get_argument(\"operation_name\", wrapped, args, kwargs)\n+        raw_params = get_argument(\"api_params\", wrapped, args, kwargs)",
+      "id": "PRRT_kwDOSbspP86kdLR2",
+      "opened": "2026-09-21T17:39:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [],
+      "reviewed": "4edd6cbbf4e758d41f05d4309945fe650e98cb1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4064782128"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Since `tool_name`, `tool_args`, and `messages` are positional, calling `get_argument` repeats signature binding three times for each tool execution. We can bind once via `bind_arguments`:\n\n```suggestion\n    bound = bind_arguments(wrapped, args, kwargs)\n    tool_name = str(bound.get(\"tool_name\", \"\"))\n    tool_args: Any = bound.get(\"tool_args\")\n```",
+      "created": "2026-09-21T17:37:39Z",
+      "hunk": "@@ -91,17 +92,18 @@ def wrap_agent_call_tool(\n     handler: TelemetryHandler,\n ) -> Any:\n     \"\"\"Wrapper for ``Agent._call_tool()`` producing an ``execute_tool`` span.\"\"\"\n-    tool_name = str(args[0]) if args else str(kwargs.get(\"tool_name\", \"\"))\n-    tool_args = args[1] if len(args) > 1 else kwargs.get(\"tool_args\")\n+    tool_name = str(\n+        get_argument(\"tool_name\", wrapped, args, kwargs, default=\"\")\n+    )\n+    tool_args: Any = get_argument(\"tool_args\", wrapped, args, kwargs)",
+      "id": "PRRT_kwDOSbspP86kdLSG",
+      "opened": "2026-09-21T17:39:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/patch.py",
+      "replies": [],
+      "reviewed": "4edd6cbbf4e758d41f05d4309945fe650e98cb1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4064782155"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "When `bind_arguments` fails on positional arguments (e.g. uninspectable built-ins like `dir` or mismatched argument counts), it returns `dict(kwargs)` which is `{}`. This causes telemetry to record `gen_ai.tool.call.arguments = \"{}\"` instead of omitting the attribute (`None`).\n\nCould we preserve returning `None` when positional arguments are present but binding fails?\n\n```suggestion\n        bound = bind_arguments(func, args, kwargs, apply_defaults=True)\n        if args and bound == kwargs:\n            return None\n        return bound\n```",
+      "created": "2026-09-21T17:37:39Z",
+      "hunk": "@@ -246,13 +246,7 @@ def _extract_tool_arguments(\n ) -> dict[str, Any] | None:\n     func: Any = getattr(instance, \"func\", None)\n     if func is not None and callable(func):\n-        try:\n-            sig = inspect.signature(func)\n-            bound = sig.bind_partial(*args, **kwargs)\n-            bound.apply_defaults()\n-            return dict(bound.arguments)\n-        except (TypeError, ValueError):\n-            pass\n+        return bind_arguments(func, args, kwargs, apply_defaults=True)",
+      "id": "PRRT_kwDOSbspP86kdLSP",
+      "opened": "2026-09-21T17:39:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "4edd6cbbf4e758d41f05d4309945fe650e98cb1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4064782172"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Bound methods miss the `<locals>` check applied to functions on line 236, so methods on locally defined classes can still be retained in `_cached_signature`:\n\n```suggestion\n        underlying = getattr(func, \"__func__\", None)\n        if (\n            underlying is not None\n            and getattr(func, \"__self__\", None) is not None\n            and \"<locals>\" not in getattr(underlying, \"__qualname__\", \"\")\n        ):\n            return _cached_signature(underlying, True)\n```",
+      "created": "2026-09-21T17:37:39Z",
+      "hunk": "@@ -203,3 +207,73 @@ def default(self, o: Any) -> Any:\n )\n \"\"\"Should be used by GenAI instrumentations when serializing objects that may contain\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n+\n+\n+_SIGNATURE_CACHE_MAX_SIZE = 1024\n+_inspect_signature = inspect.signature\n+\n+\n+@lru_cache(maxsize=_SIGNATURE_CACHE_MAX_SIZE)\n+def _cached_signature(\n+    fn: Callable[..., object], drop_first: bool\n+) -> inspect.Signature:\n+    sig = _inspect_signature(fn)\n+    if drop_first:\n+        params = list(sig.parameters.values())[1:]\n+        sig = sig.replace(parameters=params)\n+    return sig\n+\n+\n+def _get_signature(func: Callable[..., object]) -> inspect.Signature:\n+    \"\"\"Return the inspect.Signature for a callable, caching long-lived definitions.\n+\n+    Bound methods are new objects on every attribute access, so key on the\n+    underlying function. Only long-lived definitions are cached; per-call\n+    closures and callable instances would otherwise be pinned in the cache.\n+    \"\"\"\n+    try:\n+        underlying = getattr(func, \"__func__\", None)",
+      "id": "PRRT_kwDOSbspP86kdLSX",
+      "opened": "2026-09-21T17:39:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-21T17:59:01Z",
+          "body": "Added suggestion",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4064945712"
+        }
+      ],
+      "reviewed": "4edd6cbbf4e758d41f05d4309945fe650e98cb1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4064782185"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`inspect.signature` is called uncached here on every tool invocation, and then inspected again inside `bind_arguments` when `has_variadics` is False. If #764 is tracking standardizing this wrapper, should we reuse signature caching or note this as part of that follow-up?",
+      "created": "2026-09-21T17:37:39Z",
+      "hunk": "@@ -46,19 +47,40 @@ def _to_otel_value(python_value):\n def _get_function_args(wrapped_function, function_args, function_kwargs):\n     \"\"\"Records the details about a function invocation as span attributes.\"\"\"\n     function_arg_attr = {}\n-    signature = inspect.signature(wrapped_function)\n-    params = list(signature.parameters.values())\n-    for index, entry in enumerate(function_args):\n-        param_name = f\"args[{index}]\"\n-        if index < len(params):\n-            param_name = params[index].name\n-        function_arg_attr[f\"code.function.parameters.{param_name}.type\"] = (\n-            type(entry).__name__\n+    try:\n+        signature = inspect.signature(wrapped_function)",
+      "id": "PRRT_kwDOSbspP86kdLSh",
+      "opened": "2026-09-21T17:39:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/tool_call_wrapper.py",
+      "replies": [
+        {
+          "at": "2026-09-21T17:56:24Z",
+          "body": "May as well use the signature caching.. updated it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4064925731"
+        }
+      ],
+      "reviewed": "4edd6cbbf4e758d41f05d4309945fe650e98cb1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4064782197"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if name in kwargs:\n        return kwargs[name]\n    if not args and not apply_defaults:\n        return default\n```\nWhen `name` is not in `kwargs` and no positional arguments or defaults are involved, signature binding cannot introduce `name`. Returning early avoids unnecessary signature binding on every call with omitted optional kwargs.",
+      "created": "2026-09-22T05:06:23Z",
+      "hunk": "@@ -203,3 +207,77 @@ def default(self, o: Any) -> Any:\n )\n \"\"\"Should be used by GenAI instrumentations when serializing objects that may contain\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n+\n+\n+_SIGNATURE_CACHE_MAX_SIZE = 1024\n+_inspect_signature = inspect.signature\n+\n+\n+@lru_cache(maxsize=_SIGNATURE_CACHE_MAX_SIZE)\n+def _cached_signature(\n+    fn: Callable[..., object], drop_first: bool\n+) -> inspect.Signature:\n+    sig = _inspect_signature(fn)\n+    if drop_first:\n+        params = list(sig.parameters.values())[1:]\n+        sig = sig.replace(parameters=params)\n+    return sig\n+\n+\n+def get_signature(func: Callable[..., object]) -> inspect.Signature:\n+    \"\"\"Return the inspect.Signature for a callable, caching long-lived definitions.\n+\n+    Bound methods are new objects on every attribute access, so key on the\n+    underlying function. Only long-lived definitions are cached; per-call\n+    closures and callable instances would otherwise be pinned in the cache.\n+    \"\"\"\n+    try:\n+        underlying = getattr(func, \"__func__\", None)\n+        if (\n+            underlying is not None\n+            and getattr(func, \"__self__\", None) is not None\n+            and \"<locals>\" not in getattr(underlying, \"__qualname__\", \"\")\n+        ):\n+            return _cached_signature(underlying, True)\n+        if inspect.isfunction(func) and \"<locals>\" not in func.__qualname__:\n+            return _cached_signature(func, False)\n+    except TypeError:\n+        pass\n+    return _inspect_signature(func)\n+\n+\n+_get_signature = get_signature\n+\n+\n+def bind_arguments(\n+    func: Callable[..., object],\n+    args: tuple[object, ...],\n+    kwargs: Mapping[str, object],\n+    *,\n+    apply_defaults: bool = False,\n+) -> dict[str, object]:\n+    \"\"\"Bind positional and keyword arguments to func's parameters by name.\"\"\"\n+    try:\n+        sig = get_signature(func)\n+        bound = sig.bind_partial(*args, **kwargs)\n+        if apply_defaults:\n+            bound.apply_defaults()\n+        return dict(bound.arguments)\n+    except (TypeError, ValueError):\n+        return dict(kwargs)\n+\n+\n+def get_argument(\n+    name: str,\n+    func: Callable[..., object],\n+    args: tuple[object, ...],\n+    kwargs: Mapping[str, object],\n+    default: object = None,\n+    *,\n+    apply_defaults: bool = False,\n+) -> object:\n+    \"\"\"Extract a named argument from kwargs or args via signature binding.\"\"\"\n+    if name in kwargs:\n+        return kwargs[name]",
+      "id": "PRRT_kwDOSbspP86kmtFt",
+      "opened": "2026-09-22T05:10:40Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-22T15:47:04Z",
+          "body": "Ack makes sense.. applied suggestion",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4073564998"
+        }
+      ],
+      "reviewed": "4778aeec411d7a9bb0f2ca5b3e4ba59b0080b017",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4068593175"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n`_get_signature` alias is redundant now that `get_signature` is public; we can remove it and update the call in `test_get_signature_unhashable_callable`.",
+      "created": "2026-09-22T05:06:23Z",
+      "hunk": "@@ -203,3 +207,77 @@ def default(self, o: Any) -> Any:\n )\n \"\"\"Should be used by GenAI instrumentations when serializing objects that may contain\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n+\n+\n+_SIGNATURE_CACHE_MAX_SIZE = 1024\n+_inspect_signature = inspect.signature\n+\n+\n+@lru_cache(maxsize=_SIGNATURE_CACHE_MAX_SIZE)\n+def _cached_signature(\n+    fn: Callable[..., object], drop_first: bool\n+) -> inspect.Signature:\n+    sig = _inspect_signature(fn)\n+    if drop_first:\n+        params = list(sig.parameters.values())[1:]\n+        sig = sig.replace(parameters=params)\n+    return sig\n+\n+\n+def get_signature(func: Callable[..., object]) -> inspect.Signature:\n+    \"\"\"Return the inspect.Signature for a callable, caching long-lived definitions.\n+\n+    Bound methods are new objects on every attribute access, so key on the\n+    underlying function. Only long-lived definitions are cached; per-call\n+    closures and callable instances would otherwise be pinned in the cache.\n+    \"\"\"\n+    try:\n+        underlying = getattr(func, \"__func__\", None)\n+        if (\n+            underlying is not None\n+            and getattr(func, \"__self__\", None) is not None\n+            and \"<locals>\" not in getattr(underlying, \"__qualname__\", \"\")\n+        ):\n+            return _cached_signature(underlying, True)\n+        if inspect.isfunction(func) and \"<locals>\" not in func.__qualname__:\n+            return _cached_signature(func, False)\n+    except TypeError:\n+        pass\n+    return _inspect_signature(func)\n+\n+\n+_get_signature = get_signature",
+      "id": "PRRT_kwDOSbspP86kmtFx",
+      "opened": "2026-09-22T05:10:40Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-22T15:47:16Z",
+          "body": "Ack, removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4073567239"
+        }
+      ],
+      "reviewed": "4778aeec411d7a9bb0f2ca5b3e4ba59b0080b017",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4068593183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Both `_extract_retrieval_query` and `_extract_retrieval_k` invoke `get_argument` with the same `(wrapped, args, kwargs)`. When arguments are passed positionally, this binds the signature twice. Similar to Bedrock and Qwen-Agent, binding once avoids repeating signature binding twice for every retrieval call.",
+      "created": "2026-09-22T05:06:24Z",
+      "hunk": "@@ -465,8 +460,8 @@ def _start_retrieval_invocation(\n         else None,\n     )\n \n-    invocation.query_text = _extract_retrieval_query(args, kwargs)\n-    invocation.top_k = _extract_retrieval_k(instance, args, kwargs)\n+    invocation.query_text = _extract_retrieval_query(wrapped, args, kwargs)\n+    invocation.top_k = _extract_retrieval_k(instance, wrapped, args, kwargs)",
+      "id": "PRRT_kwDOSbspP86kmtFy",
+      "opened": "2026-09-22T05:10:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-22T15:48:12Z",
+          "body": "Ack fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4073576919"
+        }
+      ],
+      "reviewed": "4778aeec411d7a9bb0f2ca5b3e4ba59b0080b017",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/740#discussion_r4068593184"
+    }
+  ]
+}

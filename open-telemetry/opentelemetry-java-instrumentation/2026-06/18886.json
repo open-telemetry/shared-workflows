@@ -1,0 +1,88 @@
+{
+  "head": "199fb7d3a98ba5977360f698610632e870cf4e5b",
+  "merge": "425e6a90b7f5730cc16b8d896e93125409045c25",
+  "merged": "2026-06-08T16:56:21Z",
+  "missing_roots": 0,
+  "number": 18886,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This comment references the pre-move opentelemetry-api bridge class/package and implies the tracer still uses a reflective bridge. With this PR adding Context#getData bridging and moving opentelemetry-api-1.0 under `opentelemetryapi.v1_0`, the comment is now misleading/outdated.",
+      "created": "2026-06-04T00:48:16Z",
+      "hunk": "@@ -78,6 +80,34 @@ void testSpan() {\n                             equalTo(stringKey(\"az.namespace\"), \"otel.tests\"))));\n   }\n \n+  @Test\n+  void testExplicitParentContextBridge() {\n+    // Azure's bundled OpenTelemetryTracer reflectively calls\n+    // io.opentelemetry.javaagent.instrumentation.opentelemetryapi.context.AgentContextStorage\n+    //   #getAgentContext(application io.opentelemetry.context.Context)\n+    // to convert an explicitly-supplied application context into the agent (shaded) context.\n+    // This test exercises that path: the parent span is supplied only via the Azure context bag\n+    // under PARENT_TRACE_CONTEXT_KEY and is never made current, so the only way the child can be\n+    // linked to it is through the reflective bridge.",
+      "id": "PRRT_kwDODJKVX86G7ipf",
+      "opened": "2026-06-04T00:48:16Z",
+      "path": "instrumentation/azure-core/azure-core-1.53/javaagent/src/testAzure/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_53/AzureSdkTest.java",
+      "replies": [],
+      "reviewed": "a756ca5dff70b4c2c8bd9f16a2ee03acccd5fbe2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18886#discussion_r3352767522"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says this change is about moving `opentelemetry-api-1.0` instrumentation under a `v1_0` subpackage, but this module also adds new Azure SDK behavior (`AzureContextInstrumentation`) and a new test to validate explicit parent context bridging. Please update the PR description (or split into a separate PR) so reviewers/release notes don’t miss the functional change.",
+      "created": "2026-06-04T00:56:49Z",
+      "hunk": "@@ -57,7 +57,10 @@ public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n \n   @Override\n   public List<TypeInstrumentation> typeInstrumentations() {\n-    return asList(new EmptyTypeInstrumentation(), new AzureHttpClientInstrumentation());\n+    return asList(\n+        new EmptyTypeInstrumentation(),\n+        new AzureContextInstrumentation(),\n+        new AzureHttpClientInstrumentation());",
+      "id": "PRRT_kwDODJKVX86G7nu2",
+      "opened": "2026-06-04T00:56:50Z",
+      "path": "instrumentation/azure-core/azure-core-1.53/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_53/AzureSdkInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-06-05T16:33:09Z",
+          "body": "No code change needed for this one. Updated the PR description to document the Azure Core 1.53 explicit parent context bridging behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18886#discussion_r3364001360"
+        }
+      ],
+      "reviewed": "1a589a318ac07a16b072fb966d72208726dfac98",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18886#discussion_r3352796217"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The parent-context key is hard-coded as \"trace-context\" even though Azure exposes it as `com.azure.core.util.tracing.Tracer.PARENT_TRACE_CONTEXT_KEY` (used in the test). Using the constant avoids drift if Azure changes the key value in a future release.",
+      "created": "2026-06-04T00:56:49Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.azurecore.v1_53;\n+\n+import io.opentelemetry.context.Context;\n+import java.util.Optional;\n+\n+/**\n+ * Converts an explicitly supplied application parent context into the agent context.\n+ *\n+ * <p>In the agent the application's {@code io.opentelemetry.context.Context} (referenced here as\n+ * {@code application.io.opentelemetry.context.Context}) is bridged to the agent context by the\n+ * opentelemetry-api instrumentation. Making the application context current and reading back the\n+ * agent context performs that conversion using only public API, so this works in both inline and\n+ * indy mode without reaching into agent-internal helper classes.\n+ */\n+public final class AzureExplicitParentContextHelper {\n+\n+  // azure-core-tracing-opentelemetry stores the explicit parent context under this key\n+  private static final String PARENT_TRACE_CONTEXT_KEY = \"trace-context\";",
+      "id": "PRRT_kwDODJKVX86G7nun",
+      "opened": "2026-06-04T00:56:50Z",
+      "path": "instrumentation/azure-core/azure-core-1.53/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_53/AzureExplicitParentContextHelper.java",
+      "replies": [
+        {
+          "at": "2026-06-05T16:33:07Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8ffdaedd83881c2798ec24dc7a803d50d9c624c7.\n\nSwitched the helper to use Azure's public `Tracer.PARENT_TRACE_CONTEXT_KEY` constant instead of a local `\"trace-context\"` literal.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18886#discussion_r3364001222"
+        }
+      ],
+      "reviewed": "1a589a318ac07a16b072fb966d72208726dfac98",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18886#discussion_r3352796192"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc still refers to the parent-context entry as the hard-coded key \"trace-context\". Since Azure exposes this as the public constant `Tracer.PARENT_TRACE_CONTEXT_KEY` (and the helper now uses it), the Javadoc should reference the constant to avoid drift if Azure ever changes the key value.",
+      "created": "2026-06-05T16:40:04Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.azurecore.v1_53;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.Optional;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Bridges an explicitly supplied parent context for {@code azure-core-tracing-opentelemetry}.\n+ *\n+ * <p>When a user passes a parent context to an Azure SDK call, the value is stored on the {@link\n+ * com.azure.core.util.Context} under the {@code \"trace-context\"} key as the application's\n+ * (unshaded) {@code io.opentelemetry.context.Context}. The bundled {@code OpenTelemetryTracer}\n+ * reads that value back and expects it to be the agent's (shaded) context. Convert it here so the\n+ * tracer does not need to reach into agent internals reflectively.",
+      "id": "PRRT_kwDODJKVX86HbDYt",
+      "opened": "2026-06-05T16:40:04Z",
+      "path": "instrumentation/azure-core/azure-core-1.53/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_53/AzureContextInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-05T18:00:57Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/199fb7d3a98ba5977360f698610632e870cf4e5b.\n\nUpdated the Javadocs to link to `Tracer.PARENT_TRACE_CONTEXT_KEY` instead of repeating the `\"trace-context\"` literal.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18886#discussion_r3364477043"
+        }
+      ],
+      "reviewed": "8ffdaedd83881c2798ec24dc7a803d50d9c624c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18886#discussion_r3364036444"
+    }
+  ]
+}

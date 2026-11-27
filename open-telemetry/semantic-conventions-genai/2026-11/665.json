@@ -1,0 +1,46 @@
+{
+  "head": "5e0c55a0b8b14338658dc62d128e7639163e5d9b",
+  "merge": "d4013280ee1f4b69cf2f16f30b5ccdac914e93bd",
+  "merged": "2026-11-03T04:09:21Z",
+  "missing_roots": 0,
+  "number": 665,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The retry-counting rule lacks the reference evidence required for convention changes by `CONTRIBUTING.md:74-79`. The existing counter in `reference/scenarios/google-adk/scenario.py:256-259` counts usage-bearing response events without demonstrating multiple attempts for one logical operation. Add a real agent-library scenario that triggers a framework or provider-SDK retry and records one inference call for that operation, using the library's operation boundary.",
+      "created": "2026-11-01T07:37:55Z",
+      "hunk": "@@ -222,6 +222,10 @@ metrics:\n       those agents' own invocations so that each inference call is counted\n       exactly once across the call tree.\n \n+      Each logical inference operation, which corresponds to one\n+      `gen_ai.client.inference` span, counts once, no matter how many attempts\n+      or provider requests it took.",
+      "id": "PRRT_kwDOSUeMrM6yYPPp",
+      "opened": "2026-11-01T07:37:55Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-01T12:09:33Z",
+          "body": "Added in cd3834c2. The Prototype section in the description now covers it.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/665#discussion_r4435517322"
+        }
+      ],
+      "reviewed": "f08f93aef1830a69c1b397fa4a71906d13f1482a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/665#discussion_r4434785792"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "nit consider adding the word \"retry\" in some way here",
+      "created": "2026-11-02T19:14:45Z",
+      "hunk": "@@ -222,6 +222,10 @@ metrics:\n       those agents' own invocations so that each inference call is counted\n       exactly once across the call tree.\n \n+      Each logical inference operation, which corresponds to one\n+      `gen_ai.client.inference` span, counts once, no matter how many attempts",
+      "id": "PRRT_kwDOSUeMrM6y0tJt",
+      "opened": "2026-11-02T19:14:48Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "cd3834c2c960500cd38fbe7f5099de0926640a33",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/665#discussion_r4446646535"
+    }
+  ]
+}

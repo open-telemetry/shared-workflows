@@ -1,0 +1,25 @@
+{
+  "head": "8ff6872f1d12fc693bf792411f95f043658fc050",
+  "merge": "1682e9c1e113c2ca0d97eee5c5a2d46684ba5709",
+  "merged": "2026-04-16T17:58:53Z",
+  "missing_roots": 0,
+  "number": 17860,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`/read-timeout` isn't called using `sendRequestWithCallback`",
+      "created": "2026-04-16T16:25:49Z",
+      "hunk": "@@ -76,18 +76,19 @@ public void sendRequestWithCallback(\n       Map<String, String> headers,\n       HttpClientResult httpClientResult) {\n     try {\n-      restTemplate.execute(\n-          uri,\n-          HttpMethod.valueOf(method),\n-          req -> headers.forEach(req.getHeaders()::add),\n-          response -> {\n-            byte[] buffer = new byte[1024];\n-            try (InputStream inputStream = response.getBody()) {\n-              while (inputStream.read(buffer) >= 0) {}\n-            }\n-            httpClientResult.complete(response.getStatusCode().value());\n-            return null;\n-          });\n+      getClient(uri)",
+      "id": "PRRT_kwDODJKVX857fM_W",
+      "opened": "2026-04-16T16:25:48Z",
+      "path": "instrumentation/spring/spring-web/spring-web-3.1/testing/src/test/java/io/opentelemetry/javaagent/instrumentation/springweb/v3_1/SpringRestTemplateTest.java",
+      "replies": [],
+      "reviewed": "8ff6872f1d12fc693bf792411f95f043658fc050",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17860#discussion_r3094746987"
+    }
+  ]
+}

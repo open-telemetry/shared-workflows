@@ -1,0 +1,55 @@
+{
+  "head": "b2a3259dab992b3e62afc18e01526d87c9b71744",
+  "merge": "d2b5bbe22b3b8d1b51f0080c4eccb7c99db540b4",
+  "merged": "2026-08-04T16:37:23Z",
+  "missing_roots": 0,
+  "number": 19393,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This generated entry should point to OkHttp’s official replacement website, `https://lysine.dev/okhttp/`, rather than the source repository. That also keeps it consistent with the documented `library_link` rule to prefer a project’s main website or documentation over GitHub.",
+      "created": "2026-08-04T11:05:09Z",
+      "hunk": "@@ -10511,7 +10511,7 @@ libraries:\n   semantic_conventions:\n   - HTTP_CLIENT_SPANS\n   - HTTP_CLIENT_METRICS\n-  library_link: https://square.github.io/okhttp/\n+  library_link: https://github.com/lysine-dev/okhttp/",
+      "id": "PRRT_kwDODJKVX86WSdrH",
+      "opened": "2026-08-04T11:05:10Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "fca67d10e126e829227e8555690c75dadb2743b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19393#discussion_r3711722379"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The repository is not the project’s main website: OkHttp’s repository metadata and README identify `https://lysine.dev/okhttp/` as the official project website. The repository’s instrumentation documentation also requires `library_link` to prefer the main website/documentation over GitHub (`docs/contributing/documenting-instrumentation.md:213-216`), so this should use the new documentation URL instead.",
+      "created": "2026-08-04T11:05:09Z",
+      "hunk": "@@ -3,7 +3,7 @@ display_name: OkHttp\n semantic_conventions:\n   - HTTP_CLIENT_SPANS\n   - HTTP_CLIENT_METRICS\n-library_link: https://square.github.io/okhttp/\n+library_link: https://github.com/lysine-dev/okhttp/",
+      "id": "PRRT_kwDODJKVX86WSdrh",
+      "opened": "2026-08-04T11:05:10Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "fca67d10e126e829227e8555690c75dadb2743b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19393#discussion_r3711722416"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This points readers to the source repository rather than OkHttp’s replacement documentation site. The upstream repository explicitly names `https://lysine.dev/okhttp/` as the project website, so use that URL to preserve the documentation link this line previously provided.",
+      "created": "2026-08-04T11:05:09Z",
+      "hunk": "@@ -1,6 +1,6 @@\n # Library Instrumentation for OkHttp version 3.0 and higher\n \n-Provides OpenTelemetry instrumentation for [okhttp3](https://square.github.io/okhttp/).\n+Provides OpenTelemetry instrumentation for [okhttp3](https://github.com/lysine-dev/okhttp/).",
+      "id": "PRRT_kwDODJKVX86WSdrv",
+      "opened": "2026-08-04T11:05:10Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/library/README.md",
+      "replies": [],
+      "reviewed": "fca67d10e126e829227e8555690c75dadb2743b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19393#discussion_r3711722436"
+    }
+  ]
+}

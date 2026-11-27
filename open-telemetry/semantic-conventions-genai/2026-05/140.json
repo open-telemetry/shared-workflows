@@ -1,0 +1,689 @@
+{
+  "head": "0e60e346aa9369ec285147d4fecb7a699c39b394",
+  "merge": "be551f816a53c893e9af7234bf30394d01876dd1",
+  "merged": "2026-05-19T16:37:28Z",
+  "missing_roots": 0,
+  "number": 140,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `gen_ai.create_memory_store.client`, `gen_ai.memory.store.id` is marked as conditionally required only \"when returned by the operation\", but the span naming guidance explicitly references the store id when it’s available (and many create APIs take the store id as input rather than returning it). Consider changing the condition to \"if applicable\" / \"when available\" so instrumentations are expected to set it whenever they know the store id, regardless of whether it was returned.\n",
+      "created": "2026-05-11T15:28:10Z",
+      "hunk": "@@ -295,6 +303,131 @@ spans:\n         requirement_level:\n           conditionally_required: when applicable\n \n+  - type: gen_ai.create_memory_store.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `create_memory_store {gen_ai.memory.store.id}`\n+        or `create_memory_store` if the store id is not available.\n+    brief: >\n+      Describes creation or initialization of a memory store.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `create_memory_store`.\n+\n+      **Span name** SHOULD be `create_memory_store {gen_ai.memory.store.id}`\n+      or `create_memory_store` if the store id is not available.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.memory.client\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+      - ref: gen_ai.memory.store.id\n+        requirement_level:\n+          conditionally_required: when returned by the operation",
+      "id": "PRRT_kwDOSUeMrM6BIklB",
+      "opened": "2026-05-11T15:28:11Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "e95a78dbb7d91fb12198770a98e726fe1a00116f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3220108381"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog entry links to an upstream PR in a different repository (#3250). Elsewhere in this changelog, entries link to PRs in this repo (e.g., #107, #97). Consider updating this link to reference the PR number in this repository (or remove the link) to keep the changelog consistently traceable within semantic-conventions-genai.\n",
+      "created": "2026-05-11T15:28:11Z",
+      "hunk": "@@ -10,6 +10,8 @@\n \n ### 💡 Enhancements 💡\n \n+- Add GenAI memory operation spans and attributes for memory store lifecycle and record operations.\n+  ([#3250](https://github.com/open-telemetry/semantic-conventions/pull/3250))",
+      "id": "PRRT_kwDOSUeMrM6BIkmB",
+      "opened": "2026-05-11T15:28:11Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "e95a78dbb7d91fb12198770a98e726fe1a00116f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3220108466"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I ran the PR against the [Reference Scenario Evaluation Skill](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/.github/skills/evaluate-reference/SKILL.md), can you review its findings? thanks!\n\n# PR 140 Reference Scenario Evaluation\n\nEvaluation date: 2026-05-11\n\nPR: <https://github.com/open-telemetry/semantic-conventions-genai/pull/140>\n\n## Scope\n\nPR 140 adds GenAI memory operation conventions:\n\n- `create_memory_store`\n- `search_memory`\n- `update_memory`\n- `delete_memory`\n- `delete_memory_store`\n\nIt also adds memory attributes including `gen_ai.memory.store.id`, `gen_ai.memory.record.id`, `gen_ai.memory.query.text`, and `gen_ai.memory.records`.\n\nThe reference implementation updates the Google ADK scenario and generated reports for the new memory span types.\n\n## Credible Reference Coverage\n\nGoogle ADK credibly demonstrates `update_memory` and `search_memory` in `reference/scenarios/google-adk/scenario.py`.\n\nThe `update_memory` span wraps the public `InMemoryMemoryService.add_session_to_memory(session)` call. The emitted `gen_ai.memory.records` value is built from the current `Session` and `Event` passed into that SDK call, so the stored content and author/session metadata are directly observable at the instrumentation point.\n\nThe `search_memory` span wraps the public `InMemoryMemoryService.search_memory(app_name=..., user_id=..., query=...)` call. `gen_ai.memory.query.text` comes directly from the `query` argument, and returned memory content comes from `response.memories`, so those fields are directly observable from the current call.\n\nThe empty Google ADK coverage for `delete_memory` and `delete_memory_store` appears honest. ADK's `InMemoryMemoryService` exposes add/search APIs, but no delete-memory or delete-store public API in the scenario's installed version.\n\n## Semantically Derivable Fields\n\n`gen_ai.memory.store.id` on the Google ADK `update_memory` and `search_memory` spans is derivable from the ADK memory scope. The scenario uses `store_id = f\"{app_name}/{user_id}\"`, and the ADK in-memory implementation internally keys memory by that same app/user scope.\n\nThis mapping should be documented for ADK-specific instrumentation because it includes `user_id`, which may be high-cardinality in real telemetry.\n\n## Too App-Specific Or Cross-Call\n\n### Google ADK create-store id\n\nThe Google ADK `create_memory_store` span wraps `InMemoryMemoryService()` construction but emits `gen_ai.memory.store.id = \"test_app/test_user\"`.\n\nThat constructor has no `app_name` or `user_id` argument and does not create a specific app/user store. The emitted store id comes from future scenario variables rather than the current create-store call boundary.\n\nRecommendation: either omit `gen_ai.memory.store.id` and name the span `create_memory_store`, or treat Google ADK as not credibly demonstrating create-store id coverage.\n\n### Google ADK synthesized search record id\n\nThe Google ADK search span emits memory record ids using `memory.id or f\"{session.id}/{index}\"`.\n\nIn ADK 1.32.0, `MemoryEntry.id` exists on the type, but `InMemoryMemoryService.search_memory()` leaves it unset. The fallback id is synthesized from prior scenario state and result order, not from a stable library-owned record id in the search response.\n\nRecommendation: include `id` in `gen_ai.memory.records` only when `memory.id` is present; otherwise omit the id field for ADK in-memory search results.\n\n## Missing Supporting Library Implementations\n\n### AWS Bedrock AgentCore\n\nAWS Bedrock AgentCore looks like a missed supporting-library implementation.\n\nThe PR body lists AWS Bedrock AgentCore as framework evidence, and the existing `aws-bedrock-agent` reference environment exposes concrete Boto3 memory APIs:\n\n- `BatchCreateMemoryRecords`\n- `BatchUpdateMemoryRecords`\n- `DeleteMemoryRecord`\n- `RetrieveMemoryRecords`\n- `CreateMemory`\n- `DeleteMemory`\n\nThose APIs can cover memory record creation/update/search/delete and memory store create/delete operations that Google ADK cannot demonstrate.\n\nRecommendation: add an AWS Bedrock AgentCore reference scenario, or explicitly document why AgentCore memory coverage is out of scope for this PR.\n\n### CrewAI\n\nCrewAI is a plausible but weaker gap.\n\nThe installed `Crew` constructor has a first-class `memory` parameter, but the current scenario constructs crews without enabling memory. This may support memory behavior through public CrewAI APIs, but it needs additional investigation before treating it as required coverage.\n\nRecommendation: leave CrewAI out only if the PR scope is intentionally limited to APIs with explicit memory CRUD/search boundaries, or add a small CrewAI memory scenario if the proposal wants framework-level memory behavior coverage.\n\n## Evaluation Recommendation\n\n- `fix implementation`: remove or change the Google ADK create-store `gen_ai.memory.store.id` emission, because the current constructor call does not expose that store id.\n- `fix implementation`: stop synthesizing Google ADK search memory record ids when `MemoryEntry.id` is absent.\n- `add reference for supporting library`: add AWS Bedrock AgentCore memory coverage, especially for delete spans and memory-store lifecycle spans.\n- `leave unchanged; honest capture gap`: keep Google ADK delete-memory and delete-memory-store reports empty unless ADK exposes public delete APIs in a future version.\n",
+      "created": "2026-05-11T17:28:56Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6BKtkt",
+      "opened": "2026-05-11T17:28:56Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-11T18:50:46Z",
+          "body": "Thanks for running the eval @trask . I've addressed the findings:\r\n\r\n- Updated Google ADK `create_memory_store` to stop emitting a synthetic `gen_ai.memory.store.id`; the span is now named `create_memory_store`.\r\n - Updated Google ADK search results to include `id` only when `MemoryEntry.id` is present, instead of synthesizing a fallback id.\r\n - Added a separate AWS Bedrock AgentCore reference scenario covering `CreateMemory`, `BatchCreateMemoryRecords`, `BatchUpdateMemoryRecords`, `RetrieveMemoryRecords`, `DeleteMemoryRecord`, and `DeleteMemory`.\r\n - Regenerated the reference data and reports. ADK delete/delete-store remain honest gaps because ADK does not expose public delete APIs for those operations.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3221360076"
+        }
+      ],
+      "reviewed": "baa177007c94f71d2bcc6f8c918b612202f546c8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3220867829"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "not sure what to do about provider name for InMemoryMemoryService",
+      "created": "2026-05-11T20:13:34Z",
+      "hunk": "@@ -288,6 +288,90 @@ async def _run():\n         asyncio.run(_run())\n \n \n+def run_memory_reference():\n+    \"\"\"Scenario: Google ADK memory add/search with reference implementation.\"\"\"\n+    from google.adk.events.event import Event\n+    from google.adk.memory.in_memory_memory_service import InMemoryMemoryService\n+    from google.adk.sessions.session import Session\n+    from google.genai import types\n+\n+    print(\"  [memory] ADK in-memory memory service (reference implementation)\")\n+\n+    app_name = \"test_app\"\n+    user_id = \"test_user\"\n+    session_id = \"session_memory_1\"\n+    store_id = f\"{app_name}/{user_id}\"\n+    memory_text = \"User prefers vegetarian meals and dark mode.\"\n+    query_text = \"vegetarian meals\"\n+\n+    async def _run():\n+        create_span_attributes = {\n+            \"gen_ai.operation.name\": \"create_memory_store\",\n+            \"gen_ai.provider.name\": \"gcp.gemini\",\n+        }\n+        with _reference_tracer.start_as_current_span(\"create_memory_store\", attributes=create_span_attributes):\n+            memory_service = InMemoryMemoryService()\n+\n+        event = Event(\n+            author=\"user\",\n+            content=types.Content(role=\"user\", parts=[types.Part(text=memory_text)]),\n+        )\n+        session = Session(\n+            id=session_id,\n+            app_name=app_name,\n+            user_id=user_id,\n+            events=[event],\n+        )\n+        memory_records = json.dumps(\n+            [\n+                {\n+                    \"content\": memory_text,\n+                    \"id\": event.id,\n+                    \"metadata\": {\"author\": event.author, \"session_id\": session.id},\n+                }\n+            ]\n+        )\n+\n+        update_span_attributes = {\n+            \"gen_ai.operation.name\": \"update_memory\",\n+            \"gen_ai.provider.name\": \"gcp.gemini\",",
+      "id": "PRRT_kwDOSUeMrM6BNcxY",
+      "opened": "2026-05-11T22:40:57Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-12T17:37:46Z",
+          "body": "Fixed in 9084ad3. `gen_ai.provider.name` is now conditionally required on memory spans only when the operation is handled by a named external GenAI provider or service. The Google ADK `InMemoryMemoryService` reference no longer sets `gen_ai.provider.name`; the AgentCore reference still sets `aws.bedrock`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228541084"
+        }
+      ],
+      "reviewed": "85d937ca715844a5305b1213f52a0b0a845ecdbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3221847251"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "wondering about upsert vs create/update (or maybe all 3?).....\n\n--------------\n\nResearch for review of [open-telemetry/semantic-conventions-genai#140](https://github.com/open-telemetry/semantic-conventions-genai/pull/140),\nspecifically the question of whether collapsing `create_memory` and\n`update_memory` into a single `update_memory` operation loses information.\n\n## Distinct create vs. update APIs\n\n| Library | Create | Update | Notes |\n| --- | --- | --- | --- |\n| **Mem0** | `POST /v3/memories/add/` (extracts from messages) | `PUT /v1/memories/{memory_id}` (replace text/metadata on a known id) | Cleanly separate. Different verbs, different inputs, different semantics. |\n| **Letta** | `POST /v1/archives/{archive_id}/passages` (create new passage; embeddings generated) | `PATCH /v1/archives/.../passages/{id}` (modify existing passage) | Cleanly separate. |\n| **AWS Bedrock AgentCore** | `BatchCreateMemoryRecords` (writes new records by `requestIdentifier`) | `BatchUpdateMemoryRecords` (modifies by `memoryRecordId`) | Two distinct boto3 calls. This is exactly what PR #140's AgentCore reference scenario collapses into one `update_memory` op. |\n| **Azure AI Foundry agents (memory items)** | `POST /memoryItems` | `PATCH /memoryItems/{id}` | Per the REST control-plane shape. |\n\n## Unified upsert / single write entry point\n\n| Library | Entry point | Notes |\n| --- | --- | --- |\n| **CrewAI** | `memory.remember(content, scope=…)` | Single API. Consolidation logic inside may *decide* keep / update / delete / insert_new based on similarity, but the caller never picks \"create vs update\". |\n| **Google ADK** | `MemoryService.add_session_to_memory(session)` / `add_events_to_memory(events)` | Single API. The Vertex Memory Bank backend internally may generate or ingest, but it's one call from the consumer's POV. No update-by-id at all. |\n| **LangChain memory** (chat history / vector memory) | `save_context(inputs, outputs)` or vectorstore `add_texts` | Single append; no public update-by-id semantics. |\n| **LlamaIndex `ChatMemoryBuffer` / vector memory** | `put(message)` or vectorstore `add` | Append-only from the memory abstraction's POV. |\n| **OpenAI Assistants v2 threads** | `messages.create` | Append-only. No update of a stored message. |\n\n## Mixed / hybrid\n\n| Library | Notes |\n| --- | --- |\n| **OpenAI \"Memories\" feature** (newer Responses API memory) | `POST /v1/memories` to add; no public PATCH yet — closer to append-only. |\n| **LangGraph store** | `put(namespace, key, value)` is an upsert by `key` — single API, but semantically covers both create and update. This is actually a case where collapsing them into one op is the natural fit. |\n| **Vertex AI Memory Bank** (under ADK) | `memories.generate` (LLM-derived create) and `memories.create` (explicit create) coexist; no public update — closer to create-only with implicit consolidation. |\n",
+      "created": "2026-05-11T20:24:00Z",
+      "hunk": "@@ -295,6 +303,131 @@ spans:\n         requirement_level:\n           conditionally_required: when applicable\n \n+  - type: gen_ai.create_memory_store.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `create_memory_store {gen_ai.memory.store.id}`\n+        or `create_memory_store` if the store id is not available.\n+    brief: >\n+      Describes creation or initialization of a memory store.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `create_memory_store`.\n+\n+      **Span name** SHOULD be `create_memory_store {gen_ai.memory.store.id}`\n+      or `create_memory_store` if the store id is not available.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.memory.client\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+      - ref: gen_ai.memory.store.id\n+        requirement_level:\n+          conditionally_required: if applicable\n+\n+  - type: gen_ai.search_memory.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `search_memory {gen_ai.memory.store.id}`\n+        or `search_memory` if the store id is not available.\n+    brief: >\n+      Describes a memory search operation that queries a memory store for relevant memories.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `search_memory`.\n+\n+      **Span name** SHOULD be `search_memory {gen_ai.memory.store.id}`\n+      or `search_memory` if the store id is not available.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.memory.client\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+      - ref: gen_ai.memory.store.id\n+        requirement_level:\n+          conditionally_required: if applicable\n+      - ref: gen_ai.memory.query.text\n+        requirement_level: opt_in\n+      - ref: gen_ai.memory.records\n+        requirement_level: opt_in\n+\n+  - type: gen_ai.update_memory.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `update_memory {gen_ai.memory.store.id}`\n+        or `update_memory` if the store id is not available.\n+    brief: >\n+      Describes a memory update operation that creates new or modifies existing\n+      memory records in a memory store.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `update_memory`.\n+\n+      This operation covers both creating new and updating existing memory records.",
+      "id": "PRRT_kwDOSUeMrM6BNpGZ",
+      "opened": "2026-05-11T22:40:57Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-12T17:49:38Z",
+          "body": "Implemented this direction in e9d1063. The PR now has separate `create_memory`, `update_memory`, and `upsert_memory` operations: AgentCore `BatchCreateMemoryRecords` maps to `create_memory`, AgentCore `BatchUpdateMemoryRecords` maps to `update_memory`, and Google ADK `add_session_to_memory` maps to `upsert_memory` because the caller invokes a unified API that may create/update/consolidate records without choosing which. Regenerated docs, schema snapshot, reference data, and reports.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228609984"
+        },
+        {
+          "at": "2026-05-12T17:53:29Z",
+          "body": "Implemented and pushed the agreed option 3 split. We now have `create_memory` for explicit creation, `update_memory` for modifications of known existing records, and `upsert_memory` for unified APIs where the caller does not choose create vs update. Reference coverage now maps AgentCore create/update APIs separately and Google ADK to `upsert_memory`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228631653"
+        }
+      ],
+      "reviewed": "85d937ca715844a5305b1213f52a0b0a845ecdbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3221911734"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I forget, did we punt on record count? would be nice to know if any records were found without having to opt-in to PII sensitive data",
+      "created": "2026-05-11T20:27:56Z",
+      "hunk": "@@ -295,6 +303,131 @@ spans:\n         requirement_level:\n           conditionally_required: when applicable\n \n+  - type: gen_ai.create_memory_store.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `create_memory_store {gen_ai.memory.store.id}`\n+        or `create_memory_store` if the store id is not available.\n+    brief: >\n+      Describes creation or initialization of a memory store.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `create_memory_store`.\n+\n+      **Span name** SHOULD be `create_memory_store {gen_ai.memory.store.id}`\n+      or `create_memory_store` if the store id is not available.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.memory.client\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+      - ref: gen_ai.memory.store.id\n+        requirement_level:\n+          conditionally_required: if applicable\n+\n+  - type: gen_ai.search_memory.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `search_memory {gen_ai.memory.store.id}`\n+        or `search_memory` if the store id is not available.\n+    brief: >\n+      Describes a memory search operation that queries a memory store for relevant memories.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `search_memory`.\n+\n+      **Span name** SHOULD be `search_memory {gen_ai.memory.store.id}`\n+      or `search_memory` if the store id is not available.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.memory.client\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+      - ref: gen_ai.memory.store.id\n+        requirement_level:\n+          conditionally_required: if applicable\n+      - ref: gen_ai.memory.query.text\n+        requirement_level: opt_in\n+      - ref: gen_ai.memory.records\n+        requirement_level: opt_in",
+      "id": "PRRT_kwDOSUeMrM6BNtOm",
+      "opened": "2026-05-11T22:40:57Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-12T17:37:48Z",
+          "body": "Fixed in 9084ad3. Added `gen_ai.memory.record.count` as a non-content attribute and made it recommended on `search_memory` and `update_memory`. The note defines search count as returned records and update count as records attempted for create/modify. Updated ADK and AgentCore reference scenarios and regenerated reports.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228541243"
+        }
+      ],
+      "reviewed": "85d937ca715844a5305b1213f52a0b0a845ecdbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3221934673"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I'm not sure whether this fits low-cardinality for being used in span names, @lmolkova?\n\nhttps://opentelemetry.io/docs/specs/otel/trace/api/#span\n\n> The span name SHOULD be the most general string that identifies a (statistically) interesting class of Spans, rather than individual Span instances while still being human-readable. That is, “get_user” is a reasonable name, while “get_user/314159”, where “314159” is a user ID, is not a good name due to its high cardinality. Generality SHOULD be prioritized over human-readability.",
+      "created": "2026-05-11T20:39:49Z",
+      "hunk": "@@ -288,6 +288,90 @@ async def _run():\n         asyncio.run(_run())\n \n \n+def run_memory_reference():\n+    \"\"\"Scenario: Google ADK memory add/search with reference implementation.\"\"\"\n+    from google.adk.events.event import Event\n+    from google.adk.memory.in_memory_memory_service import InMemoryMemoryService\n+    from google.adk.sessions.session import Session\n+    from google.genai import types\n+\n+    print(\"  [memory] ADK in-memory memory service (reference implementation)\")\n+\n+    app_name = \"test_app\"\n+    user_id = \"test_user\"\n+    session_id = \"session_memory_1\"\n+    store_id = f\"{app_name}/{user_id}\"",
+      "id": "PRRT_kwDOSUeMrM6BN5Qf",
+      "opened": "2026-05-11T22:40:57Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-12T17:37:50Z",
+          "body": "Fixed in 9084ad3. Memory span names now use constant names (`create_memory_store`, `search_memory`, `update_memory`, `delete_memory`, `delete_memory_store`) and the spec notes that `gen_ai.memory.store.id` is intentionally omitted because store identifiers may be high-cardinality. Updated the reference scenario span names accordingly.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228541363"
+        }
+      ],
+      "reviewed": "85d937ca715844a5305b1213f52a0b0a845ecdbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3222001630"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "let's make opt-in requirement level, gated by `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` similar to others",
+      "created": "2026-05-11T20:47:14Z",
+      "hunk": "@@ -508,6 +528,59 @@ attributes:\n       > This attribute may contain sensitive information.\n     examples: [\"What is the capital of France?\", \"weather in Paris\"]\n     stability: development\n+  - key: gen_ai.memory.store.id\n+    type: string\n+    brief: The unique identifier of the memory store.\n+    note: >\n+      Instrumentations for individual memory components SHOULD pick a low-cardinality identifier and\n+      SHOULD NOT set `gen_ai.memory.store.id` if no such identifier exists for this component. Semantic\n+      conventions for individual components SHOULD document what `gen_ai.memory.store.id` maps to within\n+      the implementation.\n+    examples: [\"ms_abc123\", \"user-preferences-store\"]\n+    stability: development\n+  - key: gen_ai.memory.record.id\n+    type: string\n+    brief: The unique identifier of the memory record.\n+    examples: [\"mem_5j66UpCpwteGg4YSxUnt7lPY\"]\n+    stability: development\n+  - key: gen_ai.memory.query.text\n+    type: string\n+    brief: The search query used to retrieve memories.\n+    note: |\n+      > [!Warning]\n+      > This attribute may contain sensitive information.",
+      "id": "PRRT_kwDOSUeMrM6BOAqf",
+      "opened": "2026-05-11T22:40:57Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-05-12T17:37:52Z",
+          "body": "Fixed in 9084ad3. Added registry guidance that `gen_ai.memory.query.text` should not be captured by default and should be gated by an explicit user opt-in, for example `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228541537"
+        }
+      ],
+      "reviewed": "85d937ca715844a5305b1213f52a0b0a845ecdbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3222042308"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "let's make opt-in requirement level, gated by `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` similar to others",
+      "created": "2026-05-11T20:47:45Z",
+      "hunk": "@@ -508,6 +528,59 @@ attributes:\n       > This attribute may contain sensitive information.\n     examples: [\"What is the capital of France?\", \"weather in Paris\"]\n     stability: development\n+  - key: gen_ai.memory.store.id\n+    type: string\n+    brief: The unique identifier of the memory store.\n+    note: >\n+      Instrumentations for individual memory components SHOULD pick a low-cardinality identifier and\n+      SHOULD NOT set `gen_ai.memory.store.id` if no such identifier exists for this component. Semantic\n+      conventions for individual components SHOULD document what `gen_ai.memory.store.id` maps to within\n+      the implementation.\n+    examples: [\"ms_abc123\", \"user-preferences-store\"]\n+    stability: development\n+  - key: gen_ai.memory.record.id\n+    type: string\n+    brief: The unique identifier of the memory record.\n+    examples: [\"mem_5j66UpCpwteGg4YSxUnt7lPY\"]\n+    stability: development\n+  - key: gen_ai.memory.query.text\n+    type: string\n+    brief: The search query used to retrieve memories.\n+    note: |\n+      > [!Warning]\n+      > This attribute may contain sensitive information.\n+    examples: [\"user dietary preferences\", \"past flight bookings\"]\n+    stability: development\n+  - key: gen_ai.memory.records\n+    type: any\n+    brief: The memory records stored or retrieved in a memory operation.\n+    note: |\n+      Instrumentations MUST follow [Memory records JSON schema](/docs/gen-ai/gen-ai-memory-records.json).\n+      When the attribute is recorded on events, it MUST be recorded in structured\n+      form. When recorded on spans, it MAY be recorded as a JSON string if structured\n+      format is not supported and SHOULD be recorded in structured form otherwise.\n+\n+      > [!Warning]\n+      > This attribute may contain sensitive information including user/PII data.",
+      "id": "PRRT_kwDOSUeMrM6BOBFZ",
+      "opened": "2026-05-11T22:40:57Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-05-12T17:37:53Z",
+          "body": "Fixed in 9084ad3. Added the same explicit opt-in capture guidance for `gen_ai.memory.records`, in addition to the existing sensitive/PII warning and opt-in requirement level on spans.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228541704"
+        }
+      ],
+      "reviewed": "85d937ca715844a5305b1213f52a0b0a845ecdbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3222044704"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "should this be required?",
+      "created": "2026-05-11T20:59:27Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+{\n+  \"$defs\": {\n+    \"MemoryRecord\": {\n+      \"additionalProperties\": true,\n+      \"description\": \"Represents a single memory record stored in or retrieved from a memory store.\",\n+      \"properties\": {\n+        \"content\": {",
+      "id": "PRRT_kwDOSUeMrM6BOMKC",
+      "opened": "2026-05-11T22:40:57Z",
+      "path": "docs/gen-ai/gen-ai-memory-records.json",
+      "replies": [
+        {
+          "at": "2026-05-12T17:53:31Z",
+          "body": "Updated this in 8b40879. `gen_ai.memory.records` remains opt-in as the enclosing attribute, but once instrumentations opt in to emit it, each memory record object now requires `content`; `id`, `metadata`, and `score` remain optional. I also updated the non-normative model so the checked-in JSON schema stays aligned with it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228631794"
+        }
+      ],
+      "reviewed": "85d937ca715844a5305b1213f52a0b0a845ecdbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3222105247"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring/printed label refers to “CreateMemory”, but the scenario is modeling the `create_memory_store` semantic operation. Renaming these to consistently reflect `create_memory_store` (and similarly for the delete-memory-store function/docstrings) would reduce confusion when reading scenario output and mapping it to the semantic conventions.\n",
+      "created": "2026-05-12T18:49:21Z",
+      "hunk": "@@ -0,0 +1,363 @@\n+\"\"\"Reference implementation: AWS Bedrock AgentCore memory APIs.\"\"\"\n+\n+import json\n+import os\n+from datetime import UTC, datetime\n+\n+import boto3\n+from botocore.stub import Stubber\n+from opentelemetry.trace import SpanKind\n+from reference_shared import flush_and_shutdown, mock_server_host_port, reference_tracer, setup_otel\n+\n+MOCK_BASE_URL = os.environ[\"MOCK_LLM_URL\"]\n+\n+_reference_tracer = reference_tracer()\n+\n+MEMORY_ID = \"mem-abc123456\"\n+MEMORY_NAME = \"customer-support-memory\"\n+MEMORY_RECORD_ID = \"memrec-0123456789abcdef0123456789abcdef0123\"\n+MEMORY_STRATEGY_ID = \"strategy-user-preferences\"\n+NAMESPACE = \"/users/test-user/preferences\"\n+CREATE_MEMORY_TEXT = \"User prefers vegetarian meals.\"\n+UPDATED_MEMORY_TEXT = \"User prefers vegetarian meals and dark mode.\"\n+QUERY_TEXT = \"vegetarian meal preference\"\n+TIMESTAMP = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)\n+\n+\n+def create_agentcore_control_client():\n+    \"\"\"Create an AgentCore control client.\"\"\"\n+    return boto3.client(\n+        \"bedrock-agentcore-control\",\n+        endpoint_url=MOCK_BASE_URL,\n+        region_name=\"us-east-1\",\n+        aws_access_key_id=\"mock\",\n+        aws_secret_access_key=\"mock\",\n+    )\n+\n+\n+def create_agentcore_data_client():\n+    \"\"\"Create an AgentCore data-plane client.\"\"\"\n+    return boto3.client(\n+        \"bedrock-agentcore\",\n+        endpoint_url=MOCK_BASE_URL,\n+        region_name=\"us-east-1\",\n+        aws_access_key_id=\"mock\",\n+        aws_secret_access_key=\"mock\",\n+    )\n+\n+\n+def run_create_memory_store_reference(client, stubber):\n+    \"\"\"Scenario: AgentCore CreateMemory.\"\"\"\n+    print(\"  [create_memory_store] Bedrock AgentCore CreateMemory\")",
+      "id": "PRRT_kwDOSUeMrM6Bhloe",
+      "opened": "2026-05-12T18:49:22Z",
+      "path": "reference/scenarios/aws-bedrock-agentcore/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-12T19:02:41Z",
+          "body": "Updated in a225a5b. The AgentCore reference output/docstrings now use the semantic operation names `create_memory_store` and `delete_memory_store` for the store lifecycle cases.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3229047284"
+        }
+      ],
+      "reviewed": "8b408795c01d24aa33014bf3f5a252477e318a32",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3228970465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "need to add the 2 new ops Create memory and Upsert memory",
+      "created": "2026-05-12T18:59:02Z",
+      "hunk": "@@ -12,6 +12,11 @@ linkTitle: Spans\n   - [Inference](#inference)\n   - [Embeddings](#embeddings)\n   - [Retrievals](#retrievals)\n+  - [Create memory store](#create-memory-store)\n+  - [Search memory](#search-memory)\n+  - [Update memory](#update-memory)\n+  - [Delete memory](#delete-memory)\n+  - [Delete memory store](#delete-memory-store)",
+      "id": "PRRT_kwDOSUeMrM6BhvhZ",
+      "opened": "2026-05-12T18:59:28Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-05-12T19:02:43Z",
+          "body": "Updated in a225a5b. Added Create memory and Upsert memory to the spans document TOC.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3229047432"
+        }
+      ],
+      "reviewed": "8b408795c01d24aa33014bf3f5a252477e318a32",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3229025296"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Add GenAI memory operation spans and attributes for memory store lifecycle (create/delete),\n  memory record create/update/upsert/search/delete operations, and record counts.\n```",
+      "created": "2026-05-12T18:59:20Z",
+      "hunk": "@@ -10,6 +10,9 @@\n \n ### 💡 Enhancements 💡\n \n+- Add GenAI memory operation spans and attributes for memory store lifecycle, create/update/upsert record\n+  operations, and record counts.",
+      "id": "PRRT_kwDOSUeMrM6Bhv3q",
+      "opened": "2026-05-12T18:59:28Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-05-12T19:02:45Z",
+          "body": "Applied the suggested changelog wording in a225a5b.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3229047605"
+        }
+      ],
+      "reviewed": "8b408795c01d24aa33014bf3f5a252477e318a32",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3229027136"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think these sections are missing below. Also, might be nice to group the memory spans hierarchically since there's a lot of them.",
+      "created": "2026-05-12T22:18:25Z",
+      "hunk": "@@ -12,6 +12,13 @@ linkTitle: Spans\n   - [Inference](#inference)\n   - [Embeddings](#embeddings)\n   - [Retrievals](#retrievals)\n+  - [Create memory store](#create-memory-store)\n+  - [Search memory](#search-memory)\n+  - [Create memory](#create-memory)\n+  - [Update memory](#update-memory)\n+  - [Upsert memory](#upsert-memory)",
+      "id": "PRRT_kwDOSUeMrM6Bk70M",
+      "opened": "2026-05-12T22:18:25Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-05-12T22:31:49Z",
+          "body": "Updated in 00956dd. The spans doc now has a parent Memory section with the memory spans grouped underneath it, and the missing generated Create memory and Upsert memory sections are included in the body.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3230258810"
+        }
+      ],
+      "reviewed": "a225a5b594fc4bc1ae76ba7f1f502973513f6326",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3230195356"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(and same in other places)\n```suggestion\n```",
+      "created": "2026-05-13T01:39:27Z",
+      "hunk": "@@ -295,6 +303,198 @@ spans:\n         requirement_level:\n           conditionally_required: when applicable\n \n+  - type: gen_ai.create_memory_store.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `create_memory_store`.\n+    brief: >\n+      Describes creation or initialization of a memory store.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `create_memory_store`.\n+\n+      **Span name** SHOULD be `create_memory_store`.\n+      Memory operation span names intentionally omit `gen_ai.memory.store.id` because memory store\n+      identifiers may be high-cardinality.",
+      "id": "PRRT_kwDOSUeMrM6Bm4mT",
+      "opened": "2026-05-13T01:42:12Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-13T15:10:27Z",
+          "body": "Accepted in 9c758c1. Removed the repeated memory span note from all memory operation span definitions and regenerated the derived docs/snapshot.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3235360682"
+        }
+      ],
+      "reviewed": "00956dd9ed33f1133b076339fcb9e8e7c5c9f247",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3230906556"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I don't think we need the low-cardinality requirement now that it's no longer part of span name.\n```suggestion\n      Semantic\n```",
+      "created": "2026-05-13T01:41:20Z",
+      "hunk": "@@ -508,6 +536,76 @@ attributes:\n       > This attribute may contain sensitive information.\n     examples: [\"What is the capital of France?\", \"weather in Paris\"]\n     stability: development\n+  - key: gen_ai.memory.store.id\n+    type: string\n+    brief: The unique identifier of the memory store.\n+    note: >\n+      Instrumentations for individual memory components SHOULD pick a low-cardinality identifier and\n+      SHOULD NOT set `gen_ai.memory.store.id` if no such identifier exists for this component. Semantic",
+      "id": "PRRT_kwDOSUeMrM6Bm5tv",
+      "opened": "2026-05-13T01:42:12Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-05-13T15:10:29Z",
+          "body": "Accepted in 9c758c1. Simplified the `gen_ai.memory.store.id` note to only ask component-specific conventions to document what the value maps to, and regenerated the derived docs/snapshot.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3235360938"
+        }
+      ],
+      "reviewed": "00956dd9ed33f1133b076339fcb9e8e7c5c9f247",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3230912674"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Should we add the same span-kind allowance here that `gen_ai.inference.client` has for same-process calls? ADK’s in-memory memory service seems like a case where `INTERNAL` is more accurate, but the generated docs for these new memory spans currently say only `Span kind SHOULD be CLIENT`.",
+      "created": "2026-05-13T16:57:50Z",
+      "hunk": "@@ -295,6 +303,184 @@ spans:\n         requirement_level:\n           conditionally_required: when applicable\n \n+  - type: gen_ai.create_memory_store.client\n+    kind: client",
+      "id": "PRRT_kwDOSUeMrM6B1Lb-",
+      "opened": "2026-05-13T19:26:12Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-14T18:06:01Z",
+          "body": "Updated in 5347476. The unified memory span now matches the inference guidance: `CLIENT` is recommended for remote or instrumented-protocol calls, and `INTERNAL` is allowed for same-process memory systems such as ADK in-memory memory.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3243324040"
+        }
+      ],
+      "reviewed": "9c758c1dc78914e3bf1ddbffbe0f0ac2cdf3a841",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3236070491"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@lmolkova I'd like your thoughts on this:\n\nAlternative shape to consider: collapse the seven memory spans into one `gen_ai.memory.client` span dispatched by `gen_ai.operation.name`, matching how MCP handles JSON-RPC methods. Sketch + tradeoffs below.\n\n```yaml\nspans:\n  - type: gen_ai.memory.client\n    kind: client\n    name:\n      note: |\n        **Span name** SHOULD be `{gen_ai.operation.name}`.\n    brief: >\n      Describes an operation against a GenAI memory store or its records.\n    note: |\n      Covers the memory-store lifecycle (`create_memory_store`,\n      `delete_memory_store`) and memory-record operations\n      (`search_memory`, `create_memory`, `update_memory`, `upsert_memory`,\n      `delete_memory`). `gen_ai.operation.name` distinguishes them.\n    stability: development\n    attributes:\n      - ref_group: attributes.gen_ai.memory.client\n      - ref: gen_ai.provider.name\n        requirement_level:\n          conditionally_required: if the operation is handled by a named external GenAI provider or service\n      - ref: gen_ai.memory.store.id\n        requirement_level:\n          conditionally_required: if applicable\n      - ref: gen_ai.memory.record.id\n        requirement_level:\n          conditionally_required: when available\n      - ref: gen_ai.memory.record.count\n        requirement_level:\n          conditionally_required: when available\n      - ref: gen_ai.memory.query.text\n        requirement_level: opt_in\n      - ref: gen_ai.memory.records\n        requirement_level: opt_in\n```\n\n**Pros**\n\n- **Aligns with core repo guidance.** [`docs/how-to-write-conventions/README.md`](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/how-to-write-conventions/README.md) says split on different kind or \"significantly different set of attributes\" — these seven share kind and ~5/7 share their attribute set verbatim.\n- **Matches the MCP precedent in this repo.** `mcp.client`/`mcp.server` already cover every JSON-RPC method via `mcp.method.name`, with per-method attributes (e.g. `mcp.resource.uri`) declared `conditionally_required` on the unified span — the exact pattern this proposal applies to memory.\n\n**Cons**\n\n- **Per-op applicability of attributes moves from structured YAML into free-text notes.** Today, \"`gen_ai.memory.query.text` only applies to `search_memory`\" is a structural fact (the attribute appears only on that span). Under unification, that's a sentence in the span's note. Tooling and reviewers that want per-op expected-attribute sets have to parse prose instead of reading the YAML directly.\n",
+      "created": "2026-05-13T19:26:00Z",
+      "hunk": "@@ -12,6 +12,14 @@ linkTitle: Spans\n   - [Inference](#inference)\n   - [Embeddings](#embeddings)\n   - [Retrievals](#retrievals)\n+  - [Memory](#memory)\n+    - [Create memory store](#create-memory-store)\n+    - [Search memory](#search-memory)\n+    - [Create memory](#create-memory)\n+    - [Update memory](#update-memory)\n+    - [Upsert memory](#upsert-memory)\n+    - [Delete memory](#delete-memory)\n+    - [Delete memory store](#delete-memory-store)",
+      "id": "PRRT_kwDOSUeMrM6B3hsr",
+      "opened": "2026-05-13T19:26:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-05-13T21:10:20Z",
+          "body": "I think it's a trade-off between \"how granular we want spans to be\" vs \"how many spans we can afford to define\".  E.g. in case of cloud providers it's impossible to define and maintain spans per each REST / RPC operation type.\r\n\r\nWe could evolve tooling to support formal conditions on attributes like `if operation_name == \"update_memory\"` then record id is required.\r\n\r\nIn this case, I like the idea of grouping things together, but on conceptual level:\r\n- control plane (memory store operations) - in the long term these might have substantially different  set of attributes\r\n- memory CRUD\r\n\r\nHaving said this, we didn't create this separation for DB operations and group them all together.\r\n\r\nTL;DR: I like one span in this case and think we should be evolving tooling to support formal conditions. \r\n\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3237467276"
+        },
+        {
+          "at": "2026-05-14T18:06:00Z",
+          "body": "Updated in 03bf644. I collapsed the seven operation-specific memory span conventions into a single `gen_ai.memory.client` span keyed by `gen_ai.operation.name`, kept the operation names for dispatch, regenerated docs/schema/reference reports, and consolidated the reference coverage under one Memory report.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3243323908"
+        }
+      ],
+      "reviewed": "9c758c1dc78914e3bf1ddbffbe0f0ac2cdf3a841",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3236901131"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new schema file does not match this generator: this cell writes JSON with `indent=4`, while the committed `gen-ai-memory-records.json` is formatted with 2-space indentation. Re-running the notebook would create a dirty diff, unlike the existing generated schema files that use this 4-space format.\n",
+      "created": "2026-05-14T18:46:26Z",
+      "hunk": "@@ -469,6 +469,58 @@\n     \"with open(\\\"../gen-ai-retrieval-documents.json\\\", \\\"w\\\") as file:\\n\",\n     \"    print(json.dumps(RetrievalDocuments.model_json_schema(), indent=4), file=file)\"\n    ]\n+  },\n+  {\n+   \"cell_type\": \"markdown\",\n+   \"id\": \"97a281409ca9a7d8\",\n+   \"metadata\": {},\n+   \"source\": [\n+    \"## `gen_ai.memory.records` model\\n\",\n+    \"\\n\",\n+    \"Corresponding attribute: [`gen_ai.memory.records`](/docs/registry/attributes/gen-ai.md#gen-ai-memory-records).\\n\",\n+    \"JSON schema: [`gen-ai-memory-records.json`](../gen-ai-memory-records.json)\"\n+   ]\n+  },\n+  {\n+   \"cell_type\": \"code\",\n+   \"execution_count\": null,\n+   \"id\": \"94727515ec414a9f\",\n+   \"metadata\": {},\n+   \"outputs\": [],\n+   \"source\": [\n+    \"def omit_default(schema: dict[str, Any]) -> None:\\n\",\n+    \"    schema.pop(\\\"default\\\", None)\\n\",\n+    \"\\n\",\n+    \"class MemoryRecord(BaseModel):\\n\",\n+    \"    \\\"\\\"\\\"\\n\",\n+    \"    Represents a single memory record stored in or retrieved from a memory store.\\n\",\n+    \"    \\\"\\\"\\\"\\n\",\n+    \"    content: Any = Field(description=\\\"The content of the memory record.\\\", json_schema_extra=omit_default)\\n\",\n+    \"    id: str = Field(default=None, description=\\\"A unique identifier for the memory record.\\\", json_schema_extra=omit_default)\\n\",\n+    \"    metadata: dict[str, Any] = Field(\\n\",\n+    \"        default=None,\\n\",\n+    \"        description=\\\"Provider-specific metadata associated with the memory record.\\\",\\n\",\n+    \"        json_schema_extra=omit_default,\\n\",\n+    \"    )\\n\",\n+    \"    score: float = Field(\\n\",\n+    \"        default=None,\\n\",\n+    \"        description=\\\"The relevance score of the memory record when populated on search results.\\\",\\n\",\n+    \"        json_schema_extra=omit_default,\\n\",\n+    \"    )\\n\",\n+    \"\\n\",\n+    \"    class Config:\\n\",\n+    \"        extra = \\\"allow\\\"\\n\",\n+    \"\\n\",\n+    \"class MemoryRecords(RootModel[List[MemoryRecord]]):\\n\",\n+    \"    \\\"\\\"\\\"\\n\",\n+    \"    Represents the list of memory records stored in or retrieved from a memory store.\\n\",\n+    \"    \\\"\\\"\\\"\\n\",\n+    \"    pass\\n\",\n+    \"\\n\",\n+    \"# Print the JSON schema for the MemoryRecords model\\n\",\n+    \"with open(\\\"../gen-ai-memory-records.json\\\", \\\"w\\\") as file:\\n\",\n+    \"    print(json.dumps(MemoryRecords.model_json_schema(), indent=4), file=file)\"",
+      "id": "PRRT_kwDOSUeMrM6CKEDR",
+      "opened": "2026-05-14T18:46:26Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [
+        {
+          "at": "2026-05-14T18:48:48Z",
+          "body": "Fixed in 4beb7fd. Reformatted `gen-ai-memory-records.json` with 4-space indentation so it matches the notebook generator output and won’t become dirty when regenerated.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3243548947"
+        }
+      ],
+      "reviewed": "5347476420effa8f74a63a45e02e64cc83825b4f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3243535936"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This span does not credibly demonstrate `create_memory_store` for Google ADK: the ADK evidence in this PR exposes add/search memory APIs, but this wraps only construction of the in-memory service object and has no public store-lifecycle call or returned/current store identifier. The reference should either cover `create_memory_store` with a library/API that actually exposes store creation, or omit this span for Google ADK as an honest capture gap.",
+      "created": "2026-05-14T19:45:39Z",
+      "hunk": "@@ -288,6 +288,85 @@ async def _run():\n         asyncio.run(_run())\n \n \n+def run_memory_reference():\n+    \"\"\"Scenario: Google ADK memory add/search with reference implementation.\"\"\"\n+    from google.adk.events.event import Event\n+    from google.adk.memory.in_memory_memory_service import InMemoryMemoryService\n+    from google.adk.sessions.session import Session\n+    from google.genai import types\n+\n+    print(\"  [memory] ADK in-memory memory service (reference implementation)\")\n+\n+    app_name = \"test_app\"\n+    user_id = \"test_user\"\n+    session_id = \"session_memory_1\"\n+    store_id = f\"{app_name}/{user_id}\"\n+    memory_text = \"User prefers vegetarian meals and dark mode.\"\n+    query_text = \"vegetarian meals\"\n+\n+    async def _run():\n+        create_span_attributes = {\n+            \"gen_ai.operation.name\": \"create_memory_store\",\n+        }\n+        with _reference_tracer.start_as_current_span(\"create_memory_store\", attributes=create_span_attributes):\n+            memory_service = InMemoryMemoryService()",
+      "id": "PRRT_kwDOSUeMrM6CK-p9",
+      "opened": "2026-05-14T19:45:40Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:06:02Z",
+          "body": "Agreed — dropped the `create_memory_store` span from the google-adk scenario in bc38c7d. ADK's `InMemoryMemoryService` has no public store-lifecycle API and the constructor produces no library-owned store identifier, so this was a capture gap rather than credible coverage. `create_memory_store` remains demonstrated by [reference/scenarios/aws-bedrock-agentcore/](reference/scenarios/aws-bedrock-agentcore/scenario.py) where the returned `memoryId` is captured directly from the SDK response.\n\nAlso annotated the surviving `store_id = f\"{app_name}/{user_id}\"` as `derivable` per the evaluate-reference rubric, since `(app_name, user_id)` is the tuple ADK's `InMemoryMemoryService` itself uses to key its internal store.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3243970057"
+        }
+      ],
+      "reviewed": "b37dbe134618f751eac247b963835ef15df50610",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3243866788"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This scenario never exercises the SDK against the local mock server because every boto3 call is intercepted by `Stubber`. That deviates from the reference scenario contract documented in reference/README.md:7-9 and makes the reported `server.address`/`server.port` coverage synthetic rather than observed from an SDK request; consider adding mock-server routes and letting the public client call reach them, as the other AWS scenarios do.",
+      "created": "2026-05-14T19:45:40Z",
+      "hunk": "@@ -0,0 +1,364 @@\n+\"\"\"Reference implementation: AWS Bedrock AgentCore memory APIs.\"\"\"\n+\n+import json\n+import os\n+from datetime import UTC, datetime\n+\n+import boto3\n+from botocore.stub import Stubber\n+from opentelemetry.trace import SpanKind\n+from reference_shared import flush_and_shutdown, mock_server_host_port, reference_tracer, setup_otel\n+\n+MOCK_BASE_URL = os.environ[\"MOCK_LLM_URL\"]\n+\n+_reference_tracer = reference_tracer()\n+\n+MEMORY_ID = \"mem-abc123456\"\n+MEMORY_NAME = \"customer-support-memory\"\n+MEMORY_RECORD_ID = \"memrec-0123456789abcdef0123456789abcdef0123\"\n+MEMORY_STRATEGY_ID = \"strategy-user-preferences\"\n+NAMESPACE = \"/users/test-user/preferences\"\n+CREATE_MEMORY_TEXT = \"User prefers vegetarian meals.\"\n+UPDATED_MEMORY_TEXT = \"User prefers vegetarian meals and dark mode.\"\n+QUERY_TEXT = \"vegetarian meal preference\"\n+TIMESTAMP = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)\n+\n+\n+def create_agentcore_control_client():\n+    \"\"\"Create an AgentCore control client.\"\"\"\n+    return boto3.client(\n+        \"bedrock-agentcore-control\",\n+        endpoint_url=MOCK_BASE_URL,\n+        region_name=\"us-east-1\",\n+        aws_access_key_id=\"mock\",\n+        aws_secret_access_key=\"mock\",\n+    )\n+\n+\n+def create_agentcore_data_client():\n+    \"\"\"Create an AgentCore data-plane client.\"\"\"\n+    return boto3.client(\n+        \"bedrock-agentcore\",\n+        endpoint_url=MOCK_BASE_URL,\n+        region_name=\"us-east-1\",\n+        aws_access_key_id=\"mock\",\n+        aws_secret_access_key=\"mock\",\n+    )\n+\n+\n+def run_create_memory_store_reference(client, stubber):\n+    \"\"\"Scenario: Bedrock AgentCore create_memory_store operation.\"\"\"\n+    print(\"  [create_memory_store] Bedrock AgentCore create_memory_store\")\n+    event_expiry_duration = 30\n+    stubber.add_response(\n+        \"create_memory\",\n+        {\n+            \"memory\": {\n+                \"arn\": \"arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/mem-abc123456\",\n+                \"id\": MEMORY_ID,\n+                \"name\": MEMORY_NAME,\n+                \"eventExpiryDuration\": event_expiry_duration,\n+                \"status\": \"ACTIVE\",\n+                \"createdAt\": TIMESTAMP,\n+                \"updatedAt\": TIMESTAMP,\n+            }\n+        },\n+        {\n+            \"name\": MEMORY_NAME,\n+            \"eventExpiryDuration\": event_expiry_duration,\n+        },\n+    )\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"create_memory_store\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"create_memory_store\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:\n+        response = client.create_memory(\n+            name=MEMORY_NAME,\n+            eventExpiryDuration=event_expiry_duration,\n+        )\n+        span.set_attribute(\"gen_ai.memory.store.id\", response[\"memory\"][\"id\"])\n+\n+\n+def run_create_and_update_memory_reference(client, stubber):\n+    \"\"\"Scenario: AgentCore BatchCreateMemoryRecords and BatchUpdateMemoryRecords.\"\"\"\n+    print(\"  [create_memory] Bedrock AgentCore BatchCreateMemoryRecords\")\n+    create_records = [\n+        {\n+            \"requestIdentifier\": \"create-record-1\",\n+            \"namespaces\": [NAMESPACE],\n+            \"content\": {\"text\": CREATE_MEMORY_TEXT},\n+            \"timestamp\": TIMESTAMP,\n+            \"memoryStrategyId\": MEMORY_STRATEGY_ID,\n+            \"metadata\": {\"author\": {\"stringValue\": \"user\"}},\n+        }\n+    ]\n+    stubber.add_response(\n+        \"batch_create_memory_records\",\n+        {\n+            \"successfulRecords\": [\n+                {\n+                    \"memoryRecordId\": MEMORY_RECORD_ID,\n+                    \"status\": \"SUCCEEDED\",\n+                    \"requestIdentifier\": \"create-record-1\",\n+                }\n+            ],\n+            \"failedRecords\": [],\n+        },\n+        {\n+            \"memoryId\": MEMORY_ID,\n+            \"records\": create_records,\n+        },\n+    )\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"create_memory\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.memory.store.id\": MEMORY_ID,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"create_memory\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:\n+        response = client.batch_create_memory_records(\n+            memoryId=MEMORY_ID,\n+            records=create_records,\n+        )\n+        memory_record_id = response[\"successfulRecords\"][0][\"memoryRecordId\"]\n+        span.set_attribute(\"gen_ai.memory.record.count\", len(create_records))\n+        span.set_attribute(\n+            \"gen_ai.memory.records\",\n+            json.dumps(\n+                [\n+                    {\n+                        \"content\": create_records[0][\"content\"][\"text\"],\n+                        \"id\": memory_record_id,\n+                        \"metadata\": {\"author\": create_records[0][\"metadata\"][\"author\"][\"stringValue\"]},\n+                    }\n+                ]\n+            ),\n+        )\n+\n+    print(\"  [update_memory] Bedrock AgentCore BatchUpdateMemoryRecords\")\n+    update_records = [\n+        {\n+            \"memoryRecordId\": MEMORY_RECORD_ID,\n+            \"timestamp\": TIMESTAMP,\n+            \"content\": {\"text\": UPDATED_MEMORY_TEXT},\n+            \"namespaces\": [NAMESPACE],\n+            \"memoryStrategyId\": MEMORY_STRATEGY_ID,\n+            \"metadata\": {\"author\": {\"stringValue\": \"assistant\"}},\n+        }\n+    ]\n+    stubber.add_response(\n+        \"batch_update_memory_records\",\n+        {\n+            \"successfulRecords\": [\n+                {\n+                    \"memoryRecordId\": MEMORY_RECORD_ID,\n+                    \"status\": \"SUCCEEDED\",\n+                }\n+            ],\n+            \"failedRecords\": [],\n+        },\n+        {\n+            \"memoryId\": MEMORY_ID,\n+            \"records\": update_records,\n+        },\n+    )\n+\n+    span_attributes_2 = {\n+        \"gen_ai.operation.name\": \"update_memory\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.memory.store.id\": MEMORY_ID,\n+    }\n+    if host:\n+        span_attributes_2[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes_2[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"update_memory\", kind=SpanKind.CLIENT, attributes=span_attributes_2\n+    ) as span:\n+        client.batch_update_memory_records(\n+            memoryId=MEMORY_ID,\n+            records=update_records,\n+        )\n+        span.set_attribute(\"gen_ai.memory.record.count\", len(update_records))\n+        span.set_attribute(\n+            \"gen_ai.memory.records\",\n+            json.dumps(\n+                [\n+                    {\n+                        \"content\": update_records[0][\"content\"][\"text\"],\n+                        \"id\": update_records[0][\"memoryRecordId\"],\n+                        \"metadata\": {\"author\": update_records[0][\"metadata\"][\"author\"][\"stringValue\"]},\n+                    }\n+                ]\n+            ),\n+        )\n+\n+\n+def run_search_memory_reference(client, stubber):\n+    \"\"\"Scenario: AgentCore RetrieveMemoryRecords.\"\"\"\n+    print(\"  [search_memory] Bedrock AgentCore RetrieveMemoryRecords\")\n+    search_criteria = {\n+        \"searchQuery\": QUERY_TEXT,\n+        \"memoryStrategyId\": MEMORY_STRATEGY_ID,\n+        \"topK\": 3,\n+    }\n+    stubber.add_response(\n+        \"retrieve_memory_records\",\n+        {\n+            \"memoryRecordSummaries\": [\n+                {\n+                    \"memoryRecordId\": MEMORY_RECORD_ID,\n+                    \"content\": {\"text\": UPDATED_MEMORY_TEXT},\n+                    \"memoryStrategyId\": MEMORY_STRATEGY_ID,\n+                    \"namespaces\": [NAMESPACE],\n+                    \"createdAt\": TIMESTAMP,\n+                    \"score\": 0.93,\n+                    \"metadata\": {\"author\": {\"stringValue\": \"assistant\"}},\n+                }\n+            ]\n+        },\n+        {\n+            \"memoryId\": MEMORY_ID,\n+            \"namespace\": NAMESPACE,\n+            \"searchCriteria\": search_criteria,\n+        },\n+    )\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"search_memory\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.memory.store.id\": MEMORY_ID,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"search_memory\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:\n+        span.set_attribute(\"gen_ai.memory.query.text\", search_criteria[\"searchQuery\"])\n+        response = client.retrieve_memory_records(\n+            memoryId=MEMORY_ID,\n+            namespace=NAMESPACE,\n+            searchCriteria=search_criteria,\n+        )\n+        memory_records = []\n+        for summary in response[\"memoryRecordSummaries\"]:\n+            memory_records.append(\n+                {\n+                    \"content\": summary[\"content\"][\"text\"],\n+                    \"id\": summary[\"memoryRecordId\"],\n+                    \"score\": summary[\"score\"],\n+                    \"metadata\": {\n+                        \"author\": summary[\"metadata\"][\"author\"][\"stringValue\"],\n+                        \"namespace\": summary[\"namespaces\"][0],\n+                    },\n+                }\n+            )\n+        span.set_attribute(\"gen_ai.memory.record.count\", len(memory_records))\n+        span.set_attribute(\"gen_ai.memory.records\", json.dumps(memory_records))\n+\n+\n+def run_delete_memory_reference(client, stubber):\n+    \"\"\"Scenario: AgentCore DeleteMemoryRecord.\"\"\"\n+    print(\"  [delete_memory] Bedrock AgentCore DeleteMemoryRecord\")\n+    stubber.add_response(\n+        \"delete_memory_record\",\n+        {\"memoryRecordId\": MEMORY_RECORD_ID},\n+        {\n+            \"memoryId\": MEMORY_ID,\n+            \"memoryRecordId\": MEMORY_RECORD_ID,\n+        },\n+    )\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"delete_memory\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.memory.store.id\": MEMORY_ID,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"delete_memory\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:\n+        span.set_attribute(\"gen_ai.memory.record.id\", MEMORY_RECORD_ID)\n+        span.set_attribute(\"gen_ai.memory.record.count\", 1)\n+        client.delete_memory_record(\n+            memoryId=MEMORY_ID,\n+            memoryRecordId=MEMORY_RECORD_ID,\n+        )\n+\n+\n+def run_delete_memory_store_reference(client, stubber):\n+    \"\"\"Scenario: Bedrock AgentCore delete_memory_store operation.\"\"\"\n+    print(\"  [delete_memory_store] Bedrock AgentCore delete_memory_store\")\n+    client_token = \"delete-memory-store-token\"\n+    stubber.add_response(\n+        \"delete_memory\",\n+        {\n+            \"memoryId\": MEMORY_ID,\n+            \"status\": \"DELETING\",\n+        },\n+        {\n+            \"memoryId\": MEMORY_ID,\n+            \"clientToken\": client_token,\n+        },\n+    )\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"delete_memory_store\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.memory.store.id\": MEMORY_ID,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"delete_memory_store\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ):\n+        client.delete_memory(\n+            memoryId=MEMORY_ID,\n+            clientToken=client_token,\n+        )\n+\n+\n+def main():\n+    print(\"=== Reference Implementation: AWS Bedrock AgentCore Memory ===\")\n+    tp, lp, mp = setup_otel()\n+\n+    control_client = create_agentcore_control_client()\n+    data_client = create_agentcore_data_client()\n+    with Stubber(control_client) as control_stubber, Stubber(data_client) as data_stubber:",
+      "id": "PRRT_kwDOSUeMrM6CK-qU",
+      "opened": "2026-05-14T19:45:40Z",
+      "path": "reference/scenarios/aws-bedrock-agentcore/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:21:34Z",
+          "body": "Good point — the scenario now uses a real `bedrock_agentcore` mock-server blueprint covering both control (`CreateMemory`, `DeleteMemory`) and data plane (`BatchCreateMemoryRecords`, `BatchUpdateMemoryRecords`, `RetrieveMemoryRecords`, `DeleteMemoryRecord`) at the URL paths declared by the botocore service model. `Stubber` is gone; boto3 reaches the mock over real HTTP, so `server.address`/`server.port` are observed from actual requests. `data.json` diff is empty after the change.\n\nPushed in 69c3bb6.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244055137"
+        }
+      ],
+      "reviewed": "b37dbe134618f751eac247b963835ef15df50610",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3243866824"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This hardcoded record ID is never returned by the preceding create call or seeded into the mock store, so the update/delete spans do not demonstrate operations on an existing memory record. The scenario should use the ID returned by `batch_create_memory_records` (or explicitly seed the mock state) so the emitted `gen_ai.memory.record.id` comes from the current SDK flow rather than a disconnected constant.",
+      "created": "2026-05-14T20:26:14Z",
+      "hunk": "@@ -0,0 +1,268 @@\n+\"\"\"Reference implementation: AWS Bedrock AgentCore memory APIs.\"\"\"\n+\n+import json\n+import os\n+from datetime import UTC, datetime\n+\n+import boto3\n+from opentelemetry.trace import SpanKind\n+from reference_shared import flush_and_shutdown, mock_server_host_port, reference_tracer, setup_otel\n+\n+MOCK_BASE_URL = os.environ[\"MOCK_LLM_URL\"]\n+\n+_reference_tracer = reference_tracer()\n+\n+MEMORY_ID = \"mem-abc123456\"\n+MEMORY_NAME = \"customer-support-memory\"\n+MEMORY_RECORD_ID = \"memrec-0123456789abcdef0123456789abcdef0123\"",
+      "id": "PRRT_kwDOSUeMrM6CLk4n",
+      "opened": "2026-05-14T20:26:17Z",
+      "path": "reference/scenarios/aws-bedrock-agentcore/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:45:46Z",
+          "body": "Done. The `memoryRecordId` returned by `batch_create_memory_records` now flows into the update payload and the delete call; the `MEMORY_RECORD_ID` constant was removed. 9883f06.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244178668"
+        }
+      ],
+      "reviewed": "69c3bb60dcd81e88922fb7406e6c200f646f3cb6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244080770"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This reports every requested update as `SUCCEEDED` even when `record_id` was not found in the mock store, so the scenario can claim update coverage without the mock applying any update. This currently masks the hardcoded non-created record ID in the AgentCore scenario; missing records should be reported as failed or cause the test to fail.\n",
+      "created": "2026-05-14T20:26:15Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+\"\"\"AWS Bedrock AgentCore Memory-compatible endpoints.\n+\n+Serves both the ``bedrock-agentcore-control`` (control plane) and\n+``bedrock-agentcore`` (data plane) operations against a single mock URL,\n+since both boto3 clients accept the same ``endpoint_url``.\n+\"\"\"\n+\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+bp = Blueprint(\"bedrock_agentcore\", __name__)\n+\n+# In-memory state keyed by memoryId.\n+_MEMORIES: dict[str, dict] = {}\n+_RECORDS: dict[str, list[dict]] = {}\n+_RECORD_COUNTER = 0\n+\n+\n+def _next_record_id() -> str:\n+    \"\"\"Generate a record id long enough to satisfy SDK validation (>=40 chars).\"\"\"\n+    global _RECORD_COUNTER\n+    _RECORD_COUNTER += 1\n+    return f\"memrec-mock-{_RECORD_COUNTER:03d}-\" + \"0\" * 24\n+\n+\n+def _json(body, status=200):\n+    return Response(json.dumps(body), status=status, mimetype=\"application/json\")\n+\n+\n+# Control plane -------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/create\", methods=[\"POST\"])\n+def create_memory():\n+    body = request.get_json(silent=True) or {}\n+    name = body.get(\"name\", \"unnamed-memory\")\n+    memory_id = f\"mem-mock-{len(_MEMORIES) + 1:03d}\"\n+    memory = {\n+        \"id\": memory_id,\n+        \"arn\": f\"arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/{memory_id}\",\n+        \"name\": name,\n+        \"eventExpiryDuration\": body.get(\"eventExpiryDuration\", 30),\n+        \"status\": \"ACTIVE\",\n+        \"createdAt\": 1735689600.0,\n+        \"updatedAt\": 1735689600.0,\n+    }\n+    _MEMORIES[memory_id] = memory\n+    _RECORDS.setdefault(memory_id, [])\n+    return _json({\"memory\": memory}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/delete\", methods=[\"DELETE\"])\n+def delete_memory(memory_id):\n+    _MEMORIES.pop(memory_id, None)\n+    _RECORDS.pop(memory_id, None)\n+    return _json({\"memoryId\": memory_id, \"status\": \"DELETING\"})\n+\n+\n+# Data plane ----------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchCreate\", methods=[\"POST\"])\n+def batch_create_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS.setdefault(memory_id, [])\n+    successful = []\n+    for rec in records:\n+        record_id = _next_record_id()\n+        store.append({\"memoryRecordId\": record_id, \"content\": rec.get(\"content\", {})})\n+        successful.append({\n+            \"memoryRecordId\": record_id,\n+            \"status\": \"SUCCEEDED\",\n+            \"requestIdentifier\": rec.get(\"requestIdentifier\", \"\"),\n+        })\n+    return _json({\"successfulRecords\": successful, \"failedRecords\": []}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchUpdate\", methods=[\"POST\"])\n+def batch_update_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS.setdefault(memory_id, [])\n+    by_id = {r[\"memoryRecordId\"]: r for r in store}\n+    successful = []\n+    for rec in records:\n+        record_id = rec[\"memoryRecordId\"]\n+        if record_id in by_id:\n+            by_id[record_id][\"content\"] = rec.get(\"content\", by_id[record_id].get(\"content\", {}))\n+        successful.append({\"memoryRecordId\": record_id, \"status\": \"SUCCEEDED\"})\n+    return _json({\"successfulRecords\": successful, \"failedRecords\": []})",
+      "id": "PRRT_kwDOSUeMrM6CLk5a",
+      "opened": "2026-05-14T20:26:17Z",
+      "path": "reference/src/semconv_genai/mock_server/bedrock_agentcore.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:45:50Z",
+          "body": "Done. Missing records now go into `failedRecords` with `errorCode=404` instead of being falsely reported as `SUCCEEDED`. 9883f06.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244178930"
+        }
+      ],
+      "reviewed": "69c3bb60dcd81e88922fb7406e6c200f646f3cb6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244080841"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The delete endpoint always returns success even when the requested record ID was not present, which can make delete-memory reference coverage pass without deleting any mock record. This should fail or report a missing record so the scenario has to use an ID that actually exists in the current mock state.\n",
+      "created": "2026-05-14T20:26:15Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+\"\"\"AWS Bedrock AgentCore Memory-compatible endpoints.\n+\n+Serves both the ``bedrock-agentcore-control`` (control plane) and\n+``bedrock-agentcore`` (data plane) operations against a single mock URL,\n+since both boto3 clients accept the same ``endpoint_url``.\n+\"\"\"\n+\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+bp = Blueprint(\"bedrock_agentcore\", __name__)\n+\n+# In-memory state keyed by memoryId.\n+_MEMORIES: dict[str, dict] = {}\n+_RECORDS: dict[str, list[dict]] = {}\n+_RECORD_COUNTER = 0\n+\n+\n+def _next_record_id() -> str:\n+    \"\"\"Generate a record id long enough to satisfy SDK validation (>=40 chars).\"\"\"\n+    global _RECORD_COUNTER\n+    _RECORD_COUNTER += 1\n+    return f\"memrec-mock-{_RECORD_COUNTER:03d}-\" + \"0\" * 24\n+\n+\n+def _json(body, status=200):\n+    return Response(json.dumps(body), status=status, mimetype=\"application/json\")\n+\n+\n+# Control plane -------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/create\", methods=[\"POST\"])\n+def create_memory():\n+    body = request.get_json(silent=True) or {}\n+    name = body.get(\"name\", \"unnamed-memory\")\n+    memory_id = f\"mem-mock-{len(_MEMORIES) + 1:03d}\"\n+    memory = {\n+        \"id\": memory_id,\n+        \"arn\": f\"arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/{memory_id}\",\n+        \"name\": name,\n+        \"eventExpiryDuration\": body.get(\"eventExpiryDuration\", 30),\n+        \"status\": \"ACTIVE\",\n+        \"createdAt\": 1735689600.0,\n+        \"updatedAt\": 1735689600.0,\n+    }\n+    _MEMORIES[memory_id] = memory\n+    _RECORDS.setdefault(memory_id, [])\n+    return _json({\"memory\": memory}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/delete\", methods=[\"DELETE\"])\n+def delete_memory(memory_id):\n+    _MEMORIES.pop(memory_id, None)\n+    _RECORDS.pop(memory_id, None)\n+    return _json({\"memoryId\": memory_id, \"status\": \"DELETING\"})\n+\n+\n+# Data plane ----------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchCreate\", methods=[\"POST\"])\n+def batch_create_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS.setdefault(memory_id, [])\n+    successful = []\n+    for rec in records:\n+        record_id = _next_record_id()\n+        store.append({\"memoryRecordId\": record_id, \"content\": rec.get(\"content\", {})})\n+        successful.append({\n+            \"memoryRecordId\": record_id,\n+            \"status\": \"SUCCEEDED\",\n+            \"requestIdentifier\": rec.get(\"requestIdentifier\", \"\"),\n+        })\n+    return _json({\"successfulRecords\": successful, \"failedRecords\": []}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchUpdate\", methods=[\"POST\"])\n+def batch_update_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS.setdefault(memory_id, [])\n+    by_id = {r[\"memoryRecordId\"]: r for r in store}\n+    successful = []\n+    for rec in records:\n+        record_id = rec[\"memoryRecordId\"]\n+        if record_id in by_id:\n+            by_id[record_id][\"content\"] = rec.get(\"content\", by_id[record_id].get(\"content\", {}))\n+        successful.append({\"memoryRecordId\": record_id, \"status\": \"SUCCEEDED\"})\n+    return _json({\"successfulRecords\": successful, \"failedRecords\": []})\n+\n+\n+@bp.route(\"/memories/<memory_id>/retrieve\", methods=[\"POST\"])\n+def retrieve_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    criteria = body.get(\"searchCriteria\", {})\n+    top_k = criteria.get(\"topK\", 5)\n+    namespace = body.get(\"namespace\", \"/\")\n+    store = _RECORDS.get(memory_id, [])\n+    summaries = []\n+    for rec in store[-top_k:]:\n+        summaries.append({\n+            \"memoryRecordId\": rec[\"memoryRecordId\"],\n+            \"content\": rec.get(\"content\", {}),\n+            \"memoryStrategyId\": criteria.get(\"memoryStrategyId\", \"\"),\n+            \"namespaces\": [namespace],\n+            \"createdAt\": 1735689600.0,\n+            \"score\": 0.93,\n+            \"metadata\": rec.get(\"metadata\", {\"author\": {\"stringValue\": \"assistant\"}}),\n+        })\n+    return _json({\"memoryRecordSummaries\": summaries})\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/<record_id>\", methods=[\"DELETE\"])\n+def delete_memory_record(memory_id, record_id):\n+    store = _RECORDS.get(memory_id, [])\n+    _RECORDS[memory_id] = [r for r in store if r[\"memoryRecordId\"] != record_id]",
+      "id": "PRRT_kwDOSUeMrM6CLk5q",
+      "opened": "2026-05-14T20:26:17Z",
+      "path": "reference/src/semconv_genai/mock_server/bedrock_agentcore.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:45:53Z",
+          "body": "Done. `DeleteMemoryRecord` now returns 404 when either `memoryId` or the requested `record_id` is not present. 9883f06.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244179137"
+        }
+      ],
+      "reviewed": "69c3bb60dcd81e88922fb7406e6c200f646f3cb6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244080859"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This mock delete-store endpoint returns `DELETING` even when the memory ID does not exist, so the reference scenario can report `delete_memory_store` coverage without deleting the store created earlier. Returning an error for unknown IDs (or using the created ID in the scenario) would keep the lifecycle coverage tied to real mock state.\n",
+      "created": "2026-05-14T20:26:16Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+\"\"\"AWS Bedrock AgentCore Memory-compatible endpoints.\n+\n+Serves both the ``bedrock-agentcore-control`` (control plane) and\n+``bedrock-agentcore`` (data plane) operations against a single mock URL,\n+since both boto3 clients accept the same ``endpoint_url``.\n+\"\"\"\n+\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+bp = Blueprint(\"bedrock_agentcore\", __name__)\n+\n+# In-memory state keyed by memoryId.\n+_MEMORIES: dict[str, dict] = {}\n+_RECORDS: dict[str, list[dict]] = {}\n+_RECORD_COUNTER = 0\n+\n+\n+def _next_record_id() -> str:\n+    \"\"\"Generate a record id long enough to satisfy SDK validation (>=40 chars).\"\"\"\n+    global _RECORD_COUNTER\n+    _RECORD_COUNTER += 1\n+    return f\"memrec-mock-{_RECORD_COUNTER:03d}-\" + \"0\" * 24\n+\n+\n+def _json(body, status=200):\n+    return Response(json.dumps(body), status=status, mimetype=\"application/json\")\n+\n+\n+# Control plane -------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/create\", methods=[\"POST\"])\n+def create_memory():\n+    body = request.get_json(silent=True) or {}\n+    name = body.get(\"name\", \"unnamed-memory\")\n+    memory_id = f\"mem-mock-{len(_MEMORIES) + 1:03d}\"\n+    memory = {\n+        \"id\": memory_id,\n+        \"arn\": f\"arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/{memory_id}\",\n+        \"name\": name,\n+        \"eventExpiryDuration\": body.get(\"eventExpiryDuration\", 30),\n+        \"status\": \"ACTIVE\",\n+        \"createdAt\": 1735689600.0,\n+        \"updatedAt\": 1735689600.0,\n+    }\n+    _MEMORIES[memory_id] = memory\n+    _RECORDS.setdefault(memory_id, [])\n+    return _json({\"memory\": memory}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/delete\", methods=[\"DELETE\"])\n+def delete_memory(memory_id):\n+    _MEMORIES.pop(memory_id, None)",
+      "id": "PRRT_kwDOSUeMrM6CLk55",
+      "opened": "2026-05-14T20:26:17Z",
+      "path": "reference/src/semconv_genai/mock_server/bedrock_agentcore.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:45:56Z",
+          "body": "Done. `delete_memory` now returns 404 when `memoryId` is not in `_MEMORIES`. Combined with the scenario change that uses the created `memory.id`, the lifecycle is tied to real mock state. 9883f06.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244179399"
+        }
+      ],
+      "reviewed": "69c3bb60dcd81e88922fb7406e6c200f646f3cb6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244080883"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This store ID is disconnected from the ID returned by `run_create_memory_store_reference`, so the later record operations and `delete_memory_store` run against a different mock store than the one created in the lifecycle span. To credibly demonstrate the lifecycle, pass the created `memory.id` through to the subsequent operations or explicitly seed this store before using it.",
+      "created": "2026-05-14T20:26:16Z",
+      "hunk": "@@ -0,0 +1,268 @@\n+\"\"\"Reference implementation: AWS Bedrock AgentCore memory APIs.\"\"\"\n+\n+import json\n+import os\n+from datetime import UTC, datetime\n+\n+import boto3\n+from opentelemetry.trace import SpanKind\n+from reference_shared import flush_and_shutdown, mock_server_host_port, reference_tracer, setup_otel\n+\n+MOCK_BASE_URL = os.environ[\"MOCK_LLM_URL\"]\n+\n+_reference_tracer = reference_tracer()\n+\n+MEMORY_ID = \"mem-abc123456\"",
+      "id": "PRRT_kwDOSUeMrM6CLk6K",
+      "opened": "2026-05-14T20:26:17Z",
+      "path": "reference/scenarios/aws-bedrock-agentcore/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:45:51Z",
+          "body": "Done. `create_memory`'s returned `memory.id` is now threaded through every subsequent operation; the `MEMORY_ID` constant was removed. 9883f06.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244179026"
+        }
+      ],
+      "reviewed": "69c3bb60dcd81e88922fb7406e6c200f646f3cb6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244080906"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setdefault` creates a record list for any arbitrary `memory_id`, even if the control-plane `create_memory` endpoint never created that store. That lets the AgentCore scenario exercise record CRUD against a non-existent memory store instead of tying the record operations to the store lifecycle being demonstrated.",
+      "created": "2026-05-14T20:26:16Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+\"\"\"AWS Bedrock AgentCore Memory-compatible endpoints.\n+\n+Serves both the ``bedrock-agentcore-control`` (control plane) and\n+``bedrock-agentcore`` (data plane) operations against a single mock URL,\n+since both boto3 clients accept the same ``endpoint_url``.\n+\"\"\"\n+\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+bp = Blueprint(\"bedrock_agentcore\", __name__)\n+\n+# In-memory state keyed by memoryId.\n+_MEMORIES: dict[str, dict] = {}\n+_RECORDS: dict[str, list[dict]] = {}\n+_RECORD_COUNTER = 0\n+\n+\n+def _next_record_id() -> str:\n+    \"\"\"Generate a record id long enough to satisfy SDK validation (>=40 chars).\"\"\"\n+    global _RECORD_COUNTER\n+    _RECORD_COUNTER += 1\n+    return f\"memrec-mock-{_RECORD_COUNTER:03d}-\" + \"0\" * 24\n+\n+\n+def _json(body, status=200):\n+    return Response(json.dumps(body), status=status, mimetype=\"application/json\")\n+\n+\n+# Control plane -------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/create\", methods=[\"POST\"])\n+def create_memory():\n+    body = request.get_json(silent=True) or {}\n+    name = body.get(\"name\", \"unnamed-memory\")\n+    memory_id = f\"mem-mock-{len(_MEMORIES) + 1:03d}\"\n+    memory = {\n+        \"id\": memory_id,\n+        \"arn\": f\"arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/{memory_id}\",\n+        \"name\": name,\n+        \"eventExpiryDuration\": body.get(\"eventExpiryDuration\", 30),\n+        \"status\": \"ACTIVE\",\n+        \"createdAt\": 1735689600.0,\n+        \"updatedAt\": 1735689600.0,\n+    }\n+    _MEMORIES[memory_id] = memory\n+    _RECORDS.setdefault(memory_id, [])\n+    return _json({\"memory\": memory}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/delete\", methods=[\"DELETE\"])\n+def delete_memory(memory_id):\n+    _MEMORIES.pop(memory_id, None)\n+    _RECORDS.pop(memory_id, None)\n+    return _json({\"memoryId\": memory_id, \"status\": \"DELETING\"})\n+\n+\n+# Data plane ----------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchCreate\", methods=[\"POST\"])\n+def batch_create_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS.setdefault(memory_id, [])\n+    successful = []",
+      "id": "PRRT_kwDOSUeMrM6CLk6d",
+      "opened": "2026-05-14T20:26:17Z",
+      "path": "reference/src/semconv_genai/mock_server/bedrock_agentcore.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:45:48Z",
+          "body": "Done. `batchCreate` no longer uses `setdefault` — it returns 404 when `memoryId` is unknown. 9883f06.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244178832"
+        }
+      ],
+      "reviewed": "69c3bb60dcd81e88922fb7406e6c200f646f3cb6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244080936"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `setdefault` here silently creates a record list for an unknown memory store, so updates can succeed against stores that were never created by the control-plane mock. The mock should require an existing store to keep the reference scenario tied to realistic AgentCore lifecycle behavior.\n",
+      "created": "2026-05-14T20:26:16Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+\"\"\"AWS Bedrock AgentCore Memory-compatible endpoints.\n+\n+Serves both the ``bedrock-agentcore-control`` (control plane) and\n+``bedrock-agentcore`` (data plane) operations against a single mock URL,\n+since both boto3 clients accept the same ``endpoint_url``.\n+\"\"\"\n+\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+bp = Blueprint(\"bedrock_agentcore\", __name__)\n+\n+# In-memory state keyed by memoryId.\n+_MEMORIES: dict[str, dict] = {}\n+_RECORDS: dict[str, list[dict]] = {}\n+_RECORD_COUNTER = 0\n+\n+\n+def _next_record_id() -> str:\n+    \"\"\"Generate a record id long enough to satisfy SDK validation (>=40 chars).\"\"\"\n+    global _RECORD_COUNTER\n+    _RECORD_COUNTER += 1\n+    return f\"memrec-mock-{_RECORD_COUNTER:03d}-\" + \"0\" * 24\n+\n+\n+def _json(body, status=200):\n+    return Response(json.dumps(body), status=status, mimetype=\"application/json\")\n+\n+\n+# Control plane -------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/create\", methods=[\"POST\"])\n+def create_memory():\n+    body = request.get_json(silent=True) or {}\n+    name = body.get(\"name\", \"unnamed-memory\")\n+    memory_id = f\"mem-mock-{len(_MEMORIES) + 1:03d}\"\n+    memory = {\n+        \"id\": memory_id,\n+        \"arn\": f\"arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/{memory_id}\",\n+        \"name\": name,\n+        \"eventExpiryDuration\": body.get(\"eventExpiryDuration\", 30),\n+        \"status\": \"ACTIVE\",\n+        \"createdAt\": 1735689600.0,\n+        \"updatedAt\": 1735689600.0,\n+    }\n+    _MEMORIES[memory_id] = memory\n+    _RECORDS.setdefault(memory_id, [])\n+    return _json({\"memory\": memory}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/delete\", methods=[\"DELETE\"])\n+def delete_memory(memory_id):\n+    _MEMORIES.pop(memory_id, None)\n+    _RECORDS.pop(memory_id, None)\n+    return _json({\"memoryId\": memory_id, \"status\": \"DELETING\"})\n+\n+\n+# Data plane ----------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchCreate\", methods=[\"POST\"])\n+def batch_create_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS.setdefault(memory_id, [])\n+    successful = []\n+    for rec in records:\n+        record_id = _next_record_id()\n+        store.append({\"memoryRecordId\": record_id, \"content\": rec.get(\"content\", {})})\n+        successful.append({\n+            \"memoryRecordId\": record_id,\n+            \"status\": \"SUCCEEDED\",\n+            \"requestIdentifier\": rec.get(\"requestIdentifier\", \"\"),\n+        })\n+    return _json({\"successfulRecords\": successful, \"failedRecords\": []}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchUpdate\", methods=[\"POST\"])\n+def batch_update_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS.setdefault(memory_id, [])",
+      "id": "PRRT_kwDOSUeMrM6CLk6u",
+      "opened": "2026-05-14T20:26:17Z",
+      "path": "reference/src/semconv_genai/mock_server/bedrock_agentcore.py",
+      "replies": [
+        {
+          "at": "2026-05-14T20:45:54Z",
+          "body": "Done. `batchUpdate` no longer uses `setdefault` — it returns 404 when `memoryId` is unknown. 9883f06.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244179269"
+        }
+      ],
+      "reviewed": "69c3bb60dcd81e88922fb7406e6c200f646f3cb6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244080955"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`batch_update_memory_records` can report per-record failures in `failedRecords` without raising, and this response is ignored. If the update does not apply, the scenario will still emit `update_memory` coverage; check that the expected record succeeded and no failures were returned before setting the span attributes.\n",
+      "created": "2026-05-14T20:50:45Z",
+      "hunk": "@@ -0,0 +1,269 @@\n+\"\"\"Reference implementation: AWS Bedrock AgentCore memory APIs.\"\"\"\n+\n+import json\n+import os\n+from datetime import UTC, datetime\n+\n+import boto3\n+from opentelemetry.trace import SpanKind\n+from reference_shared import flush_and_shutdown, mock_server_host_port, reference_tracer, setup_otel\n+\n+MOCK_BASE_URL = os.environ[\"MOCK_LLM_URL\"]\n+\n+_reference_tracer = reference_tracer()\n+\n+MEMORY_NAME = \"customer-support-memory\"\n+MEMORY_STRATEGY_ID = \"strategy-user-preferences\"\n+NAMESPACE = \"/users/test-user/preferences\"\n+CREATE_MEMORY_TEXT = \"User prefers vegetarian meals.\"\n+UPDATED_MEMORY_TEXT = \"User prefers vegetarian meals and dark mode.\"\n+QUERY_TEXT = \"vegetarian meal preference\"\n+TIMESTAMP = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)\n+\n+\n+def create_agentcore_control_client():\n+    \"\"\"Create an AgentCore control client.\"\"\"\n+    return boto3.client(\n+        \"bedrock-agentcore-control\",\n+        endpoint_url=MOCK_BASE_URL,\n+        region_name=\"us-east-1\",\n+        aws_access_key_id=\"mock\",\n+        aws_secret_access_key=\"mock\",\n+    )\n+\n+\n+def create_agentcore_data_client():\n+    \"\"\"Create an AgentCore data-plane client.\"\"\"\n+    return boto3.client(\n+        \"bedrock-agentcore\",\n+        endpoint_url=MOCK_BASE_URL,\n+        region_name=\"us-east-1\",\n+        aws_access_key_id=\"mock\",\n+        aws_secret_access_key=\"mock\",\n+    )\n+\n+\n+def run_create_memory_store_reference(client):\n+    \"\"\"Scenario: Bedrock AgentCore create_memory_store operation.\"\"\"\n+    print(\"  [create_memory_store] Bedrock AgentCore create_memory_store\")\n+    event_expiry_duration = 30\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"create_memory_store\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"create_memory_store\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:\n+        response = client.create_memory(\n+            name=MEMORY_NAME,\n+            eventExpiryDuration=event_expiry_duration,\n+        )\n+        memory_id = response[\"memory\"][\"id\"]\n+        span.set_attribute(\"gen_ai.memory.store.id\", memory_id)\n+    return memory_id\n+\n+\n+def run_create_and_update_memory_reference(client, memory_id):\n+    \"\"\"Scenario: AgentCore BatchCreateMemoryRecords and BatchUpdateMemoryRecords.\"\"\"\n+    print(\"  [create_memory] Bedrock AgentCore BatchCreateMemoryRecords\")\n+    create_records = [\n+        {\n+            \"requestIdentifier\": \"create-record-1\",\n+            \"namespaces\": [NAMESPACE],\n+            \"content\": {\"text\": CREATE_MEMORY_TEXT},\n+            \"timestamp\": TIMESTAMP,\n+            \"memoryStrategyId\": MEMORY_STRATEGY_ID,\n+            \"metadata\": {\"author\": {\"stringValue\": \"user\"}},\n+        }\n+    ]\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"create_memory\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.memory.store.id\": memory_id,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"create_memory\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:\n+        response = client.batch_create_memory_records(\n+            memoryId=memory_id,\n+            records=create_records,\n+        )\n+        memory_record_id = response[\"successfulRecords\"][0][\"memoryRecordId\"]\n+        span.set_attribute(\"gen_ai.memory.record.count\", len(create_records))\n+        span.set_attribute(\n+            \"gen_ai.memory.records\",\n+            json.dumps(\n+                [\n+                    {\n+                        \"content\": create_records[0][\"content\"][\"text\"],\n+                        \"id\": memory_record_id,\n+                        \"metadata\": {\"author\": create_records[0][\"metadata\"][\"author\"][\"stringValue\"]},\n+                    }\n+                ]\n+            ),\n+        )\n+\n+    print(\"  [update_memory] Bedrock AgentCore BatchUpdateMemoryRecords\")\n+    update_records = [\n+        {\n+            \"memoryRecordId\": memory_record_id,\n+            \"timestamp\": TIMESTAMP,\n+            \"content\": {\"text\": UPDATED_MEMORY_TEXT},\n+            \"namespaces\": [NAMESPACE],\n+            \"memoryStrategyId\": MEMORY_STRATEGY_ID,\n+            \"metadata\": {\"author\": {\"stringValue\": \"assistant\"}},\n+        }\n+    ]\n+\n+    span_attributes_2 = {\n+        \"gen_ai.operation.name\": \"update_memory\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.memory.store.id\": memory_id,\n+    }\n+    if host:\n+        span_attributes_2[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes_2[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"update_memory\", kind=SpanKind.CLIENT, attributes=span_attributes_2\n+    ) as span:\n+        client.batch_update_memory_records(\n+            memoryId=memory_id,\n+            records=update_records,\n+        )",
+      "id": "PRRT_kwDOSUeMrM6CL6s9",
+      "opened": "2026-05-14T20:50:45Z",
+      "path": "reference/scenarios/aws-bedrock-agentcore/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-14T21:03:03Z",
+          "body": "Declining this one. Reference scenarios under `reference/scenarios/` are not tests of the mock — they exist to demonstrate that an instrumenter could capture each `gen_ai.*` attribute from the library's public call boundary (see `reference/README.md` and `.github/instructions/reference-scenarios.instructions.md`). Asserting on `failedRecords`/`successfulRecords` would validate our own mock rather than drive any attribute emission, and real native instrumentation would still emit the span (recording the error as appropriate) rather than skip attributes on a per-record failure. The lifecycle-integrity concern is already enforced mock-side: `batchUpdate` 404s on unknown `memoryId` and reports missing record IDs in `failedRecords`, so a scenario that lost the create→update ID linkage would fail loudly via boto3 rather than silently pass.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244266533"
+        }
+      ],
+      "reviewed": "9883f060f5f628a7ea98ef661d49fcb27ced5b65",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244202775"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The retrieve endpoint silently succeeds for unknown `memory_id` by using an empty list. That can make `search_memory` coverage pass even if the scenario is no longer tied to a store created through the control-plane mock; it should reject unknown memory IDs consistently with the create/update/delete record endpoints.\n",
+      "created": "2026-05-14T20:50:45Z",
+      "hunk": "@@ -0,0 +1,138 @@\n+\"\"\"AWS Bedrock AgentCore Memory-compatible endpoints.\n+\n+Serves both the ``bedrock-agentcore-control`` (control plane) and\n+``bedrock-agentcore`` (data plane) operations against a single mock URL,\n+since both boto3 clients accept the same ``endpoint_url``.\n+\"\"\"\n+\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+bp = Blueprint(\"bedrock_agentcore\", __name__)\n+\n+# In-memory state keyed by memoryId.\n+_MEMORIES: dict[str, dict] = {}\n+_RECORDS: dict[str, list[dict]] = {}\n+_RECORD_COUNTER = 0\n+\n+\n+def _next_record_id() -> str:\n+    \"\"\"Generate a record id long enough to satisfy SDK validation (>=40 chars).\"\"\"\n+    global _RECORD_COUNTER\n+    _RECORD_COUNTER += 1\n+    return f\"memrec-mock-{_RECORD_COUNTER:03d}-\" + \"0\" * 24\n+\n+\n+def _json(body, status=200):\n+    return Response(json.dumps(body), status=status, mimetype=\"application/json\")\n+\n+\n+# Control plane -------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/create\", methods=[\"POST\"])\n+def create_memory():\n+    body = request.get_json(silent=True) or {}\n+    name = body.get(\"name\", \"unnamed-memory\")\n+    memory_id = f\"mem-mock-{len(_MEMORIES) + 1:03d}\"\n+    memory = {\n+        \"id\": memory_id,\n+        \"arn\": f\"arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/{memory_id}\",\n+        \"name\": name,\n+        \"eventExpiryDuration\": body.get(\"eventExpiryDuration\", 30),\n+        \"status\": \"ACTIVE\",\n+        \"createdAt\": 1735689600.0,\n+        \"updatedAt\": 1735689600.0,\n+    }\n+    _MEMORIES[memory_id] = memory\n+    _RECORDS.setdefault(memory_id, [])\n+    return _json({\"memory\": memory}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/delete\", methods=[\"DELETE\"])\n+def delete_memory(memory_id):\n+    if memory_id not in _MEMORIES:\n+        return _json({\"message\": f\"Memory {memory_id} not found\"}, status=404)\n+    _MEMORIES.pop(memory_id, None)\n+    _RECORDS.pop(memory_id, None)\n+    return _json({\"memoryId\": memory_id, \"status\": \"DELETING\"})\n+\n+\n+# Data plane ----------------------------------------------------------------\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchCreate\", methods=[\"POST\"])\n+def batch_create_memory_records(memory_id):\n+    if memory_id not in _MEMORIES:\n+        return _json({\"message\": f\"Memory {memory_id} not found\"}, status=404)\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS[memory_id]\n+    successful = []\n+    for rec in records:\n+        record_id = _next_record_id()\n+        store.append({\"memoryRecordId\": record_id, \"content\": rec.get(\"content\", {})})\n+        successful.append({\n+            \"memoryRecordId\": record_id,\n+            \"status\": \"SUCCEEDED\",\n+            \"requestIdentifier\": rec.get(\"requestIdentifier\", \"\"),\n+        })\n+    return _json({\"successfulRecords\": successful, \"failedRecords\": []}, status=201)\n+\n+\n+@bp.route(\"/memories/<memory_id>/memoryRecords/batchUpdate\", methods=[\"POST\"])\n+def batch_update_memory_records(memory_id):\n+    if memory_id not in _MEMORIES:\n+        return _json({\"message\": f\"Memory {memory_id} not found\"}, status=404)\n+    body = request.get_json(silent=True) or {}\n+    records = body.get(\"records\", [])\n+    store = _RECORDS[memory_id]\n+    by_id = {r[\"memoryRecordId\"]: r for r in store}\n+    successful = []\n+    failed = []\n+    for rec in records:\n+        record_id = rec[\"memoryRecordId\"]\n+        if record_id in by_id:\n+            by_id[record_id][\"content\"] = rec.get(\"content\", by_id[record_id].get(\"content\", {}))\n+            successful.append({\"memoryRecordId\": record_id, \"status\": \"SUCCEEDED\"})\n+        else:\n+            failed.append({\n+                \"memoryRecordId\": record_id,\n+                \"status\": \"FAILED\",\n+                \"errorCode\": 404,\n+                \"errorMessage\": f\"Memory record {record_id} not found\",\n+            })\n+    return _json({\"successfulRecords\": successful, \"failedRecords\": failed})\n+\n+\n+@bp.route(\"/memories/<memory_id>/retrieve\", methods=[\"POST\"])\n+def retrieve_memory_records(memory_id):\n+    body = request.get_json(silent=True) or {}\n+    criteria = body.get(\"searchCriteria\", {})\n+    top_k = criteria.get(\"topK\", 5)\n+    namespace = body.get(\"namespace\", \"/\")\n+    store = _RECORDS.get(memory_id, [])",
+      "id": "PRRT_kwDOSUeMrM6CL6sP",
+      "opened": "2026-05-14T20:50:45Z",
+      "path": "reference/src/semconv_genai/mock_server/bedrock_agentcore.py",
+      "replies": [
+        {
+          "at": "2026-05-14T21:03:01Z",
+          "body": "Done in b30f50b. The retrieve route now returns 404 when `memoryId` is not in `_MEMORIES`, consistent with the other data-plane endpoints.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244266356"
+        }
+      ],
+      "reviewed": "9883f060f5f628a7ea98ef661d49fcb27ced5b65",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244202715"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says the Google ADK scenario adds create/update/search memory span coverage, but this implementation emits `upsert_memory` and `search_memory` only. Please either update the description to match the implemented ADK coverage or add the intended create/update spans if those are expected.",
+      "created": "2026-05-14T21:10:22Z",
+      "hunk": "@@ -288,6 +288,89 @@ async def _run():\n         asyncio.run(_run())\n \n \n+def run_memory_reference():\n+    \"\"\"Scenario: Google ADK memory add/search with reference implementation.\"\"\"\n+    from google.adk.events.event import Event\n+    from google.adk.memory.in_memory_memory_service import InMemoryMemoryService\n+    from google.adk.sessions.session import Session\n+    from google.genai import types\n+\n+    print(\"  [memory] ADK in-memory memory service (reference implementation)\")\n+\n+    app_name = \"test_app\"\n+    user_id = \"test_user\"\n+    session_id = \"session_memory_1\"\n+    # `derivable`: ADK's InMemoryMemoryService keys its internal store on\n+    # (app_name, user_id), so this tuple is the library's own scope unit\n+    # for memory storage and retrieval.\n+    store_id = f\"{app_name}/{user_id}\"\n+    memory_text = \"User prefers vegetarian meals and dark mode.\"\n+    query_text = \"vegetarian meals\"\n+\n+    async def _run():\n+        # ADK's InMemoryMemoryService has no public store-lifecycle API and\n+        # produces no store identifier at construction, so create_memory_store\n+        # is an honest capture gap for this library. The operation is covered\n+        # by reference/scenarios/aws-bedrock-agentcore/ where the returned\n+        # memoryId is captured directly.\n+        memory_service = InMemoryMemoryService()\n+\n+        event = Event(\n+            author=\"user\",\n+            content=types.Content(role=\"user\", parts=[types.Part(text=memory_text)]),\n+        )\n+        session = Session(\n+            id=session_id,\n+            app_name=app_name,\n+            user_id=user_id,\n+            events=[event],\n+        )\n+        memory_records = json.dumps(\n+            [\n+                {\n+                    \"content\": memory_text,\n+                    \"id\": event.id,\n+                    \"metadata\": {\"author\": event.author, \"session_id\": session.id},\n+                }\n+            ]\n+        )\n+\n+        upsert_span_attributes = {\n+            \"gen_ai.operation.name\": \"upsert_memory\",\n+            \"gen_ai.memory.store.id\": store_id,",
+      "id": "PRRT_kwDOSUeMrM6CMMEr",
+      "opened": "2026-05-14T21:10:23Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-14T21:18:24Z",
+          "body": "Updated the PR description to accurately reflect the ADK scenario: it emits `upsert_memory` and `search_memory` (matching ADK's `add_session_to_memory` / `search_memory` API), and the AWS Bedrock AgentCore scenario added in this PR covers the separate `create_memory` / `update_memory` / `delete_memory` / store-lifecycle spans. `upsert_memory` is a registered operation in `model/gen-ai/registry.yaml`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244339646"
+        }
+      ],
+      "reviewed": "f6d8a5cc7467f64c12dae518559db1ae2f9af7f2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3244301706"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I don't think this is necessary, other models don't have it and they don't have any default value in the schema \n\nhttps://github.com/open-telemetry/semantic-conventions-genai/blob/5badfb2ab6b41558144a80614eaeaa067316bf58/docs/gen-ai/gen-ai-retrieval-documents.json#L12-L16",
+      "created": "2026-05-18T20:41:40Z",
+      "hunk": "@@ -470,6 +470,58 @@\n     \"with open(\\\"../gen-ai-retrieval-documents.json\\\", \\\"w\\\") as file:\\n\",\n     \"    print(json.dumps(RetrievalDocuments.model_json_schema(), indent=4), file=file)\"\n    ]\n+  },\n+  {\n+   \"cell_type\": \"markdown\",\n+   \"id\": \"97a281409ca9a7d8\",\n+   \"metadata\": {},\n+   \"source\": [\n+    \"## `gen_ai.memory.records` model\\n\",\n+    \"\\n\",\n+    \"Corresponding attribute: [`gen_ai.memory.records`](/docs/registry/attributes/gen-ai.md#gen-ai-memory-records).\\n\",\n+    \"JSON schema: [`gen-ai-memory-records.json`](../gen-ai-memory-records.json)\"\n+   ]\n+  },\n+  {\n+   \"cell_type\": \"code\",\n+   \"execution_count\": null,\n+   \"id\": \"94727515ec414a9f\",\n+   \"metadata\": {},\n+   \"outputs\": [],\n+   \"source\": [\n+    \"def omit_default(schema: dict[str, Any]) -> None:\\n\",",
+      "id": "PRRT_kwDOSUeMrM6C9x-U",
+      "opened": "2026-05-18T21:08:21Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [],
+      "reviewed": "5badfb2ab6b41558144a80614eaeaa067316bf58",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3261991845"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, readability improvement\n\n```suggestion\n      - ref: gen_ai.operation.name\n        requirement_level: required\n      - ref_group: attributes.gen_ai.address_and_port\n      - ref_group: attributes.gen_ai.error\n```\n\nand remove `attributes.gen_ai.memory.client`",
+      "created": "2026-05-18T21:04:46Z",
+      "hunk": "@@ -295,6 +303,55 @@ spans:\n         requirement_level:\n           conditionally_required: when applicable\n \n+  - type: gen_ai.memory.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`.\n+    brief: >\n+      Describes a memory operation, including memory store lifecycle operations and memory record operations.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be one of `create_memory_store`, `search_memory`, `create_memory`,\n+      `update_memory`, `upsert_memory`, `delete_memory`, or `delete_memory_store`.\n+\n+      `create_memory_store` and `delete_memory_store` cover memory store lifecycle operations.\n+      `create_memory`, `update_memory`, `upsert_memory`, `search_memory`, and `delete_memory`\n+      cover memory record operations.\n+\n+      Use `create_memory` when the caller requests creation of new memory records.\n+      Use `update_memory` when the caller requests modification of known existing memory records.\n+      Use `upsert_memory` when the caller invokes a public API that may create, update, or consolidate\n+      memory records without the caller choosing which.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name}`.\n+\n+      **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n+      calls to memory systems running in the same process. It's RECOMMENDED to use `CLIENT` kind\n+      when the memory system being instrumented usually runs in a different process than its\n+      client or when the memory call happens over instrumented protocol such as HTTP.\n+\n+      For `delete_memory`, lack of `gen_ai.memory.record.id` may indicate that\n+      the operation intends to delete all memory records in the specified store.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.memory.client",
+      "id": "PRRT_kwDOSUeMrM6C-LHR",
+      "opened": "2026-05-18T21:08:21Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "5badfb2ab6b41558144a80614eaeaa067316bf58",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/140#discussion_r3262137031"
+    }
+  ]
+}

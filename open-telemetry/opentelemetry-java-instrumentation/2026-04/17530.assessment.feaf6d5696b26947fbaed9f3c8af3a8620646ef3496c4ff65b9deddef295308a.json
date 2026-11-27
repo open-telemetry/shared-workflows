@@ -1,0 +1,30 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9316c8a3f634e5a66623ed2b67d108ed527c05000af7755e711d936db2e1cfaf",
+  "input_digest": "feaf6d5696b26947fbaed9f3c8af3a8620646ef3496c4ff65b9deddef295308a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ca95892ab0c9a283c4a798fed0df4c279d56237/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ca95892ab0c9a283c4a798fed0df4c279d56237/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryProducerInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ca95892ab0c9a283c4a798fed0df4c279d56237/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaPropagation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0e10a9bbf7d3eec20640bd6ab2fff31a68f19ce1/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0e10a9bbf7d3eec20640bd6ab2fff31a68f19ce1/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryProducerInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0e10a9bbf7d3eec20640bd6ab2fff31a68f19ce1/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaPropagation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eb17d42877cee7a242262d58119c5ca2c89e3b7c"
+      ],
+      "id": "PRRT_kwDODJKVX855BSky",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX855BT24",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "1bb5e0e89827e1624cfce6ac279e0b84c44422e1",
+  "merge": "178530b706bb25ac988b07cd89b4a8bfab68284d",
+  "merged": "2026-05-11T14:45:23Z",
+  "missing_roots": 0,
+  "number": 18263,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In this metric point assertion, `hasAttributesSatisfying(...)` is weaker than the other `messaging.receive.messages` assertions in this test suite (which use `hasAttributesSatisfyingExactly(...)`) and it also no longer asserts the `messaging.operation=receive` attribute. This can allow the test to pass even if the instrumentation sets unexpected/wrong attributes for the point. Consider switching to the exact attribute assertion and include `MESSAGING_OPERATION` alongside destination/system/server attributes (consistent with the other tests in this module).\n",
+      "created": "2026-05-11T03:05:01Z",
+      "hunk": "@@ -680,29 +680,16 @@ void testConsumePartitionedTopicUsingBatchReceive() throws Exception {\n                     .hasUnit(\"{message}\")\n                     .hasDescription(\"Measures the number of received messages.\")\n                     .hasLongSumSatisfying(\n-                        sum -> {\n-                          sum.satisfies(\n-                              pointData -> {\n-                                pointData\n-                                    .getPoints()\n-                                    .forEach(\n-                                        p -> {\n-                                          assertThat(p.getValue()).isPositive();\n-                                          if (p.getValue() == receivedMsg.size()) {\n-                                            assertThat(\n-                                                    p.getAttributes()\n-                                                        .get(MESSAGING_DESTINATION_NAME))\n-                                                .isEqualTo(topic);\n-                                            assertThat(p.getAttributes().get(MESSAGING_SYSTEM))\n-                                                .isEqualTo(\"pulsar\");\n-                                            assertThat(p.getAttributes().get(SERVER_PORT))\n-                                                .isEqualTo(brokerPort);\n-                                            assertThat(p.getAttributes().get(SERVER_ADDRESS))\n-                                                .isEqualTo(brokerHost);\n-                                          }\n-                                        });\n-                              });\n-                        }));\n+                        sum ->\n+                            sum.containsPointsSatisfying(\n+                                point ->\n+                                    point\n+                                        .hasValueSatisfying(v -> v.isEqualTo(receivedMsg.size()))\n+                                        .hasAttributesSatisfying(\n+                                            equalTo(MESSAGING_DESTINATION_NAME, topic),",
+      "id": "PRRT_kwDODJKVX86A9XZr",
+      "opened": "2026-05-11T03:05:01Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientTest.java",
+      "replies": [],
+      "reviewed": "067903ab8a5d34897f7639c0944991a206a6c14f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18263#discussion_r3216147737"
+    }
+  ]
+}

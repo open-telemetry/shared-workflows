@@ -1,0 +1,151 @@
+{
+  "head": "a5a26982cad00d8b6d635195ba2b649fb7ebee33",
+  "merge": "6d6168b9a4b26f3ac0d8f89fa4a4d828b2d6ed49",
+  "merged": "2026-07-13T17:49:27Z",
+  "missing_roots": 0,
+  "number": 260,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The ADK suppression check looks for the literal substring \"opentelemetry/instrumentation/google_genai\" in `__code__.co_filename` (with forward slashes). Setting `co_filename=__file__` can use backslashes on Windows, so ADK (and this package’s own test) would fail to detect the instrumentation there. Also, assigning `__wrapped__.__code__` can raise `AttributeError`/`TypeError` if the wrapped target is not a pure Python function (e.g., user monkey-patched a callable without `__code__`), which would make `instrument()` fail for a best-effort compatibility tweak.",
+      "created": "2026-07-13T15:53:35Z",
+      "hunk": "@@ -804,36 +804,48 @@ def instrument_generate_content(\n ) -> object:\n     os.environ[\"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\"] = \"true\"\n     snapshot = _MethodsSnapshot()\n-    wrap_function_wrapper(\n+    wrapped = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"Models.generate_content\",\n         _create_instrumented_generate_content(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n-    wrap_function_wrapper(\n+    wrapped2 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"Models.generate_content_stream\",\n         _create_instrumented_generate_content_stream(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n-    wrap_function_wrapper(\n+    wrapped3 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"AsyncModels.generate_content\",\n         _create_instrumented_async_generate_content(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n-    wrap_function_wrapper(\n+    wrapped4 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"AsyncModels.generate_content_stream\",\n         _create_instrumented_async_generate_content_stream(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n+    wrapped.__wrapped__.__code__ = wrapped.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )\n+    wrapped2.__wrapped__.__code__ = wrapped2.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )\n+    wrapped3.__wrapped__.__code__ = wrapped3.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )\n+    wrapped4.__wrapped__.__code__ = wrapped4.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )",
+      "id": "PRRT_kwDOSbspP86Qc7uN",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098037"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "ADK’s suppression check matches against forward-slash paths, so `co_filename=__file__` may not work on Windows. Also, mutating `__wrapped__.__code__` should be best-effort with a guard to avoid breaking `instrument()` when the underlying callable doesn’t expose a replaceable `__code__`.",
+      "created": "2026-07-13T15:53:35Z",
+      "hunk": "@@ -392,14 +392,20 @@ def instrument_interactions(\n         sync_class = \"Interactions\"\n         async_class = \"AsyncInteractions\"\n \n-    wrap_function_wrapper(\n+    wrapped = wrap_function_wrapper(\n         module_path,\n         f\"{sync_class}.create\",\n         _create_instrumented_interactions_create(telemetry_handler),\n     )\n-    wrap_function_wrapper(\n+    wrapped.__wrapped__.__code__ = wrapped.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )",
+      "id": "PRRT_kwDOSbspP86Qc7v4",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098158"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as generate_content: ADK’s check uses forward slashes in the substring match, so `co_filename=__file__` can break on Windows. Additionally, the `__wrapped__.__code__` assignment should be guarded so instrumentation doesn’t crash if the target lacks a mutable `__code__` (e.g., non-Python callables).",
+      "created": "2026-07-13T15:53:35Z",
+      "hunk": "@@ -150,17 +150,22 @@ def instrument_embeddings(\n ) -> object:\n     snapshot = _EmbeddingMethodsSnapshot()\n \n-    wrap_function_wrapper(\n+    wrapped = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"Models.embed_content\",\n         _create_instrumented_embed_content(telemetry_handler),\n     )\n-    wrap_function_wrapper(\n+    wrapped2 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"AsyncModels.embed_content\",\n         _create_instrumented_async_embed_content(telemetry_handler),\n     )\n-\n+    wrapped.__wrapped__.__code__ = wrapped.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )\n+    wrapped2.__wrapped__.__code__ = wrapped2.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )",
+      "id": "PRRT_kwDOSbspP86Qc7vN",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/embeddings.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098106"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test currently (1) assumes POSIX-style path separators in `co_filename` and (2) calls `instrument()` without isolating environment changes. ADK’s check is explicitly forward-slash based, so the test should normalize `co_filename` before asserting. Also, `instrument()` sets env vars (e.g. `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`) that won’t be restored here, which can leak into other tests.",
+      "created": "2026-07-13T15:53:36Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for GoogleGenAiSdkInstrumentor.\"\"\"\n+\n+from google.genai.models import AsyncModels, Models\n+\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+\n+\n+def _get_interaction_classes():\n+    try:\n+        from google.genai._interactions.resources.interactions import (\n+            AsyncInteractionsResource,\n+            InteractionsResource,\n+        )\n+\n+        return InteractionsResource, AsyncInteractionsResource\n+    except ImportError:\n+        from google.genai._gaos.interactions import (\n+            AsyncInteractions,\n+            Interactions,\n+        )\n+\n+        return Interactions, AsyncInteractions\n+\n+\n+def test_co_filename_on_wrapped_functions():\n+    # ADK is relying on the __code__ attribute to suppress their instrumentation:\n+    # https://github.com/google/adk-python/blob/0d4d3783f7825a620c95a7b9dca919db790b879f/src/google/adk/telemetry/tracing.py#L650\n+    instrumentor = GoogleGenAiSdkInstrumentor()\n+    instrumentor.instrument()\n+\n+    try:\n+        sync_interactions, async_interactions = _get_interaction_classes()\n+        wrapped_functions = [\n+            Models.generate_content,\n+            Models.generate_content_stream,\n+            AsyncModels.generate_content,\n+            AsyncModels.generate_content_stream,\n+            Models.embed_content,\n+            AsyncModels.embed_content,\n+            sync_interactions.create,\n+            async_interactions.create,\n+        ]\n+\n+        for func in wrapped_functions:\n+            assert (\n+                \"opentelemetry/instrumentation/google_genai\"\n+                in func.__code__.co_filename\n+            ), f\"Expected opentelemetry/instrumentation/google_genai in {func}.__code__.co_filename, got {func.__code__.co_filename}\"\n+    finally:\n+        instrumentor.uninstrument()",
+      "id": "PRRT_kwDOSbspP86Qc7w7",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098246"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test wrappers strip the first argument based on an `isinstance` check, which is brittle (e.g., if `client.models` is a proxy/subclass, the `self` argument won’t be removed and the assertions may start failing). Since these are only used as patched instance methods, it’s clearer and more robust to accept the bound `self` explicitly and forward the remaining args unchanged.",
+      "created": "2026-07-13T15:53:36Z",
+      "hunk": "@@ -42,8 +42,18 @@ def setUp(self):\n             return_value=self.mock_response\n         )\n \n-        Models.embed_content = self.embed_content_mock\n-        AsyncModels.embed_content = self.async_embed_content_mock\n+        def _sync_embed_wrapped(*args, **kwargs):\n+            if args and isinstance(args[0], (Models, AsyncModels)):\n+                args = args[1:]\n+            return self.embed_content_mock(*args, **kwargs)\n+\n+        async def _async_embed_wrapped(*args, **kwargs):\n+            if args and isinstance(args[0], (Models, AsyncModels)):\n+                args = args[1:]\n+            return await self.async_embed_content_mock(*args, **kwargs)\n+\n+        Models.embed_content = _sync_embed_wrapped\n+        AsyncModels.embed_content = _async_embed_wrapped",
+      "id": "PRRT_kwDOSbspP86Qc7wb",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/embeddings/test_embeddings.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098204"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Mutating `wrapped.__wrapped__.__code__` here permanently changes the original google-genai function object (the same one stored in `_MethodsSnapshot`). `uninstrument_generate_content()` restores the function object reference, but it won’t restore the original `__code__.co_filename`, so after `uninstrument()` ADK may still think the library is instrumented (and suppress its own telemetry) even though instrumentation has been removed.",
+      "created": "2026-07-13T15:53:36Z",
+      "hunk": "@@ -804,36 +804,48 @@ def instrument_generate_content(\n ) -> object:\n     os.environ[\"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\"] = \"true\"\n     snapshot = _MethodsSnapshot()\n-    wrap_function_wrapper(\n+    wrapped = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"Models.generate_content\",\n         _create_instrumented_generate_content(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n-    wrap_function_wrapper(\n+    wrapped2 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"Models.generate_content_stream\",\n         _create_instrumented_generate_content_stream(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n-    wrap_function_wrapper(\n+    wrapped3 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"AsyncModels.generate_content\",\n         _create_instrumented_async_generate_content(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n-    wrap_function_wrapper(\n+    wrapped4 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"AsyncModels.generate_content_stream\",\n         _create_instrumented_async_generate_content_stream(\n             telemetry_handler,\n             generate_content_config_key_allowlist,\n         ),\n     )\n+    wrapped.__wrapped__.__code__ = wrapped.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )",
+      "id": "PRRT_kwDOSbspP86Qc7xR",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098271"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Like generate_content, this modifies the original `Models.embed_content` / `AsyncModels.embed_content` function objects’ `__code__`. `_EmbeddingMethodsSnapshot.restore()` will restore the function references but not their original code objects, so `uninstrument()` won’t fully revert the change and external suppression logic could still treat the library as instrumented.",
+      "created": "2026-07-13T15:53:36Z",
+      "hunk": "@@ -150,17 +150,22 @@ def instrument_embeddings(\n ) -> object:\n     snapshot = _EmbeddingMethodsSnapshot()\n \n-    wrap_function_wrapper(\n+    wrapped = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"Models.embed_content\",\n         _create_instrumented_embed_content(telemetry_handler),\n     )\n-    wrap_function_wrapper(\n+    wrapped2 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"AsyncModels.embed_content\",\n         _create_instrumented_async_embed_content(telemetry_handler),\n     )\n-\n+    wrapped.__wrapped__.__code__ = wrapped.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )",
+      "id": "PRRT_kwDOSbspP86Qc7xq",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/embeddings.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098306"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `__code__` mutation affects the original interaction `create` callables. Since the snapshot only restores the original function references, `uninstrument()` will not restore the original code objects / filenames, leaving the google-genai SDK mutated after instrumentation is removed.",
+      "created": "2026-07-13T15:53:37Z",
+      "hunk": "@@ -392,14 +392,20 @@ def instrument_interactions(\n         sync_class = \"Interactions\"\n         async_class = \"AsyncInteractions\"\n \n-    wrap_function_wrapper(\n+    wrapped = wrap_function_wrapper(\n         module_path,\n         f\"{sync_class}.create\",\n         _create_instrumented_interactions_create(telemetry_handler),\n     )\n-    wrap_function_wrapper(\n+    wrapped.__wrapped__.__code__ = wrapped.__wrapped__.__code__.replace(\n+        co_filename=__file__\n+    )",
+      "id": "PRRT_kwDOSbspP86Qc7yI",
+      "opened": "2026-07-13T15:53:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [],
+      "reviewed": "2fbf63eabf1ba6c03bc65cc66e8b477efbff06b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572098347"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you please leave a comment explaining that this magic incantations are used by native ADK instrumentation and are necessary? Thanks!",
+      "created": "2026-07-13T16:06:31Z",
+      "hunk": "@@ -150,17 +150,22 @@ def instrument_embeddings(\n ) -> object:\n     snapshot = _EmbeddingMethodsSnapshot()\n \n-    wrap_function_wrapper(\n+    wrapped = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"Models.embed_content\",\n         _create_instrumented_embed_content(telemetry_handler),\n     )\n-    wrap_function_wrapper(\n+    wrapped2 = wrap_function_wrapper(\n         \"google.genai.models\",\n         \"AsyncModels.embed_content\",\n         _create_instrumented_async_embed_content(telemetry_handler),\n     )\n-\n+    wrapped.__wrapped__.__code__ = wrapped.__wrapped__.__code__.replace(",
+      "id": "PRRT_kwDOSbspP86QdMbR",
+      "opened": "2026-07-13T16:06:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/embeddings.py",
+      "replies": [
+        {
+          "at": "2026-07-13T16:37:42Z",
+          "body": "Ack done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572418575"
+        }
+      ],
+      "reviewed": "f200a44278c3d0460975ecad575df6c7a9f50896",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/260#discussion_r3572194048"
+    }
+  ]
+}

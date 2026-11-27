@@ -1,0 +1,31 @@
+{
+  "head": "242e36927eb24689b2091d068bc33aa3e0970713",
+  "merge": "e38c1fea883406f9966e85eea227a14d28e8a65e",
+  "merged": "2026-05-12T15:21:46Z",
+  "missing_roots": 0,
+  "number": 18667,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "another option that we have used is to register the extension in the child class and expose it through implementing an abstract method method e.g. https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b950aefccdea73e559094d057a4b4e3139678040/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractOpenAiTest.java#L45 Though usually this is used when there are both library and agent tests using the same abstract class.",
+      "created": "2026-05-12T07:53:19Z",
+      "hunk": "@@ -77,6 +77,36 @@\n - If the test intentionally closes the resource mid-test or asserts behavior around explicit\n   close, keep the direct close or try-with-resources in the test body.\n \n+## Abstract Test Base Classes — Per-Class State Goes On Instance Fields\n+\n+When an abstract test base is shared by multiple concrete subclasses run in the same JVM",
+      "id": "PRRT_kwDODJKVX86BVVNf",
+      "opened": "2026-05-12T07:53:19Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [
+        {
+          "at": "2026-05-12T15:21:40Z",
+          "body": "thanks, i'm going to merge and then will look at this as a follow-up",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18667#discussion_r3227655284"
+        }
+      ],
+      "reviewed": "242e36927eb24689b2091d068bc33aa3e0970713",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18667#discussion_r3224655091"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "cd872207e12eb9517ec560a892ee5df7e281f96c",
+  "merge": "11a15c7a4255b22f8df3bb74761879edb58a5900",
+  "merged": "2026-07-08T18:01:26Z",
+  "missing_roots": 0,
+  "number": 18975,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`@DisplayName` and the test method name still refer to a removed `desc`/remove scenario, which can make parameterized output confusing now that cases are named via `Arguments.argumentSet(...)`. Consider renaming the method and updating the display name to match the replace behavior being tested.",
+      "created": "2026-06-12T11:59:31Z",
+      "hunk": "@@ -125,10 +124,10 @@ void accept(\n \n   // regression test for\n   //   https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/4040\n-  @ParameterizedTest(name = \"{0}\")\n+  @ParameterizedTest\n   @MethodSource(\"replaceMethodProvider\")\n   @DisplayName(\"Test remove our handler\")\n-  void testReplaceHandlerDesc(String desc, ReplaceMethod replaceMethod) {\n+  void testReplaceHandlerDesc(ReplaceMethod replaceMethod) {",
+      "id": "PRRT_kwDODJKVX86JHnK3",
+      "opened": "2026-06-12T11:59:32Z",
+      "path": "instrumentation/netty/netty-4.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/netty/v4_1/ChannelPipelineTest.java",
+      "replies": [
+        {
+          "at": "2026-07-02T15:33:15Z",
+          "body": "Done in 40fd0cf344 — I renamed the replace test and updated the display name to match the behavior under test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3514282511"
+        }
+      ],
+      "reviewed": "896f939d0f37a3906aed54cddd26dfbccd76f912",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3403171949"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The file discovery step only matches the exact substring `@ParameterizedTest(name = \"{0}\")`, so it will miss equivalent annotations with different whitespace/formatting (even though `parse_old_pattern_tests()` itself supports flexible spacing). Using a regex here makes the script more robust for future runs.",
+      "created": "2026-06-12T11:59:32Z",
+      "hunk": "@@ -0,0 +1,316 @@\n+#!/usr/bin/env python3\n+\"\"\"\n+Migrates @ParameterizedTest(name = \"{0}\") + String-name-first-param pattern\n+to Arguments.argumentSet() pattern.\n+\n+For each test method with @ParameterizedTest(name = \"{0}\") + @MethodSource:\n+1. Changes annotation to @ParameterizedTest\n+2. Removes the first String parameter from the test method signature\n+3. Changes Arguments.of(STRING_LIT, ...) and arguments(STRING_LIT, ...)\n+   to Arguments.argumentSet(STRING_LIT, ...) inside the provider method\n+4. Removes the static import for Arguments.arguments if no longer used\n+\"\"\"\n+\n+import re\n+import sys\n+import argparse\n+from pathlib import Path\n+\n+\n+# ---------------------------------------------------------------------------\n+# Brace / paren matching helpers\n+# ---------------------------------------------------------------------------\n+\n+def _skip_string(text, pos):\n+    \"\"\"Assuming text[pos] == '\"', return index past the closing '\"'.\"\"\"\n+    i = pos + 1\n+    while i < len(text):\n+        c = text[i]\n+        if c == '\\\\':\n+            i += 2\n+            continue\n+        if c == '\"':\n+            return i + 1\n+        i += 1\n+    return i\n+\n+\n+def _skip_char_literal(text, pos):\n+    \"\"\"Assuming text[pos] == \"'\", return index past the closing \"'\".\"\"\"\n+    i = pos + 1\n+    while i < len(text):\n+        c = text[i]\n+        if c == '\\\\':\n+            i += 2\n+            continue\n+        if c == \"'\":\n+            return i + 1\n+        i += 1\n+    return i\n+\n+\n+def matching_brace(text, open_pos):\n+    \"\"\"Given position of '{', return index just past the matching '}'.\"\"\"\n+    assert text[open_pos] == '{'\n+    depth = 1\n+    i = open_pos + 1\n+    while i < len(text) and depth > 0:\n+        c = text[i]\n+        if c == '\"':\n+            i = _skip_string(text, i)\n+        elif c == \"'\":\n+            i = _skip_char_literal(text, i)\n+        elif c == '{':\n+            depth += 1\n+            i += 1\n+        elif c == '}':\n+            depth -= 1\n+            i += 1\n+        else:\n+            i += 1\n+    return i\n+\n+\n+def matching_paren(text, open_pos):\n+    \"\"\"Given position of '(', return index just past the matching ')'.\"\"\"\n+    assert text[open_pos] == '('\n+    depth = 1\n+    i = open_pos + 1\n+    while i < len(text) and depth > 0:\n+        c = text[i]\n+        if c == '\"':\n+            i = _skip_string(text, i)\n+        elif c == \"'\":\n+            i = _skip_char_literal(text, i)\n+        elif c == '(':\n+            depth += 1\n+            i += 1\n+        elif c == ')':\n+            depth -= 1\n+            i += 1\n+        else:\n+            i += 1\n+    return i\n+\n+\n+# ---------------------------------------------------------------------------\n+# Find provider method body\n+# ---------------------------------------------------------------------------\n+\n+def find_provider_body(text, provider_name):\n+    \"\"\"Return (brace_start, brace_end) of provider method body, or (None, None).\"\"\"\n+    pattern = re.compile(rf'\\b{re.escape(provider_name)}\\s*\\(')\n+    for match in pattern.finditer(text):\n+        pos = match.start()\n+\n+        # Look back to start of the line (and one previous line) for return type\n+        line_start = text.rfind('\\n', 0, pos) + 1\n+        prev_end = line_start - 1 if line_start > 0 else 0\n+        prev_start = text.rfind('\\n', 0, prev_end) + 1\n+        context = text[prev_start:pos]\n+\n+        # Must return Stream<Arguments> or List<Arguments>\n+        if not re.search(r'(Stream|List)\\s*<\\s*Arguments', context):\n+            continue\n+\n+        # Find matching ) then first {\n+        paren_end = matching_paren(text, match.end() - 1)\n+        rest = text[paren_end:]\n+        brace_rel = rest.find('{')\n+        if brace_rel == -1:\n+            continue\n+        # Ensure no ; before { (would be abstract/interface)\n+        if ';' in rest[:brace_rel]:\n+            continue\n+        brace_start = paren_end + brace_rel\n+        brace_end = matching_brace(text, brace_start)\n+        return brace_start, brace_end\n+\n+    return None, None\n+\n+\n+# ---------------------------------------------------------------------------\n+# Transform provider method\n+# ---------------------------------------------------------------------------\n+\n+def transform_provider(text, provider_name):\n+    start, end = find_provider_body(text, provider_name)\n+    if start is None:\n+        print(f'  WARNING: provider method not found: {provider_name!r}')\n+        return text\n+\n+    segment = text[start:end]\n+\n+    # Arguments.of(WHITESPACE? STRING_LIT → Arguments.argumentSet(WHITESPACE? STRING_LIT\n+    segment = re.sub(\n+        r'Arguments\\.of\\((\\s*)(\"(?:[^\"\\\\]|\\\\.)*\")',\n+        r'Arguments.argumentSet(\\1\\2',\n+        segment,\n+    )\n+\n+    # arguments(WHITESPACE? STRING_LIT → Arguments.argumentSet(WHITESPACE? STRING_LIT\n+    # (static-import form)\n+    segment = re.sub(\n+        r'(?<!\\.)(\\barguments)\\((\\s*)(\"(?:[^\"\\\\]|\\\\.)*\")',\n+        r'Arguments.argumentSet(\\2\\3',\n+        segment,\n+    )\n+\n+    if segment != text[start:end]:\n+        print(f'  Transformed provider: {provider_name!r}')\n+\n+    return text[:start] + segment + text[end:]\n+\n+\n+# ---------------------------------------------------------------------------\n+# Remove first String param from test method\n+# ---------------------------------------------------------------------------\n+\n+def remove_first_string_param(text, method_name):\n+    \"\"\"Remove the leading String parameter (possibly annotated) from a method.\"\"\"\n+    # Find: void methodName( or: ) methodName( for return-type-on-prev-line cases\n+    pattern = re.compile(rf'\\bvoid\\s+{re.escape(method_name)}\\s*\\(')\n+    match = pattern.search(text)\n+    if not match:\n+        print(f'  WARNING: test method not found: {method_name!r}')\n+        return text\n+\n+    paren_start = text.index('(', match.start())\n+    paren_end = matching_paren(text, paren_start)  # one past ')'\n+    params = text[paren_start + 1 : paren_end - 1]\n+\n+    # Remove first param: optional @Annotation(...)  String varname  optional comma+whitespace\n+    first_param_re = re.compile(\n+        r'^(\\s*)'                              # leading whitespace (preserve indent)\n+        r'(?:@\\w+(?:\\s*\\([^)]*\\))?\\s+)*'      # zero or more annotations\n+        r'String\\s+\\w+\\s*'                    # String varname\n+        r',?\\s*',                              # optional comma + trailing space/newline\n+        re.DOTALL,\n+    )\n+    new_params, n = first_param_re.subn(r'\\1', params, count=1)\n+    if n == 0:\n+        print(f'  WARNING: String param not found in: {method_name!r}')\n+        return text\n+\n+    print(f'  Removed String param from: {method_name!r}')\n+    return text[:paren_start + 1] + new_params + text[paren_end - 1:]\n+\n+\n+# ---------------------------------------------------------------------------\n+# Parse which tests use the old pattern\n+# ---------------------------------------------------------------------------\n+\n+def parse_old_pattern_tests(text):\n+    \"\"\"Return list of (annotation_pos, provider_name, test_method_name).\n+\n+    annotation_pos is the start position of the @ParameterizedTest(...) match so\n+    we can do targeted (not global) annotation replacement.\n+    \"\"\"\n+    results = []\n+    old_annotation = re.compile(r'@ParameterizedTest\\s*\\(\\s*name\\s*=\\s*\"\\{0\\}\"\\s*\\)')\n+    for ann_match in old_annotation.finditer(text):\n+        snippet = text[ann_match.end() : ann_match.end() + 600]\n+\n+        # Must have @MethodSource (not @CsvSource etc.)\n+        ms_match = re.search(r'@MethodSource(?:\\s*\\(\\s*\"([^\"]*)\"\\s*\\))?', snippet)\n+        if not ms_match:\n+            continue\n+\n+        provider_arg = ms_match.group(1)  # None for bare @MethodSource\n+\n+        # Find the test method name\n+        method_match = re.search(r'\\bvoid\\s+(\\w+)\\s*\\(', snippet)\n+        if not method_match:\n+            continue\n+\n+        test_name = method_match.group(1)\n+        provider_name = provider_arg if provider_arg else test_name\n+        results.append((ann_match.start(), ann_match.end(), provider_name, test_name))\n+\n+    return results\n+\n+\n+# ---------------------------------------------------------------------------\n+# Main file transformation\n+# ---------------------------------------------------------------------------\n+\n+def transform_file(path, dry_run):\n+    text = path.read_text(encoding='utf-8')\n+    original = text\n+\n+    tests = parse_old_pattern_tests(text)\n+    if not tests:\n+        return False\n+\n+    print(f'\\n{path}')\n+    for _a, _b, provider, test in tests:\n+        print(f'  Found: test={test!r}  provider={provider!r}')\n+\n+    # 1. Replace only the @ParameterizedTest(name=\"{0}\") annotations that have @MethodSource.\n+    # Work backwards so character positions stay valid.\n+    for ann_start, ann_end, _provider, _test in reversed(tests):\n+        text = text[:ann_start] + '@ParameterizedTest' + text[ann_end:]\n+\n+    # 2. Remove first String param from each test method\n+    for _a, _b, _provider, test_name in tests:\n+        text = remove_first_string_param(text, test_name)\n+\n+    # 3. Transform provider methods (deduplicated)\n+    seen = set()\n+    for _a, _b, provider_name, _test in tests:\n+        if provider_name not in seen:\n+            seen.add(provider_name)\n+            text = transform_provider(text, provider_name)\n+\n+    # 4. Remove static import for Arguments.arguments if now unused\n+    static_import = 'import static org.junit.jupiter.params.provider.Arguments.arguments;\\n'\n+    if static_import in text:\n+        # Look for bare arguments( not preceded by '.'\n+        if not re.search(r'(?<!\\.)(\\barguments\\()', text):\n+            text = text.replace(static_import, '')\n+            print('  Removed static import for Arguments.arguments')\n+\n+    if text == original:\n+        print('  No changes')\n+        return False\n+\n+    if dry_run:\n+        import difflib\n+        diff = difflib.unified_diff(\n+            original.splitlines(keepends=True),\n+            text.splitlines(keepends=True),\n+            fromfile=str(path),\n+            tofile=str(path),\n+            n=2,\n+        )\n+        sys.stdout.writelines(diff)\n+    else:\n+        path.write_text(text, encoding='utf-8')\n+        print('  Written')\n+\n+    return True\n+\n+\n+# ---------------------------------------------------------------------------\n+# Entry point\n+# ---------------------------------------------------------------------------\n+\n+def main():\n+    parser = argparse.ArgumentParser(description=__doc__)\n+    parser.add_argument('--dry-run', action='store_true', help='Print diff, do not write')\n+    parser.add_argument('root', nargs='?', default='.', help='Root directory to scan')\n+    args = parser.parse_args()\n+\n+    root = Path(args.root)\n+    target_files = [\n+        p for p in root.rglob('*.java')\n+        if '@ParameterizedTest(name = \"{0}\")' in p.read_text(encoding='utf-8', errors='ignore')\n+    ]",
+      "id": "PRRT_kwDODJKVX86JHnLi",
+      "opened": "2026-06-12T11:59:32Z",
+      "path": "scripts/migrate-parameterized-tests.py",
+      "replies": [
+        {
+          "at": "2026-07-02T15:33:28Z",
+          "body": "Good catch. I updated the discovery step in 40fd0cf344 to use the same regex shape as the parser, so it now handles whitespace and formatting variants too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3514283874"
+        }
+      ],
+      "reviewed": "896f939d0f37a3906aed54cddd26dfbccd76f912",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3403172000"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you add this to StaticImportFormatter.kt, so spotless will auto static import it?",
+      "created": "2026-06-12T15:35:40Z",
+      "hunk": "@@ -103,30 +102,30 @@ private static Stream<Arguments> parseRegularResourceArguments() {\n     KubernetesResource namedFooStatus =\n         new KubernetesResource(\"example.io\", \"v1alpha1\", \"foos\", \"status\", \"default\", \"foo\");\n     return Stream.of(\n-        arguments(\"cluster-scoped list\", \"/apis/apps/v1/deployments\", deploymentsList),\n-        arguments(\n+        Arguments.argumentSet(\"cluster-scoped list\", \"/apis/apps/v1/deployments\", deploymentsList),",
+      "id": "PRRT_kwDODJKVX86JLSCF",
+      "opened": "2026-06-12T15:36:04Z",
+      "path": "instrumentation/kubernetes-client-7.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/kubernetesclient/v7_0/KubernetesRequestUtilsTest.java",
+      "replies": [
+        {
+          "at": "2026-07-02T15:33:29Z",
+          "body": "Done in 40fd0cf344. I added `Arguments.argumentSet` to `StaticImportFormatter.kt`, and spotless rewrote the affected tests to use the static import automatically.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3514284026"
+        }
+      ],
+      "reviewed": "896f939d0f37a3906aed54cddd26dfbccd76f912",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3404485931"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess you used this script to create the PR? The question is whether it should be added to the repo. If it should then maybe it should be placed with other scripts in https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/.github/scripts ? Will we ever need to rerun this script?",
+      "created": "2026-07-03T16:04:36Z",
+      "hunk": "@@ -0,0 +1,317 @@\n+#!/usr/bin/env python3",
+      "id": "PRRT_kwDODJKVX86OPHkH",
+      "opened": "2026-07-03T16:04:36Z",
+      "path": "scripts/migrate-parameterized-tests.py",
+      "replies": [
+        {
+          "at": "2026-07-07T13:17:55Z",
+          "body": "good point - I'll remove it\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3536748282"
+        }
+      ],
+      "reviewed": "06f9f0f6d63178f13d52d08f900679266493587a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975#discussion_r3520924752"
+    }
+  ]
+}

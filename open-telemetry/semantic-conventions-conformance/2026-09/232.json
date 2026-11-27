@@ -1,0 +1,40 @@
+{
+  "head": "3f909338c92889042c1f883488d998be6e472c37",
+  "merge": "2f01e6e530b88ee5ec0320d78cec08b464b264ce",
+  "merged": "2026-09-21T23:08:31Z",
+  "missing_roots": 0,
+  "number": 232,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Regenerate and commit `scenarios/gen-ai/python/pydantic-ai/native/data.json` with Pydantic AI 2.46.0. Version 2.45.0 began reporting each agent run's token usage on its agent span, but the committed report still lists `gen_ai.usage.input_tokens` and `gen_ai.usage.output_tokens` as missing from `gen_ai.invoke_agent.internal`. The report is therefore stale, and the GenAI scenario check will detect the difference.",
+      "created": "2026-09-21T04:58:53Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"pydantic-ai-native-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"pydantic-ai-slim[openai]==2.44.0\",\n+    \"pydantic-ai-slim[openai]==2.46.0\",",
+      "id": "PRRT_kwDOTuzK5c6kPQG0",
+      "opened": "2026-09-21T04:58:53Z",
+      "path": "scenarios/gen-ai/python/pydantic-ai/native/pyproject.toml",
+      "replies": [],
+      "reviewed": "f27a622809f14e0f6c174681baf42eecb112d9d2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/232#discussion_r4059363339"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Regenerate and commit `scenarios/gen-ai/python/google-adk/native/data.json` for this upgrade. Google ADK 2.9.2 changes how OpenTelemetry event names are preserved outside Agent Engine; this native scenario runs outside Agent Engine with event capture enabled, so its committed event coverage must be produced again with the upgraded runtime. Otherwise CI's scenario-tree comparison can detect a stale report.",
+      "created": "2026-09-21T04:58:53Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"google-adk-native-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-adk==2.9.1\",\n+    \"google-adk==2.9.2\",",
+      "id": "PRRT_kwDOTuzK5c6kPQGu",
+      "opened": "2026-09-21T04:58:53Z",
+      "path": "scenarios/gen-ai/python/google-adk/native/pyproject.toml",
+      "replies": [],
+      "reviewed": "f27a622809f14e0f6c174681baf42eecb112d9d2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/232#discussion_r4059363326"
+    }
+  ]
+}

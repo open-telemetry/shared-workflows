@@ -1,0 +1,136 @@
+{
+  "head": "6aa5ff597238344a6b03dd5e3def07aee4df4e13",
+  "merge": "a8998225d7f35a44bd601c1466c84aa752e0f5c3",
+  "merged": "2026-06-22T17:13:30Z",
+  "missing_roots": 0,
+  "number": 19051,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This catch block intentionally ignores the exception (the body is only a comment), so the variable should be named `ignored` rather than `e`, consistent with the catch-variable convention used elsewhere in this same file (e.g. `catch (ClassNotFoundException ignored)` at lines 389 and in `AbstractRedissonAsyncClientTest`).",
+      "created": "2026-06-19T20:54:09Z",
+      "hunk": "@@ -246,63 +250,98 @@ void stringCommand() {\n                             equalTo(maybeStable(DB_OPERATION), \"GET\"))));\n   }\n \n-  @Test\n-  void batchCommand() throws ReflectiveOperationException {\n+  // describes the batch cases: a single-command batch (which is executed as a normal command, not a\n+  // pipeline), two commands with the same operation, and two commands with different operations.\n+  // batch telemetry (db.operation.batch.size, PIPELINE operation name) is only emitted under stable\n+  // database semconv\n+  @ParameterizedTest\n+  @MethodSource(\"batchScenarios\")\n+  void batchCommand(BatchScenario scenario) throws ReflectiveOperationException {\n     RBatch batch = createBatch(redisson);\n     assertThat(batch).isNotNull();\n-    batch.getBucket(\"batch1\").setAsync(\"v1\");\n-    batch.getBucket(\"batch2\").setAsync(\"v2\");\n+    scenario.commands.accept(batch);\n     // Adapt different method signature:\n     // `BatchResult<?> execute()` and `List<?> execute()`\n-    invokeExecute(batch);\n+    try {\n+      invokeExecute(batch);\n+    } catch (ReflectiveOperationException e) {",
+      "id": "PRRT_kwDODJKVX86K7Giy",
+      "opened": "2026-06-19T20:54:10Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:41:30Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/703dae9751b620bcb58369923fede2c231bce4b1.\n\nRenamed the unused catch variable to `ignored`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3453941291"
+        }
+      ],
+      "reviewed": "d9217a8541d2fac7e8b241cbdb932da36b51ac85",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3444529290"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change to `testShutdownCommandProducesNoSpan` is unrelated to the PR's stated scope (Redis batch/pipeline current-behavior tests) and isn't covered by any of the test selectors in the validation section of the PR description. It also weakens the assertion: previously the `error` attribute was expected to be `\"Connection disconnected\"` for old-semconv non-latest-deps runs, and now it is asserted to always be `null`. Please confirm this matches current `main` behavior for all run modes (old/stable semconv × latest/non-latest deps) and that this test was actually exercised, since `*testShutdownCommand*` is not in the listed validation runs.",
+      "created": "2026-06-19T20:54:09Z",
+      "hunk": "@@ -542,11 +542,7 @@ void testShutdownCommandProducesNoSpan() {\n                           .hasKind(SpanKind.CLIENT)\n                           .hasAttributesSatisfyingExactly(\n                               addExtraAttributes(\n-                                  equalTo(\n-                                      stringKey(\"error\"),\n-                                      testLatestDeps() || emitStableDatabaseSemconv()\n-                                          ? null\n-                                          : \"Connection disconnected\"),\n+                                  equalTo(stringKey(\"error\"), null),",
+      "id": "PRRT_kwDODJKVX86K7GjE",
+      "opened": "2026-06-19T20:54:10Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceSyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:41:37Z",
+          "body": "No code change needed. This change was reverted earlier; the lettuce sync test is no longer modified by this PR (the `error`/`Connection disconnected` assertion is back to its original form).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3453941988"
+        }
+      ],
+      "reviewed": "d9217a8541d2fac7e8b241cbdb932da36b51ac85",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3444529313"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `aggregateDeferredFlush()` hook always returns `false` and is not overridden by any subclass in the repository, so this entire aggregation branch — together with the `pipelineOperation(...)` and `pipelineStatement(...)` helpers it is the sole caller of — is currently unreachable dead code. Since this PR is meant to pin the current per-command behavior, consider removing this branch (and the two helpers) for now, or, if a library variant is expected to aggregate deferred flushes into a single PIPELINE span, add the override that exercises it so the assertions are actually covered.",
+      "created": "2026-06-19T20:54:10Z",
+      "hunk": "@@ -379,6 +391,152 @@ NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n             });\n   }\n \n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(\n+      String name, AsyncCommandsScenario scenario, List<ExpectedCommand> expectedCommands)\n+      throws Exception {\n+    StatefulRedisConnection<String, String> statefulConnection =\n+        asyncCommands.getStatefulConnection();\n+    statefulConnection.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> statefulConnection.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = scenario.run(asyncCommands);\n+    statefulConnection.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      future.get(10, SECONDS);\n+    }\n+\n+    if (expectedCommands.isEmpty()) {\n+      assertThat(testing().spans()).isEmpty();\n+      return;\n+    }\n+\n+    if (aggregateDeferredFlush()) {",
+      "id": "PRRT_kwDODJKVX86K7Gjh",
+      "opened": "2026-06-19T20:54:10Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:41:43Z",
+          "body": "No code change needed. This change was reverted earlier; the lettuce async test is no longer modified by this PR, so the `aggregateDeferredFlush()` branch and its helpers are no longer present.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3453942540"
+        }
+      ],
+      "reviewed": "d9217a8541d2fac7e8b241cbdb932da36b51ac85",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3444529346"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "doesn't throw `ReflectiveOperationException` any more",
+      "created": "2026-06-22T11:51:06Z",
+      "hunk": "@@ -246,63 +250,88 @@ void stringCommand() {\n                             equalTo(maybeStable(DB_OPERATION), \"GET\"))));\n   }\n \n-  @Test\n-  void batchCommand() throws ReflectiveOperationException {\n+  @ParameterizedTest\n+  @MethodSource(\"batchScenarios\")\n+  void batchCommand(BatchScenario scenario) throws ReflectiveOperationException {",
+      "id": "PRRT_kwDODJKVX86LPt-L",
+      "opened": "2026-06-22T11:51:06Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:56:11Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6aa5ff597238344a6b03dd5e3def07aee4df4e13.\n\nRemoved the try/catch so `invokeExecute` is called directly; the method now actually throws `ReflectiveOperationException`, so the throws clause is no longer stale.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3454023504"
+        }
+      ],
+      "reviewed": "59ac3210db7c4d277a4231a239b8c4ea42a39057",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3451954968"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "nothing failed when I commented out this catch",
+      "created": "2026-06-22T11:54:12Z",
+      "hunk": "@@ -246,63 +250,88 @@ void stringCommand() {\n                             equalTo(maybeStable(DB_OPERATION), \"GET\"))));\n   }\n \n-  @Test\n-  void batchCommand() throws ReflectiveOperationException {\n+  @ParameterizedTest\n+  @MethodSource(\"batchScenarios\")\n+  void batchCommand(BatchScenario scenario) throws ReflectiveOperationException {\n     RBatch batch = createBatch(redisson);\n     assertThat(batch).isNotNull();\n-    batch.getBucket(\"batch1\").setAsync(\"v1\");\n-    batch.getBucket(\"batch2\").setAsync(\"v2\");\n+    scenario.commands.forEach(addCommand -> addCommand.accept(batch));\n     // Adapt different method signature:\n     // `BatchResult<?> execute()` and `List<?> execute()`\n-    invokeExecute(batch);\n+    try {\n+      invokeExecute(batch);\n+    } catch (ReflectiveOperationException e) {",
+      "id": "PRRT_kwDODJKVX86LPxJp",
+      "opened": "2026-06-22T11:54:12Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:56:13Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6aa5ff597238344a6b03dd5e3def07aee4df4e13.\n\nRemoved the unnecessary catch; `invokeExecute(batch)` is now called directly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3454023672"
+        }
+      ],
+      "reviewed": "59ac3210db7c4d277a4231a239b8c4ea42a39057",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3451971962"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Now that `invokeExecute(batch)` is wrapped in a try/catch that handles `ReflectiveOperationException`, this method no longer throws a checked exception, so the `throws ReflectiveOperationException` clause can be dropped (test methods don't need a throws clause unless actually required).",
+      "created": "2026-06-22T16:49:03Z",
+      "hunk": "@@ -246,63 +250,88 @@ void stringCommand() {\n                             equalTo(maybeStable(DB_OPERATION), \"GET\"))));\n   }\n \n-  @Test\n-  void batchCommand() throws ReflectiveOperationException {\n+  @ParameterizedTest\n+  @MethodSource(\"batchScenarios\")\n+  void batchCommand(BatchScenario scenario) throws ReflectiveOperationException {",
+      "id": "PRRT_kwDODJKVX86LVZb5",
+      "opened": "2026-06-22T16:49:04Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:57:46Z",
+          "body": "No code change needed. This was generated before commit 6aa5ff597238344a6b03dd5e3def07aee4df4e13, which removed the try/catch (per laurit's feedback). `batchCommand` now calls `invokeExecute(batch)` directly, which throws checked `ReflectiveOperationException`, so the `throws` clause is required and cannot be dropped.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3454032776"
+        }
+      ],
+      "reviewed": "703dae9751b620bcb58369923fede2c231bce4b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19051#discussion_r3453982532"
+    }
+  ]
+}

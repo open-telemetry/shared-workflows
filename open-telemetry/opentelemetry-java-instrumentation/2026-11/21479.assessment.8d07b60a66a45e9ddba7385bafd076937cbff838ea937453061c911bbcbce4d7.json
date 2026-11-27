@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "739f05f0800bc80e2647f707f35b9a9691e2363c3f7cd0d5a0a5ee2309ae1ea2",
+  "input_digest": "8d07b60a66a45e9ddba7385bafd076937cbff838ea937453061c911bbcbce4d7",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99a6c63ca3ef42eb99949ca52078d457b091b1ca/instrumentation/guava-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/guava/v10_0/GuavaAsyncOperationEndStrategy.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99a6c63ca3ef42eb99949ca52078d457b091b1ca/instrumentation/guava-10.0/library/src/main/java/io/opentelemetry/instrumentation/guava/v10_0/GuavaAsyncOperationEndStrategyBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd81c59e87961b6073bea6c6b42e0879d39a0ba5/instrumentation/guava-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/guava/v10_0/GuavaAsyncOperationEndStrategy.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd81c59e87961b6073bea6c6b42e0879d39a0ba5/instrumentation/guava-10.0/library/src/main/java/io/opentelemetry/instrumentation/guava/v10_0/GuavaAsyncOperationEndStrategyBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX867utRG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/245221e4a69c5100a023361c01b4eeb8853efdbd/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd81c59e87961b6073bea6c6b42e0879d39a0ba5/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ed97bb32d5dbc516c211c8366c6679995c4ef9b2"
+      ],
+      "id": "PRRT_kwDODJKVX8679jdo",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

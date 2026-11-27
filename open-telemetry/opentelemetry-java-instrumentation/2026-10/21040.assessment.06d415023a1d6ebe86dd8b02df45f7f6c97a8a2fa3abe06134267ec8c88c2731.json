@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b920325887cf189016630f705c879d19bf91a4d1961eab6276c0bf8f32210ad2",
+  "input_digest": "06d415023a1d6ebe86dd8b02df45f7f6c97a8a2fa3abe06134267ec8c88c2731",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82e63c883aa6694cd03d204e77cb64feae74317a/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82e63c883aa6694cd03d204e77cb64feae74317a/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcServerMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/382c945b68ede07eed7d28c41a9c4399f4dc086c/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/382c945b68ede07eed7d28c41a9c4399f4dc086c/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcServerMetricsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86w_JOm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78c4942dab606c4fa02b15d6819ac3f1e96b16e7/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/382c945b68ede07eed7d28c41a9c4399f4dc086c/CHANGELOG.md"
+      ],
+      "id": "PRRT_kwDODJKVX86xCU2o",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

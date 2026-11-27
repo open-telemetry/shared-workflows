@@ -1,0 +1,31 @@
+{
+  "head": "ddf22be2a60e13b50141a99ebc2d69ef7714dfab",
+  "merge": "6967795c5ceeb77357ca4f3dfc9a512496fb9a11",
+  "merged": "2026-06-19T21:35:30Z",
+  "missing_roots": 0,
+  "number": 323,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the `tool_call_response` example, the `id` value has a leading whitespace (`\" call_...\"`), while the preceding `tool_call` part uses `\"call_...\"` without whitespace. This makes the example internally inconsistent and could mislead implementors trying to match request/response IDs.",
+      "created": "2026-06-19T01:11:09Z",
+      "hunk": "@@ -747,7 +747,7 @@ attributes:\n               {\n                 \"type\": \"tool_call_response\",\n                 \"id\": \" call_VSPygqKTWdrhaFErNvMV18Yl\",",
+      "id": "PRRT_kwDOSUeMrM6KtpRy",
+      "opened": "2026-06-19T01:11:09Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-06-19T02:20:20Z",
+          "body": "Good catch — fixed in `8be786b`. Dropped the stray leading space so the `tool_call_response` `id` matches the request's `tool_call` id, and regenerated the docs from the source.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/323#discussion_r3439930856"
+        }
+      ],
+      "reviewed": "64e036290ef7a2d05696ce0697a718cf08601af5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/323#discussion_r3439741054"
+    }
+  ]
+}

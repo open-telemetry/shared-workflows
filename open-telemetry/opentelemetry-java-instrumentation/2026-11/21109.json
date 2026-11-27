@@ -1,0 +1,130 @@
+{
+  "head": "66286d0e40ac820871bba076cfd5f1482d3a90b7",
+  "merge": "4f3aa07e14f03c5854b972eaa555f83ef05c730d",
+  "merged": "2026-11-02T16:11:19Z",
+  "missing_roots": 0,
+  "number": 21109,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a scoped prose and code-comment correction. The user clarified: '\"ordinary\" isn't really working. I didn't really intend that as a term to use. I was thinking more in terms of the names that they could just be unqualified names For that normal case'.\n\nThe default case should simply be called \"advice\", not given a new mode name. Remove \"ordinary\" as an advice-mode label throughout the documentation and comments introduced by this PR. Do not mechanically replace it everywhere with \"normal\", \"default\", \"standard\", \"non-inline\", or \"isolated\". Keep ordinary prose unqualified and qualify the inline alternative when needed. Where comparing both mechanisms explicitly matters, describe inline = true versus inline = false, or say non-inlined advice. Advice inlining and isolated/injected helper placement remain separate choices; preserve those concrete distinctions and the actual invokedynamic dispatch explanation.\n\nApply this to docs/contributing/writing-instrumentation-module.md, .github/agents/knowledge/javaagent-advice-patterns.md, .github/scripts/draft-release-notes/rules.md, the two AzureExplicitParentContextHelper Javadocs under instrumentation/azure-core/azure-core-1.36 and azure-core-1.53, the comments in instrumentation/azure-core/azure-core-1.36/library-instrumentation-shaded/build.gradle.kts, muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java, and the changed comment in javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyTypeTransformerImpl.java. Use \"Advice\" for the \"Ordinary advice\" heading and \"Configure production advice\" for \"Use ordinary production advice\". State the requirement to set inline = false explicitly, preserving the two internal exceptions and Byte Buddy's inline = true annotation default. For example, the mixing sentence can say \"Mixing advice marked inline = true and inline = false disables automatic helper isolation.\" Keep the Azure compatibility claim valid for both forms, for example \"whether or not advice is inlined\", and describe the actual loading constraint in its dependency comments rather than naming an ordinary-advice mode. Source comments must describe the current code, not a past migration.\n\nPreserve existing uses of \"ordinary\" that merely describe helpers or compiled methods and are not advice-mode labels. Keep the unqualified AdviceInstrumentationTestModule and AdviceInstrumentationTest fixture names, advice package, advice-test registration and matcher, all assertions and advice annotations, and the SecurityManager variant deletion unchanged. Do not rename production classes, relocate packages, change dependencies or behavior, touch the other three rename PRs, or rewrite historical changelog entries. Run only applicable targeted formatters/documentation linting for changed files; this follow-up changes prose/comments only, so unrelated behavior tests and builds are unnecessary. Acceptance is that no added prose introduces an \"ordinary advice\" mode while the precise configuration, dispatch, helper-loading and compatibility explanations remain accurate.",
+      "created": "2026-10-31T19:49:43Z",
+      "hunk": "@@ -61,11 +61,11 @@ public void onEnter(/* ... */) { /* ... */ }\n \n Advice classes should also have **no instance fields** — they are never instantiated.\n \n-## Keep production advice non-inlined\n+## Use ordinary production advice",
+      "id": "PRRT_kwDODJKVX86yUFA-",
+      "opened": "2026-10-31T19:49:43Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [
+        {
+          "at": "2026-10-31T20:06:47Z",
+          "body": "Updated the requested prose and comments, preserving the inline, helper-loading, and dispatch distinctions. The follow-up is in commit `1f36f62b`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433129388"
+        }
+      ],
+      "reviewed": "d14f5d86b05f000223561428edd5e6625b7d8686",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433077054"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with all of the following scoped advice prose, comment, and fixture-name corrections. Preserve runtime behavior, dependencies, existing assertions/advice annotations, and the redundant SecurityManager test variant deletion.\n\nUse concise 'inlined' and 'non-inlined' wording where comparing the mechanisms is necessary, rather than repeatedly saying 'advice marked inline = true/false'. Keep general/default prose unqualified as 'advice'; do not introduce an ordinary/normal advice mode label or mechanically qualify every use of advice. In .github/agents/knowledge/javaagent-advice-patterns.md, use the heading 'Set inline = false on production advice', with inline = false formatted as code; require it on every @Advice.OnMethodEnter and @Advice.OnMethodExit instead of 'both advice annotations'. Say that mixing inlined and non-inlined advice disables automatic helper isolation, accounting for omitted inline attributes because Byte Buddy defaults them to true. Preserve the two internal exceptions, helper-placement distinctions, and actual invokedynamic dispatch explanation. Rename Pattern 1's heading to 'Nullable AdviceScope for conditional instrumentation', retaining existing numbering and code formatting, to contrast with Pattern 2 bookkeeping. In .github/scripts/draft-release-notes/rules.md use 'inlined vs non-inlined @Advice', formatting @Advice as code.\n\nIn docs/contributing/writing-instrumentation-module.md remove the redundant adjacent 'Advice' heading, retaining the existing 'Use advice classes to write instrumentation code' heading. Preserve accurate explanation of inline = false, isolated advice loading, independently isolated/injected helpers, annotation defaults, exceptions, and supported advice capabilities.\n\nIn muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java consistently describe the selected transformation path as 'isolated advice', matching useIsolatedAdvice, rather than alternating 'isolated advice loading' and 'isolated helper loading'. Describe helper-placement choices separately when technically necessary; do not conflate advice inlining and helper placement. Keep comments accurate for the no-advice-annotation and explicit strategy paths. In javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyTypeTransformerImpl.java replace the redundant/migration-oriented VirtualFieldChecker comment with one concise current-code comment: 'Reject VirtualField.find calls in non-inlined advice, where they are not rewritten.' No production class/package rename belongs to this PR.\n\nIn both AzureExplicitParentContextHelper Javadocs under azure-core-1.36 and azure-core-1.53, finish the explanation with wording such as 'so this works with both inlined and non-inlined advice, without reaching into agent-internal helper classes.' In azure-core-1.36/library-instrumentation-shaded/build.gradle.kts verify the changed beta.49/AgentContextStorage/LinkageError claim against the referenced Azure PR and concrete versions. Keep that detailed explanation only if supported. Otherwise preserve the original compatibility meaning in neutral wording, namely beta.45 is the compatible version with isolated helper loading and the constraint is fixed in beta.51. Keep the azure-core-1.36 compatibility constraint, pinned dependency and useful source reference; do not change versions or guess a new technical cause.\n\nRename the integration fixtures to IsolatedAdviceInstrumentationTestModule and IsolatedAdviceInstrumentationTest, with module registration 'isolated-advice-test'. Use the matching test package isolatedadvice, and update filenames, package declaration, matcher, constructor, comments, and every actual reference so service registration and test discovery still work. These tests cover isolated-loader behavior, helper loading, AssignReturned, and exception suppression. This fixture-specific name must not become a blanket name for normal production advice. The newly requested fixture names supersede the previous follow-up's instruction to retain unqualified fixture names.\n\nDo not update other PRs, create another PR, change this PR's base, rename production transformer/bootstrap classes or packages, or alter historical changelog entries. Run the narrowest applicable spotlessApply directly before the renamed integration test suite; use the repository's Markdown formatting/linting runner on changed Markdown. Acceptance is precise readable prose without a new default-mode label, correct default-inline semantics, verified Azure compatibility wording, coherent isolated-advice comments, and discoverable renamed fixtures with unchanged assertions and behavior.",
+      "created": "2026-10-31T20:31:13Z",
+      "hunk": "@@ -16,14 +16,14 @@\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n @SuppressWarnings({\"unused\", \"MethodCanBeStatic\"})\n-class IndyInstrumentationTest {\n+class AdviceInstrumentationTest {",
+      "id": "PRRT_kwDODJKVX86yUW6q",
+      "opened": "2026-10-31T20:31:13Z",
+      "path": "testing-common/integration-tests/src/test/java/advice/AdviceInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T20:56:24Z",
+          "body": "Applied in `623961fe`. The renamed isolated-advice suite, targeted Spotless, and Flint/rumdl Markdown formatting passed. The lychee link check could not run because the sandbox requires `GITHUB_TOKEN`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433263262"
+        }
+      ],
+      "reviewed": "1f36f62b88613a916cb7f9810f9476a65173db09",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433194998"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to follow the user's clarified naming decision: 'Since that's the default, can we flip the Term instead of use isolated advice use inline advice?' The default should simply be called advice; qualify the alternative as inlined advice. This supersedes the earlier instruction to add IsolatedAdvice to the fixture names.\n\nRestore AdviceInstrumentationTestModule and AdviceInstrumentationTest from IsolatedAdviceInstrumentationTestModule and IsolatedAdviceInstrumentationTest. Restore the test package advice and module registration advice-test. Update filenames, declarations, constructor, matcher, comments, and every real reference so SPI registration and test discovery still work. Do not name these fixtures InlineAdvice: they exercise inline = false and are the default advice implementation. Preserve all assertions and advice annotations.\n\nAdjust the prose and comments introduced by this PR to leave the default path unqualified as advice and identify the alternative as inlined advice when needed. In particular, check docs/contributing/writing-instrumentation-module.md, .github/agents/knowledge/javaagent-advice-patterns.md, .github/scripts/draft-release-notes/rules.md, and the changed AdviceInspector comments in muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java. Do not replace isolated advice with another new normal/ordinary/default mode label, and do not mechanically call inline = false advice inlined advice. Non-inlined remains appropriate where an explicit comparison or a concrete annotation restriction needs it.\n\nPreserve precise classloader-placement explanations, including InstrumentationModuleClassLoader, invokedynamic dispatch, and the independent choice of isolated or injected helpers. Isolated is still valid when describing actual classloader placement, especially the no-advice-annotation transformer path and Azure dependency constraints; it should not brand the default kind of advice. Keep the requirement to set inline = false explicitly in production, the two internal exceptions, and Byte Buddy's inline = true default accurate. Keep existing production method names such as useIsolatedAdvice and all selection predicates, behavior, dependencies, package organization, and the redundant SecurityManager smoke-test deletion unchanged.\n\nLimit this correction to PR #21109 and its existing head branch. Do not update other PRs, create another PR, or change its base or draft state. Use the narrowest applicable spotlessApply directly before running the renamed advice integration test; use the repository's Markdown formatting/linting runner for changed Markdown. Acceptance is plain Advice fixture names/package/registration, unqualified default advice prose with an explicitly inlined alternative where necessary, accurate loader explanations, unchanged behavior, and discoverable renamed fixtures.",
+      "created": "2026-10-31T21:25:18Z",
+      "hunk": "@@ -16,14 +16,14 @@\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n @SuppressWarnings({\"unused\", \"MethodCanBeStatic\"})\n-class IndyInstrumentationTest {\n+class IsolatedAdviceInstrumentationTest {",
+      "id": "PRRT_kwDODJKVX86yUvtI",
+      "opened": "2026-10-31T21:25:18Z",
+      "path": "testing-common/integration-tests/src/test/java/isolatedadvice/IsolatedAdviceInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T21:35:22Z",
+          "body": "Restored the `AdviceInstrumentationTest` fixture names/package/registration and updated the advice wording without changing behavior. Committed as `8b185aa8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433381483"
+        }
+      ],
+      "reviewed": "623961fe1e7f1aec2c54cba8d52412476eb132f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433355233"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the documentation cleanup discussed by the user: \"Do we care if it works in inlined advice? same question if anywhere else similar\". The default is simply advice; mention inlined advice only where the distinction explains a real requirement.\n\nIn both azure-core-1.36 and azure-core-1.53 javaagent AzureExplicitParentContextHelper.java Javadocs, remove the claim that the conversion works with both inlined and non-inlined advice. Both AzureContextInstrumentation callers explicitly use inline = false, and the helper itself is a regular compiled method. Keep the actual rationale: making the application context current and reading back the agent context converts it using only public API, without accessing agent-internal helper classes.\n\nIn docs/contributing/writing-instrumentation-module.md, make the sections on modifying method arguments, modifying method return values, and writing internal class fields explain the default advice approach directly. Keep the existing @Advice.AssignReturned.ToArguments, ToReturned, and ToFields examples and their semantics. Remove the repeated inlined-first introductions and non-inlined qualifiers for the default. Consolidate the inlined-only readOnly = false alternatives into a short exception note identifying internal-class-loader and internal-lambda, rather than presenting both approaches as equal choices for production instrumentation.\n\nPreserve the distinctions in AdviceInspector that explain actual helper-loading selection. Preserve the explicit inline = false requirement, Byte Buddy's inline = true default explanation, and the inlined-advice/pre-Java-8 static-interface-call warning for the two internal exceptions in contributor and advice guidance. Do not rename fixtures, alter helper-loading or advice-selection logic, change annotations, dependencies, tests, or runtime behavior, or update other PRs. This is a documentation-only refinement of this PR's existing changes. Run the relevant scoped documentation checks and keep all executable code unchanged.",
+      "created": "2026-10-31T21:56:57Z",
+      "hunk": "@@ -16,8 +16,8 @@\n  * <p>In the agent the application's {@code io.opentelemetry.context.Context} (referenced here as\n  * {@code application.io.opentelemetry.context.Context}) is bridged to the agent context by the\n  * opentelemetry-api instrumentation. Making the application context current and reading back the\n- * agent context performs that conversion using only public API, so this works in both inline and\n- * indy mode without reaching into agent-internal helper classes.\n+ * agent context performs that conversion using only public API, so this works with both inlined and",
+      "id": "PRRT_kwDODJKVX86yU9Nb",
+      "opened": "2026-10-31T21:56:56Z",
+      "path": "instrumentation/azure-core/azure-core-1.53/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_53/AzureExplicitParentContextHelper.java",
+      "replies": [
+        {
+          "at": "2026-10-31T22:01:46Z",
+          "body": "Updated both Azure helper Javadocs and rewrote the contributor guidance around default `AssignReturned` behavior, with inlined `readOnly = false` limited to the two named internal exceptions. Committed as `55d3a689`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433455823"
+        }
+      ],
+      "reviewed": "8b185aa8d77ea0524a7c24be0f80385cb557020a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433442669"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n## Set `inline = false` on advice\n```",
+      "created": "2026-10-31T22:13:04Z",
+      "hunk": "@@ -61,14 +61,17 @@ public void onEnter(/* ... */) { /* ... */ }\n \n Advice classes should also have **no instance fields** — they are never instantiated.\n \n-## Keep production advice non-inlined\n+## Set `inline = false` on production advice",
+      "id": "PRRT_kwDODJKVX86yVDli",
+      "opened": "2026-10-31T22:13:04Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [],
+      "reviewed": "55d3a6892a1e57e580ffb36af8e10e367da84784",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433483552"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user-requested naming-only cleanup: \"apply all of those changes cloud\".\n\nIn muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java, rename both useIsolatedAdvice overloads to inferHelperClassIsolation, including the internal overload call. The name reflects inference of the default helper-loading choice, not advice inlining or the final explicit helper strategy. Preserve the nullable Boolean overload, its true/false/null outcomes, the non-null overload's false fallback, and all inspection logic.\n\nUpdate every caller and test reference, including InstrumentationModuleInstaller, muzzle generation/MuzzleCodeGenerator.java, and AdviceInspectorTest. Preserve the installer method name that makes the final helper-strategy selection and its explicit HelperClassStrategy override precedence. Do not pull sibling PRs' installer, registry, bootstrap, or transformer renames into this branch.\n\nKeep the settled plain advice fixture names, package, advice-test registration, default advice wording, inlined-advice exception wording, Azure comments, and prior SecurityManager smoke-test removal intact. Update directly related documentation only where it actually refers to the renamed methods. Run the focused AdviceInspectorTest coverage and the narrowest compilation/checks covering its changed callers.\n\nUpdate every affected reference, import, constructor, filename, test reference, and directly related documentation or link for these renames. Keep existing packages and visibility, runtime behavior, helper-selection precedence, advice inlining annotations, module identities, configuration names, exception handling, and the JVM-facing bootstrap entry point and signature unchanged. Preserve all earlier changes on this PR. Do not apply sibling PRs' class renames, move additional classes, update other PRs, or make unrelated cleanup. Make the changes on this PR's existing head branch, not in a new PR. Run the narrowest relevant formatters and existing checks for these changes.",
+      "created": "2026-10-31T23:07:09Z",
+      "hunk": "@@ -25,10 +25,10 @@\n import net.bytebuddy.pool.TypePool;\n \n /**\n- * Inspect advice classes used by the given instrumentation module and determine whether the\n- * instrumentation should inject helper classes into the instrumented classloader or load them into\n- * separate class loader. The decision is made based on the {@code inline} attribute of {@link\n- * Advice.OnMethodEnter} and {@link Advice.OnMethodExit} annotations.\n+ * Inspect advice classes used by the given instrumentation module and determine whether it should\n+ * use the isolated classloader path. The selection is based on the {@code inline} attribute of",
+      "id": "PRRT_kwDODJKVX86yVaBn",
+      "opened": "2026-10-31T23:07:09Z",
+      "path": "muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java",
+      "replies": [
+        {
+          "at": "2026-10-31T23:14:22Z",
+          "body": "Renamed both overloads and updated the internal call, installer caller, Muzzle generator, and tests; behavior and `useIndy` strategy precedence are unchanged. Committed as `214f91a5`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433647854"
+        }
+      ],
+      "reviewed": "1df77a0df6fc5dc9a38621e6e9c350ba0a750768",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21109#discussion_r4433629272"
+    }
+  ]
+}

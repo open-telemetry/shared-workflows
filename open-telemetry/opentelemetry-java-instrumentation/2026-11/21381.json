@@ -1,0 +1,40 @@
+{
+  "head": "60265639822b8cc275e281257740714018cdcc78",
+  "merge": "e280217d4fae6d6707307ce629b30ee5080d8e4f",
+  "merged": "2026-11-24T15:47:19Z",
+  "missing_roots": 0,
+  "number": 21381,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`get` will timeout here when `cancel` doesn't work",
+      "created": "2026-11-20T09:24:15Z",
+      "hunk": "@@ -0,0 +1,74 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.awssdk.v2_2;\n+\n+import static io.opentelemetry.instrumentation.testing.util.TestLatestDeps.testLatestDeps;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.testing.internal.armeria.common.HttpResponse;\n+import io.opentelemetry.testing.internal.armeria.common.HttpStatus;\n+import io.opentelemetry.testing.internal.armeria.common.MediaType;\n+import io.opentelemetry.testing.internal.armeria.testing.junit5.server.mock.MockWebServerExtension;\n+import java.time.Duration;\n+import java.util.concurrent.CompletableFuture;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;\n+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;\n+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;\n+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;\n+import software.amazon.awssdk.regions.Region;\n+import software.amazon.awssdk.services.s3.S3AsyncClient;\n+\n+class Aws2AsyncCancellationTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension static final MockWebServerExtension server = new MockWebServerExtension();\n+\n+  @RegisterExtension final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  @Test\n+  void cancelAbortsInFlightRequest() throws Exception {\n+    // older sdk versions don't abort the request when the returned future is cancelled\n+    assumeTrue(testLatestDeps());\n+\n+    // a single connection, so the second call can only proceed after the first one is aborted\n+    SdkAsyncHttpClient httpClient = NettyNioAsyncHttpClient.builder().maxConcurrency(1).build();\n+    cleanup.deferCleanup(httpClient);\n+    S3AsyncClient client =\n+        S3AsyncClient.builder()\n+            .httpClient(httpClient)\n+            .endpointOverride(server.httpUri())\n+            .region(Region.AP_NORTHEAST_1)\n+            .credentialsProvider(\n+                StaticCredentialsProvider.create(AwsBasicCredentials.create(\"key\", \"secret\")))\n+            .build();\n+    cleanup.deferCleanup(client);\n+\n+    server.enqueue(HttpResponse.delayed(listBucketsResponse(), Duration.ofSeconds(30)));\n+    server.enqueue(listBucketsResponse());\n+\n+    CompletableFuture<?> first = client.listBuckets();\n+    assertThat(server.takeRequest(10, SECONDS)).isNotNull();\n+    first.cancel(true);\n+\n+    assertThat(client.listBuckets().get(10, SECONDS).buckets()).isEmpty();",
+      "id": "PRRT_kwDODJKVX8656wjq",
+      "opened": "2026-11-20T09:24:15Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/Aws2AsyncCancellationTest.java",
+      "replies": [],
+      "reviewed": "60265639822b8cc275e281257740714018cdcc78",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21381#discussion_r4640690143"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Ideally we'd cancel the original future when the wrapper is cancelled to get the same behavior as running without the wrapper. We could use\n```java\n    CompletableFuture<T> result = new CompletableFuture<T>() {\n      @Override\n      public boolean cancel(boolean mayInterruptIfRunning) {\n        boolean cancelled = super.cancel(mayInterruptIfRunning);\n        if (cancelled) {\n          future.cancel(mayInterruptIfRunning);\n        }\n        return cancelled;\n      }\n    };\n```\nbut this won't work when a stage is added to the future and that stage is cancelled instead. To handle that we'd need to override `newIncompleteFuture` like in https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/java-http-client/library/src/main/java/io/opentelemetry/instrumentation/javahttpclient/internal/CompletableFutureWrapper.java but that method was added in java9. I think not handling it isn't a problem when underlying future doesn't handle it either which seems to be the case here. In the test the aws sdk seems to chain a stage on top of the wrapper so handling the cancellation in our wrapper won't really help. The underlying future cancels the request when it is completed exceptionally so this PR should work nicely.",
+      "created": "2026-11-20T09:40:36Z",
+      "hunk": "@@ -28,6 +28,15 @@ public static <T> CompletableFuture<T> wrap(CompletableFuture<T> future, Context\n         }\n       }\n     });\n+    // The generated async clients abort an in-flight request by completing the future returned\n+    // from the client handler exceptionally, e.g. when the future returned to the caller is\n+    // cancelled. Forward exceptional completion of the wrapper to the original future so that this\n+    // still works with the wrapper in between.\n+    result.whenComplete((T value, Throwable throwable) -> {",
+      "id": "PRRT_kwDODJKVX8657KIH",
+      "opened": "2026-11-20T09:40:36Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/CompletableFutureWrapper.java",
+      "replies": [],
+      "reviewed": "60265639822b8cc275e281257740714018cdcc78",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21381#discussion_r4640858590"
+    }
+  ]
+}

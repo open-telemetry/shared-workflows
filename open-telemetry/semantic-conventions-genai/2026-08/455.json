@@ -1,0 +1,136 @@
+{
+  "head": "a5f734472bf3cefd59ad17a7863ddc72f06db502",
+  "merge": "110e8ca819079f8a25f63856053dc21efdf07fba",
+  "merged": "2026-08-27T05:04:18Z",
+  "missing_roots": 0,
+  "number": 455,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "offtopic: I think my AI finally listened and now overly eager converting all em dashes back to  hyphens. I miss tabs vs spaces wars between humans. \n\n",
+      "created": "2026-08-21T02:29:10Z",
+      "hunk": "@@ -49,17 +51,17 @@ CI fails if committed generated output doesn't match `make generate-all`. Add a\n Towncrier fragment under [changelog.d/](changelog.d/) for any consumer-visible\n change. See [CONTRIBUTING.md](CONTRIBUTING.md).\n \n-For PR work that needs repository-wide reference coverage, use the `reference`\n-skill under [.github/skills/reference/](.github/skills/reference/). For reviews\n+For PRs that change semantic conventions, use the `reference`\n+skill in [.github/skills/reference/SKILL.md](.github/skills/reference/SKILL.md). For reviews\n of reference coverage, capturability, and honest capture gaps, see the\n evaluation rubric in\n [.github/instructions/evaluate-reference.instructions.md](.github/instructions/evaluate-reference.instructions.md)\n-— an instruction file that applies automatically to model, docs, and scenario\n+- an instruction file that applies automatically to model, docs, and scenario\n changes, not a skill to invoke.\n \n ## Further reading\n \n-- [How to write conventions — best practices](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/how-to-write-conventions/README.md#best-practices)\n+- [How to write conventions - best practices](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/how-to-write-conventions/README.md#best-practices)",
+      "id": "PRRT_kwDOSUeMrM6bBIWO",
+      "opened": "2026-08-21T02:29:10Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "f9aace1576f53a2560b5a78c74e05b839a80a433",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3826826853"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The front matter now advertises this skill only for implementing or updating scenarios. Skill selection is driven by this description, so reviews of convention changes—the use explicitly prescribed by `AGENTS.md:54-58`—may not load these rules at all. Include evaluating/reviewing reference coverage and capturability in the description.",
+      "created": "2026-08-21T02:29:43Z",
+      "hunk": "@@ -1,83 +1,108 @@\n ---\n name: reference\n-description: 'Use when implementing or evaluating reference coverage for a semantic-conventions changeset involving GenAI spans, attributes, entities, metrics, or events. Reviews capturability, inline emission, span boundaries, and coverage across every Python library that credibly supports the change.'\n+description: 'Implement or update reference scenarios under reference/scenarios/ across Python libraries when GenAI semantic conventions change.'",
+      "id": "PRRT_kwDOSUeMrM6bBIqN",
+      "opened": "2026-08-21T02:29:44Z",
+      "path": ".github/skills/reference/SKILL.md",
+      "replies": [],
+      "reviewed": "f9aace1576f53a2560b5a78c74e05b839a80a433",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3826828686"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This relocation leaves `reference/AGENTS.md:11-12` pointing exclusively to the deleted `reference-scenarios.instructions.md`. Scenario authors and agents following the nearest instructions now hit a dead link instead of reaching these replacement rules; update that reference to this skill as part of the move.",
+      "created": "2026-08-21T02:29:43Z",
+      "hunk": "@@ -1,83 +1,108 @@\n ---\n name: reference\n-description: 'Use when implementing or evaluating reference coverage for a semantic-conventions changeset involving GenAI spans, attributes, entities, metrics, or events. Reviews capturability, inline emission, span boundaries, and coverage across every Python library that credibly supports the change.'\n+description: 'Implement or update reference scenarios under reference/scenarios/ across Python libraries when GenAI semantic conventions change.'\n ---\n \n-# Reference Coverage\n+# Reference Scenarios Skill\n+\n+Use this skill to add or update reference implementations under `reference/scenarios/<library>/` when conventions change.",
+      "id": "PRRT_kwDOSUeMrM6bBIqc",
+      "opened": "2026-08-21T02:29:44Z",
+      "path": ".github/skills/reference/SKILL.md",
+      "replies": [],
+      "reviewed": "f9aace1576f53a2560b5a78c74e05b839a80a433",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3826828705"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The replacement does not preserve the deleted public-entry-point requirement. Calling a private SDK method directly can satisfy “real library call” and the examples here, but it does not demonstrate instrumentation reachable from the supported API. Explicitly require scenarios to enter through a public library API, while still allowing instrumentation to patch internals.",
+      "created": "2026-08-21T02:29:43Z",
+      "hunk": "@@ -1,83 +1,108 @@\n ---\n name: reference\n-description: 'Use when implementing or evaluating reference coverage for a semantic-conventions changeset involving GenAI spans, attributes, entities, metrics, or events. Reviews capturability, inline emission, span boundaries, and coverage across every Python library that credibly supports the change.'\n+description: 'Implement or update reference scenarios under reference/scenarios/ across Python libraries when GenAI semantic conventions change.'\n ---\n \n-# Reference Coverage\n+# Reference Scenarios Skill\n+\n+Use this skill to add or update reference implementations under `reference/scenarios/<library>/` when conventions change.\n+\n+## Workflow\n+\n+1. **Find libraries**: Check which scenarios under `reference/scenarios/` support the changed operation(s).\n+2. **Update `scenario.py` and `README.md`**:\n+   - Wrap real library calls in spans.",
+      "id": "PRRT_kwDOSUeMrM6bBIqj",
+      "opened": "2026-08-21T02:29:44Z",
+      "path": ".github/skills/reference/SKILL.md",
+      "replies": [
+        {
+          "at": "2026-08-21T02:31:45Z",
+          "body": "private methods are ok-ish",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3826835631"
+        }
+      ],
+      "reviewed": "f9aace1576f53a2560b5a78c74e05b839a80a433",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3826828716"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This source list excludes exceptions and stable library-owned state, although the replacement skill accepts SDK errors and the evaluation instructions accept exceptions/library state. The inconsistency can make agents reject valid error- or state-derived telemetry; use the same complete current-call source list here.",
+      "created": "2026-08-21T02:29:44Z",
+      "hunk": "@@ -19,7 +19,9 @@ GenAI clients, MCP, and provider-specific conventions. Attributes live in\n    by a span, metric, or event that defines when and how it is recorded. No\n    orphan attributes.\n 5. **No convention without a reference scenario.** A new convention\n-   needs a `reference/scenarios/<library>/` scenario that emits it. See\n+   needs a `reference/scenarios/<library>/` scenario that emits it, with every\n+   emitted value readable from inside the library: a parameter it interprets, or\n+   something it returns. See",
+      "id": "PRRT_kwDOSUeMrM6bBIqs",
+      "opened": "2026-08-21T02:29:44Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "f9aace1576f53a2560b5a78c74e05b839a80a433",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3826828733"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`SKILL.md:16` tells authors to \"record it as a capture gap\" and this line sends them to the rubric to learn how, but the rewrite drops the term from the rubric. Define it at `SKILL.md:16` instead: a comment at the call site naming what the library does not expose, plus a `➖ Not instrumentable` row in the scenario README. Then drop \"and honest capture gaps\" from this sentence. (Existing examples: `reference/scenarios/google-adk/scenario.py:319-323`, `reference/scenarios/aws-bedrock/README.md:12`.)",
+      "created": "2026-08-25T17:50:43Z",
+      "hunk": "@@ -49,17 +50,17 @@ CI fails if committed generated output doesn't match `make generate-all`. Add a\n Towncrier fragment under [changelog.d/](changelog.d/) for any consumer-visible\n change. See [CONTRIBUTING.md](CONTRIBUTING.md).\n \n-For PR work that needs repository-wide reference coverage, use the `reference`\n-skill under [.github/skills/reference/](.github/skills/reference/). For reviews\n+For PRs that change semantic conventions, use the `reference`\n+skill in [.github/skills/reference/SKILL.md](.github/skills/reference/SKILL.md). For reviews\n of reference coverage, capturability, and honest capture gaps, see the",
+      "id": "PRRT_kwDOSUeMrM6cLh00",
+      "opened": "2026-08-25T18:01:27Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "87975237aecfe22be7fb51154fb883cda3eceddb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3855707979"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Starting the line with `- ` ends the paragraph in CommonMark, so GitHub renders the rest as a one-item bullet list and the sentence breaks in two.\n\n```suggestion\n[.github/instructions/evaluate-reference.instructions.md](.github/instructions/evaluate-reference.instructions.md) -\nan instruction file that applies automatically to model, docs, and scenario\n```",
+      "created": "2026-08-25T17:50:43Z",
+      "hunk": "@@ -49,17 +50,17 @@ CI fails if committed generated output doesn't match `make generate-all`. Add a\n Towncrier fragment under [changelog.d/](changelog.d/) for any consumer-visible\n change. See [CONTRIBUTING.md](CONTRIBUTING.md).\n \n-For PR work that needs repository-wide reference coverage, use the `reference`\n-skill under [.github/skills/reference/](.github/skills/reference/). For reviews\n+For PRs that change semantic conventions, use the `reference`\n+skill in [.github/skills/reference/SKILL.md](.github/skills/reference/SKILL.md). For reviews\n of reference coverage, capturability, and honest capture gaps, see the\n evaluation rubric in\n [.github/instructions/evaluate-reference.instructions.md](.github/instructions/evaluate-reference.instructions.md)\n-— an instruction file that applies automatically to model, docs, and scenario\n+- an instruction file that applies automatically to model, docs, and scenario",
+      "id": "PRRT_kwDOSUeMrM6cLh08",
+      "opened": "2026-08-25T18:01:27Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "87975237aecfe22be7fb51154fb883cda3eceddb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3855707987"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This list omits exceptions and library state, although the bullet below accepts both.\n\n```suggestion\neach value must be readable from there: a parameter the library defines and\ninterprets, something the library or mock server returns, an exception, or\nlibrary state.\n```",
+      "created": "2026-08-25T17:50:43Z",
+      "hunk": "@@ -2,66 +2,37 @@\n applyTo: \"model/**,docs/gen-ai/**,reference/scenarios/**\"\n ---\n \n-# Reference Evaluation\n+# Reference evaluation\n \n-Use when evaluating whether semantic-convention changes are supported by reference scenarios.\n+Judge whether the scenarios in a changeset back its convention changes. Read the\n+changeset as a whole: for each field changed under `model/**`, read the scenarios\n+that should emit it, including ones this PR did not touch.\n \n-When reviewing a pull request, perform a cross-file evaluation rather than reviewing\n-each changed file in isolation. For each signal or entity changed under `model/**`,\n-inspect the relevant reference scenarios, including unchanged scenarios for other\n-supporting libraries.\n+Scenario authoring rules and examples live in\n+[.github/skills/reference/SKILL.md](../skills/reference/SKILL.md).\n+Flag each violation.\n \n-Goal: for each signal, entity, or attribute changed under `model/**`, confirm at least one reference scenario credibly demonstrates it; for each scenario change, confirm it mirrors the model. Flag any changed field with no scenario coverage as `add reference for supporting library`.\n+## Trace every value\n \n-A missing or partial reference is not automatically an implementation bug. It may be a capture gap: a legitimate limitation in what the library exposes from its public call boundary.\n+Instrumentation lives inside the library and sees only the library's own API, so\n+each value must be readable from there: either a parameter the library defines\n+and interprets, or something the library or mock server returns.",
+      "id": "PRRT_kwDOSUeMrM6cLh1F",
+      "opened": "2026-08-25T18:01:27Z",
+      "path": ".github/instructions/evaluate-reference.instructions.md",
+      "replies": [],
+      "reviewed": "87975237aecfe22be7fb51154fb883cda3eceddb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/455#discussion_r3855708004"
+    }
+  ]
+}

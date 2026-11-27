@@ -1,0 +1,31 @@
+{
+  "head": "94bbd8dad62e6439f821f77cc9eed82c24dc6db6",
+  "merge": "633cbb060b16b1487ea2dcd23c4307edc1a03f01",
+  "merged": "2026-11-04T00:50:38Z",
+  "missing_roots": 0,
+  "number": 645,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the client retrieval block leaves this section without a deprecation notice or migration guidance for existing `gen_ai.retrieval.client` users. Add a short notice explaining that hosted retrieval should follow database or other applicable client conventions, while framework retrieval uses `gen_ai.retrieval`.",
+      "created": "2026-10-30T23:00:56Z",
+      "hunk": "@@ -47,158 +47,6 @@ Embeddings span and metric conventions are defined in [Client Embeddings](client\n Retrieval span and metric conventions for GenAI frameworks and applications\n are defined in [Retrieval](retrieval.md).\n ",
+      "id": "PRRT_kwDOSUeMrM6yK0n7",
+      "opened": "2026-10-30T23:00:57Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-11-04T00:39:49Z",
+          "body": "will be addressed in migration guide",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/645#discussion_r4462207052"
+        }
+      ],
+      "reviewed": "8c442986e5bf302d1615f38757b40310fd55785e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/645#discussion_r4429194740"
+    }
+  ]
+}

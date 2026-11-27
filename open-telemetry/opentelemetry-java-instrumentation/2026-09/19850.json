@@ -1,0 +1,94 @@
+{
+  "head": "0260636ac4b2f35b0dae0ec97bcdca1f09138198",
+  "merge": "6cb2e9122f7911cc4f09455349aecb3668a8f6f4",
+  "merged": "2026-09-09T03:19:37Z",
+  "missing_roots": 0,
+  "number": 19850,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Returning an unresolved `InetSocketAddress` suppresses only `network.peer.address`; the inherited `getNetworkPeerPort()` still returns its port (`InetSocketAddressUtil.java:51-55`). This therefore emits `network.peer.port` for unresolved peers, contrary to the PR requirement that unresolved peers omit network peer attributes. Return `null` here when `isUnresolved()` is true, and update the unresolved-peer test to assert that the socket and port are both absent.",
+      "created": "2026-08-27T00:26:29Z",
+      "hunk": "@@ -42,6 +43,13 @@ public String getDbOperation(SpymemcachedRequest spymemcachedRequest) {\n     return spymemcachedRequest.getOperationName();\n   }\n \n+  @Override\n+  @Nullable\n+  public InetSocketAddress getNetworkPeerInetSocketAddress(\n+      SpymemcachedRequest spymemcachedRequest, @Nullable Object response) {\n+    return spymemcachedRequest.getHandlingNodeAddress();",
+      "id": "PRRT_kwDODJKVX86cqEDz",
+      "opened": "2026-08-27T00:26:29Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-27T21:12:49Z",
+          "body": "Addressed in b95d81dee3e2c8c0c101a0dcec3f498bd1c782ab.\n\nAnalysis: The default network peer address and port getters derive both attributes from the socket returned by getNetworkPeerInetSocketAddress(). Returning an unresolved socket makes the address null but still exposes its numeric port. Rejecting unresolved sockets at that shared source keeps both attributes absent.\n\nUpsides: Unresolved handling nodes no longer emit a partial network peer, and the unit test covers the socket, address, and port accessors.\n\nDownsides: Unresolved sockets no longer expose their port through the network peer getter.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3875908674"
+        }
+      ],
+      "reviewed": "a7560136de7a8876d6164a0ace789814a7934cd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3867755585"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This detects different retry nodes only within one `RetryScope`. Spymemcached 2.12 can redistribute a cloned operation again (its clone count permits repeated retries), but each `redistributeOperation` creates a fresh holder and empty `retryNodes`; a later retry to node C therefore overwrites node B via `setRetryHandlingNode` instead of clearing the peer. Persist the first retry node across retry scopes and add a test with two sequential `startRetry` scopes so operations that reach several retry nodes omit `network.peer.*` as described.",
+      "created": "2026-08-31T03:50:18Z",
+      "hunk": "@@ -33,24 +50,77 @@ public static Context init(Context context, SpymemcachedRequest request) {\n     return context.with(new SpymemcachedRequestHolder(request));\n   }\n \n-  public static void setHandlingNode(Context context, @Nullable MemcachedNode node) {\n-    if (node == null) {\n-      return;\n+  public static void associateOperation(Context context, Operation operation) {\n+    SpymemcachedRequestHolder holder = context.get(KEY);\n+    if (holder != null) {\n+      REQUESTS.set(operation, holder.associations.forOperation(operation));\n     }\n+  }\n \n-    SocketAddress socketAddress = node.getSocketAddress();\n-    if (!(socketAddress instanceof InetSocketAddress)) {\n+  public static void propagateOperation(Operation target, Operation source) {\n+    SpymemcachedRequestAssociations sourceAssociations = REQUESTS.get(source);\n+    if (sourceAssociations == null) {\n       return;\n     }\n+    SpymemcachedRequestAssociations targetAssociations = REQUESTS.get(target);\n+    if (targetAssociations == null) {\n+      targetAssociations = SpymemcachedRequestAssociations.create();\n+      REQUESTS.set(target, targetAssociations);\n+    }\n+    targetAssociations.merge(sourceAssociations);\n+  }\n \n+  public static void captureHandlingNode(Context context, Operation operation) {\n     SpymemcachedRequestHolder holder = context.get(KEY);\n-    if (holder != null) {\n-      holder.request.setHandlingNode(node);\n+    if (holder == null) {\n+      return;\n+    }\n+    SpymemcachedRequestAssociations operationAssociations = REQUESTS.get(operation);\n+    if (operationAssociations == null) {\n+      return;\n+    }\n+    MemcachedNode node = operation.getHandlingNode();\n+    for (SpymemcachedRequest request : operationAssociations.requests()) {\n+      if (!holder.retry) {\n+        request.setHandlingNode(node);\n+      } else if (operation instanceof KeyedOperation\n+          && holder.associations.hasRequestKeysOutside(\n+              request, ((KeyedOperation) operation).getKeys())) {\n+        request.clearHandlingNode();\n+      } else if (!holder.retryNodes.containsKey(request)) {\n+        holder.retryNodes.put(request, node);\n+        request.setRetryHandlingNode(node);",
+      "id": "PRRT_kwDODJKVX86dmt4a",
+      "opened": "2026-08-31T03:50:18Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedRequestHolder.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:07:42Z",
+          "body": "Addressed in 889bb9aa88dee6c01c75d60f7cf8730ad3305cbf.\n\nAnalysis: The holder's retry-node map ended with each retry scope. Storing the first retry node on the request preserves it for the full request lifetime, so later retry scopes compare against the same node. A sequential-scope test now covers redistribution from the initial node through two different retry nodes.\n\nUpsides: Repeated redistribution to different nodes clears the handling node across retry scopes and prevents incorrect network peer attributes.\n\nDownsides: Each instrumented Spymemcached request keeps one extra nullable node reference. Spotless also rewrites existing ternary wrapping in SpymemcachedTest.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3891633518"
+        }
+      ],
+      "reviewed": "9936593f4f30b91445ead3aaaa2f3a0bb262587b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3891578744"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] A complete multi-key retry is misclassified as partial here. Spymemcached redistributes a `MultiGetOperationImpl` by creating one child get per retry key, so each child’s key collection excludes the request’s other keys and the first child permanently clears the peer—even when every key is retried and all children use the same node. Aggregate retry keys and nodes across the whole `RetryScope`, then decide whether the retry was partial when the scope closes; please cover a full multi-key retry to one reassigned node.",
+      "created": "2026-08-31T04:14:17Z",
+      "hunk": "@@ -33,24 +42,74 @@ public static Context init(Context context, SpymemcachedRequest request) {\n     return context.with(new SpymemcachedRequestHolder(request));\n   }\n \n-  public static void setHandlingNode(Context context, @Nullable MemcachedNode node) {\n-    if (node == null) {\n-      return;\n+  public static void associateOperation(Context context, Operation operation) {\n+    SpymemcachedRequestHolder holder = context.get(KEY);\n+    if (holder != null) {\n+      REQUESTS.set(operation, holder.associations.forOperation(operation));\n     }\n+  }\n \n-    SocketAddress socketAddress = node.getSocketAddress();\n-    if (!(socketAddress instanceof InetSocketAddress)) {\n+  public static void propagateOperation(Operation target, Operation source) {\n+    SpymemcachedRequestAssociations sourceAssociations = REQUESTS.get(source);\n+    if (sourceAssociations == null) {\n       return;\n     }\n+    SpymemcachedRequestAssociations targetAssociations = REQUESTS.get(target);\n+    if (targetAssociations == null) {\n+      targetAssociations = SpymemcachedRequestAssociations.create();\n+      REQUESTS.set(target, targetAssociations);\n+    }\n+    targetAssociations.merge(sourceAssociations);\n+  }\n \n+  public static void captureHandlingNode(Context context, Operation operation) {\n     SpymemcachedRequestHolder holder = context.get(KEY);\n-    if (holder != null) {\n-      holder.request.setHandlingNode(node);\n+    if (holder == null) {\n+      return;\n     }\n+    SpymemcachedRequestAssociations operationAssociations = REQUESTS.get(operation);\n+    if (operationAssociations == null) {\n+      return;\n+    }\n+    MemcachedNode node = operation.getHandlingNode();\n+    for (SpymemcachedRequest request : operationAssociations.requests()) {\n+      if (!holder.retry) {\n+        request.setHandlingNode(node);\n+      } else if (operation instanceof KeyedOperation\n+          && holder.associations.hasRequestKeysOutside(\n+              request, ((KeyedOperation) operation).getKeys())) {",
+      "id": "PRRT_kwDODJKVX86dm6Tj",
+      "opened": "2026-08-31T04:14:18Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedRequestHolder.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:25:37Z",
+          "body": "Addressed in aa50f76b4f5e91b24ea14e057fdf0722665e3449.\n\nAnalysis: Each retry child contains only part of a multi-key request, so checking one child cannot distinguish a partial retry from a complete retry split across children. The retry holder now collects keys by request for the full scope and checks for missing keys when the scope closes. Node tracking still runs for every child so different retry nodes clear the peer immediately.\n\nUpsides: Complete multi-key retries to one node keep the correct peer. Partial retries and retries to different nodes still omit peer attributes.\n\nDownsides: Each retry scope now keeps temporary identity-map entries and key sets until the scope closes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3891691242"
+        }
+      ],
+      "reviewed": "889bb9aa88dee6c01c75d60f7cf8730ad3305cbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3891654523"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Moving handling-node capture exclusively to `BaseOperationImpl.setHandlingNode` drops peer capture for custom operation implementations. Spymemcached exposes `ConnectionFactoryBuilder.setOpFact(...)`, and `MemcachedConnection.addOperation` accepts the `Operation` interface, so a valid custom `OperationFactory` need not extend `BaseOperationImpl`; these operations are associated here but never captured. Retain an exit hook on `addOperation` as a generic fallback (the base-operation hook can remain for earlier capture).",
+      "created": "2026-08-31T04:14:18Z",
+      "hunk": "@@ -32,17 +33,36 @@ public void transform(TypeTransformer transformer) {\n             .and(takesArgument(0, named(\"net.spy.memcached.MemcachedNode\")))\n             .and(takesArgument(1, named(\"net.spy.memcached.ops.Operation\"))),\n         getClass().getName() + \"$AddOperationAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"redistributeOperation\")\n+            .and(takesArguments(1))\n+            .and(takesArgument(0, named(\"net.spy.memcached.ops.Operation\"))),\n+        getClass().getName() + \"$RedistributeOperationAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class AddOperationAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static void onExit(@Advice.Argument(1) Operation operation) {\n-      // we are reading node from operation instead of using the node that was passed to the method,\n-      // because we want to get the node that is actually handling the request, which could be\n-      // different from the one passed to the method in case of retries\n-      SpymemcachedRequestHolder.setHandlingNode(\n-          Java8BytecodeBridge.currentContext(), operation.getHandlingNode());\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.Argument(1) Operation operation) {\n+      SpymemcachedRequestHolder.associateOperation(Java8BytecodeBridge.currentContext(), operation);\n+    }",
+      "id": "PRRT_kwDODJKVX86dm6Tr",
+      "opened": "2026-08-31T04:14:18Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:25:38Z",
+          "body": "Addressed in 6dd769eb0019a20fdb6c3d8ad7af8262780bfd0a.\n\nAnalysis: The base-operation advice cannot run for an Operation implementation that does not extend BaseOperationImpl. The addOperation advice now associates the operation on entry and captures its assigned handling node on exit, after MemcachedConnection has finished assigning the operation.\n\nUpsides: Custom OperationFactory implementations now report the handling peer without losing the earlier capture used by built-in operations.\n\nDownsides: Built-in operations perform one extra idempotent handling-node capture when addOperation returns.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3891691322"
+        }
+      ],
+      "reviewed": "889bb9aa88dee6c01c75d60f7cf8730ad3305cbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19850#discussion_r3891654538"
+    }
+  ]
+}

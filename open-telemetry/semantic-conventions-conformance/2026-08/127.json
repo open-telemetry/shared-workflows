@@ -1,0 +1,70 @@
+{
+  "head": "87534a7dfe7af0436a5cc2c5a178648fad2c717e",
+  "merge": "8920d6c3e75ad44ee72f60dbf2a36ad1df323d42",
+  "merged": "2026-08-30T19:07:38Z",
+  "missing_roots": 0,
+  "number": 127,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Cohere schema is less constrained than the equivalent structured-output schemas: the OpenAI, Mistral, and LiteLLM scenarios all set `additionalProperties` to false. Since these scenarios are intended to make the same exchange, include the same constraint here so any schema-related telemetry remains comparable.",
+      "created": "2026-08-29T00:11:09Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Cohere chat with a JSON schema answer.\n+\n+Asking for a schema is what ``gen_ai.output.type`` describes, so the request\n+names one rather than only asking for \"some JSON\". Cohere carries the schema\n+inside a ``json_object`` response format rather than a type of its own.\n+\"\"\"\n+\n+import cohere\n+\n+SCHEMA = {\n+    \"type\": \"object\",\n+    \"properties\": {\n+        \"location\": {\"type\": \"string\"},\n+        \"temperature\": {\"type\": \"integer\"},\n+        \"conditions\": {\"enum\": [\"sunny\", \"cloudy\", \"rainy\"]},\n+    },\n+    \"required\": [\"location\", \"temperature\", \"conditions\"],",
+      "id": "PRRT_kwDOTuzK5c6dVbaM",
+      "opened": "2026-08-29T00:11:10Z",
+      "path": "scenarios/gen-ai/python/cohere/scenarios/structured_output.py",
+      "replies": [],
+      "reviewed": "3e1897fc1e4f413b7e789a19384d3203bf696212",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/127#discussion_r3884823233"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This streamed tool-call branch has no coverage: the added tool tests use non-streaming `/v2/chat`, while the streaming test sends no tools. Add a streaming tool request that validates the start/delta/end event payload and reconstructed arguments; otherwise malformed Cohere SSE can pass the mock-server suite unnoticed.",
+      "created": "2026-08-29T00:11:10Z",
+      "hunk": "@@ -1,24 +1,153 @@\n \"\"\"Cohere-compatible endpoints.\"\"\"\n \n-from flask import Blueprint, request\n+import copy\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+from ._common import mock_json_schema_value, mock_tool_arguments\n \n bp = Blueprint(\"cohere\", __name__)\n \n+CHAT_RESPONSE = {\n+    \"id\": \"cohere-mock-001\",\n+    \"finish_reason\": \"COMPLETE\",\n+    \"message\": {\n+        \"role\": \"assistant\",\n+        \"content\": [{\"type\": \"text\", \"text\": \"This is a response from the mock server.\"}],\n+    },\n+    \"usage\": {\n+        \"billed_units\": {\"input_tokens\": 25, \"output_tokens\": 12},\n+        \"tokens\": {\"input_tokens\": 25, \"output_tokens\": 12},\n+    },\n+}\n+\n+TOOL_CALL_ID = \"cohere-mock-tool-call-001\"\n+\n+\n+def _wants_tool_call(body):\n+    if not body.get(\"tools\"):\n+        return False\n+    return not any(\n+        message.get(\"role\") == \"tool\" for message in body.get(\"messages\", [])\n+    )\n+\n+\n+def _tool_call_response(body):\n+    resp = copy.deepcopy(CHAT_RESPONSE)\n+    resp[\"id\"] = \"cohere-mock-002\"\n+    tool = body.get(\"tools\", [{}])[0]\n+    function = tool.get(\"function\", tool)\n+    resp[\"finish_reason\"] = \"TOOL_CALL\"\n+    resp[\"message\"] = {\n+        \"role\": \"assistant\",\n+        # Cohere narrates the call before making it; the field is its own.\n+        \"tool_plan\": \"I will look up the weather.\",\n+        \"tool_calls\": [\n+            {\n+                \"id\": TOOL_CALL_ID,\n+                \"type\": \"function\",\n+                \"function\": {\n+                    \"name\": function.get(\"name\") or \"get_weather\",\n+                    \"arguments\": json.dumps(mock_tool_arguments(tool)),\n+                },\n+            }\n+        ],\n+    }\n+    resp[\"usage\"] = {\n+        \"billed_units\": {\"input_tokens\": 50, \"output_tokens\": 20},\n+        \"tokens\": {\"input_tokens\": 50, \"output_tokens\": 20},\n+    }\n+    return resp\n+\n+\n+def _chat_response(body):\n+    if _wants_tool_call(body):\n+        return _tool_call_response(body)\n+\n+    resp = copy.deepcopy(CHAT_RESPONSE)\n+    response_format = body.get(\"response_format\") or {}\n+    schema = response_format.get(\"json_schema\") or response_format.get(\"schema\")\n+    if response_format.get(\"type\") == \"json_object\" and schema:\n+        resp[\"message\"][\"content\"][0][\"text\"] = json.dumps(mock_json_schema_value(schema))\n+    return resp\n+\n+\n+def _event(event_type, payload):\n+    \"\"\"Format one Cohere v2 streaming event.\"\"\"\n+    return f\"event: {event_type}\\ndata: {json.dumps({'type': event_type, **payload})}\\n\\n\"\n+\n+\n+def _stream(resp):\n+    \"\"\"Yield the events of a streamed v2 chat.\n+\n+    The finished response is streamed a piece at a time rather than composed\n+    separately, so the two routes cannot drift apart: same request, same\n+    content, whichever way it was asked for.\n+    \"\"\"\n+    message = resp[\"message\"]\n+    yield _event(\"message-start\", {\"id\": resp[\"id\"], \"delta\": {\"message\": {\"role\": \"assistant\"}}})\n+\n+    if message.get(\"tool_calls\"):\n+        call = message[\"tool_calls\"][0]\n+        yield _event(\n+            \"tool-plan-delta\",\n+            {\"delta\": {\"message\": {\"tool_plan\": message.get(\"tool_plan\", \"\")}}},",
+      "id": "PRRT_kwDOTuzK5c6dVbao",
+      "opened": "2026-08-29T00:11:10Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/cohere.py",
+      "replies": [],
+      "reviewed": "3e1897fc1e4f413b7e789a19384d3203bf696212",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/127#discussion_r3884823270"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n| `cohere` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `openinference`<br>no `openllmetry`: does not support cohere v7 |\n```",
+      "created": "2026-08-29T01:02:01Z",
+      "hunk": "@@ -115,6 +115,7 @@ classes than the row, the row says so.\n | `anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal | `opentelemetry-anthropic`, `opentelemetry-langchain-anthropic`, `openinference`, `openllmetry`<br>no automatic_tool_calling in `opentelemetry-langchain-anthropic`: langchain binds tools but does not run them outside an agent |\n | `autogen` | invoke_agent, automatic_tool_calling | `native`, `openinference`<br>no `openllmetry` for this library |\n | `bedrock` | Bedrock Converse: inference, streaming, tool_calling | `opentelemetry-botocore`, `openinference`, `openllmetry` |\n+| `cohere` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `openinference`<br>no `openllmetry`: it wraps the v1 `cohere.client.Client` and declares `cohere < 6`, so zero-code skips it on cohere 7 |",
+      "id": "PRRT_kwDOTuzK5c6dVyoG",
+      "opened": "2026-08-29T01:02:01Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "38220bfc05e3f1a0181a65ce0c6566bafb74af8e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/127#discussion_r3884967422"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The OpenAI, Mistral, and LiteLLM scenarios constrain this same schema, so this omission changes the exchange instead of exercising the same tool definition.\n```suggestion\n            \"required\": [\"location\"],\n            \"additionalProperties\": False,\n```",
+      "created": "2026-08-29T01:42:53Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Cohere chat with tool calls.\n+\n+Two round trips, because one is not enough: the first shows the tool\n+definitions and the call the model asks for, the second shows the tool result\n+travelling back as input. An instrumentation that only records one side of\n+that exchange is visible here and nowhere else.\n+\"\"\"\n+\n+import json\n+\n+import cohere\n+\n+MODEL = \"command-a-03-2025\"\n+TOOL = {\n+    \"type\": \"function\",\n+    \"function\": {\n+        \"name\": \"get_current_weather\",\n+        \"description\": \"Get the current weather in a given location\",\n+        \"parameters\": {\n+            \"type\": \"object\",\n+            \"properties\": {\n+                \"location\": {\n+                    \"type\": \"string\",\n+                    \"description\": \"The city and state, e.g. Boston, MA\",\n+                },\n+            },\n+            \"required\": [\"location\"],",
+      "id": "PRRT_kwDOTuzK5c6dWF33",
+      "opened": "2026-08-29T01:48:04Z",
+      "path": "scenarios/gen-ai/python/cohere/scenarios/tool_calling.py",
+      "replies": [],
+      "reviewed": "7e38bbf55bd8db5dcc85eb4b324e823aa68517e2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/127#discussion_r3885088810"
+    }
+  ]
+}

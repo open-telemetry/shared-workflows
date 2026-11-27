@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "50ebe5725980cf964642a11803ac6fefa05fa78d72244d08c734a7f360112873",
+  "input_digest": "99bbdf7b9b6ff198fc4b3bd1ac3d3438487d6619f84366757b771d4a8529c1a4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0b1556bfbd45c9885fe8f1956238e4161704876/instrumentation/couchbase/couchbase-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseClient31Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/84c34d728b8460923b9205dc85750a90d6d0e706/instrumentation/couchbase/couchbase-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseClient31Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cef44c6a4367b29208639e13406965a7a37facec"
+      ],
+      "id": "PRRT_kwDODJKVX86s7U0T",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cef44c6a4367b29208639e13406965a7a37facec/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/84c34d728b8460923b9205dc85750a90d6d0e706/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/725f71789e2f1c844d99d90c8b6d7f493ac572fa"
+      ],
+      "id": "PRRT_kwDODJKVX86s8hVm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

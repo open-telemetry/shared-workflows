@@ -1,0 +1,46 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "87775d8a7ba49260c5fb1b3761bb966817a19487613cb3700cd9c3dce3e62a1e",
+  "input_digest": "262b22f55b5761b1201daf06f303efbdcb3437479da9cf58c7139228b0e4006a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8bb47e090d8c1eb3591026132a83be7fc8d26a8d/model/gen-ai/common.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8bb47e090d8c1eb3591026132a83be7fc8d26a8d/model/gen-ai/events.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/222346e0922f8efaf906edb38089a2edabd6cbe5/model/gen-ai/common.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/222346e0922f8efaf906edb38089a2edabd6cbe5/model/gen-ai/events.yaml"
+      ],
+      "id": "PRRT_kwDOSUeMrM65FzfO",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8bb47e090d8c1eb3591026132a83be7fc8d26a8d/model/gen-ai/common.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/222346e0922f8efaf906edb38089a2edabd6cbe5/model/gen-ai/common.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/ba9effb37674266cd906171caf97517f51e9b232"
+      ],
+      "id": "PRRT_kwDOSUeMrM65N2L-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/caddd1c8606d49cf86023be1193577d790e376f5/model/gen-ai/common.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/222346e0922f8efaf906edb38089a2edabd6cbe5/model/gen-ai/common.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/db379e9a47163ab28d6844763cf33a988376926d"
+      ],
+      "id": "PRRT_kwDOSUeMrM65XUVG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

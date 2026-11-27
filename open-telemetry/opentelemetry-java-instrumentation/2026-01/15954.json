@@ -1,0 +1,160 @@
+{
+  "head": "e26ef80c213147702b0550e04d36d14090029ddd",
+  "merge": "6a2393f4b9730b5d5270476168f94f93e48b5835",
+  "merged": "2026-01-22T08:21:55Z",
+  "missing_roots": 0,
+  "number": 15954,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot inline `sanitizedName` since only used once",
+      "created": "2026-01-20T23:19:56Z",
+      "hunk": "@@ -52,11 +52,46 @@ public DropwizardMetricsAdapter(OpenTelemetry openTelemetry) {\n     this.otelMeter = openTelemetry.getMeter(\"io.opentelemetry.dropwizard-metrics-4.0\");\n   }\n \n+  /**\n+   * Sanitizes instrument names to comply with OpenTelemetry specification.\n+   * Instrument names must consist of alphanumeric characters, '_', '.', '-', '/',\n+   * and must start with a letter.\n+   * Invalid characters are replaced with '_', and consecutive underscores are collapsed.\n+   * If the name doesn't start with a letter, 'metric_' is prepended.\n+   *\n+   * @param name the original metric name from Dropwizard\n+   * @return the sanitized instrument name\n+   */\n+  private static String sanitizeInstrumentName(String name) {\n+    if (name == null || name.isEmpty()) {\n+      return \"metric_empty\";\n+    }\n+\n+    // Replace all characters that are not alphanumeric, '_', '.', '-', or '/' with '_'\n+    String sanitized = name.replaceAll(\"[^a-zA-Z0-9._/-]\", \"_\");\n+\n+    // Collapse consecutive underscores to single underscore\n+    sanitized = sanitized.replaceAll(\"_+\", \"_\");\n+\n+    // Ensure the name starts with a letter\n+    if (!sanitized.isEmpty() && !Character.isLetter(sanitized.charAt(0))) {\n+      sanitized = \"metric_\" + sanitized;\n+    }\n+\n+    // Ensure max length of 255 characters (OpenTelemetry specification limit)\n+    if (sanitized.length() > 255) {\n+      sanitized = sanitized.substring(0, 255);\n+    }\n+\n+    return sanitized;\n+  }\n+\n   @Override\n   public void onGaugeAdded(String name, Gauge<?> gauge) {\n+    String sanitizedName = sanitizeInstrumentName(name);\n     ObservableDoubleGauge otelGauge =\n         otelMeter\n-            .gaugeBuilder(name)\n+            .gaugeBuilder(sanitizedName)",
+      "id": "PRRT_kwDODJKVX85qQR0W",
+      "opened": "2026-01-20T23:22:40Z",
+      "path": "instrumentation/dropwizard/dropwizard-metrics-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/dropwizardmetrics/DropwizardMetricsAdapter.java",
+      "replies": [
+        {
+          "at": "2026-01-20T23:30:27Z",
+          "body": "Done in c9ae12a",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2710428243"
+        }
+      ],
+      "reviewed": "7ee3b6f1e8d41bc15bc8e41166adbed3685ea992",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2710406926"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot keep the logic simple, and just strip invalid characters. If there are no characters left, then throw exception.",
+      "created": "2026-01-20T23:22:34Z",
+      "hunk": "@@ -52,11 +52,46 @@ public DropwizardMetricsAdapter(OpenTelemetry openTelemetry) {\n     this.otelMeter = openTelemetry.getMeter(\"io.opentelemetry.dropwizard-metrics-4.0\");\n   }\n \n+  /**\n+   * Sanitizes instrument names to comply with OpenTelemetry specification.\n+   * Instrument names must consist of alphanumeric characters, '_', '.', '-', '/',\n+   * and must start with a letter.\n+   * Invalid characters are replaced with '_', and consecutive underscores are collapsed.\n+   * If the name doesn't start with a letter, 'metric_' is prepended.\n+   *\n+   * @param name the original metric name from Dropwizard\n+   * @return the sanitized instrument name\n+   */",
+      "id": "PRRT_kwDODJKVX85qQTDK",
+      "opened": "2026-01-20T23:22:40Z",
+      "path": "instrumentation/dropwizard/dropwizard-metrics-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/dropwizardmetrics/DropwizardMetricsAdapter.java",
+      "replies": [
+        {
+          "at": "2026-01-20T23:30:27Z",
+          "body": "Simplified the logic in c9ae12a:\n- Now strips invalid characters instead of replacing with `_`\n- Throws `IllegalArgumentException` if name is null, empty, contains no valid characters, or doesn't start with a letter after sanitization\n- Removed the logic for prepending `metric_` and collapsing consecutive underscores",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2710428239"
+        },
+        {
+          "at": "2026-01-21T17:04:41Z",
+          "body": "Returning empty string could be weird as probably then the sdk will log a warning that empty string is not a valid name. Perhaps when sanitization fails to come up with a name we should skip creating the instrument? Maybe we should log warning? Maybe we should log something when sanitization changes the name of the instrument?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713519509"
+        },
+        {
+          "at": "2026-01-21T18:58:46Z",
+          "body": "@copilot\r\n\r\nwhen sanitization fails to come up with a name (it's empty) log a warning and should skip creating the instrument\r\n\r\nalso log a warning any time that sanitization changes the name of the instrument",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713936189"
+        },
+        {
+          "at": "2026-01-21T19:10:57Z",
+          "body": "Done in 73747cf:\n- When sanitization fails (returns null), logs a warning and skips instrument creation\n- When sanitization changes the name, logs a warning with both original and sanitized names\n- All tests pass with visible warning logs for the sanitized metric names",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713977505"
+        }
+      ],
+      "reviewed": "7ee3b6f1e8d41bc15bc8e41166adbed3685ea992",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2710413837"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot instead of adding new tests, just update existing tests to use metric name with a special character. keep it simple.\r\n\r\nalso, when you're done, run `./gradle spotlessApply` to format properly",
+      "created": "2026-01-21T02:02:35Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85qRGgq",
+      "opened": "2026-01-21T02:02:35Z",
+      "path": "instrumentation/dropwizard/dropwizard-metrics-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/dropwizardmetrics/DropwizardMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-01-21T02:09:34Z",
+          "body": "Done in e5f7b7d:\n- Removed the 5 new test methods\n- Updated existing 5 tests to use metric names with special characters (e.g., `test'gauge`, `test@counter`, `test!histogram`, `test meter`, `test#timer`)\n- Ran `./gradlew spotlessApply` to format the code",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2710699012"
+        }
+      ],
+      "reviewed": "ec8e90c428a6f532a03ba743b0c422eb2345a218",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2710687317"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "we shouldn't throw exceptions from here as they'll propagate into application code",
+      "created": "2026-01-21T07:40:38Z",
+      "hunk": "@@ -52,11 +52,50 @@ public DropwizardMetricsAdapter(OpenTelemetry openTelemetry) {\n     this.otelMeter = openTelemetry.getMeter(\"io.opentelemetry.dropwizard-metrics-4.0\");\n   }\n \n+  /**\n+   * Sanitizes instrument names to comply with OpenTelemetry specification. Instrument names must\n+   * consist of alphanumeric characters, '_', '.', '-', '/', and must start with a letter. Invalid\n+   * characters are stripped from the name.\n+   *\n+   * @param name the original metric name from Dropwizard\n+   * @return the sanitized instrument name\n+   * @throws IllegalArgumentException if the name is null, empty, or contains no valid characters\n+   */\n+  private static String sanitizeInstrumentName(String name) {\n+    if (name == null || name.isEmpty()) {\n+      throw new IllegalArgumentException(\"Metric name cannot be null or empty\");",
+      "id": "PRRT_kwDODJKVX85qTA1n",
+      "opened": "2026-01-21T07:40:38Z",
+      "path": "instrumentation/dropwizard/dropwizard-metrics-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/dropwizardmetrics/DropwizardMetricsAdapter.java",
+      "replies": [
+        {
+          "at": "2026-01-21T16:43:32Z",
+          "body": "good point, I checked SDK and it will handle this and return noop instrument\r\n\r\n@copilot don't throw exceptions from this method, returning empty string is ok",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713424532"
+        },
+        {
+          "at": "2026-01-21T16:51:32Z",
+          "body": "i wonder if copilot is referencing [this](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/.github/copilot-instructions.md?plain=1#L33-L35) or not, or if we need to use different language",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713462737"
+        },
+        {
+          "at": "2026-01-21T16:53:08Z",
+          "body": "Done in 54b96e5 - now returns empty string instead of throwing exceptions, which allows the SDK to handle invalid names and return noop instruments",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713469621"
+        },
+        {
+          "at": "2026-01-21T16:53:09Z",
+          "body": "Done in 54b96e5 - now returns empty string instead of throwing exceptions",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713469700"
+        },
+        {
+          "at": "2026-01-21T18:55:11Z",
+          "body": "> i wonder if copilot is referencing [this](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/.github/copilot-instructions.md?plain=1#L33-L35) or not, or if we need to use different language\r\n\r\nthe problem is me https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2710413837",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713924670"
+        }
+      ],
+      "reviewed": "e5f7b7d272c81503411dd8df586bfbfdeefba042",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2711335076"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we use precompiled regexes",
+      "created": "2026-01-21T07:46:54Z",
+      "hunk": "@@ -52,11 +52,50 @@ public DropwizardMetricsAdapter(OpenTelemetry openTelemetry) {\n     this.otelMeter = openTelemetry.getMeter(\"io.opentelemetry.dropwizard-metrics-4.0\");\n   }\n \n+  /**\n+   * Sanitizes instrument names to comply with OpenTelemetry specification. Instrument names must\n+   * consist of alphanumeric characters, '_', '.', '-', '/', and must start with a letter. Invalid\n+   * characters are stripped from the name.\n+   *\n+   * @param name the original metric name from Dropwizard\n+   * @return the sanitized instrument name\n+   * @throws IllegalArgumentException if the name is null, empty, or contains no valid characters\n+   */\n+  private static String sanitizeInstrumentName(String name) {\n+    if (name == null || name.isEmpty()) {\n+      throw new IllegalArgumentException(\"Metric name cannot be null or empty\");\n+    }\n+\n+    // Strip all characters that are not alphanumeric, '_', '.', '-', or '/'\n+    String sanitized = name.replaceAll(\"[^a-zA-Z0-9._/-]\", \"\");",
+      "id": "PRRT_kwDODJKVX85qTEC-",
+      "opened": "2026-01-21T07:46:54Z",
+      "path": "instrumentation/dropwizard/dropwizard-metrics-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/dropwizardmetrics/DropwizardMetricsAdapter.java",
+      "replies": [
+        {
+          "at": "2026-01-21T16:43:32Z",
+          "body": "@copilot use precompiled regex",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713424696"
+        },
+        {
+          "at": "2026-01-21T16:53:08Z",
+          "body": "Done in 54b96e5 - using precompiled Pattern constant",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713469626"
+        },
+        {
+          "at": "2026-01-21T16:53:08Z",
+          "body": "Done in 54b96e5 - using precompiled Pattern constant `INVALID_CHARACTERS`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2713469651"
+        }
+      ],
+      "reviewed": "e5f7b7d272c81503411dd8df586bfbfdeefba042",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15954#discussion_r2711352087"
+    }
+  ]
+}

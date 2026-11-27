@@ -1,0 +1,139 @@
+{
+  "head": "5ea52cc7f90330ba5256a5e936ab27919d3911ff",
+  "merge": "63716f7d43c1090d06f3ba175c4a2eab71f7b3ab",
+  "merged": "2026-11-20T04:24:13Z",
+  "missing_roots": 0,
+  "number": 1077,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A JSON request whose `inferenceConfig.topP` is an integer such as `10**400` now raises `OverflowError` in `_safe_float`. Extraction runs before the SDK call and its error handler, so this prevents the call and leaves the invocation unfinished. Add `OverflowError` to `_safe_float`'s exception tuple and add a public-client regression test that verifies the SDK's error still propagates.",
+      "created": "2026-11-11T11:32:27Z",
+      "hunk": "@@ -508,6 +508,7 @@ def extract_invoke_model_request(\n             body.get(\"p\"),\n             text_gen_config.get(\"topP\") if text_gen_config else None,\n             inf_config.get(\"top_p\") if inf_config else None,\n+            inf_config.get(\"topP\") if inf_config else None,",
+      "id": "PRRT_kwDOSbspP862Jgzx",
+      "opened": "2026-11-11T11:32:28Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-19T10:23:29Z",
+          "body": "Seems unrelated to the change",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4627324933"
+        }
+      ],
+      "reviewed": "e29234d3545f27e9cf09a72d59b3dbe06173595a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4537349063"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "we are missing inf_config.get(\"topK\") here",
+      "created": "2026-11-11T15:31:15Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP862PPQw",
+      "opened": "2026-11-11T15:31:15Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-11T16:33:25Z",
+          "body": "Added",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4540516255"
+        }
+      ],
+      "reviewed": "3542cda604bdea5ec1b754e9da60c481b28a0f05",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4539823315"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "missing inf_config.get(\"stop_sequences\")",
+      "created": "2026-11-11T15:32:22Z",
+      "hunk": "@@ -538,6 +539,7 @@ def extract_invoke_model_request(\n         body.get(\"stop_sequences\"),\n         body.get(\"stopSequences\"),\n         text_gen_config.get(\"stopSequences\") if text_gen_config else None,\n+        inf_config.get(\"stopSequences\") if inf_config else None,",
+      "id": "PRRT_kwDOSbspP862PRQu",
+      "opened": "2026-11-11T15:32:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-11T15:56:00Z",
+          "body": "For which model though? Nova does not use that AFAICS",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4540103798"
+        },
+        {
+          "at": "2026-11-11T17:04:29Z",
+          "body": "inferenceConfig accepts snake_case aliases (max_new_tokens, top_p, top_k, stop_sequences) in addition to the camelCase keys documented in the Converse-aligned schema ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4540867618"
+        },
+        {
+          "at": "2026-11-12T09:07:36Z",
+          "body": "The documented API references only the camel case ones though https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html . We can take a look at converse in a followup PR though",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4548393262"
+        },
+        {
+          "at": "2026-11-12T21:06:05Z",
+          "body": "You're right for stop sequences.. I had my agent try all combinations and it found:\r\n\r\n\r\nParameter in inferenceConfig | Result | API Response / Error\r\n-- | -- | --\r\nmaxTokens: 5 (camelCase) | ACCEPTED | stopReason='max_tokens', outputTokens=5\r\nmax_new_tokens: 5 (snake_case) | ACCEPTED | stopReason='max_tokens', outputTokens=5\r\nmax_tokens: 5 (snake_case) | REJECTED | ValidationException: The provided [max_tokens] may not meet the required format or standards.\r\ntopP: 0.9 (camelCase) | ACCEPTED | stopReason='end_turn', outputTokens=48\r\ntop_p: 0.9 (snake_case) | ACCEPTED | stopReason='end_turn', outputTokens=47\r\ntopK: 20 (camelCase) | ACCEPTED | stopReason='end_turn', outputTokens=48\r\ntop_k: 20 (snake_case) | ACCEPTED | stopReason='end_turn', outputTokens=48\r\nstopSequences: [\"4\"] (camelCase) | ACCEPTED | stopReason='end_turn', outputTokens=27\r\nstop_sequences: [\"4\"] (snake_case) | REJECTED | ValidationException: The provided [stop_sequences] may not meet the required format or standards.\r\n\r\nSo we parse the correct set of params in the code currently",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4556336722"
+        }
+      ],
+      "reviewed": "3542cda604bdea5ec1b754e9da60c481b28a0f05",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4539836611"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "we are missing \n\ninf_config.get(\"maxTokens\") and inf_config.get(\"max_tokens\") ",
+      "created": "2026-11-11T15:33:36Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP862PTRd",
+      "opened": "2026-11-11T15:33:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-11T16:33:40Z",
+          "body": "Added maxTokens support",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4540521116"
+        }
+      ],
+      "reviewed": "3542cda604bdea5ec1b754e9da60c481b28a0f05",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4539850370"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "xrmx"
+      },
+      "body": "```suggestion\nCapture Nova top-p, top-k, max tokens and stop sequences in Bedrock InvokeModel request telemetry.\n```",
+      "created": "2026-11-16T08:42:52Z",
+      "hunk": "@@ -0,0 +1 @@\n+Capture Nova top-p and stop sequences in Bedrock InvokeModel request telemetry.",
+      "id": "PRRT_kwDOSbspP86312mW",
+      "opened": "2026-11-16T08:42:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/.changelog/1077.fixed",
+      "replies": [],
+      "reviewed": "9e036e4d541ad780db0e4d58e535ef73c2b98912",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4583572413"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new regression checks only synchronous, non-streaming success with content capture disabled, leaving Nova's four request settings unverified on the other supported paths. Extend public-client tests to async `invoke_model` and sync/async `invoke_model_with_response_stream`, including provider errors, early stream closure, and content capture enabled. Assert the exact four settings on finalized spans and absent message content when capture is disabled, as required by the [instrumentation test rules](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-19T10:27:42Z",
+      "hunk": "@@ -274,6 +274,77 @@ def test_invoke_model_titan_text(\n     )\n \n \n+@pytest.mark.parametrize(\n+    \"top_p,top_k,max_tokens\", [(0.0, 0, 0), (0.9, 40, 100)]\n+)\n+def test_invoke_model_nova_request_settings(",
+      "id": "PRRT_kwDOSbspP865b5bU",
+      "opened": "2026-11-19T10:27:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/test_invoke_model.py",
+      "replies": [],
+      "reviewed": "5ea52cc7f90330ba5256a5e936ab27919d3911ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1077#discussion_r4627370406"
+    }
+  ]
+}

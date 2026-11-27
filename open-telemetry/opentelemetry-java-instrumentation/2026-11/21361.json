@@ -1,0 +1,229 @@
+{
+  "head": "ae2a986ef56ed08e339dbc00f0191b9a7131a15e",
+  "merge": "00b96b59d2728cf7e72d1b69b4b958d054ab3045",
+  "merged": "2026-11-23T00:37:52Z",
+  "missing_roots": 0,
+  "number": 21361,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Address these three review items as three separate commits, one item per commit, without squashing them together.\n\n1. Remove the obsolete SqlDialect static-import rule in conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/StaticImportFormatter.kt that matches DOUBLE_QUOTES_ARE_[A-Z_]+. Those constants are deprecated and no longer used by call sites. Do not change unrelated formatter rules.\n\n2. Strengthen instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/R2dbcSqlAttributesGetterTest.java. Its sqlDialect test currently compares the getter's result to expected values produced by SqlDialect.forDbSystemName, the same lookup used in production. Instead assert concrete sanitized query text through SqlQueryAnalyzer, following JdbcAttributesGetterTest. Preserve the PostgreSQL, Oracle, DB2, ClickHouse, MySQL, SQL Server, and unknown database cases. Verify double-quoted identifiers remain for the first four and double-quoted fragments are sanitized for the latter three. Keep short expected values inline in assertions or explicit test arguments, not derived through the lookup under test.\n\n3. In instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseSqlAttributesGetter.java, replace the direct SqlDialect.UNKNOWN return with SqlDialect.forDbSystemName(getDbSystemName(request)) for consistency with other known database getters. Preserve SQL++ sanitization of both single- and double-quoted string literals. Keep changes behavior-preserving.\n\nDo not change the PolarDB mapping or public API beyond these items. Keep the existing PR's draft state. Run the narrowest applicable spotlessApply tasks directly before relevant focused validation, never spotlessCheck first, and run the focused R2dbcSqlAttributesGetterTest plus other directly relevant checks where feasible. Do not run clean, cleanTest, or disable build caches. Report actual validation results and any blockers.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Deliver these three scoped commits to the existing PR when supported, rather than requesting a separate follow-up PR.",
+      "created": "2026-11-19T20:06:44Z",
+      "hunk": "@@ -25,7 +24,7 @@ final class CouchbaseSqlAttributesGetter\n   public SqlDialect getSqlDialect(CouchbaseRequestInfo request) {\n     // SQL++ uses both single and double quotation marks for string literals.\n     // https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/literals.html\n-    return DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+    return SqlDialect.UNKNOWN;",
+      "id": "PRRT_kwDODJKVX865sM3m",
+      "opened": "2026-11-19T20:06:43Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-19T20:16:38Z",
+          "body": "Addressed in three separate commits: `90fbc53b` removes the obsolete formatter rule, `9638f85d` asserts sanitized SQL output for all seven R2DBC cases, and `a1890dbb` selects Couchbase’s dialect by database name. `conventions:test`, the focused `R2dbcSqlAttributesGetterTest`, and `CouchbaseAttributesGetterTest` passed. Relevant `spotlessApply` tasks passed; remote-cache host lookups were unavailable but did not fail the builds. Secret scanning found no secrets, and CodeQL skipped the changes as trivial.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4634522810"
+        }
+      ],
+      "reviewed": "daed0ba94dc0b18196f456e5c3aa75a7585efe8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4634406761"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21361 directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Improve the readability of instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlDialectTest.java. The user found this test hard to understand.\n\nMake it clear that the parameterized test verifies which double-quote handling policy is selected for each database name, not general SQL sanitization. Use an intention-revealing test name such as selectsQuotingPolicyForDatabase and a descriptive method-source name. Replace the cryptic boolean identifiers argument and conditional expected output with directly understandable expectations, for example explicit expected sanitized query strings in the argument rows. Keep short expected values inline or in explicit test arguments rather than computing them using the lookup under test or adding helpers solely to derive expectations. A minimal query focused on double-quoted text can avoid the unrelated numeric-literal sanitization in the current query.\n\nPreserve all 17 database-name cases, including PolarDB, the unknown database, and null, and retain coverage that an unconfigured builder defaults to sanitizing double-quoted fragments. Continue asserting observable sanitized query text. Keep this a small test-only readability change without production/API changes, database mapping changes, unrelated cleanup, or extra abstractions.\n\nRun the narrowest applicable spotlessApply task directly before the focused SqlDialectTest validation, never spotlessCheck first. Run the focused test where feasible and report the actual result or blocker. Do not run clean, cleanTest, or disable build caches. Preserve this existing PR's draft state.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-19T20:38:27Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.params.provider.Arguments.argumentSet;\n+\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+class SqlDialectTest {\n+\n+  @Test\n+  void builderDefaultsToStringLiterals() {\n+    assertThat(\n+            SqlQueryAnalyzer.create(true)\n+                .analyze(\"SELECT \\\"name\\\" FROM catalog WHERE id = 42\", SqlDialect.builder().build())\n+                .getQueryText())\n+        .isEqualTo(\"SELECT ? FROM catalog WHERE id = ?\");\n+  }\n+\n+  @ParameterizedTest\n+  @MethodSource(\"doubleQuotedQueries\")\n+  void sanitizesDoubleQuotedQueries(String dbSystemName, boolean identifiers) {",
+      "id": "PRRT_kwDODJKVX865tGCH",
+      "opened": "2026-11-19T20:38:27Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlDialectTest.java",
+      "replies": [
+        {
+          "at": "2026-11-19T20:44:31Z",
+          "body": "Updated the test expectations and names as requested in commit `95be7eda`. `:instrumentation-api-incubator:spotlessApply` and the focused `SqlDialectTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4634869247"
+        }
+      ],
+      "reviewed": "a1890dbb100c09218d85c4797ad98a7d16c62486",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4634796710"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21361 directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Apply the approved SqlDialect.UNKNOWN usage cleanup in two separate commits, keeping the test-only cleanup separate from the Camel correction. Do not squash or amend the existing commits.\n\nCommit 1, behavior-preserving test cleanup: In instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientSpanNameExtractorTest.java, SqlQueryAnalyzerUtilCacheTest.java, and SqlQuerySummaryEdgeCasesTest.java, replace uses of SqlDialect.UNKNOWN with a test-local dialect explicitly built using SqlDialect.builder().setDoubleQuotesAreIdentifiers(false).build(). These tests choose a fixed quoting policy rather than testing an unknown database. Reuse a test-local dialect within a class where repeated uses require consistency; do not introduce a shared helper or invent a database name. In SqlClientAttributesExtractorTest.java in the same directory, make TestAttributesGetter.getSqlDialect(map) return SqlDialect.forDbSystemName(getDbSystemName(map)), because the map sometimes specifies known databases such as Oracle and DB2. Preserve existing assertions and test coverage; do not undo the already-delivered SqlDialectTest readability cleanup.\n\nCommit 2, Camel known-database correction: In instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/DbSpanDecorator.java, select the dialect with SqlDialect.forDbSystemName(system). DecoratorRegistry registers cql with Cassandra, while jdbc and sql use other_sql. Preserve double-quoted CQL identifiers using Cassandra's policy; retain conservative string-literal sanitization for the unspecified JDBC/SQL engines. Remove or correct the blanket comment claiming the database is always unknown. Keep genuine string literals sanitized. Cover the changed policy and unchanged fallback with focused tests following the module's existing testing patterns. Do not re-enable Camel database spans or change shouldStartNewSpan, lifecycle, configuration, or unrelated instrumentation behavior.\n\nRetain SqlDialect.UNKNOWN in the RDS Data getter, Hibernate OperationNameUtil, and SqlDialect factory fallback paths. Keep the public constant, deprecated aliases, database mappings including PolarDB, and public APIs unchanged. Do not broaden this into a public naming redesign or general test cleanup. Preserve the existing PR's draft state.\n\nRun the narrowest applicable spotlessApply tasks directly before focused validation, never spotlessCheck first. Run the four affected incubator test classes and the focused Camel tests covering this change where feasible, and report actual results or blockers. Do not run clean, cleanTest, or disable build caches.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-19T20:58:24Z",
+      "hunk": "@@ -142,7 +142,7 @@ void setQueryAttributes(AttributesBuilder attributes, Exchange exchange) {\n     String rawQueryText = getRawQueryText(exchange);\n     if (rawQueryText != null) {\n       // using the conservative default since the underlying database is unknown to camel\n-      SqlQuery sqlQuery = analyzer.analyze(rawQueryText, DOUBLE_QUOTES_ARE_STRING_LITERALS);\n+      SqlQuery sqlQuery = analyzer.analyze(rawQueryText, SqlDialect.UNKNOWN);",
+      "id": "PRRT_kwDODJKVX865tnoa",
+      "opened": "2026-11-19T20:58:24Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/DbSpanDecorator.java",
+      "replies": [
+        {
+          "at": "2026-11-19T21:09:52Z",
+          "body": "Completed in two separate commits: `54685b8e` updates the incubator tests, and `be3e7a20` selects Camel SQL dialects by database name with focused sanitizer coverage. The four requested incubator tests and `SanitizationTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4635149564"
+        }
+      ],
+      "reviewed": "95be7edabdd561eb87352ff116aa15814a4bef57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4635029553"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21361 directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Simplify the test-local dialect declarations in these three classes under instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/.\n\nIn SqlQueryAnalyzerUtilCacheTest.java, rename TEST_DIALECT to DIALECT, update every reference consistently, and initialize it with SqlDialect.builder().build(). Keep this one constant because the getter and cache assertions reuse the dialect value. Remove the unnecessary explicit setDoubleQuotesAreIdentifiers(false).\n\nIn DbClientSpanNameExtractorTest.java and SqlQuerySummaryEdgeCasesTest.java, remove their single-use TEST_DIALECT constants and inline SqlDialect.builder().build() at their respective use sites. Do not introduce replacement constants, helpers, database names, or SqlDialect.UNKNOWN uses.\n\nThese are behavior-preserving test simplifications. Preserve all test inputs and assertions, prior SQL dialect and Camel changes, public APIs, and existing commits. Limit the change to these three test classes. Preserve the existing PR's draft state.\n\nRun :instrumentation-api-incubator:spotlessApply directly before focused validation, never spotlessCheck first. Run the three affected test classes where feasible and report actual results or blockers. Do not run clean, cleanTest, or disable build caches.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-19T21:26:19Z",
+      "hunk": "@@ -23,6 +22,9 @@\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n class SqlQueryAnalyzerUtilCacheTest {\n+  private static final SqlDialect TEST_DIALECT =",
+      "id": "PRRT_kwDODJKVX865uT3V",
+      "opened": "2026-11-19T21:26:19Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerUtilCacheTest.java",
+      "replies": [
+        {
+          "at": "2026-11-19T21:32:54Z",
+          "body": "Simplified the test-local dialect setup as requested in commit `f1c154bb`. The three focused tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4635398139"
+        }
+      ],
+      "reviewed": "be3e7a20e078a9bc764bb00aa3a7328c0623499f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4635330314"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-11-19T22:20:39Z",
+      "hunk": "@@ -25,6 +23,8 @@ class RdsDataSqlAttributesGetter\n \n   @Override\n   public String getDbSystemName(ExecutionAttributes request) {\n+    // RDS Data requests do not identify whether the engine is Aurora MySQL or PostgreSQL.\n+    // Use other_sql to retain conservative SQL sanitization.",
+      "id": "PRRT_kwDODJKVX865vlVI",
+      "opened": "2026-11-19T22:20:39Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/RdsDataSqlAttributesGetter.java",
+      "replies": [],
+      "reviewed": "440cc52be4868ef6ac6ef1bede804590ac35aa25",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4635883762"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21361 directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Separate Geode's OQL sanitizer configuration from automatic SQL dialect lookup.\n\nRemove the \"geode\" case and its associated Geode-specific comment from SqlDialect.forDbSystemName in instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlDialect.java. The automatic lookup should no longer recognize Geode as an identifier-quoting dialect. Keep Cassandra/CQL and all other database mappings unchanged.\n\nIn instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeDbAttributesGetter.java, declare private static final SqlDialect OQL_DIALECT = SqlDialect.builder().setDoubleQuotesAreIdentifiers(true).build() and pass that policy to analyzer.analyze instead of looking it up from getDbSystemName(request). Keep the existing explanation that Geode uses OQL and only reuses SQL literal sanitization, adjusting it briefly if needed. Preserve the current sanitization behavior: mask string literals and preserve double-quoted identifiers. Keep this class on DbClientAttributesGetter, not SqlClientAttributesGetter, and preserve its operation names, region/collection extraction, null query summaries, and configuration behavior.\n\nUpdate the existing SqlDialectTest so lookup of \"geode\" expects conservative fallback sanitization rather than automatic preservation of double-quoted fragments. Add a focused Geode regression case for the explicit OQL policy, preferably in the existing sanitization tests, using valid OQL for the supported Geode version and covering a double-quoted identifier with a single-quoted sensitive literal. Avoid unrelated test refactoring or new abstractions.\n\nRun the narrow affected spotlessApply tasks directly before focused validation, never spotlessCheck first. Run focused SqlDialect and Geode sanitization coverage where feasible and report actual results or blockers. Do not run clean, cleanTest, or disable build caches. Preserve all prior commits and other PR changes, including the default SQL getter lookup and RDS explanation, and preserve the existing PR's draft state.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-19T22:26:24Z",
+      "hunk": "@@ -43,9 +42,9 @@ public String getDbCollectionName(GeodeRequest request) {\n   public String getDbQueryText(GeodeRequest request) {\n     // Geode query language (OQL) is very different from SQL\n     // but SQL sanitization is still useful to mask literals\n-    // \"String literals are delimited by single quotation marks.\"\n-    // https://geode.apache.org/docs/guide/114/developing/query_additional/literals.html\n-    return analyzer.analyze(request.getQueryText(), DOUBLE_QUOTES_ARE_IDENTIFIERS).getQueryText();\n+    return analyzer\n+        .analyze(request.getQueryText(), SqlDialect.forDbSystemName(getDbSystemName(request)))",
+      "id": "PRRT_kwDODJKVX865vtrn",
+      "opened": "2026-11-19T22:26:24Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-19T22:38:49Z",
+          "body": "Addressed in `2fcec944`. Geode now uses an explicit OQL dialect, automatic lookup falls back conservatively for `geode`, and the focused regression test verifies a double-quoted identifier is preserved while a single-quoted literal is sanitized.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636056160"
+        }
+      ],
+      "reviewed": "ddc212bc74d61eb31ef55f5b68f18eacb449f9a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4635941058"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Restore the Geode OQL source citation in existing PR #21361, directly on its verified head branch trask-sql-dialect-split in open-telemetry/opentelemetry-java-instrumentation.\n\nThe user wants to preserve the documentation supporting Geode's quoting policy. In instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeDbAttributesGetter.java, add these exact two comment lines directly above the OQL_DIALECT declaration:\n\n```java\n// \"String literals are delimited by single quotation marks.\"\n// https://geode.apache.org/docs/guide/114/developing/query_additional/literals.html\n```\n\nKeep the explicit OQL_DIALECT builder, the existing OQL sanitization explanation, and all behavior unchanged. Do not reintroduce the Geode mapping in SqlDialect.forDbSystemName. This is a focused comment-only follow-up to commit 2fcec9448877c02d3e671eb6795cac1731f87ae9, not another refactoring. Preserve all prior PR changes and its draft state. Commit and publish this small correction.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-19T22:43:54Z",
+      "hunk": "@@ -5,18 +5,20 @@\n \n package io.opentelemetry.javaagent.instrumentation.geode.v1_4;\n \n-import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_IDENTIFIERS;\n-\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlQueryAnalyzer;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n import io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues;\n import javax.annotation.Nullable;\n \n final class GeodeDbAttributesGetter implements DbClientAttributesGetter<GeodeRequest, Void> {\n \n+  private static final SqlDialect OQL_DIALECT =",
+      "id": "PRRT_kwDODJKVX865wGKz",
+      "opened": "2026-11-19T22:43:54Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-19T22:48:43Z",
+          "body": "Restored the requested OQL source citation in commit `",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636153779"
+        }
+      ],
+      "reviewed": "2fcec9448877c02d3e671eb6795cac1731f87ae9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636110183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  // \"String literals are delimited by single quotation marks.\"\n  // https://geode.apache.org/docs/guide/114/developing/query_additional/literals.html\n```",
+      "created": "2026-11-19T22:49:54Z",
+      "hunk": "@@ -5,18 +5,22 @@\n \n package io.opentelemetry.javaagent.instrumentation.geode.v1_4;\n \n-import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_IDENTIFIERS;\n-\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlQueryAnalyzer;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n import io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues;\n import javax.annotation.Nullable;\n \n final class GeodeDbAttributesGetter implements DbClientAttributesGetter<GeodeRequest, Void> {\n \n+  // &#34;String literals are delimited by single quotation marks.&#34;\n+  // https://geode.apache.org/docs/guide/114/developing/query_additional/literals.html",
+      "id": "PRRT_kwDODJKVX865wOKL",
+      "opened": "2026-11-19T22:49:54Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeDbAttributesGetter.java",
+      "replies": [],
+      "reviewed": "de156747784e33393826b9cd3ec4fda5f60ec711",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636164611"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #21361 directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Keep PolarDB driver-specific quoting knowledge in JDBC rather than in the shared SQL dialect lookup.\n\nRemove the \"polardb\" case and its associated explanation from SqlDialect.forDbSystemName in instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlDialect.java. A plain db.system.name of \"polardb\" identifies a product family with multiple engines, so the shared lookup should return UNKNOWN rather than infer PostgreSQL quoting. Keep all other database mappings and the public API unchanged.\n\nPreserve the current identifier-aware sanitization for the specific JDBC driver recognized by jdbc:polardb: in instrumentation/jdbc/library. Make that an explicit JDBC-side choice, for example in JdbcAttributesGetter.getSqlDialect, selecting SqlDialect.forDbSystemName(\"postgresql\") for this known driver and using the shared default for other databases. Keep the emitted db.system.name=\"polardb\" unchanged. Do not normalize its telemetry identity, add PolarDB mappings to other clients, or change OceanBase or Lindorm.\n\nThe relevant driver is documented at https://www.alibabacloud.com/help/en/polardb/polardb-for-oracle/jdbc-o-1-0. It is the PostgreSQL-based JDBC driver for the Oracle-compatible edition, uses jdbc:polardb:// with default port 1521, and uses the PostgreSQL wire protocol. Keep a concise source citation next to any JDBC-specific quoting explanation, and describe this driver rather than all PolarDB editions. The product family also includes a MySQL-compatible edition, as documented at https://www.alibabacloud.com/help/en/polardb/getting-started.\n\nUpdate the existing focused tests so the shared lookup conservatively sanitizes double-quoted fragments for \"polardb\", while the JDBC PolarDB path still preserves double-quoted identifiers and sanitizes single-quoted string literals. Prefer existing SqlDialectTest and JdbcAttributesGetterTest coverage and a parsed jdbc:polardb: URL where that makes the driver distinction observable. Preserve other database behavior and keep expectations concrete rather than deriving them through the production lookup under test. Avoid unrelated cleanup or new abstractions.\n\nRun the narrow affected spotlessApply tasks directly before focused validation, never spotlessCheck first. Run focused SqlDialect and JDBC attribute/sanitization coverage where feasible and report actual results or blockers. Do not run clean, cleanTest, or disable build caches. Preserve all prior PR changes and existing commits.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-20T00:00:10Z",
+      "hunk": "@@ -6,50 +6,122 @@\n package io.opentelemetry.instrumentation.api.incubator.semconv.db;\n \n import com.google.auto.value.AutoValue;\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import javax.annotation.Nullable;\n \n /** Describes SQL dialect options that affect how {@link SqlQueryAnalyzer} processes queries. */\n @AutoValue\n public abstract class SqlDialect {\n \n+  /**\n+   * Dialect for queries whose database is unknown. Double-quoted fragments are treated as string\n+   * literals and sanitized (replaced with {@code ?}).\n+   */\n+  public static final SqlDialect UNKNOWN = builder().build();\n+\n+  private static final SqlDialect IDENTIFIERS =\n+      builder().setDoubleQuotesAreIdentifiers(true).build();\n+\n   /**\n    * Dialect where double-quoted fragments are treated as string literals and therefore sanitized\n    * (replaced with {@code ?}).\n    *\n-   * <p>This is a safer choice if you don't know how the database interprets double-quoted tokens.\n-   * If the database actually uses double quotes for identifiers, the downside is that identifier\n-   * names are replaced with {@code ?}, reducing diagnostic clarity. By contrast, choosing {@link\n-   * #DOUBLE_QUOTES_ARE_IDENTIFIERS} incorrectly would fail to sanitize sensitive string-literal\n-   * values.\n+   * @deprecated Use {@link #UNKNOWN} instead. May be removed in the next minor release.\n    */\n-  public static final SqlDialect DOUBLE_QUOTES_ARE_STRING_LITERALS = builder().build();\n+  @Deprecated public static final SqlDialect DOUBLE_QUOTES_ARE_STRING_LITERALS = UNKNOWN;\n \n   /**\n    * Dialect where double-quoted fragments are treated as identifiers (e.g. column/table names) and\n    * therefore left intact during sanitization. Use this only for databases where double quotes\n    * always denote identifiers.\n+   *\n+   * @deprecated Use {@link #forDbSystemName(String)} or {@link #builder()} instead. May be removed\n+   *     in the next minor release.\n    */\n-  public static final SqlDialect DOUBLE_QUOTES_ARE_IDENTIFIERS =\n-      builder().setDoubleQuotesAreIdentifiers(true).build();\n+  @Deprecated public static final SqlDialect DOUBLE_QUOTES_ARE_IDENTIFIERS = IDENTIFIERS;\n \n-  SqlDialect() {}\n+  /**\n+   * Returns the dialect for the given {@code db.system.name} value, or {@link #UNKNOWN} if the\n+   * database is {@code null} or not recognized.\n+   */\n+  public static SqlDialect forDbSystemName(@Nullable String dbSystemName) {\n+    if (dbSystemName == null) {\n+      return UNKNOWN;\n+    }\n+    switch (dbSystemName) {\n+      // \"A string constant in SQL is an arbitrary sequence of characters\n+      // bounded by single quotes (')\"\n+      // https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-STRINGS\n+      case \"postgresql\":\n+      // \"Text, character, and string literals are always surrounded\n+      // by single quotation marks.\"\n+      // https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/Literals.html\n+      case \"oracle.db\":\n+      // \"A sequence of characters that starts and ends with a string delimiter,\n+      // which is an apostrophe (')\"\n+      // https://www.ibm.com/docs/en/db2/12.1?topic=elements-constants\n+      case \"ibm.db2\":\n+      // \"Single quotation marks delimit character strings.\"\n+      // \"Double quotation marks delimit special identifiers\"\n+      // https://db.apache.org/derby/docs/10.17/ref/rrefsqlj28468.html\n+      case \"derby\":\n+      // \"names of objects are enclosed in double-quotes\"\n+      // (double quotes are exclusively for identifiers; follows SQL standard strictly)\n+      // https://hsqldb.org/doc/2.0/guide/sqlgeneral-chapt.html\n+      case \"hsqldb\":\n+      // <string_literal> ::= <single_quote>[<any_character>...]<single_quote>\n+      // <special_identifier> ::= <double_quotes><any_character>...<double_quotes>\n+      // https://help.sap.com/docs/hana-cloud-database/sap-hana-cloud-sap-hana-database-sql-reference-guide/sql-notation-conventions\n+      case \"sap.hana\":\n+      // \"String literals must be enclosed in single quotes.\n+      // Double quotes are not supported.\"\n+      // https://clickhouse.com/docs/en/sql-reference/syntax#string\n+      case \"clickhouse\":\n+      // PostgreSQL-compatible fork, inherits PG string literal rules\n+      // (not a semantic convention value, produced by the JDBC PolarDB connection url parser)\n+      case \"polardb\":",
+      "id": "PRRT_kwDODJKVX865xh-F",
+      "opened": "2026-11-20T00:00:10Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlDialect.java",
+      "replies": [
+        {
+          "at": "2026-11-20T00:12:59Z",
+          "body": "Addressed in commit `2d023849`. Shared lookup now falls back conservatively for `polardb`; JDBC applies PostgreSQL quoting for the parsed `jdbc:polardb:` identity, with a regression test confirming preserved identifiers, masked single-quoted literals, and unchanged `db.system.name`. Focused tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636839001"
+        }
+      ],
+      "reviewed": "50c109dbac6089b5ba4800101a32896706121f6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636737416"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #21361 directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Restore the original method order in instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java so the PR diff does not show an unrelated method swap.\n\nThe current PR head 2d02384940bdeef3379fed1a3386a99f112a26a8 places getSqlDialect before getDbNamespace, whereas the original order was getDbSystemName, getDbNamespace, getSqlDialect, then getRawQueryTexts. Move getDbNamespace, with its @Nullable and @Override annotations, back between getDbSystemName and getSqlDialect. Leave every method body, annotation, source citation, constant, import, and all other method ordering unchanged.\n\nThis is a behavior-preserving, single-file method-order correction only. Preserve the PolarDB JDBC-specific dialect selection, its PostgreSQL driver documentation link, the shared lookup's conservative fallback, emitted telemetry identities, tests, and all earlier PR changes. Do not refactor or add tests for a source-order-only change, and do not squash or amend previous commits.\n\nRun the narrow JDBC library spotlessApply task directly before any focused validation, never spotlessCheck first. Run focused JdbcAttributesGetterTest validation where feasible and report actual results or blockers. Do not run clean, cleanTest, or disable build caches.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-20T00:24:14Z",
+      "hunk": "@@ -24,20 +22,28 @@\n  */\n public final class JdbcAttributesGetter implements SqlClientAttributesGetter<DbRequest, Void> {\n \n+  private static final String POLARDB = \"polardb\";\n+\n   @Override\n   public String getDbSystemName(DbRequest request) {\n     return request.getDbInfo().getDbSystemName();\n   }\n \n-  @Nullable\n   @Override\n-  public String getDbNamespace(DbRequest request) {\n-    return request.getDbInfo().getDbNamespace();\n+  public SqlDialect getSqlDialect(DbRequest request) {",
+      "id": "PRRT_kwDODJKVX865x-Qn",
+      "opened": "2026-11-20T00:24:13Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-20T00:30:12Z",
+          "body": "Restored the original method order in `2bce4547`. JDBC `spotlessApply` and the focused `JdbcAttributesGetterTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636977742"
+        }
+      ],
+      "reviewed": "2d02384940bdeef3379fed1a3386a99f112a26a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4636934037"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #21361 directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch trask-sql-dialect-split. Remove JDBC-specific PolarDB knowledge from the shared SQL dialect test.\n\nIn instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlDialectTest.java, remove the PolarDB argument row. For the existing unknown-database fallback case, use a generic unrecognized name such as \"unknown_database\" rather than \"other_sql\", which is itself a defined semantic-convention value. Keep the concrete expected sanitized query \"SELECT ? FROM catalog\", the null-input case, the builder-default test, and the other database cases unchanged. Do not retain or introduce PolarDB references in this shared test.\n\nKeep the existing parsed jdbc:polardb: regression test in instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetterTest.java unchanged. It already covers preserved double-quoted identifiers, masked single-quoted literals, and unchanged db.system.name=\"polardb\". Keep this a minimal test-only change in SqlDialectTest.java, with no production changes, JDBC test changes, unrelated cleanup, or new abstractions. Preserve the restored JdbcAttributesGetter method order and all previous commits.\n\nRun :instrumentation-api-incubator:spotlessApply directly before focused SqlDialectTest validation, never spotlessCheck first. Report actual validation results or blockers. Do not run clean, cleanTest, or disable build caches.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep it. Update this existing PR directly when supported rather than requesting a separate follow-up PR.",
+      "created": "2026-11-20T00:36:51Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.params.provider.Arguments.argumentSet;\n+\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+class SqlDialectTest {\n+\n+  @Test\n+  void builderDefaultsToSanitizingDoubleQuotedFragments() {\n+    assertThat(\n+            SqlQueryAnalyzer.create(true)\n+                .analyze(\"SELECT \\\"name\\\" FROM catalog\", SqlDialect.builder().build())\n+                .getQueryText())\n+        .isEqualTo(\"SELECT ? FROM catalog\");\n+  }\n+\n+  @ParameterizedTest\n+  @MethodSource(\"databaseNamesAndExpectedSanitizedQueries\")\n+  void selectsQuotingPolicyForDatabase(String dbSystemName, String expectedQueryText) {\n+    assertThat(\n+            SqlQueryAnalyzer.create(true)\n+                .analyze(\"SELECT \\\"name\\\" FROM catalog\", SqlDialect.forDbSystemName(dbSystemName))\n+                .getQueryText())\n+        .isEqualTo(expectedQueryText);\n+  }\n+\n+  private static Stream<Arguments> databaseNamesAndExpectedSanitizedQueries() {\n+    return Stream.of(\n+        argumentSet(\"PostgreSQL\", \"postgresql\", \"SELECT \\\"name\\\" FROM catalog\"),\n+        argumentSet(\"Oracle\", \"oracle.db\", \"SELECT \\\"name\\\" FROM catalog\"),\n+        argumentSet(\"DB2\", \"ibm.db2\", \"SELECT \\\"name\\\" FROM catalog\"),\n+        argumentSet(\"Derby\", \"derby\", \"SELECT \\\"name\\\" FROM catalog\"),\n+        argumentSet(\"HSQLDB\", \"hsqldb\", \"SELECT \\\"name\\\" FROM catalog\"),\n+        argumentSet(\"SAP HANA\", \"sap.hana\", \"SELECT \\\"name\\\" FROM catalog\"),\n+        argumentSet(\"ClickHouse\", \"clickhouse\", \"SELECT \\\"name\\\" FROM catalog\"),\n+        argumentSet(\"PolarDB\", \"polardb\", \"SELECT ? FROM catalog\"),",
+      "id": "PRRT_kwDODJKVX865yLoN",
+      "opened": "2026-11-20T00:36:51Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlDialectTest.java",
+      "replies": [
+        {
+          "at": "2026-11-20T00:43:42Z",
+          "body": "Removed the PolarDB row and changed the fallback input to `unknown_database` in commit `8d6cde0b`. `spotlessApply` and the focused `SqlDialectTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4637078797"
+        }
+      ],
+      "reviewed": "2bce454794586993f7d151331f98e220cbec9a86",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21361#discussion_r4637025803"
+    }
+  ]
+}

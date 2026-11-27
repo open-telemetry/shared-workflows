@@ -1,0 +1,85 @@
+{
+  "head": "d43c5b8480c1c40fbbf2924627a5f30f44318f63",
+  "merge": "515d1d88a906cc18c3d6c9647242a3af08168238",
+  "merged": "2026-06-10T07:42:13Z",
+  "missing_roots": 0,
+  "number": 18911,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment claims the cast is safe because `T` is `Value<?>`, but for `EXTENDED_ATTRIBUTES` the application API passes `ExtendedAttributes` (see usage in LoggerTest). The cast is safe due to type erasure + converting the value to an agent `Value<?>`, but the current wording is misleading and may confuse future maintainers.",
+      "created": "2026-06-06T22:42:10Z",
+      "hunk": "@@ -144,13 +157,13 @@ public <T> application.io.opentelemetry.api.incubator.logs.ExtendedLogRecordBuil\n   @SuppressWarnings(\"unchecked\") // converting ExtendedAttributeKey loses generic type\n   public <T> application.io.opentelemetry.api.incubator.logs.ExtendedLogRecordBuilder setAttribute(\n       application.io.opentelemetry.api.incubator.common.ExtendedAttributeKey<T> key, T value) {\n-    ExtendedAttributeKey<T> agentKey = convertExtendedAttributeKey(key);\n+    AttributeKey<T> agentKey = convertExtendedAttributeKey(key);\n     if (agentKey != null) {\n       if (key.getType() == EXTENDED_ATTRIBUTES) {\n-        // this cast is safe because T is ExtendedAttributes in this case\n+        // this cast is safe because T is Value<?> in this case",
+      "id": "PRRT_kwDODJKVX86HnERo",
+      "opened": "2026-06-06T22:42:10Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.50/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_50/incubator/logs/ApplicationLogRecordBuilder150Incubator.java",
+      "replies": [],
+      "reviewed": "8e9cc1cdf62f3d181bb57336c819e71918663f1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18911#discussion_r3368390327"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] createExtendedLogData() invokes setEventName(...) and setBodyValue(...) unconditionally via reflection, even though this class already has compatibility guards (canSetEventName / canUseValue) for the non-extended path. If either method is absent on older opentelemetry-sdk-testing versions, this will throw at runtime and break telemetry conversion. Consider mirroring the same guards here (and falling back to setBody(String) when Value/bodyValue isn’t available).",
+      "created": "2026-06-09T01:08:15Z",
+      "hunk": "@@ -328,30 +344,75 @@ private static LogRecordData createExtendedLogData(\n       LogRecord logRecord,\n       io.opentelemetry.sdk.resources.Resource resource,\n       InstrumentationScopeInfo instrumentationScopeInfo) {\n-    TestExtendedLogRecordData.Builder builder =\n-        TestExtendedLogRecordData.builder()\n-            .setResource(resource)\n-            .setInstrumentationScopeInfo(instrumentationScopeInfo)\n-            .setTimestamp(logRecord.getTimeUnixNano(), NANOSECONDS)\n-            .setSpanContext(\n-                SpanContext.create(\n-                    bytesToHex(logRecord.getTraceId().toByteArray()),\n-                    bytesToHex(logRecord.getSpanId().toByteArray()),\n-                    TraceFlags.fromByte((byte) logRecord.getFlags()),\n-                    TraceState.getDefault())) // logs proto doesn't have trace state\n-            .setSeverity(fromProto(logRecord.getSeverityNumber()))\n-            .setSeverityText(logRecord.getSeverityText())\n-            .setEventName(logRecord.getEventName())\n-            .setBodyValue(getBodyValue(logRecord.getBody()))\n-            .setTotalAttributeCount(\n-                logRecord.getAttributesCount() + logRecord.getDroppedAttributesCount());\n+    Object builder = invokeStatic(TEST_EXTENDED_LOG_RECORD_DATA_CLASS_NAME, \"builder\");\n+    builder =\n+        invoke(\n+            builder,\n+            \"setResource\",\n+            new Class<?>[] {io.opentelemetry.sdk.resources.Resource.class},\n+            resource);\n+    builder =\n+        invoke(\n+            builder,\n+            \"setInstrumentationScopeInfo\",\n+            new Class<?>[] {InstrumentationScopeInfo.class},\n+            instrumentationScopeInfo);\n+    builder =\n+        invoke(\n+            builder,\n+            \"setTimestamp\",\n+            new Class<?>[] {long.class, TimeUnit.class},\n+            logRecord.getTimeUnixNano(),\n+            NANOSECONDS);\n+    builder =\n+        invoke(\n+            builder,\n+            \"setSpanContext\",\n+            new Class<?>[] {SpanContext.class},\n+            SpanContext.create(\n+                bytesToHex(logRecord.getTraceId().toByteArray()),\n+                bytesToHex(logRecord.getSpanId().toByteArray()),\n+                TraceFlags.fromByte((byte) logRecord.getFlags()),\n+                TraceState.getDefault())); // logs proto doesn't have trace state\n+    builder =\n+        invoke(\n+            builder,\n+            \"setSeverity\",\n+            new Class<?>[] {Severity.class},\n+            fromProto(logRecord.getSeverityNumber()));\n+    builder =\n+        invoke(\n+            builder, \"setSeverityText\", new Class<?>[] {String.class}, logRecord.getSeverityText());\n+    builder =\n+        invoke(builder, \"setEventName\", new Class<?>[] {String.class}, logRecord.getEventName());\n+    builder =\n+        invoke(\n+            builder,\n+            \"setBodyValue\",\n+            new Class<?>[] {Value.class},\n+            getBodyValue(logRecord.getBody()));",
+      "id": "PRRT_kwDODJKVX86IAHBS",
+      "opened": "2026-06-09T01:08:16Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/TelemetryConverter.java",
+      "replies": [],
+      "reviewed": "bc8b88a2748c60577ded0587117402765eb69745",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18911#discussion_r3377235229"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR description says this only updates the OpenTelemetry SDK to 1.63.0, but this PR also updates the Kotlin Gradle plugin / stdlib version (e.g., settings.gradle.kts now pins org.jetbrains.kotlin.jvm 2.3.21 and licenses/licenses.md reflects kotlin-stdlib 2.3.21). If intentional, the PR title/description should mention it; if not, consider reverting the Kotlin upgrade to keep the change scoped.",
+      "created": "2026-06-09T01:08:16Z",
+      "hunk": "@@ -529,6 +529,7 @@ include(\":instrumentation:opentelemetry-api:opentelemetry-api-1.56:javaagent\")\n include(\":instrumentation:opentelemetry-api:opentelemetry-api-1.57:javaagent\")\n include(\":instrumentation:opentelemetry-api:opentelemetry-api-1.59:javaagent\")\n include(\":instrumentation:opentelemetry-api:opentelemetry-api-1.61:testing\")\n+include(\":instrumentation:opentelemetry-api:opentelemetry-api-1.63:javaagent\")",
+      "id": "PRRT_kwDODJKVX86IAHBf",
+      "opened": "2026-06-09T01:08:16Z",
+      "path": "settings.gradle.kts",
+      "replies": [],
+      "reviewed": "bc8b88a2748c60577ded0587117402765eb69745",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18911#discussion_r3377235247"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "was really added in `1.60.0`",
+      "created": "2026-06-09T10:56:28Z",
+      "hunk": "@@ -0,0 +1,28 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_63.logs;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.logs.LogRecordBuilder;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_50.logs.ApplicationLogRecordBuilder150;\n+\n+public class ApplicationLogRecordBuilder163 extends ApplicationLogRecordBuilder150\n+    implements application.io.opentelemetry.api.logs.LogRecordBuilder {\n+\n+  private final LogRecordBuilder agentLogRecordBuilder;\n+\n+  protected ApplicationLogRecordBuilder163(LogRecordBuilder agentLogRecordBuilder) {\n+    super(agentLogRecordBuilder);\n+    this.agentLogRecordBuilder = agentLogRecordBuilder;\n+  }\n+\n+  @Override\n+  @CanIgnoreReturnValue\n+  public application.io.opentelemetry.api.logs.LogRecordBuilder setException(Throwable throwable) {",
+      "id": "PRRT_kwDODJKVX86IHxpK",
+      "opened": "2026-06-09T10:56:28Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.63/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_63/logs/ApplicationLogRecordBuilder163.java",
+      "replies": [],
+      "reviewed": "bc8b88a2748c60577ded0587117402765eb69745",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18911#discussion_r3380033637"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess this got removed because it was too annoying to test? I think we might need a better strategy. Maybe shading something in would help? Or perhaps allow tests to provide custom conversions for `TelemetryConverter`.",
+      "created": "2026-06-09T11:12:21Z",
+      "hunk": "@@ -1,28 +0,0 @@\n-/*\n- * Copyright The OpenTelemetry Authors\n- * SPDX-License-Identifier: Apache-2.0\n- */\n-\n-package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_47.incubator.logs;\n-\n-import io.opentelemetry.api.incubator.logs.ExtendedLogRecordBuilder;\n-import io.opentelemetry.api.logs.LogRecordBuilder;\n-import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_42.logs.ApplicationLogRecordBuilder142;\n-\n-public class ApplicationLogRecordBuilder147Incubator extends ApplicationLogRecordBuilder142",
+      "id": "PRRT_kwDODJKVX86IIB3B",
+      "opened": "2026-06-09T11:12:21Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.47/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_47/incubator/logs/ApplicationLogRecordBuilder147Incubator.java",
+      "replies": [],
+      "reviewed": "bc8b88a2748c60577ded0587117402765eb69745",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18911#discussion_r3380123612"
+    }
+  ]
+}

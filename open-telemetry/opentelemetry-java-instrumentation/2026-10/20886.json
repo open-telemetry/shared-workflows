@@ -1,0 +1,31 @@
+{
+  "head": "ec9f95ff0d5b8c30471a817bd163bef090e596f4",
+  "merge": "bbeb7bfe6e57280e7a9ee33cb9a33f9733edfc5c",
+  "merged": "2026-10-23T05:10:05Z",
+  "missing_roots": 0,
+  "number": 20886,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to use Spring Framework 3.2.10.RELEASE for the baseline Spring Data JPA test fixture and remove the compileTestJava workaround that removes \"-parameters\", including its comment. Preserve this PR's Commons 1.8.0.RELEASE baseline restoration and JPA 1.6.0.RELEASE dependencies.\n\nThe user chose this approach instead of preserving the original transitive Spring 3.2.9 combination. Spring 3.2.9 bundles ASM 5 but constructs its metadata visitors at API level ASM4, causing visitParameter to throw when scanning MethodParameters attributes. Spring 3.2.10 switches SpringAsmInfo.ASM_VERSION to ASM5 and supports that metadata. Upstream source: https://github.com/spring-projects/spring-framework/blob/v3.2.10.RELEASE/spring-core/src/main/java/org/springframework/asm/SpringAsmInfo.java . The test objective is Commons 1.8 coverage, not every transitive dependency at its original minimum.\n\nMake the smallest module-local dependency changes needed to select a consistent Spring Framework 3.2.10 baseline fixture rather than mixing Spring Framework patch versions. Relevant builds are instrumentation/spring/spring-data/spring-data-1.8/javaagent/build.gradle.kts and instrumentation/spring/spring-data/spring-data-common/testing/build.gradle.kts. Account for the shared fixture's compile classpath where necessary. Keep the repository-wide \"-parameters\" convention unchanged. Do not replace this with another scanner bypass, compiler-toolchain workaround, dependency force, or global build change.\n\nVerify resolved dependency selection still uses Commons 1.8.0.RELEASE and JPA 1.6.0.RELEASE, with the intended Spring Framework 3.2.10 fixture. Run narrow relevant formatting and baseline integration tests with \"-parameters\" restored. Preserve telemetry assertions, latest-dependency mode and its Spring 5 coverage, Spring Data 3.0 consumers, Muzzle ranges, supported minimums, user-facing names, and the earlier obsolete-comment removals. Do not change production behavior, add an audit/version assertion, or expand into unrelated dependency work. Keep the PR draft and do not create a separate PR.",
+      "created": "2026-10-23T03:28:12Z",
+      "hunk": "@@ -47,6 +44,11 @@ dependencies {\n }\n \n tasks {\n+  compileTestJava {\n+    // Spring 3.2's class scanner cannot read MethodParameters attributes.",
+      "id": "PRRT_kwDODJKVX86vdh42",
+      "opened": "2026-10-23T03:28:11Z",
+      "path": "instrumentation/spring/spring-data/spring-data-1.8/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T03:39:07Z",
+          "body": "Updated in ec9f95ff: the baseline and shared fixture now align on Spring Framework 3.2.10 via the BOM, Commons 1.8/JPA 1.6 remain selected, and the local `-parameters` workaround is removed. Baseline and Spring Data 3.0 tests plus formatting passed. Latest dependency resolution confirms Spring 5.3.39 and Spring Data/JPA 2.7.18; running the latest test task remains blocked by unrelated Gradle configuration/toolchain issues.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20886#discussion_r4355849913"
+        }
+      ],
+      "reviewed": "1c238226ccbb2f063e2bbb12d342de0b33f782cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20886#discussion_r4355801138"
+    }
+  ]
+}

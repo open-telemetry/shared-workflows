@@ -1,0 +1,73 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4db8185f6e7f05632a5682bb71f150179adbfaf06b1f7cf821abccf438d6512e",
+  "input_digest": "6e52452e1a2903acecd9a847ee6c0a5ef0c8b08daa03da893feb8e55e9badfd3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/22559e26b2f2baa27c98edc5bd47797cb877deda/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/161f178471b57b5eb0aae1301a46412894246204"
+      ],
+      "id": "PRRT_kwDOSUeMrM6VXU8P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/161f178471b57b5eb0aae1301a46412894246204/reference/src/semconv_genai/parse_results.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/src/semconv_genai/parse_results.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/cd07fc22fc60b474e4e549548a805224c8399ff7"
+      ],
+      "id": "PRRT_kwDOSUeMrM6VYVbx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/cd07fc22fc60b474e4e549548a805224c8399ff7/reference/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/cd07fc22fc60b474e4e549548a805224c8399ff7/reference/reports/gen-ai-client-operation-duration-metric.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/reports/gen-ai-client-operation-duration-metric.md"
+      ],
+      "id": "PRRT_kwDOSUeMrM6VtTYu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/cd07fc22fc60b474e4e549548a805224c8399ff7/reference/scenarios/google-adk/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/cd07fc22fc60b474e4e549548a805224c8399ff7/reference/scenarios/google-adk/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/scenarios/google-adk/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/scenarios/google-adk/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/17402e9a4ce31fde3b09d535c364a49a7d462684"
+      ],
+      "id": "PRRT_kwDOSUeMrM6VtTYw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/820af161707920621077172304cd09517b4013be/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aa85df42d7d1fcc959c39b66da4d0098399f4c8c/reference/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/c205a6dffadc64c40cffe816646aa756bc1d9d13"
+      ],
+      "id": "PRRT_kwDOSUeMrM6WC7cW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

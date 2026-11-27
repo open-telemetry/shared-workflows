@@ -1,0 +1,281 @@
+{
+  "head": "087ca8bbac8c4a1cfe70d47eab449e51295a85da",
+  "merge": "e713f345c1d5f6d888b2f3bbddf1a863395b784c",
+  "merged": "2026-11-06T00:27:14Z",
+  "missing_roots": 0,
+  "number": 144,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the payload fields removed from `required`, the schema now allows a `BlobPart`/`FilePart`/`UriPart` instance where *both* the content-bearing field and `stripped_reason` are absent/null. That undermines the goal of distinguishing “no media” vs “media stripped”, because it permits structurally empty parts. Consider adding an `anyOf` constraint per part requiring at least one of `{content|file_id|uri}` or `stripped_reason` to be present (allowing both if desired). Apply the same constraint to the corresponding part definitions in the system-instructions and output schemas.",
+      "created": "2026-05-11T16:28:57Z",
+      "hunk": "@@ -35,16 +35,36 @@\n                     \"title\": \"Modality\"\n                 },\n                 \"content\": {\n-                    \"description\": \"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON.\",\n-                    \"format\": \"binary\",\n-                    \"title\": \"Content\",\n-                    \"type\": \"string\"\n+                    \"anyOf\": [\n+                        {\n+                            \"format\": \"binary\",\n+                            \"type\": \"string\"\n+                        },\n+                        {\n+                            \"type\": \"null\"\n+                        }\n+                    ],\n+                    \"default\": null,\n+                    \"description\": \"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON. MAY be omitted when `stripped_reason` is set.\",\n+                    \"title\": \"Content\"\n+                },\n+                \"stripped_reason\": {\n+                    \"anyOf\": [\n+                        {\n+                            \"type\": \"string\"\n+                        },\n+                        {\n+                            \"type\": \"null\"\n+                        }\n+                    ],\n+                    \"default\": null,\n+                    \"description\": \"If set, indicates that the instrumentation observed a content part of this type but intentionally did not capture its payload bytes. The value is a short free-form string describing why capture was skipped (examples: `size_exceeded`, `modality_not_allowed`, `redactor_error`, `upload_error`, `no_store_configured`). When `stripped_reason` is set the content-bearing field (`content` / `file_id` / `uri`) MAY be omitted.\",\n+                    \"title\": \"Stripped Reason\"\n                 }\n             },\n             \"required\": [\n                 \"type\",\n-                \"modality\",\n-                \"content\"\n+                \"modality\"\n             ],",
+      "id": "PRRT_kwDOSUeMrM6BJtZd",
+      "opened": "2026-05-11T16:28:58Z",
+      "path": "model/gen-ai/gen-ai-input-messages.json",
+      "replies": [],
+      "reviewed": "d169c9cd32e96d1edba829b359cec0526ff62638",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3220510783"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example appears inside a JSON snippet (and is introduced with “See the normative JSON schema”), but `//` comments are not valid JSON. To avoid copy/paste confusion, either switch the fenced code block language to `jsonc` (or similar) to signal commented-JSON, or remove the inline comments and describe the behavior in surrounding prose.",
+      "created": "2026-05-11T16:28:57Z",
+      "hunk": "@@ -268,6 +268,16 @@ See the [normative JSON schema](/docs/gen-ai/gen-ai-input-messages.json) for mor\n         \"modality\": \"audio\",\n         \"mime_type\": \"audio/wav\",\n         \"content\": \"aGVsbG8gd29ybGQgaW1hZ2luZSB0aGlzIGlzIGFuIGltYWdlCg==\"\n+      },\n+      // A video that the instrumentation chose not to capture (e.g. it\n+      // exceeded the configured capture size cap). The original part type\n+      // is preserved so consumers can still see it was a blob video; the\n+      // payload (`content`) is omitted and `stripped_reason` records why.",
+      "id": "PRRT_kwDOSUeMrM6BJtaS",
+      "opened": "2026-05-11T16:28:58Z",
+      "path": "docs/gen-ai/non-normative/examples-llm-calls.md",
+      "replies": [],
+      "reviewed": "d169c9cd32e96d1edba829b359cec0526ff62638",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3220510856"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `anyOf` here only checks that the *key* `content` or `stripped_reason` is present. Because `content` is nullable (`Optional[bytes]` with `default=None`), an instance like `{..., \"content\": null}` will satisfy the `{required:[\"content\"]}` branch and validate even when `stripped_reason` is absent, which undermines the stated “payload vs stripped” distinction. Consider tightening the schema so the “payload present” branch requires a non-null value (e.g., constrain the branch’s `properties.content` to the non-null type / add `not: {type: \"null\"}`), and apply the same pattern to `file_id`/`uri`.",
+      "created": "2026-05-11T18:33:19Z",
+      "hunk": "@@ -155,7 +155,18 @@\n     \"    modality: Union[Modality, str] = Field(\\n\",\n     \"        description=\\\"The general modality of the data if it is known. Instrumentations SHOULD also set the mimeType field if the specific type is known.\\\"\\n\",\n     \"    )\\n\",\n-    \"    content: bytes = Field(description=\\\"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON.\\\")\\n\",\n+    \"    content: Optional[bytes] = Field(default=None, description=\\\"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON. MAY be omitted when `stripped_reason` is set.\\\")\\n\",\n+    \"    stripped_reason: Optional[str] = Field(default=None, description=\\\"If set, indicates that the instrumentation observed a content part of this type but intentionally did not capture its payload bytes. The value is a short free-form string describing why capture was skipped (examples: `size_exceeded`, `modality_not_allowed`, `redactor_error`, `upload_error`, `no_store_configured`). When `stripped_reason` is set the content-bearing field (`content` / `file_id` / `uri`) MAY be omitted.\\\")\\n\",\n+    \"\\n\",\n+    \"    class Config:\\n\",\n+    \"        # An instance must carry either the payload (`content`) or `stripped_reason` \\u2014 both\\n\",\n+    \"        # absent would defeat the 'no media' vs 'media stripped' distinction.\\n\",\n+    \"        json_schema_extra = {\\n\",\n+    \"            \\\"anyOf\\\": [\\n\",\n+    \"                {\\\"required\\\": [\\\"content\\\"]},\\n\",\n+    \"                {\\\"required\\\": [\\\"stripped_reason\\\"]},\\n\",\n+    \"            ]\\n\",",
+      "id": "PRRT_kwDOSUeMrM6BLw94",
+      "opened": "2026-05-11T18:33:21Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [],
+      "reviewed": "a9107c4e5073e3022db20900b081abc8a3acfc9a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3221245268"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `anyOf` only requires the presence of `content`/`stripped_reason` keys, but `content` is nullable below. That means an object with `\"content\": null` (and no `stripped_reason`) still validates, defeating the intent of distinguishing “no media” vs “media stripped”. Tighten the `anyOf` branches to require a non-null payload when using the payload branch (and similarly for `file_id`/`uri`).\n",
+      "created": "2026-05-11T18:33:20Z",
+      "hunk": "@@ -1,6 +1,18 @@\n {\n     \"$defs\": {\n         \"BlobPart\": {\n+            \"anyOf\": [\n+                {",
+      "id": "PRRT_kwDOSUeMrM6BLw-s",
+      "opened": "2026-05-11T18:33:21Z",
+      "path": "model/gen-ai/gen-ai-input-messages.json",
+      "replies": [],
+      "reviewed": "a9107c4e5073e3022db20900b081abc8a3acfc9a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3221245341"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `anyOf` only checks key presence, but `content` is nullable in `properties`. As a result, `\"content\": null` (with no `stripped_reason`) can still validate, which weakens the “payload vs stripped” signal. Consider constraining the payload branch to require a non-null payload value (and similarly for `file_id`/`uri`).\n",
+      "created": "2026-05-11T18:33:20Z",
+      "hunk": "@@ -1,6 +1,18 @@\n {\n     \"$defs\": {\n         \"BlobPart\": {\n+            \"anyOf\": [\n+                {\n+                    \"required\": [\n+                        \"content\"\n+                    ]\n+                },\n+                {",
+      "id": "PRRT_kwDOSUeMrM6BLw_B",
+      "opened": "2026-05-11T18:33:21Z",
+      "path": "docs/gen-ai/gen-ai-output-messages.json",
+      "replies": [],
+      "reviewed": "a9107c4e5073e3022db20900b081abc8a3acfc9a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3221245376"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as the other message schemas: this `anyOf` only enforces that `content`/`stripped_reason` keys exist, but `content` itself can be `null`. An instance with `\"content\": null` and no `stripped_reason` would still validate. Consider tightening the conditional schema so the payload branch requires a non-null value (and mirror for `file_id`/`uri`).\n",
+      "created": "2026-05-11T18:33:20Z",
+      "hunk": "@@ -1,6 +1,18 @@\n {\n     \"$defs\": {\n         \"BlobPart\": {\n+            \"anyOf\": [\n+                {\n+                    \"required\": [\n+                        \"content\"\n+                    ]\n+                },\n+                {",
+      "id": "PRRT_kwDOSUeMrM6BLw_X",
+      "opened": "2026-05-11T18:33:21Z",
+      "path": "docs/gen-ai/gen-ai-system-instructions.json",
+      "replies": [],
+      "reviewed": "a9107c4e5073e3022db20900b081abc8a3acfc9a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3221245403"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`stripped_reason`’s description says the instrumentation “did not capture its payload bytes”, but `FilePart`’s payload is a `file_id` (not bytes). This wording is misleading and propagates into the generated JSON schemas; please adjust the description to refer to omitting the file identifier (or more generally the file reference) instead of bytes.\n",
+      "created": "2026-05-11T19:18:08Z",
+      "hunk": "@@ -164,10 +175,18 @@\n     \"    modality: Union[Modality, str] = Field(\\n\",\n     \"        description=\\\"The general modality of the data if it is known. Instrumentations SHOULD also set the mimeType field if the specific type is known.\\\"\\n\",\n     \"    )\\n\",\n-    \"    file_id: str = Field(description=\\\"An identifier referencing a file that was pre-uploaded to the provider.\\\")\\n\",\n+    \"    file_id: Optional[str] = Field(default=None, description=\\\"An identifier referencing a file that was pre-uploaded to the provider. MAY be omitted when `stripped_reason` is set.\\\")\\n\",\n+    \"    stripped_reason: Optional[str] = Field(default=None, description=\\\"If set, indicates that the instrumentation observed a content part of this type but intentionally did not capture its payload bytes. The value is a short free-form string describing why capture was skipped (examples: `size_exceeded`, `modality_not_allowed`, `redactor_error`, `upload_error`, `no_store_configured`). When `stripped_reason` is set the content-bearing field (`content` / `file_id` / `uri`) MAY be omitted.\\\")\\n\",",
+      "id": "PRRT_kwDOSUeMrM6BMiWU",
+      "opened": "2026-05-11T19:18:09Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [],
+      "reviewed": "b00a96fb7262d195bb7e05ed7782e88a5b00e6b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3221523916"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`stripped_reason`’s description says the instrumentation “did not capture its payload bytes”, but `UriPart`’s payload is a URI string (not bytes). This wording is misleading and propagates into the generated JSON schemas; please adjust the description to refer to omitting the URI (or more generally the external reference) instead of bytes.\n",
+      "created": "2026-05-11T19:18:08Z",
+      "hunk": "@@ -176,16 +195,26 @@\n     \"    modality: Union[Modality, str] = Field(\\n\",\n     \"        description=\\\"The general modality of the data if it is known. Instrumentations SHOULD also set the mimeType field if the specific type is known.\\\"\\n\",\n     \"    )\\n\",\n-    \"    uri: str = Field(\\n\",\n+    \"    uri: Optional[str] = Field(\\n\",\n+    \"        default=None,\\n\",\n     \"        description=(\\n\",\n     \"            \\\"A URI referencing attached data. It should not be a base64 data URL, \\\"\\n\",\n     \"            \\\"which should use the `blob` part instead. The URI may use a scheme known to \\\"\\n\",\n-    \"            \\\"the provider api (e.g. `gs://bucket/object.png`), or be a publicly accessible location.\\\"\\n\",\n+    \"            \\\"the provider api (e.g. `gs://bucket/object.png`), or be a publicly accessible location. \\\"\\n\",\n+    \"            \\\"MAY be omitted when `stripped_reason` is set.\\\"\\n\",\n     \"        )\\n\",\n     \"    )\\n\",\n+    \"    stripped_reason: Optional[str] = Field(default=None, description=\\\"If set, indicates that the instrumentation observed a content part of this type but intentionally did not capture its payload bytes. The value is a short free-form string describing why capture was skipped (examples: `size_exceeded`, `modality_not_allowed`, `redactor_error`, `upload_error`, `no_store_configured`). When `stripped_reason` is set the content-bearing field (`content` / `file_id` / `uri`) MAY be omitted.\\\")\\n\",",
+      "id": "PRRT_kwDOSUeMrM6BMiXC",
+      "opened": "2026-05-11T19:18:09Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [],
+      "reviewed": "b00a96fb7262d195bb7e05ed7782e88a5b00e6b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3221523975"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment says “An instance must carry either the payload … or `stripped_reason`”, but the Pydantic model currently allows both to be omitted at runtime (both fields are `Optional[...]` with `default=None`). If these models are meant to be usable examples (not just schema generators), consider adding a `@model_validator` to enforce “at least one of {content,stripped_reason} is set”; otherwise, reword the comment to clarify that this constraint is only expressed in the generated JSON schema via `json_schema_extra`.",
+      "created": "2026-05-11T19:18:08Z",
+      "hunk": "@@ -155,7 +155,18 @@\n     \"    modality: Union[Modality, str] = Field(\\n\",\n     \"        description=\\\"The general modality of the data if it is known. Instrumentations SHOULD also set the mimeType field if the specific type is known.\\\"\\n\",\n     \"    )\\n\",\n-    \"    content: bytes = Field(description=\\\"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON.\\\")\\n\",\n+    \"    content: Optional[bytes] = Field(default=None, description=\\\"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON. MAY be omitted when `stripped_reason` is set.\\\")\\n\",\n+    \"    stripped_reason: Optional[str] = Field(default=None, description=\\\"If set, indicates that the instrumentation observed a content part of this type but intentionally did not capture its payload bytes. The value is a short free-form string describing why capture was skipped (examples: `size_exceeded`, `modality_not_allowed`, `redactor_error`, `upload_error`, `no_store_configured`). When `stripped_reason` is set the content-bearing field (`content` / `file_id` / `uri`) MAY be omitted.\\\")\\n\",\n+    \"\\n\",\n+    \"    class Config:\\n\",\n+    \"        # An instance must carry either the payload (`content`) or `stripped_reason` \\u2014 both\\n\",\n+    \"        # absent would defeat the 'no media' vs 'media stripped' distinction.\\n\",\n+    \"        json_schema_extra = {\\n\",\n+    \"            \\\"anyOf\\\": [\\n\",\n+    \"                {\\\"properties\\\": {\\\"content\\\": {\\\"not\\\": {\\\"type\\\": \\\"null\\\"}}}, \\\"required\\\": [\\\"content\\\"]},\\n\",\n+    \"                {\\\"properties\\\": {\\\"stripped_reason\\\": {\\\"not\\\": {\\\"type\\\": \\\"null\\\"}}}, \\\"required\\\": [\\\"stripped_reason\\\"]},\\n\",\n+    \"            ]\\n\",\n+    \"        }\\n\",",
+      "id": "PRRT_kwDOSUeMrM6BMiXX",
+      "opened": "2026-05-11T19:18:09Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [],
+      "reviewed": "b00a96fb7262d195bb7e05ed7782e88a5b00e6b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3221524008"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "would you mind splitting this piece out into a separate PR?\n\nand then reducing this PR to just cover input messages BlobPart?\n\nYou can mention in the PR description that if accepted, a follow-up PR would add replicate the change across XYZ\n\nI think that would make it easier to get reviewers engaged on this. Thanks!",
+      "created": "2026-05-30T01:49:50Z",
+      "hunk": "@@ -225,7 +317,8 @@\n             \"enum\": [\n                 \"image\",\n                 \"video\",\n-                \"audio\"\n+                \"audio\",\n+                \"document\"",
+      "id": "PRRT_kwDOSUeMrM6F1EMU",
+      "opened": "2026-05-30T01:49:50Z",
+      "path": "docs/gen-ai/gen-ai-input-messages.json",
+      "replies": [
+        {
+          "at": "2026-06-01T12:14:16Z",
+          "body": "Done. Force-pushed a rebase onto `main` (the merged #142 commits drop out) and reduced this PR to just `BlobPart` on `gen_ai.input.messages`: `content` becomes optional, `stripped_reason` is added, and a top-level `anyOf` requires one or the other. The diff is now 4 files (schema + the reference model in `models.ipynb` + one example + CHANGELOG).\n\n`FilePart`/`UriPart` and the output-messages / system-instructions schemas are pulled out — I've written the follow-up plan into the PR description so the sequencing is on record. The `FilePart`/`UriPart` capture-feasibility question is the same one on #143; I answered it there.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3334018938"
+        },
+        {
+          "at": "2026-11-03T00:29:01Z",
+          "body": "I think it's not possible to do it for input messages only since the same type is shared across messages. I think this PR would be quite small (smaller than now!) if we did it in all json schemas at the same time",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4449401585"
+        },
+        {
+          "at": "2026-11-03T04:03:37Z",
+          "body": "Implemented in c432faaa. Optionality is on the shared `BlobPart`, so output messages may omit `content` as well; the output schema and missing-content fixture were updated. `gen_ai.system_instructions` currently has text-only parts, so its schema is unchanged. The PR checks are green (44/44).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450796216"
+        }
+      ],
+      "reviewed": "5be8b02f2985a2e55b7b5a9ba971b3e08680e739",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3327813684"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this file was converted to python in #226, sorry for the inconvenience!",
+      "created": "2026-06-06T00:41:03Z",
+      "hunk": "@@ -156,7 +156,20 @@\n     \"    modality: Union[Modality, str] = Field(\\n\",",
+      "id": "PRRT_kwDOSUeMrM6HgmeM",
+      "opened": "2026-06-06T00:41:02Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [
+        {
+          "at": "2026-06-10T19:58:07Z",
+          "body": "Ported in the rebase, thanks — the BlobPart change now lives in `docs/gen-ai/non-normative/models.py` (input-messages variant classes) and `gen-ai-input-messages.json` is regenerated via `make generate-json-schemas`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3391144517"
+        }
+      ],
+      "reviewed": "ea3a1745bd159486e7baf36fc47733588f61e94c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3366067345"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Having `content` optional on input but required on output/system instructions needs a parallel class hierarchy, union rewriting and shadowed class names just to keep `$defs` stable. I know it was asked for in https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r3327813684, but it doesn't make the PR easier to review. Output blobs hit the same capture limits, so how about making it optional on the shared `BlobPart` and regenerating all three schemas?\n\n```python\nclass BlobPart(BaseModel):\n    ...\n    content: Optional[bytes] = Field(\n        default=None,\n        description=\"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON. MAY be omitted when the instrumentation does not capture the payload inline.\",\n    )\n```\n\nThen this block goes away (and `output-messages-blob-missing-content.yaml` flips to a valid case):\n\n```suggestion\nclass InputMessages(RootModel[List[ChatMessage]]):\n```\n",
+      "created": "2026-11-03T00:18:38Z",
+      "hunk": "@@ -361,7 +361,50 @@ class ChatMessage(BaseModel):\n # --------------------------------------------------------------------------\n \n \n-class InputMessages(RootModel[List[ChatMessage]]):\n+_SharedBlobPart = BlobPart\n+\n+\n+def _swap_union_member(union: Any, old: Any, new: Any) -> Any:\n+    \"\"\"Return `union` with the member `old` replaced by `new`.\"\"\"\n+    return Union[tuple(new if member is old else member for member in get_args(union))]\n+\n+\n+class _GenAiInputMessageModels:\n+    \"\"\"\n+    Namespace for the input-messages variants of the shared message models.\n+    On the `gen_ai.input.messages` schema only, `BlobPart.content` is optional.\n+    The variants deliberately reuse the shared class names so the generated\n+    `$defs` keys (and the serialized wire format) stay identical across the\n+    message schemas.\n+    \"\"\"\n+\n+    class BlobPart(_SharedBlobPart):\n+        \"\"\"Represents blob binary data sent inline to the model\"\"\"\n+\n+        content: Optional[bytes] = Field(\n+            default=None,\n+            description=(\n+                \"Raw bytes of the attached data. This field SHOULD be encoded as a \"\n+                \"base64 string when serialized to JSON. MAY be omitted when the \"\n+                \"instrumentation does not capture the payload inline, for example \"\n+                \"when it is stored externally or capture is limited by configuration.\"\n+            ),\n+        )\n+\n+    # The shared `KnownMessagePart` members with `BlobPart` swapped for the\n+    # variant above, so part types added to the shared union are picked up here.\n+    InputMessagePart = Union[\n+        _swap_union_member(KnownMessagePart, _SharedBlobPart, BlobPart),\n+        GenericPart,  # Catch-all for any other type\n+    ]\n+\n+    class ChatMessage(ChatMessage):\n+        parts: List[InputMessagePart] = Field(\n+            description=\"List of message parts that make up the message content.\"\n+        )\n+\n+\n+class InputMessages(RootModel[List[_GenAiInputMessageModels.ChatMessage]]):",
+      "id": "PRRT_kwDOSUeMrM6y7A4x",
+      "opened": "2026-11-03T00:29:01Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-03T04:03:17Z",
+          "body": "Addressed in c432faaa. `BlobPart.content` is now optional on the shared `BlobPart`, and the input-only variant model and union rewriting have been removed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450794509"
+        }
+      ],
+      "reviewed": "07a1ebccd402ec9fab5eaaf5496cc226a6c9aded",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4449358672"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is there any need to update the description? it's obvious it's not required via other means",
+      "created": "2026-11-03T04:02:20Z",
+      "hunk": "@@ -204,8 +204,14 @@ class BlobPart(BaseModel):\n     modality: Union[Modality, str] = Field(\n         description=\"The general modality of the data if it is known. Instrumentations SHOULD also set the mimeType field if the specific type is known.\"\n     )\n-    content: bytes = Field(\n-        description=\"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON.\"\n+    content: Optional[bytes] = Field(\n+        default=None,\n+        description=(",
+      "id": "PRRT_kwDOSUeMrM6y-X2o",
+      "opened": "2026-11-03T04:05:09Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-03T04:29:50Z",
+          "body": "Done in eb847aa5.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450929141"
+        }
+      ],
+      "reviewed": "c432faaad04c4664d0df01ea816962cc84511365",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450790068"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n      // An inline video without `content`\n```",
+      "created": "2026-11-03T04:03:38Z",
+      "hunk": "@@ -278,6 +278,13 @@ See the [normative JSON schema](/model/gen-ai/gen-ai-input-messages.json) for mo\n         \"modality\": \"document\",\n         \"mime_type\": \"application/pdf\",\n         \"uri\": \"s3://my-bucket/kyc-form.pdf\"\n+      },\n+      // An inline video whose payload the instrumentation did not capture:\n+      // `content` is omitted while the part type, modality and MIME type are kept.",
+      "id": "PRRT_kwDOSUeMrM6y-Yxn",
+      "opened": "2026-11-03T04:05:09Z",
+      "path": "docs/gen-ai/non-normative/examples-llm-calls.md",
+      "replies": [
+        {
+          "at": "2026-11-03T04:29:53Z",
+          "body": "Done in eb847aa5.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450929302"
+        }
+      ],
+      "reviewed": "c432faaad04c4664d0df01ea816962cc84511365",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450796310"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nMake `BlobPart.content` optional in the `gen_ai.input.messages` and `gen_ai.output.messages`.\n```",
+      "created": "2026-11-03T04:04:16Z",
+      "hunk": "@@ -0,0 +1 @@\n+Make `BlobPart.content` optional in the `gen_ai.input.messages` and `gen_ai.output.messages` JSON schemas, so an instrumentation that does not capture an inline blob's payload can still record the part with its `modality` and `mime_type`.",
+      "id": "PRRT_kwDOSUeMrM6y-ZOb",
+      "opened": "2026-11-03T04:05:09Z",
+      "path": "changelog.d/144.enhancement.md",
+      "replies": [
+        {
+          "at": "2026-11-03T04:29:55Z",
+          "body": "Done in eb847aa5.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450929500"
+        }
+      ],
+      "reviewed": "c432faaad04c4664d0df01ea816962cc84511365",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/144#discussion_r4450799395"
+    }
+  ]
+}

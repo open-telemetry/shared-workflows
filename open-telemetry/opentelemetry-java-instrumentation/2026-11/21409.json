@@ -1,0 +1,31 @@
+{
+  "head": "82c6772e4d5fb04cb4530fe57e33026977ac7ac7",
+  "merge": "e2db377569758e49b75b8d1fd852b469225d6fb9",
+  "merged": "2026-11-22T12:54:17Z",
+  "missing_roots": 0,
+  "number": 21409,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly on open-telemetry/opentelemetry-java-instrumentation branch `copilot/send-remaining-prs-cloud`. Keep the branch GitHub Copilot assigned; do not rename or replace it, or create a follow-up PR as a workaround. If GitHub assigns a follow-up branch, keep that assigned branch.\n\nRemove only the complete Couchbase Common 3.1 and HBase Client Common 1.0 migrations from this PR so they can go in the separate named-unit-suite rollout PR. Revert this PR's changes under `instrumentation/couchbase/couchbase-common-3.1/` and `instrumentation/hbase/hbase-client-common-1.0/`, including javaagent build edits, all source and resource moves, and deletion of the standalone `javaagent-unit-tests` builds. Restore both standalone project includes in `settings.gradle.kts`. Restore the original Couchbase baseline and Protostellar test layout and each HBase compatibility suite, shared timeout source set, and ZooKeeper fixture. Revert only this PR's work for these modules; do not take unrelated upstream changes. Use a targeted follow-up commit on the existing branch, not a history rewrite.\n\nKeep Couchbase Common 2.0 and both Vert.x SQL migrations as they are, including existing compatibility coverage. Do not introduce the named suite helper here. Verify the resulting PR diff has no changes under the two extracted module directories or removal of their settings entries; all three retained migrations must still be present. If running formatting, run narrow Spotless apply before targeted verification.",
+      "created": "2026-11-21T20:40:15Z",
+      "hunk": "@@ -6,3 +8,24 @@ dependencies {\n   implementation(project(\":instrumentation:couchbase:couchbase-common-3.0:javaagent\"))\n   compileOnly(\"com.couchbase.client:java-client:3.1.4\")\n }\n+\n+testing.suites {\n+  unitTests {\n+    dependencies {\n+      implementation(project(\":javaagent-extension-api\"))\n+      implementation(\"com.couchbase.client:java-client:3.1.4\")\n+    }\n+  }\n+\n+  register<JvmTestSuite>(\"protostellarUnitTests\") {",
+      "id": "PRRT_kwDODJKVX866cEfp",
+      "opened": "2026-11-21T20:40:15Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T20:49:53Z",
+          "body": "Restored the Couchbase Common 3.1 and HBase Client Common 1.0 migrations to their pre-migration state, while keeping Couchbase 2.0 and both Vert.x SQL migrations. Verified the extracted directories have no net PR diff and ran the retained unit suites successfully. Commit: `82c6772e`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21409#discussion_r4654916147"
+        }
+      ],
+      "reviewed": "d92136f87433fb16bf4f273b61cfc32d7cf47afe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21409#discussion_r4654873281"
+    }
+  ]
+}

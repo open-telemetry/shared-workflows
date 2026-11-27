@@ -1,0 +1,25 @@
+{
+  "head": "419acc5ef4e563c94abc8e4cf2122186406d896f",
+  "merge": "4d20e1664ab9ae44b652208f08d9e300f8d9ae1c",
+  "merged": "2026-04-24T14:21:40Z",
+  "missing_roots": 0,
+  "number": 18246,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  test {\n```",
+      "created": "2026-04-24T02:22:37Z",
+      "hunk": "@@ -9,7 +9,7 @@ dependencies {\n }\n \n tasks {\n-  test {\n+  withType<Test>().configureEach {",
+      "id": "PRRT_kwDODJKVX859R0SV",
+      "opened": "2026-04-24T02:22:37Z",
+      "path": "instrumentation/play/play-ws/play-ws-common/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "414a41ce9706c87c1dda4e0cc45ac3044747f886",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18246#discussion_r3135098710"
+    }
+  ]
+}

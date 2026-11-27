@@ -1,0 +1,292 @@
+{
+  "head": "af4d05a06d98b93b34f39ef2c824c6baa6330560",
+  "merge": "55c6d218a5bd3c3213887c7962f5b617472cd1f2",
+  "merged": "2026-02-25T21:50:59Z",
+  "missing_roots": 0,
+  "number": 16130,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "steverao"
+      },
+      "body": "```suggestion\n  private static final AttributeKey<String> RPC_SYSTEM =\n      RpcIncubatingAttributes.RPC_SYSTEM;\n\n  private static final AttributeKey<String> RPC_SERVICE =\n      RpcIncubatingAttributes.RPC_SERVICE;\n\n  private static final AttributeKey<String> RPC_METHOD =\n      RpcIncubatingAttributes.RPC_METHOD;\n```",
+      "created": "2026-02-11T14:55:00Z",
+      "hunk": "@@ -38,37 +49,163 @@ public String getService(Map<String, String> request) {\n     public String getMethod(Map<String, String> request) {\n       return request.get(\"method\");\n     }\n+\n+    @Nullable\n+    @Override\n+    public String getRpcMethod(Map<String, String> request) {\n+      String service = getService(request);\n+      String method = getMethod(request);\n+      if (service == null || method == null) {\n+        return null;\n+      }\n+      return service + \"/\" + method;\n+    }\n+\n+    @Nullable\n+    @Override\n+    public String getErrorType(\n+        Map<String, String> request, @Nullable Void response, @Nullable Throwable error) {\n+      return request.get(\"errorType\");\n+    }\n+\n+    @Override\n+    public boolean isPredefined(Map<String, String> stringStringMap) {\n+      return predefined;\n+    }\n   }\n \n   @Test\n   void server() {\n-    testExtractor(RpcServerAttributesExtractor.create(TestGetter.INSTANCE));\n+    testExtractor(RpcServerAttributesExtractor.create(new TestGetter(false)), \"my.Service/Method\");\n+  }\n+\n+  @Test\n+  void serverPredefined() {\n+    testExtractor(RpcServerAttributesExtractor.create(new TestGetter(true)), null);\n   }\n \n   @Test\n   void client() {\n-    testExtractor(RpcClientAttributesExtractor.create(TestGetter.INSTANCE));\n+    testExtractor(RpcClientAttributesExtractor.create(new TestGetter(false)), \"my.Service/Method\");\n+  }\n+\n+  @Test\n+  void clientPredefined() {\n+    testExtractor(RpcClientAttributesExtractor.create(new TestGetter(true)), null);\n+  }\n+\n+  // Stable semconv keys\n+  private static final AttributeKey<String> RPC_SYSTEM_NAME =\n+      AttributeKey.stringKey(\"rpc.system.name\");\n+\n+  // Old semconv keys (from RpcIncubatingAttributes)\n+  private static final AttributeKey<String> RPC_SYSTEM =\n+      io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_SYSTEM;\n+\n+  private static final AttributeKey<String> RPC_SERVICE =\n+      io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_SERVICE;\n+\n+  private static final AttributeKey<String> RPC_METHOD =\n+      io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_METHOD;",
+      "id": "PRRT_kwDODJKVX85uAScy",
+      "opened": "2026-02-11T14:55:04Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-02-11T16:17:35Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2794187303"
+        }
+      ],
+      "reviewed": "fc4a9eb4d8ac525a282b1487e93b58ac5611f803",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2793746335"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I still don't have a good picture of how this will be implemented, went to look in #15879 to understand but didn't find it in there?",
+      "created": "2026-02-12T21:50:08Z",
+      "hunk": "@@ -69,4 +69,31 @@ default String getErrorType(\n       REQUEST request, @Nullable RESPONSE response, @Nullable Throwable error) {\n     return null;\n   }\n+\n+  /**\n+   * Returns whether the RPC method is recognized as a predefined method by the RPC framework or\n+   * library.\n+   *\n+   * <p>Some RPC frameworks or libraries provide a fixed set of recognized methods for client stubs\n+   * and server implementations. Instrumentations for such frameworks MUST return {@code true} only\n+   * when the method is recognized by the framework or library.\n+   *\n+   * <p>When the method is not recognized (for example, when the server receives a request for a\n+   * method that is not predefined on the server), or when instrumentation is not able to reliably\n+   * detect if the method is predefined, this method MUST return {@code false}.\n+   *\n+   * <p>When this method returns {@code false}, the {@code rpc.method} attribute will be set to\n+   * {@code \"_OTHER\"} and the {@code rpc.method_original} attribute will be set to the original\n+   * method name.\n+   *\n+   * <p>Note: If the RPC instrumentation could end up converting valid RPC methods to {@code\n+   * \"_OTHER\"}, then it SHOULD provide a way to configure the list of recognized RPC methods.\n+   *\n+   * @param request the request object\n+   * @return {@code true} if the method is recognized as predefined by the framework, {@code false}\n+   *     otherwise\n+   */\n+  default boolean isPredefined(REQUEST request) {\n+    return false;\n+  }",
+      "id": "PRRT_kwDODJKVX85uV_ob",
+      "opened": "2026-02-12T21:50:08Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-02-13T13:54:25Z",
+          "body": "The implementations will come in the follow-up PR that updates the instrumentation modules. Here's what it would look like for gRPC as an example:\n\n```java\n@Override\npublic String getRpcMethod(GrpcRequest request) {\n  return request.getMethod().getFullMethodName();\n}\n\n@Override\npublic boolean isPredefined(GrpcRequest request) {\n  return true;\n}\n\n@Override\n@Nullable\npublic String getErrorType(\n    GrpcRequest request, @Nullable Status response, @Nullable Throwable error) {\n  if (response != null && response.getCode() != Status.Code.OK) {\n    return response.getCode().name();\n  }\n  return null;\n}\n```\n\nFor gRPC, `isPredefined` is trivially `true` - all methods come from protobuf service definitions, so they're always known to the framework.\n\nThe `isPredefined` distinction matters more for frameworks where arbitrary/dynamic method names are possible. The default of `false` is the safe fallback, meaning \"I don't know if this method is recognized, so use `_OTHER`\".",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2804343685"
+        },
+        {
+          "at": "2026-02-13T18:03:29Z",
+          "body": "thanks, let's leave this method out for now, and come back to it when we have a use case to work through the details",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2805422435"
+        },
+        {
+          "at": "2026-02-20T12:43:35Z",
+          "body": "Done — removed isPredefined() and RPC_METHOD_ORIGINAL.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2833028608"
+        },
+        {
+          "at": "2026-02-20T12:43:45Z",
+          "body": "Removed isPredefined() entirely per your follow-up comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2833029247"
+        }
+      ],
+      "reviewed": "1a5cf070acc41d0ab5e8de7b74cf761487a100e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2801227458"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "ok to just\n\n\n```suggestion\n      when(getter.getRpcMethod(request)).thenReturn(\"my.Service/Method\");\n      when(getter.getService(request)).thenReturn(\"my.Service\");\n      when(getter.getMethod(request)).thenReturn(\"Method\");\n```",
+      "created": "2026-02-13T17:49:26Z",
+      "hunk": "@@ -17,23 +19,29 @@\n @ExtendWith(MockitoExtension.class)\n class RpcSpanNameExtractorTest {\n \n-  @Mock RpcAttributesGetter<RpcRequest, Void> getter;\n+  @Mock RpcAttributesGetter<RpcRequest, Object> getter;\n \n-  @SuppressWarnings(\"deprecation\") // testing deprecated method\n   @Test\n+  @SuppressWarnings(\"deprecation\") // testing deprecated method\n   void normal() {\n     RpcRequest request = new RpcRequest();\n \n-    when(getter.getService(request)).thenReturn(\"my.Service\");\n-    when(getter.getMethod(request)).thenReturn(\"Method\");\n+    if (SemconvStability.emitStableRpcSemconv()) {\n+      when(getter.getRpcMethod(request)).thenReturn(\"my.Service/Method\");\n+    } else {\n+      when(getter.getService(request)).thenReturn(\"my.Service\");\n+      when(getter.getMethod(request)).thenReturn(\"Method\");\n+    }",
+      "id": "PRRT_kwDODJKVX85uiFSX",
+      "opened": "2026-02-13T18:03:29Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-02-20T12:43:47Z",
+          "body": "Done — all three mocks defined upfront. Used lenient() to avoid Mockito strict stubbing complaints since not all will be called in both modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2833029333"
+        }
+      ],
+      "reviewed": "1a5cf070acc41d0ab5e8de7b74cf761487a100e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2805389561"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "instead could have all 3 defined, and then conditionally expect different span names below",
+      "created": "2026-02-13T17:50:53Z",
+      "hunk": "@@ -17,23 +19,29 @@\n @ExtendWith(MockitoExtension.class)\n class RpcSpanNameExtractorTest {\n \n-  @Mock RpcAttributesGetter<RpcRequest, Void> getter;\n+  @Mock RpcAttributesGetter<RpcRequest, Object> getter;\n \n-  @SuppressWarnings(\"deprecation\") // testing deprecated method\n   @Test\n+  @SuppressWarnings(\"deprecation\") // testing deprecated method\n   void normal() {\n     RpcRequest request = new RpcRequest();\n \n-    when(getter.getService(request)).thenReturn(\"my.Service\");\n-    when(getter.getMethod(request)).thenReturn(\"Method\");\n+    if (SemconvStability.emitStableRpcSemconv()) {\n+      when(getter.getRpcMethod(request)).thenReturn(\"my.Service/Method\");\n+    } else {\n+      when(getter.getService(request)).thenReturn(\"my.Service\");\n+      when(getter.getMethod(request)).thenReturn(\"Method\");\n+    }\n \n     SpanNameExtractor<RpcRequest> extractor = RpcSpanNameExtractor.create(getter);\n     assertThat(extractor.extract(request)).isEqualTo(\"my.Service/Method\");\n   }\n \n-  @SuppressWarnings(\"deprecation\") // testing deprecated method\n   @Test\n+  @SuppressWarnings(\"deprecation\") // testing deprecated method\n   void serviceNull() {\n+    assumeTrue(!SemconvStability.emitStableRpcSemconv());\n+\n     RpcRequest request = new RpcRequest();\n \n     when(getter.getMethod(request)).thenReturn(\"Method\");",
+      "id": "PRRT_kwDODJKVX85uiGPI",
+      "opened": "2026-02-13T18:03:29Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-02-20T12:43:48Z",
+          "body": "Done — conditional is now on the assertion side.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2833029400"
+        }
+      ],
+      "reviewed": "1a5cf070acc41d0ab5e8de7b74cf761487a100e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2805394546"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think system name is required field, so no need for fallback?",
+      "created": "2026-02-13T17:52:20Z",
+      "hunk": "@@ -28,6 +29,18 @@ private RpcSpanNameExtractor(RpcAttributesGetter<REQUEST, ?> getter) {\n   @SuppressWarnings(\"deprecation\") // for getMethod()\n   @Override\n   public String extract(REQUEST request) {\n+    if (SemconvStability.emitStableRpcSemconv()) {\n+      String method = getter.getRpcMethod(request);\n+      if (method != null) {\n+        return method;\n+      }\n+      String system = getter.getSystem(request);\n+      if (system != null) {\n+        return system;\n+      }\n+      return \"RPC request\";",
+      "id": "PRRT_kwDODJKVX85uiHLq",
+      "opened": "2026-02-13T18:03:29Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-20T12:43:49Z",
+          "body": "Agreed — removed the system fallback. Just getRpcMethod → \"RPC request\" now.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2833029454"
+        }
+      ],
+      "reviewed": "1a5cf070acc41d0ab5e8de7b74cf761487a100e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2805399439"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      String system = getter.getSystemName(request);\n```",
+      "created": "2026-02-13T17:52:26Z",
+      "hunk": "@@ -28,6 +29,18 @@ private RpcSpanNameExtractor(RpcAttributesGetter<REQUEST, ?> getter) {\n   @SuppressWarnings(\"deprecation\") // for getMethod()\n   @Override\n   public String extract(REQUEST request) {\n+    if (SemconvStability.emitStableRpcSemconv()) {\n+      String method = getter.getRpcMethod(request);\n+      if (method != null) {\n+        return method;\n+      }\n+      String system = getter.getSystem(request);",
+      "id": "PRRT_kwDODJKVX85uiHPI",
+      "opened": "2026-02-13T18:03:29Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-20T12:43:50Z",
+          "body": "Moot now — system fallback removed entirely per your other comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2833029559"
+        }
+      ],
+      "reviewed": "1a5cf070acc41d0ab5e8de7b74cf761487a100e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2805399737"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "let's introduce getRpcSystemName\n\nmark getSystem as deprecated // to be removed in 3.0\n\nthen the getter can be responsible for returning the stable / old name from each of the methods\n\nI realize this is different from what we did with database, but I think it would be better",
+      "created": "2026-02-13T18:03:16Z",
+      "hunk": "@@ -30,9 +41,30 @@ abstract class RpcCommonAttributesExtractor<REQUEST, RESPONSE>\n   @SuppressWarnings(\"deprecation\") // for getMethod()\n   @Override\n   public final void onStart(AttributesBuilder attributes, Context parentContext, REQUEST request) {\n-    internalSet(attributes, RPC_SYSTEM, getter.getSystem(request));\n-    internalSet(attributes, RPC_SERVICE, getter.getService(request));\n-    internalSet(attributes, RPC_METHOD, getter.getMethod(request));\n+    String system = getter.getSystem(request);",
+      "id": "PRRT_kwDODJKVX85uiOmp",
+      "opened": "2026-02-13T18:03:29Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-20T12:43:51Z",
+          "body": "Done — added getRpcSystemName() as default method, deprecated getSystem() with \"to be removed in 3.0\". Extractor now calls getRpcSystemName() directly for stable semconv instead of going through stableRpcSystemName() mapping.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2833029661"
+        }
+      ],
+      "reviewed": "1a5cf070acc41d0ab5e8de7b74cf761487a100e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2805439240"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "fall back to rpc.system.name\n\nhttps://github.com/open-telemetry/semantic-conventions/blob/main/docs/rpc/rpc-spans.md#name\n\n",
+      "created": "2026-02-24T01:55:00Z",
+      "hunk": "@@ -28,6 +29,14 @@ private RpcSpanNameExtractor(RpcAttributesGetter<REQUEST, ?> getter) {\n   @SuppressWarnings(\"deprecation\") // for getMethod()\n   @Override\n   public String extract(REQUEST request) {\n+    if (SemconvStability.emitStableRpcSemconv()) {\n+      String method = getter.getRpcMethod(request);\n+      if (method != null) {\n+        return method;\n+      }\n+      return \"RPC request\";",
+      "id": "PRRT_kwDODJKVX85wRk5_",
+      "opened": "2026-02-24T02:07:48Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-24T07:09:26Z",
+          "body": "Done — added fallback to `rpc.system.name` before the final `\"RPC request\"` fallback. Also added a test for it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844977957"
+        }
+      ],
+      "reviewed": "69a898a53d729dbbf670b747841661d2c30c6d87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844035622"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you add this comment also to `getRpcMethod` and `getErrorType`?\n\n`getErrorType` in particular I'm worried about forgetting to override, I think all impls will need to since they all have different definitions of which response status codes are errors (unlike HTTP)\n\n\n\n```suggestion\n  @Nullable\n  // TODO remove default implementation\n```",
+      "created": "2026-02-24T02:34:26Z",
+      "hunk": "@@ -16,6 +16,23 @@\n  */\n public interface RpcAttributesGetter<REQUEST, RESPONSE> {\n \n+  /**\n+   * Returns the stable semconv system name for the RPC framework (e.g. {@code \"grpc\"}, {@code\n+   * \"java_rmi\"}, {@code \"dotnet_wcf\"}).\n+   *\n+   * @see <a\n+   *     href=\"https://opentelemetry.io/docs/specs/semconv/attributes-registry/rpc/\">rpc.system.name\n+   *     spec</a>\n+   */\n+  @Nullable",
+      "id": "PRRT_kwDODJKVX85wR4Pt",
+      "opened": "2026-02-24T02:34:26Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-02-24T07:09:28Z",
+          "body": "Done — added `// TODO remove default implementation` to both `getRpcMethod` and `getErrorType`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844978010"
+        }
+      ],
+      "reviewed": "69a898a53d729dbbf670b747841661d2c30c6d87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844147014"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      // fall back to exception class name\n```",
+      "created": "2026-02-24T02:35:02Z",
+      "hunk": "@@ -40,6 +60,13 @@ public final void onEnd(\n       REQUEST request,\n       @Nullable RESPONSE response,\n       @Nullable Throwable error) {\n-    // No response attributes\n+    if (SemconvStability.emitStableRpcSemconv()) {\n+      String errorType = getter.getErrorType(request, response, error);\n+      // fall back to exception class name & _OTHER",
+      "id": "PRRT_kwDODJKVX85wR4fb",
+      "opened": "2026-02-24T02:35:02Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-24T07:09:29Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844978066"
+        }
+      ],
+      "reviewed": "69a898a53d729dbbf670b747841661d2c30c6d87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844148506"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  * <p>If this method returns {@code null}, the exception class name\n  * will be used as error type if one was thrown.\n```",
+      "created": "2026-02-24T02:37:44Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85wR6PY",
+      "opened": "2026-02-24T02:38:26Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-02-24T07:09:30Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844978163"
+        }
+      ],
+      "reviewed": "69a898a53d729dbbf670b747841661d2c30c6d87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844158651"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`OK` isn't an example of `error.type`, hope that didn't come from semconv examples?",
+      "created": "2026-02-24T02:38:18Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85wR6p-",
+      "opened": "2026-02-24T02:38:26Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-02-24T07:09:31Z",
+          "body": "Good catch — removed `OK` from examples.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844978231"
+        }
+      ],
+      "reviewed": "69a898a53d729dbbf670b747841661d2c30c6d87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2844161193"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "getRpcSystemName should never return `null`\n\ncan we change getSystem() to not be `@Nullable` (do any implementations not implement it?)\n\nand change getRpcSystemName() default to call `getSystem()`?",
+      "created": "2026-02-24T16:50:21Z",
+      "hunk": "@@ -28,6 +30,19 @@ private RpcSpanNameExtractor(RpcAttributesGetter<REQUEST, ?> getter) {\n   @SuppressWarnings(\"deprecation\") // for getMethod()\n   @Override\n   public String extract(REQUEST request) {\n+    if (emitStableRpcSemconv()) {\n+      String method = getter.getRpcMethod(request);\n+      if (method != null) {\n+        return method;\n+      }\n+      // fall back to rpc.system.name\n+      String systemName = getter.getRpcSystemName(request);\n+      if (systemName != null) {\n+        return systemName;\n+      }\n+      return \"RPC request\";",
+      "id": "PRRT_kwDODJKVX85wdtCx",
+      "opened": "2026-02-24T16:50:21Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+      "replies": [],
+      "reviewed": "e06b3a56b83a54778e3b31ecad0e83a4f748cd51",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16130#discussion_r2848351352"
+    }
+  ]
+}

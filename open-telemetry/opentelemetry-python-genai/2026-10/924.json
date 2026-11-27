@@ -1,0 +1,31 @@
+{
+  "head": "8cc14e415d5aeabd6415c074db587ff1f0d0c7d4",
+  "merge": "4a14f8748b478aa2d2999b35643e7d6bec5b0c3b",
+  "merged": "2026-10-21T04:34:23Z",
+  "missing_roots": 0,
+  "number": 924,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Replacement only runs when a callback manager is constructed. A retained `CallbackManager` or `AsyncCallbackManager` used directly through `on_chain_start()` or `on_chat_model_start()` after reinstrumentation still dispatches to the disabled old handler, so new runs produce no telemetry. The existing run-start wrappers do not refresh handlers, and the new tests pass retained managers through `invoke()` rather than exercising direct dispatch. Refresh stale injected handlers before dispatching new-run callbacks, preserving application handlers and the handler lists held by in-flight runs. Add sync/async regression tests that reuse the same manager directly across uninstrumentation and reinstrumentation.",
+      "created": "2026-10-19T22:15:22Z",
+      "hunk": "@@ -157,6 +162,27 @@ def __call__(\n         kwargs: dict[str, Any],\n     ):\n         wrapped(*args, **kwargs)\n+        inactive_handler_ids = {",
+      "id": "PRRT_kwDOSbspP86uH_0R",
+      "opened": "2026-10-19T22:15:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+      "replies": [
+        {
+          "at": "2026-10-19T23:08:11Z",
+          "body": "Fixed by reusing the handler-refresh logic before dispatch in the existing sync and async run-start wrappers. Retained managers now replace disabled handlers even when used directly, without constructing another manager.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/924#discussion_r4319776447"
+        }
+      ],
+      "reviewed": "497f0cee932564d1556be64675c203aa420ccc03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/924#discussion_r4319423962"
+    }
+  ]
+}

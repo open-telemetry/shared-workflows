@@ -1,0 +1,25 @@
+{
+  "head": "9fe7e33d281a9c94e36038c9a86d9f10496d4a50",
+  "merge": "e09c6bfe7ef9ec32cab974dfcc32a66815940a15",
+  "merged": "2026-10-10T18:17:49Z",
+  "missing_roots": 0,
+  "number": 841,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Compare against the PR's base branch rather than always against `main`. CI also runs for human-authored backports targeting `package-release/...`; with this ref, every API added after that release branch fork appears to have been removed (for example, current `main` exports `LocalAgentInvocation` and `RemoteAgentInvocation`, while the existing 1.1bx release branch does not), so an unrelated backport will fail this check. GitHub supplies `GITHUB_BASE_REF` for PR runs, while local runs can retain `main` as the default.",
+      "created": "2026-10-03T00:29:52Z",
+      "hunk": "@@ -384,6 +384,13 @@ deps =\n commands =\n   python {toxinidir}/scripts/check_deps.py\n \n+[testenv:check-util-api]\n+description = Fail on breaking changes to the opentelemetry-util-genai public API vs main.\n+deps =\n+  -c {toxinidir}/dev-requirements.txt\n+  griffe\n+commands =\n+  griffe check opentelemetry.util.genai -s util/opentelemetry-util-genai/src -a origin/main",
+      "id": "PRRT_kwDOSbspP86oiEFa",
+      "opened": "2026-10-03T00:29:52Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "cbfba35d47bac7430fd916c2616e079380ecf612",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/841#discussion_r4170914226"
+    }
+  ]
+}

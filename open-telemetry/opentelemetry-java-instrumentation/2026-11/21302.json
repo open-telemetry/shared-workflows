@@ -1,0 +1,25 @@
+{
+  "head": "29998143be6b6c9b6b045141fea1822e7d5e412d",
+  "merge": "ca7698dea81a4f5cb476af8c51907902577288a4",
+  "merged": "2026-11-15T12:21:15Z",
+  "missing_roots": 0,
+  "number": 21302,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing `kafka.consumer.heartbeat_response_time_max-15ed35ff` makes the default Kafka metric catalog incomplete: `AbstractOpenTelemetryMetricsReporterTest.observeMetrics()` still explicitly requires this metric. That assertion reads `testing().metrics()` directly, so it does not ensure metadata capture. Capture the metric through `waitAndAssertMetrics` and regenerate the list rather than dropping the reference.",
+      "created": "2026-11-15T02:22:56Z",
+      "hunk": "@@ -12160,7 +12168,6 @@ libraries:\n     - kafka.consumer.fetch_throttle_time_max-a716c191\n     - kafka.consumer.fetch_total-9d09818d\n     - kafka.consumer.heartbeat_rate-8cb2af4e\n-    - kafka.consumer.heartbeat_response_time_max-15ed35ff\n     - kafka.consumer.heartbeat_total-ffc8a49f",
+      "id": "PRRT_kwDODJKVX863leNF",
+      "opened": "2026-11-15T02:22:56Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "29998143be6b6c9b6b045141fea1822e7d5e412d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21302#discussion_r4576705677"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "ec09d709e20fbec544090cd7c477d3ac308417a5",
+  "merge": "3345a7ba625d5abf209ced3729ab30f69bd8f0fd",
+  "merged": "2026-04-10T10:47:26Z",
+  "missing_roots": 0,
+  "number": 17801,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\npublic abstract class AbstractVertxWebServer extends AbstractVerticle {\n```",
+      "created": "2026-04-10T10:31:27Z",
+      "hunk": "@@ -23,14 +23,14 @@\n import io.vertx.ext.web.Router;\n import io.vertx.ext.web.RoutingContext;\n \n-public abstract class AbstractVertxWebServer extends AbstractVerticle {\n-  public static final String CONFIG_HTTP_SERVER_PORT = \"http.server.port\";\n+abstract class AbstractVertxWebServer extends AbstractVerticle {",
+      "id": "PRRT_kwDODJKVX856GpGn",
+      "opened": "2026-04-10T10:31:27Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/AbstractVertxWebServer.java",
+      "replies": [],
+      "reviewed": "03c3330f95c781296a10e7474e6bb5f1866ce04d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17801#discussion_r3063672918"
+    }
+  ]
+}

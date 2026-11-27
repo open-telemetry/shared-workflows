@@ -1,0 +1,93 @@
+{
+  "head": "7bbbc75050d15a2e7b628ac98ab668fb54bc039a",
+  "merge": "ffa23a0ad09c245cee5e39db285394bb3d32e624",
+  "merged": "2026-07-28T19:48:15Z",
+  "missing_roots": 0,
+  "number": 281,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inline comment says legacy function_call handling is specific to finish_reason == \"function_call\", but the code path triggers whenever additional_kwargs[\"function_call\"] is present (regardless of finish_reason). This makes the comment misleading and harder to maintain.",
+      "created": "2026-07-21T20:07:35Z",
+      "hunk": "@@ -345,6 +346,19 @@ def on_llm_end(\n                             parts=cast(list[MessagePart], tool_calls),\n                             finish_reason=finish_reason,\n                         )\n+                    elif (\n+                        legacy_call := _legacy_function_call_request(\n+                            chat_generation.message\n+                        )\n+                    ) is not None:\n+                        # Pre-tools OpenAI ``function_call`` (finish_reason\n+                        # ``function_call``) — surface it as a tool-call\n+                        # request part like the modern ``tool_calls`` path.",
+      "id": "PRRT_kwDOSbspP86Stfgo",
+      "opened": "2026-07-21T20:07:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "5e5a3f820b0a5773802d2a30795996b7847e5a82",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3625359970"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this is a deprecated method on the handler, do we still use this API in langchain? Could we modernize it (not in this PS)? ",
+      "created": "2026-07-25T19:01:28Z",
+      "hunk": "@@ -1206,3 +1207,90 @@ def test_bedrock_tool_use_finish_reason_produces_tool_call_request(self):\n         assert part.name == \"get_weather\"\n         assert part.id == \"tooluse_abc\"\n         assert part.arguments == {\"location\": \"London\"}\n+\n+    def test_legacy_function_call_finish_reason_produces_tool_call_request(\n+        self,\n+    ):\n+        \"\"\"Pre-tools OpenAI ``function_call`` must surface as a ToolCallRequest.\"\"\"\n+        run_id = _run_id()\n+        handler, _, llm_inv = _make_handler_with_llm_invocation(run_id)\n+\n+        ai_msg = AIMessage(\n+            content=\"\",\n+            additional_kwargs={\n+                \"function_call\": {\n+                    \"name\": \"get_weather\",\n+                    \"arguments\": '{\"city\": \"Paris\"}',\n+                }\n+            },\n+        )\n+        gen = ChatGeneration(\n+            message=ai_msg,\n+            generation_info={\"finish_reason\": \"function_call\"},\n+        )\n+        response = LLMResult(generations=[[gen]])\n+\n+        handler.on_llm_end(response=response, run_id=run_id)",
+      "id": "PRRT_kwDOSbspP86Tx8yp",
+      "opened": "2026-07-25T19:05:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-27T19:41:11Z",
+          "body": "The handler refers to the `OpenTelemetryLangChainCallbackHandler` class in the langchain implementation. The `on_llm_end` method is not deprecated as far I as I know. Was this the method you were referring to?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3660380317"
+        },
+        {
+          "at": "2026-07-27T22:39:56Z",
+          "body": "thanks for the clarification, I misread it as our handler in util lib",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3661413137"
+        }
+      ],
+      "reviewed": "b2890223c1390f03c6dc962bb3b50a64bfd0a753",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3650829806"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is it possible to make a full test with recording for this? It's ok to let AI generate cassette if you don't have access to API key. ",
+      "created": "2026-07-25T19:03:06Z",
+      "hunk": "@@ -1206,3 +1207,90 @@ def test_bedrock_tool_use_finish_reason_produces_tool_call_request(self):\n         assert part.name == \"get_weather\"\n         assert part.id == \"tooluse_abc\"\n         assert part.arguments == {\"location\": \"London\"}\n+\n+    def test_legacy_function_call_finish_reason_produces_tool_call_request(",
+      "id": "PRRT_kwDOSbspP86Tx9Ol",
+      "opened": "2026-07-25T19:05:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-27T21:55:47Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3661180321"
+        }
+      ],
+      "reviewed": "b2890223c1390f03c6dc962bb3b50a64bfd0a753",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3650832216"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not for this PR (follow up): would legacy function calls come with some legacy function definitions in the request - should we populate gen_ai.tool.definitions differently for them?",
+      "created": "2026-07-25T19:04:43Z",
+      "hunk": "@@ -112,11 +112,39 @@ def _content_to_parts(\n     return parts\n \n \n+def _legacy_function_call_request(\n+    message: AIMessage,\n+) -> Optional[ToolCallRequest]:\n+    \"\"\"Extract a legacy OpenAI ``function_call`` as a :class:`ToolCallRequest`.\n+\n+    Pre-tools OpenAI models return a single call under",
+      "id": "PRRT_kwDOSbspP86Tx9mq",
+      "opened": "2026-07-25T19:05:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-07-27T21:55:50Z",
+          "body": "Thanks for the callout. Yes, we will have to populate it differently. I will create a follow up PR for it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3661180586"
+        }
+      ],
+      "reviewed": "b2890223c1390f03c6dc962bb3b50a64bfd0a753",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3650834418"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "4bf9061fc7f547464fb4d56885dc3d550ae91a74",
+  "merge": "77479545acb8ba7fe75fd20284ece814fa94aa0d",
+  "merged": "2026-11-21T02:12:00Z",
+  "missing_roots": 0,
+  "number": 472,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With no API-version override, google-genai 3 makes the shared `genai.Client()` scenarios request `/v1/models/...`, but the mock only registers `/v1beta/models/...` (`tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py:444`), so these requests receive HTTP 404 instead of producing conformance results. Add `/v1/models/...` support to the mock with deterministic regression tests, then rerun the scenarios and commit any regenerated data. The same issue affects the sibling `openllmetry/pyproject.toml:6` and `openinference/pyproject.toml:6` upgrades.",
+      "created": "2026-11-06T05:46:21Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"google-genai-opentelemetry-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-genai==2.34.0\",\n+    \"google-genai==3.0.0\",",
+      "id": "PRRT_kwDOTuzK5c60ZL7U",
+      "opened": "2026-11-06T05:46:21Z",
+      "path": "scenarios/gen-ai/python/google-genai/opentelemetry-google-genai/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-11-07T20:01:01Z",
+          "body": "Fixed by #475",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/472#discussion_r4503523557"
+        }
+      ],
+      "reviewed": "487590ad890520c8f4c93f2ee66b2661a22e9dcc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/472#discussion_r4489441871"
+    }
+  ]
+}

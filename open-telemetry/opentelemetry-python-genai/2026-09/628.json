@@ -1,0 +1,40 @@
+{
+  "head": "c92a2124b530b6ebd28a562bb260c0bb8a1da3a2",
+  "merge": "98b2ba860511651047164b373174983ae4847b68",
+  "merged": "2026-09-19T03:02:57Z",
+  "missing_roots": 0,
+  "number": 628,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This repo pins the GenAI semconv registry via `SEMCONV_GENAI_REF` in `versions.env` (and conformance tooling provisions it under `~/.cache/otel-conformance/semconv/genai-<ref>`). Cloning `semantic-conventions-genai` at an arbitrary `main` HEAD (and pointing to a non-existent `semantic-conventions-genai-*` cache path) can make the comparison results inconsistent with the repo’s pinned schema.",
+      "created": "2026-09-04T21:14:02Z",
+      "hunk": "@@ -0,0 +1,162 @@\n+---\n+name: compare-with-openinference\n+description: Compare an OTel GenAI instrumentation against upstream OpenInference to identify missing spans, attributes, and features. Maps gaps to semantic-conventions-genai schema, separating actionable fixes from semconv blockers.\n+---\n+\n+# Compare Instrumentation with OpenInference\n+\n+Compare an `opentelemetry-instrumentation-genai-<lib>` package against upstream `openinference-instrumentation-<lib>` to find missing spans and attributes. Outputs an actionable checklist.\n+\n+## Inputs\n+\n+Target package or library name, e.g.:\n+- `opentelemetry-instrumentation-genai-openai`\n+- `<lib>` (e.g. `openai`, `anthropic`, `langchain`)\n+\n+## Upstream Resolution\n+\n+### 1. OpenInference Repository\n+Upstream source: `https://github.com/open-telemetry/donation-openinference`.\n+Use `/tmp/openinference` or clone:\n+\n+```sh\n+if [ ! -d \"/tmp/openinference\" ]; then\n+  git clone --depth=1 https://github.com/open-telemetry/donation-openinference.git /tmp/openinference\n+fi\n+ls /tmp/openinference/python/instrumentation/ | grep -i <lib>\n+```\n+\n+Identify target package in `/tmp/openinference/python/instrumentation/openinference-instrumentation-<lib>/`.\n+\n+### 2. Semantic Conventions Schema Repository\n+Locate `semantic-conventions-genai` registry:\n+- Check cached copy under `~/.cache/otel-conformance/semconv/semantic-conventions-genai-*`\n+- Or clone:\n+```sh\n+if [ ! -d \"/tmp/semconv-genai\" ]; then\n+  git clone --depth=1 https://github.com/open-telemetry/semantic-conventions-genai.git /tmp/semconv-genai\n+fi\n+```",
+      "id": "PRRT_kwDOSbspP86fcZX9",
+      "opened": "2026-09-04T21:14:02Z",
+      "path": ".github/skills/compare-with-openinference/SKILL.md",
+      "replies": [],
+      "reviewed": "e8f74f8b21305ca293826d21e04d414b46a362fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/628#discussion_r3937924879"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the shell snippet, `grep -i <lib>` uses `<`/`>` which are shell redirection operators; copy/pasting this will fail (it will try to redirect stdin from a file named `lib`). Quote the placeholder (or use a variable) so it’s a valid command.",
+      "created": "2026-09-04T21:14:02Z",
+      "hunk": "@@ -0,0 +1,162 @@\n+---\n+name: compare-with-openinference\n+description: Compare an OTel GenAI instrumentation against upstream OpenInference to identify missing spans, attributes, and features. Maps gaps to semantic-conventions-genai schema, separating actionable fixes from semconv blockers.\n+---\n+\n+# Compare Instrumentation with OpenInference\n+\n+Compare an `opentelemetry-instrumentation-genai-<lib>` package against upstream `openinference-instrumentation-<lib>` to find missing spans and attributes. Outputs an actionable checklist.\n+\n+## Inputs\n+\n+Target package or library name, e.g.:\n+- `opentelemetry-instrumentation-genai-openai`\n+- `<lib>` (e.g. `openai`, `anthropic`, `langchain`)\n+\n+## Upstream Resolution\n+\n+### 1. OpenInference Repository\n+Upstream source: `https://github.com/open-telemetry/donation-openinference`.\n+Use `/tmp/openinference` or clone:\n+\n+```sh\n+if [ ! -d \"/tmp/openinference\" ]; then\n+  git clone --depth=1 https://github.com/open-telemetry/donation-openinference.git /tmp/openinference\n+fi\n+ls /tmp/openinference/python/instrumentation/ | grep -i <lib>",
+      "id": "PRRT_kwDOSbspP86fcZXc",
+      "opened": "2026-09-04T21:14:02Z",
+      "path": ".github/skills/compare-with-openinference/SKILL.md",
+      "replies": [],
+      "reviewed": "e8f74f8b21305ca293826d21e04d414b46a362fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/628#discussion_r3937924828"
+    }
+  ]
+}

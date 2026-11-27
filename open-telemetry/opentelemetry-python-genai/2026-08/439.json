@@ -1,0 +1,85 @@
+{
+  "head": "0f764e8c5fe7101b78db71bdad091cc9c7c03159",
+  "merge": "c4e31640f30a6fa722a487be00324f24603186d8",
+  "merged": "2026-08-21T22:16:28Z",
+  "missing_roots": 0,
+  "number": 439,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This README states that the package “allows tracing executions” and “produces spans following the GenAI semantic conventions”, but the current instrumentor does not patch DSPy yet (it only constructs a TelemetryHandler). Please reword this to match the current state (setup/boilerplate only) or add the missing instrumentation so the README claims are accurate.",
+      "created": "2026-08-21T14:20:05Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+OpenTelemetry DSPy Instrumentation\n+==================================\n+\n+|pypi|\n+\n+.. |pypi| image:: https://badge.fury.io/py/opentelemetry-instrumentation-genai-dspy.svg\n+   :target: https://pypi.org/project/opentelemetry-instrumentation-genai-dspy/\n+\n+This library allows tracing executions made through the\n+`DSPy framework <https://pypi.org/project/dspy/>`_.\n+\n+It produces spans following the `GenAI semantic conventions\n+<https://opentelemetry.io/docs/specs/semconv/gen-ai/>`_.\n+\n+Installation\n+------------\n+\n+::\n+\n+    pip install opentelemetry-instrumentation-genai-dspy\n+\n+Usage\n+-----\n+\n+.. code:: python\n+\n+    from opentelemetry.instrumentation.genai.dspy import (\n+        DSPyInstrumentor,\n+    )\n+    import dspy\n+\n+    DSPyInstrumentor().instrument()\n+",
+      "id": "PRRT_kwDOSbspP86bLvPp",
+      "opened": "2026-08-21T14:20:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/README.rst",
+      "replies": [],
+      "reviewed": "a30ac029e3120d87ff4a187752b89567a5e9f83d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/439#discussion_r3830981020"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new DSPy package is wired into tox for oldest/latest unit tests, but it is missing the corresponding *-conformance environment/commands wiring that this repo requires for new instrumentation packages (py314 …-conformance envlist entry plus matching deps/commands). Add the dspy-conformance factor (and a tests/test_conformance.py + scenarios) so the test matrix shape stays consistent.",
+      "created": "2026-08-21T14:20:05Z",
+      "hunk": "@@ -46,6 +46,10 @@ envlist =\n     py3{10,14}-test-instrumentation-genai-crewai-latest\n     py310-test-instrumentation-genai-crewai-oldest\n \n+    ; instrumentation-genai-dspy\n+    py3{10,14}-test-instrumentation-genai-dspy-latest\n+    py310-test-instrumentation-genai-dspy-oldest\n+",
+      "id": "PRRT_kwDOSbspP86bLvQN",
+      "opened": "2026-08-21T14:20:06Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "a30ac029e3120d87ff4a187752b89567a5e9f83d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/439#discussion_r3830981076"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The classifiers omit Python 3.14 even though this repo’s test matrix targets 3.14 (see tox envlist patterns). Consider adding the “Programming Language :: Python :: 3.14” classifier for consistency with other packages.",
+      "created": "2026-08-21T14:20:05Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+[build-system]\n+requires = [\"hatchling\"]\n+build-backend = \"hatchling.build\"\n+\n+[project]\n+name = \"opentelemetry-instrumentation-genai-dspy\"\n+dynamic = [\"version\"]\n+description = \"OpenTelemetry Official DSPy instrumentation\"\n+readme = \"README.rst\"\n+license = \"Apache-2.0\"\n+requires-python = \">=3.10\"\n+authors = [\n+  { name = \"OpenTelemetry Authors\", email = \"cncf-opentelemetry-contributors@lists.cncf.io\" },\n+]\n+classifiers = [\n+  \"Development Status :: 4 - Beta\",\n+  \"Intended Audience :: Developers\",\n+  \"License :: OSI Approved :: Apache Software License\",\n+  \"Programming Language :: Python\",\n+  \"Programming Language :: Python :: 3\",\n+  \"Programming Language :: Python :: 3.10\",\n+  \"Programming Language :: Python :: 3.11\",\n+  \"Programming Language :: Python :: 3.12\",\n+  \"Programming Language :: Python :: 3.13\",\n+]",
+      "id": "PRRT_kwDOSbspP86bLvQn",
+      "opened": "2026-08-21T14:20:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/pyproject.toml",
+      "replies": [],
+      "reviewed": "a30ac029e3120d87ff4a187752b89567a5e9f83d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/439#discussion_r3830981122"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Most instrumentation packages define `[tool.pytest.ini_options] testpaths = [\"tests\"]` in their package pyproject to make `pytest` behave consistently when run from the package root. Consider adding that here as well.",
+      "created": "2026-08-21T14:20:06Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+[build-system]\n+requires = [\"hatchling\"]\n+build-backend = \"hatchling.build\"\n+\n+[project]\n+name = \"opentelemetry-instrumentation-genai-dspy\"\n+dynamic = [\"version\"]\n+description = \"OpenTelemetry Official DSPy instrumentation\"\n+readme = \"README.rst\"\n+license = \"Apache-2.0\"\n+requires-python = \">=3.10\"\n+authors = [\n+  { name = \"OpenTelemetry Authors\", email = \"cncf-opentelemetry-contributors@lists.cncf.io\" },\n+]\n+classifiers = [\n+  \"Development Status :: 4 - Beta\",\n+  \"Intended Audience :: Developers\",\n+  \"License :: OSI Approved :: Apache Software License\",\n+  \"Programming Language :: Python\",\n+  \"Programming Language :: Python :: 3\",\n+  \"Programming Language :: Python :: 3.10\",\n+  \"Programming Language :: Python :: 3.11\",\n+  \"Programming Language :: Python :: 3.12\",\n+  \"Programming Language :: Python :: 3.13\",\n+]\n+dependencies = [\n+  \"opentelemetry-api ~= 1.43\",\n+  \"opentelemetry-instrumentation >= 0.64b0, <1\",\n+  \"opentelemetry-semantic-conventions >= 0.64b0, <1\",\n+  \"opentelemetry-util-genai >= 1.1b0.dev, <2\",\n+]\n+\n+[project.optional-dependencies]\n+instruments = [\"dspy >= 2.5.0\"]\n+\n+[project.entry-points.opentelemetry_instrumentor]\n+dspy = \"opentelemetry.instrumentation.genai.dspy:DSPyInstrumentor\"\n+\n+[project.urls]\n+Homepage = \"https://github.com/open-telemetry/opentelemetry-python-genai/tree/main/instrumentation/opentelemetry-instrumentation-genai-dspy\"\n+Repository = \"https://github.com/open-telemetry/opentelemetry-python-genai\"\n+\n+[tool.hatch.version]\n+path = \"src/opentelemetry/instrumentation/genai/dspy/version.py\"\n+\n+[tool.hatch.build.targets.sdist]\n+include = [\n+  \"/src\",\n+  \"/tests\",\n+]\n+\n+[tool.hatch.build.targets.wheel]\n+packages = [\"src/opentelemetry\"]\n+\n+",
+      "id": "PRRT_kwDOSbspP86bLvQ4",
+      "opened": "2026-08-21T14:20:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/pyproject.toml",
+      "replies": [],
+      "reviewed": "a30ac029e3120d87ff4a187752b89567a5e9f83d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/439#discussion_r3830981153"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "👍 ",
+      "created": "2026-08-21T15:42:54Z",
+      "hunk": "@@ -38,7 +38,7 @@ jobs:\n \n       - name: Ensure no direct changes to CHANGELOG.md\n         run: |\n-          if [[ $(git diff --name-only FETCH_HEAD -- '**/CHANGELOG.md') ]]\n+          if [[ $(git diff --diff-filter=MD --name-only FETCH_HEAD -- '**/CHANGELOG.md') ]]",
+      "id": "PRRT_kwDOSbspP86bNYsH",
+      "opened": "2026-08-21T15:42:56Z",
+      "path": ".github/workflows/changelog.yml",
+      "replies": [],
+      "reviewed": "189b937ccdbcdd98087d2e8c366f4192f3916ecd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/439#discussion_r3831614114"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "adf5d69e90bba40e824884baabf340bd3126e5c8",
+  "merge": "7012cda3cefb02de6f0ef43f81015904ffa21147",
+  "merged": "2026-08-05T13:07:46Z",
+  "missing_roots": 0,
+  "number": 19348,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Static factory entry points belong immediately above constructors. Move `get()` above the private constructor so this new class follows the repository's class-organization rule.",
+      "created": "2026-08-05T03:23:44Z",
+      "hunk": "@@ -0,0 +1,97 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.messaging;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static java.util.logging.Level.FINE;\n+\n+import com.google.auto.value.AutoValue;\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationListener;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationMetrics;\n+import io.opentelemetry.instrumentation.api.internal.OperationMetricsUtil;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * {@link OperationListener} which keeps track of <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/blob/v1.43.0/docs/messaging/messaging-metrics.md#metric-messagingprocessduration\">message\n+ * processing metrics</a>.\n+ */\n+public final class MessagingProcessMetrics implements OperationListener {\n+  private static final double NANOS_PER_S = SECONDS.toNanos(1);\n+\n+  private static final ContextKey<State> MESSAGING_PROCESS_METRICS_STATE =\n+      ContextKey.named(\"messaging-process-metrics-state\");\n+  private static final Logger logger = Logger.getLogger(MessagingProcessMetrics.class.getName());\n+\n+  @Nullable private final DoubleHistogram processDurationHistogram;\n+\n+  private MessagingProcessMetrics(Meter meter) {\n+    processDurationHistogram = emitStableMessagingSemconv() ? buildProcessDuration(meter) : null;\n+  }\n+\n+  public static OperationMetrics get() {\n+    return OperationMetricsUtil.create(\"messaging process\", MessagingProcessMetrics::new);\n+  }",
+      "id": "PRRT_kwDODJKVX86WiCG5",
+      "opened": "2026-08-05T03:23:45Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingProcessMetrics.java",
+      "replies": [],
+      "reviewed": "adf5d69e90bba40e824884baabf340bd3126e5c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19348#discussion_r3717703010"
+    }
+  ]
+}

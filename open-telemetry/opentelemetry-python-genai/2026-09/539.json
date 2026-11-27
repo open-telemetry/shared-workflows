@@ -1,0 +1,46 @@
+{
+  "head": "da515756ccc0a5bc2c95b8510bf63db81dae789b",
+  "merge": "6b262dd85eb7c6322fd4413e3fd696016d24470d",
+  "merged": "2026-09-02T19:53:36Z",
+  "missing_roots": 0,
+  "number": 539,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`tox.ini` now references `tests/requirements.v2.txt`, but this PR’s diffs only show `requirements.openai-v2.txt` being edited (and no file rename/add for `requirements.v2.txt`). This will break tox with a 'file not found' when resolving deps. Fix by either adding/renaming the requirements file to `requirements.v2.txt` (preferred if that’s the new convention) or updating this path back to `requirements.openai-v2.txt`.",
+      "created": "2026-09-02T17:45:20Z",
+      "hunk": "@@ -125,6 +126,9 @@ deps =\n   openai-latest: {[testenv]test_deps}\n   openai-latest: {[testenv]pytest_deps}\n   openai-latest: -r {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.latest.txt\n+  openai-v2: {[testenv]test_deps}\n+  openai-v2: {[testenv]pytest_deps}\n+  openai-v2: -r {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.v2.txt",
+      "id": "PRRT_kwDOSbspP86enaxF",
+      "opened": "2026-09-02T17:45:21Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-09-02T18:07:20Z",
+          "body": "copilot, you're hallucinating",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/539#discussion_r3917180241"
+        }
+      ],
+      "reviewed": "da515756ccc0a5bc2c95b8510bf63db81dae789b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/539#discussion_r3916992008"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This comment claims the pin lives in `requirements.v2.txt`, but the PR does not show that file being added/renamed (only `requirements.openai-v2.txt` is present in the diffs). Update the comment to match the actual filename, or include the file rename/add so the comment stays accurate.",
+      "created": "2026-09-02T17:45:21Z",
+      "hunk": "@@ -21,7 +21,7 @@\n import pytest\n from openai import AsyncOpenAI, OpenAI\n \n-# Only pinned in requirements.openai-v2.txt; other envs (openai v3+ uses\n+# Only pinned in requirements.v2.txt; other envs (openai v3+ uses",
+      "id": "PRRT_kwDOSbspP86enaxx",
+      "opened": "2026-09-02T17:45:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_raw_response_httpx_interop.py",
+      "replies": [],
+      "reviewed": "da515756ccc0a5bc2c95b8510bf63db81dae789b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/539#discussion_r3916992076"
+    }
+  ]
+}

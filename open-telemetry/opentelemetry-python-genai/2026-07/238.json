@@ -1,0 +1,25 @@
+{
+  "head": "862ffceec76793cf4219f26dd1ee9e04dac6da65",
+  "merge": "c55a485b0fe47a980664c1f48060a6f43a64787e",
+  "merged": "2026-07-09T21:30:04Z",
+  "missing_roots": 0,
+  "number": 238,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The default CI matrix is generated from `tox -l` (envlist). After switching conformance envs to `py314-*`, the contributor docs that claim to “mirror the CI gates” still show running conformance with `py312-*` (e.g. `AGENTS.md:89-93`). Consider updating those docs to use `py314-...-conformance` so the documented commands match what CI actually runs by default.",
+      "created": "2026-07-09T21:04:16Z",
+      "hunk": "@@ -11,12 +11,12 @@ envlist =\n     ; instrumentation-genai-openai\n     py3{10,11,12,13,14}-test-instrumentation-genai-openai-{oldest,latest}\n     pypy3-test-instrumentation-genai-openai-{oldest,latest}\n-    py3{12,13}-test-instrumentation-genai-openai-conformance\n+    py314-test-instrumentation-genai-openai-conformance\n     lint-instrumentation-genai-openai",
+      "id": "PRRT_kwDOSbspP86PtIk8",
+      "opened": "2026-07-09T21:04:16Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "985522a19608ca9c4d8a1b3e3821bd59ec33344a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/238#discussion_r3554805199"
+    }
+  ]
+}

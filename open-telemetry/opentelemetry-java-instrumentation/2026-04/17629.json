@@ -1,0 +1,40 @@
+{
+  "head": "48a7132c22d850b99610a7a1461065d3ba406b24",
+  "merge": "cfab8bd0dc3a3c8f20c8767149ff144a08a873f9",
+  "merged": "2026-04-07T15:47:29Z",
+  "missing_roots": 0,
+  "number": 17629,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "no harm covering this 🤷‍♂️",
+      "created": "2026-04-06T22:01:27Z",
+      "hunk": "@@ -99,6 +99,8 @@ public void end(\n \n         if (throwable != null) {\n           instrumenter().end(context, cmd, null, throwable);\n+        } else if (responseFuture == null) {\n+          instrumenter().end(context, cmd, null, null);",
+      "id": "PRRT_kwDODJKVX855Iqer",
+      "opened": "2026-04-06T22:01:27Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/RequestInstrumentation.java",
+      "replies": [],
+      "reviewed": "a4b36aa5060e53010d471d257fdb54e76c8eed83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17629#discussion_r3041908186"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n        if (throwable != null || responseFuture == null) {\n          instrumenter().end(context, cmd, null, throwable);\n```",
+      "created": "2026-04-07T07:22:43Z",
+      "hunk": "@@ -99,6 +99,8 @@ public void end(\n \n         if (throwable != null) {\n           instrumenter().end(context, cmd, null, throwable);\n+        } else if (responseFuture == null) {\n+          instrumenter().end(context, cmd, null, null);",
+      "id": "PRRT_kwDODJKVX855NFEM",
+      "opened": "2026-04-07T07:22:43Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/RequestInstrumentation.java",
+      "replies": [],
+      "reviewed": "a4b36aa5060e53010d471d257fdb54e76c8eed83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17629#discussion_r3043452918"
+    }
+  ]
+}

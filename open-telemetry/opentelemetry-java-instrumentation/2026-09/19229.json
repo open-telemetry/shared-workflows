@@ -1,0 +1,118 @@
+{
+  "head": "ae2c6f5e8c1050baa9fd7046c4984014975e65c4",
+  "merge": "b1d0138d5301e4afb46f33676d0f3e248337463c",
+  "merged": "2026-09-01T22:21:59Z",
+  "missing_roots": 0,
+  "number": 19229,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This shared script runs before the existing Docker-service workaround in the Windows smoke-test jobs (`build-common.yml:424-435` and `reusable-build-servlet-images.yml:36-47`). Those workflows explicitly account for Docker initially being stopped, so under this script's `-e` this command can terminate the job before the service is started. Guard the prune on daemon availability (or move the workaround ahead of cleanup).",
+      "created": "2026-07-15T15:53:28Z",
+      "hunk": "@@ -9,4 +9,7 @@ sudo rm -rf /usr/share/dotnet\n sudo rm -rf /usr/local/julia*\n sudo rm -rf /usr/share/swift\n sudo rm -rf /usr/local/.ghcup\n+# test suites pull many testcontainers images (elasticsearch, kafka connect, etc.) over the\n+# course of a single job; prune whatever shipped with the runner image first to make room.\n+docker system prune -af --volumes",
+      "id": "PRRT_kwDODJKVX86RKR88",
+      "opened": "2026-07-15T15:53:29Z",
+      "path": ".github/scripts/gha-free-disk-space.sh",
+      "replies": [],
+      "reviewed": "0e23c1b0fd93069eb0d1fb44835a3418f4439619",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3588788694"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is there a list of images shipped with the runners anywhere? how much space does this free up?",
+      "created": "2026-07-15T16:13:53Z",
+      "hunk": "@@ -9,4 +9,7 @@ sudo rm -rf /usr/share/dotnet\n sudo rm -rf /usr/local/julia*\n sudo rm -rf /usr/share/swift\n sudo rm -rf /usr/local/.ghcup\n+# test suites pull many testcontainers images (elasticsearch, kafka connect, etc.) over the\n+# course of a single job; prune whatever shipped with the runner image first to make room.\n+docker system prune -af --volumes",
+      "id": "PRRT_kwDODJKVX86RKrR3",
+      "opened": "2026-07-15T16:13:53Z",
+      "path": ".github/scripts/gha-free-disk-space.sh",
+      "replies": [
+        {
+          "at": "2026-07-15T19:25:03Z",
+          "body": "Ai says that there are no pre cached images on ubuntu, on windows the container base layer may be cached. If that is true then this pr won’t help.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3590163242"
+        },
+        {
+          "at": "2026-07-16T06:09:55Z",
+          "body": "I thought it would clean from prior run ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3593033947"
+        },
+        {
+          "at": "2026-07-16T16:18:25Z",
+          "body": "> I thought it would clean from prior run\r\n\r\ndoesn't every build start from a clean runner image?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3597144325"
+        },
+        {
+          "at": "2026-07-20T09:02:54Z",
+          "body": "You're right that this isn't cleaning data from a previous workflow run, and the standard Ubuntu image documentation doesn't necessarily list these as general-purpose cached images.\n\nHowever, in the real Ubuntu smoke-job logs, before the test steps ran, `docker system prune` removed these pre-existing images:\n\n- `ghcr.io/github/gh-aw-mcpg:latest`\n- `ghcr.io/github/gh-aw-firewall/{agent,squid,api-proxy}:latest`\n- `ghcr.io/github/github-mcp-server:latest`\n- `ghcr.io/dependabot/dependabot-updater-core:latest`\n\nIt reported **1.851 GB reclaimed** in each of the eight Ubuntu smoke jobs, in both [run 29429470350](https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/29429470350) and [run 29580716222](https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/29580716222). So I think the accurate claim is that this removes unused Docker content already present before tests, regardless of whether GitHub baked it into the VM image or provisioned it during job setup. It won't reclaim images pulled later by Testcontainers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3613094933"
+        }
+      ],
+      "reviewed": "0e23c1b0fd93069eb0d1fb44835a3418f4439619",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3588935244"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "have we been running out of disk space?\n\nhow much disk space does this save?",
+      "created": "2026-07-29T16:54:00Z",
+      "hunk": "@@ -9,4 +9,16 @@ sudo rm -rf /usr/share/dotnet\n sudo rm -rf /usr/local/julia*\n sudo rm -rf /usr/share/swift\n sudo rm -rf /usr/local/.ghcup\n+# test suites pull many testcontainers images (elasticsearch, kafka connect, etc.) over the\n+# course of a single job; prune whatever shipped with the runner image first to make room.\n+# The reclaimable amount is runner-image dependent; GitHub-hosted jobs start on a fresh runner, so\n+# this cannot reclaim Docker data from a previous workflow run.\n+# On Windows, the Docker service can be stopped at this point; skip pruning in that case so the\n+# workflow can start the service in the following step. Once the daemon is available, keep prune\n+# failures fatal so that real cleanup errors are not hidden.\n+if docker info >/dev/null 2>&1; then\n+  docker system prune -af --volumes\n+else\n+  echo \"Docker daemon is unavailable; skipping Docker prune.\" >&2\n+fi",
+      "id": "PRRT_kwDODJKVX86U1vvd",
+      "opened": "2026-07-29T16:54:00Z",
+      "path": ".github/scripts/gha-free-disk-space.sh",
+      "replies": [
+        {
+          "at": "2026-08-18T13:51:12Z",
+          "body": "The answer got added to the wrong thread: here it is https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3801995550",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3804674790"
+        }
+      ],
+      "reviewed": "cf909fdd894b88e6435a9f7bafaebe31b8136c4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3676398396"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "We do not have evidence that these jobs have actually failed from disk exhaustion, so I would frame this as preventive cleanup rather than a demonstrated incident fix.\n\nThe evidence we do have is from the Ubuntu smoke jobs: immediately before the test steps, `docker system prune` reclaimed **1.851 GB in each of the eight Ubuntu jobs** (runs [29429470350](https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/29429470350) and [29580716222](https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/29580716222)). The reclaimed content was runner-provisioned GitHub/Dependabot images, including `ghcr.io/github/gh-aw-mcpg`, `ghcr.io/github/gh-aw-firewall/*`, `ghcr.io/github/github-mcp-server`, and `ghcr.io/dependabot/dependabot-updater-core`.\n\nThis runs before the tests and does not clean images pulled later by Testcontainers. No code change is needed based on that evidence; the remaining question is whether that preventive reclaim justifies keeping the cleanup.",
+      "created": "2026-08-18T07:40:03Z",
+      "hunk": "@@ -9,4 +9,16 @@ sudo rm -rf /usr/share/dotnet\n sudo rm -rf /usr/local/julia*\n sudo rm -rf /usr/share/swift\n sudo rm -rf /usr/local/.ghcup\n+# test suites pull many testcontainers images (elasticsearch, kafka connect, etc.) over the\n+# course of a single job; prune whatever shipped with the runner image first to make room.\n+# The reclaimable amount is runner-image dependent; GitHub-hosted jobs start on a fresh runner, so\n+# this cannot reclaim Docker data from a previous workflow run.\n+# On Windows, the Docker service can be stopped at this point; skip pruning in that case so the\n+# workflow can start the service in the following step. Once the daemon is available, keep prune\n+# failures fatal so that real cleanup errors are not hidden.\n+if docker info >/dev/null 2>&1; then\n+  docker system prune -af --volumes\n+else\n+  echo \"Docker daemon is unavailable; skipping Docker prune.\" >&2\n+fi",
+      "id": "PRRT_kwDODJKVX86aBaQe",
+      "opened": "2026-08-18T07:40:03Z",
+      "path": ".github/scripts/gha-free-disk-space.sh",
+      "replies": [
+        {
+          "at": "2026-08-18T08:12:38Z",
+          "body": "Thanks. We’re keeping the narrowly scoped pre-test cleanup. Although we have no evidence of a disk-exhaustion incident, reclaiming 1.851 GB in each sampled Ubuntu smoke job provides meaningful preventive headroom. It only removes Docker content already present before the tests and does not affect images pulled later by Testcontainers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3802248203"
+        }
+      ],
+      "reviewed": "cf909fdd894b88e6435a9f7bafaebe31b8136c4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3801995550"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Rewrite the full comment to describe what is reclaimed, how much space it saves, and why the daemon check remains necessary.\n\n```suggestion\n# GitHub-hosted runners can include about 1.9 GB of unused GitHub and Dependabot images. Remove\n# them before Testcontainers starts pulling test images. Each job gets a fresh runner, so this\n# does not clean up Docker data from an earlier workflow run.\n# Docker may not be running yet on Windows. Skip pruning in that case, but fail the job if a\n# running daemon cannot be pruned.\n```",
+      "created": "2026-09-01T20:05:09Z",
+      "hunk": "@@ -9,4 +9,16 @@ sudo rm -rf /usr/share/dotnet\n sudo rm -rf /usr/local/julia*\n sudo rm -rf /usr/share/swift\n sudo rm -rf /usr/local/.ghcup\n+# test suites pull many testcontainers images (elasticsearch, kafka connect, etc.) over the\n+# course of a single job; prune whatever shipped with the runner image first to make room.\n+# The reclaimable amount is runner-image dependent; GitHub-hosted jobs start on a fresh runner, so\n+# this cannot reclaim Docker data from a previous workflow run.\n+# On Windows, the Docker service can be stopped at this point; skip pruning in that case so the\n+# workflow can start the service in the following step. Once the daemon is available, keep prune\n+# failures fatal so that real cleanup errors are not hidden.",
+      "id": "PRRT_kwDODJKVX86eQe3J",
+      "opened": "2026-09-01T20:06:45Z",
+      "path": ".github/scripts/gha-free-disk-space.sh",
+      "replies": [],
+      "reviewed": "cf909fdd894b88e6435a9f7bafaebe31b8136c4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19229#discussion_r3907959390"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "4fdb8cb18037697b9ca91d730d48918c9bf8822b",
+  "merge": "e4eed86f853057a0f4aa40da8ed708f6cd0da732",
+  "merged": "2026-06-18T03:12:15Z",
+  "missing_roots": 0,
+  "number": 111,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The extra parentheses/multiline wrapper around the provider name value don’t seem necessary and are inconsistent with nearby one-liners in the same dict. Consider making this a single line assignment for readability.",
+      "created": "2026-06-06T11:51:03Z",
+      "hunk": "@@ -225,7 +225,9 @@ def get_llm_request_attributes(\n ) -> dict[str, AttributeValue]:\n     attributes: dict[str, AttributeValue | None] = {\n         GenAIAttributes.GEN_AI_OPERATION_NAME: GenAIAttributes.GenAiOperationNameValues.CHAT.value,\n-        GenAIAttributes.GEN_AI_SYSTEM: GenAIAttributes.GenAiSystemValues.ANTHROPIC.value,  # pyright: ignore[reportDeprecated]\n+        GenAIAttributes.GEN_AI_PROVIDER_NAME: (\n+            GenAIAttributes.GenAiProviderNameValues.ANTHROPIC.value\n+        ),",
+      "id": "PRRT_kwDOSbspP86Hj3y5",
+      "opened": "2026-06-06T11:51:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [],
+      "reviewed": "289ea1a28dff99d54b0235df38c63f415e2ff830",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/111#discussion_r3367241067"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Since this PR changes behavior from emitting deprecated `gen_ai.system` to `gen_ai.provider.name`, it would be helpful to assert the deprecated attribute is *not* present on the span (e.g., `GenAIAttributes.GEN_AI_SYSTEM not in span.attributes`). This prevents regressions where both attributes accidentally get emitted (or the deprecated one slips back in).",
+      "created": "2026-06-06T11:51:03Z",
+      "hunk": "@@ -71,8 +71,8 @@ def assert_span_attributes(  # pylint: disable=too-many-arguments\n         == span.attributes[GenAIAttributes.GEN_AI_OPERATION_NAME]\n     )\n     assert (\n-        GenAIAttributes.GenAiSystemValues.ANTHROPIC.value\n-        == span.attributes[GenAIAttributes.GEN_AI_SYSTEM]\n+        GenAIAttributes.GenAiProviderNameValues.ANTHROPIC.value\n+        == span.attributes[GenAIAttributes.GEN_AI_PROVIDER_NAME]\n     )",
+      "id": "PRRT_kwDOSbspP86Hj3yg",
+      "opened": "2026-06-06T11:51:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "289ea1a28dff99d54b0235df38c63f415e2ff830",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/111#discussion_r3367241040"
+    }
+  ]
+}

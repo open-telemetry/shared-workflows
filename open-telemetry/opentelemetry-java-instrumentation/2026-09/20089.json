@@ -1,0 +1,262 @@
+{
+  "head": "24431f538c24f890d464885000d8d40b7c44aa6d",
+  "merge": "bef4b27a9c540047505dd8a046fdbca600d2d61b",
+  "merged": "2026-09-25T18:20:45Z",
+  "missing_roots": 0,
+  "number": 20089,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This exercises only the implicit `18098` path, while the newly promised non-default-port behavior is not covered. Add a latest-deps stable-semconv case using a URI such as `couchbase2://<seed>:18099` and assert that `SERVER_PORT` is `18099`; otherwise a regression that drops all Protostellar ports would still pass.",
+      "created": "2026-09-10T03:26:33Z",
+      "hunk": "@@ -159,6 +166,53 @@ void testEmitsSpans() throws UnknownHostException {\n                         .hasAttributesSatisfyingExactly(dispatchAttributes)));\n   }\n \n+  @Test\n+  void testEmitsProtostellarTarget() throws ReflectiveOperationException {\n+    assumeTrue(testLatestDeps());\n+    Cluster protostellar =\n+        Cluster.connect(\n+            \"couchbase2://\" + seedAddress, couchbase.getUsername(), couchbase.getPassword());",
+      "id": "PRRT_kwDODJKVX86g6seo",
+      "opened": "2026-09-10T03:26:34Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:06:27Z",
+          "body": "Addressed in f56c0f37c10298fe8ff84fd05e19327359cc4725.\n\nAnalysis: The existing test covered only a connection string without an explicit port. Parameterizing it with `:18099` proves that target parsing and span capture preserve a non-default Protostellar port while retaining default-port omission coverage.\n\nUpsides: The test now catches regressions that discard explicit Protostellar ports and also verifies the port-bearing stable span name.\n\nDownsides: The latest-dependency test runs one additional parameterized invocation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r3975354197"
+        }
+      ],
+      "reviewed": "aacff5e80e88ddb23ab8ef57655f259a77411fa8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r3975167958"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This advice targets `ProtostellarBaseRequest`, but Couchbase does not construct that wrapper during normal request-span creation or call `RequestSpan.requestContext` from the Protostellar flow. `ProtostellarRequest` retains and ends the span directly; the wrapper is only created for retry/orphan-reporting paths. As a result, successful `couchbase2://` requests never reach the new `REQUEST_TARGETS` lookup—the test passes only because it manually calls `requestSpan.requestContext(...)`. Instrument the normal Protostellar request/span creation path and apply the core target before the span ends.",
+      "created": "2026-09-20T03:24:48Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.couchbase.client.core.CoreProtostellar;\n+import com.couchbase.client.core.protostellar.ProtostellarBaseRequest;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CouchbaseProtostellarRequestInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.couchbase.client.core.protostellar.ProtostellarBaseRequest\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(2))\n+            .and(takesArgument(0, named(\"com.couchbase.client.core.CoreProtostellar\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");",
+      "id": "PRRT_kwDODJKVX86kGgyG",
+      "opened": "2026-09-20T03:24:48Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-20T04:43:34Z",
+          "body": "Addressed in 96aca397150d66f7d6681d4195c548a91adca5cc.\n\nFixed in the verified source changes 96aca397150d66f7d6681d4195c548a91adca5cc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4056142300"
+        }
+      ],
+      "reviewed": "08a0f79b78ff18ef47f0d11eef260bc0c55bb465",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4055938347"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This lower bound includes Java client 3.4.3, but its core-io 2.4.3 constructors are `CoreProtostellar(Core, Authenticator, Set<SeedNode>)` and `ProtostellarBaseRequest(Core, ProtostellarRequest)`. Both new matchers require later `ConnectionString`/`CoreProtostellar` signatures, so no advice matches in 3.4.3 even though Muzzle can pass because the referenced classes exist. Add handling for the original signatures or raise the lower bound to the first compatible release.",
+      "created": "2026-09-20T03:24:48Z",
+      "hunk": "@@ -8,6 +8,17 @@ muzzle {\n     module.set(\"java-client\")\n     versions.set(\"[3.2.0,)\")\n     assertInverse.set(true)\n+\n+    excludeInstrumentationName(\"couchbase-3.4.3-protostellar\")\n+  }\n+  pass {\n+    name.set(\"Couchbase Protostellar instrumentation\")\n+    group.set(\"com.couchbase.client\")\n+    module.set(\"java-client\")\n+    versions.set(\"[3.4.3,)\")",
+      "id": "PRRT_kwDODJKVX86kGgyS",
+      "opened": "2026-09-20T03:24:48Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-20T04:43:35Z",
+          "body": "Addressed in 96aca397150d66f7d6681d4195c548a91adca5cc.\n\nFixed in the verified source changes 96aca397150d66f7d6681d4195c548a91adca5cc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4056142341"
+        }
+      ],
+      "reviewed": "08a0f79b78ff18ef47f0d11eef260bc0c55bb465",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4055938362"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The implicit-port case does not exercise the new `COUCHBASE2_DEFAULT_PORT` branch: it would still produce a null `SERVER_PORT` if the default remained unknown. Add an explicit `:18098` case so the promised omission of the configured default port is covered.",
+      "created": "2026-09-20T04:46:28Z",
+      "hunk": "@@ -159,6 +173,78 @@ void testEmitsSpans() throws UnknownHostException {\n                         .hasAttributesSatisfyingExactly(dispatchAttributes)));\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"protostellarTargets\")\n+  void testEmitsProtostellarTarget(String portSuffix, Long expectedPort)\n+      throws ReflectiveOperationException {\n+    assumeTrue(testLatestDeps());\n+    Cluster protostellar =\n+        Cluster.connect(\n+            \"couchbase2://\" + seedAddress + portSuffix,\n+            couchbase.getUsername(),\n+            couchbase.getPassword());\n+    cleanup.deferCleanup(protostellar::disconnect);\n+\n+    Object core =\n+        protostellar.async().getClass().getMethod(\"couchbaseOps\").invoke(protostellar.async());\n+    Class<?> protostellarRequestClass =\n+        Class.forName(\"com.couchbase.client.core.protostellar.ProtostellarRequest\");\n+\n+    Object coreResources =\n+        cluster.core().getClass().getMethod(\"coreResources\").invoke(cluster.core());\n+    RequestTracer requestTracer =\n+        (RequestTracer) coreResources.getClass().getMethod(\"requestTracer\").invoke(coreResources);\n+    RequestSpan requestSpan = requestTracer.requestSpan(\"get\", null);\n+    Object protostellarRequest =\n+        protostellarRequestClass\n+            .getConstructor(\n+                Object.class,\n+                core.getClass(),\n+                ServiceType.class,\n+                String.class,\n+                RequestSpan.class,\n+                Duration.class,\n+                boolean.class,\n+                RetryStrategy.class,\n+                Map.class,\n+                long.class,\n+                Consumer.class)\n+            .newInstance(\n+                null,\n+                core,\n+                ServiceType.KV,\n+                \"get\",\n+                requestSpan,\n+                Duration.ofSeconds(1),\n+                true,\n+                mock(RetryStrategy.class),\n+                emptyMap(),\n+                0L,\n+                null);\n+    protostellarRequestClass\n+        .getMethod(\"raisedResponseToUser\", Throwable.class)\n+        .invoke(protostellarRequest, (Object) null);\n+\n+    testing.waitAndAssertTracesWithoutScopeVersionVerification(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasKind(CLIENT)\n+                        .hasName(\n+                            emitStableDatabaseSemconv() ? \"get \" + seedAddress + portSuffix : \"get\")\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n+                            equalTo(\n+                                SERVER_ADDRESS, emitStableDatabaseSemconv() ? seedAddress : null),\n+                            equalTo(\n+                                SERVER_PORT, emitStableDatabaseSemconv() ? expectedPort : null))));\n+  }\n+\n+  private static Stream<Arguments> protostellarTargets() {\n+    return Stream.of(\n+        argumentSet(\"default port\", \"\", null), argumentSet(\"non-default port\", \":18099\", 18099L));",
+      "id": "PRRT_kwDODJKVX86kHDKP",
+      "opened": "2026-09-20T04:46:29Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:05:21Z",
+          "body": "Addressed in 76947c63bcfeee5a691756dbfc5f7b716dddda31, fe52117e880bddc218118a7c50ccfd86495f00fa.\n\nFixed in the verified source changes 76947c63bcfeee5a691756dbfc5f7b716dddda31, fe52117e880bddc218118a7c50ccfd86495f00fa.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4056176530"
+        }
+      ],
+      "reviewed": "96aca397150d66f7d6681d4195c548a91adca5cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4056147114"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This registration API has no callers in the repository, so `REQUEST_TARGETS` is never populated and the new fallback lookup can never produce a target. The direct Protostellar span capture now handles this flow; remove this leftover virtual field, method, and fallback to avoid carrying a dead state path, or wire the registration from the relevant advice if it is still required.",
+      "created": "2026-09-20T04:46:29Z",
+      "hunk": "@@ -9,17 +9,33 @@\n import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n \n+import com.couchbase.client.core.msg.Request;\n import com.couchbase.client.core.msg.RequestContext;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_0.CouchbaseSpan;\n+import javax.annotation.Nullable;\n \n public final class CouchbaseConfiguredTarget {\n \n+  private static final VirtualField<Request<?>, CouchbaseServerTarget> REQUEST_TARGETS =\n+      VirtualField.find(Request.class, CouchbaseServerTarget.class);\n+\n+  public static void registerRequestTarget(\n+      Request<?> request, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      REQUEST_TARGETS.set(request, target);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86kHDKW",
+      "opened": "2026-09-20T04:46:29Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseConfiguredTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:05:22Z",
+          "body": "Addressed in 76947c63bcfeee5a691756dbfc5f7b716dddda31.\n\nFixed in the verified source changes 76947c63bcfeee5a691756dbfc5f7b716dddda31.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4056176569"
+        }
+      ],
+      "reviewed": "96aca397150d66f7d6681d4195c548a91adca5cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4056147122"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new `3.4.3` lower bound is not exercised by an agent-backed test. `CouchbaseProtostellarTargetsTest` calls the helper directly, while `CouchbaseClient32Test` skips the baseline runtime and its latest-deps path constructs only the current 11-argument request. Muzzle verifies referenced symbols, not whether the legacy 3-argument core and 8-argument request matchers apply, so those compatibility paths can regress unnoticed. Add a version-specific `JvmTestSuite` in this javaagent project pinned to Java client 3.4.3 that creates and completes a Protostellar request with the agent installed.",
+      "created": "2026-09-24T18:17:39Z",
+      "hunk": "@@ -9,6 +9,17 @@ muzzle {\n     module.set(\"java-client\")\n     versions.set(\"[3.2.0,)\")\n     assertInverse.set(true)\n+\n+    excludeInstrumentationName(\"couchbase-3.4.3-protostellar\")\n+  }\n+  pass {\n+    name.set(\"Couchbase Protostellar instrumentation\")\n+    group.set(\"com.couchbase.client\")\n+    module.set(\"java-client\")\n+    versions.set(\"[3.4.3,)\")",
+      "id": "PRRT_kwDODJKVX86ltflf",
+      "opened": "2026-09-24T18:17:39Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-24T20:53:33Z",
+          "body": "Addressed in fcdfc2093d3c92b7ce34b57b8c1b22fc5accd04d, f85147db4bf2d2e0fdb5cb0b3acce0a9a9d6b343.\n\nFixed in the verified source changes fcdfc2093d3c92b7ce34b57b8c1b22fc5accd04d, f85147db4bf2d2e0fdb5cb0b3acce0a9a9d6b343.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4098371634"
+        }
+      ],
+      "reviewed": "6390fed0b55d0d444a6d77276f1c11e2f34c79f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4096966005"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The legacy 3.4.3 path still drops an explicitly configured Protostellar port. `registerFromSeedNodes` only reads `kvPort()` and `clusterManagerPort()`, so the `withProtostellarPort(18099)` used by `CouchbaseProtostellar343Test` is stored as a target with no port; this guard also preserves the already-registered portless target. Consequently those requests emit `server.address=node` but omit the promised non-default `server.port=18099` (the version-specific test currently asserts only the address). Derive the legacy target from each seed's Protostellar port and assert `SERVER_PORT` in the 3.4.3 agent test.",
+      "created": "2026-09-24T20:56:49Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.CoreProtostellar;\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.env.SeedNode;\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseConnectionStrings;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseServerTarget;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseServerTargets;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+public final class CouchbaseProtostellarTargets {\n+\n+  private static final VirtualField<CoreProtostellar, CouchbaseServerTarget> CORE_TARGETS =\n+      VirtualField.find(CoreProtostellar.class, CouchbaseServerTarget.class);\n+\n+  public static void registerCore(\n+      CoreProtostellar core, @Nullable ConnectionString connectionString) {\n+    CouchbaseServerTarget target = CouchbaseConnectionStrings.target(connectionString);\n+    if (target != null) {\n+      CORE_TARGETS.set(core, target);\n+    }\n+  }\n+\n+  public static void registerCore(Core core, Set<SeedNode> seedNodes) {\n+    if (CouchbaseServerTargets.get(core) == null) {\n+      CouchbaseServerTargets.registerFromSeedNodes(core, seedNodes, core.context().environment());",
+      "id": "PRRT_kwDODJKVX86lw-L6",
+      "opened": "2026-09-24T20:56:50Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-24T21:21:49Z",
+          "body": "Addressed in 76341a853f2da5f94205d91f6138816589588a77, 93b396a6fb6618b8456f48c901990575cd169038, 13e693649eea2300bdb01bf6510ac407aa0c6a06, 8665edef7c0a18be8177a9ca69719ede0c243106, 243933a33f7fcf1d1b32b34901d1e3afbf537270.\n\nFixed in the verified source changes 76341a853f2da5f94205d91f6138816589588a77, 93b396a6fb6618b8456f48c901990575cd169038, 13e693649eea2300bdb01bf6510ac407aa0c6a06, 8665edef7c0a18be8177a9ca69719ede0c243106, 243933a33f7fcf1d1b32b34901d1e3afbf537270.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4098610089"
+        }
+      ],
+      "reviewed": "f85147db4bf2d2e0fdb5cb0b3acce0a9a9d6b343",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4098399023"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This helper is invoked for every ordinary `Core(CoreEnvironment, ..., Set)` on 3.4.3+, not only Protostellar cores. When a normal Couchbase seed has only a KV/manager port, this code still builds a Protostellar-default target and unconditionally replaces the regular target used by `CouchbaseConfiguredTarget`, so normal spans can lose their configured `server.port` (or get the wrong default semantics). Only replace the core target when the seed set actually contains a Protostellar port; connection-string-derived implicit-default targets are already preserved by the seed-node registration path.",
+      "created": "2026-09-24T21:26:40Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.CoreProtostellar;\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.env.SeedNode;\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseConnectionStrings;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseServerTarget;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseServerTargets;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+public final class CouchbaseProtostellarTargets {\n+\n+  private static final int PROTOSTELLAR_DEFAULT_PORT = 18098;\n+\n+  private static final VirtualField<CoreProtostellar, CouchbaseServerTarget> CORE_TARGETS =\n+      VirtualField.find(CoreProtostellar.class, CouchbaseServerTarget.class);\n+\n+  public static void registerCore(\n+      CoreProtostellar core, @Nullable ConnectionString connectionString) {\n+    CouchbaseServerTarget target = CouchbaseConnectionStrings.target(connectionString);\n+    if (target != null) {\n+      CORE_TARGETS.set(core, target);\n+    }\n+  }\n+\n+  public static void registerCore(Core core, Set<SeedNode> seedNodes) {\n+    DbServerTargetBuilder target =\n+        DbServerTarget.builder(PROTOSTELLAR_DEFAULT_PORT).setSorted(true);\n+    for (SeedNode seedNode : seedNodes) {\n+      if (seedNode == null) {\n+        target.addEndpoint(null, -1);\n+      } else {\n+        target.addEndpoint(seedNode.address(), seedNode.protostellarPort().orElse(-1));\n+      }\n+    }\n+    CouchbaseServerTargets.register(core, CouchbaseServerTarget.direct(target.build()), null);\n+  }",
+      "id": "PRRT_kwDODJKVX86lxlK4",
+      "opened": "2026-09-24T21:26:40Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-24T21:54:23Z",
+          "body": "Addressed in d7e39e72dfbc286e7b7499989058417e765121bd, 8e5714ee9dd984b93fd92d1e3ebca477925523c9.\n\nFixed in the verified source changes d7e39e72dfbc286e7b7499989058417e765121bd, 8e5714ee9dd984b93fd92d1e3ebca477925523c9.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4098869884"
+        }
+      ],
+      "reviewed": "243933a33f7fcf1d1b32b34901d1e3afbf537270",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4098650599"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This matcher also matches `Core(CoreEnvironment, ..., ConnectionString)`, which is already targeted by `CouchbaseCoreInstrumentation`, but the advice binds `@Advice.This` as `CoreProtostellar`. Since the type matcher covers both classes, applying this advice to `Core` has an incompatible receiver type and can make transformation of ordinary Couchbase `Core` fail. Restrict this constructor matcher to methods declared by `CoreProtostellar`.",
+      "created": "2026-09-24T21:26:40Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.CoreProtostellar;\n+import com.couchbase.client.core.env.SeedNode;\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.Set;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CouchbaseProtostellarCoreInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"com.couchbase.client.core.Core\", \"com.couchbase.client.core.CoreProtostellar\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(3))\n+            .and(takesArgument(0, named(\"com.couchbase.client.core.env.CoreEnvironment\")))\n+            .and(takesArgument(2, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$CoreConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(3))\n+            .and(takesArgument(0, named(\"com.couchbase.client.core.Core\")))\n+            .and(takesArgument(2, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$LegacyConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(3))\n+            .and(takesArgument(2, named(\"com.couchbase.client.core.util.ConnectionString\"))),",
+      "id": "PRRT_kwDODJKVX86lxlKP",
+      "opened": "2026-09-24T21:26:40Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarCoreInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T21:54:21Z",
+          "body": "Addressed in d7e39e72dfbc286e7b7499989058417e765121bd, 8e5714ee9dd984b93fd92d1e3ebca477925523c9.\n\nFixed in the verified source changes d7e39e72dfbc286e7b7499989058417e765121bd, 8e5714ee9dd984b93fd92d1e3ebca477925523c9.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4098869577"
+        }
+      ],
+      "reviewed": "243933a33f7fcf1d1b32b34901d1e3afbf537270",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4098650532"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether dropping the argument count restriction could make this instrumentation more likely to apply to future versions. Is there a downside to removing it? Like getting instrumentation called multiple times due to constructor chaining causing recording target multiple times.",
+      "created": "2026-09-25T06:09:11Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.CoreProtostellar;\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CouchbaseProtostellarRequestInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.couchbase.client.core.protostellar.ProtostellarRequest\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(8))\n+            .and(takesArgument(0, named(\"com.couchbase.client.core.Core\"))),\n+        getClass().getName() + \"$LegacyConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(8))\n+            .and(takesArgument(0, named(\"com.couchbase.client.core.CoreProtostellar\"))),\n+        getClass().getName() + \"$OriginalConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(11))",
+      "id": "PRRT_kwDODJKVX86l406s",
+      "opened": "2026-09-25T06:09:11Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-25T15:57:51Z",
+          "body": "0e9457dd62478f01030d3ce0deb381ad65c46c36",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4106287489"
+        }
+      ],
+      "reviewed": "1021897aaef5424be9ca466553db4202fdf4e418",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4101657147"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess the intent here is to ensure that protostellar is present at runtime. Could use a comment to avoid accidental removal.",
+      "created": "2026-09-25T06:15:19Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import static java.util.Collections.singleton;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.env.SeedNode;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseConnectionStrings;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseServerTarget;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1.CouchbaseServerTargets;\n+import org.junit.jupiter.api.Test;\n+import org.objenesis.ObjenesisStd;\n+\n+class CouchbaseProtostellarTargetsTest {\n+\n+  @Test\n+  void replacesPortlessTargetForLegacyCore() throws ClassNotFoundException {\n+    Class.forName(\"com.couchbase.client.core.CoreProtostellar\");",
+      "id": "PRRT_kwDODJKVX86l47hP",
+      "opened": "2026-09-25T06:15:19Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarTargetsTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T16:50:16Z",
+          "body": "it's not needed, removed in 24431f538c24f890d464885000d8d40b7c44aa6d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4106717147"
+        }
+      ],
+      "reviewed": "1021897aaef5424be9ca466553db4202fdf4e418",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4101700819"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider adding `testCompileOnly(\"com.couchbase.client:core-io:3.12.0\")` to get rid of the reflection",
+      "created": "2026-09-25T06:47:45Z",
+      "hunk": "@@ -152,6 +166,83 @@ void testEmitsSpans() throws UnknownHostException {\n         });\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"protostellarTargets\")\n+  void testEmitsProtostellarTarget(String portSuffix, Long expectedPort)\n+      throws ReflectiveOperationException {\n+    assumeTrue(testLatestDeps());\n+    Cluster protostellar =\n+        Cluster.connect(\n+            \"couchbase2://\" + seedAddress + portSuffix,\n+            couchbase.getUsername(),\n+            couchbase.getPassword());\n+    cleanup.deferCleanup(protostellar::disconnect);\n+\n+    Object core =",
+      "id": "PRRT_kwDODJKVX86l5e61",
+      "opened": "2026-09-25T06:47:45Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-09-25T16:39:46Z",
+          "body": "3ccbf64c3eb869013f28b14da4975f1562dbf422",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4106628835"
+        }
+      ],
+      "reviewed": "1021897aaef5424be9ca466553db4202fdf4e418",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20089#discussion_r4101926207"
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "head": "72d5b889859095897345f61582ddbfa2c3e07584",
+  "merge": "390a4667ed098276b834522d3575184ff8e49f48",
+  "merged": "2026-10-26T23:45:01Z",
+  "missing_roots": 0,
+  "number": 584,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The snapshot suite has no valid `type: \"generic\"` case and never exercises `generic_type`. The changed fixtures only test rejection, so regressions that require `generic_type` or reject extra provider fields would go unnoticed. Add valid cases for the input-message, output-message, and system-instruction schemas, with provider fields and with `generic_type` both present and omitted. Also add an invalid numeric `generic_type` case to cover its string-or-null constraint. Generate the snapshots with `uv run pytest --update-snapshots`.",
+      "created": "2026-10-08T04:45:13Z",
+      "hunk": "@@ -253,11 +253,17 @@ class UriPart(BaseModel):\n \n class GenericPart(BaseModel):\n     \"\"\"\n-    Represents an arbitrary message part with any type and properties.\n+    Represents a message part that doesn't match any of the other part types.\n     This allows for extensibility with custom message part types.\n     \"\"\"\n \n-    type: str = Field(description=\"The type of the content captured in this part.\")\n+    type: Literal[\"generic\"] = Field(\n+        description=\"The type of the content captured in this part.\"\n+    )\n+    generic_type: Optional[str] = Field(\n+        default=None,\n+        description=\"The kind of content in this part when no other part type fits, for example the provider's own content block type.\",\n+    )",
+      "id": "PRRT_kwDOSUeMrM6qMzKc",
+      "opened": "2026-10-08T04:45:14Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-10-08T05:23:22Z",
+          "body": "Moved the valid `type: \"generic\"` / `generic_type` test cases (`input-messages-generic-part.yaml`, `output-messages-reasoning-and-generic-parts.yaml`, and `system-instructions-text-and-generic-parts.yaml`) into this PR from #586, and added an invalid numeric `generic_type` case in `output-messages-wrong-field-types.yaml`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4215116485"
+        }
+      ],
+      "reviewed": "83b1c23b6f62b36b9cf230ca5e1f978e09b099a8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4214799172"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I think the only point of GenericPart is to provide extensibility and forward compatibility, i.e. it should allow to record provider-specific parts and should set expectation for consumers that anything else except known types is expected.\n\nSo I think GenericPart should not have a fixed discriminator value, but should support any unknown one. \n\nAI is telling in can be done with something like \n\n```python\nfrom typing import get_args\nfrom pydantic import Discriminator, Tag, field_validator\n\n_KNOWN_PARTS = (\n    TextPart, ToolCallRequestPart, ToolCallResponsePart, ServerToolCallPart,\n    ServerToolCallResponsePart, BlobPart, FilePart, UriPart, ReasoningPart, CompactionPart,\n)\nKNOWN_PART_TYPES = tuple(get_args(p.model_fields[\"type\"].annotation)[0] for p in _KNOWN_PARTS)\n\n\nclass GenericPart(BaseModel):\n    type: str = Field(\n        description=\"The type of the content captured in this part.\",\n        json_schema_extra={\"not\": {\"enum\": list(KNOWN_PART_TYPES)}},\n    )\n    model_config = ConfigDict(extra=\"allow\")\n\n    # optional: also reject GenericPart(type=\"text\") when built directly\n    @field_validator(\"type\")\n    @classmethod\n    def _not_known(cls, v: str) -> str:\n        if v in KNOWN_PART_TYPES:\n            raise ValueError(f\"'{v}' is a known part type\")\n        return v\n\n\ndef _part_tag(v: Any) -> str:\n    t = v.get(\"type\") if isinstance(v, dict) else getattr(v, \"type\", None)\n    return t if t in KNOWN_PART_TYPES else \"generic\"\n\n\nMessagePart = Annotated[\n    Union[\n        Annotated[TextPart, Tag(\"text\")],\n        Annotated[ToolCallRequestPart, Tag(\"tool_call\")],\n        Annotated[ToolCallResponsePart, Tag(\"tool_call_response\")],\n        Annotated[ServerToolCallPart, Tag(\"server_tool_call\")],\n        Annotated[ServerToolCallResponsePart, Tag(\"server_tool_call_response\")],\n        Annotated[BlobPart, Tag(\"blob\")],\n        Annotated[FilePart, Tag(\"file\")],\n        Annotated[UriPart, Tag(\"uri\")],\n        Annotated[ReasoningPart, Tag(\"reasoning\")],\n        Annotated[CompactionPart, Tag(\"compaction\")],\n        Annotated[GenericPart, Tag(\"generic\")],\n    ],\n    Discriminator(_part_tag),\n]\n\n```\n\nand translates into json schema like\n\n```json\n\"MessagePart\": {\n  \"oneOf\": [\n    {\"$ref\": \"#/$defs/TextPart\"},\n    ...\n    {\"$ref\": \"#/$defs/GenericPart\"}\n  ]\n},\n\"GenericPart\": {\n  \"type\": \"object\",\n  \"properties\": {\n    \"type\": {\"type\": \"string\", \"not\": {\"enum\": [\"text\", \"tool_call\", \"...\", \"compaction\"]}}\n  },\n  \"required\": [\"type\"],\n  \"additionalProperties\": true\n}\n```",
+      "created": "2026-10-09T04:27:37Z",
+      "hunk": "@@ -253,11 +253,17 @@ class UriPart(BaseModel):\n \n class GenericPart(BaseModel):\n     \"\"\"\n-    Represents an arbitrary message part with any type and properties.\n+    Represents a message part that doesn't match any of the other part types.\n     This allows for extensibility with custom message part types.\n     \"\"\"\n \n-    type: str = Field(description=\"The type of the content captured in this part.\")\n+    type: Literal[\"generic\"] = Field(",
+      "id": "PRRT_kwDOSUeMrM6qpQcd",
+      "opened": "2026-10-09T04:27:37Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-10-09T16:28:13Z",
+          "body": "Ya that's what https://github.com/open-telemetry/semantic-conventions-genai/pull/541 is doing but I think there's a few issues with it\r\n\r\n1. Every time we add new parts, we have to extend the `\"not\": {\"enum\": [\"text\", \"tool_call\", \"...\", \"compaction\"]}` to disallow more values which is \"breaking\". @felixfbecker mentioned that in https://github.com/open-telemetry/semantic-conventions-genai/issues/519#issuecomment-5733921144\r\n1. I can't think of an ergonomic way to express `\"not\": {\"enum\": []}` pattern in Python or TS (I can't think of any language that can express this actually). So we'll still have the issue where util-genai allows `Any`.\r\n  \r\n   Another option if we really want it flat is to specify a prefix like `custom.` for `GenericPart.type` which can at least be expressed in TS as proper discriminated union (but not in python)\r\n   ```ts\r\n   {type: \"text\", text: string} | {type: `custom.{$string}`, [key: string]: unknown}\r\n   ```\r\n\r\nStructurally, these are more or less the same. Would something like this be better?\r\n\r\n```json\r\n[\r\n  {\"type\": \"text\", \"text\": \"hello agent\"},\r\n  {\"type\": \"custom\", \"data\": {\"type\": \"foo_part\", ...}}\r\n]\r\n```",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4232299912"
+        },
+        {
+          "at": "2026-10-09T21:33:03Z",
+          "body": "> {\"type\": \"custom\", \"data\": {\"type\": \"foo_part\", ...\r\n\r\nthis means that any part needs to start within a custom type and after it's added to semconv it needs to move up one layer.  It seems unnecessary.\r\n\r\nMore importantly, this tells consumers that they have a limited set of types they should expect. This is not right - they should expect parts with any types.\r\n\r\n> Every time we add new parts, we have to extend the \"not\": {\"enum\": [\"text\", \"tool_call\", \"...\", \"compaction\"]} to disallow more values which is \"breaking\"\r\n\r\nwhy is it breaking? It only changes what deserializes to GenericPart vs specific future part, it does not make anything invalid. GenericPart is not a thing to be used on its own.\r\n\r\n> I can't think of an ergonomic way to express \"not\": {\"enum\": []} pattern in Python or TS\r\n\r\nCustom deserializer that would look at discriminator and then deserialize object to corresponding part can be written. Also, we don't ever need to record GenericPart on the producer side. Only consumers need to be able to deserialize it and they should be able to write custom deserializer that keeps it a dics, drops, or try to interpret custom parts.\r\n\r\n\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4234721949"
+        },
+        {
+          "at": "2026-10-09T21:34:24Z",
+          "body": "In any case, my main concern is that json schema should tell consumers what to expect and the answer is they should expect unknown discriminator values. They can come from custom parts or from future semconv parts.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4234731431"
+        },
+        {
+          "at": "2026-10-09T21:57:51Z",
+          "body": "plain old deserialization logic\r\n\r\n```python\r\nparts = []\r\nfor p in json.loads(raw):\r\n    part_type = p.get(\"type\")\r\n    if part_type == \"text\":\r\n        parts.append(TextPart(content=p[\"content\"]))\r\n    elif part_type == \"tool_call\":\r\n        parts.append(ToolCallRequestPart(id=p.get(\"id\"), name=p[\"name\"], arguments=p.get(\"arguments\")))\r\n    elif part_type == \"tool_call_response\":\r\n        parts.append(ToolCallResponsePart(id=p.get(\"id\"), response=p.get(\"response\")))\r\n    else:\r\n        parts.append(p)  # unknown type, keep as dict\r\n```\r\n\r\nplus guidance that instrumentations SHOULD NOT record parts they don't support and SHOULD document structure of parts they do support in the way that does not contradict core set. \r\n\r\nThis allows instrumentations to extend standard set of parts, semantic conventions to evolve the list and tells consumers to expect unknown types.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4234871584"
+        },
+        {
+          "at": "2026-10-13T05:18:24Z",
+          "body": "> this means that any part needs to start within a custom type and after it's added to semconv it needs to move up one layer. It seems unnecessary.\n\nYa it's by design in this PR. I think it's impossible that when new part types get codified in semconv, the existing producers' custom part structure will match exactly. The idea is to keep custom and semconv fields separate to avoid any collision between custom parts and semconv defined parts.\n\n> In any case, my main concern is that json schema should tell consumers what to expect and the answer is they should expect unknown discriminator values. They can come from custom parts or from future semconv parts.\n\n👍 \n\n---\n\nA proposal which keeps things flat but still keeps custom parts separate:\n\n1. Update `GenericPart` to use the not-enum pattern you showed above which will make it work for outdated consumers deserializing a \"future added value\" from the official semconv.\n2. Add a `CustomPart` to the `oneOf` that requires `type` to have vendor/custom prefixing like `anthropic.foo` (via regex pattern), and it has additionalProperties allowed (flatly).\n\nThen, we can update util-genai in python/TS removing GenericPart (since it's only in the schema for consumers) and adding CustomPart instead (enforcing vendoring in `type`)\n\nWDYT?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4254987578"
+        },
+        {
+          "at": "2026-10-13T05:43:39Z",
+          "body": "Prototyped here with updated golden tests to hopefully illustrate https://github.com/open-telemetry/semantic-conventions-genai/compare/main...aabmass:semantic-conventions-genai:push-xlxyuuuqqwkr",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4255128165"
+        },
+        {
+          "at": "2026-10-16T05:02:01Z",
+          "body": "Let's do just p1 (not-enum on `GenericPart`) in this PR and drop `CustomPart` ?\r\n\r\nCustomPart doesn't fix anything the not-enum fallback doesn't already cover. If you're concerned about name collisions, let's RECOMMEND vendors to prefix their top-level part type literals with the corresponding `gen_ai.provider.name`, for example `anthropic.search_result`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4291087779"
+        }
+      ],
+      "reviewed": "440014145585f5b1858f48245de555f8dc3da808",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4226603568"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Let's remove normative guidance from examples; it's intentionally in non-normative folder",
+      "created": "2026-10-19T17:57:38Z",
+      "hunk": "@@ -844,6 +845,50 @@ sequenceDiagram\n ]\n ```\n \n+## Content without a matching part type\n+\n+When the instrumented API sends or returns content that none of the defined part\n+types fit, record the part keeping the provider's fields. To avoid name\n+collisions with current or future part types defined by semantic conventions, it\n+is RECOMMENDED to prefix `type` with the corresponding `gen_ai.provider.name`,\n+for example `anthropic.search_result`.\n+\n+Consumers SHOULD expect parts with `type` values they don't recognize, including\n+provider-specific parts and part types added in newer versions of semantic\n+conventions.\n+",
+      "id": "PRRT_kwDOSUeMrM6uCfp9",
+      "opened": "2026-10-19T18:05:29Z",
+      "path": "docs/gen-ai/non-normative/examples-llm-calls.md",
+      "replies": [
+        {
+          "at": "2026-10-19T20:01:36Z",
+          "body": "Done in 03e1f92 — moved the normative guidance into `GenericPart` in the JSON schemas and kept only the example intro here.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4318176521"
+        }
+      ],
+      "reviewed": "1d980728684562b683fe80481ac2c140ad60a56c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4317076780"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: is this left over from the `\"generic\"` literal approach? If so:\n\n```suggestion\n        # util-genai has no type for provider-specific parts, so pass a plain dict.\n```",
+      "created": "2026-10-19T17:57:38Z",
+      "hunk": "@@ -434,6 +434,79 @@ def run_chat_with_image_input(handler):\n     print(f\"    -> {resp.content[0].text[:60]}\")\n \n \n+def run_chat_with_search_result_input(handler):\n+    \"\"\"Scenario: chat with a search result block (no matching semconv part type).\n+\n+    Search result blocks have no defined part type, so the block is recorded\n+    with `type` prefixed by `gen_ai.provider.name` (`anthropic.`) and its own\n+    fields kept as-is.\n+    \"\"\"\n+    print(\"  [chat_search_result] chat with search result block (util-genai handler)\")\n+    request_model = \"claude-sonnet-4-20250514\"\n+    request_max_tokens = 100\n+    instruction = \"Answer using the attached search result.\"\n+    search_result = {\n+        \"type\": \"search_result\",\n+        \"source\": \"https://example.com/docs/otel\",\n+        \"title\": \"OpenTelemetry overview\",\n+        \"content\": [{\"type\": \"text\", \"text\": \"OpenTelemetry is an observability framework.\"}],\n+        \"citations\": {\"enabled\": True},\n+    }\n+    messages = [\n+        {\n+            \"role\": \"user\",\n+            \"content\": [{\"type\": \"text\", \"text\": instruction}, search_result],\n+        }\n+    ]\n+    client = anthropic.Anthropic(base_url=MOCK_BASE_URL, api_key=\"mock-key\")\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    with handler.inference(\n+        provider=\"anthropic\",\n+        request_model=request_model,\n+        server_address=host,\n+        server_port=port,\n+    ) as inv:\n+        inv.max_tokens = request_max_tokens  # -> gen_ai.request.max_tokens\n+        # util-genai's GenericPart fixes `type` to `\"generic\"`, so the part is a\n+        # plain dict; `dataclasses.asdict` passes it through to the span and the event.",
+      "id": "PRRT_kwDOSUeMrM6uCfqB",
+      "opened": "2026-10-19T18:05:29Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-19T20:01:36Z",
+          "body": "Updated in 03e1f92.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4318176730"
+        }
+      ],
+      "reviewed": "1d980728684562b683fe80481ac2c140ad60a56c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4317076788"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this looks unrelated to message parts, and `errors: []` says the tool definitions schema accepts these wrong types",
+      "created": "2026-10-19T17:57:38Z",
+      "hunk": "@@ -0,0 +1,11 @@\n+# yaml-language-server: $schema=../case.schema.json\n+description: >\n+  A `function` tool definition with a non-string `description` and\n+  `parameters` that are not a valid JSON Schema draft-07 document\n+schema: gen-ai-tool-definitions.json\n+document: [\n+  { \"type\": \"function\", \"name\": \"get_weather\", \"description\": 123 },\n+  { \"type\": \"function\", \"name\": \"get_weather\", \"parameters\": { \"type\": \"not-a-type\" } }\n+]\n+# Regenerate with `uv run pytest --update-snapshots`, do not edit by hand.\n+errors: []",
+      "id": "PRRT_kwDOSUeMrM6uCfqW",
+      "opened": "2026-10-19T18:05:29Z",
+      "path": "docs/gen-ai/non-normative/tests/cases/tool-definitions-wrong-field-types.yaml",
+      "replies": [
+        {
+          "at": "2026-10-19T19:25:10Z",
+          "body": "addressed by https://github.com/open-telemetry/semantic-conventions-genai/pull/608",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4317905792"
+        }
+      ],
+      "reviewed": "1d980728684562b683fe80481ac2c140ad60a56c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4317076828"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "felixfbecker"
+      },
+      "body": "FYI we currently prefix with an underscore, i.e. `anthropic_search_result` (but could change it while still in beta)",
+      "created": "2026-10-20T07:20:45Z",
+      "hunk": "@@ -0,0 +1,22 @@\n+# yaml-language-server: $schema=../case.schema.json\n+description: >\n+  A provider content block that no defined part type fits, recorded with\n+  `type` prefixed by `gen_ai.provider.name` and the provider's fields kept\n+schema: gen-ai-input-messages.json\n+document: [\n+  {\n+    \"role\": \"user\",\n+    \"parts\": [\n+      { \"type\": \"text\", \"content\": \"Answer using the attached search result.\" },\n+      {\n+        \"type\": \"anthropic.search_result\",",
+      "id": "PRRT_kwDOSUeMrM6uO-Vl",
+      "opened": "2026-10-20T07:21:57Z",
+      "path": "docs/gen-ai/non-normative/tests/cases/input-messages-generic-part.yaml",
+      "replies": [
+        {
+          "at": "2026-10-20T15:57:51Z",
+          "body": "Any strong argument for underscores vs dots? We usually use dots in OTel",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4327148291"
+        },
+        {
+          "at": "2026-10-21T19:15:57Z",
+          "body": "Only because I used the prefix for properties too (e.g. `anthropic_mcp_server_name`) and I thought dots are difficult for some languages to parse in field names and I wanted to stay consistent between the discriminator and field names",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4340927274"
+        },
+        {
+          "at": "2026-10-26T19:07:35Z",
+          "body": "Discussed on the call but\r\n\r\n- the schema description here only recommends prefixing but doesn't mandate `.` over `_` (`anthropic.search_result` is just an example, and `anthropic_search_result` is valid under the schema too)\r\n- since `type` is a JSON string value rather than a property key, `.` shouldn't run into field-name parsing issues, and properties on the part itself don't need prefixing.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4379526649"
+        }
+      ],
+      "reviewed": "03e1f926594abd9b9e8d69d13840427397046e43",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4322427728"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`SystemInstructionPart` reuses this `GenericPart`, so system instructions now reject every message part type too (`blob`, `uri`, `file`, ...) - neither as a known part nor as a generic one. If semconv later adds e.g. `blob` to system instructions, consumers on the current schema will fail to validate it, which is the forward-compat case this fallback is meant to cover. Should the system instructions fallback exclude only the types defined there?\r\n\r\n```python\r\nclass GenericSystemInstructionPart(GenericPart):\r\n    type: str = Field(\r\n        description=GenericPart.model_fields[\"type\"].description,\r\n        json_schema_extra=_not_known_types(TextPart),\r\n    )\r\n\r\n\r\nSystemInstructionPart = Union[\r\n    TextPart,\r\n    GenericSystemInstructionPart,\r\n]\r\n```",
+      "created": "2026-10-21T17:34:26Z",
+      "hunk": "@@ -274,11 +274,40 @@ class GenericPart(BaseModel):\n     UriPart,\n     ReasoningPart,\n     CompactionPart,\n-    GenericPart,  # Catch-all for any other type\n     # Add other message part types here as needed,\n     # e.g. structured output, hosted tool call, etc.\n ]\n \n+\n+class GenericPart(BaseModel):\n+    \"\"\"\n+    Fallback for consumers when a message part has a `type` not defined by this\n+    version of semantic conventions. When the instrumented API sends or returns\n+    content that none of the defined part types fit, record the part keeping\n+    the provider's fields. Consumers SHOULD expect parts with `type` values\n+    they don't recognize, including provider-specific parts and part types\n+    added in newer versions of semantic conventions.\n+    \"\"\"\n+\n+    type: str = Field(\n+        description=(\n+            \"The type of the content captured in this part. \"\n+            \"When recording a provider-specific part, it is RECOMMENDED to prefix \"\n+            \"the value with `gen_ai.provider.name` (for example `anthropic.search_result`) \"\n+            \"to avoid name collisions with current or future part types defined by semantic conventions.\"\n+        ),\n+        json_schema_extra=_not_known_types(KnownMessagePart),",
+      "id": "PRRT_kwDOSUeMrM6u4RzT",
+      "opened": "2026-10-21T17:37:52Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-10-23T17:17:22Z",
+          "body": "Agree, #541 did the same by excluding only `text`. `system-instructions-unsupported-parts.yaml` would then need an update, since its `tool_call` part becomes a valid generic part.\n\n— girishkvs's Copilot 🤖",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4362295620"
+        },
+        {
+          "at": "2026-10-26T19:07:35Z",
+          "body": "addressed in 72d5b88",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4379526884"
+        }
+      ],
+      "reviewed": "03e1f926594abd9b9e8d69d13840427397046e43",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4339940591"
+    }
+  ]
+}

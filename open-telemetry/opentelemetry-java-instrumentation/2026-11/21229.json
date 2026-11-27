@@ -1,0 +1,31 @@
+{
+  "head": "6c70dd17c15a3347b635bb8042162f62bcee7ba8",
+  "merge": "c4ea9bd6db782de6b61c6999a4f014b17ea08ce0",
+  "merged": "2026-11-07T08:20:08Z",
+  "missing_roots": 0,
+  "number": 21229,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following agreed Gradle cleanups. Do not create a separate PR.\n\n1. In instrumentation/couchbase/couchbase-2.0/javaagent/build.gradle.kts, move the shared JVM arguments and denyUnsafe gate from val common = Action<Test> into tasks.withType<Test>().configureEach { ... }. Preserve both --add-opens arguments, -XX:+IgnoreUnrecognizedVMOptions, and disabling all Test tasks when otelProps.denyUnsafe is true. Remove the common action and both configureEach(common) calls.\n2. In that Couchbase file, remove val experimental = Action<Test> and inline telemetryConfig(\"otel.instrumentation.couchbase.emit-experimental-telemetry\", \"true\") inside each register(\"Experimental\") block. Keep the existing suite selectors and the version25Test-only QuerySanitizationDisabled variant unchanged.\n3. Move the newly added check lifecycle wiring below testing.suites { ... } in instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/build.gradle.kts, instrumentation/okhttp/okhttp-3.0/javaagent/build.gradle.kts, instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts, and instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts. Use tasks.check { dependsOn(testing.suites) } after the suites block; for Ratpack, remove check from the earlier tasks block and add the standalone tasks.check block after the suites. Retain all lifecycle dependencies.\n\nPreserve behavior, suite coverage, variant names, filters, telemetry settings, and the rest of the PR. Do not change the execution DSL or its one-block-per-suite restriction. Follow repository instructions, run the narrowest applicable spotlessApply directly before relevant validation, and verify default/variant configuration and check task coverage as feasible. Limit changes to these five Gradle files.",
+      "created": "2026-11-06T17:49:31Z",
+      "hunk": "@@ -84,30 +84,33 @@ testing.suites {\n       implementation(\"com.couchbase.client:encryption:${baseVersion(\"1.0.0\").orLatest(\"1.+\")}\")\n     }\n   }\n-  withType<JvmTestSuite>().configureEach {\n-    executions {\n-      configureEach {\n-        // required on jdk17\n-        jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-        jvmArgs(\"--add-opens=java.base/java.lang.invoke=ALL-UNNAMED\")\n-        jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n-        if (otelProps.denyUnsafe) {\n-          enabled = false\n-        }\n-      }\n \n-      register(\"Experimental\") {\n-        telemetryConfig(\"otel.instrumentation.couchbase.emit-experimental-telemetry\", \"true\")\n-      }\n-      if (name == \"version25Test\") {\n-        register(\"QuerySanitizationDisabled\") {\n-          filter {\n-            includeTestsMatching(\"CouchbaseQuerySanitizationTest\")\n-          }\n-          jvmArgs(\"-Dotel.instrumentation.couchbase.query-sanitization.enabled=false\")\n-          systemProperty(\"testQuerySanitizationEnabled\", \"false\")\n-        }\n+  val common = Action<Test> {",
+      "id": "PRRT_kwDODJKVX860oFdM",
+      "opened": "2026-11-06T17:49:30Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T17:59:12Z",
+          "body": "Applied the requested five-file Gradle cleanup and pushed it in commit `6c70dd17`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21229#discussion_r4495846944"
+        }
+      ],
+      "reviewed": "c2bb46043c96d9a7c7be5222d67a5695999f20e9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21229#discussion_r4495751665"
+    }
+  ]
+}

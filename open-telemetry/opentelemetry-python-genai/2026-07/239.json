@@ -1,0 +1,25 @@
+{
+  "head": "9e319ce0fad176ed91e930746b271d78b0493184",
+  "merge": "1e4aca50a0c5b5fcf8b3e2a7a81eec6ac12a1669",
+  "merged": "2026-07-09T21:34:30Z",
+  "missing_roots": 0,
+  "number": 239,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pull-requests: write` was removed from this job, but the `Bump released packages...` step still sets `GH_TOKEN` to `${{ secrets.GITHUB_TOKEN }}`. GitHub CLI prefers `GH_TOKEN` over `GITHUB_TOKEN`, so `gh pr create` will likely run using the default workflow token and fail without `pull-requests: write` (and also contradicts the intent of using the otelbot app token). Set `GH_TOKEN` to the otelbot token (or re-add `pull-requests: write` if you intend to use the workflow token for PR creation).",
+      "created": "2026-07-09T21:15:45Z",
+      "hunk": "@@ -120,7 +122,6 @@ jobs:\n     if: always() && needs.enumerate.result == 'success'\n     permissions:\n       contents: write\n-      pull-requests: write\n     runs-on: ubuntu-latest",
+      "id": "PRRT_kwDOSbspP86PtTAY",
+      "opened": "2026-07-09T21:15:46Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [],
+      "reviewed": "a0a7fb52b7a42ef934cb05620d3bca9abf27557e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/239#discussion_r3554864679"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "53a553cac717ec75a39031a06e25b14bdfb73578",
+  "merge": "69b292965d307328cd5228ede1d67a0ddccbb9dd",
+  "merged": "2026-09-09T18:40:09Z",
+  "missing_roots": 0,
+  "number": 20002,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `logOutput` is ignored by the Windows implementation: `registerLogListener` still unconditionally attaches `Slf4jDockerLogLineListener(appLogger)`. Thus `SmokeTestOptions.logOutput(false)` does not honor its documented behavior for any Windows-enabled caller. Pass this flag through to log-listener registration and conditionally attach only the SLF4J listener; the waiter listener should remain active.",
+      "created": "2026-09-05T23:05:58Z",
+      "hunk": "@@ -138,9 +138,11 @@ public Consumer<OutputFrame> startTarget(\n       String jvmArgsEnvVarName,\n       Map<String, String> extraEnv,\n       boolean setServiceName,\n+      boolean logOutput,",
+      "id": "PRRT_kwDODJKVX86fnn-K",
+      "opened": "2026-09-05T23:05:58Z",
+      "path": "smoke-tests/src/main/java/io/opentelemetry/smoketest/windows/WindowsTestContainerManager.java",
+      "replies": [
+        {
+          "at": "2026-09-07T19:32:16Z",
+          "body": "Addressed in d7891a4896ba791daa8f885cf3ca1d3fed44cd70.\n\nAnalysis: The Windows path passed logOutput into startTarget but discarded it before registerLogListener. The log stream also feeds the startup waiter, so this change keeps the stream and waiter registration unconditional and gates only the SLF4J listener.\n\nUpsides: Windows callers can suppress target output without disabling log-based startup waits. The default behavior and backend logging remain unchanged.\n\nDownsides: This adds one boolean parameter to the private startContainer helper. No material runtime downside was identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3952226439"
+        }
+      ],
+      "reviewed": "0c45aec3e149b72acc0923a3143c63442634b6e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3942339589"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This does not disable agent debug logging. The inherited `JAVA_TOOL_OPTIONS` contains `-javaagent:...=otel.javaagent.debug=true;...` (`AbstractTestContainerManager.java:28-34`), and `AgentInitializer.setSystemProperties` applies that agent argument during `premain`, overwriting this system property. As a result, the already verbose class-load output also includes full agent debug output and is retained in `ToStringConsumer` despite `logOutput(false)`. Replace the inherited agent argument's value before launching production.",
+      "created": "2026-09-05T23:05:58Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+#!/bin/bash\n+\n+set -euo pipefail\n+\n+agent_jar=/opentelemetry-javaagent.jar\n+aot_directory=/tmp/opentelemetry-aot\n+aot_configuration=\"$aot_directory/application.aotconf\"\n+aot_cache=\"$aot_directory/application.aot\"\n+training_log=\"$aot_directory/training.log\"\n+create_log=\"$aot_directory/create.log\"\n+production_java_tool_options=\"${JAVA_TOOL_OPTIONS:-}\"\n+training_pid=\n+\n+mkdir -p \"$aot_directory\"\n+\n+if [[ -f /app/app.jar ]]; then\n+  application_args=(-jar /app/app.jar)\n+else\n+  application_jar=\"$aot_directory/application.jar\"\n+  env -u JAVA_TOOL_OPTIONS jar --create \\\n+    --file \"$application_jar\" \\\n+    -C /app/classes . \\\n+    -C /app/resources .\n+  application_args=(\n+    -cp \"$application_jar:/app/libs/*\"\n+    io.opentelemetry.smoketest.springboot.SpringbootApplication\n+  )\n+fi\n+\n+common_options=(\n+  -Xmx512m\n+  --add-modules=java.instrument\n+  \"-Xbootclasspath/a:$agent_jar\"\n+)\n+\n+stop_training() {\n+  if [[ -n \"$training_pid\" ]] && kill -0 \"$training_pid\" 2>/dev/null; then\n+    kill -TERM \"$training_pid\"\n+    wait \"$training_pid\" || true\n+  fi\n+}\n+trap stop_training EXIT\n+\n+env -u JAVA_TOOL_OPTIONS java \\\n+  -XX:AOTMode=record \\\n+  \"-XX:AOTConfiguration=$aot_configuration\" \\\n+  \"${common_options[@]}\" \\\n+  \"${application_args[@]}\" \\\n+  >\"$training_log\" 2>&1 &\n+training_pid=$!\n+\n+for _ in $(seq 1 480); do\n+  if grep -q \"Started SpringbootApplication in\" \"$training_log\"; then\n+    break\n+  fi\n+  if ! kill -0 \"$training_pid\" 2>/dev/null; then\n+    cat \"$training_log\"\n+    wait \"$training_pid\"\n+  fi\n+  sleep 0.25\n+done\n+\n+if ! grep -q \"Started SpringbootApplication in\" \"$training_log\"; then\n+  cat \"$training_log\"\n+  echo \"Timed out waiting for AOT training application\"\n+  exit 1\n+fi\n+\n+kill -TERM \"$training_pid\"\n+training_status=0\n+wait \"$training_pid\" || training_status=$?\n+training_pid=\n+if [[ \"$training_status\" -ne 0 && \"$training_status\" -ne 143 ]]; then\n+  cat \"$training_log\"\n+  exit \"$training_status\"\n+fi\n+\n+if [[ ! -s \"$aot_configuration\" ]]; then\n+  cat \"$training_log\"\n+  echo \"AOT training did not create a configuration\"\n+  exit 1\n+fi\n+\n+if ! env -u JAVA_TOOL_OPTIONS java \\\n+  -XX:AOTMode=create \\\n+  \"-XX:AOTConfiguration=$aot_configuration\" \\\n+  \"-XX:AOTCache=$aot_cache\" \\\n+  -XX:+DisableAttachMechanism \\\n+  \"${common_options[@]}\" \\\n+  \"${application_args[@]}\" \\\n+  >\"$create_log\" 2>&1; then\n+  cat \"$create_log\"\n+  exit 1\n+fi\n+\n+if [[ ! -s \"$aot_cache\" ]]; then\n+  cat \"$create_log\"\n+  echo \"AOT cache creation did not produce a cache\"\n+  exit 1\n+fi\n+\n+export JAVA_TOOL_OPTIONS=\"$production_java_tool_options \\\n+  -XX:+UnlockDiagnosticVMOptions \\\n+  -XX:+VerifySharedSpaces \\\n+  -XX:AOTMode=on \\\n+  -XX:AOTCache=$aot_cache \\\n+  --add-modules=java.instrument \\\n+  -Xbootclasspath/a:$agent_jar \\\n+  -Dotel.javaagent.debug=false \\",
+      "id": "PRRT_kwDODJKVX86fnn-T",
+      "opened": "2026-09-05T23:05:58Z",
+      "path": "smoke-tests/src/test/resources/spring-boot-aot/start.sh",
+      "replies": [
+        {
+          "at": "2026-09-07T19:32:17Z",
+          "body": "Addressed in 1f6d2110bc9944250aebdbc07d4df820eca17774.\n\nAnalysis: The production launch added a system property that the agent argument overwrote during premain. Replacing the inherited agent argument sets the value at the effective configuration source and makes the separate system property unnecessary.\n\nUpsides: The AOT production launch keeps the required agent settings while omitting full agent debug output from the retained class-load log.\n\nDownsides: The replacement depends on the debug option that AbstractTestContainerManager supplies in JAVA_TOOL_OPTIONS. No material downside exists while that launch contract remains in place.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3952226535"
+        }
+      ],
+      "reviewed": "0c45aec3e149b72acc0923a3143c63442634b6e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3942339606"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The current Spring Boot image places an executable `bootJar` at `/app/app.jar`, but Spring Boot requires AOT-cache training and use against its extracted layout and explicitly notes that the cache has no effect with the unextracted executable jar. Running this path directly therefore leaves application classes behind Spring Boot's nested-jar loader, so the later assertion that `SpringbootApplication` came from the shared objects file cannot be satisfied reliably. Extract the jar with tools jarmode and use the extracted application jar for record, create, and production.",
+      "created": "2026-09-08T17:35:26Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+#!/bin/bash\n+\n+set -euo pipefail\n+\n+agent_jar=/opentelemetry-javaagent.jar\n+aot_directory=/tmp/opentelemetry-aot\n+aot_configuration=\"$aot_directory/application.aotconf\"\n+aot_cache=\"$aot_directory/application.aot\"\n+training_log=\"$aot_directory/training.log\"\n+create_log=\"$aot_directory/create.log\"\n+production_java_tool_options=\"${JAVA_TOOL_OPTIONS:-}\"\n+production_java_tool_options=\"${production_java_tool_options/otel.javaagent.debug=true/otel.javaagent.debug=false}\"\n+training_pid=\n+\n+mkdir -p \"$aot_directory\"\n+\n+if [[ -f /app/app.jar ]]; then\n+  application_args=(-jar /app/app.jar)",
+      "id": "PRRT_kwDODJKVX86gWIQ_",
+      "opened": "2026-09-08T17:35:26Z",
+      "path": "smoke-tests/src/test/resources/spring-boot-aot/start.sh",
+      "replies": [
+        {
+          "at": "2026-09-08T17:48:30Z",
+          "body": "Addressed in 6eb8fb346ecda0fcc35f7a81d357aec62f20a69f.\n\nAnalysis: Spring Boot's executable jar keeps application classes behind its nested-jar class loader. The script now uses the tools jarmode to extract a thin application jar and its libraries before every AOT phase. Naming the extracted jar `app.jar` also gives all three launches one stable path.\n\nUpsides: AOT recording, cache creation, and production now load application classes from the extracted layout. This lets the JDK archive `SpringbootApplication` and makes the shared objects assertion meaningful.\n\nDownsides: Startup performs one extraction before training and uses extra temporary disk space. No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3960705163"
+        }
+      ],
+      "reviewed": "63f27b70ea94359499ace402ca1f19b39f9b09eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3960604879"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Maybe should use v3 preview so this test wouldn't need fixing when we switch. Though this is fine too, changing it later is not a big deal.",
+      "created": "2026-09-09T16:13:14Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;\n+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;\n+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_VERSION;\n+import static io.opentelemetry.semconv.TelemetryAttributes.TELEMETRY_DISTRO_VERSION;\n+import static io.opentelemetry.semconv.incubating.OsIncubatingAttributes.OS_TYPE;\n+import static io.opentelemetry.semconv.incubating.ThreadIncubatingAttributes.THREAD_ID;\n+import static io.opentelemetry.semconv.incubating.ThreadIncubatingAttributes.THREAD_NAME;\n+\n+abstract class AbstractSpringBootSmokeTest extends AbstractSmokeTest<Integer> {\n+\n+  @Override\n+  protected void configure(SmokeTestOptions<Integer> options) {\n+    options\n+        .springBoot()\n+        .setServiceName(false)\n+        .env(\"OTEL_METRICS_EXPORTER\", \"otlp\")\n+        .env(\"OTEL_RESOURCE_ATTRIBUTES\", \"foo=bar\");\n+  }\n+\n+  protected final void assertSpringBootTelemetry(SmokeTestOutput output) {\n+    var response = client().get(\"/greeting\").aggregate().join();\n+    assertThat(response.contentUtf8()).isEqualTo(\"Hi!\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\"GET /greeting\")\n+                        .hasAttribute(satisfies(THREAD_ID, val -> val.isNotNull()))\n+                        .hasAttribute(satisfies(THREAD_NAME, val -> val.isNotBlank()))\n+                        .hasResourceSatisfying(\n+                            resource ->\n+                                resource\n+                                    .hasAttribute(TELEMETRY_DISTRO_VERSION, getAgentVersion())\n+                                    .hasAttribute(satisfies(OS_TYPE, val -> val.isNotNull()))\n+                                    .hasAttribute(stringKey(\"foo\"), \"bar\")\n+                                    .hasAttribute(SERVICE_NAME, \"otel-spring-test-app\")\n+                                    .hasAttribute(SERVICE_VERSION, \"1.2.3\")),\n+                span -> span.hasName(\"WebController.withSpan\")));\n+\n+    output.assertAgentVersionLogged();\n+    assertThat(output.getLoggedTraceIds()).isEqualTo(getSpanTraceIds());\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.runtime-telemetry-java8\",",
+      "id": "PRRT_kwDODJKVX86gvSOI",
+      "opened": "2026-09-09T16:13:14Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/AbstractSpringBootSmokeTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T16:14:04Z",
+          "body": "ignore that, didn't realize this isn't used by only the new aot test",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3970610417"
+        }
+      ],
+      "reviewed": "53a553cac717ec75a39031a06e25b14bdfb73578",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20002#discussion_r3970603460"
+    }
+  ]
+}

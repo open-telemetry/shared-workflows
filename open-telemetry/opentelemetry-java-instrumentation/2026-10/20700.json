@@ -1,0 +1,52 @@
+{
+  "head": "35eb3fca79f1e353c7e7a5a37f3c386aafa0a965",
+  "merge": "c0911a4f2708350a89d8e47cdc6c377864c2b29c",
+  "merged": "2026-10-19T06:39:07Z",
+  "missing_roots": 0,
+  "number": 20700,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Replace the application-injected org.apache.hadoop.hbase.ipc.OpenTelemetryCallUtil with a normal isolated helper under io.opentelemetry.javaagent.instrumentation.hbase.client.common. Keep this work scoped to the existing HBase indy migration in this PR. The current utility uses the package-private Call type only for its class literal, casts, and instanceof, not to access any Call methods or fields. Prefer cached dynamic class lookup over injecting a helper into HBase's package solely to name that type.\n\nResolve org.apache.hadoop.hbase.ipc.Call once without initialization through the isolated helper's class loader, and use Class.isInstance where needed. Preserve VirtualField storage associated with the actual Call class and RequestAndContext, not Object.class or an external weak map. Follow .github/agents/knowledge/javaagent-virtual-fields.md for the dynamic carrier lookup: keep lookup outside advice in an @NoMuzzle method, cache the handle on the helper, and explicitly register the carrier/value mapping through ExperimentalInstrumentationModule.registerVirtualFields for both the HBase 1.4 and 2.0 modules. Remove the application-package utility, its injectedClassNames/isHelperClass special handling where no longer needed, and the exposedClassNames entries for RequestAndContext and HbaseRequest. Both state types should remain isolated, with no need to expose them to the application loader. No reflective member invocation, setAccessible, or injected replacement in HBase's package is needed.\n\nUpdate all affected advice callers and related shared tests, including the new indy placement test and existing utility tests. Preserve request/context identity, network-peer updates on the original request, completion and timeout/error ownership guards, and clearing state after consumption. Keep HBase 1.0 behavior unchanged. Validate the affected HBase paths using the repository's targeted checks. Update any now-stale PR description about application-loaded helpers and exposed state, preserving its template and the PR's draft/ready state. Do not request another PR or expand this into unrelated changes.",
+      "created": "2026-10-19T02:23:04Z",
+      "hunk": "@@ -45,6 +45,14 @@ public List<String> injectedClassNames() {\n     return asList(CALL_UTIL);\n   }\n \n+  @Override\n+  public List<String> exposedClassNames() {",
+      "id": "PRRT_kwDODJKVX86txGNm",
+      "opened": "2026-10-19T02:23:04Z",
+      "path": "instrumentation/hbase/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-19T02:41:46Z",
+          "body": "Implemented in 30470424. The injected utility and exposed-state setup are removed; Call/RequestAndContext VirtualField registration is in place for HBase 1.4 and 2.0, and targeted tests and formatting checks pass. I could not edit the PR body through the available tools, so its helper-placement wording still needs updating.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20700#discussion_r4309904293"
+        }
+      ],
+      "reviewed": "da89ab61a9bcc30ca15f45a2aa8a5a9211a9f2f1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20700#discussion_r4309833167"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove the additional reflective class-loader test instrumentation/hbase/hbase-client-common-1.0/javaagent-unit-tests/src/indyTest/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtilIndyTest.java and the two sourceSets.test blocks adding src/indyTest/java in instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts and instrumentation/hbase/hbase-client-2.0/javaagent/build.gradle.kts. Existing HbaseClient14Test and HbaseClient20Test exercise the real agent-backed request/completion path, the 2.0 integration tests assert network-peer attributes, and the existing helper unit tests cover state identity, peer updates, and cleanup. Keep those existing integration and helper tests unchanged; do not add a replacement class-loader test, source set, or abstraction.\n\nKeep the current simpler production implementation intact, including the application-injected org.apache.hadoop.hbase.ipc.OpenTelemetryCallUtil, exposed RequestAndContext and HbaseRequest, and the explanatory comments added in d610129375f. The earlier dynamic-carrier isolated-helper request was explicitly rejected by the user and reverted in f5c450efc38; do not reapply it. Scope this update to deleting the redundant test and its wiring, with any necessary correction to the PR description's now-stale claim about added helper-placement coverage. Preserve the PR template and draft state, and leave unrelated code unchanged.",
+      "created": "2026-10-19T02:53:20Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package org.apache.hadoop.hbase.ipc;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.lang.reflect.Method;\n+import java.net.InetAddress;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import org.apache.hadoop.hbase.TableName;\n+import org.apache.hadoop.hbase.client.MetricsConnection;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class OpenTelemetryCallUtilIndyTest {",
+      "id": "PRRT_kwDODJKVX86txXn0",
+      "opened": "2026-10-19T02:53:20Z",
+      "path": "instrumentation/hbase/hbase-client-common-1.0/javaagent-unit-tests/src/indyTest/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtilIndyTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T03:05:28Z",
+          "body": "Implemented in 35eb3fca. The reflective indy test and both source-set registrations are removed; the production helper and existing HBase integration and utility tests are unchanged. The available PR tools do not support editing the PR body, so its test-coverage wording still needs updating.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20700#discussion_r4309994790"
+        }
+      ],
+      "reviewed": "d610129375f5f6535271049f8845fefb654e1669",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20700#discussion_r4309948776"
+    }
+  ]
+}

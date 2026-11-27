@@ -1,0 +1,162 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7a26bde917b4431907a484a6f07c51d529f196ff5ce554829989e2d8776a42e7",
+  "input_digest": "d86a4d5a287deb42655bf9dfe363f3001a20d6b8c00efb093dd8e8b64943846d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4d985cb1c31fa97250662b4e4e5d60c8a7df1b00/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/Db2UrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/DerbyUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9c95d117830fa6514c33a9afefd45bec9abeb84c"
+      ],
+      "id": "PRRT_kwDODJKVX86yhcM0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86yhdcm",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86yhcM0",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9c95d117830fa6514c33a9afefd45bec9abeb84c/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/ParseContext.java"
+      ],
+      "id": "PRRT_kwDODJKVX86yhsOR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86yht3J",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86yhsOR",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6615b5f8145eb06a16f3c68fe78c4901d75d1bb6/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6615b5f8145eb06a16f3c68fe78c4901d75d1bb6/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JtdsUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6615b5f8145eb06a16f3c68fe78c4901d75d1bb6/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JtdsUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0603a6a55e47adbde78230b69851d9556a412a78"
+      ],
+      "id": "PRRT_kwDODJKVX86yh7og",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0603a6a55e47adbde78230b69851d9556a412a78/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0603a6a55e47adbde78230b69851d9556a412a78/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0603a6a55e47adbde78230b69851d9556a412a78/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eccccae1fe0cd4b407614e6044988a0de2cfa68a",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a331655a44525cb7cbc2da37f5bf1c4c00f99fee"
+      ],
+      "id": "PRRT_kwDODJKVX86yjDqv",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a4e9512a39085d41f5fd2da8725360b67dd6a6fa/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3b335941fed0b1bba761351712526225175826d0"
+      ],
+      "id": "PRRT_kwDODJKVX86y-pdl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/226e8852c91bbd2a42f7fb66a1a4b498dc6826c6/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eccccae1fe0cd4b407614e6044988a0de2cfa68a"
+      ],
+      "id": "PRRT_kwDODJKVX860NfpP",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eccccae1fe0cd4b407614e6044988a0de2cfa68a/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6f9076e79e284a1438fdef8331a5379c2ce2e5fd"
+      ],
+      "id": "PRRT_kwDODJKVX860PQNr",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f9076e79e284a1438fdef8331a5379c2ce2e5fd/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f9076e79e284a1438fdef8331a5379c2ce2e5fd/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/OceanbaseUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/OceanbaseUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bf1ccdfe4f5647dd3b1e12fe78eeae993dcb84ec"
+      ],
+      "id": "PRRT_kwDODJKVX860P4oy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf1ccdfe4f5647dd3b1e12fe78eeae993dcb84ec/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JdbcUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf1ccdfe4f5647dd3b1e12fe78eeae993dcb84ec/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JdbcUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f8a5cfe47d1ac22052404f24b233201020edd8d6"
+      ],
+      "id": "PRRT_kwDODJKVX860QwVi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a5cfe47d1ac22052404f24b233201020edd8d6/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a5cfe47d1ac22052404f24b233201020edd8d6/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a5cfe47d1ac22052404f24b233201020edd8d6/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JdbcUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a5cfe47d1ac22052404f24b233201020edd8d6/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/ParseContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JdbcUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b8837f24e5f9110e620c1a0a0f4f16595fa0e22/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/ParseContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5b32928ccdd8317bd768592966b012f5287913fd"
+      ],
+      "id": "PRRT_kwDODJKVX860XOCH",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

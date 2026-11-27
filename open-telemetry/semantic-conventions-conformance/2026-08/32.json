@@ -1,0 +1,85 @@
+{
+  "head": "830a243b64a40c33e20d8987f14fac7aa9bbe5f3",
+  "merge": "a31794c97dd824ec6d2cb128f910c2ff748b6069",
+  "merged": "2026-08-13T23:20:54Z",
+  "missing_roots": 0,
+  "number": 32,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_request_media_modalities returns one (modality, token_count) entry per media part, so a request with multiple images/audio parts will produce duplicate entries in promptTokensDetails instead of a single aggregated per-modality count. Downstream consumers expecting a per-modality breakdown may mis-handle duplicates.",
+      "created": "2026-08-13T00:06:15Z",
+      "hunk": "@@ -75,6 +113,99 @@\n }\n \n \n+# Per-modality mock token counts, keyed by MIME-type prefix, used to derive a\n+# realistic per-modality usage breakdown from the request's media parts.\n+_MIME_MODALITY = (\n+    (\"image/\", (\"IMAGE\", 258)),\n+    (\"audio/\", (\"AUDIO\", 120)),\n+)\n+\n+# Mock candidate token counts per generated output modality.\n+_OUTPUT_MODALITY = {\n+    \"TEXT\": 12,\n+    \"IMAGE\": 1290,\n+    \"AUDIO\": 240,\n+}\n+\n+\n+def _request_media_modalities(body):\n+    \"\"\"Modalities of non-text media parts in the request, as (modality, token_count).\"\"\"\n+    result = []\n+    for content in body.get(\"contents\") or []:\n+        for part in content.get(\"parts\") or []:\n+            blob = (\n+                part.get(\"inlineData\") or part.get(\"inline_data\") or part.get(\"fileData\") or part.get(\"file_data\") or {}\n+            )\n+            mime = blob.get(\"mimeType\") or blob.get(\"mime_type\") or \"\"\n+            for prefix, entry in _MIME_MODALITY:\n+                if mime.startswith(prefix):\n+                    result.append(entry)\n+                    break\n+    return result",
+      "id": "PRRT_kwDOTuzK5c6YxCnL",
+      "opened": "2026-08-13T00:06:16Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+      "replies": [],
+      "reviewed": "9e5eba023c5ea8e4e5513e67accf99609e99091c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/32#discussion_r3771299259"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "New routing paths were added for (1) functionResponse-follow-up turns and (2) multimodal requests (inline media / responseModalities != {TEXT}), but there are no targeted tests asserting these branches or validating the new usageMetadata breakdown fields. Adding tests for these inputs would prevent accidental regressions in the usage shapes that scenarios/instrumentations depend on.",
+      "created": "2026-08-13T00:06:16Z",
+      "hunk": "@@ -184,8 +315,12 @@ def google_genai(model_action):\n     if \":embedContent\" in model_action:\n         return EMBEDDING_RESPONSE\n     # :generateContent or any other action\n-    if body.get(\"tools\") and not _has_function_response(body):\n+    if _has_function_response(body):\n+        return FUNCTION_RESPONSE\n+    if body.get(\"tools\"):\n         return _tool_response(body)\n+    if _has_inline_media(body) or set(_response_modalities(body)) != {\"TEXT\"}:\n+        return _multimodal_response(body)",
+      "id": "PRRT_kwDOTuzK5c6YxCnb",
+      "opened": "2026-08-13T00:06:16Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+      "replies": [],
+      "reviewed": "9e5eba023c5ea8e4e5513e67accf99609e99091c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/32#discussion_r3771299285"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change adds an audio-specific response branch, but the mock-server tests don't cover requests with audio input/output (e.g., modalities includes \"audio\" or message content contains input_audio). Adding a regression test would ensure this branch stays deterministic and that the usage payload includes audio_tokens details as expected.",
+      "created": "2026-08-13T00:06:16Z",
+      "hunk": "@@ -406,6 +445,12 @@ def chat_completions(deployment=None):\n         resp[\"choices\"][0][\"message\"][\"content\"] = \"I drafted this plan but it is not in the requested schema.\"\n         return resp\n \n+    # Audio input/output: OpenAI reports per-modality (audio) token counts in usage.\n+    if _has_audio(body):\n+        resp = copy.deepcopy(CHAT_AUDIO_RESPONSE)\n+        resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n+        return resp",
+      "id": "PRRT_kwDOTuzK5c6YxCnn",
+      "opened": "2026-08-13T00:06:16Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "9e5eba023c5ea8e4e5513e67accf99609e99091c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/32#discussion_r3771299306"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring claims video/document inputs are detected, but _MIME_MODALITY only maps image/ and audio/, so a request with video/document parts will route to _multimodal_response without any corresponding modality entries in promptTokensDetails. Either extend _MIME_MODALITY to cover those MIME prefixes or narrow the docstring to match the supported modalities.",
+      "created": "2026-08-13T00:06:16Z",
+      "hunk": "@@ -75,6 +113,99 @@\n }\n \n \n+# Per-modality mock token counts, keyed by MIME-type prefix, used to derive a\n+# realistic per-modality usage breakdown from the request's media parts.\n+_MIME_MODALITY = (\n+    (\"image/\", (\"IMAGE\", 258)),\n+    (\"audio/\", (\"AUDIO\", 120)),\n+)\n+\n+# Mock candidate token counts per generated output modality.\n+_OUTPUT_MODALITY = {\n+    \"TEXT\": 12,\n+    \"IMAGE\": 1290,\n+    \"AUDIO\": 240,\n+}\n+\n+\n+def _request_media_modalities(body):\n+    \"\"\"Modalities of non-text media parts in the request, as (modality, token_count).\"\"\"\n+    result = []\n+    for content in body.get(\"contents\") or []:\n+        for part in content.get(\"parts\") or []:\n+            blob = (\n+                part.get(\"inlineData\") or part.get(\"inline_data\") or part.get(\"fileData\") or part.get(\"file_data\") or {}\n+            )\n+            mime = blob.get(\"mimeType\") or blob.get(\"mime_type\") or \"\"\n+            for prefix, entry in _MIME_MODALITY:\n+                if mime.startswith(prefix):\n+                    result.append(entry)\n+                    break\n+    return result\n+\n+\n+def _response_modalities(body):\n+    \"\"\"Requested output modalities (defaults to TEXT).\"\"\"\n+    cfg = body.get(\"generationConfig\") or body.get(\"generation_config\") or {}\n+    mods = cfg.get(\"responseModalities\") or cfg.get(\"response_modalities\") or []\n+    return [str(m).upper() for m in mods] or [\"TEXT\"]\n+\n+\n+def _has_inline_media(body):\n+    \"\"\"True if the request includes non-text media (image/audio/video/document) input.\"\"\"\n+    for content in body.get(\"contents\") or []:\n+        for part in content.get(\"parts\") or []:\n+            if any(key in part for key in (\"inlineData\", \"inline_data\", \"fileData\", \"file_data\")):\n+                return True\n+    return False",
+      "id": "PRRT_kwDOTuzK5c6YxCnu",
+      "opened": "2026-08-13T00:06:16Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+      "replies": [],
+      "reviewed": "9e5eba023c5ea8e4e5513e67accf99609e99091c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/32#discussion_r3771299322"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`_has_audio` is true for audio input alone, so the audio-input-only request in `test_chat_reports_audio_tokens_for_audio_input` — whose `modalities` defaults to text-only — still reports 15 generated audio tokens. Real OpenAI reports generated audio tokens only alongside a populated `message.audio`, which this body also omits. Deriving the completion audio count and the audio message part from the requested output modality would keep the input/output split meaningful.",
+      "created": "2026-08-13T14:20:00Z",
+      "hunk": "@@ -406,6 +445,12 @@ def chat_completions(deployment=None):\n         resp[\"choices\"][0][\"message\"][\"content\"] = \"I drafted this plan but it is not in the requested schema.\"\n         return resp\n \n+    # Audio input/output: OpenAI reports per-modality (audio) token counts in usage.\n+    if _has_audio(body):\n+        resp = copy.deepcopy(CHAT_AUDIO_RESPONSE)\n+        resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n+        return resp",
+      "id": "PRRT_kwDOTuzK5c6Y9uTg",
+      "opened": "2026-08-13T14:28:36Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "23b2078283d5dba9c7fa6d011bd75eef375ca309",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/32#discussion_r3776170466"
+    }
+  ]
+}

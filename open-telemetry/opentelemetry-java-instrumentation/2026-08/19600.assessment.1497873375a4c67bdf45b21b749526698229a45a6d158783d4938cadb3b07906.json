@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ceee841fffd3b4cf8070b4d59b5d4e54846c841d09764266674336d1ebc51c3b",
+  "input_digest": "1497873375a4c67bdf45b21b749526698229a45a6d158783d4938cadb3b07906",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d855fb60e750f08417d0bb3b8e4b07964e7cadf7/instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/internal/LoggingEventMapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cffbc7f76351c6b02174c4f7508f482e0f6919/instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/internal/LoggingEventMapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e3516713bc008d2ab516ef642e93542a5e230fd3"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcgMC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d855fb60e750f08417d0bb3b8e4b07964e7cadf7/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d855fb60e750f08417d0bb3b8e4b07964e7cadf7/instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cffbc7f76351c6b02174c4f7508f482e0f6919/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cffbc7f76351c6b02174c4f7508f482e0f6919/instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppender.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcgMI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

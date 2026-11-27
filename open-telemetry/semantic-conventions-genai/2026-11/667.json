@@ -1,0 +1,172 @@
+{
+  "head": "8ce3819a1fdb7f9c569d7ed0006bf99af78b6cc3",
+  "merge": "c1a83edb1c15db88053a6cbe8b97613e655194d8",
+  "merged": "2026-11-05T02:17:22Z",
+  "missing_roots": 0,
+  "number": 667,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Only Bedrock exercises the new event; OpenAI Assistants leaves its handler unexercised, while the client invoke-agent paths in Azure AI Foundry and Google GenAI do not emit it. These applicable scenarios remain incomplete under `.github/instructions/evaluate-reference.instructions.md:40`. Add SDK-backed failure cases for all three libraries, record correlated WARN events at their invocation boundaries, and update their conformance declarations and captured data.",
+      "created": "2026-11-02T01:21:59Z",
+      "hunk": "@@ -109,3 +112,20 @@ events:\n     stability: development\n     attributes:\n       - ref_group: attributes.gen_ai.exception\n+\n+  - name: gen_ai.client.invoke_agent.exception",
+      "id": "PRRT_kwDOSUeMrM6ygaJL",
+      "opened": "2026-11-02T01:22:00Z",
+      "path": "model/gen-ai/events.yaml",
+      "replies": [],
+      "reviewed": "f94f1157a0077596f8448be33051c6c3de633362",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438179693"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This handler also emits the client exception event for local tool failures: `get_weather(arguments[\"location\"])` raises `KeyError` when a successful SDK response supplies `{}` as its tool arguments. That classifies an application error as a client invocation exception that SDK instrumentation cannot observe. Emit this event only around the specific SDK invocation calls, and keep local tool failures on the execute-tool span.",
+      "created": "2026-11-02T01:22:00Z",
+      "hunk": "@@ -215,8 +216,14 @@ def get_weather(location):\n                 print(f\"    -> {text[:60]}\")\n             else:\n                 print(\"    -> (no assistant response)\")\n-        except Exception as e:\n-            span.set_status(StatusCode.ERROR, str(e))\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.invoke_agent.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                exception=error,",
+      "id": "PRRT_kwDOSUeMrM6ygaJa",
+      "opened": "2026-11-02T01:22:00Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:28:47Z",
+          "body": "Fixed by restricting client exception emission to the four SDK calls inside the invoke-agent span: runs.create, runs.submit_tool_outputs, runs.retrieve, and messages.list. The outer handler still sets the span error status and error.type and rethrows, but no longer emits a client exception for local JSON or tool failures. The separate execute-tool emitter is preserved in the next layer.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438675792"
+        }
+      ],
+      "reviewed": "f94f1157a0077596f8448be33051c6c3de633362",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438179720"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This handler also emits `gen_ai.client.invoke_agent.exception` for failures in local response processing. For example, a UTF-8 character split across response chunks causes the local `.decode(\"utf-8\")` to raise `UnicodeDecodeError` even though the SDK call and stream iteration succeeded. Restrict event emission to exceptions from the SDK call or stream iterator, excluding local decoding and attribute processing.",
+      "created": "2026-11-02T03:41:48Z",
+      "hunk": "@@ -129,11 +136,37 @@ def run_invoke_agent(client, agent_id):\n                     ),\n                 )\n             print(f\"    -> {text[:60]}\")\n-        except Exception as e:\n-            span.set_status(StatusCode.ERROR, str(e))\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.invoke_agent.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                exception=error,",
+      "id": "PRRT_kwDOSUeMrM6yhtXN",
+      "opened": "2026-11-02T03:41:49Z",
+      "path": "reference/scenarios/aws-bedrock-agent/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:55:25Z",
+          "body": "Fixed in [a96e9ae](https://github.com/open-telemetry/semantic-conventions-genai/commit/a96e9ae7e4a9493268fe4c7b14fce42ad5c98c71). Only exceptions from the SDK call or advancing its stream iterator emit the client exception event. Local decoding, response processing, and attribute construction no longer reach an emitting handler. Normal stream exhaustion remains non-error, and the existing SDK failure proof is unchanged. The related Foundry handler is also narrowed to its SDK call in [6f06bd6](https://github.com/open-telemetry/semantic-conventions-genai/commit/6f06bd656ad80a502c36566b8fcb7173d778a02b).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438781876"
+        }
+      ],
+      "reviewed": "df9627ccaa0c32c98d09f96c3ffeb0279385b4b4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438725692"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`interactions.create` selects `model=\"gemini-2.0-flash\"` and `previous_interaction_id`, so this handler labels a model continuation failure as an agent invocation failure. Classify the span and exception as inference, or replace the request with an actual agent invocation and exercise its SDK-error path. Update the agent-support claim in `reference/scenarios/google-genai/README.md:14–20` and generated telemetry to match.",
+      "created": "2026-11-02T03:41:49Z",
+      "hunk": "@@ -347,13 +347,23 @@ def run_interactions_continuation():\n         \"server.address\": _SERVER_ADDRESS,\n     }\n     with _reference_tracer.start_as_current_span(\n-        \"invoke_agent interactions_agent\", kind=SpanKind.CLIENT, attributes=span_attributes\n+        \"invoke_agent interactions_agent\", kind=SpanKind.CLIENT, attributes=span_attributes, record_exception=False\n     ) as span:\n-        interaction = client.interactions.create(\n-            model=request_model,\n-            previous_interaction_id=previous_interaction_id,\n-            input=prompt_text,\n-        )\n+        try:\n+            interaction = client.interactions.create(\n+                model=request_model,\n+                previous_interaction_id=previous_interaction_id,\n+                input=prompt_text,\n+            )\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.invoke_agent.exception\",",
+      "id": "PRRT_kwDOSUeMrM6yhtXo",
+      "opened": "2026-11-02T03:41:49Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:55:25Z",
+          "body": "Corrected in [e5552a4](https://github.com/open-telemetry/semantic-conventions-genai/commit/e5552a46dbff1535d03d37e5748c7d142b66bff1). The model continuation now uses a chat span and gen_ai.client.inference.exception, without the invented agent identity. The README no longer claims this demonstrates agent invocation. [70f2ec3](https://github.com/open-telemetry/semantic-conventions-genai/commit/70f2ec378232a9e6568cb8f38498cbf2246e1592) updates the telemetry from the actual hosted scenario output and regenerates the affected reference reports. No new agent workflow or failure scenario was added.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438781874"
+        }
+      ],
+      "reviewed": "df9627ccaa0c32c98d09f96c3ffeb0279385b4b4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438725731"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new handlers here and in `reference/scenarios/azure-ai-foundry/scenario.py:185–188` never run, so both committed `data.json` files lack the event. `.github/instructions/evaluate-reference.instructions.md:40` requires scenarios to emit signals they can capture. Add a mocked SDK failure to each scenario, catch the expected exception outside instrumentation, declare the event in each `conformance.yaml`, and regenerate telemetry.",
+      "created": "2026-11-02T03:41:49Z",
+      "hunk": "@@ -124,14 +125,22 @@ def get_weather(location):\n                 json.dumps([{\"type\": \"text\", \"content\": assistant.instructions}]),\n             )\n         try:\n-            run = client.beta.threads.runs.create(\n-                thread_id=thread.id,\n-                assistant_id=assistant.id,\n-                model=request_model,\n-                max_completion_tokens=request_max_tokens,\n-                temperature=request_temperature,\n-                top_p=request_top_p,\n-            )\n+            try:\n+                run = client.beta.threads.runs.create(\n+                    thread_id=thread.id,\n+                    assistant_id=assistant.id,\n+                    model=request_model,\n+                    max_completion_tokens=request_max_tokens,\n+                    temperature=request_temperature,\n+                    top_p=request_top_p,\n+                )\n+            except Exception as error:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.client.invoke_agent.exception\",\n+                    severity_number=SeverityNumber.WARN,\n+                    exception=error,",
+      "id": "PRRT_kwDOSUeMrM6yhtYA",
+      "opened": "2026-11-02T03:41:49Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:49:33Z",
+          "body": "I'm keeping the same coverage approach as #658 and #659: implement the applicable SDK exception handlers, with one exercised SDK-backed failure proof for each event. Bedrock supplies that proof here, and the Azure and Assistants READMEs explicitly say their error handlers are unexercised. I'm not adding per-SDK negative cases or additional event expectations in this stack.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438756006"
+        }
+      ],
+      "reviewed": "df9627ccaa0c32c98d09f96c3ffeb0279385b4b4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4438725762"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new tool-argument and response-processing tests require client exception logs for local failures after successful SDK calls, reintroducing the previously narrowed behavior. For example, `arguments[\"location\"]` raises an application-side `KeyError` that SDK instrumentation cannot observe. Restrict emission to the four SDK calls inside the span, and update the processing-failure tests and README to exclude local failures.",
+      "created": "2026-11-02T05:13:34Z",
+      "hunk": "@@ -215,8 +216,14 @@ def get_weather(location):\n                 print(f\"    -> {text[:60]}\")\n             else:\n                 print(\"    -> (no assistant response)\")\n-        except Exception as e:\n-            span.set_status(StatusCode.ERROR, str(e))\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.invoke_agent.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                exception=error,",
+      "id": "PRRT_kwDOSUeMrM6yipf1",
+      "opened": "2026-11-02T05:13:35Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:15:08Z",
+          "body": "The exception event intentionally covers the same operation as the span, including tool-argument and response processing inside that span. If one of those steps fails the invocation, the outer handler records one event correlated with the failed span. We're not limiting this event to exceptions thrown by the four SDK calls, so the broader handler and processing-failure tests are intentional.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4443420622"
+        }
+      ],
+      "reviewed": "c32513a6f040681f610ec31dfa2ef04669d1c8e3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4439115449"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new chunk- and usage-processing tests require client exception logs for local decoding or attribute-extraction failures, even when the SDK call and stream iteration succeed. This reintroduces the previously narrowed behavior and reports scenario processing errors as SDK invocation exceptions. Emit only for exceptions from `client.invoke_agent` or advancing its completion iterator, and update the local-processing tests and README accordingly.",
+      "created": "2026-11-02T05:13:34Z",
+      "hunk": "@@ -129,11 +136,37 @@ def run_invoke_agent(client, agent_id):\n                     ),\n                 )\n             print(f\"    -> {text[:60]}\")\n-        except Exception as e:\n-            span.set_status(StatusCode.ERROR, str(e))\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.invoke_agent.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                exception=error,",
+      "id": "PRRT_kwDOSUeMrM6yipfO",
+      "opened": "2026-11-02T05:13:35Z",
+      "path": "reference/scenarios/aws-bedrock-agent/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:15:08Z",
+          "body": "The exception event intentionally covers the same operation as the span, including completion-stream processing. If that processing fails the operation, the outer handler records one event correlated with the failed span. Restricting emission to `client.invoke_agent` and iterator advancement would leave failures within the span unreported, so we're keeping the broader handler and its processing-failure tests.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4443420613"
+        }
+      ],
+      "reviewed": "c32513a6f040681f610ec31dfa2ef04669d1c8e3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4439115392"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new response- and usage-processing tests require this event for exceptions raised after `responses.create` returns successfully. This restores client exception reporting for local telemetry processing errors that SDK instrumentation cannot observe. Restrict emission to `responses.create`, retain client cleanup in `finally`, and update the processing-failure tests and README to exclude local failures.",
+      "created": "2026-11-02T05:13:34Z",
+      "hunk": "@@ -178,8 +179,14 @@ def run_invoke_agent(client):\n                 span.set_attribute(\"gen_ai.usage.output_tokens\", response.usage.output_tokens)\n \n             print(f\"    -> {response_text or response.id}\")\n-        except Exception as e:\n-            span.set_status(StatusCode.ERROR, str(e))\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.invoke_agent.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                exception=error,",
+      "id": "PRRT_kwDOSUeMrM6yipfk",
+      "opened": "2026-11-02T05:13:35Z",
+      "path": "reference/scenarios/azure-ai-foundry/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:15:08Z",
+          "body": "The exception event intentionally covers the same operation as the span, including response and usage processing. A successful `responses.create` call does not mean the span's operation completed successfully if subsequent processing fails. We're keeping the outer handler and processing-failure tests so each failed operation records one correlated event; client cleanup remains in `finally`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4443420621"
+        }
+      ],
+      "reviewed": "c32513a6f040681f610ec31dfa2ef04669d1c8e3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/667#discussion_r4439115429"
+    }
+  ]
+}

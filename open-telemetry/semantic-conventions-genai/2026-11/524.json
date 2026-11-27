@@ -1,0 +1,253 @@
+{
+  "head": "46b2731cc881cd84cdb659340b6ce6cab19992d2",
+  "merge": "95aff9cdf605bbc7d7e8f7c4745a693bd0c4eea8",
+  "merged": "2026-11-03T04:21:36Z",
+  "missing_roots": 0,
+  "number": 524,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The network-only definition leaves out remote agent services reached through local IPC. Since the paired `INTERNAL` category is explicitly same-process, describe this category as out-of-process and treat HTTP and gRPC as examples rather than the boundary itself.\n\nThis issue also appears in the following locations of the same file:\n- line 44\n- line 48",
+      "created": "2026-09-18T02:59:47Z",
+      "hunk": "@@ -21,14 +22,31 @@ linkTitle: Agent spans\n \n Generative AI models can be trained to use tools to access real-time information or suggest a real-world action. For example, a model can leverage a database retrieval tool to access specific information, like a customer's purchase history, so it can generate tailored shopping recommendations. Alternatively, based on a user's query, a model can make various API calls to send an email response to a colleague or complete a financial transaction on your behalf. To do so, the model must not only have access to a set of external tools, it needs the ability to plan and execute any task in a self-directed fashion. This combination of reasoning, logic, and access to external information that are all connected to a Generative AI model invokes the concept of an agent.\n \n-This document defines semantic conventions for GenAI agent calls that are defined by this [whitepaper](https://www.kaggle.com/whitepaper-agents).\n-\n-It MAY be applicable to agent operations that are performed by the GenAI framework locally.\n+This document defines semantic conventions for GenAI agent and framework operations across both remote services and local frameworks.\n \n The semantic conventions for GenAI agents extend and override the semantic conventions for [Gen AI Spans](gen-ai-spans.md).\n \n ## Spans\n \n+GenAI agent execution models fall into two primary categories:\n+\n+- **Remote (hosted) agents (`CLIENT` kind)**:\n+  An application or orchestrator invokes an external, hosted agent service across a network boundary (e.g. over HTTP or gRPC). Examples include cloud-managed agent platforms (OpenAI Assistants API, AWS Bedrock Agents, Google Cloud Vertex AI Reasoning Engine, Azure AI Foundry Agent Service) or custom enterprise agent microservices. These invocations are instrumented using `gen_ai.invoke_agent.client` with span kind `CLIENT`, capturing caller-observed latency, transport errors, and high-level request parameters.",
+      "id": "PRRT_kwDOSUeMrM6jm7O1",
+      "opened": "2026-09-18T02:59:47Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [
+        {
+          "at": "2026-09-18T03:05:49Z",
+          "body": "Addressed in 589c958: generalized the definition to out-of-process boundaries (covering both network transports and local IPC), and clarified context propagation through configured propagators (such as W3C Trace Context over HTTP headers, gRPC metadata, or IPC context).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4043463053"
+        }
+      ],
+      "reviewed": "62687f125231bd21e37927b6daa8be293d9b7567",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4043439536"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using a network boundary as the discriminator excludes out-of-process agent services reached through local IPC, even though those are still remote services and cannot use an `INTERNAL` span. Define this in terms of a process boundary so every invocation is classified.\n\nThis issue also appears on line 570 of the same file.",
+      "created": "2026-09-18T02:59:47Z",
+      "hunk": "@@ -515,7 +515,12 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-      Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+      A client span describes invoking a remote or hosted agent service across a\n+      network boundary (e.g. OpenAI Assistants API, AWS Bedrock Agents, Google Cloud\n+      Vertex AI Reasoning Engine, Azure AI Foundry Agent Service, or a remote agent microservice).",
+      "id": "PRRT_kwDOSUeMrM6jm7PA",
+      "opened": "2026-09-18T02:59:47Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-09-18T03:05:50Z",
+          "body": "Addressed in 589c958: updated to describe out-of-process agent services across process boundaries (including local IPC) rather than solely network boundaries.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4043463170"
+        }
+      ],
+      "reviewed": "62687f125231bd21e37927b6daa8be293d9b7567",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4043439556"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this section necessary? it's already explained in the span notes.\n\nThis could be showcased more in examples or non-normative content, but I don't think it's beneficial in the normative part of the spec.",
+      "created": "2026-09-30T18:28:05Z",
+      "hunk": "@@ -21,14 +22,31 @@ linkTitle: Agent spans\n \n Generative AI models can be trained to use tools to access real-time information or suggest a real-world action. For example, a model can leverage a database retrieval tool to access specific information, like a customer's purchase history, so it can generate tailored shopping recommendations. Alternatively, based on a user's query, a model can make various API calls to send an email response to a colleague or complete a financial transaction on your behalf. To do so, the model must not only have access to a set of external tools, it needs the ability to plan and execute any task in a self-directed fashion. This combination of reasoning, logic, and access to external information that are all connected to a Generative AI model invokes the concept of an agent.\n \n-This document defines semantic conventions for GenAI agent calls that are defined by this [whitepaper](https://www.kaggle.com/whitepaper-agents).\n-\n-It MAY be applicable to agent operations that are performed by the GenAI framework locally.\n+This document defines semantic conventions for GenAI agent and framework operations across both remote services and local frameworks.\n \n The semantic conventions for GenAI agents extend and override the semantic conventions for [Gen AI Spans](gen-ai-spans.md).\n \n ## Spans\n \n+GenAI agent execution models fall into two primary categories:\n+\n+- **Out-of-process and remote (hosted) agents (`CLIENT` kind)**:\n+  An application or orchestrator invokes an out-of-process, remote, or hosted agent service across a process boundary (e.g. over network protocols such as HTTP or gRPC, or local IPC). Examples include cloud-managed agent platforms (OpenAI Assistants API, AWS Bedrock Agents, Google Cloud Vertex AI Reasoning Engine, Azure AI Foundry Agent Service) or custom enterprise agent microservices. These invocations are instrumented using `gen_ai.invoke_agent.client` with span kind `CLIENT`, capturing caller-observed latency, transport errors, and high-level request parameters.\n+\n+- **Local (in-process) agents (`INTERNAL` kind)**:\n+  An agent framework or library executes the agent reasoning loop directly within the calling process. Examples include in-process executions with LangChain, CrewAI, AutoGen, Semantic Kernel, and Google ADK. These invocations are instrumented using `gen_ai.invoke_agent.internal` with span kind `INTERNAL`, encapsulating the agent's internal orchestration loop, multi-step planning, decision making, and child operations (such as inference calls, tool executions, and memory operations).\n+\n+### Distributed and multi-tier agent architectures\n+\n+In multi-tier or distributed architectures, an application may invoke an out-of-process agent service that in turn executes an agent workflow internally:\n+\n+1. The client application creates an `invoke_agent` span with `CLIENT` kind (`gen_ai.invoke_agent.client`).\n+2. Trace context is injected and propagated through the configured propagator across the process or network boundary (e.g. using W3C Trace Context over HTTP headers, gRPC metadata, or IPC context).\n+3. The server-side service receives the request (typically creating an HTTP or RPC `SERVER` span) and instruments the local agent execution with an `invoke_agent` span with `INTERNAL` kind (`gen_ai.invoke_agent.internal`).\n+4. Any child operations initiated by the agent (such as model inference calls via `chat` or tool executions via `execute_tool`) are nested under the server's `INTERNAL` span.\n+\n+When both sides of an out-of-process invocation are instrumented, both the `CLIENT` and `INTERNAL` spans MAY appear in the resulting distributed trace: the client span measures end-to-end caller-perceived duration and transport errors, while the internal span captures server-side execution details, reasoning cycles, and child operations. When only the client side is instrumented (e.g. calling a third-party managed agent platform without server-side telemetry access), only the `CLIENT` span is emitted.",
+      "id": "PRRT_kwDOSUeMrM6nqKUM",
+      "opened": "2026-09-30T18:37:07Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [],
+      "reviewed": "589c9588928798b118411b40ae71f221b4baf6d2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4147970251"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nThis span SHOULD be emitted if and only if the agent runs locally within the \ncalling process.\n\nFor example, when instrumenting agentic invocations in frameworks such as LangChain, \nCrewAI, AutoGen, or Google ADK agents.\n\nFor agent invocations targeting an out-of-process or remote agent service,\nrefer to`gen_ai.invoke_agent.client` span.\n```\n\nlet's make it normative when it comes to this span",
+      "created": "2026-09-30T18:31:43Z",
+      "hunk": "@@ -546,7 +570,11 @@ Describes GenAI agent invocation within the same process.\n \n The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-Examples: LangChain agents, CrewAI agents.\n+An internal span describes executing an agent locally within the calling process\n+(e.g. LangChain, CrewAI, AutoGen, or Google ADK agents).\n+\n+For agent invocations targeting an out-of-process or remote agent service,\n+instrumentations SHOULD use `gen_ai.invoke_agent.client` instead.",
+      "id": "PRRT_kwDOSUeMrM6nqO_A",
+      "opened": "2026-09-30T18:37:07Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [],
+      "reviewed": "589c9588928798b118411b40ae71f221b4baf6d2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4148000598"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nThis span SHOULD be emitted if and only if the agent being invoked is not running \nin the same process as instrumentation.\n\nFor example, when instrumenting agentic invocations against remote, \nmanaged, or other out-of-process agents such as OpenAI Assistants API, AWS Bedrock\nAgents, Gemini Enterprise Agent Platform, Azure AI Foundry Agent Service.\n\nFor agent invocations targeting local agents refer to`gen_ai.invoke_agent.client` span.\n```",
+      "created": "2026-09-30T18:36:57Z",
+      "hunk": "@@ -195,7 +213,13 @@ Describes GenAI agent invocation over a remote service.\n \n The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+A client span describes invoking an out-of-process, remote, or hosted agent\n+service (e.g. over a network boundary such as OpenAI Assistants API, AWS Bedrock\n+Agents, Google Cloud Vertex AI Reasoning Engine, Azure AI Foundry Agent Service,\n+or over local IPC to a separate agent process).\n+\n+For agent invocations executing locally within the same process, instrumentations\n+SHOULD use `gen_ai.invoke_agent.internal` instead.",
+      "id": "PRRT_kwDOSUeMrM6nqWb-",
+      "opened": "2026-09-30T18:37:07Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [],
+      "reviewed": "589c9588928798b118411b40ae71f221b4baf6d2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4148048311"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example is a sentence fragment because the “when instrumenting…” clause has no main clause. Rewrite it as a complete sentence, such as one beginning with “Examples include invocations of…”, then regenerate the generated agent-span documentation.\n\nThis issue also appears on line 573 of the same file.",
+      "created": "2026-10-01T02:06:15Z",
+      "hunk": "@@ -515,7 +515,15 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-      Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+      This span SHOULD be emitted if and only if the agent being invoked is not running\n+      in the same process as the instrumentation.\n+\n+      For example, when instrumenting agent invocations against remote, managed,\n+      or other out-of-process agents such as OpenAI Assistants API, AWS Bedrock\n+      Agents, Gemini Enterprise Agent Platform, or Azure AI Foundry Agent Service.",
+      "id": "PRRT_kwDOSUeMrM6nxwgC",
+      "opened": "2026-10-01T02:06:15Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-03T03:53:40Z",
+          "body": "Addressed in 2b3204d. Both examples now use complete sentences beginning with \"Examples include\", and the agent span documentation was regenerated from the YAML.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4171595963"
+        }
+      ],
+      "reviewed": "a373f9ea313c7c5f6df98db5575d3f5199c79926",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4151126832"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Would be good to throw in \"A2A\" which feels highly relevant",
+      "created": "2026-10-05T18:58:27Z",
+      "hunk": "@@ -195,7 +193,15 @@ Describes GenAI agent invocation over a remote service.\n \n The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+This span SHOULD be emitted if and only if the agent being invoked is not running\n+in the same process as the instrumentation.\n+\n+Examples include invocations of remote, managed, or other out-of-process",
+      "id": "PRRT_kwDOSUeMrM6pLAuu",
+      "opened": "2026-10-05T19:10:30Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-12T22:01:21Z",
+          "body": "Added an A2A endpoint example in 2c6a943. I scoped it to remote endpoints so the example does not imply every A2A invocation is necessarily out of process.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4252710415"
+        }
+      ],
+      "reviewed": "2b3204ddf1f04400c44f593932f1ef09d2524f14",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4187645462"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "edited, sorry.\r\n\r\nMaybe lets relax the wording a bit since it's hard for instrumentations to know if the other agent is in the same process or not. From what I've seen, agent frameworks usually represent remote agents a different class or config structure and that heuristic is what instrumentations could use.\r\n\r\nMaybe something like \"does not belong to the current [main agent](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/registry/entities/gen-ai.md#gen-ai-main-agent)\" or  \"expected to be in a different process\".\r\n\r\nDoes that make sense?",
+      "created": "2026-10-05T19:10:24Z",
+      "hunk": "@@ -195,7 +193,15 @@ Describes GenAI agent invocation over a remote service.\n \n The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+This span SHOULD be emitted if and only if the agent being invoked is not running\n+in the same process as the instrumentation.",
+      "id": "PRRT_kwDOSUeMrM6pLRBr",
+      "opened": "2026-10-05T19:10:30Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-12T22:01:23Z",
+          "body": "Agreed. In 2c6a943, I changed the guidance to classify the target based on how the instrumented API represents it and information available from its API type or configuration. It no longer expects instrumentation to inspect the target runtime process.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4252710630"
+        }
+      ],
+      "reviewed": "2b3204ddf1f04400c44f593932f1ef09d2524f14",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4187750061"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\"the target\" makes this sound like the span represents a caller of the agent instead of representing the agent invocation itself, how about\n\n\n```suggestion\n      This span SHOULD be emitted for an agent invocation executed within the\n      instrumented process. Instrumentation SHOULD use\n```",
+      "created": "2026-10-14T23:11:40Z",
+      "hunk": "@@ -559,7 +569,16 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-      Examples: LangChain agents, CrewAI agents.\n+      This span SHOULD be emitted when the instrumented API represents the target as\n+      an agent running within the current process. Instrumentation SHOULD use",
+      "id": "PRRT_kwDOSUeMrM6sjlBL",
+      "opened": "2026-10-14T23:11:40Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T12:39:35Z",
+          "body": "Updated the internal span guidance to describe an agent invocation executed within the instrumented process, and clarified the information instrumentation can use.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4388755456"
+        }
+      ],
+      "reviewed": "2c6a943c77a80c107a7151d7b9cb792835d1a3fc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4277259022"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "steverao"
+      },
+      "body": "Nit: \"the OpenAI Assistants API\" reads more naturally here.\n\n```suggestion\n      Examples include remote agent services accessed through the OpenAI Assistants API,\n```",
+      "created": "2026-10-27T11:40:46Z",
+      "hunk": "@@ -515,7 +515,17 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-      Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+      This span SHOULD be emitted when the instrumented API represents the target as\n+      an agent service outside the current process. Instrumentation SHOULD use\n+      information available from the target's API type or configuration; it is not\n+      expected to inspect the target's runtime process.\n+\n+      Examples include remote agent services accessed through OpenAI Assistants API,",
+      "id": "PRRT_kwDOSUeMrM6wqpxL",
+      "opened": "2026-10-27T11:40:46Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T12:39:37Z",
+          "body": "Updated to “the OpenAI Assistants API.”",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4388755830"
+        }
+      ],
+      "reviewed": "2c6a943c77a80c107a7151d7b9cb792835d1a3fc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4388236853"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "steverao"
+      },
+      "body": "Nit: this could be shortened to avoid repeating \"agent\".\n\n```suggestion\n      For local agent invocations, refer to the\n      `gen_ai.invoke_agent.internal` span.\n```",
+      "created": "2026-10-27T11:40:47Z",
+      "hunk": "@@ -515,7 +515,17 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-      Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+      This span SHOULD be emitted when the instrumented API represents the target as\n+      an agent service outside the current process. Instrumentation SHOULD use\n+      information available from the target's API type or configuration; it is not\n+      expected to inspect the target's runtime process.\n+\n+      Examples include remote agent services accessed through OpenAI Assistants API,\n+      AWS Bedrock Agents, Gemini Enterprise Agent Platform, Azure AI Foundry Agent\n+      Service, or an A2A endpoint.\n+\n+      For agent invocations targeting local agents, refer to the\n+      `gen_ai.invoke_agent.internal` span.",
+      "id": "PRRT_kwDOSUeMrM6wqpxf",
+      "opened": "2026-10-27T11:40:46Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T12:39:40Z",
+          "body": "Updated to “For local agent invocations, refer to the `gen_ai.invoke_agent.internal` span.”",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4388756183"
+        }
+      ],
+      "reviewed": "2c6a943c77a80c107a7151d7b9cb792835d1a3fc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4388236886"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "seems enough without this\n\n```suggestion\n      information available from the target's API type or configuration.\n```",
+      "created": "2026-10-27T17:06:40Z",
+      "hunk": "@@ -603,7 +603,17 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-      Examples: OpenAI Assistants API, AWS Bedrock Agents.\n+      This span SHOULD be emitted when the instrumented API represents the target as\n+      an agent service outside the current process. Instrumentation SHOULD use\n+      information available from the target's API type or configuration; it is not\n+      expected to inspect the target's runtime process.",
+      "id": "PRRT_kwDOSUeMrM6wy93F",
+      "opened": "2026-10-27T17:06:55Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "b03c1afd54f0a7a952dfe3e63e71b50fdae781bd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4391753947"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "same here\n```suggestion\n      the API type or configuration.\n```",
+      "created": "2026-10-27T17:06:51Z",
+      "hunk": "@@ -647,7 +657,16 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n-      Examples: LangChain agents, CrewAI agents.\n+      This span SHOULD be emitted for an agent invocation executed within the\n+      instrumented process. Instrumentation SHOULD use information available from\n+      the API type or configuration; it is not expected to inspect the agent's\n+      runtime process.",
+      "id": "PRRT_kwDOSUeMrM6wy-Ik",
+      "opened": "2026-10-27T17:06:55Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "b03c1afd54f0a7a952dfe3e63e71b50fdae781bd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4391755796"
+    }
+  ]
+}

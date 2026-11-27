@@ -1,0 +1,46 @@
+{
+  "head": "c132d8ab7b2f2b5bc38a19cdde563d7e2d970bfb",
+  "merge": "fce424a16f7926fdfcc4dc5100312a805b85cd32",
+  "merged": "2026-10-13T16:08:07Z",
+  "missing_roots": 0,
+  "number": 868,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Assigning `conversation_id` after `invoke_local_agent()` returns is too late for context propagation: the invocation constructor has already built and attached its OTel context, so inference spans created while `wrapped()` executes cannot inherit this ID. Resolve the session ID first and pass it through the handler's `conversation_id=` parameter when creating the invocation; the current tests only inspect the finished parent span and miss this behavior.\n\nThis issue also appears on line 602 of the same file.",
+      "created": "2026-10-09T20:20:10Z",
+      "hunk": "@@ -362,6 +376,9 @@ def _start_agent_invocation(\n         agent_name=str(agent_name) if agent_name else None,\n         request_model=str(request_model) if request_model else None,\n     )\n+    _set_invocation_conversation_id(\n+        invocation, instance, args, kwargs, wrapped\n+    )",
+      "id": "PRRT_kwDOSbspP86q7yk2",
+      "opened": "2026-10-09T20:20:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "60b731b676c22a41af38ef13d95e4b6db085524a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/868#discussion_r4234219814"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: Could we replace `Any` with the concrete instance types? All three classes define `session_id`, so direct access is safe. Add `Agent`, `Team`, and `Workflow` imports under `TYPE_CHECKING`.\r\n\r\n```suggestion\r\ndef _resolve_conversation_id(\r\n    instance: Agent | Team | Workflow,\r\n    args: tuple[object, ...],\r\n    kwargs: dict[str, object],\r\n    wrapped: Callable[..., object],\r\n) -> str | None:\r\n    session_id = get_argument(\"session_id\", wrapped, args, kwargs)\r\n    if session_id is None:\r\n        session_id = instance.session_id\r\n    return str(session_id) if session_id is not None else None\r\n```",
+      "created": "2026-10-11T03:56:35Z",
+      "hunk": "@@ -313,6 +313,18 @@ def _set_invocation_input(\n             ]\n \n \n+def _resolve_conversation_id(\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    wrapped: Callable[..., Any],\n+) -> str | None:\n+    session_id = get_argument(\"session_id\", wrapped, args, kwargs)\n+    if session_id is None:\n+        session_id = getattr(instance, \"session_id\", None)\n+    return str(session_id) if session_id is not None else None",
+      "id": "PRRT_kwDOSbspP86rKFeV",
+      "opened": "2026-10-11T03:58:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-10-12T15:47:32Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/868#discussion_r4249890899"
+        }
+      ],
+      "reviewed": "ca505027ef813d903af69460bb8f95f5d675bb49",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/868#discussion_r4240169559"
+    }
+  ]
+}

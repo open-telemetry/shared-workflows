@@ -1,0 +1,156 @@
+{
+  "head": "6dfb429aaabadc7c2d6eab12ea86a20055d53110",
+  "merge": "4ae87a2d1c430fe184cda02a1c8954e25b727962",
+  "merged": "2026-08-04T15:46:53Z",
+  "missing_roots": 0,
+  "number": 308,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment says this override is the lock-time analog of a “conformance-only” UV_OVERRIDE in tox.ini, but tox.ini applies UV_OVERRIDE to all CrewAI tox envs (crewai-* factors) and also to the shared typecheck env. Please update the comment to avoid misleading future maintainers.",
+      "created": "2026-07-25T18:48:51Z",
+      "hunk": "@@ -26,6 +27,15 @@ dependencies = [\n [tool.uv]\n package = false # https://docs.astral.sh/uv/reference/settings/#package\n required-version = \">=0.6.0\"\n+# crewai hard-pins the OpenTelemetry core stack to a narrow window\n+# (opentelemetry-api/-sdk >=1.42,<1.43) that can't coexist with this\n+# workspace's ~=1.43 floor. Override crewai's caps so the workspace lock\n+# resolves against the versions the util packages require. This is the\n+# lock-time analog of the conformance-only UV_OVERRIDE wired in tox.ini.",
+      "id": "PRRT_kwDOSbspP86Tx5RC",
+      "opened": "2026-07-25T18:48:51Z",
+      "path": "pyproject.toml",
+      "replies": [],
+      "reviewed": "624397b071425b5d2980a3d26b24ca7d261d8bae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3650810215"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package’s .changelog/.gitignore differs from the pattern used by the other instrumentation packages (they keep only `!.gitignore`). As written, these negation rules don’t have any effect unless something else ignores the directory, and they add inconsistency across packages. Aligning with the existing pattern makes the changelog setup easier to reason about.",
+      "created": "2026-07-25T18:48:51Z",
+      "hunk": "@@ -0,0 +1,5 @@\n+!*.added\n+!*.changed\n+!*.deprecated\n+!*.removed\n+!*.fixed",
+      "id": "PRRT_kwDOSbspP86Tx5RS",
+      "opened": "2026-07-25T18:48:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-crewai/.changelog/.gitignore",
+      "replies": [],
+      "reviewed": "624397b071425b5d2980a3d26b24ca7d261d8bae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3650810233"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This PR introduces a new instrumentation package, but it doesn’t include the required minimal examples under `examples/manual/` and `examples/zero-code/` (per .github/instructions/instrumentation.instructions.md). Even if operation patching comes later, having runnable examples is part of the package boilerplate expected in this repo.",
+      "created": "2026-07-25T18:48:51Z",
+      "hunk": "@@ -0,0 +1,28 @@\n+OpenTelemetry CrewAI Instrumentation\n+====================================\n+\n+This package provides the setup for instrumenting CrewAI with OpenTelemetry\n+Generative AI semantic conventions. CrewAI operation instrumentation will be\n+added in follow-up changes.",
+      "id": "PRRT_kwDOSbspP86Tx5Rd",
+      "opened": "2026-07-25T18:48:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-crewai/README.rst",
+      "replies": [],
+      "reviewed": "624397b071425b5d2980a3d26b24ca7d261d8bae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3650810246"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n__version__ = \"1.1b0.dev\"\n```\n\nto align with other packages in the repo",
+      "created": "2026-07-25T18:44:38Z",
+      "hunk": "@@ -0,0 +1,4 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+__version__ = \"1.0b0.dev\"",
+      "id": "PRRT_kwDOSbspP86Tx4LS",
+      "opened": "2026-07-25T18:50:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-crewai/src/opentelemetry/instrumentation/genai/crewai/version.py",
+      "replies": [],
+      "reviewed": "624397b071425b5d2980a3d26b24ca7d261d8bae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3650804074"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please copy-paste this from some other package where we list supported values",
+      "created": "2026-07-25T18:45:57Z",
+      "hunk": "@@ -0,0 +1,28 @@\n+OpenTelemetry CrewAI Instrumentation\n+====================================\n+\n+This package provides the setup for instrumenting CrewAI with OpenTelemetry\n+Generative AI semantic conventions. CrewAI operation instrumentation will be\n+added in follow-up changes.\n+\n+Installation\n+------------\n+\n+::\n+\n+    pip install opentelemetry-instrumentation-genai-crewai\n+\n+Usage\n+-----\n+\n+::\n+\n+    from opentelemetry.instrumentation.genai.crewai import CrewAIInstrumentor\n+\n+    CrewAIInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Message content capture can be configured with the\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`` environment variable.",
+      "id": "PRRT_kwDOSbspP86Tx4i6",
+      "opened": "2026-07-25T18:50:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-crewai/README.rst",
+      "replies": [],
+      "reviewed": "624397b071425b5d2980a3d26b24ca7d261d8bae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3650806111"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it seems crewai comes with its own native instrumentation - could you please share some research on it - why do we need another one in otel? if crewai doesn't follow semantic conventions, how far are they from following them? was there any communication with crewai on github to support otel semantic conventions properly? Can you please link issues / PRs?",
+      "created": "2026-07-25T18:48:36Z",
+      "hunk": "@@ -26,6 +27,15 @@ dependencies = [\n [tool.uv]\n package = false # https://docs.astral.sh/uv/reference/settings/#package\n required-version = \">=0.6.0\"\n+# crewai hard-pins the OpenTelemetry core stack to a narrow window",
+      "id": "PRRT_kwDOSbspP86Tx5M2",
+      "opened": "2026-07-25T18:50:10Z",
+      "path": "pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-07-27T03:22:32Z",
+          "body": "@lmolkova Yes, CrewAI has its own native OpenTelemetry instrumentation and it's not aligned with GENAI semantic conventions.\r\n\r\nI felt adding OpenTelemetry GenAI semantic conventions to native library is a larger effort as CrewAI is currently focused adding additional telemetry as per conventions. Here is the open PR https://github.com/crewAIInc/crewAI/pull/6304.\r\n\r\nAdditionally while I was researching around the implementation I saw LangChain and LangGraph also provide native tracing through LangSmith but we have GENAI aligned instrumentation here. Because of these reasons I felt adding genai aligned instrumentation is better here.\r\n\r\nHowever I am not completely sure about the opentelemetry best practices. If you feel we should work with crewai to get genai semantic conventions in their sdk I can open up an issue and work with them. Let me know your thoughts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3654208659"
+        },
+        {
+          "at": "2026-07-27T23:27:55Z",
+          "body": "thanks for the context @venkata-pavani !\r\nTrying crewai out, it indeed seems very far from OTel GenAI semconv \r\n\r\n<img width=\"3406\" height=\"1516\" alt=\"image\" src=\"https://github.com/user-attachments/assets/c1cba80a-5b73-405d-b9ce-c8d7423e4a79\" />\r\n\r\nand doesn't even propagate context properly so that underlying OpenAI instrumentation is not correlated.\r\n\r\nThe fact that https://github.com/crewAIInc/crewAI/pull/6304 sits there for a month without any comments is a good indication that it's not a priority for crewai. I think this is a good justification to provide instrumentation here.\r\n\r\nCould you please still create an issue in crewAI and point to this PR and this repo and kindly ask crewai folks to reach out if they want to adopt conventional instrumentation? \r\n\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3661635323"
+        },
+        {
+          "at": "2026-07-30T02:49:15Z",
+          "body": "@lmolkova Thanks for the review !\r\nI raised an issue with crewAI team https://github.com/crewAIInc/crewAI/issues/6723 and meanwhile I will be working on other changes mentioned on this PR. \r\n\r\nIf they comeback to us on this ...I will co-ordinate accordingly further on the implmentation",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3679564708"
+        },
+        {
+          "at": "2026-07-30T04:15:52Z",
+          "body": "thanks @venkata-pavani ! one more question: is crewai native instrumentation enabled by default? is there a way for us to disable it when this instrumentation is enabled? We can support an option to keep their telemetry coming too, but not by default.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3679920441"
+        },
+        {
+          "at": "2026-08-02T00:07:31Z",
+          "body": "@lmolkova Yes, CrewAI’s native telemetry appears to be enabled by default in the current implementation, as seen in https://github.com/venkata-pavani/crewAI/blob/d52d0a162814624095e58116c7bb6f58924e52b2/lib/crewai-core/src/crewai_core/telemetry.py#L123 .\r\n\r\nFor our instrumentation, we can keep the behavior opt-in and allow users to retain CrewAI’s native telemetry if they choose, while not enabling it by default. \r\n\r\nI will make sure I will pick this up in succeeding PR's while implementing this!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3696976573"
+        }
+      ],
+      "reviewed": "624397b071425b5d2980a3d26b24ca7d261d8bae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3650809860"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this contradicts above statement \n\n> opentelemetry-api/-sdk >=1.42,<1.43",
+      "created": "2026-07-25T18:49:01Z",
+      "hunk": "@@ -26,6 +27,15 @@ dependencies = [\n [tool.uv]\n package = false # https://docs.astral.sh/uv/reference/settings/#package\n required-version = \">=0.6.0\"\n+# crewai hard-pins the OpenTelemetry core stack to a narrow window\n+# (opentelemetry-api/-sdk >=1.42,<1.43) that can't coexist with this\n+# workspace's ~=1.43 floor. Override crewai's caps so the workspace lock\n+# resolves against the versions the util packages require. This is the\n+# lock-time analog of the conformance-only UV_OVERRIDE wired in tox.ini.\n+override-dependencies = [\n+  \"opentelemetry-api ~= 1.43\",",
+      "id": "PRRT_kwDOSbspP86Tx5Uv",
+      "opened": "2026-07-25T18:50:10Z",
+      "path": "pyproject.toml",
+      "replies": [],
+      "reviewed": "624397b071425b5d2980a3d26b24ca7d261d8bae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3650810510"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n !.gitignore\n```",
+      "created": "2026-08-04T14:33:16Z",
+      "hunk": "@@ -0,0 +1,5 @@\n+!*.added\n+!*.changed\n+!*.deprecated\n+!*.removed\n+!*.fixed",
+      "id": "PRRT_kwDOSbspP86WXDSu",
+      "opened": "2026-08-04T14:33:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-crewai/.changelog/.gitignore",
+      "replies": [],
+      "reviewed": "d30c0cc7cb032c7288c38cac3e6a99c740f004a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/308#discussion_r3713484858"
+    }
+  ]
+}

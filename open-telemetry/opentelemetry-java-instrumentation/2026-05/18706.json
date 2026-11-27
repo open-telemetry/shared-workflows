@@ -1,0 +1,25 @@
+{
+  "head": "09e1ec18bd540c345592399357fa75179a8328c0",
+  "merge": "f94fcf0058acf7a06046e3d9d54237cfa48a3685",
+  "merged": "2026-05-12T14:33:32Z",
+  "missing_roots": 0,
+  "number": 18706,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This Bedrock snippet reads like `wrapBedrockRuntimeClient(...)` is sufficient on its own, but `AwsSdkTelemetry.wrapBedrockRuntimeClient()` only wraps an already-configured client; callers still need to register `telemetry.createExecutionInterceptor()` via `overrideConfiguration(...)` (as shown in the DynamoDB example and in Bedrock tests). Please clarify the text to say this is an additional step (like SQS), and consider capitalizing/being specific (e.g., “Bedrock Runtime async client”).\n",
+      "created": "2026-05-12T11:52:31Z",
+      "hunk": "@@ -31,6 +31,14 @@ SqsAsyncClientBuilder sqsAsyncClientBuilder = SqsAsyncClient.builder();\n SqsAsyncClient sqsAsyncClient = telemetry.wrap(sqsAsyncClientBuilder.build());\n ```\n \n+For bedrock async client use\n+\n+```java\n+BedrockRuntimeAsyncClientBuilder bedrockClientBuilder = BedrockRuntimeAsyncClient.builder();\n+...\n+BedrockRuntimeAsyncClient bedrockClient = telemetry.wrapBedrockRuntimeClient(bedrockClientBuilder.build());",
+      "id": "PRRT_kwDODJKVX86BZiyt",
+      "opened": "2026-05-12T11:52:32Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/README.md",
+      "replies": [],
+      "reviewed": "ec8e24c4527ccf4a8e99a32e6e4ea9c3ad609c9c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18706#discussion_r3226131675"
+    }
+  ]
+}

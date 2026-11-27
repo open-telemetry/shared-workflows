@@ -1,0 +1,31 @@
+{
+  "head": "40b2137a758f1c3f5234bc35f96f002ef866ade9",
+  "merge": "661c100cbcdacb2980c75f045292586e5fc188d2",
+  "merged": "2026-04-07T14:43:45Z",
+  "missing_roots": 0,
+  "number": 17256,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "Does this means that the `helperResourceBuilder.register(...)` call in `registerHelperResources` is now used to inject the class as a resource and thus we can use `CLASS_ONLY` ?\n\nIf so, does it means that if we promote the `injectClasses` method later with https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/16975 we will thus do the opposite change and use only `injectClasses` to inject the class as class (proxy) and as a resource ?",
+      "created": "2026-04-07T13:40:14Z",
+      "hunk": "@@ -41,7 +41,7 @@ public boolean isHelperClass(String className) {\n   public void injectClasses(ClassInjector injector) {\n     injector\n         .proxyBuilder(\"org.springframework.web.servlet.v3_1.OpenTelemetryHandlerMappingFilter\")\n-        .inject(InjectionMode.CLASS_AND_RESOURCE);\n+        .inject(InjectionMode.CLASS_ONLY);",
+      "id": "PRRT_kwDODJKVX855SqFi",
+      "opened": "2026-04-07T13:40:25Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v3_1/SpringWebMvcInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-04-07T14:43:08Z",
+          "body": "> Does this means that the helperResourceBuilder.register(...) call in registerHelperResources is now used to inject the class as a resource and thus we can use CLASS_ONLY ?\r\n\r\nyes, now the resource is registered the same way for indy and non-indy instrumentation\r\n\r\n> If so, does it means that if we promote the injectClasses method later with https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/16975 we will thus do the opposite change and use only injectClasses to inject the class as class (proxy) and as a resource ?\r\n\r\nI want to try out whether we can replace proxy injection with something simpler.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17256#discussion_r3045798516"
+        }
+      ],
+      "reviewed": "40b2137a758f1c3f5234bc35f96f002ef866ade9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17256#discussion_r3045383390"
+    }
+  ]
+}

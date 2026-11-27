@@ -1,0 +1,89 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4cbdbcd50940c46e82b34411432e6cb4d07282140ed7dcd142b3a24ba1f95a58",
+  "input_digest": "ead4983ce06262c80ed9b83a1e0db2a43e7ffbce8d1c9672298940684848008f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c4041c21d5aa8c68dacf90f7d778eacc32fde6f/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9b50804246a50c3539f6b729175ff47408aed19e"
+      ],
+      "id": "PRRT_kwDODJKVX86c30Kr",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c4041c21d5aa8c68dacf90f7d778eacc32fde6f/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchCaptureSearchQueryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c4041c21d5aa8c68dacf90f7d778eacc32fde6f/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchCaptureSearchQueryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchCaptureSearchQueryJsonbTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c30Ln",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd9f724d1978dd5fbdc5071e99d3d949db3ce9f7/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c58HU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86c58Hk",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86c30Kr",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86c58Hz",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86c30Kr",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b50804246a50c3539f6b729175ff47408aed19e/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchCaptureSearchQueryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b50804246a50c3539f6b729175ff47408aed19e/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchCaptureSearchQueryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/41abc4b32b8285958f3ed028e19cc855a9244e7e"
+      ],
+      "id": "PRRT_kwDODJKVX86c6bLl",
+      "kind": "test coverage gap",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8e42d417fb1f8eeb946377811aca8efeeccb4b4/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41ae1d38246a3050eac195a419a7f4153aa8e459/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f8d32ac03a4c302da8a3f5f95c863d4fe5db9dbc"
+      ],
+      "id": "PRRT_kwDODJKVX86dJr6d",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86dJ0bK",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

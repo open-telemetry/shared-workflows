@@ -1,0 +1,132 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a22e978a4e11f6ed17a68e66b537d5926db2f34e3477c94e8d8f5b45b85c59f1",
+  "input_digest": "51b208507ce6973b02d58297d203025bb0418deb229d6e1c704d61037d354623",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ac11079e040094d5a2ada3cf9eff1272854d6a6e/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ce5b6d4f04f42d600faca3c94b2bc3f8736a2b30"
+      ],
+      "id": "PRRT_kwDODJKVX86avxgI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ac11079e040094d5a2ada3cf9eff1272854d6a6e/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8e5db8d5847c9ff76d221f13af40e7e41f5ff642"
+      ],
+      "id": "PRRT_kwDODJKVX86avxgu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4dda1c2cc5b2566f8376a8c195f1204946d2c4fe/instrumentation/jmx-metrics/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstallerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstallerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86az5fC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4dda1c2cc5b2566f8376a8c195f1204946d2c4fe/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86az9P5",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86az-76",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86az_3Z",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86a0BrK",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5b602d4102c5e8e2ad0c2b5c866ced7a11ecde03/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f66557621debd6f58822531c15f64d023a309079"
+      ],
+      "id": "PRRT_kwDODJKVX86a2Ldu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5855212b3842060e4d8fc64452a4e2b94b729831/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5855212b3842060e4d8fc64452a4e2b94b729831/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f2ed18c08f519d7590ed1fe399dff246b2fcedac"
+      ],
+      "id": "PRRT_kwDODJKVX86a5zkd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86bOLFP",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86a5zkd",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2a9f8bff058e890ee9d9af743a6b32e36a0dfb5d/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f32e7a0b3fe89a0425939cb30ffb075ebf9b2171"
+      ],
+      "id": "PRRT_kwDODJKVX86bOLFi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/532a57f4c9f09f690d657d4f8460dbf0e2c474f7/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bcccbe96016975304c6777a52a24022a7707f48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a9cbc0bc9f52c71e099a0988b2bdbfabf48072f3"
+      ],
+      "id": "PRRT_kwDODJKVX86byeeg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86byeev",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86bOLFi",
+      "status": "duplicate"
+    }
+  ]
+}

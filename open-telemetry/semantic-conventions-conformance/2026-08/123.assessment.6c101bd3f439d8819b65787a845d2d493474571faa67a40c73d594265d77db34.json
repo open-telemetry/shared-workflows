@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d55582db0a5807846d3c42a59980aa8ab4ca6d615dd019769d63a24dca7294d5",
+  "input_digest": "6c101bd3f439d8819b65787a845d2d493474571faa67a40c73d594265d77db34",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/57c6f719ef698d7e2fdea65bd90301361bc3630e/scenarios/gen-ai/python/together/scenarios/multimodal.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3aa5586e486c073cc747a2fe0849bb779260bf6c/scenarios/gen-ai/python/together/scenarios/multimodal.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/8c714f71e6bc586fcec5c533074ae301fb819a9b"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dVTYq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/57c6f719ef698d7e2fdea65bd90301361bc3630e/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3aa5586e486c073cc747a2fe0849bb779260bf6c/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/8c714f71e6bc586fcec5c533074ae301fb819a9b"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dViMj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

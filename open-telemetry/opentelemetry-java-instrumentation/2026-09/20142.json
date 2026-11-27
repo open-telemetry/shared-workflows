@@ -1,0 +1,46 @@
+{
+  "head": "cc4aaff2a0f98aaccff08b5496191b0a770719a2",
+  "merge": "d88e30c6bd6668a8f2e81ab9c1084f91825aa1cb",
+  "merged": "2026-09-29T01:34:35Z",
+  "missing_roots": 0,
+  "number": 20142,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This no longer suppresses Kafka's restore-consumer path on supported Streams 0.11. `StreamThread.maybeUpdateStandbyTasks()` calls `restoreConsumer.poll(0)` and iterates those records outside `pollRequests`; the kafka-clients `ConsumerRecords` advice will therefore emit process spans for internal standby restoration, while the previous `runLoop` scope suppressed them. Please add narrowly scoped suppression around that restore poll path as well, using version-specific instrumentation if needed.",
+      "created": "2026-09-14T17:34:43Z",
+      "hunk": "@@ -23,20 +26,27 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(named(\"runLoop\"), getClass().getName() + \"$RunLoopAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"pollRequests\")\n+            .and(returns(named(\"org.apache.kafka.clients.consumer.ConsumerRecords\"))),\n+        getClass().getName() + \"$PollRequestsAdvice\");",
+      "id": "PRRT_kwDODJKVX86iNpNk",
+      "opened": "2026-09-14T17:34:43Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/StreamThreadInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T18:03:25Z",
+          "body": "Addressed in 8b8b3f0e33c0610dbc9ead9e50eb26c0bc1403d8.\n\nAnalysis: Kafka Streams 0.11 polls the restore consumer and iterates its records inside `maybeUpdateStandbyTasks()`, outside `pollRequests()`. Advice on this method suppresses Kafka clients process wrapping only during standby restoration. It restores the previous nested state on normal and exceptional exits. The name matcher is harmless on versions where the private method is absent.\n\nUpsides: Internal standby records no longer produce application process spans. Active-record ownership and nested raw Kafka processing remain unchanged.\n\nDownsides: The advice depends on a private Kafka Streams method name. Versions that rename or remove the method receive no extra suppression.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20142#discussion_r4008077183"
+        }
+      ],
+      "reviewed": "b988913be3619c8d01fa44226e56104bc9bcddce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20142#discussion_r4007841333"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "hope there won't be ordering issues with these traces, we can deal with it when it turns out to be an issue",
+      "created": "2026-09-24T18:10:33Z",
+      "hunk": "@@ -50,14 +57,102 @@ void failedAttemptAndSuccessfulRetryAreBothCounted() {\n         RetriableException.class.getName());\n     assertProcessMetricsWithConsumedMessages(\n         testing, INSTRUMENTATION_NAME, \"failed-retry-topic\", null, \"0\", 1, 1, null);\n-    // both the failed attempt and its retry deliver the record, so both must be counted\n     assertTotalConsumedMessages(testing, INSTRUMENTATION_NAME, 2);\n   }\n \n+  @Test\n+  void batchRetriesKeepFullCardinalityAndLinks() {\n+    SinkRecord first =\n+        sinkRecord(\n+            \"mixed-retry-topic\", 0, 10, \"00-11111111111111111111111111111111-1111111111111111-01\");\n+    SinkRecord second =\n+        sinkRecord(\n+            \"mixed-retry-topic\", 0, 11, \"00-22222222222222222222222222222222-2222222222222222-01\");\n+    RetryingSinkTask task = new RetryingSinkTask(1);\n+    Collection<SinkRecord> records = asList(first, second);\n+    assertThatThrownBy(() -> task.put(records)).isInstanceOf(RetriableException.class);\n+    task.put(records);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->",
+      "id": "PRRT_kwDODJKVX86ltUpE",
+      "opened": "2026-09-24T18:10:32Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectConsumedMessagesTest.java",
+      "replies": [],
+      "reviewed": "3a505d92efee092cc4a1d89c3342dfe698c4c6ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20142#discussion_r4096896215"
+    }
+  ]
+}

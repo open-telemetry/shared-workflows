@@ -1,0 +1,73 @@
+{
+  "head": "f84de9082b24b15251b6d841c1d1fafaeb4b9917",
+  "merge": "f211b41b7ab781f3871ccc29b68cc9cd32ee03a7",
+  "merged": "2026-09-08T14:54:41Z",
+  "missing_roots": 0,
+  "number": 19838,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Sorting is not safe for Spymemcached's default configuration. `ConnectionFactoryBuilder` defaults to `ARRAY_MOD`, whose locator selects `nodes[hash % nodes.length]`, so permuting this list changes which server handles each key; collapsing those permutations into one `server.address` therefore merges distinct logical targets and metric series. The linked semantic-conventions proposal also says to preserve order when it is meaningful. Preserve the configured order here (or sort only when the factory is known to use an order-independent locator).",
+      "created": "2026-08-31T03:50:48Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12;\n+\n+import java.net.InetSocketAddress;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+public class SpymemcachedServerTarget {\n+\n+  private final String address;\n+  @Nullable private final Integer port;\n+\n+  @Nullable\n+  public static SpymemcachedServerTarget create(@Nullable List<InetSocketAddress> nodes) {\n+    if (nodes == null || nodes.isEmpty()) {\n+      return null;\n+    }\n+    List<String> endpoints = new ArrayList<>(nodes.size());\n+    for (InetSocketAddress node : nodes) {\n+      String host = node == null ? null : clean(node.getHostString());\n+      if (host == null || node.getPort() <= 0) {\n+        return null;\n+      }\n+      if (nodes.size() == 1) {\n+        return new SpymemcachedServerTarget(host, node.getPort());\n+      }\n+      endpoints.add(endpoint(host, node.getPort()));\n+    }\n+    endpoints.sort(String::compareTo);",
+      "id": "PRRT_kwDODJKVX86dmuH_",
+      "opened": "2026-08-31T03:50:48Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:02:22Z",
+          "body": "Addressed in 8f0415b8d6546939fac6c0c6a70278e1c27e36f0.\n\nAnalysis: Spymemcached's default ARRAY_MOD locator uses the configured node index to route keys. The configured order is therefore part of the logical server identity. The target renderer must retain that order instead of sorting endpoints.\n\nUpsides: Distinct order-sensitive Spymemcached configurations now produce distinct server.address values and metric series. Tests cover permutations and duplicate nodes in their configured order.\n\nDownsides: Reordering an otherwise identical configured node list now changes the reported server.address, which matches the routing behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19838#discussion_r3891617096"
+        }
+      ],
+      "reviewed": "59750231f207d19bd2da655f577cd0171fe00df7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19838#discussion_r3891580233"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This test now intentionally preserves node order, but the PR description still says endpoint tokens are sorted so permutations produce the same target. Because Spymemcached's order-sensitive routing makes these permutations distinct—and the linked semantic-conventions proposal says to preserve order when meaningful—the implementation is consistent with the intended behavior; please update the PR description to match it.",
+      "created": "2026-08-31T04:07:14Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12;\n+\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.net.InetSocketAddress;\n+import java.util.ArrayList;\n+import java.util.List;\n+import org.junit.jupiter.api.Test;\n+\n+class SpymemcachedServerTargetTest {\n+\n+  @Test\n+  void singleNodeKeepsItsHostAndPort() {\n+    SpymemcachedServerTarget target =\n+        SpymemcachedServerTarget.create(singletonList(node(\"cache.example\", 11211)));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"cache.example\");\n+    assertThat(target.getPort()).isEqualTo(11211);\n+  }\n+\n+  @Test\n+  void nodeOrderIsPreserved() {",
+      "id": "PRRT_kwDODJKVX86dm2l7",
+      "opened": "2026-08-31T04:07:14Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedServerTargetTest.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:10:10Z",
+          "body": "No code change.\n\nAnalysis: The implementation preserves configured endpoint order because Spymemcached's default routing is order-sensitive. The pull request description still documented sorted endpoints. I updated it to say that multi-node targets preserve configured endpoint order and duplicate entries.\n\nUpsides: The pull request description now matches the implementation and the routing semantics.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19838#discussion_r3891641100"
+        }
+      ],
+      "reviewed": "8f0415b8d6546939fac6c0c6a70278e1c27e36f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19838#discussion_r3891631990"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `AttributesBuilder.put` already ignores null values, so this guard and forwarding local are redundant. Pass the getter result directly.",
+      "created": "2026-09-04T14:42:34Z",
+      "hunk": "@@ -0,0 +1,143 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.semconv.network.ServerAttributesExtractor;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import net.spy.memcached.MemcachedConnection;\n+import net.spy.memcached.MemcachedNode;\n+import org.junit.jupiter.api.Test;\n+\n+class SpymemcachedAttributesGetterTest {\n+\n+  private final SpymemcachedAttributesGetter getter = new SpymemcachedAttributesGetter();\n+\n+  @Test\n+  void singleDefaultPortIsOmittedInStableTelemetry() {\n+    SpymemcachedRequest request = request(singletonList(node(\"one.example\", 11211)));\n+    request.setHandlingNode(memcachedNode(\"selected.example\", 11212));\n+\n+    assertThat(getter.getServerAddress(request))\n+        .isEqualTo(emitStableDatabaseSemconv() ? \"one.example\" : \"selected.example\");\n+    assertThat(getter.getServerPort(request)).isEqualTo(emitStableDatabaseSemconv() ? null : 11212);\n+  }\n+\n+  @Test\n+  void customPortsStayInlineInStableMultiEndpointTelemetry() {\n+    SpymemcachedRequest request =\n+        request(asList(node(\"one.example\", 11212), node(\"two.example\", 11212)));\n+    request.setHandlingNode(memcachedNode(\"two.example\", 11212));\n+\n+    assertThat(getter.getServerAddress(request))\n+        .isEqualTo(\n+            emitStableDatabaseSemconv() ? \"one.example:11212,two.example:11212\" : \"two.example\");\n+    assertThat(getter.getServerPort(request)).isEqualTo(emitStableDatabaseSemconv() ? null : 11212);\n+  }\n+\n+  @Test\n+  void mixedPortsStayInlineInStableTelemetry() {\n+    SpymemcachedRequest request =\n+        request(asList(node(\"one.example\", 11211), node(\"two.example\", 11212)));\n+    request.setHandlingNode(memcachedNode(\"selected.example\", 11213));\n+\n+    assertThat(getter.getServerAddress(request))\n+        .isEqualTo(\n+            emitStableDatabaseSemconv()\n+                ? \"one.example:11211,two.example:11212\"\n+                : \"selected.example\");\n+    assertThat(getter.getServerPort(request)).isEqualTo(emitStableDatabaseSemconv() ? null : 11213);\n+  }\n+\n+  @Test\n+  void clientWithoutAConfiguredTargetUsesHandlingNodeInLegacyTelemetry() {\n+    SpymemcachedRequest request =\n+        SpymemcachedRequest.create(mock(MemcachedConnection.class), \"asyncGet\");\n+    request.setHandlingNode(memcachedNode(\"one.example\", 11211));\n+\n+    assertThat(getter.getServerAddress(request))\n+        .isEqualTo(emitStableDatabaseSemconv() ? null : \"one.example\");\n+    assertThat(getter.getServerPort(request)).isEqualTo(emitStableDatabaseSemconv() ? null : 11211);\n+  }\n+\n+  @Test\n+  void selectedNodeIsReportedOnlyWhenStableTelemetryIsDisabled() {\n+    MemcachedConnection connection = mock(MemcachedConnection.class);\n+    SpymemcachedRequest request = SpymemcachedRequest.create(connection, \"asyncGet\");\n+    request.setHandlingNode(memcachedNode(\"selected.example\", 11212));\n+    AttributesBuilder attributes = Attributes.builder();\n+\n+    extractServerAttributes(attributes, request);\n+\n+    Attributes result = attributes.build();\n+    assertThat(result.get(SERVER_ADDRESS))\n+        .isEqualTo(emitStableDatabaseSemconv() ? null : \"selected.example\");\n+    assertThat(result.get(SERVER_PORT)).isEqualTo(emitStableDatabaseSemconv() ? null : 11212L);\n+  }\n+\n+  @Test\n+  void selectedNodeDoesNotOverwriteStableConfiguredTarget() {\n+    MemcachedConnection connection = mock(MemcachedConnection.class);\n+    SpymemcachedSingletons.setServerTarget(\n+        connection, asList(node(\"one.example\", 11212), node(\"two.example\", 11212)));\n+    SpymemcachedRequest request = SpymemcachedRequest.create(connection, \"asyncGet\");\n+    request.setHandlingNode(memcachedNode(\"selected.example\", 11213));\n+    AttributesBuilder attributes = Attributes.builder();\n+    attributes.put(SERVER_ADDRESS, getter.getServerAddress(request));\n+    Integer serverPort = getter.getServerPort(request);\n+    if (serverPort != null) {\n+      attributes.put(SERVER_PORT, serverPort);\n+    }",
+      "id": "PRRT_kwDODJKVX86fVRUi",
+      "opened": "2026-09-04T14:42:35Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-09-07T19:03:58Z",
+          "body": "No code change.\n\nAnalysis: `SERVER_PORT` has type `AttributeKey<Long>`, but `getServerPort()` returns `Integer`. Passing the getter result directly selects the primitive `put(AttributeKey<Long>, int)` overload. Java unboxes a null value before `put()` runs. The getter returns null in stable semantic convention mode, so the guard is required to avoid a `NullPointerException`.\n\nUpsides: This keeps the stable semantic convention null path safe.\n\nDownsides: The test keeps a small local variable and null guard. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19838#discussion_r3952116249"
+        }
+      ],
+      "reviewed": "f84de9082b24b15251b6d841c1d1fafaeb4b9917",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19838#discussion_r3935100923"
+    }
+  ]
+}

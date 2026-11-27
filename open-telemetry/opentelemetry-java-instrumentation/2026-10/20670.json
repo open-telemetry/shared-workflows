@@ -1,0 +1,31 @@
+{
+  "head": "86bf550fd8568ed73a765e83fe66a6e5d9d6e32b",
+  "merge": "ff6dd13e61f1538a723fe4f6fdff93f4b21d12ac",
+  "merged": "2026-10-18T09:58:12Z",
+  "missing_roots": 0,
+  "number": 20670,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete this PR's suite-owned test-execution migration by moving shared Test-task settings from project-wide `tasks.withType<Test>().configureEach` blocks, including equivalent `withType<Test>()` blocks inside `tasks`, into `configureEach` inside the existing default `test` suite's `executions` block for the subprojects listed below. This is a structural cleanup, not an intentional behavior change. These subprojects only have the default suite and its execution variants.\n\nKeep one `executions` block per suite. Preserve every setting's value, condition, and effective scope so the default execution and all existing variants receive the same shared settings as before. Keep default-only filters, exclusions, and variant-specific settings in their current scopes, and preserve task names, metadata profiles, dependencies, classpaths, and check coverage. Do not add suites, variants, or telemetry labels, migrate deferred modules, or broaden the PR. In particular, leave suffix spelling such as `register(\"AddBaggage\")` unchanged and do not modify the helper's `suite.name + suffix` naming behavior.\n\n- `instrumentation/aws-lambda/aws-lambda-core-1.0/javaagent/build.gradle.kts` and `instrumentation/aws-lambda/aws-lambda-core-1.0/library/build.gradle.kts`: move all three shared JDK JVM arguments, including both `--add-opens` arguments and `-XX:+IgnoreUnrecognizedVMOptions`.\n- `instrumentation/aws-sdk/aws-sdk-1.11/library-autoconfigure/build.gradle.kts`: move the shared experimental span-attribute flag, messaging-header inclusion setting, and `testLatestDeps`. Preserve the default-only receive flag and exclusion separately.\n- `instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts`: move shared `testLatestDeps` and the genai message-content capture flag.\n- `instrumentation/openai/openai-java-1.1/library/build.gradle.kts`: move shared `testLatestDeps`.\n\nImportant exceptions: leave the project-wide `testLatestDeps` settings in `instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts` and `instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts` global. Those projects also have custom suites that need these settings. Do not move those globals into the default suite or restructure their custom suites.\n\nRemove the corresponding global Test configuration blocks once their settings are covered by the suite. Preserve existing comments that explain non-obvious constraints. Validate the affected modules with the repository's documented formatting and focused checks, and update this existing PR without changing its draft/ready state. Acceptance: the listed single-suite subprojects own these shared settings through `test.executions.configureEach`, with no change in effective test behavior.",
+      "created": "2026-10-18T00:13:24Z",
+      "hunk": "@@ -20,23 +23,21 @@ dependencies {\n   testImplementation(project(\":instrumentation:aws-lambda:aws-lambda-core-1.0:testing\"))\n }\n \n-tasks {\n-  withType<Test>().configureEach {\n-    // required on jdk17\n-    jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-    jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n-    jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n-  }\n-\n-  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.preview=logs\")\n-  }\n+tasks.withType<Test>().configureEach {\n+  // required on jdk17\n+  jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n+  jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n+  jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+}\n \n-  check {\n-    dependsOn(testExceptionSignalLogs)\n+testing {\n+  suites {\n+    named<JvmTestSuite>(\"test\") {\n+      executions {",
+      "id": "PRRT_kwDODJKVX86tlzwD",
+      "opened": "2026-10-18T00:13:23Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-18T00:23:06Z",
+          "body": "Addressed in 86bf550f. Shared settings now live in the five existing `test.executions.configureEach` blocks; default-only filters and receive configuration remain separate, and both SDK library globals are unchanged. Formatting, focused API/library tests, and lifecycle checks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20670#discussion_r4305111739"
+        }
+      ],
+      "reviewed": "3ff072b02c0002cb9d66d568cebfb17b28e2aca7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20670#discussion_r4305086680"
+    }
+  ]
+}

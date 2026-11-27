@@ -1,0 +1,40 @@
+{
+  "head": "99c4a7b5e08ad7d7c7c86991805e82fde519d5f3",
+  "merge": "28e9b0b18859055d0cd70f000054b416afe99010",
+  "merged": "2026-08-28T23:28:04Z",
+  "missing_roots": 0,
+  "number": 102,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The coverage table still lists only `opentelemetry-agno` for Agno (line 114), so it does not document the two implementations this PR adds. Update the Agno row to include `openinference` and `openllmetry`; otherwise the repository's implementation contract contradicts both the new directories and the PR description.",
+      "created": "2026-08-28T06:39:56Z",
+      "hunk": "@@ -124,7 +124,7 @@ classes than the row, the row says so.\n | `openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `opentelemetry-openai`, `opentelemetry-langchain-openai`, `openinference`, `openllmetry` |\n | `openai-agents` | invoke_agent, automatic_tool_calling. The Agents SDK wraps every run in a trace, so the workflow span comes with each of those rather than from a scenario of its own | `opentelemetry-openai-agents`, `openinference`, `openllmetry` |\n | `pydantic-ai` | invoke_agent, automatic_tool_calling | `native`, `openinference`<br>`openinference` rewrites the library's own spans from a span processor rather than instrumenting it<br>no `openllmetry` for this library |\n-| `qwen-agent` | invoke_agent, automatic_tool_calling. Assistant runs its Memory sub-agent, so each run carries a second agent span | `opentelemetry-qwen-agent` |\n+| `qwen-agent` | invoke_agent, automatic_tool_calling. Assistant runs its Memory sub-agent, so each run carries a second agent span | `opentelemetry-qwen-agent`<br>no `openinference` or `openllmetry` for this library |",
+      "id": "PRRT_kwDOTuzK5c6dFMgm",
+      "opened": "2026-08-28T06:39:57Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "539a5b7c82e4fd70422f35ee391de7d1131b8eb7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/102#discussion_r3878458461"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "intentional - just bundling into this PR",
+      "created": "2026-08-28T15:56:06Z",
+      "hunk": "@@ -124,7 +124,7 @@ classes than the row, the row says so.\n | `openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `opentelemetry-openai`, `opentelemetry-langchain-openai`, `openinference`, `openllmetry` |\n | `openai-agents` | invoke_agent, automatic_tool_calling. The Agents SDK wraps every run in a trace, so the workflow span comes with each of those rather than from a scenario of its own | `opentelemetry-openai-agents`, `openinference`, `openllmetry` |\n | `pydantic-ai` | invoke_agent, automatic_tool_calling | `native`<br>no `openinference`: the package is a span processor over the library's own spans, not an instrumentation of it, so it adds no coverage<br>no `openllmetry` for this library |\n-| `qwen-agent` | invoke_agent, automatic_tool_calling. Assistant runs its Memory sub-agent, so each run carries a second agent span | `opentelemetry-qwen-agent` |\n+| `qwen-agent` | invoke_agent, automatic_tool_calling. Assistant runs its Memory sub-agent, so each run carries a second agent span | `opentelemetry-qwen-agent`<br>no `openinference` or `openllmetry` for this library |",
+      "id": "PRRT_kwDOTuzK5c6dOXBT",
+      "opened": "2026-08-28T15:56:05Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "c8598d68fd8d92c7ec4042f163a4ceb3fd80d7ca",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/102#discussion_r3882028573"
+    }
+  ]
+}

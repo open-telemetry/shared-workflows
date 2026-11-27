@@ -1,0 +1,67 @@
+{
+  "head": "662cbf7467f61678d9fbd1128e58f24d2e727ff2",
+  "merge": "81226bdafd90f4e285d2f421cacb22034fe0ec1e",
+  "merged": "2026-08-18T17:21:36Z",
+  "missing_roots": 0,
+  "number": 19658,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`cassandra.storage.load` represents a point-in-time size value; modeling it as an `updowncounter` changes the semantic meaning (additive delta vs instantaneous measurement) and can lead to incorrect aggregation/temporality. Use a `gauge` instrument for an absolute current size value (keep `updowncounter` only for values that are updated via increments/decrements as a sum).",
+      "created": "2026-08-17T17:31:53Z",
+      "hunk": "@@ -0,0 +1,185 @@\n+groups:\n+  - id: attributes.cassandra\n+    type: attribute_group\n+    brief: Cassandra attributes\n+    attributes:\n+      - id: cassandra.operation\n+        type:\n+          members:\n+            - id: read\n+              value: \"read\"\n+              brief: Read operation\n+              stability: development\n+            - id: write\n+              value: \"write\"\n+              brief: Write operation\n+              stability: development\n+            - id: rangeslice\n+              value: \"rangeslice\"\n+              brief: Range slice operation\n+              stability: development\n+        stability: development\n+        brief: Cassandra operation type.\n+        examples:\n+          - \"read\"\n+          - \"write\"\n+          - \"rangeslice\"\n+      - id: cassandra.status\n+        type:\n+          members:\n+            - id: unavailable\n+              value: \"unavailable\"\n+              brief: Unavailable error\n+              stability: development\n+            - id: timeout\n+              value: \"timeout\"\n+              brief: Timeout error\n+              stability: development\n+            - id: failure\n+              value: \"failure\"\n+              brief: Failure error\n+              stability: development\n+        stability: development\n+        brief: Cassandra request error status.\n+        examples:\n+          - \"unavailable\"\n+          - \"timeout\"\n+          - \"failure\"\n+      - id: cassandra.keyspace\n+        type: string\n+        stability: development\n+        brief: Cassandra keyspace.\n+        examples:\n+          - \"test\"\n+      - id: cassandra.table\n+        type: string\n+        stability: development\n+        brief: Cassandra table.\n+        examples:\n+          - \"data\"\n+      - id: cassandra.compaction.task_type\n+        type: string\n+        stability: development\n+        brief: Cassandra compaction task type.\n+        examples:\n+          - \"COMPACTION\"\n+\n+  - id: metric.cassandra.compaction.tasks.completed\n+    metric_name: cassandra.compaction.tasks.completed\n+    type: metric\n+    stability: development\n+    brief: Number of completed compactions since server start.\n+    unit: \"{task}\"\n+    instrument: counter\n+    attributes: []\n+\n+  - id: metric.cassandra.compaction.tasks.pending\n+    metric_name: cassandra.compaction.tasks.pending\n+    type: metric\n+    stability: development\n+    brief: Estimated number of compactions remaining to perform.\n+    unit: \"{task}\"\n+    instrument: gauge\n+    attributes: []\n+\n+  - id: metric.cassandra.storage.load\n+    metric_name: cassandra.storage.load\n+    type: metric\n+    stability: development\n+    brief: Size of the on disk data size this node manages.\n+    unit: By\n+    instrument: updowncounter",
+      "id": "PRRT_kwDODJKVX86Z2AQO",
+      "opened": "2026-08-17T17:31:54Z",
+      "path": "instrumentation/jmx-metrics/model/cassandra.yaml",
+      "replies": [
+        {
+          "at": "2026-08-18T07:02:58Z",
+          "body": "the weaver definition matches how it's being currently implemented, also there are lots of other metrics already captured with `updowncounter` that represent an instantaneous measurement so this is fine. Using `gauge` would also indicate that this metric can't be aggregated, which is not true as we should be able to get the sum of two measurements across nodes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19658#discussion_r3801759961"
+        }
+      ],
+      "reviewed": "057257308a345ee5b4f1f2487bc9425ed8b44168",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19658#discussion_r3797556877"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`cassandra.storage.hints.in_progress` is described as a current in-flight count; if the JMX source provides an absolute instantaneous value (typical for JMX), it should be modeled as a `gauge` rather than an `updowncounter` (which implies a sum of deltas). Switching to `gauge` will align metric semantics with the stated brief.",
+      "created": "2026-08-17T17:31:54Z",
+      "hunk": "@@ -0,0 +1,185 @@\n+groups:\n+  - id: attributes.cassandra\n+    type: attribute_group\n+    brief: Cassandra attributes\n+    attributes:\n+      - id: cassandra.operation\n+        type:\n+          members:\n+            - id: read\n+              value: \"read\"\n+              brief: Read operation\n+              stability: development\n+            - id: write\n+              value: \"write\"\n+              brief: Write operation\n+              stability: development\n+            - id: rangeslice\n+              value: \"rangeslice\"\n+              brief: Range slice operation\n+              stability: development\n+        stability: development\n+        brief: Cassandra operation type.\n+        examples:\n+          - \"read\"\n+          - \"write\"\n+          - \"rangeslice\"\n+      - id: cassandra.status\n+        type:\n+          members:\n+            - id: unavailable\n+              value: \"unavailable\"\n+              brief: Unavailable error\n+              stability: development\n+            - id: timeout\n+              value: \"timeout\"\n+              brief: Timeout error\n+              stability: development\n+            - id: failure\n+              value: \"failure\"\n+              brief: Failure error\n+              stability: development\n+        stability: development\n+        brief: Cassandra request error status.\n+        examples:\n+          - \"unavailable\"\n+          - \"timeout\"\n+          - \"failure\"\n+      - id: cassandra.keyspace\n+        type: string\n+        stability: development\n+        brief: Cassandra keyspace.\n+        examples:\n+          - \"test\"\n+      - id: cassandra.table\n+        type: string\n+        stability: development\n+        brief: Cassandra table.\n+        examples:\n+          - \"data\"\n+      - id: cassandra.compaction.task_type\n+        type: string\n+        stability: development\n+        brief: Cassandra compaction task type.\n+        examples:\n+          - \"COMPACTION\"\n+\n+  - id: metric.cassandra.compaction.tasks.completed\n+    metric_name: cassandra.compaction.tasks.completed\n+    type: metric\n+    stability: development\n+    brief: Number of completed compactions since server start.\n+    unit: \"{task}\"\n+    instrument: counter\n+    attributes: []\n+\n+  - id: metric.cassandra.compaction.tasks.pending\n+    metric_name: cassandra.compaction.tasks.pending\n+    type: metric\n+    stability: development\n+    brief: Estimated number of compactions remaining to perform.\n+    unit: \"{task}\"\n+    instrument: gauge\n+    attributes: []\n+\n+  - id: metric.cassandra.storage.load\n+    metric_name: cassandra.storage.load\n+    type: metric\n+    stability: development\n+    brief: Size of the on disk data size this node manages.\n+    unit: By\n+    instrument: updowncounter\n+    attributes: []\n+\n+  - id: metric.cassandra.storage.hints.count\n+    metric_name: cassandra.storage.hints.count\n+    type: metric\n+    stability: development\n+    brief: Number of hint messages written to this node since server start.\n+    unit: \"{hint}\"\n+    instrument: counter\n+    attributes: []\n+\n+  - id: metric.cassandra.storage.hints.in_progress\n+    metric_name: cassandra.storage.hints.in_progress\n+    type: metric\n+    stability: development\n+    brief: Number of hints attempting to be sent currently.\n+    unit: \"{hint}\"\n+    instrument: updowncounter",
+      "id": "PRRT_kwDODJKVX86Z2AQz",
+      "opened": "2026-08-17T17:31:54Z",
+      "path": "instrumentation/jmx-metrics/model/cassandra.yaml",
+      "replies": [
+        {
+          "at": "2026-08-18T07:03:10Z",
+          "body": "(same as above)\r\n\r\nthe weaver definition matches how it's being currently implemented, also there are lots of other metrics already captured with `updowncounter` that represent an instantaneous measurement so this is fine. Using `gauge` would also indicate that this metric can't be aggregated, which is not true as we should be able to get the sum of two measurements across nodes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19658#discussion_r3801761170"
+        }
+      ],
+      "reviewed": "057257308a345ee5b4f1f2487bc9425ed8b44168",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19658#discussion_r3797556925"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The handler lower-cases the task type and replaces spaces with underscores, so `COMPACTION` is never emitted.\n\n```suggestion\n          - \"compaction\"\n```",
+      "created": "2026-08-18T13:36:58Z",
+      "hunk": "@@ -0,0 +1,185 @@\n+groups:\n+  - id: attributes.cassandra\n+    type: attribute_group\n+    brief: Cassandra attributes\n+    attributes:\n+      - id: cassandra.operation\n+        type:\n+          members:\n+            - id: read\n+              value: \"read\"\n+              brief: Read operation\n+              stability: development\n+            - id: write\n+              value: \"write\"\n+              brief: Write operation\n+              stability: development\n+            - id: rangeslice\n+              value: \"rangeslice\"\n+              brief: Range slice operation\n+              stability: development\n+        stability: development\n+        brief: Cassandra operation type.\n+        examples:\n+          - \"read\"\n+          - \"write\"\n+          - \"rangeslice\"\n+      - id: cassandra.status\n+        type:\n+          members:\n+            - id: unavailable\n+              value: \"unavailable\"\n+              brief: Unavailable error\n+              stability: development\n+            - id: timeout\n+              value: \"timeout\"\n+              brief: Timeout error\n+              stability: development\n+            - id: failure\n+              value: \"failure\"\n+              brief: Failure error\n+              stability: development\n+        stability: development\n+        brief: Cassandra request error status.\n+        examples:\n+          - \"unavailable\"\n+          - \"timeout\"\n+          - \"failure\"\n+      - id: cassandra.keyspace\n+        type: string\n+        stability: development\n+        brief: Cassandra keyspace.\n+        examples:\n+          - \"test\"\n+      - id: cassandra.table\n+        type: string\n+        stability: development\n+        brief: Cassandra table.\n+        examples:\n+          - \"data\"\n+      - id: cassandra.compaction.task_type\n+        type: string\n+        stability: development\n+        brief: Cassandra compaction task type.\n+        examples:\n+          - \"COMPACTION\"",
+      "id": "PRRT_kwDODJKVX86aIEwP",
+      "opened": "2026-08-18T13:40:56Z",
+      "path": "instrumentation/jmx-metrics/model/cassandra.yaml",
+      "replies": [],
+      "reviewed": "057257308a345ee5b4f1f2487bc9425ed8b44168",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19658#discussion_r3804553353"
+    }
+  ]
+}

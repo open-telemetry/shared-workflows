@@ -1,0 +1,201 @@
+{
+  "head": "3049662f8327739678c478563a5d7d33562d830e",
+  "merge": "90a4de99f59545516de86a3f2c34ae692995bca5",
+  "merged": "2026-07-17T00:29:57Z",
+  "missing_roots": 0,
+  "number": 19142,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Moved before `isIndyEnabled` check so that `helperClassStrategy` method wouldn't be ignored. With this  user specified value for `helperClassStrategy` is honored, but the autodetection is disabled for now unless the indy enabled flag is used.",
+      "created": "2026-07-08T05:44:49Z",
+      "hunk": "@@ -103,23 +102,21 @@ AgentBuilder install(\n   }\n \n   private boolean useIndy(InstrumentationModule instrumentationModule) {\n+    // first check whether user has specified how the helper classes should be handled\n+    HelperClassStrategy helperClassStrategy = instrumentationModule.helperClassStrategy();",
+      "id": "PRRT_kwDODJKVX86PILd8",
+      "opened": "2026-07-08T05:44:48Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java",
+      "replies": [],
+      "reviewed": "01875d013cc1d3f1e668c1da59e1a0d1468814df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3541489864"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `HelperClassStrategy.ISOLATED` branch returns `true` before checking `AgentDistributionConfig.get().isIndyEnabled()`, which contradicts the comment that indy \"currently needs to be enabled with a flag\" and changes prior behavior (a module can force indy even when the global indy flag is off). If the flag is still intended to gate indy, consider only honoring `ISOLATED` after the flag check (while still allowing `INJECTED` to force-disable).",
+      "created": "2026-07-08T05:51:58Z",
+      "hunk": "@@ -103,23 +102,21 @@ AgentBuilder install(\n   }\n \n   private boolean useIndy(InstrumentationModule instrumentationModule) {\n+    // first check whether user has specified how the helper classes should be handled\n+    HelperClassStrategy helperClassStrategy = instrumentationModule.helperClassStrategy();\n+    switch (helperClassStrategy) {\n+      case INJECTED:\n+        return false;\n+      case ISOLATED:\n+        return true;",
+      "id": "PRRT_kwDODJKVX86PIROE",
+      "opened": "2026-07-08T05:51:58Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-15T18:07:34Z",
+          "body": "No code change at afa2a783213b22a0b10fb09ee081f3bf24902c41: the reordered check is intentional so explicit INJECTED or ISOLATED module strategies are honored, while the global indy flag gates only DEFAULT autodetection; the referenced \"currently needs to be enabled with a flag\" comment was removed by this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589685810"
+        }
+      ],
+      "reviewed": "01875d013cc1d3f1e668c1da59e1a0d1468814df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3541523736"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `DEFAULT` can also select isolated loading, and every current override of this method relies on that path. `installIndyModule` then consumes this list even though the enum value is not `ISOLATED`, so the “only” wording gives extension authors incorrect guidance. Document both explicit and auto-detected isolated loading.",
+      "created": "2026-07-15T18:13:52Z",
+      "hunk": "@@ -165,4 +165,58 @@ public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n   public List<String> getAdditionalHelperClassNames() {\n     return emptyList();\n   }\n+\n+  /**\n+   * Returns a list of helper classes that will be defined in the class loader of the instrumented\n+   * library.\n+   *\n+   * <p>This method only takes effect when using {@link HelperClassStrategy#ISOLATED} strategy, with\n+   * {@link HelperClassStrategy#INJECTED} strategy all helper classes are already injected into the\n+   * class loader of the instrumented library.",
+      "id": "PRRT_kwDODJKVX86RM0tC",
+      "opened": "2026-07-15T18:13:53Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/InstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-07-15T18:20:31Z",
+          "body": "Addressed in ab4342309afe371bdbb1b4f06e0fba580accd596: the injectedClassNames Javadoc now covers effective isolated loading selected either explicitly with ISOLATED or automatically through DEFAULT.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589770708"
+        }
+      ],
+      "reviewed": "afa2a783213b22a0b10fb09ee081f3bf24902c41",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589727136"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `DEFAULT` may also resolve to isolated helper loading, and the existing modules overriding this method use that strategy. As written, the documentation implies their exposed classes are not supported unless they explicitly return `ISOLATED`; describe the effective isolated-loading mode instead.",
+      "created": "2026-07-15T18:13:53Z",
+      "hunk": "@@ -165,4 +165,58 @@ public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n   public List<String> getAdditionalHelperClassNames() {\n     return emptyList();\n   }\n+\n+  /**\n+   * Returns a list of helper classes that will be defined in the class loader of the instrumented\n+   * library.\n+   *\n+   * <p>This method only takes effect when using {@link HelperClassStrategy#ISOLATED} strategy, with\n+   * {@link HelperClassStrategy#INJECTED} strategy all helper classes are already injected into the\n+   * class loader of the instrumented library.\n+   */\n+  public List<String> injectedClassNames() {\n+    return emptyList();\n+  }\n+\n+  /**\n+   * Returns a list of instrumentation helper classes that are exposed to the application class\n+   * loader.\n+   *\n+   * <p>When using {@link HelperClassStrategy#ISOLATED} strategy helper classes are loaded into a\n+   * separate class loader. Classes from that class loader aren't visible to the instrumented\n+   * application. This method can be used to expose some of the helper classes to the application\n+   * class loader, so that they can be loaded through the loadClass method of the application class\n+   * loader. This can for example be used to add a SPI implementation that can be loaded via the\n+   * ServiceLoader.",
+      "id": "PRRT_kwDODJKVX86RM0tk",
+      "opened": "2026-07-15T18:13:53Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/InstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-07-15T18:20:33Z",
+          "body": "Addressed in ab4342309afe371bdbb1b4f06e0fba580accd596: the exposedClassNames Javadoc now describes effective isolated loading selected either explicitly with ISOLATED or automatically through DEFAULT.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589770863"
+        }
+      ],
+      "reviewed": "afa2a783213b22a0b10fb09ee081f3bf24902c41",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589727180"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The contributor guide still directs extension authors to implement `ExperimentalInstrumentationModule#injectedClassNames` (`docs/contributing/writing-instrumentation-module.md:377-380`), but this PR removes that member from the interface. Update the guide to reference the method on `InstrumentationModule`; otherwise the documented extension path points to a nonexistent API.",
+      "created": "2026-07-15T18:25:41Z",
+      "hunk": "@@ -165,4 +165,60 @@ public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n   public List<String> getAdditionalHelperClassNames() {\n     return emptyList();\n   }\n+\n+  /**\n+   * Returns a list of helper classes that will be defined in the class loader of the instrumented\n+   * library.",
+      "id": "PRRT_kwDODJKVX86RNBxh",
+      "opened": "2026-07-15T18:25:41Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/InstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-07-15T18:39:41Z",
+          "body": "Addressed in e359e5e68ce49d5ef4a1b4e73947af02045532b9: the contributor guide now references InstrumentationModule#injectedClassNames instead of the removed ExperimentalInstrumentationModule member.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589889075"
+        }
+      ],
+      "reviewed": "ab4342309afe371bdbb1b4f06e0fba580accd596",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589802479"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] Moving this enum removes `ExperimentalInstrumentationModule.HelperClassStrategy` and changes the strategy method's return type for extension authors, making this a breaking change to a non-stable API. `CONTRIBUTING.md:15-25` requires an Unreleased changelog entry and migration notes for such changes; neither is currently present. Please document the old-to-new type and method migration.",
+      "created": "2026-07-15T18:48:44Z",
+      "hunk": "@@ -165,4 +165,60 @@ public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n   public List<String> getAdditionalHelperClassNames() {\n     return emptyList();\n   }\n+\n+  /**\n+   * Returns a list of helper classes that will be defined in the class loader of the instrumented\n+   * library.\n+   *\n+   * <p>This method takes effect when isolated helper loading is selected, either explicitly with\n+   * {@link HelperClassStrategy#ISOLATED} or automatically with {@link HelperClassStrategy#DEFAULT}.\n+   * With {@link HelperClassStrategy#INJECTED}, all helper classes are already injected into the\n+   * class loader of the instrumented library.\n+   */\n+  public List<String> injectedClassNames() {\n+    return emptyList();\n+  }\n+\n+  /**\n+   * Returns a list of instrumentation helper classes that are exposed to the application class\n+   * loader.\n+   *\n+   * <p>When isolated helper loading is selected, either explicitly with {@link\n+   * HelperClassStrategy#ISOLATED} or automatically with {@link HelperClassStrategy#DEFAULT}, helper\n+   * classes are loaded into a separate class loader. Classes from that class loader aren't visible\n+   * to the instrumented application. This method can be used to expose some of the helper classes\n+   * to the application class loader, so that they can be loaded through the loadClass method of the\n+   * application class loader. This can for example be used to add a SPI implementation that can be\n+   * loaded via the ServiceLoader.\n+   */\n+  public List<String> exposedClassNames() {\n+    return emptyList();\n+  }\n+\n+  /**\n+   * Allows instrumentation modules to choose whether the helper classes should be injected into the\n+   * same class loader as the instrumented library, or into an isolated class loader.\n+   */\n+  public HelperClassStrategy helperClassStrategy() {\n+    return HelperClassStrategy.DEFAULT;\n+  }\n+\n+  /** Enum describing helper class handling strategies. */\n+  public enum HelperClassStrategy {",
+      "id": "PRRT_kwDODJKVX86RNadK",
+      "opened": "2026-07-15T18:48:45Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/InstrumentationModule.java",
+      "replies": [],
+      "reviewed": "e359e5e68ce49d5ef4a1b4e73947af02045532b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589945203"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The strategy lookup now applies to plain `InstrumentationModule` implementations, including the intentional ability for `INJECTED` and `ISOLATED` to override the global indy setting, but no test currently exercises `helperClassStrategy()`. Add cases using a module that does not implement `ExperimentalInstrumentationModule` for all three strategy values with indy enabled and disabled.",
+      "created": "2026-07-15T18:48:45Z",
+      "hunk": "@@ -104,23 +103,21 @@ AgentBuilder install(\n   }\n \n   private boolean useIndy(InstrumentationModule instrumentationModule) {\n+    // first check whether user has specified how the helper classes should be handled\n+    HelperClassStrategy helperClassStrategy = instrumentationModule.helperClassStrategy();\n+    switch (helperClassStrategy) {",
+      "id": "PRRT_kwDODJKVX86RNadt",
+      "opened": "2026-07-15T18:48:45Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java",
+      "replies": [],
+      "reviewed": "e359e5e68ce49d5ef4a1b4e73947af02045532b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589945253"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `AdviceInspectorTest` covers default and advice-annotation detection, but not these newly marker-free hooks. Add plain `InstrumentationModule` cases overriding `injectedClassNames()` and `exposedClassNames()` to verify that each promoted hook selects isolated advice without implementing `ExperimentalInstrumentationModule`.",
+      "created": "2026-07-15T18:48:45Z",
+      "hunk": "@@ -113,16 +112,13 @@ public Boolean useIsolatedAdvice(\n     }\n \n     // no advice annotations were used so the instrumentation is using an AgentBuilder.Transformer\n-    if (instrumentationModule instanceof ExperimentalInstrumentationModule) {\n-      ExperimentalInstrumentationModule experimentalModule =\n-          (ExperimentalInstrumentationModule) instrumentationModule;\n-      // injected class names makes sense only for indy instrumentation\n-      if (!experimentalModule.injectedClassNames().isEmpty()) {\n-        return true;\n-      }\n-      if (!experimentalModule.exposedClassNames().isEmpty()) {\n-        return true;\n-      }\n+    // injected class names makes sense only for indy instrumentation\n+    if (!instrumentationModule.injectedClassNames().isEmpty()) {\n+      return true;\n+    }\n+    // exposed class names makes sense only for indy instrumentation\n+    if (!instrumentationModule.exposedClassNames().isEmpty()) {",
+      "id": "PRRT_kwDODJKVX86RNaeA",
+      "opened": "2026-07-15T18:48:45Z",
+      "path": "muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java",
+      "replies": [],
+      "reviewed": "e359e5e68ce49d5ef4a1b4e73947af02045532b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3589945276"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I didn't find any overrides of this method, is it needed?",
+      "created": "2026-07-15T19:32:40Z",
+      "hunk": "@@ -165,4 +165,60 @@ public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n   public List<String> getAdditionalHelperClassNames() {\n     return emptyList();\n   }\n+\n+  /**\n+   * Returns a list of helper classes that will be defined in the class loader of the instrumented\n+   * library.\n+   *\n+   * <p>This method takes effect when isolated helper loading is selected, either explicitly with\n+   * {@link HelperClassStrategy#ISOLATED} or automatically with {@link HelperClassStrategy#DEFAULT}.\n+   * With {@link HelperClassStrategy#INJECTED}, all helper classes are already injected into the\n+   * class loader of the instrumented library.\n+   */\n+  public List<String> injectedClassNames() {\n+    return emptyList();\n+  }\n+\n+  /**\n+   * Returns a list of instrumentation helper classes that are exposed to the application class\n+   * loader.\n+   *\n+   * <p>When isolated helper loading is selected, either explicitly with {@link\n+   * HelperClassStrategy#ISOLATED} or automatically with {@link HelperClassStrategy#DEFAULT}, helper\n+   * classes are loaded into a separate class loader. Classes from that class loader aren't visible\n+   * to the instrumented application. This method can be used to expose some of the helper classes\n+   * to the application class loader, so that they can be loaded through the loadClass method of the\n+   * application class loader. This can for example be used to add a SPI implementation that can be\n+   * loaded via the ServiceLoader.\n+   */\n+  public List<String> exposedClassNames() {\n+    return emptyList();\n+  }\n+\n+  /**\n+   * Allows instrumentation modules to choose whether the helper classes should be injected into the\n+   * same class loader as the instrumented library, or into an isolated class loader.\n+   */\n+  public HelperClassStrategy helperClassStrategy() {\n+    return HelperClassStrategy.DEFAULT;\n+  }",
+      "id": "PRRT_kwDODJKVX86ROIDq",
+      "opened": "2026-07-15T19:32:40Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/InstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-07-16T07:10:20Z",
+          "body": "Usually we rely on muzzle plugin to decide whether to inject or isolate helper classes. If muzzle is not applied to the plugin we'll do the same detection at runtime. This method can be used to avoid the runtime detection or set the helper class strategy manually. I added this mostly for completeness, muzzle is optional and most of extension functionality (should be everything except virtual fields) is available without it. Since the default behavior is to guess I thought it would be nice to have let users explicitly choose. Our detection fails when instrumentation mixes inline and non-inline advice and falls back to inline though really I guess it could work with isolated helper classes when simple advice is inlined.\r\nThat being said I don't feel strongly about it, if you prefer I believe this could be moved back to experimental. I'd expect the defaults to work nicely so quite possible that nobody really needs this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3593331269"
+        },
+        {
+          "at": "2026-07-16T22:41:53Z",
+          "body": "I ended up removing it back to experimental and improved the javadoc a bit for `injectedClassNames()` and `exposedClassNames()`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3599375047"
+        }
+      ],
+      "reviewed": "e359e5e68ce49d5ef4a1b4e73947af02045532b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3590206710"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing `injectedClassNames()` and `exposedClassNames()` from this interface is source- and binary-incompatible for extensions that call them through `ExperimentalInstrumentationModule` (previous bytecode uses `invokeinterface` and will fail with `NoSuchMethodError`). Per `CONTRIBUTING.md:15-25`, either retain deprecated default declarations for a compatibility window, or document this as a breaking change with an Unreleased changelog entry and migration notes.",
+      "created": "2026-07-16T23:55:25Z",
+      "hunk": "@@ -25,14 +25,6 @@ public interface ExperimentalInstrumentationModule {\n    */\n   default void registerVirtualFields(BiConsumer<String, String> virtualFieldRegistrar) {}",
+      "id": "PRRT_kwDODJKVX86RnOjl",
+      "opened": "2026-07-16T23:55:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/ExperimentalInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-07-17T00:21:26Z",
+          "body": "No code change: No code change: extensions only implement injectedClassNames() and exposedClassNames(), while agent/tooling calls them through InstrumentationModule. Existing overrides continue to dispatch, and non-overriding implementations retain the same empty-list behavior from the new superclass defaults. Without external invokeinterface callers, removing the experimental interface declarations does not break behavior or linkage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3599583219"
+        }
+      ],
+      "reviewed": "3049662f8327739678c478563a5d7d33562d830e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142#discussion_r3599497736"
+    }
+  ]
+}

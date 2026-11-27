@@ -1,0 +1,46 @@
+{
+  "head": "a3c12aecffa089a370977ec70dcd821b182cf5f6",
+  "merge": "aa996db4b68d98c4a9018f17736c4459404c57ab",
+  "merged": "2026-08-24T08:27:09Z",
+  "missing_roots": 0,
+  "number": 19753,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test verifies `db.namespace` only on the span, but the new `db.client.operation.duration` dimension remains untested. Add the metric assertion with `DB_NAMESPACE`, as the Jedis and Lettuce database-index tests do, so dropping the namespace from metric attributes is caught.\n\nThis issue also appears on line 448 of the same file.",
+      "created": "2026-08-21T18:04:22Z",
+      "hunk": "@@ -352,6 +363,93 @@ class RediscalaClientTest {\n   private def spanName(operation: String): String =\n     if (emitStableDatabaseSemconv()) s\"$operation $host:$port\" else operation\n \n+  @Test def testNonDefaultDatabaseIndex(): Unit = {\n+    val value = testing.runWithSpan(\n+      \"parent\",\n+      new ThrowingSupplier[Future[Boolean], Exception] {\n+        override def get(): Future[Boolean] =\n+          nonDefaultDbClient.set(\"non-default-db\", \"value\")\n+      }\n+    )\n+\n+    assertThat(Await.result(value, Duration.apply(\"3 second\"))).isTrue\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit =\n+        trace.hasSpansSatisfyingExactly(\n+          new Consumer[SpanDataAssert] {\n+            override def accept(span: SpanDataAssert): Unit = {\n+              span.hasName(\"parent\").hasNoParent\n+            }\n+          },\n+          new Consumer[SpanDataAssert] {\n+            override def accept(span: SpanDataAssert): Unit = {\n+              span\n+                // the database index is deliberately not part of the span name\n+                .hasName(spanName(\"SET\"))\n+                .hasKind(CLIENT)\n+                .hasParent(trace.getSpan(0))\n+                .hasAttributesSatisfyingExactly(\n+                  equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                  equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                  equalTo(DB_NAMESPACE, nonDefaultNamespace),\n+                  equalTo(SERVER_ADDRESS, host),\n+                  equalTo(SERVER_PORT, port)\n+                )\n+            }\n+          }\n+        )\n+    })\n+  }",
+      "id": "PRRT_kwDODJKVX86bPyq5",
+      "opened": "2026-08-21T18:04:23Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+      "replies": [
+        {
+          "at": "2026-08-21T21:14:12Z",
+          "body": "Addressed in d69e861fac89d4acf1ffb6654fd29201bbcac07d.\n\nAnalysis: Both `testNonDefaultDatabaseIndex` and `testNonDefaultDatabaseIndexTransaction` verified `DB_NAMESPACE` on the span but left the `db.client.operation.duration` metric unasserted. Added `assertDurationMetric` calls after each trace assertion, passing `DB_NAMESPACE` alongside `DB_SYSTEM_NAME`, `DB_OPERATION_NAME`, `SERVER_ADDRESS`, and `SERVER_PORT`. This matches the key set the instrumentation actually emits on metric points and follows the pattern used by the Jedis instrumentation tests.\n\nUpsides: A regression that drops `db.namespace` from metric attributes is now caught by the test suite rather than silently passing.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19753#discussion_r3833766851"
+        }
+      ],
+      "reviewed": "8fc734865c02033d48f8d68049ce132ce0c355a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19753#discussion_r3832545681"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think it is fine. On mysql someone could execute `use anotherdb`. Tracking whether or how databases allows changing this is too hard.",
+      "created": "2026-08-24T08:24:44Z",
+      "hunk": "@@ -19,6 +19,17 @@ public String getDbSystemName(RediscalaRequest request) {\n   @Override\n   @Nullable\n   public String getDbNamespace(RediscalaRequest request) {\n+    // Rediscala only selects the database when the connection is established, so a SELECT sent\n+    // later by application code is not reflected here.",
+      "id": "PRRT_kwDODJKVX86bn1kf",
+      "opened": "2026-08-24T08:24:43Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+      "replies": [],
+      "reviewed": "a3c12aecffa089a370977ec70dcd821b182cf5f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19753#discussion_r3841774528"
+    }
+  ]
+}

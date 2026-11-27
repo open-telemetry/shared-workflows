@@ -1,0 +1,70 @@
+{
+  "head": "6d319ba3514daafd7ffb88645dc9a34c3572a289",
+  "merge": "bf0f986532d01f2cd41459fa38568cfc48b0a5f3",
+  "merged": "2026-08-09T04:15:01Z",
+  "missing_roots": 0,
+  "number": 22,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_http_span_kind` only accepts `span.kind` values of exactly `\"client\"`/`\"server\"`. Elsewhere in this PR (and in the HTTP coverage tests) `span.kind` is treated as potentially being `CLIENT` or `SPAN_KIND_CLIENT` depending on exporter. If live-check reports an uppercased/prefixed kind, this policy will silently skip all HTTP checks (missing attributes + name format).",
+      "created": "2026-08-08T21:40:54Z",
+      "hunk": "@@ -0,0 +1,193 @@\n+# HTTP span shape, beyond what weaver checks on its own.\n+#\n+# Two things the registry can't give us:\n+#\n+#   1. Which attributes an HTTP span must carry. Weaver validates each\n+#      attribute it *sees* against the registry, but doesn't match a span to a\n+#      span definition, so it never reports one as missing. The manifests\n+#      below are the registry's `required` levels, plus the subset of\n+#      `recommended` that is unconditional.\n+#\n+#   2. The span name, which isn't an attribute at all. It matters more here\n+#      than almost anywhere: a span named after the request *path* rather than\n+#      the route template makes every request a new span name.\n+#\n+# Span status and `error.type` are checked by the runner's own policies,\n+# loaded alongside this file.\n+#\n+# https://opentelemetry.io/docs/specs/semconv/http/http-spans/\n+\n+package live_check_advice\n+\n+import rego.v1\n+\n+# ─── Expected attributes ────────────────────────────────────────────────────\n+#\n+# Sourced from the registry's own requirement levels — see\n+# `http_conformance.classify_span` for the same two span types in Python.\n+\n+_http_required[\"server\"] := {\n+\t\"http.request.method\",\n+\t\"url.path\",\n+\t\"url.scheme\",\n+}\n+\n+_http_required[\"client\"] := {\n+\t\"http.request.method\",\n+\t\"server.address\",\n+\t\"server.port\",\n+\t\"url.full\",\n+}\n+\n+# Only the Recommended attributes an instrumentation can always set. The rest\n+# of that level is conditional in prose the registry flattens away —\n+# `http.request.resend_count` exists only on a retry, `network.peer.*` only\n+# when the peer differs from the logical server, `user_agent.original` only\n+# when the client sent the header — and flagging those would blame the\n+# instrumentation for the request it was given.\n+_http_recommended[\"server\"] := {\n+\t\"client.address\",\n+\t\"network.protocol.version\",\n+\t\"server.address\",\n+}\n+\n+_http_recommended[\"client\"] := {\"network.protocol.version\"}\n+\n+deny contains _http_span_finding(\n+\t\"required_attribute_not_present\",\n+\t\"violation\",\n+\tinput.sample.span,\n+\t{\"attribute_key\": attr_name, \"kind\": kind},\n+\tsprintf(\n+\t\t\"Span '%v' is missing required attribute '%v'\",\n+\t\t[input.sample.span.name, attr_name],\n+\t),\n+) if {\n+\tkind := _http_span_kind(input.sample.span)\n+\tsome attr_name in _http_required[kind]\n+\tnot _http_has_attr(input.sample.span, attr_name)\n+}\n+\n+deny contains _http_span_finding(\n+\t\"recommended_attribute_not_present\",\n+\t\"violation\",\n+\tinput.sample.span,\n+\t{\"attribute_key\": attr_name, \"kind\": kind},\n+\tsprintf(\n+\t\t\"Span '%v' is missing recommended attribute '%v'\",\n+\t\t[input.sample.span.name, attr_name],\n+\t),\n+) if {\n+\tkind := _http_span_kind(input.sample.span)\n+\tsome attr_name in _http_recommended[kind]\n+\tnot _http_has_attr(input.sample.span, attr_name)\n+}\n+\n+# ─── Span name ──────────────────────────────────────────────────────────────\n+\n+# The name semconv gives a request whose method the instrumentation doesn't\n+# recognise. Its span is named \"HTTP\" with no method appended.\n+_http_other_method_name := \"HTTP\"\n+\n+# Server: `{method} {http.route}`, or `{method}` when there is no route —\n+# a request that matched no handler has no low-cardinality template to use.\n+_http_expected_names(span, \"server\") := names if {\n+\tmethod := _http_attr_value(span, \"http.request.method\")\n+\tnames := _http_names_with(method, _http_route(span))\n+}\n+\n+# Client: `{method}`, or `{method} {url.template}` when the instrumentation\n+# knows the template. Never the URL — that is unbounded cardinality.\n+_http_expected_names(span, \"client\") := names if {\n+\tmethod := _http_attr_value(span, \"http.request.method\")\n+\tnames := _http_names_with(method, _http_template(span))\n+}\n+\n+# `{method}` is the literal \"HTTP\" for a method the instrumentation doesn't\n+# recognise; the `{method} {target}` form still applies on top of it.\n+_http_names_with(method, suffixes) := _http_names_from(_http_other_method_name, suffixes) if {\n+\tmethod == \"_OTHER\"\n+}\n+\n+_http_names_with(method, suffixes) := _http_names_from(method, suffixes) if {\n+\tmethod != \"_OTHER\"\n+\t# concat raises on a non-string, which aborts the whole advisor run rather\n+\t# than producing one finding. A method holding a non-string is already\n+\t# wrong; leave saying so to the registry's own type check.\n+\tis_string(method)\n+}\n+\n+_http_names_from(method, suffixes) := {method} | {\n+\tconcat(\" \", [method, suffix]) |\n+\tsome suffix in suffixes\n+}\n+\n+# A set so the rule stays quiet when the attribute is absent or not a string.\n+_http_route(span) := {route |\n+\troute := _http_attr_value(span, \"http.route\")\n+\tis_string(route)\n+}\n+\n+_http_template(span) := {template |\n+\ttemplate := _http_attr_value(span, \"url.template\")\n+\tis_string(template)\n+}\n+\n+deny contains _http_span_finding(\n+\t\"http_span_name_format\",\n+\t\"violation\",\n+\tinput.sample.span,\n+\t{\n+\t\t\"kind\":     kind,\n+\t\t\"expected\": expected_list,\n+\t},\n+\tsprintf(\n+\t\t\"Span '%v' should be named one of %v; a name built from the request path or URL makes every request a new span name.\",\n+\t\t[input.sample.span.name, expected_list],\n+\t),\n+) if {\n+\tkind := _http_span_kind(input.sample.span)\n+\texpected := _http_expected_names(input.sample.span, kind)\n+\tnot expected[input.sample.span.name]\n+\n+\t# Sorted in the body, not inline in the head: a comprehension in the head\n+\t# can't see a variable the body binds, and rego reports that only when the\n+\t# rule actually fires — so a misnamed span would abort the whole advisor\n+\t# run instead of producing this finding.\n+\texpected_list := sort([name | some name in expected])\n+}\n+\n+# ─── Helpers ────────────────────────────────────────────────────────────────\n+#\n+# Prefixed `_http_`: every policy file weaver loads lands in one package, so a\n+# helper named the same as the runner's or another domain's would collide.\n+\n+# An HTTP span, by its kind. Undefined — so no rule above fires — for a span\n+# that isn't HTTP, and for one whose kind the conventions don't allow, which\n+# weaver reports on its own.\n+_http_span_kind(span) := kind if {\n+\tspan\n+\t_http_has_attr(span, \"http.request.method\")\n+\tkind := span.kind\n+\tkind in {\"client\", \"server\"}\n+}",
+      "id": "PRRT_kwDOTuzK5c6Xg9r9",
+      "opened": "2026-08-08T21:40:55Z",
+      "path": "tools/http/runner/src/http_conformance/policies/http_span_validation.rego",
+      "replies": [],
+      "reviewed": "5946508120dc4b8f7cf5eec13a5d8e92cff27f13",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/22#discussion_r3741721861"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The client-scenario snippet uses `drive(...)` and `os.environ[...]` but doesn’t import either `drive` or `os`, so the example as written won’t run if copied verbatim. Consider adding `import os` and `from otel_http_test_client import drive` inside that snippet.",
+      "created": "2026-08-08T21:40:54Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+# HTTP conformance test client\n+\n+The requests every HTTP conformance scenario makes, shared so the coverage a\n+client and a server produce is comparable — the same requests against the same\n+routes.\n+\n+A **server** scenario is its routes plus one call:\n+\n+```python\n+from otel_http_test_client import serve_and_drive\n+\n+def create_app():\n+    ...\n+\n+serve_and_drive(create_app)\n+```\n+\n+A **client** scenario hands over its own library, and the runner starts\n+[`http-mock-server`](../mock-server) for it to call:\n+\n+```python\n+drive(os.environ[\"MOCK_SERVER_URL\"], send=send)\n+```",
+      "id": "PRRT_kwDOTuzK5c6Xg9sB",
+      "opened": "2026-08-08T21:40:55Z",
+      "path": "tools/http/test-client/README.md",
+      "replies": [],
+      "reviewed": "5946508120dc4b8f7cf5eec13a5d8e92cff27f13",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/22#discussion_r3741721865"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_USER` matches any non-`/` segment for `user_id`, but the handler unconditionally casts it to `int(...)`. A request like `/users/alice` would raise `ValueError` and crash the mock server instead of returning the documented 200 JSON response.",
+      "created": "2026-08-08T21:40:54Z",
+      "hunk": "@@ -0,0 +1,79 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"The server an HTTP *client* conformance scenario calls.\n+\n+A server scenario is its own server. A client scenario needs one to call, and\n+it has to answer the same routes the server scenarios implement — otherwise\n+the two sides of the domain are measured against different traffic. So the\n+contract lives once, in ``otel_http_test_client``, and this serves it.\n+\n+Standard library only, and deliberately uninstrumented: it runs as a separate\n+process the runner starts, and nothing it emits should reach the report.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import json\n+import re\n+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer\n+from urllib.parse import urlparse\n+\n+_USER = re.compile(r\"^/users/(?P<user_id>[^/]+)$\")\n+_STATUS = re.compile(r\"^/status/(?P<code>\\d+)$\")\n+\n+\n+def _respond(path: str, method: str, body: bytes) -> tuple[int, object]:\n+    \"\"\"The route contract, as one function. See ``otel_http_test_client``.\"\"\"\n+    if path == \"/health\" and method == \"GET\":\n+        return 200, {\"ok\": True}\n+    if (user := _USER.match(path)) and method == \"GET\":\n+        return 200, {\"id\": int(user[\"user_id\"]), \"name\": \"Alice\"}\n+    if path == \"/items\" and method == \"POST\":",
+      "id": "PRRT_kwDOTuzK5c6Xg9sF",
+      "opened": "2026-08-08T21:40:55Z",
+      "path": "tools/http/mock-server/src/http_mock_server/__init__.py",
+      "replies": [],
+      "reviewed": "5946508120dc4b8f7cf5eec13a5d8e92cff27f13",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/22#discussion_r3741721872"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the `coverage-model` job, `tools/http/runner` is installed without also installing `tools/http/mock-server`, but `http-conformance` declares `otel-http-mock-server` as a runtime dependency. Since that package isn’t on PyPI, this install step will fail (or leave an unsatisfied dependency) in CI.",
+      "created": "2026-08-08T21:40:54Z",
+      "hunk": "@@ -145,12 +152,18 @@ jobs:\n           python -m pip install \\\n             -e tools/runner \\\n             -e tools/gen-ai/mock-server \\\n-            -e tools/gen-ai/runner\n+            -e tools/gen-ai/runner \\\n+            -e tools/http/runner",
+      "id": "PRRT_kwDOTuzK5c6Xg9sI",
+      "opened": "2026-08-08T21:40:55Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "5946508120dc4b8f7cf5eec13a5d8e92cff27f13",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/22#discussion_r3741721875"
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "head": "eae11a057abdfefb22a98839875e51b50ed861b6",
+  "merge": "61bc2025df2192304829df1a3ef44e7371d36719",
+  "merged": "2026-07-20T23:33:12Z",
+  "missing_roots": 0,
+  "number": 19220,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This example no longer implements `ComponentProvider`'s required `getName()` and `getType()` methods, so it cannot be compiled as shown. Include both methods as in the actual providers (for example, `ThreadDetailsComponentProvider`) to keep the documented bridge usage copyable.",
+      "created": "2026-07-14T08:42:02Z",
+      "hunk": "@@ -56,35 +58,30 @@ file_format: 1.1\n tracer_provider:\n   processors:\n     - inferred_spans:\n-        backup:\n-          diagnostic:\n-            files: true\n+        backup_diagnostic_files: true\n ```\n \n-And now the component provider that uses the Declarative Config Bridge:\n+And now the component provider:\n \n ```java\n-\n @AutoService(ComponentProvider.class)\n-public class InferredSpansComponentProvider implements ComponentProvider {\n+public class InferredSpansSpanProcessorProvider implements ComponentProvider {\n \n   @Override\n-  public String getName() {\n-    return \"inferred_spans\";\n+  public SpanProcessor create(DeclarativeConfigProperties properties) {\n+    return InferredSpansConfig.createSpanProcessor(properties);\n   }",
+      "id": "PRRT_kwDODJKVX86QrEow",
+      "opened": "2026-07-14T08:42:03Z",
+      "path": "declarative-config-bridge/README.md",
+      "replies": [],
+      "reviewed": "2bc16847a18dbf8ea20b836b5dace0e77236d543",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3577336417"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "not sure if it makes sense to extract an object that contains all of those properties (all but `path`) ",
+      "created": "2026-07-14T09:57:01Z",
+      "hunk": "@@ -94,16 +97,44 @@ final class ConfigPropertiesBackedDeclarativeConfigProperties\n \n   private final ConfigProperties configProperties;\n   private final List<String> path;\n+  private final Map<String, String> mappings;",
+      "id": "PRRT_kwDODJKVX86Qsp0x",
+      "opened": "2026-07-14T09:57:01Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [],
+      "reviewed": "2bc16847a18dbf8ea20b836b5dace0e77236d543",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3577923764"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "looks like can stay private\n```suggestion\n  private final ConfigProperties configProperties;\n```",
+      "created": "2026-07-14T18:01:32Z",
+      "hunk": "@@ -92,18 +95,46 @@ final class ConfigPropertiesBackedDeclarativeConfigProperties\n     SPECIAL_MAPPINGS.put(\"java.jmx.target.system\", \"otel.jmx.target.system\");\n   }\n \n-  private final ConfigProperties configProperties;\n+  final ConfigProperties configProperties;",
+      "id": "PRRT_kwDODJKVX86Q2Xdc",
+      "opened": "2026-07-14T18:01:32Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [],
+      "reviewed": "c825e84f06d4b302722a69a92673769822dcb112",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3581453752"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The component-local mode still inherits the adapter's instrumentation-only special cases: `SPECIAL_MAPPINGS` is checked before prefix translation, while `getLong` and `getStructuredList` also hard-code `java.jmx.discovery.delay` and `java.common.service_peer_mapping`. A component key matching one of these paths therefore escapes `configPropertyPrefix`; for example, `general.http.client.request_captured_headers` reads the global `otel.instrumentation...` key instead of the requested component namespace. Gate all three special-case paths to the full instrumentation-config mode.",
+      "created": "2026-07-20T19:39:20Z",
+      "hunk": "@@ -94,16 +96,30 @@ final class ConfigPropertiesBackedDeclarativeConfigProperties\n \n   private final ConfigProperties configProperties;\n   private final List<String> path;\n+  private final String declarativePrefix;\n+  private final String configPropertyPrefix;\n \n   static DeclarativeConfigProperties createInstrumentationConfig(\n       ConfigProperties configProperties) {\n-    return new ConfigPropertiesBackedDeclarativeConfigProperties(configProperties, emptyList());\n+    return new ConfigPropertiesBackedDeclarativeConfigProperties(\n+        configProperties, emptyList(), JAVA_DECLARATIVE_PREFIX, INSTRUMENTATION_PROPERTY_PREFIX);\n+  }\n+\n+  static DeclarativeConfigProperties createComponentProperties(\n+      ConfigProperties configProperties, String configPropertyPrefix) {\n+    return new ConfigPropertiesBackedDeclarativeConfigProperties(\n+        configProperties, emptyList(), \"\", configPropertyPrefix);",
+      "id": "PRRT_kwDODJKVX86SXEv4",
+      "opened": "2026-07-20T19:39:21Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [
+        {
+          "at": "2026-07-20T20:19:04Z",
+          "body": "Addressed in 1aabda1f7d6e3dbc23ba3fdb8e75e714a2f1572b: Restricted explicit mappings, JMX discovery-delay fallback, and service-peer structured parsing to full instrumentation configuration; added component-local collision coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617285269"
+        }
+      ],
+      "reviewed": "264b8bdbf04b9c0327b79ffd49298a821c10bc0a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617049686"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description and linked contrib PR #2988 both consume `ConfigPropertiesBackedConfigProvider.builder().setAccessPath(...)` and `DeclarativeConfigPropertiesDurationUtil.parseDuration(...)`, but this revision instead deprecates that provider and exposes `DeclarativeConfigBridge.createComponentProperties(...)` plus `DeclarativeConfigDurationUtil.getDuration(...)`. As written, the advertised follow-up cannot compile and the stated migration is not delivered. Please either retain the promised APIs or update the contrib migration and PR description to the replacement API before merging.",
+      "created": "2026-07-20T19:39:20Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.config.bridge;\n+\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+\n+/** Exposes flat {@link ConfigProperties} through the declarative configuration APIs. */\n+public final class DeclarativeConfigBridge {",
+      "id": "PRRT_kwDODJKVX86SXEvk",
+      "opened": "2026-07-20T19:39:21Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+      "replies": [
+        {
+          "at": "2026-07-20T20:19:04Z",
+          "body": "Addressed in e8b277faf60019b20fc2965fd87f7ea331a383de: Updated PR #19220's description to the final bridge APIs, left the draft contrib migration as separate follow-up work, and scoped the deprecated compatibility API suppression to its test method.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617285263"
+        }
+      ],
+      "reviewed": "264b8bdbf04b9c0327b79ffd49298a821c10bc0a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617049653"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Scope this suppression to the single test method that exercises the deprecated compatibility API; class-level suppression is reserved for cases where at least two members need it.",
+      "created": "2026-07-20T19:39:21Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.config.bridge;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.sdk.autoconfigure.spi.internal.DefaultConfigProperties;\n+import java.util.HashMap;\n+import java.util.Map;\n+import org.junit.jupiter.api.Test;\n+\n+@SuppressWarnings(\"deprecation\") // testing deprecated compatibility API\n+class ConfigPropertiesBackedConfigProviderTest {\n+  @Test\n+  void testCreateUsesDefaults() {",
+      "id": "PRRT_kwDODJKVX86SXEwO",
+      "opened": "2026-07-20T19:39:21Z",
+      "path": "declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedConfigProviderTest.java",
+      "replies": [
+        {
+          "at": "2026-07-20T20:19:04Z",
+          "body": "Addressed in e8b277faf60019b20fc2965fd87f7ea331a383de: Updated PR #19220's description to the final bridge APIs, left the draft contrib migration as separate follow-up work, and scoped the deprecated compatibility API suppression to its test method.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617285278"
+        }
+      ],
+      "reviewed": "264b8bdbf04b9c0327b79ffd49298a821c10bc0a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617049719"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The contrib inferred-spans provider is registered as `inferred_spans/development`, so both names in this example omit the suffix required to select the real provider. As written, copied YAML cannot create the processor; use `inferred_spans/development` here and in the sample `getName()`.",
+      "created": "2026-07-20T20:25:20Z",
+      "hunk": "@@ -56,35 +59,40 @@ file_format: 1.1\n tracer_provider:\n   processors:\n     - inferred_spans:",
+      "id": "PRRT_kwDODJKVX86SXzaS",
+      "opened": "2026-07-20T20:25:20Z",
+      "path": "declarative-config-bridge/README.md",
+      "replies": [
+        {
+          "at": "2026-07-20T20:30:09Z",
+          "body": "Addressed in 174e6598487d77351575f7f996c65d9078c41bb7: Updated the inferred-spans YAML key and sample ComponentProvider name to inferred_spans/development.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617346826"
+        }
+      ],
+      "reviewed": "1aabda1f7d6e3dbc23ba3fdb8e75e714a2f1572b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617318763"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This helper is only called within `DeclarativeConfigBridge`, so package-private visibility is broader than needed. Make it private to follow the codebase's principle of least access.",
+      "created": "2026-07-20T20:34:38Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.config.bridge;\n+\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+\n+/** Exposes flat {@link ConfigProperties} through the declarative configuration APIs. */\n+public final class DeclarativeConfigBridge {\n+\n+  /**\n+   * Creates the complete declarative instrumentation configuration backed by flat {@link\n+   * ConfigProperties}.\n+   */\n+  public static ConfigProvider createInstrumentationConfig(ConfigProperties configProperties) {\n+    return createConfigProvider(\n+        ConfigPropertiesBackedDeclarativeConfigProperties.createInstrumentationConfig(\n+            configProperties));\n+  }\n+\n+  /**\n+   * Creates component-local declarative properties backed by flat {@link ConfigProperties}.\n+   *\n+   * <p>The returned properties have the same root-relative shape as the properties passed to a\n+   * declarative {@code ComponentProvider}. For example, a component can read {@code enabled} while\n+   * the bridge resolves the value from {@code configPropertyPrefix + \"enabled\"}.\n+   */\n+  public static DeclarativeConfigProperties createComponentProperties(\n+      ConfigProperties configProperties, String configPropertyPrefix) {\n+    return ConfigPropertiesBackedDeclarativeConfigProperties.createComponentProperties(\n+        configProperties, configPropertyPrefix);\n+  }\n+\n+  static ConfigProvider createConfigProvider(DeclarativeConfigProperties instrumentationConfig) {",
+      "id": "PRRT_kwDODJKVX86SX8oc",
+      "opened": "2026-07-20T20:34:38Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+      "replies": [
+        {
+          "at": "2026-07-20T20:36:45Z",
+          "body": "Addressed in 10fda2745bdad810a5c587cbdd18d6bda4b0322b: Made DeclarativeConfigBridge.createConfigProvider private because it is only called within the declaring class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617384032"
+        }
+      ],
+      "reviewed": "174e6598487d77351575f7f996c65d9078c41bb7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617371853"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This promises the same component-local shape, but the returned implementation does not satisfy several `DeclarativeConfigProperties` semantics: `getPropertyKeys()` is always empty, `getStructured()` never returns `null` for a missing child, non-string scalar lists are unsupported, and component-mode structured lists are always unavailable. Components using those APIs therefore behave differently for flat config and YAML. Please document these limitations on this new public entry point (or narrow the guarantee) so external consumers do not assume full interchangeability.",
+      "created": "2026-07-20T20:43:12Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.config.bridge;\n+\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+\n+/** Exposes flat {@link ConfigProperties} through the declarative configuration APIs. */\n+public final class DeclarativeConfigBridge {\n+\n+  /**\n+   * Creates the complete declarative instrumentation configuration backed by flat {@link\n+   * ConfigProperties}.\n+   */\n+  public static ConfigProvider createInstrumentationConfig(ConfigProperties configProperties) {\n+    return createConfigProvider(\n+        ConfigPropertiesBackedDeclarativeConfigProperties.createInstrumentationConfig(\n+            configProperties));\n+  }\n+\n+  /**\n+   * Creates component-local declarative properties backed by flat {@link ConfigProperties}.\n+   *\n+   * <p>The returned properties have the same root-relative shape as the properties passed to a\n+   * declarative {@code ComponentProvider}. For example, a component can read {@code enabled} while\n+   * the bridge resolves the value from {@code configPropertyPrefix + \"enabled\"}.\n+   */",
+      "id": "PRRT_kwDODJKVX86SYF-0",
+      "opened": "2026-07-20T20:43:12Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+      "replies": [
+        {
+          "at": "2026-07-20T20:46:13Z",
+          "body": "Addressed in 5920f40550c63075735a2836e68d4a284aa373b8: Narrowed createComponentProperties to its supported scalar and string-list path translation and documented key enumeration, missing-child, scalar-list type, and structured-list limitations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617443127"
+        }
+      ],
+      "reviewed": "10fda2745bdad810a5c587cbdd18d6bda4b0322b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617426463"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Component mode still uses the instrumentation-name translator, so `backup_diagnostic_files` becomes `backup-diagnostic-files`. With the documented prefix this reads `otel.inferred.spans.backup-diagnostic-files`, not the existing `otel.inferred.spans.backup.diagnostic.files`; `min_duration` is similarly unable to reach `min.duration`. Keep the hyphen translation for complete instrumentation config, but translate component-local underscores to flat `.` separators.",
+      "created": "2026-07-20T21:01:36Z",
+      "hunk": "@@ -228,7 +258,7 @@ private String resolvePropertyKey(String name) {\n       translatedPath.append(translateName(segments[i]));",
+      "id": "PRRT_kwDODJKVX86SYYjq",
+      "opened": "2026-07-20T21:01:36Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [
+        {
+          "at": "2026-07-20T21:54:40Z",
+          "body": "No code change: No code change needed. DefaultConfigProperties normalizes property keys with ConfigUtil.normalizePropertyKey(), which replaces hyphens with periods, so otel.inferred.spans.backup-diagnostic-files resolves the existing otel.inferred.spans.backup.diagnostic.files and min-duration resolves min.duration. A component-specific underscore-to-dot rule cannot be inferred from a prefix and would introduce undocumented mode-dependent behavior; non-normalizing custom ConfigProperties implementations would require explicit mappings.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617826904"
+        }
+      ],
+      "reviewed": "8c61aa3fdc8119d8199ac584e2b2b502758d31bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19220#discussion_r3617532417"
+    }
+  ]
+}

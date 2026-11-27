@@ -1,0 +1,31 @@
+{
+  "head": "3ea117536bb2fc6425aa25ec76a217bd1568b9d9",
+  "merge": "ddf7d6741a4e75db9a2c1024496816e2d67adf14",
+  "merged": "2026-10-26T07:49:54Z",
+  "missing_roots": 0,
+  "number": 20947,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the wrapper-contract tests in this PR without changing the production fix. Update PR #20947 directly; do not create another PR.\r\n\r\nMove the newly added unwrap/isWrapperFor contract tests from instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryConnectionTest.java into the existing WrapperTest.java in the same directory. Reuse its wrap(Connection) factory fixture and simplify the test setup rather than introducing another fixture abstraction. Remove the getConnection(OpenTelemetry, Connection) overload and related imports added solely for these tests from OpenTelemetryConnectionTest, leaving its existing connection-construction tests intact.\r\n\r\nCombine unwrapReturnsWrapperForSupportedInterfaces and isWrapperForDoesNotConsultDelegateForSupportedInterfaces into one parameterized test. For each supported interface, assert both wrapper.unwrap(iface) == wrapper and wrapper.isWrapperFor(iface), then verifyNoInteractions(delegate).\r\n\r\nKeep only one connection row, created through OpenTelemetryConnection.create via the existing wrap(Connection) fixture. Remove the redundant direct-constructor connection row: the JDBC-version subclasses inherit both wrapper methods unchanged. Retain separate Statement, PreparedStatement, CallableStatement, and ResultSet cases, including inherited JDBC interfaces and Wrapper/AutoCloseable coverage.\r\n\r\nPreserve the vendor-interface delegation and unsupported-interface behavior tests, including the original SQLException identity and isWrapperFor exception propagation. Keep the production changes in OpenTelemetryConnection, OpenTelemetryStatement, and OpenTelemetryResultSet unchanged; do not introduce a shared production wrapper helper or broaden the scope.\r\n\r\nRead CONTRIBUTING.md and applicable repository instructions. Apply the narrowest relevant Spotless task before running the focused JDBC library tests for WrapperTest and OpenTelemetryConnectionTest. Acceptance criteria: the same supported wrapper/delegation contracts remain covered with less duplicated setup, the production behavior is unchanged, and the focused tests pass or any execution blocker is reported accurately.",
+      "created": "2026-10-24T22:06:41Z",
+      "hunk": "@@ -100,11 +115,130 @@ void testVerifyPrepareCallReturnsOtelWrapper() throws SQLException {\n         .isEqualTo(connection.statementInstrumenter);\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"wrappers\")\n+  void unwrapReturnsWrapperForSupportedInterfaces(Wrapper wrapper, Wrapper delegate)\n+      throws SQLException {",
+      "id": "PRRT_kwDODJKVX86v8Glb",
+      "opened": "2026-10-24T22:06:41Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryConnectionTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T22:13:42Z",
+          "body": "Addressed in 3ea11753. The wrapper-contract tests now live in `WrapperTest`, with the supported-interface assertions combined and only the `create`-based connection fixture row retained. Both focused JDBC library test classes pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20947#discussion_r4368714964"
+        }
+      ],
+      "reviewed": "2b409d9808d64b9b6b12c90a8498f445007f22d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20947#discussion_r4368691798"
+    }
+  ]
+}

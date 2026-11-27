@@ -1,0 +1,46 @@
+{
+  "head": "2bc1db3c05f401032ecc3c1717b2f6705df802bb",
+  "merge": "94b3d542af1dadd2da1a91ce91dc4bca9d20ea67",
+  "merged": "2026-04-16T10:04:02Z",
+  "missing_roots": 0,
+  "number": 17370,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I don't think we want this",
+      "created": "2026-04-01T15:53:38Z",
+      "hunk": "@@ -72,7 +72,12 @@ private static List<String> forkAndRun(String mainClassName) throws Exception {\n               }\n             });\n \n-    process.waitFor(10, SECONDS);\n+    boolean exited = process.waitFor(10, SECONDS);",
+      "id": "PRRT_kwDODJKVX854Rupp",
+      "opened": "2026-04-01T15:53:38Z",
+      "path": "instrumentation/internal/internal-application-logger/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/internal/logging/ApplicationLoggerInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-04-01T19:44:25Z",
+          "body": "just the verbosity? killing potentially hung test processes seems nice",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17370#discussion_r3024269801"
+        }
+      ],
+      "reviewed": "97af2790319ea7626413854b00c7c94e48c1140c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17370#discussion_r3023008675"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    assertThat(exited).isTrue();\n    assertThat(process.exitValue()).isZero();\n```",
+      "created": "2026-04-01T15:55:54Z",
+      "hunk": "@@ -72,7 +72,12 @@ private static List<String> forkAndRun(String mainClassName) throws Exception {\n               }\n             });\n \n-    process.waitFor(10, SECONDS);\n+    boolean exited = process.waitFor(10, SECONDS);\n+    if (!exited) {\n+      process.destroyForcibly();\n+    }\n+    assertThat(exited).as(\"subprocess should exit within 10 seconds\").isTrue();\n+    assertThat(process.exitValue()).as(\"subprocess should exit successfully\").isZero();",
+      "id": "PRRT_kwDODJKVX854Rw_N",
+      "opened": "2026-04-01T15:55:58Z",
+      "path": "instrumentation/internal/internal-application-logger/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/internal/logging/ApplicationLoggerInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "97af2790319ea7626413854b00c7c94e48c1140c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17370#discussion_r3023021103"
+    }
+  ]
+}

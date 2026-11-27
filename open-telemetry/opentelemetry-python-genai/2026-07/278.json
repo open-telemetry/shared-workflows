@@ -1,0 +1,289 @@
+{
+  "head": "b7054e826345c5aba4111299a63845938a3e6bf0",
+  "merge": "a0a8e427f086523a9cfbd55ae30151fe6bf15f94",
+  "merged": "2026-07-28T17:53:19Z",
+  "missing_roots": 0,
+  "number": 278,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The debug log for unknown chunk types will fire once per chunk when callers parse the raw-response stream into an unrelated type (e.g. BaseModel). This can spam logs on long streams and create avoidable overhead; log at most once per stream instance instead.",
+      "created": "2026-07-16T06:51:37Z",
+      "hunk": "@@ -94,6 +98,14 @@ def _set_usage(self, chunk: ChatCompletionChunk) -> None:\n             self._self_prompt_tokens = usage.prompt_tokens\n \n     def _process_chunk(self, chunk: ChatCompletionChunk) -> None:\n+        if not isinstance(chunk, ChatCompletionChunk):\n+            # raw-response stream can be parsed into a caller-defined chunk type.\n+            _logger.debug(\n+                \"Skipping telemetry for unrecognized chat chunk type %s\",\n+                type(chunk).__name__,\n+            )\n+            return",
+      "id": "PRRT_kwDOSbspP86RWLYN",
+      "opened": "2026-07-16T06:51:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [],
+      "reviewed": "dcdd8663d34bb11afbf6deaf13fa36cd19d5a386",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3593236499"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The debug log for unknown response event types will fire once per event when callers parse the raw-response stream into an unrelated type. For long streams this can spam logs; consider logging only once per stream instance.",
+      "created": "2026-07-16T06:51:37Z",
+      "hunk": "@@ -178,13 +179,21 @@ def response(self):\n         return _ResponseProxy(response, lambda: self._stop(None))\n \n     def process_event(self, event: \"ResponseStreamEvent[TextFormatT]\") -> None:\n-        event_type = event.type\n+        # raw-response stream can be parsed into a caller-defined event type.\n+        event_type = getattr(event, \"type\", None)\n+        if not isinstance(event_type, str):\n+            _logger.debug(\n+                \"Skipping telemetry for unrecognized response event type %s\",\n+                type(event).__name__,\n+            )\n+            return",
+      "id": "PRRT_kwDOSbspP86RWLYq",
+      "opened": "2026-07-16T06:51:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [],
+      "reviewed": "dcdd8663d34bb11afbf6deaf13fa36cd19d5a386",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3593236536"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "RawResponseStreamProxy memoizes the first parse() result regardless of arguments. That means subsequent parse(to=...) calls with different targets will silently return the first result, which may differ from the OpenAI SDK’s contract. Also note that returning a wrapt.ObjectProxy changes the concrete return type (isinstance/type checks), which conflicts with the repo guidance to preserve the SDK’s return contract (AGENTS.md:180-189).",
+      "created": "2026-07-16T06:51:37Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.\n+        http_response = getattr(raw_response, \"http_response\", None)\n+        close = getattr(http_response, \"close\", None)\n+        if close is not None:\n+            http_response.close = self._wrap_sync_close(close)\n+        aclose = getattr(http_response, \"aclose\", None)\n+        if aclose is not None:\n+            http_response.aclose = self._wrap_async_close(aclose)\n+\n+    def _wrap_sync_close(\n+        self, original: Callable[..., object]\n+    ) -> Callable[..., object]:\n+        def _close(*args: object, **kwargs: object) -> object:\n+            try:\n+                return original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _close\n+\n+    def _wrap_async_close(\n+        self, original: Callable[..., Awaitable[object]]\n+    ) -> Callable[..., Awaitable[object]]:\n+        async def _aclose(*args: object, **kwargs: object) -> object:\n+            try:\n+                return await original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _aclose\n+\n+    def _finalize_close_fallback(self) -> None:\n+        # When ``parse()`` built a stream wrapper, that wrapper owns\n+        # finalization; only finalize here for callers that never parsed.\n+        if self._self_parsed is None:\n+            self._finalize_once()\n+\n+    def _finalize_once(self) -> None:\n+        # ``stop()`` is not idempotent, so finalize at most once.\n+        if self._self_finalize is not None:\n+            finalize, self._self_finalize = self._self_finalize, None\n+            finalize()\n+\n+    def parse(self, *args: object, **kwargs: object) -> object:\n+        # We memoize the first parse regardless of the arguments it was called\n+        # with, so calling parse() again with different args (e.g. a different\n+        # ``to=`` type) returns the same wrapper rather than re-parsing. This is\n+        # deliberate: one raw response backs one span, and re-parsing a stream\n+        # would consume it twice anyway.\n+        if self._self_parsed is not None:\n+            return self._self_parsed\n+        stream = self.__wrapped__.parse(*args, **kwargs)",
+      "id": "PRRT_kwDOSbspP86RWLZE",
+      "opened": "2026-07-16T06:51:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [],
+      "reviewed": "dcdd8663d34bb11afbf6deaf13fa36cd19d5a386",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3593236570"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Wondering does this play nice with `opentelemetry-instrumentation-httpx`?",
+      "created": "2026-07-22T02:27:53Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.",
+      "id": "PRRT_kwDOSbspP86Sx17b",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:09:34Z",
+          "body": "it does, but added test. httpx instrumentation patches different methods - we don't await stream closure in http because it's super-fragile there",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651046358"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3626982938"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Is it possible to type these more tightly than `object`?",
+      "created": "2026-07-22T02:29:42Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],",
+      "id": "PRRT_kwDOSbspP86Sx26M",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3626988871"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Going along with above comment about typing the ctor inputs a little more, can we use `isinstance()` checks or some other type narrowing strategy?",
+      "created": "2026-07-22T02:37:17Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.\n+        http_response = getattr(raw_response, \"http_response\", None)\n+        close = getattr(http_response, \"close\", None)\n+        if close is not None:\n+            http_response.close = self._wrap_sync_close(close)\n+        aclose = getattr(http_response, \"aclose\", None)\n+        if aclose is not None:\n+            http_response.aclose = self._wrap_async_close(aclose)",
+      "id": "PRRT_kwDOSbspP86Sx8Gf",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627020114"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "do we need it to be thread safe?",
+      "created": "2026-07-22T02:43:49Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.\n+        http_response = getattr(raw_response, \"http_response\", None)\n+        close = getattr(http_response, \"close\", None)\n+        if close is not None:\n+            http_response.close = self._wrap_sync_close(close)\n+        aclose = getattr(http_response, \"aclose\", None)\n+        if aclose is not None:\n+            http_response.aclose = self._wrap_async_close(aclose)\n+\n+    def _wrap_sync_close(\n+        self, original: Callable[..., object]\n+    ) -> Callable[..., object]:\n+        def _close(*args: object, **kwargs: object) -> object:\n+            try:\n+                return original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _close\n+\n+    def _wrap_async_close(\n+        self, original: Callable[..., Awaitable[object]]\n+    ) -> Callable[..., Awaitable[object]]:\n+        async def _aclose(*args: object, **kwargs: object) -> object:\n+            try:\n+                return await original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _aclose\n+\n+    def _finalize_close_fallback(self) -> None:\n+        # When ``parse()`` built a stream wrapper, that wrapper owns\n+        # finalization; only finalize here for callers that never parsed.\n+        if self._self_parsed is None:\n+            self._finalize_once()\n+\n+    def _finalize_once(self) -> None:\n+        # ``stop()`` is not idempotent, so finalize at most once.\n+        if self._self_finalize is not None:\n+            finalize, self._self_finalize = self._self_finalize, None\n+            finalize()",
+      "id": "PRRT_kwDOSbspP86Sx_0A",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:08:19Z",
+          "body": "made underlying utils idempotent to multiple calls, but thread safety should not be necessary - underlying objects aren't",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651042579"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627042728"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "also not thread safe but maybe that's ok",
+      "created": "2026-07-22T02:45:30Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.\n+        http_response = getattr(raw_response, \"http_response\", None)\n+        close = getattr(http_response, \"close\", None)\n+        if close is not None:\n+            http_response.close = self._wrap_sync_close(close)\n+        aclose = getattr(http_response, \"aclose\", None)\n+        if aclose is not None:\n+            http_response.aclose = self._wrap_async_close(aclose)\n+\n+    def _wrap_sync_close(\n+        self, original: Callable[..., object]\n+    ) -> Callable[..., object]:\n+        def _close(*args: object, **kwargs: object) -> object:\n+            try:\n+                return original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _close\n+\n+    def _wrap_async_close(\n+        self, original: Callable[..., Awaitable[object]]\n+    ) -> Callable[..., Awaitable[object]]:\n+        async def _aclose(*args: object, **kwargs: object) -> object:\n+            try:\n+                return await original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _aclose\n+\n+    def _finalize_close_fallback(self) -> None:\n+        # When ``parse()`` built a stream wrapper, that wrapper owns\n+        # finalization; only finalize here for callers that never parsed.\n+        if self._self_parsed is None:\n+            self._finalize_once()\n+\n+    def _finalize_once(self) -> None:\n+        # ``stop()`` is not idempotent, so finalize at most once.\n+        if self._self_finalize is not None:\n+            finalize, self._self_finalize = self._self_finalize, None\n+            finalize()\n+\n+    def parse(self, *args: object, **kwargs: object) -> object:\n+        # We memoize the first parse regardless of the arguments it was called\n+        # with, so calling parse() again with different args (e.g. a different\n+        # ``to=`` type) returns the same wrapper rather than re-parsing. This is\n+        # deliberate: one raw response backs one span, and re-parsing a stream\n+        # would consume it twice anyway.\n+        if self._self_parsed is not None:\n+            return self._self_parsed",
+      "id": "PRRT_kwDOSbspP86SyAky",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:07:34Z",
+          "body": "response streams we're wrapping are not thread safe so it should be ok",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651039822"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627047311"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "might be reasonable to just check for `isinstance(result, LegacyAPIResponse)` since you mentioned it may change in future versions and we can narrow down the code here.\n\nalternatively if you want it to be open to changes or we end up supporting multiple versions, I'm partial to using Protocols with [`@runtime_checkable`](https://typing.python.org/en/latest/spec/protocol.html#runtime-checkable-decorator-and-narrowing-types-by-isinstance) to capture intent in the typing but maybe it's too annoying",
+      "created": "2026-07-22T02:49:32Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.\n+        http_response = getattr(raw_response, \"http_response\", None)\n+        close = getattr(http_response, \"close\", None)\n+        if close is not None:\n+            http_response.close = self._wrap_sync_close(close)\n+        aclose = getattr(http_response, \"aclose\", None)\n+        if aclose is not None:\n+            http_response.aclose = self._wrap_async_close(aclose)\n+\n+    def _wrap_sync_close(\n+        self, original: Callable[..., object]\n+    ) -> Callable[..., object]:\n+        def _close(*args: object, **kwargs: object) -> object:\n+            try:\n+                return original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _close\n+\n+    def _wrap_async_close(\n+        self, original: Callable[..., Awaitable[object]]\n+    ) -> Callable[..., Awaitable[object]]:\n+        async def _aclose(*args: object, **kwargs: object) -> object:\n+            try:\n+                return await original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _aclose\n+\n+    def _finalize_close_fallback(self) -> None:\n+        # When ``parse()`` built a stream wrapper, that wrapper owns\n+        # finalization; only finalize here for callers that never parsed.\n+        if self._self_parsed is None:\n+            self._finalize_once()\n+\n+    def _finalize_once(self) -> None:\n+        # ``stop()`` is not idempotent, so finalize at most once.\n+        if self._self_finalize is not None:\n+            finalize, self._self_finalize = self._self_finalize, None\n+            finalize()\n+\n+    def parse(self, *args: object, **kwargs: object) -> object:\n+        # We memoize the first parse regardless of the arguments it was called\n+        # with, so calling parse() again with different args (e.g. a different\n+        # ``to=`` type) returns the same wrapper rather than re-parsing. This is\n+        # deliberate: one raw response backs one span, and re-parsing a stream\n+        # would consume it twice anyway.\n+        if self._self_parsed is not None:\n+            return self._self_parsed\n+        stream = self.__wrapped__.parse(*args, **kwargs)\n+        if isinstance(stream, (Stream, AsyncStream)):\n+            self._self_parsed = self._self_wrap_stream(stream)\n+            return self._self_parsed\n+        # Not a stream we can drive; hand it back untouched. The close fallback\n+        # finalizes the span once the caller drains/closes the response body.\n+        _logger.debug(\n+            \"with_raw_response.parse() returned %s, not an SDK stream; \"\n+            \"skipping stream instrumentation for this call\",\n+            type(stream).__name__,\n+        )\n+        return stream\n+\n+\n+class StreamResultFactory:\n+    \"\"\"Mixin adding ``wrap_result`` to a stream wrapper class.\n+\n+    The concrete wrapper must accept ``(stream, invocation, capture_content)``.\n+    Call it from a streaming branch: a ``with_raw_response`` result (a\n+    ``LegacyAPIResponse``, detected by its ``parse`` method) is wrapped so its\n+    metadata resolves natively and ``parse()`` is deferred; a plain SDK stream\n+    is wrapped directly.\n+    \"\"\"\n+\n+    @classmethod\n+    def wrap_result(\n+        cls: type,\n+        result: object,\n+        invocation: GenAIInvocation,\n+        capture_content: bool,\n+    ) -> object:\n+        if hasattr(result, \"parse\"):",
+      "id": "PRRT_kwDOSbspP86SyDoT",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:04:11Z",
+          "body": "LegacyAPIResponse is in internal module and there are a few more types this thing can be, added Protocols with @runtime_checkable",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651029648"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627064547"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "nit maybe a stylistic thing, but im not personally a fan of mixins like this because it silently depends on all constructors having a compatible signature",
+      "created": "2026-07-22T02:53:14Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.\n+        http_response = getattr(raw_response, \"http_response\", None)\n+        close = getattr(http_response, \"close\", None)\n+        if close is not None:\n+            http_response.close = self._wrap_sync_close(close)\n+        aclose = getattr(http_response, \"aclose\", None)\n+        if aclose is not None:\n+            http_response.aclose = self._wrap_async_close(aclose)\n+\n+    def _wrap_sync_close(\n+        self, original: Callable[..., object]\n+    ) -> Callable[..., object]:\n+        def _close(*args: object, **kwargs: object) -> object:\n+            try:\n+                return original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _close\n+\n+    def _wrap_async_close(\n+        self, original: Callable[..., Awaitable[object]]\n+    ) -> Callable[..., Awaitable[object]]:\n+        async def _aclose(*args: object, **kwargs: object) -> object:\n+            try:\n+                return await original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _aclose\n+\n+    def _finalize_close_fallback(self) -> None:\n+        # When ``parse()`` built a stream wrapper, that wrapper owns\n+        # finalization; only finalize here for callers that never parsed.\n+        if self._self_parsed is None:\n+            self._finalize_once()\n+\n+    def _finalize_once(self) -> None:\n+        # ``stop()`` is not idempotent, so finalize at most once.\n+        if self._self_finalize is not None:\n+            finalize, self._self_finalize = self._self_finalize, None\n+            finalize()\n+\n+    def parse(self, *args: object, **kwargs: object) -> object:\n+        # We memoize the first parse regardless of the arguments it was called\n+        # with, so calling parse() again with different args (e.g. a different\n+        # ``to=`` type) returns the same wrapper rather than re-parsing. This is\n+        # deliberate: one raw response backs one span, and re-parsing a stream\n+        # would consume it twice anyway.\n+        if self._self_parsed is not None:\n+            return self._self_parsed\n+        stream = self.__wrapped__.parse(*args, **kwargs)\n+        if isinstance(stream, (Stream, AsyncStream)):\n+            self._self_parsed = self._self_wrap_stream(stream)\n+            return self._self_parsed\n+        # Not a stream we can drive; hand it back untouched. The close fallback\n+        # finalizes the span once the caller drains/closes the response body.\n+        _logger.debug(\n+            \"with_raw_response.parse() returned %s, not an SDK stream; \"\n+            \"skipping stream instrumentation for this call\",\n+            type(stream).__name__,\n+        )\n+        return stream\n+\n+\n+class StreamResultFactory:\n+    \"\"\"Mixin adding ``wrap_result`` to a stream wrapper class.\n+\n+    The concrete wrapper must accept ``(stream, invocation, capture_content)``.\n+    Call it from a streaming branch: a ``with_raw_response`` result (a\n+    ``LegacyAPIResponse``, detected by its ``parse`` method) is wrapped so its\n+    metadata resolves natively and ``parse()`` is deferred; a plain SDK stream\n+    is wrapped directly.\n+    \"\"\"\n+\n+    @classmethod\n+    def wrap_result(\n+        cls: type,",
+      "id": "PRRT_kwDOSbspP86SyGjB",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:04:38Z",
+          "body": "replaced with module function - looks much cleaner",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651030927"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627080257"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Since it's debug level, maybe it's OK to just spam? Idk keep me honest but I'm not sure it's worth the effort",
+      "created": "2026-07-22T02:56:26Z",
+      "hunk": "@@ -178,13 +181,24 @@ def response(self):\n         return _ResponseProxy(response, lambda: self._stop(None))\n \n     def process_event(self, event: \"ResponseStreamEvent[TextFormatT]\") -> None:\n-        event_type = event.type\n+        # raw-response stream can be parsed into a caller-defined event type.\n+        event_type = getattr(event, \"type\", None)\n+        if not isinstance(event_type, str):\n+            # Log once per stream to avoid spamming on long streams.",
+      "id": "PRRT_kwDOSbspP86SyJNK",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627096339"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "why do we need this change? Judging by the \"cast\" on L196, I think it's OK",
+      "created": "2026-07-22T02:57:42Z",
+      "hunk": "@@ -178,13 +181,24 @@ def response(self):\n         return _ResponseProxy(response, lambda: self._stop(None))\n \n     def process_event(self, event: \"ResponseStreamEvent[TextFormatT]\") -> None:\n-        event_type = event.type\n+        # raw-response stream can be parsed into a caller-defined event type.\n+        event_type = getattr(event, \"type\", None)\n+        if not isinstance(event_type, str):\n+            # Log once per stream to avoid spamming on long streams.\n+            if not self._self_logged_unknown_event:\n+                self._self_logged_unknown_event = True\n+                _logger.debug(\n+                    \"Skipping telemetry for unrecognized response event type %s\",\n+                    type(event).__name__,\n+                )\n+            return\n+\n         response: \"ParsedResponse[TextFormatT] | Response | None\" = getattr(\n             event, \"response\", None\n         )\n \n         if response and not self._self_invocation.request_model:\n-            model = response.model\n+            model = getattr(response, \"model\", None)",
+      "id": "PRRT_kwDOSbspP86SyKUN",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:05:34Z",
+          "body": "I believe it came up in some test  - it's needed because it breaks in corner cases",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651033579"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627103117"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Does this cause an `ImportError` if the instrumenting is attempted but the OpenAI SDK is not installed or not a compatible version? I think that was the reason for the lazy/defensive imports we previously had, but it might be OK already depending if this module is imported lazily from the `Instrumentor`",
+      "created": "2026-07-22T03:00:26Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream",
+      "id": "PRRT_kwDOSbspP86SyM18",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:06:26Z",
+          "body": "we're testing with oldest version of openai SDK, so it should be ok, also I don't believe we protect anywhere from original package not being installed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651035831"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627118409"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "My 2c, there will always be some whack-a-mole, but we gotta keep our sanity in terms of limiting side effects or anticipating future changes. I hope this doesn't make the AI take it too far 😆 \n\nAs an extreme example (that I think is tolerable risk), some of the function wrappers added like `_wrap_async_close()` could still break users if \n\n- the callable is a class implementing `__call__()` (pretty common in python but not the case for HTTPX)\n- user is inspecting type signatures, docstrings, etc",
+      "created": "2026-07-22T03:05:19Z",
+      "hunk": "@@ -36,6 +36,11 @@ prefer opt-in or additive. Breaking changes need explicit justification in the P\n - Adding attributes to invocations produced by the util is fine.\n - Streaming responses must be instrumented by subclassing the util's `SyncStreamWrapper` /\n   `AsyncStreamWrapper` (`opentelemetry.util.genai.stream`). Flag hand-rolled stream wrappers.\n+- Instrumentation must not change what a call returns or when its work happens. Flag: side effects",
+      "id": "PRRT_kwDOSbspP86SyPuw",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [
+        {
+          "at": "2026-07-25T21:06:42Z",
+          "body": "yeah, soften it ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651036627"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627134890"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "consider using https://docs.python.org/3/library/functools.html#functools.wraps",
+      "created": "2026-07-22T03:07:14Z",
+      "hunk": "@@ -0,0 +1,147 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Transparent proxy for streaming ``with_raw_response`` results.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from typing import TYPE_CHECKING, Awaitable, Callable\n+\n+from openai import AsyncStream, Stream\n+from wrapt import ObjectProxy\n+\n+if TYPE_CHECKING:\n+    from opentelemetry.util.genai.types import GenAIInvocation\n+\n+_logger = logging.getLogger(__name__)\n+\n+\n+class RawResponseStreamProxy(ObjectProxy):\n+    \"\"\"Proxy for a streaming ``with_raw_response`` result.\n+\n+    The OpenAI SDK returns a raw-response object (a ``LegacyAPIResponse``) from\n+    ``with_raw_response.create(stream=True)``; callers read response metadata\n+    (``headers``, ``request_id`` ...) off it and call ``parse()`` to obtain the\n+    stream. Wrapping that response (instead of the parsed stream) keeps every\n+    metadata attribute resolving natively while ``parse()`` returns an\n+    instrumented stream wrapper. Parsing is deferred until the caller asks for\n+    it and memoized so repeated calls share one span.\n+\n+    ``parse()`` wraps the result only when it is an SDK ``Stream`` /\n+    ``AsyncStream`` we know how to drive. Anything else is handed back untouched\n+    (for example the coroutine ``parse()`` the SDK documents it \"will become in\n+    the next major version\" for the async client, or a custom non-stream parse\n+    target): we can't instrument it, so we just log and step aside.\n+\n+    The span is finalized independently of ``parse()``. Whether the caller\n+    parses and drains the wrapper, drains the body directly via the raw\n+    response's ``read()``/``iter_bytes()``, or never parses at all, every path\n+    ends by closing the underlying httpx response — so a fallback on its\n+    ``close``/``aclose`` finalizes the span when ``parse()`` never built a\n+    wrapper that would finalize it instead.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        raw_response: object,\n+        wrap_stream: Callable[[object], object],\n+        finalize: Callable[[], None],\n+    ) -> None:\n+        super().__init__(raw_response)\n+        self._self_wrap_stream = wrap_stream\n+        self._self_finalize: Callable[[], None] | None = finalize\n+        self._self_parsed: object | None = None\n+        self._install_close_fallback(raw_response)\n+\n+    def _install_close_fallback(self, raw_response: object) -> None:\n+        # httpx exposes a sync ``close`` and an async ``aclose``; wrap whichever\n+        # the underlying response has so the appropriate one finalizes the span.\n+        http_response = getattr(raw_response, \"http_response\", None)\n+        close = getattr(http_response, \"close\", None)\n+        if close is not None:\n+            http_response.close = self._wrap_sync_close(close)\n+        aclose = getattr(http_response, \"aclose\", None)\n+        if aclose is not None:\n+            http_response.aclose = self._wrap_async_close(aclose)\n+\n+    def _wrap_sync_close(\n+        self, original: Callable[..., object]\n+    ) -> Callable[..., object]:\n+        def _close(*args: object, **kwargs: object) -> object:\n+            try:\n+                return original(*args, **kwargs)\n+            finally:\n+                self._finalize_close_fallback()\n+\n+        return _close\n+\n+    def _wrap_async_close(\n+        self, original: Callable[..., Awaitable[object]]\n+    ) -> Callable[..., Awaitable[object]]:\n+        async def _aclose(*args: object, **kwargs: object) -> object:",
+      "id": "PRRT_kwDOSbspP86SyRLy",
+      "opened": "2026-07-22T03:07:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-07-25T21:06:55Z",
+          "body": "nice, thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3651037459"
+        }
+      ],
+      "reviewed": "59198c789496362b8695ec4c9d4e13c7c1396bbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/278#discussion_r3627143078"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0eafc0aae5d0fa28cc39d9e1f70c92db94bc70604b6bf5f606d37c19f2213ca6",
+  "input_digest": "acfce2575a878509f80dfb4293edff28c4a8470df27441fb399d3f85eee6fdab",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86a944fc97c77e77c855753dced97ad9dcdb68ae/instrumentation/rxjava/rxjava-1.0/library/src/main/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedSubscriber.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86a944fc97c77e77c855753dced97ad9dcdb68ae/instrumentation/hystrix-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hystrix/v1_4/HystrixObservableTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/033dcdd57642eb87b43eab4cc844b62b4ed6aaed/instrumentation/rxjava/rxjava-1.0/library/src/main/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedSubscriber.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/033dcdd57642eb87b43eab4cc844b62b4ed6aaed/instrumentation/hystrix-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hystrix/v1_4/HystrixObservableTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/deb34536a366b8f465a0f921bde75f55301b99e6"
+      ],
+      "id": "PRRT_kwDODJKVX86tjuHS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "head": "7571e3140e2687f56b63423813738c35bda560a4",
+  "merge": "5cb3254816be7544fc4b88d2c631c6dd8e4f735c",
+  "merged": "2026-10-06T19:35:14Z",
+  "missing_roots": 0,
+  "number": 20396,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`stableHostList` no longer represents a semantic-convention mode; it now only indicates whether `hostList` is present. Rename it to `hasHostList` so the fallback address/port assertions describe the actual condition.",
+      "created": "2026-10-06T01:46:31Z",
+      "hunk": "@@ -264,19 +255,17 @@ private static String hostList(HttpHost deadHost) {\n   }\n \n   private static void assertConfiguredTarget(String hostList) {\n-    boolean stableHostList = emitStableDatabaseSemconv() && hostList != null;\n+    boolean stableHostList = hostList != null;",
+      "id": "PRRT_kwDODJKVX86pSdT_",
+      "opened": "2026-10-06T01:46:32Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-7.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v7_0/ElasticsearchRest7Test.java",
+      "replies": [],
+      "reviewed": "43d532e9971aba7a9ce80b68faa712fbbdd36164",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20396#discussion_r4190723093"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`stableHostList` no longer represents a semantic-convention mode; it now only indicates whether `hostList` is present. Rename it to `hasHostList` so the fallback address/port assertions describe the actual condition.",
+      "created": "2026-10-06T01:46:31Z",
+      "hunk": "@@ -297,19 +285,17 @@ private static String hostList(HttpHost deadHost) {\n   }\n \n   private static void assertConfiguredTarget(String hostList) {\n-    boolean stableHostList = emitStableDatabaseSemconv() && hostList != null;\n+    boolean stableHostList = hostList != null;",
+      "id": "PRRT_kwDODJKVX86pSdTm",
+      "opened": "2026-10-06T01:46:32Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-6.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v6_4/ElasticsearchRest6Test.java",
+      "replies": [],
+      "reviewed": "43d532e9971aba7a9ce80b68faa712fbbdd36164",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20396#discussion_r4190723058"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing the empty line. Could be done in a separate PR, or could be not done at all. Imo we already have methods that start with an empty line. ",
+      "created": "2026-10-06T10:41:48Z",
+      "hunk": "@@ -313,7 +301,7 @@ private static boolean isVertx40x() {\n \n   @Test\n   void concurrentClientsKeepDistinctConfiguredTargets() throws Exception {\n-    assumeTrue(emitStableDatabaseSemconv());",
+      "id": "PRRT_kwDODJKVX86pbMbl",
+      "opened": "2026-10-06T10:41:48Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [],
+      "reviewed": "43d532e9971aba7a9ce80b68faa712fbbdd36164",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20396#discussion_r4194295025"
+    }
+  ]
+}

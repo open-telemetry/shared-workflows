@@ -1,0 +1,25 @@
+{
+  "head": "28795a2b7796cc4205c4061a221eea9ed8f0fe34",
+  "merge": "1b58779b923304d0c6d1f9bff11b9d173f1895c3",
+  "merged": "2026-04-09T08:23:20Z",
+  "missing_roots": 0,
+  "number": 17721,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "throttling the builds seems to help a bit too",
+      "created": "2026-04-08T20:49:00Z",
+      "hunk": "@@ -16,6 +18,12 @@ data class ImageTarget(\n   val windows: Boolean = true\n )\n \n+abstract class DockerBuildService : BuildService<BuildServiceParameters.None>\n+\n+gradle.sharedServices.registerIfAbsent(\"dockerBuildService\", DockerBuildService::class.java) {\n+  maxParallelUsages.set(1)\n+}",
+      "id": "PRRT_kwDODJKVX855rhPN",
+      "opened": "2026-04-08T20:49:00Z",
+      "path": "smoke-tests/images/servlet/build.gradle.kts",
+      "replies": [],
+      "reviewed": "28795a2b7796cc4205c4061a221eea9ed8f0fe34",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17721#discussion_r3054089910"
+    }
+  ]
+}

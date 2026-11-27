@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b1d1a6f3ad9a95b8307086a0de6b7fc8c6a05e993118b0f8946f70cd4788f23e",
+  "input_digest": "1be337e2d299f25141fc5ad3eb87dbf006630750aaf6435e21ca5609c88fdf79",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77297a399f970515972b1d09c430618de2016b06/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e74bd7ebf4ceea3d62e783c3f4708b82f4f6dbd/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86iTnAz",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/52d2bb2f3a2967815fa648e3643da434f99cd0e5/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/QueryExecutorInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e74bd7ebf4ceea3d62e783c3f4708b82f4f6dbd/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/QueryExecutorInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ive4D",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86kbr_Y",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

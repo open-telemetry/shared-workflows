@@ -1,0 +1,229 @@
+{
+  "head": "01ea7188240aac8ff6f8964f00c3ffd6ddf7ec1f",
+  "merge": "33b7f9da9ade6162d4a5c16247d0bc6ad5f8b469",
+  "merged": "2026-07-16T20:53:03Z",
+  "missing_roots": 0,
+  "number": 336,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n      invocation.\n```\n\nWe don't usually put justification in the spec, it's great to have it in the PR description",
+      "created": "2026-06-24T00:39:31Z",
+      "hunk": "@@ -154,6 +154,70 @@ metrics:\n       - ref: gen_ai.agent.version\n         requirement_level:\n           conditionally_required: When available.\n+  - name: gen_ai.agent.inference_calls_per_invocation\n+    annotations:\n+      code_generation:\n+        metric_value_type: int\n+    brief: >\n+      The number of inference (model) calls a GenAI agent makes during a\n+      single invocation.\n+    note: |\n+      This metric counts the inference calls (calls to a language or other\n+      generative model) that an agent issues while handling a single\n+      invocation. It gives operators a generic, framework-independent sense\n+      of how \"chatty\" an agent invocation is with the underlying model,\n+      which is a common proxy for cost and latency and is useful for\n+      capacity planning and regression detection across agent versions.",
+      "id": "PRRT_kwDOSUeMrM6LwizV",
+      "opened": "2026-06-24T01:16:57Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-06-24T13:33:27Z",
+          "body": "Applied in an editor and pushed the suggestion verbatim",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3467475568"
+        }
+      ],
+      "reviewed": "f9d44d42816526eb85743247160b019a9ae54ee7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3463802161"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "suggesting a shorter form that I think carries the same weight (and removes justification) \n\n```suggestion\n      The count is scoped to a single agent invocation and SHOULD include\n      only the inference calls the agent itself issued including failed ones; calls made by\n      sub-agents or transferred-to agents are recorded against those agents'\n      own invocations so that each inference call is counted exactly once\n      across the call tree.\n```",
+      "created": "2026-06-24T00:43:30Z",
+      "hunk": "@@ -154,6 +154,70 @@ metrics:\n       - ref: gen_ai.agent.version\n         requirement_level:\n           conditionally_required: When available.\n+  - name: gen_ai.agent.inference_calls_per_invocation\n+    annotations:\n+      code_generation:\n+        metric_value_type: int\n+    brief: >\n+      The number of inference (model) calls a GenAI agent makes during a\n+      single invocation.\n+    note: |\n+      This metric counts the inference calls (calls to a language or other\n+      generative model) that an agent issues while handling a single\n+      invocation. It gives operators a generic, framework-independent sense\n+      of how \"chatty\" an agent invocation is with the underlying model,\n+      which is a common proxy for cost and latency and is useful for\n+      capacity planning and regression detection across agent versions.\n+\n+      The count is scoped to a single agent invocation and SHOULD include\n+      only the inference calls the agent itself issues; calls made by\n+      sub-agents or transferred-to agents are recorded against those agents'\n+      own invocations so that each inference call is counted exactly once\n+      across the call tree.\n+\n+      Inference calls that fail or return partial results are still counted,\n+      because they consumed the agent's execution.\n+\n+      This metric SHOULD be emitted together with the\n+      `gen_ai.invoke_agent.internal` span for the same invocation.",
+      "id": "PRRT_kwDOSUeMrM6Lwkwc",
+      "opened": "2026-06-24T01:16:57Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-06-24T13:33:54Z",
+          "body": "Applied in an editor and pushed the suggestion verbatim",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3467478351"
+        }
+      ],
+      "reviewed": "f9d44d42816526eb85743247160b019a9ae54ee7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3463813241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "similar suggestion to avoid repetitions:\n\n```suggestion\n      The count is scoped to a single agent invocation and SHOULD include\n      only the tool calls the agent itself triggers including failed ones; calls made by\n      sub-agents or transferred-to agents are recorded against those agents'\n      own invocations so that each tool call is counted exactly once across\n      the call tree.\n```",
+      "created": "2026-06-24T00:44:42Z",
+      "hunk": "@@ -154,6 +154,70 @@ metrics:\n       - ref: gen_ai.agent.version\n         requirement_level:\n           conditionally_required: When available.\n+  - name: gen_ai.agent.inference_calls_per_invocation\n+    annotations:\n+      code_generation:\n+        metric_value_type: int\n+    brief: >\n+      The number of inference (model) calls a GenAI agent makes during a\n+      single invocation.\n+    note: |\n+      This metric counts the inference calls (calls to a language or other\n+      generative model) that an agent issues while handling a single\n+      invocation. It gives operators a generic, framework-independent sense\n+      of how \"chatty\" an agent invocation is with the underlying model,\n+      which is a common proxy for cost and latency and is useful for\n+      capacity planning and regression detection across agent versions.\n+\n+      The count is scoped to a single agent invocation and SHOULD include\n+      only the inference calls the agent itself issues; calls made by\n+      sub-agents or transferred-to agents are recorded against those agents'\n+      own invocations so that each inference call is counted exactly once\n+      across the call tree.\n+\n+      Inference calls that fail or return partial results are still counted,\n+      because they consumed the agent's execution.\n+\n+      This metric SHOULD be emitted together with the\n+      `gen_ai.invoke_agent.internal` span for the same invocation.\n+    instrument: histogram\n+    unit: \"{inference_call}\"\n+    stability: development\n+    attributes:\n+      - ref: gen_ai.agent.name\n+        requirement_level: recommended\n+  - name: gen_ai.agent.tool_calls_per_invocation\n+    annotations:\n+      code_generation:\n+        metric_value_type: int\n+    brief: >\n+      The number of tool calls a GenAI agent makes during a single\n+      invocation.\n+    note: |\n+      This metric counts the tool executions an agent triggers while\n+      handling a single invocation. It gives operators a generic,\n+      framework-independent sense of how tool-heavy an agent invocation is,\n+      which is useful for capacity planning, regression detection across\n+      agent versions, and diagnosing pathological tool loops (an agent stuck\n+      calling tools without making progress).\n+\n+      The count is scoped to a single agent invocation and SHOULD include\n+      only the tool calls the agent itself triggers; calls made by\n+      sub-agents or transferred-to agents are recorded against those agents'\n+      own invocations so that each tool call is counted exactly once across\n+      the call tree.\n+\n+      Tool calls that fail or return partial results are still counted,\n+      because they consumed the agent's execution.\n+\n+      This metric SHOULD be emitted together with the\n+      `gen_ai.invoke_agent.internal` span for the same invocation.",
+      "id": "PRRT_kwDOSUeMrM6LwlaX",
+      "opened": "2026-06-24T01:16:57Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-06-24T13:34:20Z",
+          "body": "Applied in an editor and pushed the suggestion verbatim",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3467481172"
+        }
+      ],
+      "reviewed": "f9d44d42816526eb85743247160b019a9ae54ee7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3463817003"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should this include client side tool calls only or server side (where supported) should be counted towards it? I would assume no, since the time spent on server-side tools is accounted through inference. Either way, I think it should be documented.",
+      "created": "2026-06-24T00:45:52Z",
+      "hunk": "@@ -154,6 +154,70 @@ metrics:\n       - ref: gen_ai.agent.version\n         requirement_level:\n           conditionally_required: When available.\n+  - name: gen_ai.agent.inference_calls_per_invocation\n+    annotations:\n+      code_generation:\n+        metric_value_type: int\n+    brief: >\n+      The number of inference (model) calls a GenAI agent makes during a\n+      single invocation.\n+    note: |\n+      This metric counts the inference calls (calls to a language or other\n+      generative model) that an agent issues while handling a single\n+      invocation. It gives operators a generic, framework-independent sense\n+      of how \"chatty\" an agent invocation is with the underlying model,\n+      which is a common proxy for cost and latency and is useful for\n+      capacity planning and regression detection across agent versions.\n+\n+      The count is scoped to a single agent invocation and SHOULD include\n+      only the inference calls the agent itself issues; calls made by\n+      sub-agents or transferred-to agents are recorded against those agents'\n+      own invocations so that each inference call is counted exactly once\n+      across the call tree.\n+\n+      Inference calls that fail or return partial results are still counted,\n+      because they consumed the agent's execution.\n+\n+      This metric SHOULD be emitted together with the\n+      `gen_ai.invoke_agent.internal` span for the same invocation.\n+    instrument: histogram\n+    unit: \"{inference_call}\"\n+    stability: development\n+    attributes:\n+      - ref: gen_ai.agent.name\n+        requirement_level: recommended\n+  - name: gen_ai.agent.tool_calls_per_invocation\n+    annotations:\n+      code_generation:\n+        metric_value_type: int\n+    brief: >\n+      The number of tool calls a GenAI agent makes during a single",
+      "id": "PRRT_kwDOSUeMrM6LwmDS",
+      "opened": "2026-06-24T01:16:57Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-06-24T13:33:01Z",
+          "body": "Thanks for pointing this out, the server-side tools slipped my mind completely.\n\nBut I think for the `counts` metric it doesn't make sense treat client-side and server-side differently. It would make sense for the `duration` metrics.\n\nI went with the following wording\n>    Client-side tool calls (tools executed by the agent or framework) are\n      always counted. Server-side tool calls (tools executed by the model provider)\n      should be counted where supported.\n\nNot a strong opinion though, feel free push back, if you believe the \"where supported\" would introduce too much inconsistency.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3467472587"
+        },
+        {
+          "at": "2026-06-24T15:21:35Z",
+          "body": "Thinking about it, it changes how we count things - e.g. when agent is doing tool call itself, it's counting method calls, if we include server/built-in, it would need to count tool parts in the LLM response too to know that it happened.\n\nI can argue since we don't count sub-agent tool calls for this invocation, we should be consistent and count built-ins under `gen_ai.inferece.tool_call` (in the future if someone is interested in adding it).\n\nI'd be in favor saying we don't count model built-in tools",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3468241390"
+        },
+        {
+          "at": "2026-06-24T15:22:36Z",
+          "body": "Or, when you're calling a remote agent, potential future `gen_ai.client.invoke_agent.tool_calls` would include built-ins.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3468247971"
+        },
+        {
+          "at": "2026-06-24T15:41:17Z",
+          "body": "> I'd be in favor saying we don't count model built-in tools\r\n\r\nSo it would be consistent with the number of execute_tool spans? SGTM.\r\n\r\nAnother option if we don't want to drop them is to use a well known dummy `gen_ai.agent.name` to represent model/server side tool calls. I do wonder if agent frameworks are generally able to instrument it though.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3468375710"
+        },
+        {
+          "at": "2026-06-25T12:54:40Z",
+          "body": "SG, changed the wording to only include client-side tools\r\n\r\n>    Only client-side tool calls (tools executed by the agent or framework)\r\n      are counted. Tools executed server-side by the model provider (for\r\n      example, provider built-in web search or code execution) are not\r\n      counted here.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3474517202"
+        }
+      ],
+      "reviewed": "f9d44d42816526eb85743247160b019a9ae54ee7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3463820561"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Sorry, I know I proposed some variation of these names, but now suggesting to bikeshed a bit.\n\nI want to keep operation name inside metric name (e.g. we have `gen_ai.invoke_agent.duration` and new metrics should be consistent with it). \n\nI've had a consilium with a couple of AI agents to find alternatives and curious what you think.\n\nSurprisingly AIs are saying that `per_invocation` is not cool and that something like this\n\n```\ngen_ai.invoke_agent.inference_calls\ngen_ai.invoke_agent.tool_calls\n```\n\nwould be as descriptive. \n\nIf we want to add other things like delegations, they would fit nicely.\nIf we want to have something similar under `invoke_workflow`, it'd work too - `gen_ai.invoke_workflow.agent_calls`. \n\nAlternative:\n\n```\ngen_ai.invoke_agent.inference_call.count\ngen_ai.invoke_agent.tool_call.count\n```\n\n(I prefer the first version because it's shorter)\n\n/cc @trask in case he has a preference. We had a lot of discussions in the past on .count suffix but based on my analysis they never covered histograms. The closest to this we have is [`rpc.client|server.requests|responses_per_rpc`](https://github.com/open-telemetry/semantic-conventions/blob/36a02e612491e8b7bfd92f074b40fce6c0542929/model/rpc/deprecated/metrics-deprecated.yaml#L2) (now deprecated)",
+      "created": "2026-06-24T01:16:18Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add `gen_ai.agent.inference_calls_per_invocation` and `gen_ai.agent.tool_calls_per_invocation` metrics to track how many inference (model) and tool calls a GenAI agent makes during a single invocation.",
+      "id": "PRRT_kwDOSUeMrM6Lw6d1",
+      "opened": "2026-06-24T01:16:57Z",
+      "path": "changelog.d/336.enhancement.md",
+      "replies": [
+        {
+          "at": "2026-06-24T13:34:55Z",
+          "body": "Totally agree, went with the \r\n- gen_ai.invoke_agent.inference_calls\r\n- gen_ai.invoke_agent.tool_calls\r\n\r\nnaming.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3467484824"
+        }
+      ],
+      "reviewed": "f9d44d42816526eb85743247160b019a9ae54ee7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3463939365"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Not sure why the CI isn't capturing this, but I don't see this text in the YAML anywhere. I think it should be coming from the `note`?",
+      "created": "2026-06-24T17:10:20Z",
+      "hunk": "@@ -1001,6 +1003,93 @@ It's NOT RECOMMENDED to record in-memory agent instance ids on this attribute du\n <!-- END AUTOGENERATED TEXT -->\n <!-- endweaver -->\n \n+### Metric: `gen_ai.invoke_agent.inference_calls`\n+\n+This metric is [recommended][MetricRecommended] for instrumentations of agent\n+frameworks that can reliably attribute inference (model) calls to a single\n+agent invocation.\n+\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n+[1, 2, 4, 8, 16, 32, 64, 128].\n+\n+<!-- weaver .registry.metrics[] | select(.name == \"gen_ai.invoke_agent.inference_calls\") -->\n+<!-- NOTE: THIS TEXT IS AUTOGENERATED. DO NOT EDIT BY HAND. -->\n+<!-- see templates/registry/markdown/snippet.md.j2 -->\n+<!-- prettier-ignore-start -->\n+\n+| Name | Instrument Type | Unit (UCUM) | Description | Stability | Entity Associations |\n+| -------- | --------------- | ----------- | -------------- | --------- | ------ |\n+| `gen_ai.invoke_agent.inference_calls` | Histogram | `{inference_call}` | The number of inference (model) calls a GenAI agent makes during a single invocation. [1] | ![Development](https://img.shields.io/badge/-development-blue) | |\n+\n+**[1]:** This metric counts the inference calls (calls to a language or other",
+      "id": "PRRT_kwDOSUeMrM6L-t47",
+      "opened": "2026-06-24T17:11:17Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-06-25T12:55:32Z",
+          "body": "I think I forgot to run `make generate-docs`, should be good now PTAL",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3474522333"
+        }
+      ],
+      "reviewed": "ac7cd5a7f872cb64fcb44e2062cd69375331f5ac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3468925401"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "To disambiguate from a counter\n\n```suggestion\n**[1]:** This metric measures the distribution of inference calls (calls to a language or other\n```",
+      "created": "2026-06-24T17:11:08Z",
+      "hunk": "@@ -1001,6 +1003,93 @@ It's NOT RECOMMENDED to record in-memory agent instance ids on this attribute du\n <!-- END AUTOGENERATED TEXT -->\n <!-- endweaver -->\n \n+### Metric: `gen_ai.invoke_agent.inference_calls`\n+\n+This metric is [recommended][MetricRecommended] for instrumentations of agent\n+frameworks that can reliably attribute inference (model) calls to a single\n+agent invocation.\n+\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n+[1, 2, 4, 8, 16, 32, 64, 128].\n+\n+<!-- weaver .registry.metrics[] | select(.name == \"gen_ai.invoke_agent.inference_calls\") -->\n+<!-- NOTE: THIS TEXT IS AUTOGENERATED. DO NOT EDIT BY HAND. -->\n+<!-- see templates/registry/markdown/snippet.md.j2 -->\n+<!-- prettier-ignore-start -->\n+\n+| Name | Instrument Type | Unit (UCUM) | Description | Stability | Entity Associations |\n+| -------- | --------------- | ----------- | -------------- | --------- | ------ |\n+| `gen_ai.invoke_agent.inference_calls` | Histogram | `{inference_call}` | The number of inference (model) calls a GenAI agent makes during a single invocation. [1] | ![Development](https://img.shields.io/badge/-development-blue) | |\n+\n+**[1]:** This metric counts the inference calls (calls to a language or other",
+      "id": "PRRT_kwDOSUeMrM6L-uss",
+      "opened": "2026-06-24T17:11:17Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-06-25T12:56:28Z",
+          "body": "Done, current wording is:\r\n\r\n> The ~count~ distribution is scoped to a single agent invocation...",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3474527657"
+        }
+      ],
+      "reviewed": "ac7cd5a7f872cb64fcb44e2062cd69375331f5ac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3468929985"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Similar to the comments above, I don't see this text in the YAML and would prefer to disambiguate from a counter",
+      "created": "2026-06-24T17:12:20Z",
+      "hunk": "@@ -1001,6 +1003,93 @@ It's NOT RECOMMENDED to record in-memory agent instance ids on this attribute du\n <!-- END AUTOGENERATED TEXT -->\n <!-- endweaver -->\n \n+### Metric: `gen_ai.invoke_agent.inference_calls`\n+\n+This metric is [recommended][MetricRecommended] for instrumentations of agent\n+frameworks that can reliably attribute inference (model) calls to a single\n+agent invocation.\n+\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n+[1, 2, 4, 8, 16, 32, 64, 128].\n+\n+<!-- weaver .registry.metrics[] | select(.name == \"gen_ai.invoke_agent.inference_calls\") -->\n+<!-- NOTE: THIS TEXT IS AUTOGENERATED. DO NOT EDIT BY HAND. -->\n+<!-- see templates/registry/markdown/snippet.md.j2 -->\n+<!-- prettier-ignore-start -->\n+\n+| Name | Instrument Type | Unit (UCUM) | Description | Stability | Entity Associations |\n+| -------- | --------------- | ----------- | -------------- | --------- | ------ |\n+| `gen_ai.invoke_agent.inference_calls` | Histogram | `{inference_call}` | The number of inference (model) calls a GenAI agent makes during a single invocation. [1] | ![Development](https://img.shields.io/badge/-development-blue) | |\n+\n+**[1]:** This metric counts the inference calls (calls to a language or other\n+generative model) that an agent issues while handling a single\n+invocation.\n+\n+The count is scoped to a single agent invocation and SHOULD include\n+only the inference calls the agent itself issued including failed ones;\n+calls made by sub-agents or transferred-to agents are recorded against\n+those agents' own invocations so that each inference call is counted\n+exactly once across the call tree.\n+\n+This metric SHOULD be emitted together with the\n+`gen_ai.invoke_agent.internal` span for the same invocation.\n+\n+**Attributes:**\n+\n+| Key | Stability | [Requirement Level](https://opentelemetry.io/docs/specs/semconv/general/attribute-requirement-level/) | Value Type | Description | Example Values |\n+| --- | --- | --- | --- | --- | --- |\n+| [`gen_ai.agent.name`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Recommended` | string | Human-readable name of the GenAI agent provided by the application. | `Math Tutor`; `Fiction Writer` |\n+\n+<!-- prettier-ignore-end -->\n+<!-- END AUTOGENERATED TEXT -->\n+<!-- endweaver -->\n+\n+### Metric: `gen_ai.invoke_agent.tool_calls`\n+\n+This metric is [recommended][MetricRecommended] for instrumentations of agent\n+frameworks that can reliably attribute tool calls to a single agent\n+invocation.\n+\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n+[1, 2, 4, 8, 16, 32, 64, 128].\n+\n+<!-- weaver .registry.metrics[] | select(.name == \"gen_ai.invoke_agent.tool_calls\") -->\n+<!-- NOTE: THIS TEXT IS AUTOGENERATED. DO NOT EDIT BY HAND. -->\n+<!-- see templates/registry/markdown/snippet.md.j2 -->\n+<!-- prettier-ignore-start -->\n+\n+| Name | Instrument Type | Unit (UCUM) | Description | Stability | Entity Associations |\n+| -------- | --------------- | ----------- | -------------- | --------- | ------ |\n+| `gen_ai.invoke_agent.tool_calls` | Histogram | `{tool_call}` | The number of tool calls a GenAI agent makes during a single invocation. [1] | ![Development](https://img.shields.io/badge/-development-blue) | |\n+\n+**[1]:** This metric counts the tool executions an agent triggers while",
+      "id": "PRRT_kwDOSUeMrM6L-v0r",
+      "opened": "2026-06-24T17:12:20Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-06-25T15:15:51Z",
+          "body": "Done",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3475510587"
+        }
+      ],
+      "reviewed": "ac7cd5a7f872cb64fcb44e2062cd69375331f5ac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3468936181"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "are there agent frameworks that meet this criteria? could you add reference scenarios to demonstrate? thanks",
+      "created": "2026-06-24T23:24:18Z",
+      "hunk": "@@ -1001,6 +1003,93 @@ It's NOT RECOMMENDED to record in-memory agent instance ids on this attribute du\n <!-- END AUTOGENERATED TEXT -->\n <!-- endweaver -->\n \n+### Metric: `gen_ai.invoke_agent.inference_calls`\n+\n+This metric is [recommended][MetricRecommended] for instrumentations of agent\n+frameworks that can reliably attribute inference (model) calls to a single\n+agent invocation.",
+      "id": "PRRT_kwDOSUeMrM6MELJI",
+      "opened": "2026-06-24T23:24:18Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-06-25T12:51:39Z",
+          "body": "Added a scenario for Google ADK, and extended the harness to verify metrics PTAL",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3474498772"
+        },
+        {
+          "at": "2026-06-25T22:43:55Z",
+          "body": "It might be difficult to do with manual instrumentation we have here, but here's a prototype against existing langchain instrumentation in python-genai: https://github.com/open-telemetry/opentelemetry-python-genai/pull/173/changes#diff-2911f719bc4d9342ed647a62134970e369de7d526309b8674d1eeb1f308cb14b showing it's trivial. \r\n\r\n@RKest could you please update PR description to add this link and also refresh metric names there?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3478113125"
+        },
+        {
+          "at": "2026-07-06T15:11:37Z",
+          "body": "Thanks for drafting the change @lmolkova \r\n\r\nI updated the description, and referenced the PR. ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3529963628"
+        }
+      ],
+      "reviewed": "ac7cd5a7f872cb64fcb44e2062cd69375331f5ac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/336#discussion_r3470895101"
+    }
+  ]
+}

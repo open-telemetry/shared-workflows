@@ -1,0 +1,46 @@
+{
+  "head": "98f2be321faf392c3336e63be410603ae384db62",
+  "merge": "a21b0c18593349ecc199d81541188681644dc1fb",
+  "merged": "2026-10-13T05:53:12Z",
+  "missing_roots": 0,
+  "number": 20554,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please fix the CI failure introduced by this ASM bump.\n\nThe dependency constraints upgrade `asm`, `asm-tree`, and `asm-util` to 9.11, but leave `asm-commons` at the transitive version 9.10.1 pulled in by Aries SPI Fly. Its OSGi manifest imports core ASM in `[9.10.1,9.11.0)`, which excludes 9.11. Both downloaded representative CI jobs fail at `:smoke-tests-osgi:apiNoIncubatorResolve` with this dependency chain, rather than an actual missing OpenTelemetry package.\n\nAdd `org.ow2.asm:asm-commons:${asmVersion}` to `CORE_DEPENDENCIES` in this file to align it with the other ASM artifacts. Keep the fix limited to this dependency-resolution failure and validate with `./gradlew :smoke-tests-osgi:test -PtestJavaVersion=17`.\n\nFailure log: https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/38325902981/job/115064640579",
+      "created": "2026-10-13T00:55:55Z",
+      "hunk": "@@ -39,7 +39,7 @@ val autoServiceVersion = \"1.1.1\"\n val autoValueVersion = \"1.11.1\"\n val errorProneVersion = \"2.50.0\"\n val byteBuddyVersion = \"1.18.14\"\n-val asmVersion = \"9.10.1\"\n+val asmVersion = \"9.11\"",
+      "id": "PRRT_kwDODJKVX86rq7ec",
+      "opened": "2026-10-13T00:55:55Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T01:05:43Z",
+          "body": "Added `org.ow2.asm:asm-commons:${asmVersion}` to `CORE_DEPENDENCIES`. The requested `./gradlew :smoke-tests-osgi:test -PtestJavaVersion=17` passed. Commit: `45c469b9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20554#discussion_r4253738809"
+        }
+      ],
+      "reviewed": "9c74779d6e89f62b99ee33a037e0425636026e7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20554#discussion_r4253684890"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This new constraint upgrades `asm-commons` to 9.11, but both generated entries in `licenses/licenses.md` still report 9.10.1 (lines 236 and 295), unlike the other ASM artifacts updated in this PR. Regenerate the license report so the dependency inventory matches the resolved version.",
+      "created": "2026-10-13T01:10:09Z",
+      "hunk": "@@ -62,6 +62,7 @@ val CORE_DEPENDENCIES = listOf(\n   \"net.bytebuddy:byte-buddy-agent:${byteBuddyVersion}\",\n   \"net.bytebuddy:byte-buddy-gradle-plugin:${byteBuddyVersion}\",\n   \"org.ow2.asm:asm:${asmVersion}\",\n+  \"org.ow2.asm:asm-commons:${asmVersion}\",",
+      "id": "PRRT_kwDODJKVX86rrHD6",
+      "opened": "2026-10-13T01:10:09Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [],
+      "reviewed": "45c469b90286365d6c7a84d3168af57ca86a0e17",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20554#discussion_r4253759144"
+    }
+  ]
+}

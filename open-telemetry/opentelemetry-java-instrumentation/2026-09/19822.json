@@ -1,0 +1,362 @@
+{
+  "head": "624072f5274852afcc8fd2cb10072b81ff0a02e6",
+  "merge": "dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814",
+  "merged": "2026-09-30T18:12:08Z",
+  "missing_roots": 0,
+  "number": 19822,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Delivery spans can report attributes from the pre-recovery connection. `TracedDelegatingConsumer` snapshots `channel.getConnection()` when the consumer is registered and reuses that `Connection` for every `DeliveryRequest`, so after automatic recovery this extractor reads the old server properties instead of the current inner connection. Retain the channel/current-connection supplier and resolve the connection when each delivery starts; add a delivery-after-recovery assertion as well.",
+      "created": "2026-08-26T07:36:21Z",
+      "hunk": "@@ -208,6 +216,9 @@ private static Instrumenter<DeliveryRequest, Void> createDeliverInstrumenter() {\n     if (RabbitInstrumenterHelper.CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n       extractors.add(new RabbitDeliveryExperimentalAttributesExtractor());\n     }\n+    if (RabbitConnectionAttributes.enabled()) {\n+      extractors.add(new RabbitConnectionAttributesExtractor<>(DeliveryRequest::getConnection));",
+      "id": "PRRT_kwDODJKVX86cXyVA",
+      "opened": "2026-08-26T07:36:23Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-09T11:47:00Z",
+          "body": "vhost/cluster_name are effectively static for a given ConnectionFactory, so no code change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967974326"
+        }
+      ],
+      "reviewed": "6a8fd53dd3e359a6b9ea39a0f909fa009d53731c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3860590307"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The RabbitMQ README still lists only `otel.instrumentation.rabbitmq.experimental-span-attributes`, so users consulting the module's settings page cannot discover either new opt-in property. Add both new properties, defaults, and descriptions to `instrumentation/rabbitmq-2.7/README.md`.",
+      "created": "2026-08-26T07:36:22Z",
+      "hunk": "@@ -22,3 +22,19 @@ configurations:\n   - ref: messaging.headers.included\n   - ref: messaging.headers.excluded\n   - ref: messaging.capture-headers\n+  - name: otel.instrumentation.rabbitmq.experimental.capture-vhost-name",
+      "id": "PRRT_kwDODJKVX86cXyV6",
+      "opened": "2026-08-26T07:36:23Z",
+      "path": "instrumentation/rabbitmq-2.7/metadata.yaml",
+      "replies": [],
+      "reviewed": "6a8fd53dd3e359a6b9ea39a0f909fa009d53731c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3860590405"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use an exact attribute assertion here. `hasAttributesSatisfying` silently accepts unexpected attributes, so this new recovery test could miss regressions in the generated command span; assert the complete expected `queueDeclare` attribute set with `hasAttributesSatisfyingExactly`.",
+      "created": "2026-08-26T07:36:22Z",
+      "hunk": "@@ -125,6 +130,63 @@ void cleanup() throws IOException, TimeoutException {\n     }\n   }\n \n+  /**\n+   * The vhost attribute is populated from a {@code VirtualField} keyed on {@code AMQConnection} and\n+   * set from {@code AMQConnection.start()} (see {@link RabbitConnectionInstrumentation}),\n+   * specifically so it keeps working across automatic recovery: {@code\n+   * AutorecoveringChannel.getConnection()} returns the current inner {@code AMQConnection}, which\n+   * is a brand new instance after a reconnect, and {@code start()} runs again on it. The rejected\n+   * {@code ConnectionFactory.getVirtualHost()} alternative would go stale here, because the factory\n+   * hook only fires once, on the original {@code newConnection()} call. This test forces an\n+   * unexpected shutdown (not an application-initiated {@code close()}, which does not trigger\n+   * recovery) and asserts the attribute survives it.\n+   */\n+  @Test\n+  void testVhostSurvivesAutomaticRecovery() throws Exception {\n+    ConnectionFactory recoveringFactory = new ConnectionFactory();\n+    recoveringFactory.setHost(rabbitMqHost);\n+    recoveringFactory.setPort(rabbitMqPort);\n+    recoveringFactory.setVirtualHost(\"otel-test\");\n+    recoveringFactory.setAutomaticRecoveryEnabled(true);\n+    recoveringFactory.setNetworkRecoveryInterval(200);\n+\n+    Connection recoveringConnection = recoveringFactory.newConnection();\n+    try {\n+      Channel recoveringChannel = recoveringConnection.createChannel();\n+\n+      CountDownLatch recovered = new CountDownLatch(1);\n+      ((RecoverableConnection) recoveringConnection)\n+          .addRecoveryListener(\n+              new RecoveryListener() {\n+                @Override\n+                public void handleRecovery(Recoverable recoverable) {\n+                  recovered.countDown();\n+                }\n+\n+                @Override\n+                public void handleRecoveryStarted(Recoverable recoverable) {}\n+              });\n+\n+      rabbitMqContainer.execInContainer(\n+          \"rabbitmqctl\", \"close_all_connections\", \"-p\", \"otel-test\", \"otel recovery test\");\n+      assertThat(recovered.await(10, SECONDS)).isTrue();\n+\n+      testing.clearData();\n+      recoveringChannel.queueDeclare();\n+\n+      testing.waitAndAssertTraces(\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span ->\n+                      span.hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX86cXyVW",
+      "opened": "2026-08-26T07:36:23Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [],
+      "reviewed": "6a8fd53dd3e359a6b9ea39a0f909fa009d53731c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3860590344"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This comment identifies the wrong virtual-field key type: `VIRTUAL_HOST` is declared as `VirtualField<Connection, String>` and created with `Connection.class`, not `AMQConnection`. Correcting this avoids misleading future recovery changes.",
+      "created": "2026-08-26T07:36:22Z",
+      "hunk": "@@ -125,6 +130,63 @@ void cleanup() throws IOException, TimeoutException {\n     }\n   }\n \n+  /**\n+   * The vhost attribute is populated from a {@code VirtualField} keyed on {@code AMQConnection} and",
+      "id": "PRRT_kwDODJKVX86cXyVm",
+      "opened": "2026-08-26T07:36:23Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [],
+      "reviewed": "6a8fd53dd3e359a6b9ea39a0f909fa009d53731c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3860590373"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not needed when class is matched by name",
+      "created": "2026-09-02T12:22:00Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rabbitmq.v2_7;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;\n+\n+import com.rabbitmq.client.Connection;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class RabbitConnectionInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"com.rabbitmq.client.impl.AMQConnection\");\n+  }",
+      "id": "PRRT_kwDODJKVX86efyPN",
+      "opened": "2026-09-02T12:22:00Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-09T10:23:08Z",
+          "body": "Removed ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967256378"
+        }
+      ],
+      "reviewed": "6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3914003651"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`isMethod()` is not needed",
+      "created": "2026-09-02T12:22:18Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rabbitmq.v2_7;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;\n+\n+import com.rabbitmq.client.Connection;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class RabbitConnectionInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"com.rabbitmq.client.impl.AMQConnection\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    // RecoveryAwareAMQConnection inherits start() rather than overriding it, so advising the\n+    // declaring class covers the recovering connections too\n+    return named(\"com.rabbitmq.client.impl.AMQConnection\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isMethod().and(named(\"start\")).and(takesNoArguments()),",
+      "id": "PRRT_kwDODJKVX86efynT",
+      "opened": "2026-09-02T12:22:18Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-09T10:23:20Z",
+          "body": "Yes, updated this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967259116"
+        }
+      ],
+      "reviewed": "6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3914005988"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "to avoid nesting blocks we use `AutoCleanupExtension` that trigger cleanup after the test, see https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6214dcf724d8dec65632f2c38f77e8d92e80f9c0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java#L112",
+      "created": "2026-09-02T12:27:23Z",
+      "hunk": "@@ -125,6 +130,63 @@ void cleanup() throws IOException, TimeoutException {\n     }\n   }\n \n+  /**\n+   * The vhost attribute is populated from a {@code VirtualField} keyed on {@code AMQConnection} and\n+   * set from {@code AMQConnection.start()} (see {@link RabbitConnectionInstrumentation}),\n+   * specifically so it keeps working across automatic recovery: {@code\n+   * AutorecoveringChannel.getConnection()} returns the current inner {@code AMQConnection}, which\n+   * is a brand new instance after a reconnect, and {@code start()} runs again on it. The rejected\n+   * {@code ConnectionFactory.getVirtualHost()} alternative would go stale here, because the factory\n+   * hook only fires once, on the original {@code newConnection()} call. This test forces an\n+   * unexpected shutdown (not an application-initiated {@code close()}, which does not trigger\n+   * recovery) and asserts the attribute survives it.\n+   */\n+  @Test\n+  void testVhostSurvivesAutomaticRecovery() throws Exception {\n+    ConnectionFactory recoveringFactory = new ConnectionFactory();\n+    recoveringFactory.setHost(rabbitMqHost);\n+    recoveringFactory.setPort(rabbitMqPort);\n+    recoveringFactory.setVirtualHost(\"otel-test\");\n+    recoveringFactory.setAutomaticRecoveryEnabled(true);\n+    recoveringFactory.setNetworkRecoveryInterval(200);\n+\n+    Connection recoveringConnection = recoveringFactory.newConnection();\n+    try {\n+      Channel recoveringChannel = recoveringConnection.createChannel();\n+\n+      CountDownLatch recovered = new CountDownLatch(1);\n+      ((RecoverableConnection) recoveringConnection)\n+          .addRecoveryListener(\n+              new RecoveryListener() {\n+                @Override\n+                public void handleRecovery(Recoverable recoverable) {\n+                  recovered.countDown();\n+                }\n+\n+                @Override\n+                public void handleRecoveryStarted(Recoverable recoverable) {}\n+              });\n+\n+      rabbitMqContainer.execInContainer(\n+          \"rabbitmqctl\", \"close_all_connections\", \"-p\", \"otel-test\", \"otel recovery test\");\n+      assertThat(recovered.await(10, SECONDS)).isTrue();\n+\n+      testing.clearData();\n+      recoveringChannel.queueDeclare();\n+\n+      testing.waitAndAssertTraces(\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span ->\n+                      span.hasAttributesSatisfying(\n+                          equalTo(\n+                              stringKey(\"messaging.rabbitmq.vhost.name\"),\n+                              CAPTURE_VHOST_NAME ? \"otel-test\" : null))));\n+    } finally {\n+      recoveringConnection.close();",
+      "id": "PRRT_kwDODJKVX86ef5gR",
+      "opened": "2026-09-02T12:27:23Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T10:23:32Z",
+          "body": "Updated this ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967261492"
+        }
+      ],
+      "reviewed": "6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3914047500"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "With this change `2.7.0` isn't tested any more. Usually we test the earliest supported version. If some features are not available in the earliest supported version you can use reflection. Alternatively it is possible to compile tests agains newer version but still run tests with the earliest version (test can be disabled via `Assumptions.assumeTrue` when it isn't supported). Newer versions can be tested in a suite.",
+      "created": "2026-09-02T12:32:05Z",
+      "hunk": "@@ -14,6 +14,11 @@ muzzle {\n dependencies {\n   library(\"com.rabbitmq:amqp-client:2.7.0\")\n \n+  // automatic recovery (Recoverable, RecoveryListener, ConnectionFactory#setAutomaticRecoveryEnabled)\n+  // does not exist at the 2.7.0 muzzle floor; the recovery test needs a client new enough to have\n+  // it, so bump just the test classpath -- the muzzle floor above is unaffected\n+  testLibrary(\"com.rabbitmq:amqp-client:4.0.0\")",
+      "id": "PRRT_kwDODJKVX86egAA3",
+      "opened": "2026-09-02T12:32:05Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-09T10:32:13Z",
+          "body": "Updated this as well",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967360455"
+        }
+      ],
+      "reviewed": "6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3914087161"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "you could just run these together with the experimental options",
+      "created": "2026-09-02T12:32:52Z",
+      "hunk": "@@ -59,7 +64,26 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=messaging/dup\")\n   }\n \n+  val testCaptureConnectionAttributes = register<Test>(\"testCaptureConnectionAttributes\") {",
+      "id": "PRRT_kwDODJKVX86egBKZ",
+      "opened": "2026-09-02T12:32:52Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-09T10:23:43Z",
+          "body": "Updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967263968"
+        }
+      ],
+      "reviewed": "6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3914094253"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR and #19821 require two independent opt-ins, but this enables both attributes through the existing umbrella `experimental-span-attributes` setting. Users who enabled that setting for the existing RabbitMQ attributes will unexpectedly start emitting vhost/cluster data, and users cannot enable only one of the new attributes. Please read the two new configuration keys independently, gate each `put` with its own flag, and update metadata, documentation, and tests accordingly.",
+      "created": "2026-09-09T10:39:33Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rabbitmq.v2_7;\n+\n+import com.rabbitmq.client.Connection;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * The virtual host and cluster name of the RabbitMQ connection. Neither is part of the messaging\n+ * semantic conventions yet, see open-telemetry/semantic-conventions#3997, so both ride the same\n+ * {@code otel.instrumentation.rabbitmq.experimental-span-attributes} opt-in as the rest of this\n+ * module's experimental attributes, see {@link RabbitInstrumenterHelper#CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES}.\n+ */\n+public final class RabbitConnectionAttributes {\n+\n+  private static final AttributeKey<String> MESSAGING_RABBITMQ_VHOST_NAME =\n+      AttributeKey.stringKey(\"messaging.rabbitmq.vhost.name\");\n+  private static final AttributeKey<String> MESSAGING_RABBITMQ_CLUSTER_NAME =\n+      AttributeKey.stringKey(\"messaging.rabbitmq.cluster.name\");\n+\n+  /**\n+   * The virtual host of a connection. {@link Connection} has never exposed it, so it is read off\n+   * {@code AMQConnection} and remembered here.\n+   */\n+  public static final VirtualField<Connection, String> VIRTUAL_HOST =\n+      VirtualField.find(Connection.class, String.class);\n+\n+  static boolean enabled() {\n+    return RabbitInstrumenterHelper.CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES;",
+      "id": "PRRT_kwDODJKVX86gnNVu",
+      "opened": "2026-09-09T10:39:34Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionAttributes.java",
+      "replies": [
+        {
+          "at": "2026-09-09T11:05:27Z",
+          "body": "Updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967643853"
+        }
+      ],
+      "reviewed": "b7bdee2bfd7f6e611000c356e774c0a5c2a6bfea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967417647"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `rabbitMqContainer` is only accessed by this package-private base class and a same-package subclass, so `protected` exposes it more broadly than needed. Keep it package-private in accordance with least-access visibility.",
+      "created": "2026-09-09T10:39:34Z",
+      "hunk": "@@ -28,7 +28,7 @@ static <T> T experimental(T value) {\n   private static final Logger logger =\n       LoggerFactory.getLogger(\"io.opentelemetry.testing.rabbitmq-container\");\n \n-  private static GenericContainer<?> rabbitMqContainer;\n+  protected static GenericContainer<?> rabbitMqContainer;",
+      "id": "PRRT_kwDODJKVX86gnNWm",
+      "opened": "2026-09-09T10:39:34Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java",
+      "replies": [],
+      "reviewed": "b7bdee2bfd7f6e611000c356e774c0a5c2a6bfea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967417728"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This extension is only referenced within `RabbitMqTest`; make it private to use the least necessary visibility, matching the adjacent `testing` extension.",
+      "created": "2026-09-09T10:39:34Z",
+      "hunk": "@@ -97,6 +104,8 @@ class RabbitMqTest extends AbstractRabbitMqTest {\n   @RegisterExtension\n   private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n \n+  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();",
+      "id": "PRRT_kwDODJKVX86gnNXP",
+      "opened": "2026-09-09T10:39:34Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T12:47:05Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3968486427"
+        }
+      ],
+      "reviewed": "b7bdee2bfd7f6e611000c356e774c0a5c2a6bfea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3967417782"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use the existing `experimental(...)` helper for these opt-in expected values instead of repeating the flag ternary; this is the test suite's established mode-dependent assertion convention.\n\nThis issue also appears in the following locations of the same file:\n- line 938\n- line 1211",
+      "created": "2026-09-10T18:47:58Z",
+      "hunk": "@@ -125,6 +135,80 @@ void cleanup() throws IOException, TimeoutException {\n     }\n   }\n \n+  /**\n+   * The vhost attribute is populated from a {@code VirtualField} keyed on {@code Connection} and\n+   * set from {@code AMQConnection.start()} (see {@link RabbitConnectionInstrumentation}),\n+   * specifically so it keeps working across automatic recovery: {@code\n+   * AutorecoveringChannel.getConnection()} returns the current inner {@code AMQConnection}, which\n+   * is a brand new instance after a reconnect, and {@code start()} runs again on it. The rejected\n+   * {@code ConnectionFactory.getVirtualHost()} alternative would go stale here, because the factory\n+   * hook only fires once, on the original {@code newConnection()} call. This test forces an\n+   * unexpected shutdown (not an application-initiated {@code close()}, which does not trigger\n+   * recovery) and asserts the attribute survives it.\n+   *\n+   * <p>Automatic recovery ({@code Recoverable}, {@code RecoveryListener}, {@code\n+   * ConnectionFactory#setAutomaticRecoveryEnabled}) doesn't exist at the 2.7.0 muzzle floor, only\n+   * at the newer client this test compiles against (see the {@code testCompileOnly} dependency), so\n+   * this only actually runs under {@code -PtestLatestDeps=true}, where the test runtime classpath\n+   * is bumped to a client new enough to have it.\n+   */\n+  @Test\n+  void testVhostSurvivesAutomaticRecovery() throws Exception {\n+    Assumptions.assumeTrue(\n+        Boolean.getBoolean(\"testLatestDeps\"),\n+        \"automatic recovery is not available at the 2.7.0 muzzle floor\");\n+\n+    ConnectionFactory recoveringFactory = new ConnectionFactory();\n+    recoveringFactory.setHost(rabbitMqHost);\n+    recoveringFactory.setPort(rabbitMqPort);\n+    recoveringFactory.setVirtualHost(\"otel-test\");\n+    recoveringFactory.setAutomaticRecoveryEnabled(true);\n+    recoveringFactory.setNetworkRecoveryInterval(200);\n+\n+    Connection recoveringConnection = recoveringFactory.newConnection();\n+    cleanup.deferCleanup(recoveringConnection);\n+    Channel recoveringChannel = recoveringConnection.createChannel();\n+\n+    CountDownLatch recovered = new CountDownLatch(1);\n+    ((RecoverableConnection) recoveringConnection)\n+        .addRecoveryListener(\n+            new RecoveryListener() {\n+              @Override\n+              public void handleRecovery(Recoverable recoverable) {\n+                recovered.countDown();\n+              }\n+\n+              @Override\n+              public void handleRecoveryStarted(Recoverable recoverable) {}\n+            });\n+\n+    rabbitMqContainer.execInContainer(\n+        \"rabbitmqctl\", \"close_all_connections\", \"-p\", \"otel-test\", \"otel recovery test\");\n+    assertThat(recovered.await(10, SECONDS)).isTrue();\n+\n+    testing.clearData();\n+    recoveringChannel.queueDeclare();\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasAttributesSatisfyingExactly(\n+                        equalTo(MESSAGING_SYSTEM, \"rabbitmq\"),\n+                        satisfies(NETWORK_PEER_ADDRESS, val -> val.isIn(rabbitMqIp, null)),\n+                        satisfies(NETWORK_TYPE, val -> val.isIn(\"ipv4\", \"ipv6\", null)),\n+                        satisfies(NETWORK_PEER_PORT, val -> val.isNotNull()),\n+                        equalTo(\n+                            stringKey(\"rabbitmq.command\"),\n+                            EXPERIMENTAL_ATTRIBUTES ? \"queue.declare\" : null),\n+                        equalTo(\n+                            stringKey(\"messaging.rabbitmq.vhost.name\"),\n+                            EXPERIMENTAL_ATTRIBUTES ? \"otel-test\" : null),\n+                        equalTo(\n+                            stringKey(\"messaging.rabbitmq.cluster.name\"),\n+                            EXPERIMENTAL_ATTRIBUTES ? \"otel-test-cluster\" : null))));",
+      "id": "PRRT_kwDODJKVX86hNCb_",
+      "opened": "2026-09-10T18:47:58Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [],
+      "reviewed": "498071100028a4b5e69a81f5db53a45f273cce15",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3982410164"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use the existing `experimental(...)` helper for these opt-in expected values, matching the `rabbitmq.command` assertion above and keeping the mode-dependent convention consistent.",
+      "created": "2026-09-10T18:47:58Z",
+      "hunk": "@@ -53,6 +53,12 @@ void testShouldNotFailDeclaringExchange() {\n                                 stringKey(\"rabbitmq.command\"), experimental(\"exchange.declare\")),\n                             satisfies(NETWORK_PEER_ADDRESS, val -> val.isIn(rabbitMqIp, null)),\n                             satisfies(NETWORK_TYPE, val -> val.isIn(\"ipv4\", \"ipv6\", null)),\n-                            satisfies(NETWORK_PEER_PORT, val -> val.isNotNull()))));\n+                            satisfies(NETWORK_PEER_PORT, val -> val.isNotNull()),\n+                            equalTo(\n+                                stringKey(\"messaging.rabbitmq.vhost.name\"),\n+                                EXPERIMENTAL_ATTRIBUTES ? \"otel-test\" : null),\n+                            equalTo(\n+                                stringKey(\"messaging.rabbitmq.cluster.name\"),\n+                                EXPERIMENTAL_ATTRIBUTES ? \"otel-test-cluster\" : null))));",
+      "id": "PRRT_kwDODJKVX86hNCc5",
+      "opened": "2026-09-10T18:47:58Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/ReactorRabbitMqTest.java",
+      "replies": [],
+      "reviewed": "498071100028a4b5e69a81f5db53a45f273cce15",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3982410245"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `OpenTelemetryAssertions.assertThat` already exposes all AssertJ overloads, so this second import is redundant.\n```suggestion\n```",
+      "created": "2026-09-10T20:47:08Z",
+      "hunk": "@@ -36,24 +36,30 @@\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_RABBITMQ_MESSAGE_DELIVERY_TAG;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;",
+      "id": "PRRT_kwDODJKVX86hPY43",
+      "opened": "2026-09-10T21:06:00Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-09-11T13:48:33Z",
+          "body": "Removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3989755186"
+        }
+      ],
+      "reviewed": "498071100028a4b5e69a81f5db53a45f273cce15",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3983351004"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Use the shared `TestLatestDeps.testLatestDeps()` accessor here so this test does not duplicate the test-mode property name.",
+      "created": "2026-09-10T20:47:08Z",
+      "hunk": "@@ -125,6 +135,80 @@ void cleanup() throws IOException, TimeoutException {\n     }\n   }\n \n+  /**\n+   * The vhost attribute is populated from a {@code VirtualField} keyed on {@code Connection} and\n+   * set from {@code AMQConnection.start()} (see {@link RabbitConnectionInstrumentation}),\n+   * specifically so it keeps working across automatic recovery: {@code\n+   * AutorecoveringChannel.getConnection()} returns the current inner {@code AMQConnection}, which\n+   * is a brand new instance after a reconnect, and {@code start()} runs again on it. The rejected\n+   * {@code ConnectionFactory.getVirtualHost()} alternative would go stale here, because the factory\n+   * hook only fires once, on the original {@code newConnection()} call. This test forces an\n+   * unexpected shutdown (not an application-initiated {@code close()}, which does not trigger\n+   * recovery) and asserts the attribute survives it.\n+   *\n+   * <p>Automatic recovery ({@code Recoverable}, {@code RecoveryListener}, {@code\n+   * ConnectionFactory#setAutomaticRecoveryEnabled}) doesn't exist at the 2.7.0 muzzle floor, only\n+   * at the newer client this test compiles against (see the {@code testCompileOnly} dependency), so\n+   * this only actually runs under {@code -PtestLatestDeps=true}, where the test runtime classpath\n+   * is bumped to a client new enough to have it.\n+   */\n+  @Test\n+  void testVhostSurvivesAutomaticRecovery() throws Exception {\n+    Assumptions.assumeTrue(\n+        Boolean.getBoolean(\"testLatestDeps\"),",
+      "id": "PRRT_kwDODJKVX86hPY4i",
+      "opened": "2026-09-10T21:06:00Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-09-11T13:48:05Z",
+          "body": "Yes, I've updated this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3989751303"
+        }
+      ],
+      "reviewed": "498071100028a4b5e69a81f5db53a45f273cce15",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3983350979"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The exact assertion distinguishes `\"/\"` from an absent attribute. A non-default vhost instead guards against an implementation that hard-codes the default:\n```suggestion\n    // use a non-default vhost to verify that instrumentation reads the connection's configured\n    // value rather than emitting a hard-coded default\n```",
+      "created": "2026-09-10T20:47:08Z",
+      "hunk": "@@ -47,10 +47,18 @@ static void startRabbit() throws UnknownHostException {\n             .withStartupTimeout(Duration.ofMinutes(2));\n     rabbitMqContainer.start();\n \n+    // a test asserting vhost \"/\" would prove nothing, since that's also what an empty/absent\n+    // value looks like",
+      "id": "PRRT_kwDODJKVX86hPY4p",
+      "opened": "2026-09-10T21:06:00Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-09-11T13:49:56Z",
+          "body": "Updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3989768107"
+        }
+      ],
+      "reviewed": "498071100028a4b5e69a81f5db53a45f273cce15",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r3983350989"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This registers the connection attributes on the shared channel builder, so they are emitted for administrative commands (for example `queue.declare` and `exchange.declare`) and settle spans as well as publish spans. That is broader than the PR description's publish, receive, and delivery scope. Attach this extractor only to the intended operation instrumenters, or update the PR's documented telemetry scope if the broader behavior is intentional.",
+      "created": "2026-09-24T16:48:47Z",
+      "hunk": "@@ -97,6 +106,11 @@ private static InstrumenterBuilder<ChannelAndMethod, Void> channelInstrumenterBu\n     if (messagingOperation && emitStableMessagingSemconv()) {\n       builder.addAttributesExtractor(ServerAttributesExtractor.create(netAttributesGetter));\n     }\n+    if (RabbitInstrumenterHelper.CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n+      builder.addAttributesExtractor(\n+          new RabbitConnectionAttributesExtractor<>(\n+              channelAndMethod -> channelAndMethod.getChannel().getConnection()));",
+      "id": "PRRT_kwDODJKVX86lrhVF",
+      "opened": "2026-09-24T16:48:48Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-28T08:50:55Z",
+          "body": "I think it's as expected as vhost/cluster_name are connection-identity facts, equally meaningful on a queue.declare or basic.ack span as on a publish span.\r\nI can update the PR description to suppress this but I see @trask you updated it recently, just let me know If description needs to be updated ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r4120219117"
+        },
+        {
+          "at": "2026-09-28T11:16:32Z",
+          "body": "I think you can ignore the copilot comment and leave it as is for now.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r4121491810"
+        },
+        {
+          "at": "2026-09-29T06:42:03Z",
+          "body": "ok cool.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r4130406916"
+        }
+      ],
+      "reviewed": "3a87787f934b398081c8990235bb8f6b7a928125",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19822#discussion_r4096158627"
+    }
+  ]
+}

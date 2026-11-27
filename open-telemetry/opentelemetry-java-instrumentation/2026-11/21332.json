@@ -1,0 +1,411 @@
+{
+  "head": "2a1b7c28458d3f5661ae1e4882c81a13704a06c5",
+  "merge": "bf9586d15d50574dac223b81e3b7b2fe0cd6d4b8",
+  "merged": "2026-11-19T16:36:38Z",
+  "missing_roots": 0,
+  "number": 21332,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This list is not confined to its owner: `exactNames()` returns it directly to `HttpCommonAttributesExtractor`. Removing the wrapper therefore exposes the retained configuration as a mutable list, contrary to `.github/instructions/java-style.instructions.md:31-32`, which requires collections exposed outside a class to be unmodifiable. Preserve an unmodifiable accessor view, or move traversal into `CapturedHttpHeaders` so the backing `ArrayList` stays private.",
+      "created": "2026-11-17T23:40:02Z",
+      "hunk": "@@ -83,7 +82,7 @@ private CapturedHttpHeaders(\n         }\n       }\n     }\n-    this.exactNames = unmodifiableList(new ArrayList<>(names));\n+    this.exactNames = new ArrayList<>(names);",
+      "id": "PRRT_kwDODJKVX864tVVv",
+      "opened": "2026-11-17T23:40:03Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/CapturedHttpHeaders.java",
+      "replies": [
+        {
+          "at": "2026-11-17T23:54:34Z",
+          "body": "Fixed in c8350e14. `exactNames()` now returns a cached unmodifiable view over the private `ArrayList`; the focused test verifies empty and nonempty views reject mutation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607395607"
+        },
+        {
+          "at": "2026-11-18T00:02:03Z",
+          "body": "Verified in c8350e14: the accessor now returns a cached unmodifiable view for both empty and nonempty lists, without adding wrappers per request.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607453850"
+        }
+      ],
+      "reviewed": "7e51f35c730b14a0eb42cca22b46bcb4cd8ca3f1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607283886"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `MapGetter(false)` still returns `new ArrayList<>(request.keySet())`; the flag only disables the enumeration assertion. Since `MESSAGE` contains `Test-Message-Header`, this test would pass even if the enumerating path stopped retaining exact names. Please use a getter that returns an empty header-name collection while still resolving the exact header value, so the test actually covers the fallback named here.",
+      "created": "2026-11-17T23:40:03Z",
+      "hunk": "@@ -113,6 +113,15 @@ void wildcardCapturesNothingWithoutHeaders() {\n     assertThat(attributes.build().asMap()).isEmpty();\n   }\n \n+  @Test\n+  void mixedSelectorRetainsExactNamesWhenEnumerationIsEmpty() {\n+    AttributesBuilder attributes = Attributes.builder();\n+    extractor(new MapGetter(false), selector(asList(\"Test-Message-Header\", \"Other-*\"), emptyList()))\n+        .onEnd(attributes, Context.root(), MESSAGE, null, null);",
+      "id": "PRRT_kwDODJKVX864tVWV",
+      "opened": "2026-11-17T23:40:03Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingHeadersTest.java",
+      "replies": [
+        {
+          "at": "2026-11-17T23:54:34Z",
+          "body": "Fixed in c8350e14. The mixed-selector test now uses a getter that returns an empty header-name collection but still resolves `Test-Message-Header`; the attribute assertion remains. The focused test passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607395606"
+        },
+        {
+          "at": "2026-11-18T00:02:03Z",
+          "body": "Verified in c8350e14: the getter returns an empty header-name collection while preserving exact-value lookup, so the attribute assertion now exercises the intended fallback.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607453871"
+        }
+      ],
+      "reviewed": "7e51f35c730b14a0eb42cca22b46bcb4cd8ca3f1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607283946"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly in `open-telemetry/opentelemetry-java-instrumentation` on its verified live head branch `copilot/cloud-assigned-branch-name` to address both findings from Copilot review 5948494330. This remains the private ArrayList-copy alternative to #21324; do not modify #21324, switch to arrays/indexed loops, add per-operation copies, or change supported matching/configuration/telemetry behavior.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. Cloud-assigned branch names take precedence over general branch-naming conventions. Do not manually create a follow-up PR as a workaround; keep any platform-assigned follow-up branch if GitHub creates one.\n\n1. Preserve the existing read-only accessor contract in `instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/CapturedHttpHeaders.java`. The private `exactNames` backing storage can remain an ArrayList, but `exactNames()` currently exposes it directly outside the owning class after the wrapper removal. The repository requires exposed collections to be unmodifiable. Prefer a cached unmodifiable accessor view created during initialization, as with the Elasticsearch route view, while internal code retains its private normalized ArrayList. Keep empty and nonempty accessor views consistent; do not create wrappers/copies per request or replace the separate exact/enumerated traversal paths. Add focused coverage of the accessor's immutability without changing the user-facing selector API. Finding: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607283886\n\n2. Correct `mixedSelectorRetainsExactNamesWhenEnumerationIsEmpty` in `instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingHeadersTest.java`. `MapGetter(false)` still enumerates `new ArrayList<>(request.keySet())`; false only disables the enumeration assertion. Make this test use a getter that truly returns an empty header-name collection but still resolves `Test-Message-Header` to its nonempty value. Keep the mixed exact/wildcard selector and observable attribute assertion so dropping the exact-name fallback would fail the test. Do not merely rename the test or weaken the assertion. Finding: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607283946\n\nRun the relevant existing focused header tests and narrow formatting tasks. Keep the correction limited to these two valid review findings and their directly related coverage. Do not wait for hosted CI as a completion requirement.",
+      "created": "2026-11-17T23:44:25Z",
+      "hunk": "@@ -83,7 +82,7 @@ private CapturedHttpHeaders(\n         }\n       }\n     }\n-    this.exactNames = unmodifiableList(new ArrayList<>(names));\n+    this.exactNames = new ArrayList<>(names);",
+      "id": "PRRT_kwDODJKVX864taaP",
+      "opened": "2026-11-17T23:44:25Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/CapturedHttpHeaders.java",
+      "replies": [],
+      "reviewed": "7e51f35c730b14a0eb42cca22b46bcb4cd8ca3f1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607317624"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify this PR directly in `open-telemetry/opentelemetry-java-instrumentation` on its verified live head branch `copilot/cloud-assigned-branch-name`. The user said they expected a simpler PR and explicitly selected: \"Keep the broader scope but simplify the changes\". Do not narrow the work to IncludeExclude alone. Keep the useful ArrayList normalization across the existing configuration/metadata areas, but remove unnecessary traversal rewrites, accessor plumbing, and test expansion. Leave the array-based comparison PR #21324 unchanged.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. Cloud-assigned branch names take precedence over general branch-naming conventions. Do not manually create a follow-up PR as a workaround; keep any platform-assigned follow-up branch if GitHub creates one.\n\nThe goal is a materially smaller, straightforward diff than the current 13 files with 181 additions and 71 deletions, not a cosmetic reformat or a narrower implementation. The agreed policy is private defensive ArrayList copies for retained configuration/metadata, including empty inputs, with read-only exposure where required. It does not require bare ArrayList references everywhere or guarantee elimination of every iterator in arbitrary shared collection code. A privately owned ArrayList with a consistent cached unmodifiable view already satisfies the isolation and representation goals.\n\n1. Retain the small useful changes: IncludeExclude's empty and nonempty private predicate lists should remain ArrayLists; servlet wildcard matchers should not switch to Collections.emptyList(); keep the straightforward PowerJob and Rediscala ArrayList normalization; keep relevant Elasticsearch parameter-name normalization. Keep the concise retained-list rule and its isolation/single-implementation rationale.\n\n2. Remove header traversal restructuring that was added merely to chase every possible iterator profile. Prefer the original HttpCommonAttributesExtractor flow rather than the added split loops and captureRequestHeader/captureResponseHeader helpers. Keep matching, exclusions, case handling, deduplication, and exact-name fallback behavior unchanged. Do not add arrays, indexed loops, callbacks, or per-operation copies as a workaround.\n\n3. CapturedHttpHeaders originally used unmodifiableList(new ArrayList<>(names)). That already provides an isolated ArrayList-backed snapshot and the same immutable view implementation for empty/nonempty inputs. Preserve that existing single-field/accessor design instead of keeping both exactNames and exactNamesView solely to expose a bare ArrayList internally. Restoring this class to its PR merge-base implementation is appropriate. The accessor must remain unmodifiable; the prior valid review finding must not be reintroduced.\n\n4. Simplify MessagingAttributesExtractor back toward its original small headerNames helper instead of retaining the inline enumeration rewrite plus captureHeader helper. Its private exactHeaderNames can keep the unwrapped owned ArrayList, since that list does not escape its owner. If the null-selector branch needs an empty sequence, reuse that already-empty owned list rather than introducing a different empty-list implementation. Preserve the existing LinkedHashSet collection-constructor pre-sizing in wildcard paths.\n\n5. Elasticsearch routes should keep a single immutable accessor view backed by a privately constructed ArrayList where possible, rather than a second backing-list/view field and a rewritten manual constructor loop. The original stream can collect directly into an ArrayList using the repository's existing collection idioms. Keep route order and parameter-name order and do not weaken getRoutes() immutability. Already isolated, consistently represented storage does not need extra layers just to satisfy the rule.\n\n6. Trim tests and fixture machinery that only exercise the now-reverted header traversal refactoring or restate unchanged collection behavior. Prefer a few focused assertions in existing tests. The new Elasticsearch helper test class and added header fixture flags are candidates for removal if existing coverage is sufficient for the remaining small changes. Do not delete a test merely to hide a still-present bug: retain the immutable accessor contract and correct exact/wildcard fallback, and keep coverage genuinely needed for changed behavior.\n\nUse the PR's actual merge base when distinguishing original code from PR-only churn; do not copy unrelated changes from the current main tip. Make ordinary follow-up commits on the current head. Do not merge, rebase, retarget, replace the branch, amend existing commits, or alter #21324.\n\nRun the relevant existing focused tests and narrow formatting tasks after simplifying. Preserve public APIs, exposed collection immutability, ordering, lifecycle, user-facing configuration, and emitted telemetry. Keep per-request/message/batch data excluded. Do not wait for hosted CI as a completion requirement.",
+      "created": "2026-11-18T00:30:49Z",
+      "hunk": "@@ -83,7 +84,8 @@ private CapturedHttpHeaders(\n         }\n       }\n     }\n-    this.exactNames = unmodifiableList(new ArrayList<>(names));\n+    this.exactNames = new ArrayList<>(names);",
+      "id": "PRRT_kwDODJKVX864uPFo",
+      "opened": "2026-11-18T00:30:49Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/CapturedHttpHeaders.java",
+      "replies": [
+        {
+          "at": "2026-11-18T00:43:32Z",
+          "body": "Simplified the diff as requested in 8e981714. Focused header/messaging tests and narrow Spotless checks pass; the CodeQL review request timed out.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607759753"
+        }
+      ],
+      "reviewed": "c8350e14fda8ae2c8f415ac8cf2409de76e3289f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607670840"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Finish the user's requested simplification directly in `open-telemetry/opentelemetry-java-instrumentation` on the verified live head branch `copilot/cloud-assigned-branch-name`. The user explicitly selected \"Keep the broader scope but simplify the changes\". The previous pass reduced the diff substantially, but three remaining files still contain PR-only changes unrelated to the retained normalization. This is a final narrowly scoped trim, not a new behavior change or a request to narrow the implementation to IncludeExclude.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. Cloud-assigned branch names take precedence over general branch-naming conventions. Do not manually create a follow-up PR as a workaround; keep any platform-assigned follow-up branch if GitHub creates one.\n\nRestore these three files exactly to this PR's actual merge-base versions so they no longer appear in the final PR diff:\n\n1. `instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java`. The only remaining diff inverts the early-return guard in captureResponseHeaders and reindents the same loop. It is unrelated style churn, not a normalization or behavior fix.\n\n2. `instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpHeaderSelectorTest.java`. The only remaining changes add exactNamesAccessorIsUnmodifiable and its assertion import. CapturedHttpHeaders has now been completely restored to its merge-base implementation, including its original immutable accessor, so this test no longer covers any production change in this PR. Keep all existing baseline header tests.\n\n3. `instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingHeadersTest.java`. The only remaining additions are mixedSelectorRetainsExactNamesWhenEnumerationIsEmpty plus the extra fixture boolean/constructor used by that test. Those were introduced for the header traversal rewrite that the prior pass removed. The remaining production changes only normalize the privately owned exact-name list and return that empty list in the null-selector branch; this nonnull mixed-selector test exercises neither change. Remove these PR-only additions while retaining the complete original messaging-header suite. Do not replace them with a different new fixture or matrix.\n\nDo not reintroduce the earlier real accessor bug or lose exact/wildcard fallback: those production behaviors are now the unchanged merge-base implementations. The earlier review findings were valid for the earlier code, but the corresponding production rewrites are no longer part of this PR, so those added tests are not required for this smaller scope.\n\nRetain every other current normalization change: the retained-list rule, IncludeExclude's consistent private ArrayList predicates and its small existing-test assertions, the messaging exact-name ArrayList and null-selector empty representation, Elasticsearch ArrayList collection/parameter-name handling, PowerJob/Rediscala normalized lists, and the servlet wildcard matcher representation. Do not modify the array-based comparison PR #21324.\n\nUse the actual PR merge base, not the current main tip, when restoring the three files. Make an ordinary follow-up commit on the current head; do not merge, rebase, retarget, replace the branch, or amend prior commits. Run the relevant existing focused tests and narrow formatting tasks. Acceptance is that these three files disappear from the PR diff, the broader normalization remains, and supported APIs/immutability/matching/telemetry stay unchanged. Do not wait for hosted CI as a completion requirement.",
+      "created": "2026-11-18T00:53:49Z",
+      "hunk": "@@ -109,18 +109,17 @@ public void onEnd(\n \n   private void captureResponseHeaders(\n       AttributesBuilder attributes, REQUEST request, RESPONSE response) {\n-    if (capturedResponseHeaders.isEmpty()) {\n-      return;\n-    }\n-    Collection<String> names =\n-        capturedResponseHeaders.enumerateNames()\n-            ? capturedResponseHeaders.matchingNames(\n-                getter.getHttpResponseHeaderNames(request, response))\n-            : capturedResponseHeaders.exactNames();\n-    for (String name : names) {\n-      List<String> values = getter.getHttpResponseHeader(request, response, name);\n-      if (!values.isEmpty()) {\n-        attributes.put(capturedResponseHeaders.attributeKey(name), values);\n+    if (!capturedResponseHeaders.isEmpty()) {",
+      "id": "PRRT_kwDODJKVX864uoxG",
+      "opened": "2026-11-18T00:53:49Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-18T01:02:47Z",
+          "body": "Restored the three files to the PR merge base and removed their PR-only changes in commit `{{hash}}`. The retained normalization remains; focused tests and Spotless checks pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607904311"
+        }
+      ],
+      "reviewed": "8e98171469e1a77a9fafc50478d1c9a115a1fe2a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4607841286"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Make this second, ArrayList-based PR cleaner and clearer directly in `open-telemetry/opentelemetry-java-instrumentation` on its verified live head branch `copilot/cloud-assigned-branch-name`. The user's chosen convention is unchanged: always take an owned ArrayList snapshot when retaining incoming configuration/metadata lists, including empty inputs, consistently use that owned data, and allow ordinary enhanced-for traversal. The user explicitly asked: \"Okay, let's try to move forward on that second PR but make it cleaner and clearer\". Do not replace this convention with arrays, mandatory indexed loops, or profiling requirements.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. Cloud-assigned branch names take precedence over general branch-naming conventions. Do not manually create a follow-up PR as a workaround; keep any platform-assigned follow-up branch if GitHub creates one.\n\nLimit this pass to two already changed files:\n\n1. Clarify `.github/instructions/java-style.instructions.md`. State the rule directly: when retaining an incoming list as long-lived configuration or metadata, take a private ArrayList copy, including empty inputs, and consistently use that owned copy internally. Treat it as read-only after initialization and preserve required unmodifiable views when exposing lists. Enhanced-for is fine; arrays or indexed loops are not required. A fresh, already privately owned ArrayList does not need another redundant copy. Keep a concise rationale about structural isolation and consistent stored implementations, with the concrete ArrayList versus Collections.emptyList example if useful. Do not promise that every iterator is eliminated, refer vaguely to \"the measured case\", add a benchmarking checklist, or reintroduce a general source-level no-iterator rule.\n\n2. Make the small cached-header path in `instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractor.java` easier to read without changing behavior or the chosen representation. `headerNames()` currently has two consecutive guards that both return exactHeaderNames: one for headers == null and one for !enumerateHeaderNames. Combine them into the single straightforward cached-list branch `if (headers == null || !enumerateHeaderNames) { return exactHeaderNames; }`. Keep the existing enumeration branch and LinkedHashSet collection-constructor pre-sizing unchanged. Clarify the existing exactHeaderNames field comment with a short present-tense statement that the cache is empty when no header selector is configured, so readers do not need to infer why the cached return is empty. Do not add a special JIT trick, a new helper, a second backing/view field, a callback, an array, an indexed loop, a per-operation copy, or an extra nullable read.\n\nPreserve all other current small normalization changes and the existing IncludeExclude test assertions. Keep the current broad minimized scope rather than narrowing to IncludeExclude, but do not expand beyond these two files merely for cleanup. Keep the HTTP accessor and traversal code restored to its original merge-base form and preserve all existing immutable exposure, exact/wildcard fallback, ordering, exclusions, configuration, and telemetry.\n\nRun the relevant existing focused selector/messaging-header tests and narrow formatting/documentation checks. Existing null, empty, exact, and wildcard cases should suffice for this behavior-preserving guard simplification; do not add another fixture or test matrix merely to restate it. Make ordinary follow-up commits, without merging, rebasing, retargeting, replacing the branch, or amending earlier commits. Leave the array-based comparison PR #21324 unchanged. Do not wait for hosted CI as a completion requirement.",
+      "created": "2026-11-18T04:39:59Z",
+      "hunk": "@@ -56,6 +56,13 @@ The null-comparison and hot-path allocation rules also apply to Kotlin and Scala\n   Non-allocating Stream API usage is acceptable but may not fit the surrounding code.\n   Consider the complexity of pre-sizing `collect` sinks and allocations from\n   capturing `forEach` lambdas when choosing an implementation.\n+- **Retained lists**: when retaining an incoming list as long-lived configuration or metadata,",
+      "id": "PRRT_kwDODJKVX864x8-j",
+      "opened": "2026-11-18T04:39:59Z",
+      "path": ".github/instructions/java-style.instructions.md",
+      "replies": [
+        {
+          "at": "2026-11-18T04:47:12Z",
+          "body": "Updated in `fd278a73`: clarified the retained-list guidance and simplified the cached header-name guard/comment. Focused selector and messaging tests and the incubator Java Spotless check pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609306587"
+        }
+      ],
+      "reviewed": "a0e3221f1b9b2157f440280428660a8f60074ffd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609262291"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly in `open-telemetry/opentelemetry-java-instrumentation` on its verified live head branch `copilot/cloud-assigned-branch-name` with exactly the following three user-approved reversals. Keep all other code and the chosen ArrayList-copy/enhanced-for rule unchanged. This is not a new cleanup pass or a rule redesign.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. Cloud-assigned branch names take precedence over general branch-naming conventions. Do not manually create a follow-up PR as a workaround; keep any platform-assigned follow-up branch if GitHub creates one.\n\n1. In `instrumentation/powerjob-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/powerjob/v4_0/PowerJobProcessRequest.java`, revert the added ArrayList copy and import. Keep the original private KNOWN_PROCESSORS list constructed by asList(...) from class literals. It already owns its varargs backing array and presents one consistent implementation at its traversal site. This file should disappear from the final PR diff.\n\n2. In `instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaRequest.java`, likewise revert only the added ArrayList copy/import around the private CONTAINER_COMMANDS literal list. Keep the original asList(...) constant. This file should also disappear from the final PR diff.\n\n3. In `instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchEndpointDefinition.java`, revert only the parameter-name initialization change in EndpointPattern: allocate pathPartNames as an ArrayList inside the hasParameters() branch, and use the original emptyList() for routes without parameters, restoring the needed import. processPathParts() only traverses parameter names after hasParameters(), so this empty-case normalization is unnecessary there. Keep the separate explicit ArrayList route collector and its immutable route view exactly as currently implemented.\n\nUse the actual PR merge-base versions as the reference for the reversals, not unrelated changes from the current main tip. Preserve any unrelated changes rather than overwriting files blindly.\n\nKeep everything else unchanged: `.github/instructions/java-style.instructions.md`, IncludeExclude, messaging normalization and its clarified guard/comment, servlet wildcard matchers, existing test assertions, and the explicit Elasticsearch ArrayList route collector. Preserve all supported APIs, immutable views, ordering, matching, lifecycle, configuration, and telemetry. Do not modify the array-based comparison PR #21324.\n\nExpected result: six changed files instead of eight, with no further cleanup, new fixtures, benchmarks, arrays/indexing mandate, or rule redesign. Make ordinary follow-up commits without merging, rebasing, retargeting, replacing the branch, or amending earlier commits. Run the relevant existing focused tests and narrow formatting checks; do not wait for hosted CI as a completion requirement.",
+      "created": "2026-11-18T05:12:15Z",
+      "hunk": "@@ -22,16 +23,17 @@\n \n public class PowerJobProcessRequest {\n   private static final List<Class<?>> KNOWN_PROCESSORS =\n-      asList(\n-          FileCleanupProcessor.class,\n-          BroadcastProcessor.class,\n-          MapReduceProcessor.class,\n-          MapProcessor.class,\n-          ShellProcessor.class,\n-          PythonProcessor.class,\n-          HttpProcessor.class,\n-          SpringDatasourceSqlProcessor.class,\n-          DynamicDatasourceSqlProcessor.class);\n+      new ArrayList<>(",
+      "id": "PRRT_kwDODJKVX864ycNA",
+      "opened": "2026-11-18T05:12:15Z",
+      "path": "instrumentation/powerjob-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/powerjob/v4_0/PowerJobProcessRequest.java",
+      "replies": [
+        {
+          "at": "2026-11-18T05:22:24Z",
+          "body": "Applied the three requested reversals in `ff534671`. The PowerJob and Rediscala files are restored to the PR base, and Elasticsearch uses `emptyList()` when a route has no parameters while retaining the unrelated route snapshot normalization. The three targeted Gradle test tasks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609527941"
+        }
+      ],
+      "reviewed": "fd278a738f51fcad098ce6bde781bd5d8af3b08a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609466050"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly in `open-telemetry/opentelemetry-java-instrumentation` on its verified live head branch `copilot/cloud-assigned-branch-name` with exactly these two user-approved cleanups. Keep every other code/rule/collector change unchanged. This is not another cleanup pass, scope expansion, or rule redesign.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. Cloud-assigned branch names take precedence over general branch-naming conventions. Do not manually create a follow-up PR as a workaround; keep any platform-assigned follow-up branch if GitHub creates one.\n\n1. In `instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchEndpointDefinition.java`, inline the temporary routeList into the assignment to this.routes. Keep one assignment expression with `unmodifiableList(Arrays.stream(routes).map(Route::new).collect(toCollection(ArrayList::new)))`. The formatter may wrap that expression onto multiple physical lines; do not retain the unnecessary temporary just to keep lines short. Preserve the explicit ArrayList collector, immutable route view, ordering, and the already-approved conditional ArrayList/emptyList parameter-name initialization.\n\n2. In `instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/config/IncludeExcludeTest.java`, remove only the three assertions added by this PR: `assertThat(selector.matches(\"included\")).isTrue();`, `assertThat(selector.matches(\"later included\")).isFalse();`, and `assertThat(selector.matches(\"excluded\")).isFalse();`. Retain the complete original selectorIsImmutable test, its input mutations, getter assertions, immutable-view assertions, and all other original tests. Do not replace these assertions with another test or fixture. The three checks already pass before the production change and do not test the iterator allocation issue; the excluded-value assertion also does not isolate exclusion behavior. This file should disappear from the final PR diff.\n\nUse the actual PR merge base if needed to identify the three PR-only test additions, not unrelated changes from the current main tip. Preserve any unrelated changes rather than overwriting files blindly.\n\nKeep all other files and choices unchanged: the private ArrayList-copy/enhanced-for instruction, IncludeExclude production code, messaging guard/comment and owned-list normalization, servlet wildcard matchers, restored PowerJob/Rediscala constants, Elasticsearch parameter names, and all supported APIs/immutability/matching/lifecycle/telemetry. Do not modify the array-based comparison PR #21324.\n\nExpected result: five changed files instead of six, one inline route-assignment expression, and no new tests, fixtures, benchmarks, arrays/indexing mandate, or other cleanup. Make ordinary follow-up commits without merging, rebasing, retargeting, replacing the branch, or amending earlier commits. Run the relevant existing focused tests and narrow formatting checks; do not wait for hosted CI as a completion requirement.",
+      "created": "2026-11-18T05:50:45Z",
+      "hunk": "@@ -33,7 +33,9 @@ public final class ElasticsearchEndpointDefinition {\n   public ElasticsearchEndpointDefinition(\n       String endpointName, String[] routes, boolean isSearchEndpoint) {\n     this.endpointName = endpointName;\n-    this.routes = unmodifiableList(Arrays.stream(routes).map(Route::new).collect(toList()));\n+    ArrayList<Route> routeList =",
+      "id": "PRRT_kwDODJKVX864zA7r",
+      "opened": "2026-11-18T05:50:45Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchEndpointDefinition.java",
+      "replies": [
+        {
+          "at": "2026-11-18T06:02:59Z",
+          "body": "Applied both requested cleanups in 8b5554aa. The route snapshot is now inlined with the explicit `ArrayList<Route>` collector type, and only the three added selector assertions were removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609795668"
+        }
+      ],
+      "reviewed": "ff5346717e3f71876a1ee3543f4972a9430876b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609712578"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly in `open-telemetry/opentelemetry-java-instrumentation` on its verified live head branch `copilot/cloud-assigned-branch-name` with exactly this user-requested readability change. Restore the temporary route variable instead of the nested expression that requires explicit collector type arguments. Keep all other changes unchanged.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. Cloud-assigned branch names take precedence over general branch-naming conventions. Do not manually create a follow-up PR as a workaround; keep any platform-assigned follow-up branch if GitHub creates one.\n\nIn `instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchEndpointDefinition.java`, restore this constructor code:\n\n```java\nArrayList<Route> routeList =\n    Arrays.stream(routes).map(Route::new).collect(toCollection(ArrayList::new));\nthis.routes = unmodifiableList(routeList);\n```\n\nRestore the static import of `java.util.stream.Collectors.toCollection` and remove the non-static `Collectors` import if it is unused. Do not add explicit generic method arguments, casts, helpers, or an alternative implementation. The temporary's declared type supplies the type information that Java cannot infer in the nested expression. Preserve the ArrayList collector, immutable route view, ordering, and conditional ArrayList/emptyList parameter-name initialization.\n\nKeep the three matching assertions removed from IncludeExcludeTest; do not restore or otherwise change tests. Keep all other files and choices unchanged: the private ArrayList-copy/enhanced-for instruction, IncludeExclude production code, messaging guard/comment and owned-list normalization, servlet wildcard matchers, restored PowerJob/Rediscala constants, Elasticsearch parameter names, and all supported APIs/immutability/matching/lifecycle/telemetry. Do not modify the array-based comparison PR #21324.\n\nExpected result: this follow-up changes only the Elasticsearch constructor expression and its collector import; the whole PR still has five changed files. No other cleanup, tests, fixtures, benchmarks, arrays/indexing mandate, or rule redesign. Make ordinary follow-up commits without merging, rebasing, retargeting, replacing the branch, or amending earlier commits. Run relevant existing focused tests and narrow formatting; do not wait for hosted CI as a completion requirement.",
+      "created": "2026-11-18T06:13:14Z",
+      "hunk": "@@ -33,7 +33,11 @@ public final class ElasticsearchEndpointDefinition {\n   public ElasticsearchEndpointDefinition(\n       String endpointName, String[] routes, boolean isSearchEndpoint) {\n     this.endpointName = endpointName;\n-    this.routes = unmodifiableList(Arrays.stream(routes).map(Route::new).collect(toList()));\n+    this.routes =\n+        unmodifiableList(\n+            Arrays.stream(routes)\n+                .map(Route::new)\n+                .collect(Collectors.<Route, ArrayList<Route>>toCollection(ArrayList::new)));",
+      "id": "PRRT_kwDODJKVX864zX4d",
+      "opened": "2026-11-18T06:13:14Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchEndpointDefinition.java",
+      "replies": [
+        {
+          "at": "2026-11-18T06:22:36Z",
+          "body": "Restored the typed `routeList` temporary and static `toCollection` import in 1029071d.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609929395"
+        }
+      ],
+      "reviewed": "8b5554aa296622149f13c4ead1008b7753aeffce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4609862208"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21332 directly in `open-telemetry/opentelemetry-java-instrumentation` on the verified live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch. Do not rename or replace it, and do not open a separate PR. The user asked to address all gaps from the retained-lists audit of `07533003d893129127636bb09cec76bae3c1dc25`. Use owned, read-only-after-initialization `ArrayList` storage even for empty inputs, reuse it internally with enhanced-for, and preserve existing unmodifiable exposure. Do not copy a fresh `ArrayList` when exclusive ownership is already established.\n\n- HTTP header capture: `CapturedHttpHeaders` currently stores an unmodifiable wrapper as the exact-name cache and `HttpCommonAttributesExtractor` traverses it for request and response. Use the private owned list for internal exact-name traversal without exposing a mutable backing list outside its owner. Keep exact-name lookup, empty selectors, wildcard enumeration, ordering and deduplication behavior. Do not allocate a wrapper per request or claim that mixed exact/wildcard paths are monomorphic. Prior HTTP changes were reverted for simplicity; make a minimal targeted fix rather than restoring the old diff wholesale.\n- Elasticsearch: `ElasticsearchEndpointDefinition` should traverse the owned route list and keep `getRoutes()` unmodifiable, preserving the typed `ArrayList<Route>` collection approach. Normalize `EndpointPattern.pathPartNames` for routes with and without parameters, with no change to matching or captures. The audit explicitly includes the empty path at this head; avoid unrelated reversals such as PowerJob and Rediscala.\n- Ownership boundaries: snapshot builder-provided bootstrap prefixes in `BootstrapPackagePrefixesHolder` while preserving the read-only getter and bootstrap constraints; snapshot the four declarative header lists in `CommonConfig` and the list-valued properties captured by `SpringConfigProperties` without changing the mutable `OtelSpringProperties` binder or configuration precedence; isolate the list published by `InternalInstrumenterCustomizerUtil` and the resource list retained by both `HelperInjector` constructors. Preserve established consumer contracts and verify the actual extension, binding and initialization call paths.\n- Other runtime/configuration gaps from the audit: `IncludeExclude` should compile predicates from the owned inputs while preserving its unmodifiable pattern getters. Normalize the list retained by `RuntimeTelemetry` without changing resource ownership or close behavior; normalize configured and default patterns in `SpringIntegrationSingletons`. Normalize empty-root paths in `ConfigPropertiesBackedDeclarativeConfigProperties` and retained list results, including the empty and placeholder paths, in `MethodConfiguration`/`MethodInstrumentationModule`. Reuse genuinely private lists and preserve the muzzle placeholder. The RPC metrics factories already snapshot buckets and pass read-only lists into SDK setup; the audit did not recommend changing them.\n- Documentation metadata: isolate incoming lists in `instrumentation-docs` in `ConfigurationOption`, `DeclarativeSchema`, `InstrumentationMetadata`, `ManualTelemetryEntry`, and the `EmittedEvents`/`EmittedMetrics`/`EmittedSpans`/`EmittedScope` models. Check list-valued maps in the docs `InstrumentationModule` as well. Snapshot at the retention boundary rather than copying on reads. Preserve null-versus-empty semantics, serialization shape, ordering, existing unmodifiable views and intentional model editing behavior. Do not apply a blanket conversion to mutable accumulators or binding objects.\n\nKeep the changes narrowly about list ownership and traversal. Leave the already-correct messaging and servlet paths alone unless a direct dependency requires a change, and do not convert request batches or live registries. Add focused regression tests for ownership/behavior where meaningful, run the relevant targeted Gradle formatting and tests, and report any named case that is already safe or where a verified contract prevents applying the rule as written. Do not change the PR title, description, or draft status, or post replies to other threads.",
+      "created": "2026-11-18T18:59:44Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+---\n+applyTo: \"**/*.java,**/*.kt,**/*.scala\"\n+---\n+\n+# Java performance\n+\n+Apply these rules to Java code. The hot-path allocation rules also apply to Kotlin and Scala.\n+\n+## Retained lists\n+\n+When retaining an incoming list as long-lived configuration or metadata:\n+\n+- Take a private `ArrayList` snapshot, including for empty inputs.\n+- Use that owned copy consistently internally, and treat it as read-only after initialization.",
+      "id": "PRRT_kwDODJKVX865JOvq",
+      "opened": "2026-11-18T18:59:44Z",
+      "path": ".github/instructions/java-performance.instructions.md",
+      "replies": [
+        {
+          "at": "2026-11-18T19:37:09Z",
+          "body": "Implemented the retained-list audit on the assigned branch. The final fixes are in `860132b2` (with the main audit in `7145d885`): private ArrayList snapshots and retained read-only/mutable contracts, with null YAML metrics behavior preserved. The targeted Gradle suite passes, formatting and secret scans pass. The CodeQL review request timed out.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4619720111"
+        }
+      ],
+      "reviewed": "07533003d893129127636bb09cec76bae3c1dc25",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4619261295"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update `open-telemetry/opentelemetry-java-instrumentation` PR #21332 directly on its live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace it or open a separate PR. The user wants one easy retained-list ownership rule that does not require tracing callers of private constructors. This is a focused follow-up to the completed audit changes at `860132b2e933f99f901187b88c0a7adc0b3eff2c`.\n\n- In `.github/instructions/java-performance.instructions.md`, replace the fresh-ArrayList exception with an owner-side rule: take the private `ArrayList` snapshot where the list is retained, even for empty inputs and even in private constructors. Don't make callers supply an owned list. If the owner builds the final list itself, build it directly as an `ArrayList` rather than copying it again. Keep the existing internal traversal and unmodifiable exposure guidance.\n- `ConfigPropertiesBackedDeclarativeConfigProperties`: centralize ownership of `path` in the private constructor. Copy the parent path once, then append the child name if present. The root factories can pass `emptyList()` and `getStructured()` can pass `path` and `name` directly. Preserve property lookup behavior and do not copy the path twice.\n- `IncludeExclude` and `IncludeExcludeBuilder`: the constructor should snapshot incoming patterns and compile predicates from those owned lists, while getters continue to return unmodifiable views. Keep the builder's existing setter-time validation and copying, including isolation from caller mutation before `build()`. Use `emptyList()` for builder defaults that are only handed off.\n- `RuntimeTelemetry`, `RuntimeTelemetryBuilder`, `JmxRuntimeMetricsFactory` and the close test: take the observables snapshot in `RuntimeTelemetry`. Drop caller-side normalization that is no longer needed, including the builder's empty default, the JMX factory's concrete local type if unnecessary, and the test's forced `ArrayList`. Preserve close order, failure handling and resource identity.\n- `MappingResolver`: have `build()` pass the raw mappings to the private constructor. Build the wildcard list in the owner with no second copy. Preserve exact matches, wildcard precedence, and default servlet behavior for empty mappings.\n- `MethodInstrumentationModule`: own an `ArrayList` snapshot of the `MethodConfiguration` result before adding the muzzle placeholder. Do not modify the configuration's list. `MethodConfiguration` already creates its own `ArrayList`, so leave it as is unless a directly required change is needed. Preserve the existing module getter contract and muzzle behavior.\n- `CommonConfig`: it already snapshots all four retained header lists in the constructor, so use `emptyList()` for the four input defaults instead of allocating throwaway `ArrayList`s. Preserve the unmodifiable results.\n\nKeep the PR focused on these ownership locations and leave the other audit changes alone. Preserve the draft state. Run the narrow formatters and relevant tests for the changed modules. Add focused regression coverage only where it captures an ownership or behavior guarantee; do not broaden the change into another repository-wide audit.",
+      "created": "2026-11-18T19:59:07Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+---\n+applyTo: \"**/*.java,**/*.kt,**/*.scala\"\n+---\n+\n+# Java performance\n+\n+Apply these rules to Java code. The hot-path allocation rules also apply to Kotlin and Scala.\n+\n+## Retained lists\n+\n+When retaining an incoming list as long-lived configuration or metadata:\n+\n+- Take a private `ArrayList` snapshot, including for empty inputs.\n+- Use that owned copy consistently internally, and treat it as read-only after initialization.\n+- Preserve unmodifiable views when exposing the list.\n+",
+      "id": "PRRT_kwDODJKVX865K3mp",
+      "opened": "2026-11-18T19:59:07Z",
+      "path": ".github/instructions/java-performance.instructions.md",
+      "replies": [
+        {
+          "at": "2026-11-18T20:11:54Z",
+          "body": "Implemented in 402fb1b1. Focused Gradle tests, compiles, and Spotless checks passed. The CodeQL review request timed out.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4620136332"
+        }
+      ],
+      "reviewed": "860132b2e933f99f901187b88c0a7adc0b3eff2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4619975746"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the following behavior-preserving retained-list simplifications directly to PR #21332 in `open-telemetry/opentelemetry-java-instrumentation` on the verified live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace it, and do not open a separate PR as a workaround.\n\n1. In `instrumentation-api-incubator`'s `CommonConfig`, bind the `http`, `client`, and `server` sections from `generalConfig` once. Keep the four client/server request/response field assignments and their config keys explicit. Add a private static `readCapturedHeaders(DeclarativeConfigProperties config, String key)` helper that reads `getScalarList(key, String.class, emptyList())`, then returns an unmodifiable view over a new `ArrayList` snapshot. Preserve the existing empty default and public behavior.\n2. In `instrumentation-api`'s `IncludeExclude`, keep just `List<String> included` and `List<String> excluded` for the raw patterns, initialize each with `unmodifiableList(new ArrayList<>(input))` in the constructor, and return those fields directly from the getters. Compile predicates from the owned snapshots rather than the input lists. Keep the compiled predicate fields `List`-typed, backed by directly built `ArrayList`s, and continue iterating those directly in `matches()`. Preserve matching, ordering, equality, and unmodifiable getter results.\n3. In `instrumentation-api`'s `CapturedHttpHeaders`, remove the test-only `exactNames()` accessor and `exactNamesView`. Keep one `List<String> exactNames` backed by its owned `ArrayList`; keep direct enhanced-for traversal in `forEachExactName` and preserve exact and wildcard capture behavior. Adapt `HttpHeaderSelectorTest` to test observable names through the remaining behavior rather than asserting mutability of a removed accessor.\n4. In `elasticsearch-rest-common-5.0`'s `ElasticsearchEndpointDefinition` and nested `EndpointPattern`, declare `routes` and `pathPartNames` as `List` and continue to build them as `ArrayList`s. Drop `routesView` and `pathPartNamesView`, wrap in `unmodifiableList` in the existing getters, and keep `processPathParts` iterating the backing lists directly. Preserve the getter contracts and tests for unmodifiable results.\n5. In `.github/instructions/java-performance.instructions.md`, make the retained-list rule explicit: declare fields as `List`, choose `ArrayList` at the point of construction, and do not retain a second field just for the read-only view. If the list is not traversed on a hot path, retain the unmodifiable view over the owned snapshot; if hot-path code needs to iterate the backing list directly, keep that list and wrap it at the exposure boundary. Keep the existing owner-side snapshot rule, including empty inputs and private constructors, and the direct-build exception.\n\nNo new shared utilities, public behavior changes, changes to other modules, or unrelated cleanup. Run focused formatting and the relevant `CommonConfigTest`, `IncludeExcludeTest`, `HttpHeaderSelectorTest`, and `ElasticsearchEndpointDefinitionTest` checks where feasible, and report any validation limitations.",
+      "created": "2026-11-18T21:13:40Z",
+      "hunk": "@@ -28,8 +27,10 @@\n  */\n public final class IncludeExclude {\n \n-  private final List<String> included;\n-  private final List<String> excluded;\n+  private final ArrayList<String> included;",
+      "id": "PRRT_kwDODJKVX865NCuF",
+      "opened": "2026-11-18T21:13:40Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+      "replies": [
+        {
+          "at": "2026-11-18T21:29:15Z",
+          "body": "Applied the requested simplifications in c89b3631. The four focused Gradle test classes and Java Spotless checks passed. CodeQL timed out, so no results were available.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4621108955"
+        }
+      ],
+      "reviewed": "402fb1b12a197211387299a077e78296af2bc6e7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4620938857"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the following three approved changes directly to PR #21332 in `open-telemetry/opentelemetry-java-instrumentation` on its live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace it or open a separate PR as a workaround.\n\n1. In `instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java`, put `unmodifiableList(new ArrayList<>(readCapturedHeaders(...)))` directly in the constructor for each of the four captured-header assignments. Make the private `readCapturedHeaders` helper do only the lookup and empty default: `return config.getScalarList(key, String.class, emptyList());`. Keep the four keys and the client/server config sections unchanged. Keep one defensive snapshot per field, including for an empty list returned by the provider, so later provider mutations cannot affect the field. Do not add a per-copy comment.\n2. In `instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/InternalInstrumenterCustomizerUtil.java`, use `emptyList()` for the known-empty static initialization placeholder instead of `unmodifiableList(new ArrayList<>())`. Leave the static initialization order and the setter's `unmodifiableList(new ArrayList<>(providers))` unchanged.\n3. In `.github/instructions/java-performance.instructions.md`, make the retained-list rule say that the owner takes the snapshot visibly where it retains the list, preferably in the constructor. Allow a shared `emptyList()` for a known-empty value outside hot-path iteration when no input alias needs breaking. Preserve the existing guarantees for caller-supplied lists, including mutable empty inputs, the `List` field type, the owner-builds-directly exception, and the hot-path and unmodifiable exposure guidance. Explain the distinction in the rule rather than adding repetitive source comments.\n\nDo not change `IncludeExclude`, HTTP capture, Elasticsearch, other list sites, public behavior, or PR state. Run relevant focused formatting and `CommonConfigTest` and `InstrumentationCustomizerTest` where feasible. Report any validation limitations.",
+      "created": "2026-11-18T21:38:44Z",
+      "hunk": "@@ -93,6 +83,10 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n         logging.getString(\"trace_flags_key\", LoggingContextConstants.TRACE_FLAGS);\n   }\n \n+  private static List<String> readCapturedHeaders(DeclarativeConfigProperties config, String key) {\n+    return unmodifiableList(new ArrayList<>(config.getScalarList(key, String.class, emptyList())));",
+      "id": "PRRT_kwDODJKVX865NqsF",
+      "opened": "2026-11-18T21:38:44Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [
+        {
+          "at": "2026-11-18T21:49:18Z",
+          "body": "Applied the three requested changes in `960cc059`. The focused API and incubator tests and Spotless checks passed; CodeQL timed out.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4621327720"
+        }
+      ],
+      "reviewed": "c89b363198641c70b475b8f1c71ee14384e04c41",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4621209858"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove all 10 narrow tests added by PR #21332, with no replacement tests. Update the existing PR directly in `open-telemetry/opentelemetry-java-instrumentation` on the verified live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace it or open a separate PR as a workaround.\n\n- Remove only `capturedHeadersAreSnapshots` from `instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfigTest.java`.\n- Remove only `reusingBuilderDoesNotChangeBuiltSelector` from `instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/config/IncludeExcludeTest.java`.\n- Remove only `customizerProvidersAreSnapshots` from `instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/InstrumentationCustomizerTest.java`.\n- Remove only `listPropertiesAreSnapshotsOfSpringBinderValues` from `instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/properties/SpringConfigPropertiesTest.java`.\n- Delete `instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/internal/RetainedListSnapshotTest.java` and `instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchEndpointDefinitionTest.java`. Both files were introduced by this PR.\n\nRemove any imports added solely for the deleted methods. Preserve all pre-existing tests, existing integration coverage, production changes, and repository instructions. Do not add tests or alter production code or PR state. The follow-up diff should touch only those six test files, and the complete PR diff should no longer contain changes to test files. Validate that diff and run relevant existing tests where feasible; report any validation limitations.",
+      "created": "2026-11-18T22:14:28Z",
+      "hunk": "@@ -16,10 +18,61 @@\n import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n import io.opentelemetry.instrumentation.api.incubator.log.LoggingContextConstants;\n import java.util.ArrayList;\n+import java.util.List;\n import org.junit.jupiter.api.Test;\n \n class CommonConfigTest {\n \n+  @Test\n+  void capturedHeadersAreSnapshots() {",
+      "id": "PRRT_kwDODJKVX865OjAr",
+      "opened": "2026-11-18T22:14:28Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-11-18T22:25:22Z",
+          "body": "Removed the four requested methods, deleted both PR-introduced test classes, and removed imports used only by those methods in `a4a7f568`. The five relevant Gradle test tasks passed, and the complete PR diff now contains no test-file changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4621704120"
+        }
+      ],
+      "reviewed": "960cc05927a48a64a71d962b7243538c2af74e47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4621592048"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Drop the docs-generator retained-list changes from PR #21332. Update the existing PR directly in `open-telemetry/opentelemetry-java-instrumentation` on the verified live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace it or open a separate PR as a workaround.\n\nThe `instrumentation-docs` module runs in the documentation generator, not in application instrumentation. Remove this PR's changes there, including the list snapshots in `ConfigurationOption`, `DeclarativeSchema`, `EmittedEvents`, `EmittedMetrics`, `EmittedScope`, `EmittedSpans`, `InstrumentationMetadata`, `InstrumentationModule`, and `ManualTelemetryEntry`, and the accompanying nullable-list guard in `parsers/MetricParser` that was added during the snapshot work. Restore the module's base behavior; any independent docs correctness work belongs in a separate change and is not part of this assignment.\n\nUse the current GitHub PR diff against its merge base to identify the PR-specific edits. The complete PR diff should have no paths under `instrumentation-docs/`, and the follow-up commit should touch only that module. Keep runtime and bootstrap changes, repository instructions, draft state, and the previous removal of the PR-added tests intact. Do not add tests or make unrelated changes. Verify the scoped diff and, if useful and feasible, run focused existing docs checks, reporting any validation limitations.",
+      "created": "2026-11-18T22:32:00Z",
+      "hunk": "@@ -39,6 +41,8 @@ public record ConfigurationOption(\n     @JsonIgnore @Nullable String id) {\n \n   public ConfigurationOption {\n+    examples = examples == null ? null : Collections.unmodifiableList(new ArrayList<>(examples));",
+      "id": "PRRT_kwDODJKVX865O-Am",
+      "opened": "2026-11-18T22:32:00Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/internal/ConfigurationOption.java",
+      "replies": [
+        {
+          "at": "2026-11-18T22:44:24Z",
+          "body": "Restored the docs-generator files to the PR base in `79b6fe1c`. The follow-up commit touches only `instrumentation-docs/`, and the complete PR diff now has no paths under that module.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4621888518"
+        }
+      ],
+      "reviewed": "a4a7f5688add425f83fe1dad3de536a2fb09f0f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4621773518"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21332 directly in `open-telemetry/opentelemetry-java-instrumentation` on its live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace the branch or open a separate PR as a workaround. Keep the existing draft state and base.\n\nReplace the `Retained lists` section in `.github/instructions/java-performance.instructions.md` with these three paragraphs, reflowing lines as needed:\n\n> When a constructor stores a list, store `new ArrayList<>(list)`, whatever the source: a caller, a builder, a helper, `emptyList()`, or `collect(toList())`. The copy prevents outside mutation and gives loops a consistent `ArrayList`, which helps HotSpot avoid iterator allocations.\n>\n> If the class exposes the list, wrap it once in the constructor, for example `unmodifiableList(new ArrayList<>(list))`, and return the field directly. Do not wrap a list that never leaves the class.\n>\n> Copy only in the constructor. Leave helpers, builders, getters, accessors, and loops unchanged, including their `emptyList()`, `singletonList()`, and `collect(toList())` calls.\n\nApply the rule to the existing PR diff, not as a repository-wide migration. Copy at the field assignment even if a helper just created the source list; do not make the helper return `ArrayList`. If the constructor itself already builds the list as an `ArrayList`, use that list without a second copy. Wrap exposed collections once at storage, including any retained Spring configuration snapshots exposed by `getList`. Keep existing getters and visibility. Do not add a second field, wrap on every getter call, or add a new helper or constructor parameter solely to implement this rule. Keep simple defensive snapshots already present at the two one-time static retention points, `BootstrapPackagePrefixesHolder` and `InternalInstrumenterCustomizerUtil`, without changing their APIs or traversal.\n\nIn particular, undo the Elasticsearch changes that bypass `getPathPartNames()` via `route.getEndpointPattern().pathPartNames` and that return `unmodifiableList(routes)` from the getter. Restore the original Elasticsearch flow rather than moving wrappers or adding accessors. In the methods module restore `MethodConfiguration`'s `emptyList()` and `collect(toList())` and restore `createInstrumentations()` in `MethodInstrumentationModule`, including its `singletonList()` fallback. These setup helpers do not need list-type normalization. Also undo PR-only helper, factory, accessor, and loop rewrites elsewhere for this purpose: no capturing header traversal lambda, no replacement of the no-selector `emptyList()` branch in messaging, no move of `MappingResolver.build()` logic into its constructor, and no `childName` plumbing in the declarative bridge. Where a simple constructor snapshot still applies, keep it at the constructor assignment, not in the caller, even for fresh helper results. In `CommonConfig`, keep the constructor snapshots and unmodifiable exposure but do not keep the extra `readCapturedHeaders` helper solely for the copy.\n\nCheck the full PR diff against its base for the same kind of churn. Preserve behavior and existing configuration defaults, and leave unrelated instruction sections, modules, and tests alone. Run the relevant focused existing tests where feasible and report what ran. Do not add tests just to check the concrete list type.",
+      "created": "2026-11-18T23:40:12Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+---\n+applyTo: \"**/*.java,**/*.kt,**/*.scala\"\n+---\n+\n+# Java performance\n+\n+Apply these rules to Java code. The hot-path allocation rules also apply to Kotlin and Scala.\n+\n+## Retained lists",
+      "id": "PRRT_kwDODJKVX865QX3Q",
+      "opened": "2026-11-18T23:40:12Z",
+      "path": ".github/instructions/java-performance.instructions.md",
+      "replies": [
+        {
+          "at": "2026-11-18T23:57:37Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622522696"
+        },
+        {
+          "at": "2026-11-18T23:57:44Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622523569"
+        },
+        {
+          "at": "2026-11-18T23:57:51Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622524636"
+        },
+        {
+          "at": "2026-11-18T23:57:58Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622525608"
+        },
+        {
+          "at": "2026-11-18T23:58:25Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622528855"
+        },
+        {
+          "at": "2026-11-18T23:58:36Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622530136"
+        },
+        {
+          "at": "2026-11-18T23:58:44Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622531160"
+        },
+        {
+          "at": "2026-11-18T23:58:54Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622532455"
+        },
+        {
+          "at": "2026-11-18T23:59:03Z",
+          "body": "Applied the requested revisions in 34a6f01f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622533677"
+        }
+      ],
+      "reviewed": "79b6fe1c60b851573ea85cd0bef351b51c7a65fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622389441"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Finish two remaining cleanups in PR #21332 directly in `open-telemetry/opentelemetry-java-instrumentation` on the verified live head branch `copilot/cloud-assigned-branch-name`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace the branch or open a separate PR as a workaround. Keep the existing draft state and base.\n\nRestore `ElasticsearchEndpointDefinition.java` in `instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent` to the PR base version. The last commit restored the getter calls and the direct `getRoutes()` return, but the live PR diff still changes the `routes` collector from `collect(toList())` to `collect(toCollection(ArrayList::new))` and changes the `EndpointPattern` path-part list initialization and wrapping. The parameterized route loop already uses an `ArrayList` on the base, and the empty nonparameterized path is not iterated there. Leave the original list creation, exposure, and traversal as they were. Do not replace these changes with a constructor copy. This file should be absent from the full pull request diff.\n\nRestore `SpringIntegrationSingletons.java` in `instrumentation/spring/spring-integration-4.1/javaagent` to the PR base version. The `new ArrayList<>(...)` for `patterns` in the static initializer is not a constructor snapshot. Restore the original direct read and `singletonList(\"*\")` default. This file should also be absent from the full pull request diff.\n\nKeep the agreed `Retained lists` text and all other files unchanged, including the methods helpers that were already restored and the two explicitly retained static setter snapshots. Verify the complete PR diff against its merge base and run focused existing tests for the two affected modules where feasible. Do not add tests or make unrelated changes.",
+      "created": "2026-11-19T00:12:11Z",
+      "hunk": "@@ -33,7 +32,9 @@ public final class ElasticsearchEndpointDefinition {\n   public ElasticsearchEndpointDefinition(\n       String endpointName, String[] routes, boolean isSearchEndpoint) {\n     this.endpointName = endpointName;\n-    this.routes = unmodifiableList(Arrays.stream(routes).map(Route::new).collect(toList()));\n+    ArrayList<Route> routeList =\n+        Arrays.stream(routes).map(Route::new).collect(toCollection(ArrayList::new));",
+      "id": "PRRT_kwDODJKVX865Q693",
+      "opened": "2026-11-19T00:12:11Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchEndpointDefinition.java",
+      "replies": [
+        {
+          "at": "2026-11-19T00:24:56Z",
+          "body": "Restored both files to the PR base version; neither appears in the current PR diff. Commit: `320806b9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622726317"
+        }
+      ],
+      "reviewed": "34a6f01fb93401fecda383d6752250377660402b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332#discussion_r4622631183"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "b636bee09b87937a528e1604c935d1e5cf8c23b8",
+  "merge": "c7ea5fdba49e0b7a569356b550a69327efdde2b8",
+  "merged": "2026-11-24T23:19:19Z",
+  "missing_roots": 0,
+  "number": 1116,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions also pass with the old destructor: `_execution_context()` restores the caller's context on exit, so checking only after collection cannot detect activation during finalization. Record the current span inside `_on_stream_error` and assert afterward that it was not the invocation span. Apply the same check to the async test at line 2335.",
+      "created": "2026-11-20T23:54:50Z",
+      "hunk": "@@ -2299,13 +2299,13 @@ def _suspended_tool_invocation():\n @pytest.mark.parametrize(\n     \"wrapper_cls\", [_TestSyncStreamWrapper, SyncToolStreamWrapper]\n )\n-def test_abandoned_sync_stream_finalizes_inside_execution_context(wrapper_cls):\n+def test_abandoned_sync_stream_finalizes_without_leaking_context(wrapper_cls):\n     invocation = _suspended_tool_invocation()\n-    spans_at_finalize = []\n+    errors = []\n \n     class _RecordingWrapper(wrapper_cls):\n         def _on_stream_error(self, error):\n-            spans_at_finalize.append(get_current_span())\n+            errors.append(error)",
+      "id": "PRRT_kwDOSbspP866ONkI",
+      "opened": "2026-11-20T23:54:50Z",
+      "path": "util/opentelemetry-util-genai/tests/test_stream.py",
+      "replies": [],
+      "reviewed": "f5da1c43a0450a71b5df82f675733cb083598e57",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1116#discussion_r4649061700"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Both abandonment tests would still pass if finalization ended the span without recording failure telemetry. Assert ERROR status and the wrapper-appropriate `error.type`: `_OTHER` for generic wrappers and `GeneratorExit` for tool wrappers. Apply the same assertions to the async test at line 2352.",
+      "created": "2026-11-20T23:54:50Z",
+      "hunk": "@@ -2316,22 +2316,23 @@ def _on_stream_error(self, error):\n     del wrapper\n     gc.collect()\n \n-    assert spans_at_finalize == [invocation.span]\n+    assert len(errors) == 1\n+    assert invocation.span.end_time is not None",
+      "id": "PRRT_kwDOSbspP866ONkV",
+      "opened": "2026-11-20T23:54:50Z",
+      "path": "util/opentelemetry-util-genai/tests/test_stream.py",
+      "replies": [],
+      "reviewed": "f5da1c43a0450a71b5df82f675733cb083598e57",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1116#discussion_r4649061724"
+    }
+  ]
+}

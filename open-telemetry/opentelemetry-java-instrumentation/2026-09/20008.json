@@ -1,0 +1,292 @@
+{
+  "head": "bcb27023c0b9f611f4dd0c04b7709fe22cbe81e3",
+  "merge": "3c6a9f8cdf7ff62406fc0a73af23bbcad59d159d",
+  "merged": "2026-09-09T22:13:15Z",
+  "missing_roots": 0,
+  "number": 20008,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Supported v0.8 clients lose the IPv6 host/port boundary here. That version's `Client.Builder.addEndpoint(Protocol, host, port, ...)` renders an IPv6 endpoint as `http://2001:db8::1:8123`; because the first and last colons differ, this path treats the entire authority as the host. The resulting string is itself a valid IPv6 literal, so `DbServerTargetBuilder` accepts it and emits an incorrect `server.address`. Please split the final numeric port for this legacy unbracketed form and add a v0.8 regression test.",
+      "created": "2026-09-07T01:28:46Z",
+      "hunk": "@@ -56,5 +84,119 @@ public static AddressAndPort setAddressAndPort(Client client, @Nullable String e\n     return addressAndPort;\n   }\n \n+  private static class EndpointTarget {\n+    @Nullable private final String scheme;\n+    private final String address;\n+    @Nullable private final Integer port;\n+\n+    private EndpointTarget(@Nullable String scheme, String address, @Nullable Integer port) {\n+      this.scheme = scheme;\n+      this.address = address;\n+      this.port = port;\n+    }\n+\n+    @Nullable\n+    private static EndpointTarget parse(String endpoint) {\n+      if (hasWhitespace(endpoint)) {\n+        return null;\n+      }\n+      String scheme = null;\n+      int authorityStart = endpoint.indexOf(\"://\");\n+      if (authorityStart < 0) {\n+        authorityStart = 0;\n+      } else {\n+        scheme = endpoint.substring(0, authorityStart);\n+        authorityStart += 3;\n+      }\n+      int authorityEnd = endpoint.length();\n+      for (int i = authorityStart; i < endpoint.length(); i++) {\n+        char c = endpoint.charAt(i);\n+        if (c == '/' || c == '?' || c == '#') {\n+          authorityEnd = i;\n+          break;\n+        }\n+      }\n+      if (endpoint.lastIndexOf('@', authorityEnd - 1) >= authorityStart) {\n+        return null;\n+      }\n+      String authority = endpoint.substring(authorityStart, authorityEnd);\n+      if (authority.indexOf('=') >= 0\n+          || authority.indexOf(',') >= 0\n+          || hasUnsafePercentEscape(authority)) {\n+        return null;\n+      }\n+      if (authority.startsWith(\"[\")) {\n+        int bracketEnd = authority.indexOf(']');\n+        if (bracketEnd <= 1 || authority.indexOf(']', bracketEnd + 1) >= 0) {\n+          return null;\n+        }\n+        String rest = authority.substring(bracketEnd + 1);\n+        Integer port =\n+            rest.isEmpty() ? null : parsePort(rest.startsWith(\":\") ? rest.substring(1) : \"\");\n+        return !rest.isEmpty() && port == null\n+            ? null\n+            : new EndpointTarget(scheme, authority.substring(1, bracketEnd), port);\n+      }\n+      if (authority.indexOf('[') >= 0 || authority.indexOf(']') >= 0) {\n+        return null;\n+      }\n+      int firstColon = authority.indexOf(':');\n+      int lastColon = authority.lastIndexOf(':');\n+      if (firstColon >= 0 && firstColon == lastColon) {\n+        Integer port = parsePort(authority.substring(firstColon + 1));\n+        return firstColon == 0 || port == null\n+            ? null\n+            : new EndpointTarget(scheme, authority.substring(0, firstColon), port);\n+      }\n+      return new EndpointTarget(scheme, authority, null);",
+      "id": "PRRT_kwDODJKVX86fwsIB",
+      "opened": "2026-09-07T01:28:46Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-07T19:24:58Z",
+          "body": "Addressed in 2fc0a75b401df70f435304a028e3e49aaa13a30d.\n\nAnalysis: The parser treated every unbracketed authority with multiple colons as a complete IPv6 address. It now splits a final numeric port only when the remaining prefix is a valid IPv6 literal, so bare IPv6 addresses stay intact.\n\nUpsides: Supported legacy v0.8 endpoint strings now emit the correct server.address and server.port values. The regression test covers the exact unbracketed wire form.\n\nDownsides: Parsing this legacy form performs a JDK IPv6 literal validation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3952197310"
+        }
+      ],
+      "reviewed": "de110e32907f8d06d87aa60a0e8d364733975914",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3945937722"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Keep the brackets on bracketed authorities so `DbServerTargetBuilder` can validate that the content is actually an IPv6 literal. Stripping them here turns malformed values such as `http://[example.com]:8123` into the valid hostname `example.com`, so the target is emitted instead of rejected. Passing `[... ]` through preserves valid IPv6 behavior because the builder strips valid IPv6 brackets itself.",
+      "created": "2026-09-07T21:21:17Z",
+      "hunk": "@@ -56,5 +84,126 @@ public static AddressAndPort setAddressAndPort(Client client, @Nullable String e\n     return addressAndPort;\n   }\n \n+  private static class EndpointTarget {\n+    @Nullable private final String scheme;\n+    private final String address;\n+    @Nullable private final Integer port;\n+\n+    private EndpointTarget(@Nullable String scheme, String address, @Nullable Integer port) {\n+      this.scheme = scheme;\n+      this.address = address;\n+      this.port = port;\n+    }\n+\n+    @Nullable\n+    private static EndpointTarget parse(String endpoint) {\n+      if (hasWhitespace(endpoint)) {\n+        return null;\n+      }\n+      String scheme = null;\n+      int authorityStart = endpoint.indexOf(\"://\");\n+      if (authorityStart < 0) {\n+        authorityStart = 0;\n+      } else {\n+        scheme = endpoint.substring(0, authorityStart);\n+        authorityStart += 3;\n+      }\n+      int authorityEnd = endpoint.length();\n+      for (int i = authorityStart; i < endpoint.length(); i++) {\n+        char c = endpoint.charAt(i);\n+        if (c == '/' || c == '?' || c == '#') {\n+          authorityEnd = i;\n+          break;\n+        }\n+      }\n+      if (endpoint.lastIndexOf('@', authorityEnd - 1) >= authorityStart) {\n+        return null;\n+      }\n+      String authority = endpoint.substring(authorityStart, authorityEnd);\n+      if (authority.indexOf('=') >= 0\n+          || authority.indexOf(',') >= 0\n+          || hasUnsafePercentEscape(authority)) {\n+        return null;\n+      }\n+      if (authority.startsWith(\"[\")) {\n+        int bracketEnd = authority.indexOf(']');\n+        if (bracketEnd <= 1 || authority.indexOf(']', bracketEnd + 1) >= 0) {\n+          return null;\n+        }\n+        String rest = authority.substring(bracketEnd + 1);\n+        Integer port =\n+            rest.isEmpty() ? null : parsePort(rest.startsWith(\":\") ? rest.substring(1) : \"\");\n+        return !rest.isEmpty() && port == null\n+            ? null\n+            : new EndpointTarget(scheme, authority.substring(1, bracketEnd), port);",
+      "id": "PRRT_kwDODJKVX86gB2l_",
+      "opened": "2026-09-07T21:21:18Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T01:18:55Z",
+          "body": "Addressed in 4886333a55883cd32aac4756180256d75bec35f5.\n\nAnalysis: The parser must pass the complete bracketed host to DbServerTargetBuilder. The builder uses those brackets to require an IPv6 literal, then removes them before rendering the target.\n\nUpsides: Malformed bracketed hostnames are rejected, while valid bracketed IPv6 endpoints keep their existing target values.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3953532665"
+        }
+      ],
+      "reviewed": "587b2bd4e18e8a62e63141dd6c286cc92bf7d420",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3952654026"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This bracketed path never invokes the stricter `ClickHouseEndpointUtil` validation. For example, `http://[fe80::1%3Apassword]:8123` passes `hasUnsafePercentEscape`, and the current `DbServerTargetBuilder` accepts `3Apassword` as a zone ID, so this supposedly rejected value is emitted. Validate the bracket contents with `isIpv6Literal()` before constructing the target; the new parameterized test currently exercises only the helper, not this parser path.",
+      "created": "2026-09-08T01:27:29Z",
+      "hunk": "@@ -56,5 +84,126 @@ public static AddressAndPort setAddressAndPort(Client client, @Nullable String e\n     return addressAndPort;\n   }\n \n+  private static class EndpointTarget {\n+    @Nullable private final String scheme;\n+    private final String address;\n+    @Nullable private final Integer port;\n+\n+    private EndpointTarget(@Nullable String scheme, String address, @Nullable Integer port) {\n+      this.scheme = scheme;\n+      this.address = address;\n+      this.port = port;\n+    }\n+\n+    @Nullable\n+    private static EndpointTarget parse(String endpoint) {\n+      if (hasWhitespace(endpoint)) {\n+        return null;\n+      }\n+      String scheme = null;\n+      int authorityStart = endpoint.indexOf(\"://\");\n+      if (authorityStart < 0) {\n+        authorityStart = 0;\n+      } else {\n+        scheme = endpoint.substring(0, authorityStart);\n+        authorityStart += 3;\n+      }\n+      int authorityEnd = endpoint.length();\n+      for (int i = authorityStart; i < endpoint.length(); i++) {\n+        char c = endpoint.charAt(i);\n+        if (c == '/' || c == '?' || c == '#') {\n+          authorityEnd = i;\n+          break;\n+        }\n+      }\n+      if (endpoint.lastIndexOf('@', authorityEnd - 1) >= authorityStart) {\n+        return null;\n+      }\n+      String authority = endpoint.substring(authorityStart, authorityEnd);\n+      if (authority.indexOf('=') >= 0\n+          || authority.indexOf(',') >= 0\n+          || hasUnsafePercentEscape(authority)) {\n+        return null;\n+      }\n+      if (authority.startsWith(\"[\")) {\n+        int bracketEnd = authority.indexOf(']');\n+        if (bracketEnd <= 1 || authority.indexOf(']', bracketEnd + 1) >= 0) {\n+          return null;\n+        }\n+        String rest = authority.substring(bracketEnd + 1);\n+        Integer port =\n+            rest.isEmpty() ? null : parsePort(rest.startsWith(\":\") ? rest.substring(1) : \"\");\n+        return !rest.isEmpty() && port == null\n+            ? null\n+            : new EndpointTarget(scheme, authority.substring(0, bracketEnd + 1), port);",
+      "id": "PRRT_kwDODJKVX86gEH1t",
+      "opened": "2026-09-08T01:27:30Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T01:31:46Z",
+          "body": "Addressed in 2908cbfc11db89354c51be51f23487c01d036f96.\n\nAnalysis: Bracket syntax alone does not prove that an authority contains a valid IPv6 literal. The parser must validate the bracket contents with ClickHouseEndpointUtil before passing the bracketed host to DbServerTargetBuilder.\n\nUpsides: Encoded zone delimiters and other malformed bracket contents are rejected through the endpoint parser, while valid IPv6 literals continue to preserve their brackets for builder validation.\n\nDownsides: The parser performs IPv6 validation before the builder repeats its own validation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3953577637"
+        }
+      ],
+      "reviewed": "4886333a55883cd32aac4756180256d75bec35f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3953563493"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The v1 path bypasses the stricter IPv6-zone validation added for v2. On this branch, `DbServerTargetBuilder` accepts a host such as `fe80::1%3Apassword` because `3Apassword` is treated as an unreserved zone ID, while `ClickHouseNode.Builder.host(...)` permits that raw value. Stable `server.address` can therefore expose encoded delimiter/credential-like text even though the equivalent v2 authority is rejected. Please apply the temporary validator to v1 as well, or rebase on #20015's builder validation before emitting this target, and add a v1 regression case.",
+      "created": "2026-09-08T02:19:09Z",
+      "hunk": "@@ -32,5 +51,81 @@ public static Instrumenter<ClickHouseDbRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  @Nullable\n+  public static DbServerTarget serverTarget(ClickHouseRequest<?> request) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget != null) {\n+      return capturedTarget.target;\n+    }\n+    return uncapturedServerTarget(request);\n+  }\n+\n+  public static void captureConfiguredNodes(\n+      ClickHouseNodes nodes, Collection<ClickHouseNode> configuredNodes) {\n+    NODES_SERVER_TARGET.set(nodes, createServerTarget(configuredNodes));\n+  }\n+\n+  public static void copyServerTarget(\n+      ClickHouseRequest<?> request, ClickHouseRequest<?> copiedRequest) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = uncapturedServerTarget(request);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+    }\n+    REQUEST_SERVER_TARGET.set(copiedRequest, capturedTarget);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget uncapturedServerTarget(ClickHouseRequest<?> request) {\n+    ClickHouseNodes nodes = ClickHouseRequestAccess.getNodes(request);\n+    if (nodes != null) {\n+      return NODES_SERVER_TARGET.get(nodes);\n+    }\n+    ClickHouseNode node = ClickHouseRequestAccess.getDirectNode(request);\n+    return node == null ? null : nodeServerTarget(node);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget nodeServerTarget(ClickHouseNode node) {\n+    CapturedServerTarget capturedTarget = NODE_SERVER_TARGET.get(node);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = createServerTarget(node);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+      NODE_SERVER_TARGET.set(node, capturedTarget);\n+    }\n+    return capturedTarget.target;\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(Collection<ClickHouseNode> nodes) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    for (ClickHouseNode node : nodes) {\n+      addEndpoint(builder, node);\n+    }\n+    return builder.build();\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(ClickHouseNode node) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    addEndpoint(builder, node);\n+    return builder.build();\n+  }\n+\n+  private static void addEndpoint(DbServerTargetBuilder builder, ClickHouseNode node) {\n+    ClickHouseProtocol protocol = node.getProtocol();\n+    int defaultPort =\n+        node.getConfig().isSsl() ? protocol.getDefaultSecurePort() : protocol.getDefaultPort();\n+    builder.addEndpoint(node.getHost(), node.getPort(), defaultPort);",
+      "id": "PRRT_kwDODJKVX86gEopq",
+      "opened": "2026-09-08T02:19:09Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T04:01:43Z",
+          "body": "Addressed in 17f3ee14f8d1bc6bc62686958cd8bbcc7074f495.\n\nAnalysis: The v1 path passed raw colon-containing hosts directly to DbServerTargetBuilder. The shared temporary validator now rejects malformed IPv6 literals before either ClickHouse client emits a target.\n\nUpsides: V1 no longer exposes encoded delimiter-like zone text. Both client versions share one validation implementation, and the regression test covers the reported v1 path.\n\nDownsides: V1 performs IPv6 validation before the builder repeats its existing validation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3954197688"
+        }
+      ],
+      "reviewed": "512f08c55777ba4f03c0290708a69d1d252b8bbb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3953765885"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Valid v1 IPv6 URLs are dropped here. In the supported 0.5.0 client, `ClickHouseNode.of(\"http://[2001:db8::1]:8123\")` stores `URI.getHost()`, which retains the brackets (`[2001:db8::1]`); `isIpv6Literal()` expects the unbracketed literal, so this returns false and stable `server.address` is omitted. Normalize paired brackets for validation (while still passing the original host to the builder, which strips them), and cover the normal `ClickHouseNode.of(...)` path.",
+      "created": "2026-09-08T04:10:20Z",
+      "hunk": "@@ -32,5 +52,87 @@ public static Instrumenter<ClickHouseDbRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  @Nullable\n+  public static DbServerTarget serverTarget(ClickHouseRequest<?> request) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget != null) {\n+      return capturedTarget.target;\n+    }\n+    return uncapturedServerTarget(request);\n+  }\n+\n+  public static void captureConfiguredNodes(\n+      ClickHouseNodes nodes, Collection<ClickHouseNode> configuredNodes) {\n+    NODES_SERVER_TARGET.set(nodes, createServerTarget(configuredNodes));\n+  }\n+\n+  public static void copyServerTarget(\n+      ClickHouseRequest<?> request, ClickHouseRequest<?> copiedRequest) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = uncapturedServerTarget(request);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+    }\n+    REQUEST_SERVER_TARGET.set(copiedRequest, capturedTarget);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget uncapturedServerTarget(ClickHouseRequest<?> request) {\n+    ClickHouseNodes nodes = ClickHouseRequestAccess.getNodes(request);\n+    if (nodes != null) {\n+      return NODES_SERVER_TARGET.get(nodes);\n+    }\n+    ClickHouseNode node = ClickHouseRequestAccess.getDirectNode(request);\n+    return node == null ? null : nodeServerTarget(node);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget nodeServerTarget(ClickHouseNode node) {\n+    CapturedServerTarget capturedTarget = NODE_SERVER_TARGET.get(node);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = createServerTarget(node);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+      NODE_SERVER_TARGET.set(node, capturedTarget);\n+    }\n+    return capturedTarget.target;\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(Collection<ClickHouseNode> nodes) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    for (ClickHouseNode node : nodes) {\n+      if (!addEndpoint(builder, node)) {\n+        return null;\n+      }\n+    }\n+    return builder.build();\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(ClickHouseNode node) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    return addEndpoint(builder, node) ? builder.build() : null;\n+  }\n+\n+  private static boolean addEndpoint(DbServerTargetBuilder builder, ClickHouseNode node) {\n+    String host = node.getHost();\n+    if (host.indexOf(':') >= 0 && !ClickHouseEndpointUtil.isIpv6Literal(host)) {\n+      return false;\n+    }\n+    ClickHouseProtocol protocol = node.getProtocol();\n+    int defaultPort =\n+        node.getConfig().isSsl() ? protocol.getDefaultSecurePort() : protocol.getDefaultPort();\n+    builder.addEndpoint(host, node.getPort(), defaultPort);\n+    return true;\n+  }",
+      "id": "PRRT_kwDODJKVX86gFz7W",
+      "opened": "2026-09-08T04:10:20Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T04:13:47Z",
+          "body": "Addressed in 1817611056bb5db92b0b800a9e29d68e3f26fc06.\n\nAnalysis: ClickHouse v1 retains paired brackets around IPv6 hosts parsed from URLs. The validation path now removes only a matching outer bracket pair before calling the IPv6 validator, while DbServerTargetBuilder still receives the original host.\n\nUpsides: Valid bracketed IPv6 URLs retain stable server attributes, malformed IPv6 values remain rejected, and the test covers the supported ClickHouseNode.of path.\n\nDownsides: The v1 path creates a short substring when it validates a bracketed IPv6 host.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3954249286"
+        }
+      ],
+      "reviewed": "17f3ee14f8d1bc6bc62686958cd8bbcc7074f495",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3954235581"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "#20015 is now merged",
+      "created": "2026-09-08T11:20:57Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.clickhouse.client.common.v0_5;\n+\n+import java.net.URI;\n+import java.net.URISyntaxException;\n+\n+// Temporary helper copied from PR #20015.\n+// Remove it after PR #20015 merges and use DbServerEndpointUtil instead.\n+// Migration tracked in issue #20016.",
+      "id": "PRRT_kwDODJKVX86gNyZ9",
+      "opened": "2026-09-08T11:20:57Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseEndpointUtil.java",
+      "replies": [],
+      "reviewed": "d22e12dfcf1530db9d9a8e8ae1f72df75ff23f24",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3957344829"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`addEndpoint` only rejects “colon-containing non-IPv6” hosts, but it does not reject other unsafe/malformed host values (e.g., `user@host.example` with no `:`, commas, `=`, percent-escapes/encoded delimiters, or whitespace). Since the PR description says the configured target should be dropped if any endpoint is unsafe/malformed, this should add explicit validation for those characters/patterns (similar to the stricter v2 endpoint parsing) before calling `builder.addEndpoint(...)`.",
+      "created": "2026-09-08T18:11:50Z",
+      "hunk": "@@ -32,5 +52,92 @@ public static Instrumenter<ClickHouseDbRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  @Nullable\n+  public static DbServerTarget serverTarget(ClickHouseRequest<?> request) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget != null) {\n+      return capturedTarget.target;\n+    }\n+    return uncapturedServerTarget(request);\n+  }\n+\n+  public static void captureConfiguredNodes(\n+      ClickHouseNodes nodes, Collection<ClickHouseNode> configuredNodes) {\n+    NODES_SERVER_TARGET.set(nodes, createServerTarget(configuredNodes));\n+  }\n+\n+  public static void copyServerTarget(\n+      ClickHouseRequest<?> request, ClickHouseRequest<?> copiedRequest) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = uncapturedServerTarget(request);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+    }\n+    REQUEST_SERVER_TARGET.set(copiedRequest, capturedTarget);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget uncapturedServerTarget(ClickHouseRequest<?> request) {\n+    ClickHouseNodes nodes = ClickHouseRequestAccess.getNodes(request);\n+    if (nodes != null) {\n+      return NODES_SERVER_TARGET.get(nodes);\n+    }\n+    ClickHouseNode node = ClickHouseRequestAccess.getDirectNode(request);\n+    return node == null ? null : nodeServerTarget(node);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget nodeServerTarget(ClickHouseNode node) {\n+    CapturedServerTarget capturedTarget = NODE_SERVER_TARGET.get(node);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = createServerTarget(node);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+      NODE_SERVER_TARGET.set(node, capturedTarget);\n+    }\n+    return capturedTarget.target;\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(Collection<ClickHouseNode> nodes) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    for (ClickHouseNode node : nodes) {\n+      if (!addEndpoint(builder, node)) {\n+        return null;\n+      }\n+    }\n+    return builder.build();\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(ClickHouseNode node) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    return addEndpoint(builder, node) ? builder.build() : null;\n+  }\n+\n+  private static boolean addEndpoint(DbServerTargetBuilder builder, ClickHouseNode node) {\n+    String host = node.getHost();\n+    int hostLength = host.length();\n+    String hostToValidate =\n+        hostLength > 1 && host.charAt(0) == '[' && host.charAt(hostLength - 1) == ']'\n+            ? host.substring(1, hostLength - 1)\n+            : host;\n+    if (hostToValidate.indexOf(':') >= 0 && !DbServerEndpointUtil.isIpv6Literal(hostToValidate)) {\n+      return false;\n+    }\n+    ClickHouseProtocol protocol = node.getProtocol();\n+    int defaultPort =\n+        node.getConfig().isSsl() ? protocol.getDefaultSecurePort() : protocol.getDefaultPort();\n+    builder.addEndpoint(host, node.getPort(), defaultPort);\n+    return true;\n+  }",
+      "id": "PRRT_kwDODJKVX86gW14H",
+      "opened": "2026-09-08T18:11:52Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:37:17Z",
+          "body": "Addressed in c66ddffbdb154519e3754bca40326d76b3a9b726.\n\nAnalysis: DbServerTargetBuilder already rejects user information, commas, equals signs, and percent escapes. It trims whitespace, however, so v1 now rejects whitespace before passing the host to the builder. Parameterized coverage proves that both validation layers drop the full configured target.\n\nUpsides: V1 now matches v2 for whitespace handling. The tests cover every unsafe host shape named in the review.\n\nDownsides: A host containing whitespace now suppresses the configured target instead of reporting a trimmed value.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961090951"
+        }
+      ],
+      "reviewed": "6d4686da6d9e426cf1d692c51a854b8be702e6fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3960886613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The advice method binds `@Advice.Return ClickHouseRequest<?> copiedRequest`, but the matcher doesn’t constrain return types. To avoid Byte Buddy apply-time errors (or future breakage across minor library variations), tighten the method matcher to only intercept methods that return `ClickHouseRequest` (or a subtype) in addition to being no-arg and named `copy/seal/write`.",
+      "created": "2026-09-08T18:11:51Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.clickhouse.clientv1.v0_5;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;\n+\n+import com.clickhouse.client.ClickHouseRequest;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class ClickHouseRequestInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"com.clickhouse.client.ClickHouseRequest\",\n+        \"com.clickhouse.client.ClickHouseRequest$Mutation\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"copy\", \"seal\", \"write\").and(takesNoArguments()),\n+        getClass().getName() + \"$CopyTargetAdvice\");\n+  }",
+      "id": "PRRT_kwDODJKVX86gW149",
+      "opened": "2026-09-08T18:11:52Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseRequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:37:21Z",
+          "body": "Addressed in 3064d40255b3629486cd1f016b694d859cc8acab.\n\nAnalysis: The advice requires a ClickHouseRequest-compatible return value. The method matcher now checks that the declared return type has ClickHouseRequest as a supertype before Byte Buddy binds the advice.\n\nUpsides: Unrelated overloads and future methods with incompatible return types cannot receive this advice. Subtype returns remain supported.\n\nDownsides: The matcher performs one additional return-type hierarchy check during transformation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961091511"
+        }
+      ],
+      "reviewed": "6d4686da6d9e426cf1d692c51a854b8be702e6fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3960886714"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`EndpointTarget.parse` can accept malformed endpoints with an empty scheme (e.g., `\"://host:8123\"`) and/or an empty authority (e.g., `\"http://\"` or `\"http:///\"`), producing a `DbServerTarget` with an empty address. To match the PR’s “drop the configured target if any endpoint is unsafe or malformed” behavior, add validation to reject empty scheme (when `://` is present) and reject empty `authority` before building the target.",
+      "created": "2026-09-08T18:11:51Z",
+      "hunk": "@@ -56,5 +85,128 @@ public static AddressAndPort setAddressAndPort(Client client, @Nullable String e\n     return addressAndPort;\n   }\n \n+  private static class EndpointTarget {\n+    @Nullable private final String scheme;\n+    private final String address;\n+    @Nullable private final Integer port;\n+\n+    private EndpointTarget(@Nullable String scheme, String address, @Nullable Integer port) {\n+      this.scheme = scheme;\n+      this.address = address;\n+      this.port = port;\n+    }\n+\n+    @Nullable\n+    private static EndpointTarget parse(String endpoint) {\n+      if (hasWhitespace(endpoint)) {\n+        return null;\n+      }\n+      String scheme = null;\n+      int authorityStart = endpoint.indexOf(\"://\");\n+      if (authorityStart < 0) {\n+        authorityStart = 0;\n+      } else {\n+        scheme = endpoint.substring(0, authorityStart);\n+        authorityStart += 3;\n+      }\n+      int authorityEnd = endpoint.length();\n+      for (int i = authorityStart; i < endpoint.length(); i++) {\n+        char c = endpoint.charAt(i);\n+        if (c == '/' || c == '?' || c == '#') {\n+          authorityEnd = i;\n+          break;\n+        }\n+      }\n+      if (endpoint.lastIndexOf('@', authorityEnd - 1) >= authorityStart) {\n+        return null;\n+      }\n+      String authority = endpoint.substring(authorityStart, authorityEnd);\n+      if (authority.indexOf('=') >= 0\n+          || authority.indexOf(',') >= 0\n+          || hasUnsafePercentEscape(authority)) {\n+        return null;\n+      }",
+      "id": "PRRT_kwDODJKVX86gW14r",
+      "opened": "2026-09-08T18:11:52Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:37:19Z",
+          "body": "Addressed in 8055b928d7afcfa2931b44264a8a5d97ccf22d24.\n\nAnalysis: An empty scheme previously survived parsing and could produce a target. DbServerTargetBuilder already rejected an empty authority indirectly, but EndpointTarget.parse still accepted it. The parser now rejects both malformed components directly.\n\nUpsides: Malformed scheme and authority values now have one clear rejection point. Tests cover all three reported forms.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961091209"
+        }
+      ],
+      "reviewed": "6d4686da6d9e426cf1d692c51a854b8be702e6fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3960886676"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The unsafe-host coverage currently relies on a value containing `:` (so it’s rejected by the “colon but not IPv6” check). Given the intended behavior to drop configured targets for unsafe/malformed endpoint values, add test cases for unsafe hosts that do *not* contain `:` (e.g., `user@unsafe.example`, `host.example%3fpassword%3dsecret`, `first.example,second.example`, `host=bad`, and leading/trailing whitespace) to ensure v1 rejects them consistently.",
+      "created": "2026-09-08T18:11:51Z",
+      "hunk": "@@ -132,6 +138,95 @@ void testConnectionStringWithoutDatabaseSpecifiedStillGeneratesSpans()\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void testConfiguredNodesPreserveOrderAndRenderPortsAndIpv6() throws Exception {\n+    ClickHouseNode first =\n+        ClickHouseNode.builder(ClickHouseNode.of(\"http://first.example\"))\n+            .host(\"2001:db8::1\")\n+            .port(9123)\n+            .build();\n+    ClickHouseNode second = ClickHouseNode.of(\"http://second.example\");\n+    ClickHouseNode third =\n+        ClickHouseNode.builder(ClickHouseNode.of(\"http://third.example\")).port(8124).build();\n+\n+    Object serverTarget = serverTarget(requestWithNodes(ImmutableList.of(first, second, third)));\n+\n+    assertThat(serverTarget).isNotNull();\n+    assertThat(serverTargetAddress(serverTarget))\n+        .isEqualTo(\"[2001:db8::1]:9123,second.example:8123,third.example:8124\");\n+    assertThat(serverTargetPort(serverTarget)).isNull();\n+  }\n+\n+  @Test\n+  void testConfiguredBracketedIpv6() throws Exception {\n+    Object serverTarget =\n+        serverTarget(\n+            requestWithNodes(ImmutableList.of(ClickHouseNode.of(\"http://[2001:db8::1]:8123\"))));\n+\n+    assertThat(serverTarget).isNotNull();\n+    assertThat(serverTargetAddress(serverTarget)).isEqualTo(\"2001:db8::1\");\n+    assertThat(serverTargetPort(serverTarget)).isNull();\n+  }\n+\n+  @Test\n+  void testConfiguredSingleEndpointOmitsDefaultPortAndReportsNonDefaultPortSeparately()\n+      throws Exception {\n+    Object serverTarget =\n+        serverTarget(\n+            requestWithNodes(ImmutableList.of(ClickHouseNode.of(\"http://default.example\"))));\n+\n+    assertThat(serverTarget).isNotNull();\n+    assertThat(serverTargetAddress(serverTarget)).isEqualTo(\"default.example\");\n+    assertThat(serverTargetPort(serverTarget)).isNull();\n+\n+    serverTarget =\n+        serverTarget(\n+            requestWithNodes(ImmutableList.of(ClickHouseNode.of(\"http://single.example:9123\"))));\n+\n+    assertThat(serverTarget).isNotNull();\n+    assertThat(serverTargetAddress(serverTarget)).isEqualTo(\"single.example\");\n+    assertThat(serverTargetPort(serverTarget)).isEqualTo(9123);\n+  }\n+\n+  @Test\n+  void testConfiguredNodesRejectUnsafeTarget() throws Exception {\n+    ClickHouseNode unsafe =\n+        ClickHouseNode.builder(ClickHouseNode.of(\"http://safe.example\"))\n+            .host(\"user:password@unsafe.example\")\n+            .build();\n+\n+    assertThat(serverTarget(requestWithNodes(ImmutableList.of(unsafe)))).isNull();\n+  }\n+\n+  @Test",
+      "id": "PRRT_kwDODJKVX86gW15c",
+      "opened": "2026-09-08T18:11:52Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Test.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:37:23Z",
+          "body": "Addressed in c66ddffbdb154519e3754bca40326d76b3a9b726.\n\nAnalysis: DbServerTargetBuilder already rejects user information, commas, equals signs, and percent escapes. It trims whitespace, however, so v1 now rejects whitespace before passing the host to the builder. Parameterized coverage proves that both validation layers drop the full configured target.\n\nUpsides: V1 now matches v2 for whitespace handling. The tests cover every unsafe host shape named in the review.\n\nDownsides: A host containing whitespace now suppresses the configured target instead of reporting a trimmed value.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961091830"
+        }
+      ],
+      "reviewed": "6d4686da6d9e426cf1d692c51a854b8be702e6fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3960886756"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This rejects an empty scheme but still accepts syntactically invalid URI schemes such as `1http://host.example:8123` or `ht^tp://host.example:8123`, so a malformed configured endpoint is emitted as `server.address` instead of dropping the target. Validate the scheme using the URI scheme grammar (ASCII letter first, then letters, digits, `+`, `-`, or `.`) before accepting it.",
+      "created": "2026-09-08T18:56:25Z",
+      "hunk": "@@ -56,5 +85,132 @@ public static AddressAndPort setAddressAndPort(Client client, @Nullable String e\n     return addressAndPort;\n   }\n \n+  private static class EndpointTarget {\n+    @Nullable private final String scheme;\n+    private final String address;\n+    @Nullable private final Integer port;\n+\n+    private EndpointTarget(@Nullable String scheme, String address, @Nullable Integer port) {\n+      this.scheme = scheme;\n+      this.address = address;\n+      this.port = port;\n+    }\n+\n+    @Nullable\n+    private static EndpointTarget parse(String endpoint) {\n+      if (hasWhitespace(endpoint)) {\n+        return null;\n+      }\n+      String scheme = null;\n+      int authorityStart = endpoint.indexOf(\"://\");\n+      if (authorityStart < 0) {\n+        authorityStart = 0;\n+      } else {\n+        if (authorityStart == 0) {\n+          return null;\n+        }\n+        scheme = endpoint.substring(0, authorityStart);\n+        authorityStart += 3;",
+      "id": "PRRT_kwDODJKVX86gXvMO",
+      "opened": "2026-09-08T18:56:26Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:00:05Z",
+          "body": "Addressed in 829c274843ddbc6aef85e411e2bdfe44add4482f.\n\nAnalysis: EndpointTarget.parse treated every non-empty prefix before `://` as a scheme. It now enforces the URI scheme grammar before it accepts the endpoint.\n\nUpsides: Invalid schemes can no longer produce a configured server target. The parser still accepts all characters that the URI scheme grammar allows.\n\nDownsides: The parser performs a short character scan when an endpoint includes a scheme.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961270313"
+        }
+      ],
+      "reviewed": "3064d40255b3629486cd1f016b694d859cc8acab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961240534"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The v1 host validation currently only checks whitespace and IPv6 literal shape. It does not reject other unsafe/malformed host values that the new tests explicitly expect to be rejected (e.g., commas, '=' chars, percent-escapes, and userinfo markers like '@'). As written, a host like `first.example,second.example` or `host.example%3fpassword%3dsecret` would be accepted and could leak or inject unsafe content into `server.address`. Extend validation to reject these characters (at least ',', '=', '%', '@') for non-IPv6 hosts (and consider aligning the rules with the v2 endpoint parser for consistency).",
+      "created": "2026-09-08T19:17:53Z",
+      "hunk": "@@ -32,5 +52,104 @@ public static Instrumenter<ClickHouseDbRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  @Nullable\n+  public static DbServerTarget serverTarget(ClickHouseRequest<?> request) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget != null) {\n+      return capturedTarget.target;\n+    }\n+    return uncapturedServerTarget(request);\n+  }\n+\n+  public static void captureConfiguredNodes(\n+      ClickHouseNodes nodes, Collection<ClickHouseNode> configuredNodes) {\n+    NODES_SERVER_TARGET.set(nodes, createServerTarget(configuredNodes));\n+  }\n+\n+  public static void copyServerTarget(\n+      ClickHouseRequest<?> request, ClickHouseRequest<?> copiedRequest) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = uncapturedServerTarget(request);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+    }\n+    REQUEST_SERVER_TARGET.set(copiedRequest, capturedTarget);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget uncapturedServerTarget(ClickHouseRequest<?> request) {\n+    ClickHouseNodes nodes = ClickHouseRequestAccess.getNodes(request);\n+    if (nodes != null) {\n+      return NODES_SERVER_TARGET.get(nodes);\n+    }\n+    ClickHouseNode node = ClickHouseRequestAccess.getDirectNode(request);\n+    return node == null ? null : nodeServerTarget(node);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget nodeServerTarget(ClickHouseNode node) {\n+    CapturedServerTarget capturedTarget = NODE_SERVER_TARGET.get(node);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = createServerTarget(node);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+      NODE_SERVER_TARGET.set(node, capturedTarget);\n+    }\n+    return capturedTarget.target;\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(Collection<ClickHouseNode> nodes) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    for (ClickHouseNode node : nodes) {\n+      if (!addEndpoint(builder, node)) {\n+        return null;\n+      }\n+    }\n+    return builder.build();\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(ClickHouseNode node) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    return addEndpoint(builder, node) ? builder.build() : null;\n+  }\n+\n+  private static boolean addEndpoint(DbServerTargetBuilder builder, ClickHouseNode node) {\n+    String host = node.getHost();\n+    if (hasWhitespace(host)) {\n+      return false;\n+    }\n+    int hostLength = host.length();\n+    String hostToValidate =\n+        hostLength > 1 && host.charAt(0) == '[' && host.charAt(hostLength - 1) == ']'\n+            ? host.substring(1, hostLength - 1)\n+            : host;\n+    if (hostToValidate.indexOf(':') >= 0 && !DbServerEndpointUtil.isIpv6Literal(hostToValidate)) {\n+      return false;\n+    }\n+    ClickHouseProtocol protocol = node.getProtocol();\n+    int defaultPort =\n+        node.getConfig().isSsl() ? protocol.getDefaultSecurePort() : protocol.getDefaultPort();\n+    builder.addEndpoint(host, node.getPort(), defaultPort);\n+    return true;\n+  }",
+      "id": "PRRT_kwDODJKVX86gYKya",
+      "opened": "2026-09-08T19:17:54Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:19:09Z",
+          "body": "No code change.\n\nAnalysis: ClickHouseClientV1Singletons passes every non-whitespace host to DbServerTargetBuilder.addEndpoint. That builder rejects commas, equals signs, percent escapes, user information markers, and other invalid hostname characters. It marks the target incomplete, so build returns null. The parameterized test exercises this full path and passed for every value named in the comment.\n\nUpsides: Keeping validation in DbServerTargetBuilder avoids a second hostname parser that could drift from the shared database endpoint rules.\n\nDownsides: The v1 helper does not show every shared hostname rule locally. The regression test documents the behavior at the instrumentation boundary.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961419053"
+        }
+      ],
+      "reviewed": "829c274843ddbc6aef85e411e2bdfe44add4482f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961408417"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The v1 `addEndpoint` validation currently only rejects whitespace and non-IPv6 colon usage, but it does not reject other unsafe/malformed host values that your new tests expect to be rejected (e.g., `user@unsafe.example`, `first.example,second.example`, `host=bad`, `host.example%3fpassword%3dsecret`). As written, these values could be emitted into `server.address`, potentially leaking credential-like substrings (e.g., `user@...`) or producing invalid multi-endpoint strings. **Mandatory fix:** extend host validation to reject `@`, `,`, `=`, and unsafe percent-escapes (and ideally empty hosts) before calling `builder.addEndpoint(...)`, aligning v1 host validation with the stricter endpoint parsing rules you introduced for v2.",
+      "created": "2026-09-08T19:36:50Z",
+      "hunk": "@@ -32,5 +52,104 @@ public static Instrumenter<ClickHouseDbRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  @Nullable\n+  public static DbServerTarget serverTarget(ClickHouseRequest<?> request) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget != null) {\n+      return capturedTarget.target;\n+    }\n+    return uncapturedServerTarget(request);\n+  }\n+\n+  public static void captureConfiguredNodes(\n+      ClickHouseNodes nodes, Collection<ClickHouseNode> configuredNodes) {\n+    NODES_SERVER_TARGET.set(nodes, createServerTarget(configuredNodes));\n+  }\n+\n+  public static void copyServerTarget(\n+      ClickHouseRequest<?> request, ClickHouseRequest<?> copiedRequest) {\n+    CapturedServerTarget capturedTarget = REQUEST_SERVER_TARGET.get(request);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = uncapturedServerTarget(request);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+    }\n+    REQUEST_SERVER_TARGET.set(copiedRequest, capturedTarget);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget uncapturedServerTarget(ClickHouseRequest<?> request) {\n+    ClickHouseNodes nodes = ClickHouseRequestAccess.getNodes(request);\n+    if (nodes != null) {\n+      return NODES_SERVER_TARGET.get(nodes);\n+    }\n+    ClickHouseNode node = ClickHouseRequestAccess.getDirectNode(request);\n+    return node == null ? null : nodeServerTarget(node);\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget nodeServerTarget(ClickHouseNode node) {\n+    CapturedServerTarget capturedTarget = NODE_SERVER_TARGET.get(node);\n+    if (capturedTarget == null) {\n+      DbServerTarget target = createServerTarget(node);\n+      capturedTarget = target == null ? NO_SERVER_TARGET : new CapturedServerTarget(target);\n+      NODE_SERVER_TARGET.set(node, capturedTarget);\n+    }\n+    return capturedTarget.target;\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(Collection<ClickHouseNode> nodes) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    for (ClickHouseNode node : nodes) {\n+      if (!addEndpoint(builder, node)) {\n+        return null;\n+      }\n+    }\n+    return builder.build();\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget createServerTarget(ClickHouseNode node) {\n+    DbServerTargetBuilder builder = DbServerTarget.builder(-1);\n+    return addEndpoint(builder, node) ? builder.build() : null;\n+  }\n+\n+  private static boolean addEndpoint(DbServerTargetBuilder builder, ClickHouseNode node) {\n+    String host = node.getHost();\n+    if (hasWhitespace(host)) {\n+      return false;\n+    }\n+    int hostLength = host.length();\n+    String hostToValidate =\n+        hostLength > 1 && host.charAt(0) == '[' && host.charAt(hostLength - 1) == ']'\n+            ? host.substring(1, hostLength - 1)\n+            : host;\n+    if (hostToValidate.indexOf(':') >= 0 && !DbServerEndpointUtil.isIpv6Literal(hostToValidate)) {\n+      return false;\n+    }\n+    ClickHouseProtocol protocol = node.getProtocol();\n+    int defaultPort =\n+        node.getConfig().isSsl() ? protocol.getDefaultSecurePort() : protocol.getDefaultPort();\n+    builder.addEndpoint(host, node.getPort(), defaultPort);\n+    return true;\n+  }",
+      "id": "PRRT_kwDODJKVX86gYitC",
+      "opened": "2026-09-08T19:36:51Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:40:43Z",
+          "body": "Addressed in b668e2bcd25d9e5bd4674c66fe38d8bc1c57f29b.\n\nAnalysis: DbServerTargetBuilder already rejects these host values and drops the target. The v1 helper now also rejects empty hosts, delimiter characters, and percent escapes on non-IPv6 hosts before delegation. IPv6 zone identifiers still pass through the IPv6-specific validator.\n\nUpsides: The safety boundary is explicit at the v1 call site. Unsafe values never reach the shared target builder.\n\nDownsides: Some validation now overlaps with DbServerTargetBuilder and must stay aligned with it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961587422"
+        }
+      ],
+      "reviewed": "829c274843ddbc6aef85e411e2bdfe44add4482f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3961558033"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "would https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20059 help?",
+      "created": "2026-09-09T16:03:03Z",
+      "hunk": "@@ -563,4 +679,54 @@ void testPlaceholderQueryInput() {\n                                 maybeStable(DB_OPERATION),\n                                 emitStableDatabaseSemconv() ? null : \"SELECT\"))));\n   }\n+\n+  private static ClickHouseNodes createNodes(Collection<ClickHouseNode> nodes) throws Exception {\n+    Constructor<ClickHouseNodes> constructor =\n+        ClickHouseNodes.class.getDeclaredConstructor(Collection.class);\n+    constructor.setAccessible(true);\n+    return constructor.newInstance(nodes);\n+  }\n+\n+  private static ClickHouseRequest<?> requestWithNodes(Collection<ClickHouseNode> nodes)\n+      throws Exception {\n+    return client.read(createNodes(nodes));\n+  }\n+\n+  private static Object serverTarget(ClickHouseRequest<?> request) throws Exception {\n+    return singletons(request)\n+        .getMethod(\"serverTarget\", ClickHouseRequest.class)\n+        .invoke(null, request);\n+  }\n+\n+  private static String serverTargetAddress(Object serverTarget) throws Exception {\n+    return (String) serverTarget.getClass().getMethod(\"getAddress\").invoke(serverTarget);\n+  }\n+\n+  private static Integer serverTargetPort(Object serverTarget) throws Exception {\n+    return (Integer) serverTarget.getClass().getMethod(\"getPort\").invoke(serverTarget);\n+  }\n+\n+  private static Class<?> singletons(ClickHouseRequest<?> request) throws Exception {",
+      "id": "PRRT_kwDODJKVX86gvEQJ",
+      "opened": "2026-09-09T16:03:03Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Test.java",
+      "replies": [],
+      "reviewed": "083b074d9da94dbfd6642ffbd71fa1098f33614a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3970517565"
+    }
+  ]
+}

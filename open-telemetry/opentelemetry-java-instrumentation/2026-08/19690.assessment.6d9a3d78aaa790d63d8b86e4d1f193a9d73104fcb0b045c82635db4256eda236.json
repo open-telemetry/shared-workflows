@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9eede75e38c7407cec9fed32375efba0a33e602053f864368dfc10d88ecfb003",
+  "input_digest": "6d9a3d78aaa790d63d8b86e4d1f193a9d73104fcb0b045c82635db4256eda236",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb4fdaa6cda0a12480f15f6b78b7ff0b7c9252e2/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb4fdaa6cda0a12480f15f6b78b7ff0b7c9252e2/instrumentation/okhttp/okhttp-3.0/library/src/http2Test/java/io/opentelemetry/instrumentation/okhttp/v3_0/OkHttp3Http2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b1e395ca4b8fd05b60a03ec42e8558871a18f93e/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b1e395ca4b8fd05b60a03ec42e8558871a18f93e/instrumentation/okhttp/okhttp-3.0/library/src/http2Test/java/io/opentelemetry/instrumentation/okhttp/v3_0/OkHttp3Http2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/944946ffe47671f542c2511396897a1b0e787c43"
+      ],
+      "id": "PRRT_kwDODJKVX86aJ8l4",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

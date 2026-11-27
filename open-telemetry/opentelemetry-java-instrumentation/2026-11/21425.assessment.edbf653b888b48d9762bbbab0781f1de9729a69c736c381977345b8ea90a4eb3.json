@@ -1,0 +1,107 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "cbfae324900e5103d6847f150f3eba84f74c3210f42ad1bfdbaf67697be145b1",
+  "input_digest": "edbf653b888b48d9762bbbab0781f1de9729a69c736c381977345b8ea90a4eb3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82e54d4fb6015df71aa25d3fc680ebf113f5aa53/benchmark-overhead/k6/names.js",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/k6/names.js",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/344f476bd93bbe35318d46763a0191ca9fa1c648"
+      ],
+      "id": "PRRT_kwDODJKVX866qTfd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82e54d4fb6015df71aa25d3fc680ebf113f5aa53/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82e54d4fb6015df71aa25d3fc680ebf113f5aa53/benchmark-overhead/k6/names.js",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/k6/names.js",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/344f476bd93bbe35318d46763a0191ca9fa1c648"
+      ],
+      "id": "PRRT_kwDODJKVX866qVn3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/344f476bd93bbe35318d46763a0191ca9fa1c648/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/344f476bd93bbe35318d46763a0191ca9fa1c648/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicIntegrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicIntegrationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX866qjdk",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/344f476bd93bbe35318d46763a0191ca9fa1c648/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/344f476bd93bbe35318d46763a0191ca9fa1c648/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicIntegrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicIntegrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/344f476bd93bbe35318d46763a0191ca9fa1c648/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/344f476bd93bbe35318d46763a0191ca9fa1c648/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicStartupFixture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicStartupFixture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0356ec441ef1fdfafae4d6e43b088654d7aad68e"
+      ],
+      "id": "PRRT_kwDODJKVX866rHsQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0356ec441ef1fdfafae4d6e43b088654d7aad68e/benchmark-overhead/src/test/java/io/opentelemetry/OverheadTests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/src/test/java/io/opentelemetry/OverheadTests.java"
+      ],
+      "id": "PRRT_kwDODJKVX866roN7",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ac2a8e8a5ce4eadccc7863ce4714a4a745412ed/benchmark-overhead/src/test/java/io/opentelemetry/containers/PostgresContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ac2a8e8a5ce4eadccc7863ce4714a4a745412ed/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicStartupFixture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ac2a8e8a5ce4eadccc7863ce4714a4a745412ed/benchmark-overhead/src/test/java/io/opentelemetry/OverheadTests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/src/test/java/io/opentelemetry/containers/PostgresContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicStartupFixture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/src/test/java/io/opentelemetry/OverheadTests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/90403add9d508339c749e7a9e5f1cc1b893a4435"
+      ],
+      "id": "PRRT_kwDODJKVX867E7kq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ac2a8e8a5ce4eadccc7863ce4714a4a745412ed/benchmark-overhead/k6/names-test.js",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ac2a8e8a5ce4eadccc7863ce4714a4a745412ed/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/k6/names-test.js",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f083ab8623bc960fa4a0ce69e1920a9a0646d7/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d444827f46534aab88df857dc35da00924fcbe15"
+      ],
+      "id": "PRRT_kwDODJKVX867E7ku",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

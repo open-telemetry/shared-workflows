@@ -1,0 +1,42 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f830626e9607dd5674acb3c86b17f7794424e948e5f5ce3bbf36627448ba7ac3",
+  "input_digest": "f483b2f486d7c13f1d3b470bc4998a6d2d0a0d215bfcfa27610f81d9b7833777",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e79cc4a26e2320a7da989c6a8f8b7356c6571ad/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/01e41208c2089861793610615a07f7f9fea46e0f/CHANGELOG.md"
+      ],
+      "id": "PRRT_kwDODJKVX86pSZ7F",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ac8403efeabfc3da66b12a086112e9b5301d2ca/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingOperationType.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/01e41208c2089861793610615a07f7f9fea46e0f/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingOperationType.java"
+      ],
+      "id": "PRRT_kwDODJKVX86pijNs",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0001ff2acbc1a91f54d135c613e09d5a6734e010/smoke-tests-otel-starter/spring-boot-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractKafkaSpringStarterSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/01e41208c2089861793610615a07f7f9fea46e0f/smoke-tests-otel-starter/spring-boot-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractKafkaSpringStarterSmokeTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86pqLiU",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

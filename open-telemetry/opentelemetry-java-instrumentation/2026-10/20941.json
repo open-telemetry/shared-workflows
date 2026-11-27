@@ -1,0 +1,178 @@
+{
+  "head": "361bdfeea7c32c2d606309e7ef2b2e8057f93212",
+  "merge": "10738395887ce0dc38159930267d0a49f38b8e7d",
+  "merged": "2026-10-26T07:47:28Z",
+  "missing_roots": 0,
+  "number": 20941,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] Non-blocking: this also reserves a container-service slot for `testSlick`, `testSqlCommenter`, `testCaptureParameters`, and `testTransactions`, none of which runs the new MySQL test. The shared service allows only two concurrent users (`conventions/src/main/kotlin/otel.java-conventions.gradle.kts:328-329`), so these container-free tasks unnecessarily compete with container tests across the build. Please scope the service registration to tasks that include `MySqlReplicationTest`.",
+      "created": "2026-10-24T18:23:37Z",
+      "hunk": "@@ -156,5 +157,6 @@ tasks {\n tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)",
+      "id": "PRRT_kwDODJKVX86v6kbC",
+      "opened": "2026-10-24T18:23:37Z",
+      "path": "instrumentation/jdbc/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-24T18:36:25Z",
+          "body": "Fixed in 8d18b66791874a1bf6cab4a94ce4ac4180a4aae0. The container service is now registered only for test, testPreviewSemconv, testExceptionSignalLogs, and latestDepTest, which include MySqlReplicationTest. The four container-free task types no longer reserve a slot, and testLatestDeps remains configured on every Test task.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368086125"
+        }
+      ],
+      "reviewed": "c6fd1f270c081dacd648a63441d806d97a641342",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368052017"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one scoped correction to the new MySQL reproducer's Gradle wiring. The completed Copilot review at https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368052017 correctly identifies that the new usesService(testcontainersBuildService) registration in instrumentation/jdbc/javaagent/build.gradle.kts currently applies to every Test task. The shared service allows only two concurrent users, so container-free tasks now unnecessarily consume its slots.\n\nScope this registration to the test tasks that actually include MySqlReplicationTest, preserving it for all applicable normal, preview-semconv, exception-signal, and dependency-test variants. Do not register the container-free testSlick, testSqlCommenter, testCaptureParameters, or testTransactions tasks. Follow existing Gradle task-configuration patterns rather than adding an elaborate task-inspection mechanism. Preserve the existing testLatestDeps system property on all Test tasks.\n\nKeep the production DbInfo cache fix, configured logical server.address behavior, MySQL routing reproducer, and fallback coverage unchanged. Run the narrowest formatting and relevant validation for this Gradle correction and record the results in task evidence. Do not merge, create another PR, or reply to or resolve review threads; this coordinator handles review-thread disposition.",
+      "created": "2026-10-24T18:25:25Z",
+      "hunk": "@@ -156,5 +157,6 @@ tasks {\n tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)",
+      "id": "PRRT_kwDODJKVX86v6lM4",
+      "opened": "2026-10-24T18:25:25Z",
+      "path": "instrumentation/jdbc/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c6fd1f270c081dacd648a63441d806d97a641342",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368056981"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix one regression introduced by the new write to the unwrapped connection's DbInfo cache. The latest Copilot review, https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#pullrequestreview-5639460992, reports a substantive body-only finding: an outer decorating driver's unrecognized URL can overwrite valid metadata already captured from the underlying driver.\n\nThe concrete example is OpenTelemetryDriver with jdbc:otel:mysql://host/shop. OpenTelemetryDriver.connect strips jdbc:otel: to jdbc: before calling the real driver's connect, which caches recognized MySQL metadata. It returns an OpenTelemetryConnection whose unwrap(Connection.class) delegates to that real connection. Our parser does not currently recognize jdbc:otel:, so the new propagation in DriverInstrumentation.addDbInfo can then overwrite the delegate's correct metadata with other_sql and no namespace. Source inspection confirms these call paths. This regression is directly caused by the PR's generic cache propagation and is in scope.\n\nReproduce this overwrite with focused automated coverage under javaagent instrumentation, then make a surgical correction so an unrecognized decorating-driver URL does not clobber valid delegate metadata. Select the simplest repository-consistent fix after reproducing the actual behavior. Preserve the original MySQL replication fix: both source/replica routing and configured host-group identity must still work. Do not simply skip all existing delegate-cache entries, since a recognized original replication URL may need to replace metadata from an internal synthetic URL. Preserve uncached/wrapped metadata fallbacks, existing legacy behavior, and the corrected container-service scheduling.\n\nRun the narrowest applicable formatter and relevant regression tests, including the existing MySqlReplicationTest and the new decorating-driver reproducer where feasible, and retain actual command/results as task evidence. Do not merge, create another PR, or reply to or resolve review threads. This coordinator handles review assessment and thread cleanup.",
+      "created": "2026-10-24T18:47:15Z",
+      "hunk": "@@ -58,8 +59,13 @@ public static void addDbInfo(\n         // Exception was probably thrown.\n         return;\n       }\n-      DbInfo dbInfo = JdbcConnectionUrlParser.parse(url, props);\n-      JdbcData.CONNECTION_INFO.set(connection, JdbcData.intern(dbInfo));\n+      DbInfo dbInfo = JdbcData.intern(JdbcConnectionUrlParser.parse(url, props));\n+      JdbcData.CONNECTION_INFO.set(connection, dbInfo);\n+      // Multi-host drivers may expose the unwrapped connection through their statements.\n+      Connection unwrappedConnection = JdbcUtils.unwrapConnection(connection);\n+      if (unwrappedConnection != null && unwrappedConnection != connection) {\n+        JdbcData.CONNECTION_INFO.set(unwrappedConnection, dbInfo);",
+      "id": "PRRT_kwDODJKVX86v6uVb",
+      "opened": "2026-10-24T18:47:15Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+      "replies": [],
+      "reviewed": "8d18b66791874a1bf6cab4a94ce4ac4180a4aae0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368116475"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the simplification the user explicitly requested: \"Let's simplify it Remove the extra code and the extra test. We can always revisit that if someone runs into problems in the wild.\"\n\nThe user has reviewed the tradeoff and chosen to drop the defensive handling of unrecognized decorating-driver URLs that unwrap to a different connection. This supersedes the earlier request to protect delegate metadata against that overwrite. They accept that such a decorator can replace useful delegate metadata with other_sql and lose namespace/target attributes. Do not reintroduce that protection through another guard, parser-prefix special case, replacement decorating driver, or new abstraction.\n\nIn instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java, remove the existingDbInfo lookup, hasExistingDbInfo predicate, OTHER_SQL condition, and unused OTHER_SQL import. Retain the original MySQL fix: intern the original URL's parsed DbInfo, cache it on the returned connection, call JdbcUtils.unwrapConnection(connection), and, when the result is nonnull and different, unconditionally cache that same DbInfo on the unwrapped connection.\n\nIn instrumentation/jdbc/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jdbc/test/MySqlReplicationTest.java, remove only decoratingDriverPreservesDelegateMetadata and imports used solely by that test. In instrumentation/jdbc/javaagent/build.gradle.kts, remove testImplementation(project(\":instrumentation:jdbc:library\")), which was added solely for that decorator test. Keep the real MySQL dependency, two-container source/replica reproducer, ordinary/client-prepared/server-prepared routing cases, configured logical host-group assertions, and scoped testcontainers service scheduling. Keep the independent JdbcUtilsTest fallback/cache coverage. Do not change wrapper contracts or modify separate PR #20947.\n\nRun the narrowest applicable spotlessApply tasks immediately before relevant validation. Run the retained MySqlReplicationTest and relevant JdbcUtilsTest coverage where feasible, recording exact commands and results or concrete blockers as task evidence. Preserve this PR's base and draft state. Do not create another PR, merge, post replies, or resolve review threads. The coordinator handles metadata and thread disposition.",
+      "created": "2026-10-24T20:20:19Z",
+      "hunk": "@@ -58,8 +60,21 @@ public static void addDbInfo(\n         // Exception was probably thrown.\n         return;\n       }\n-      DbInfo dbInfo = JdbcConnectionUrlParser.parse(url, props);\n-      JdbcData.CONNECTION_INFO.set(connection, JdbcData.intern(dbInfo));\n+      DbInfo dbInfo = JdbcData.intern(JdbcConnectionUrlParser.parse(url, props));\n+      JdbcData.CONNECTION_INFO.set(connection, dbInfo);\n+      // Multi-host drivers may expose the unwrapped connection through their statements.\n+      Connection unwrappedConnection = JdbcUtils.unwrapConnection(connection);\n+      if (unwrappedConnection != null && unwrappedConnection != connection) {\n+        DbInfo existingDbInfo = JdbcData.CONNECTION_INFO.get(unwrappedConnection);",
+      "id": "PRRT_kwDODJKVX86v7ZGB",
+      "opened": "2026-10-24T20:20:19Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+      "replies": [],
+      "reviewed": "196ab4e6ca436b54776dc4df4f63ecb491a5878c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368394515"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the latest-dependency CI configuration failure caused by the new MySQL test dependency.\n\nThe coordinator downloaded the deterministic CI bundle with .github/scripts/pr-triage/fix_ci.py 20941 --download-only. On head c1e2800d308bd44a47e0e7f374fb3986e90bdf0d, all four build / test-latest-deps / testLatestDeps0 through testLatestDeps3 jobs fail before tests run. Representative job IDs are 120980119629, 120980119505, 120980119516, and 120980119524. Every downloaded log reports instrumentation/jdbc/javaagent/build.gradle.kts line 28 and the same error: Pinned version missing for key \"com.mysql:mysql-connector-j#+\".\n\nThe PR adds testLibrary(\"com.mysql:mysql-connector-j:9.3.0\"), but .github/config/latest-dep-versions.json has no latest-version pin for that dependency. Use the repository's generator rather than guessing or hand-inventing a version: ./gradlew resolveLatestDepVersions -PtestLatestDeps=true -PresolveLatestDeps=true. Commit the generated missing MySQL pin and any directly required generated changes, without refreshing unrelated dependency versions. Do not bypass pinning, disable latest-dependency testing, remove the MySQL reproducer, or change the dependency declaration merely to hide the missing pin.\n\nValidate that latest-dependency configuration no longer fails for this key, and run the retained MySqlReplicationTest under latest dependencies where feasible. Use the narrowest applicable formatter before validation and record the exact commands and results, or concrete blockers, as coding evidence. No need to wait for CI.\n\nKeep the simplified DbInfo propagation and existing routing/fallback coverage unchanged. The user's decision to remove the unrecognized-decorator overwrite guard, decorating-driver test, and library test dependency is settled; do not restore them. Preserve this PR's base and draft state, and do not modify the independent library-wrapper PR #20947. Do not create another PR, merge, post replies, or resolve review threads. The coordinator handles metadata and thread disposition.",
+      "created": "2026-10-24T20:53:32Z",
+      "hunk": "@@ -25,6 +25,7 @@ dependencies {\n   testLibrary(\"org.apache.derby:derby:10.6.1.0\")\n   testLibrary(\"org.hsqldb:hsqldb:2.0.0\")\n   testLibrary(\"org.xerial:sqlite-jdbc:3.53.1.0\")\n+  testLibrary(\"com.mysql:mysql-connector-j:9.3.0\")",
+      "id": "PRRT_kwDODJKVX86v7nEX",
+      "opened": "2026-10-24T20:53:32Z",
+      "path": "instrumentation/jdbc/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c1e2800d308bd44a47e0e7f374fb3986e90bdf0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368484359"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the outstanding latest-dependency pin fix on this PR and push the actual change to its existing head branch.\n\nThe previous coding session 2fe5be52-4d38-4ecb-805c-de365e35be99 finished at 2026-10-24T20:58:47Z, but delivery inspection found no change: the live head is still c1e2800d308bd44a47e0e7f374fb3986e90bdf0d, the commit list has no new commit, and the GitHub diff still has no .github/config/latest-dep-versions.json entry. No blocker or explanation was present in PR comments. That session's completion did not deliver the requested fix.\n\nThe diagnosed failure remains the same. The deterministic CI bundle downloaded with .github/scripts/pr-triage/fix_ci.py 20941 --download-only contains four latest-deps job logs, including job 120980119629. Each fails during configuration at instrumentation/jdbc/javaagent/build.gradle.kts line 28 with: Pinned version missing for key \"com.mysql:mysql-connector-j#+\". The new testLibrary(\"com.mysql:mysql-connector-j:9.3.0\") requires this key in .github/config/latest-dep-versions.json.\n\nRun the repository's generator, ./gradlew resolveLatestDepVersions -PtestLatestDeps=true -PresolveLatestDeps=true, to obtain the MySQL pin. Preserve unrelated existing pins and commit only this missing generated entry and directly required generated changes. Do not hand-invent a version, bypass pinning, remove the test dependency, or disable the latest-dependency tests. Inspect the generated diff and explicitly verify that the required key exists with the resolved version before committing and pushing.\n\nValidate the original latest-dependency configuration failure is removed and run MySqlReplicationTest under latest dependencies where feasible, using the narrowest applicable formatter before validation. Record actual command/results in the final coding report. If generation or pushing is blocked, report the exact failing command and concrete error; do not silently end or claim delivery without the new commit.\n\nKeep the existing MySQL fix, simplified cache propagation, routing/fallback tests, and scoped container-service scheduling unchanged. The user intentionally removed the decorator overwrite guard, decorator test, and library test dependency; do not restore them. Preserve the existing base and draft state. Do not modify separate PR #20947, create another PR, merge, post replies, or resolve threads. This coordinator handles metadata and thread cleanup.",
+      "created": "2026-10-24T21:06:25Z",
+      "hunk": "@@ -25,6 +25,7 @@ dependencies {\n   testLibrary(\"org.apache.derby:derby:10.6.1.0\")\n   testLibrary(\"org.hsqldb:hsqldb:2.0.0\")\n   testLibrary(\"org.xerial:sqlite-jdbc:3.53.1.0\")\n+  testLibrary(\"com.mysql:mysql-connector-j:9.3.0\")",
+      "id": "PRRT_kwDODJKVX86v7sb7",
+      "opened": "2026-10-24T21:06:25Z",
+      "path": "instrumentation/jdbc/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-24T21:24:05Z",
+          "body": "Added the generator-resolved pin `com.mysql:mysql-connector-j#+` = `26.10.0` in commit `a18713d9`. The focused latest-deps `MySqlReplicationTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368570402"
+        }
+      ],
+      "reviewed": "c1e2800d308bd44a47e0e7f374fb3986e90bdf0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368519106"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] When the agent instruments `OpenTelemetryDriver.connect(\"jdbc:otel:postgresql://db:5432/shop\", ...)`, this write overwrites the underlying PostgreSQL driver's cached `DbInfo` with the unsupported wrapper URL's `other_sql` result. Subsequent agent-instrumented queries using that delegate lose their PostgreSQL identity and database namespace. Normalize the wrapper prefix before propagating the result, or preserve valid delegate metadata when the wrapper URL is unrecognized, and add a nested-driver regression test.",
+      "created": "2026-10-24T21:32:19Z",
+      "hunk": "@@ -58,8 +59,13 @@ public static void addDbInfo(\n         // Exception was probably thrown.\n         return;\n       }\n-      DbInfo dbInfo = JdbcConnectionUrlParser.parse(url, props);\n-      JdbcData.CONNECTION_INFO.set(connection, JdbcData.intern(dbInfo));\n+      DbInfo dbInfo = JdbcData.intern(JdbcConnectionUrlParser.parse(url, props));\n+      JdbcData.CONNECTION_INFO.set(connection, dbInfo);\n+      // Multi-host drivers may expose the unwrapped connection through their statements.\n+      Connection unwrappedConnection = JdbcUtils.unwrapConnection(connection);\n+      if (unwrappedConnection != null && unwrappedConnection != connection) {\n+        JdbcData.CONNECTION_INFO.set(unwrappedConnection, dbInfo);",
+      "id": "PRRT_kwDODJKVX86v73UL",
+      "opened": "2026-10-24T21:32:19Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-24T21:38:02Z",
+          "body": "We discussed this decorator case and deliberately chose not to handle it in this PR. The guard and regression test were removed in c1e2800d to keep the MySQL fix focused. We'll revisit that compatibility handling if it is reported in practice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368605750"
+        }
+      ],
+      "reviewed": "a18713d950df0a0348ea4b5f088fa404afb52aa6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368590850"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a comment-only clarification in instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java.\n\nReplace the comment \"// Multi-host drivers may expose the unwrapped connection through their statements.\" with this agreed wording:\n\n```java\n// Query instrumentation looks up DbInfo after unwrapping the connection,\n// which can return a different object than Driver.connect() returned.\n// On a cache miss, it parses connection.getMetaData().getURL(). For MySQL\n// replication, that URL can contain an internally generated identifier\n// instead of the configured hosts. Cache the original URL's DbInfo on\n// the unwrapped object too, so query instrumentation finds it there.\n```\n\nKeep the executable code, tests, dependency pins, base, and draft state unchanged. This is only a clarification of the later cache lookup and metadata fallback, not a request to change wrapper handling. Do not restore the intentionally removed decorator guard or test. Use normal module formatting if needed; no behavior tests or unrelated validation are needed for this comment-only edit. Commit and push the change to this PR's existing branch. Do not create another PR, merge, post replies, or resolve threads. The coordinator handles metadata and thread disposition.",
+      "created": "2026-10-24T21:44:20Z",
+      "hunk": "@@ -58,8 +59,13 @@ public static void addDbInfo(\n         // Exception was probably thrown.\n         return;\n       }\n-      DbInfo dbInfo = JdbcConnectionUrlParser.parse(url, props);\n-      JdbcData.CONNECTION_INFO.set(connection, JdbcData.intern(dbInfo));\n+      DbInfo dbInfo = JdbcData.intern(JdbcConnectionUrlParser.parse(url, props));\n+      JdbcData.CONNECTION_INFO.set(connection, dbInfo);\n+      // Multi-host drivers may expose the unwrapped connection through their statements.",
+      "id": "PRRT_kwDODJKVX86v78F7",
+      "opened": "2026-10-24T21:44:20Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+      "replies": [],
+      "reviewed": "a18713d950df0a0348ea4b5f088fa404afb52aa6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368622873"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n```",
+      "created": "2026-10-24T22:28:13Z",
+      "hunk": "@@ -156,5 +157,8 @@ tasks {\n tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n+    if (name in setOf(\"test\", \"testPreviewSemconv\", \"testExceptionSignalLogs\", \"latestDepTest\")) {\n+      usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+    }",
+      "id": "PRRT_kwDODJKVX86v8RZF",
+      "opened": "2026-10-24T22:28:13Z",
+      "path": "instrumentation/jdbc/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "31d4a2d1ba7040e44d9c78258c89b531f429d99f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368763213"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with these two user-requested simplifications. The user approved: \"Okay, do that plus dropping the test cloud\".\n\nIn instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java, replace the explanatory comment immediately before JdbcUtils.unwrapConnection(connection) with exactly this single line:\n\n```java\n// DbInfo lookups use the unwrapped connection, so cache the configured target there too.\n```\n\nDelete the entire newly added file instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcUtilsTest.java. It tests unchanged cache lookup, unwrapping, and metadata fallback behavior rather than the modified driver advice; the user chose to remove it from this PR.\n\nKeep all executable production code unchanged, including the same interned DbInfo cached on both the returned connection and a distinct nonnull unwrapped connection. Keep MySqlReplicationTest.java unchanged, including both MySQL containers, ordinary/client-prepared/server-prepared cases, routing assertions, and exact logical-target telemetry assertions. Preserve dependencies, dependency pins, and the existing Gradle wiring. Do not replace the removed unit tests or restore any previously removed decorating-driver guard or test.\n\nAcceptance criteria: the comment is exactly the agreed single line; JdbcUtilsTest.java is absent from the final PR diff; the retained MySQL reproducer and executable code are unchanged. Run the narrowest applicable spotlessApply task immediately before relevant validation, and run the retained MySqlReplicationTest where feasible. Record actual results or concrete blockers as coding evidence. Commit and push to this PR's existing head branch, preserving its base and draft state. Do not create another PR, merge, post replies, or resolve review threads.",
+      "created": "2026-10-24T22:42:43Z",
+      "hunk": "@@ -58,8 +59,18 @@ public static void addDbInfo(\n         // Exception was probably thrown.\n         return;\n       }\n-      DbInfo dbInfo = JdbcConnectionUrlParser.parse(url, props);\n-      JdbcData.CONNECTION_INFO.set(connection, JdbcData.intern(dbInfo));\n+      DbInfo dbInfo = JdbcData.intern(JdbcConnectionUrlParser.parse(url, props));\n+      JdbcData.CONNECTION_INFO.set(connection, dbInfo);\n+      // Query instrumentation looks up DbInfo after unwrapping the connection,",
+      "id": "PRRT_kwDODJKVX86v8WqK",
+      "opened": "2026-10-24T22:42:43Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+      "replies": [],
+      "reviewed": "c59c671ab8923f353d5854b2524ec9f6426a252d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20941#discussion_r4368799192"
+    }
+  ]
+}

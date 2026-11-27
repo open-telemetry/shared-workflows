@@ -1,0 +1,154 @@
+{
+  "head": "5f78a27f292891c9fd0c5f0ae9a08e763f32d062",
+  "merge": "f6f9fa94a638e0f831b34099712fe9c27267aca9",
+  "merged": "2026-09-19T04:29:44Z",
+  "missing_roots": 0,
+  "number": 610,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For async `with_streaming_response` responses (where the underlying `parse()` is `async`), this proxy returns a non-awaitable value after the first successful await because `_self_parsed` is memoized and returned directly. That can break callers that always do `await raw_response.parse()` (e.g., if `parse()` is called/awaited once by helper code and then awaited again elsewhere), since the second await would raise `TypeError`.\n\nTo preserve the wrapped SDK contract, `parse()` should remain awaitable for async responses even when returning a memoized result (e.g., detect `inspect.iscoroutinefunction(self.__wrapped__.parse)` or set a flag the first time an awaitable is observed, and when `_self_parsed` is set return an already-resolved coroutine/Future that yields `_self_parsed`).",
+      "created": "2026-09-04T01:12:20Z",
+      "hunk": "@@ -149,7 +150,22 @@ def parse(self, *args: Any, **kwargs: Any) -> object:\n         # would consume it twice anyway.\n         if self._self_parsed is not None:\n             return self._self_parsed\n-        stream = self.__wrapped__.parse(*args, **kwargs)\n+        parsed = self.__wrapped__.parse(*args, **kwargs)\n+        if inspect.isawaitable(parsed):\n+            # Only ``AsyncAPIResponse`` (the async ``with_streaming_response``)\n+            # has a coroutine ``parse()``.\n+            return self._parse_awaited(parsed)\n+        return self._wrap_parsed(parsed)",
+      "id": "PRRT_kwDOSbspP86fIb1q",
+      "opened": "2026-09-04T01:12:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-09-04T01:22:01Z",
+          "body": "good catch, fixed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3930083910"
+        }
+      ],
+      "reviewed": "474cedbf8613e3fce1e5c8441efdb1a67180f161",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3930042192"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Race: if the httpx response closes while this coroutine is still pending (e.g. the caller calls `parse()` without immediately awaiting it, as your own `test_close_before_awaiting_parse_finalizes_once` does), the close fallback already finalizes the span here, empty. When this coroutine then resolves anyway, `_wrap_parsed` still builds and returns a stream wrapper; draining it calls `invocation.stop()` again, which silently no-ops (span already ended), so whatever attributes it collected are dropped.\n\nFix: in `_wrap_parsed`, check whether the close fallback already fired before building the wrapper:\n```python\ndef _wrap_parsed(self, stream: Any) -> object:\n    if isinstance(stream, (Stream, AsyncStream)):\n        if self._self_finalize is None:\n            # Closed while parse() was pending; span is already gone,\n            # wrapping now would only drop attributes silently.\n            return stream\n        self._self_parsed = self._self_wrap_stream(stream)\n        return self._self_parsed\n    ...\n```\n`_self_finalize` is only ever cleared by the close fallback, so this is a reliable signal without adding new state.\n\nRegression test (fails on this branch, passes with the fix above):\n```python\n@pytest.mark.asyncio()\nasync def test_close_while_parse_pending_does_not_lose_the_stream():\n    resume = asyncio.Event()\n    stream = _FakeAsyncStream()\n\n    class _SlowAsyncRawResponse(_AsyncRawResponse):\n        async def parse(self, *, to=None):\n            await resume.wait()\n            return self._parse_result\n\n    raw = _SlowAsyncRawResponse(stream)\n    finalize_calls, wrap_calls = [], []\n    proxy = RawResponseStreamProxy(\n        raw,\n        wrap_stream=lambda s: wrap_calls.append(s) or (\"wrapped\", s),\n        finalize=lambda: finalize_calls.append(True),\n    )\n\n    pending = proxy.parse()\n    raw.http_response.close()\n    assert finalize_calls == [True]  # close fallback already finalized\n\n    resume.set()\n    result = await pending\n\n    assert wrap_calls == []  # must not silently drop a live wrapper's data\n    assert result is stream\n```",
+      "created": "2026-09-04T20:07:50Z",
+      "hunk": "@@ -148,8 +150,30 @@ def parse(self, *args: Any, **kwargs: Any) -> object:\n         # deliberate: one raw response backs one span, and re-parsing a stream\n         # would consume it twice anyway.\n         if self._self_parsed is not None:\n+            # An awaitable parse() is awaited on every call, memo hits included.\n+            if self._self_parse_returns_awaitable:\n+                return self._parsed_as_awaitable()\n             return self._self_parsed\n-        stream = self.__wrapped__.parse(*args, **kwargs)\n+        parsed = self.__wrapped__.parse(*args, **kwargs)\n+        if inspect.isawaitable(parsed):\n+            # Only ``AsyncAPIResponse`` (the async ``with_streaming_response``)\n+            # has a coroutine ``parse()``.\n+            self._self_parse_returns_awaitable = True\n+            return self._parse_awaited(parsed)\n+        return self._wrap_parsed(parsed)\n+\n+    async def _parsed_as_awaitable(self) -> object:\n+        return self._self_parsed\n+\n+    async def _parse_awaited(self, pending: Awaitable[Any]) -> object:\n+        stream = await pending\n+        # parse() can hand out several coroutines before any of them resolves,\n+        # so re-check the memo to keep one wrapper per response.\n+        if self._self_parsed is not None:",
+      "id": "PRRT_kwDOSbspP86fbgwA",
+      "opened": "2026-09-04T20:09:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-09-04T23:40:01Z",
+          "body": "Sorry for the deleted comment, I posted a suggestion and then went to verify it, and that turned out to be wrong. I've updated according to your suggestion, thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3938590221"
+        }
+      ],
+      "reviewed": "d4fd6d45544f8f806af4ea806e24ea5c913deffc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3937559117"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This pulls the async path into #491: a stream the caller doesn't drain now emits no span at all, where before the close fallback still ended it (empty). Once `_self_parsed` is set the fallback steps aside and nothing else finalizes.\r\n\r\nFails here, passes on `main`:\r\n```python\r\n@pytest.mark.asyncio()\r\nasync def test_abandoned_async_streaming_response_still_emits_span(\r\n    span_exporter, async_openai_client, instrument_with_content, vcr\r\n):\r\n    with vcr.use_cassette(\"test_chat_completion_with_raw_response_streaming.yaml\"):\r\n        async with async_openai_client.chat.completions.with_streaming_response.create(\r\n            messages=USER_ONLY_PROMPT, model=DEFAULT_MODEL, stream=True,\r\n            stream_options={\"include_usage\": True},\r\n        ) as raw_response:\r\n            async for _chunk in await raw_response.parse():\r\n                break\r\n\r\n    assert len(span_exporter.get_finished_spans()) == 1\r\n```\r\n\r\n#491 is hard in general because a plain stream gives no signal that the caller left. Here there is one - `__aexit__` closes the http response - and the anthropic package already uses it: see `_finalize_close_fallback` / `_afinalize_close_fallback` in `instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/_raw_response.py`, which close the stream wrapper instead of suppressing themselves. Both stream wrappers guard on `_self_finalized`, so a drained stream is unaffected.",
+      "created": "2026-09-05T00:13:18Z",
+      "hunk": "@@ -148,9 +150,36 @@ def parse(self, *args: Any, **kwargs: Any) -> object:\n         # deliberate: one raw response backs one span, and re-parsing a stream\n         # would consume it twice anyway.\n         if self._self_parsed is not None:\n+            # An awaitable parse() is awaited on every call, memo hits included.\n+            if self._self_parse_returns_awaitable:\n+                return self._parsed_as_awaitable()\n             return self._self_parsed\n-        stream = self.__wrapped__.parse(*args, **kwargs)\n+        parsed = self.__wrapped__.parse(*args, **kwargs)\n+        if inspect.isawaitable(parsed):\n+            # Only ``AsyncAPIResponse`` (the async ``with_streaming_response``)\n+            # has a coroutine ``parse()``.\n+            self._self_parse_returns_awaitable = True\n+            return self._parse_awaited(parsed)",
+      "id": "PRRT_kwDOSbspP86fea7H",
+      "opened": "2026-09-05T00:16:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-09-07T07:18:46Z",
+          "body": "thanks! Rethinking this: instead of tracking the wrapper separately, I reused the existing `_self_finalize` callback. It starts as `invocation.stop` and is swapped for `wrapper.close` once `parse()` builds one, so whichever close hook fires just runs whatever is currently there. The field is cleared when the callback is taken, so finalization happens once and the re-entrant close finds nothing left to run.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3947393309"
+        }
+      ],
+      "reviewed": "5c6b162e1dfefb0fde1fe86d08b2e151c960eff3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3938735117"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Memoized calls only return an awaitable when `self.__wrapped__.parse` is a coroutine function. However, the code also supports the case where `parse()` returns an awaitable (via `inspect.isawaitable(parsed)`), and in that scenario the first call returns an awaitable but subsequent memo hits would return the bare parsed object, changing the call shape. To keep behavior consistent, record whether the first parse was awaitable (or memoize an awaitable wrapper) and use that instead of checking `iscoroutinefunction(self.__wrapped__.parse)` on memo hits.",
+      "created": "2026-09-08T19:02:53Z",
+      "hunk": "@@ -148,11 +181,38 @@ def parse(self, *args: Any, **kwargs: Any) -> object:\n         # deliberate: one raw response backs one span, and re-parsing a stream\n         # would consume it twice anyway.\n         if self._self_parsed is not None:\n+            # An awaitable parse() is awaited on every call, memo hits included.\n+            if inspect.iscoroutinefunction(self.__wrapped__.parse):\n+                return self._parsed_as_awaitable()\n             return self._self_parsed\n-        stream = self.__wrapped__.parse(*args, **kwargs)\n-        if isinstance(stream, (Stream, AsyncStream)):\n-            self._self_parsed = self._self_wrap_stream(stream)\n+        parsed = self.__wrapped__.parse(*args, **kwargs)\n+        if inspect.isawaitable(parsed):\n+            # Only ``AsyncAPIResponse`` (the async ``with_streaming_response``)\n+            # has a coroutine ``parse()``.\n+            return self._parse_awaited(parsed)\n+        return self._wrap_parsed(parsed)",
+      "id": "PRRT_kwDOSbspP86gX33g",
+      "opened": "2026-09-08T19:02:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [],
+      "reviewed": "43cb3b5bb13683f540349b2e4a249b2b2cffe96c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3961293355"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `finalize` parameter is annotated as `Callable[[], None]`, but it is later treated as `Callable[[], Any]` and may be replaced with `wrapper.close` (which can return an awaitable). Update the `finalize` parameter type annotation to match the actual contract (e.g., `Callable[[], Any]`), so type-checkers don’t flag valid async-wrapper usage and the public signature matches runtime behavior.",
+      "created": "2026-09-08T19:02:54Z",
+      "hunk": "@@ -90,7 +91,9 @@ def __init__(\n     ) -> None:\n         super().__init__(raw_response)\n         self._self_wrap_stream = wrap_stream\n-        self._self_finalize: Callable[[], None] | None = finalize\n+        # Swapped for the wrapper's ``close`` once there is one, so an\n+        # abandoned stream finalizes with what it saw.\n+        self._self_finalize: Callable[[], Any] | None = finalize",
+      "id": "PRRT_kwDOSbspP86gX34X",
+      "opened": "2026-09-08T19:02:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [],
+      "reviewed": "43cb3b5bb13683f540349b2e4a249b2b2cffe96c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r3961293421"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This abandoned-response finalizer also catches only `Exception`, even though `finalize` can be a stream wrapper's `close()` and the wrapper lifecycle handles `BaseException`. A `BaseException` from that close bypasses the intended best-effort cleanup and can escape from the raw response's `close()` hook; catch `BaseException` here as well.\n\nThis issue also appears in the following locations of the same file:\n- line 171\n- line 187\n- line 212",
+      "created": "2026-09-14T01:52:52Z",
+      "hunk": "@@ -125,21 +128,51 @@ async def _aclose(*args: object, **kwargs: object) -> object:\n             try:\n                 return await original(*args, **kwargs)\n             finally:\n-                self._finalize_close_fallback()\n+                await self._afinalize_close_fallback()\n \n         return _aclose\n \n     def _finalize_close_fallback(self) -> None:\n-        # When ``parse()`` built a stream wrapper, that wrapper owns\n-        # finalization; only finalize here for callers that never parsed.\n-        if self._self_parsed is None:\n-            self._finalize_once()\n+        if inspect.iscoroutinefunction(self._self_finalize):\n+            return  # needs an await; ``aclose`` will run it\n+        self._finalize_once()\n+\n+    async def _afinalize_close_fallback(self) -> None:\n+        await self._afinalize_once()\n+\n+    def _take_finalize(self) -> Callable[[], Any] | None:\n+        # Clearing on take also stops the recursion: closing the wrapper closes\n+        # the SDK stream, which closes this response and re-enters the hook.\n+        finalize, self._self_finalize = self._self_finalize, None\n+        return finalize\n \n     def _finalize_once(self) -> None:\n-        # ``stop()`` is not idempotent, so finalize at most once.\n-        if self._self_finalize is not None:\n-            finalize, self._self_finalize = self._self_finalize, None\n+        finalize = self._take_finalize()\n+        if finalize is None:\n+            return\n+        try:\n             finalize()\n+        except Exception:  # pylint: disable=broad-exception-caught",
+      "id": "PRRT_kwDOSbspP86h-AnZ",
+      "opened": "2026-09-14T01:52:53Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [],
+      "reviewed": "2bf302af7758de44aeac7230e8ac0c5aecc61c7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r4001684202"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The async finalization path clears the callback in `_take_finalize()` and then catches only `Exception`. If the task is cancelled while awaiting an async wrapper's `close()`, `asyncio.CancelledError` bypasses this handler, so this fallback cannot guarantee that the invocation is finalized; the synchronous counterpart already catches `BaseException`. Catch `BaseException` here as well so cancellation is handled consistently.\n\nThis issue also appears in the following locations of the same file:\n- line 191\n- line 214",
+      "created": "2026-09-14T02:07:17Z",
+      "hunk": "@@ -125,21 +128,51 @@ async def _aclose(*args: object, **kwargs: object) -> object:\n             try:\n                 return await original(*args, **kwargs)\n             finally:\n-                self._finalize_close_fallback()\n+                await self._afinalize_close_fallback()\n \n         return _aclose\n \n     def _finalize_close_fallback(self) -> None:\n-        # When ``parse()`` built a stream wrapper, that wrapper owns\n-        # finalization; only finalize here for callers that never parsed.\n-        if self._self_parsed is None:\n-            self._finalize_once()\n+        if inspect.iscoroutinefunction(self._self_finalize):\n+            return  # needs an await; ``aclose`` will run it\n+        self._finalize_once()\n+\n+    async def _afinalize_close_fallback(self) -> None:\n+        await self._afinalize_once()\n+\n+    def _take_finalize(self) -> Callable[[], Any] | None:\n+        # Clearing on take also stops the recursion: closing the wrapper closes\n+        # the SDK stream, which closes this response and re-enters the hook.\n+        finalize, self._self_finalize = self._self_finalize, None\n+        return finalize\n \n     def _finalize_once(self) -> None:\n-        # ``stop()`` is not idempotent, so finalize at most once.\n-        if self._self_finalize is not None:\n-            finalize, self._self_finalize = self._self_finalize, None\n+        finalize = self._take_finalize()\n+        if finalize is None:\n+            return\n+        try:\n             finalize()\n+        except BaseException:  # pylint: disable=broad-exception-caught\n+            # The caller already walked away; nobody is left to raise at.\n+            _logger.debug(\n+                \"error finalizing an abandoned raw response\", exc_info=True\n+            )\n+\n+    async def _afinalize_once(self) -> None:\n+        finalize = self._take_finalize()\n+        if finalize is None:\n+            return\n+        try:\n+            # ``invocation.stop`` returns None; an async wrapper's ``close``\n+            # returns a coroutine.\n+            result = finalize()\n+            if inspect.isawaitable(result):\n+                await result\n+        except Exception:  # pylint: disable=broad-exception-caught",
+      "id": "PRRT_kwDOSbspP86h-ISW",
+      "opened": "2026-09-14T02:07:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [],
+      "reviewed": "cd60c9b516ac36f83c86ba44cb7c81da49172db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r4001731500"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Nit: Should we narrow both handlers to `except Exception` so `BaseException` subclasses like `asyncio.CancelledError` can propagate?",
+      "created": "2026-09-15T16:08:55Z",
+      "hunk": "@@ -125,21 +128,51 @@ async def _aclose(*args: object, **kwargs: object) -> object:\n             try:\n                 return await original(*args, **kwargs)\n             finally:\n-                self._finalize_close_fallback()\n+                await self._afinalize_close_fallback()\n \n         return _aclose\n \n     def _finalize_close_fallback(self) -> None:\n-        # When ``parse()`` built a stream wrapper, that wrapper owns\n-        # finalization; only finalize here for callers that never parsed.\n-        if self._self_parsed is None:\n-            self._finalize_once()\n+        if inspect.iscoroutinefunction(self._self_finalize):\n+            return  # needs an await; ``aclose`` will run it\n+        self._finalize_once()\n+\n+    async def _afinalize_close_fallback(self) -> None:\n+        await self._afinalize_once()\n+\n+    def _take_finalize(self) -> Callable[[], Any] | None:\n+        # Clearing on take also stops the recursion: closing the wrapper closes\n+        # the SDK stream, which closes this response and re-enters the hook.\n+        finalize, self._self_finalize = self._self_finalize, None\n+        return finalize\n \n     def _finalize_once(self) -> None:\n-        # ``stop()`` is not idempotent, so finalize at most once.\n-        if self._self_finalize is not None:\n-            finalize, self._self_finalize = self._self_finalize, None\n+        finalize = self._take_finalize()\n+        if finalize is None:\n+            return\n+        try:\n             finalize()\n+        except BaseException:  # pylint: disable=broad-exception-caught",
+      "id": "PRRT_kwDOSbspP86imeNA",
+      "opened": "2026-09-15T16:08:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/_raw_response.py",
+      "replies": [
+        {
+          "at": "2026-09-16T03:48:02Z",
+          "body": "Good catch, thanks for pointing it out!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r4022309549"
+        }
+      ],
+      "reviewed": "efd2b188951c062e8b30a4a8db6040379663d824",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610#discussion_r4017726691"
+    }
+  ]
+}

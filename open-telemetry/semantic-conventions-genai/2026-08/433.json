@@ -1,0 +1,40 @@
+{
+  "head": "05a3b89048f6ecb19c38a4b96554672ed95da07a",
+  "merge": "b694ec35855d8eccfacd5b09e4b72a808b363038",
+  "merged": "2026-08-04T23:38:59Z",
+  "missing_roots": 0,
+  "number": 433,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "SEMCONV_VERSION is now duplicated: the upstream semantic-conventions version is pinned in model/manifest.yaml (dependency registry_path) and also here. Keeping both increases the chance of drift (UPSTREAM_DOCS_BASE links, docs generation, etc.). Consider removing this pin and deriving it from model/manifest.yaml instead.",
+      "created": "2026-08-04T21:08:11Z",
+      "hunk": "@@ -2,7 +2,7 @@\n WEAVER_VERSION=v0.25.1\n \n # renovate: datasource=github-tags depName=open-telemetry/semantic-conventions versioning=semver-coerced\n-SEMCONV_VERSION=v1.43.0\n+SEMCONV_VERSION=v1.44.0",
+      "id": "PRRT_kwDOSUeMrM6WeJDz",
+      "opened": "2026-08-04T21:08:12Z",
+      "path": "versions.env",
+      "replies": [],
+      "reviewed": "99b1492f70038f78084e017ecee17364b60e6c73",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/433#discussion_r3716195979"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If SEMCONV_VERSION is no longer maintained in versions.env (with the version now pinned in model/manifest.yaml), this Renovate regex will never match and can be removed to avoid confusing future dependency bumps.",
+      "created": "2026-08-04T21:08:12Z",
+      "hunk": "@@ -23,6 +23,20 @@\n         \"# renovate: datasource=(?<datasource>\\\\S+) depName=(?<depName>\\\\S+) versioning=(?<versioning>\\\\S+)\\\\s+POLICY_REPO_URL=(?<packageName>\\\\S+)\\\\s+POLICY_REPO_REF=(?<currentValue>\\\\S+)\"\n       ]",
+      "id": "PRRT_kwDOSUeMrM6WeJE7",
+      "opened": "2026-08-04T21:08:12Z",
+      "path": ".github/renovate.json5",
+      "replies": [],
+      "reviewed": "99b1492f70038f78084e017ecee17364b60e6c73",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/433#discussion_r3716196077"
+    }
+  ]
+}

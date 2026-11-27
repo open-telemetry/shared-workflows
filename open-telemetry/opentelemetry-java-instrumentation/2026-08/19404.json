@@ -1,0 +1,25 @@
+{
+  "head": "7b1b960f36653113334f2ecccdc7781f95f2d97b",
+  "merge": "38bf3ab515a01be51b2c5e285ecbcee37105c8c1",
+  "merged": "2026-08-05T14:57:58Z",
+  "missing_roots": 0,
+  "number": 19404,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Static fields must precede static initializers. Move `INSTRUMENTATION_NAME` above this block so the class follows the required field → initializer → instance-field organization.",
+      "created": "2026-08-04T20:53:39Z",
+      "hunk": "@@ -17,11 +17,17 @@\n import io.opentelemetry.api.OpenTelemetry;\n import io.opentelemetry.api.metrics.MeterBuilder;\n import io.opentelemetry.instrumentation.api.internal.EmbeddedInstrumentationProperties;\n+import io.opentelemetry.instrumentation.micrometer.v1_5.internal.Experimental;\n import java.util.concurrent.TimeUnit;\n \n /** A builder of {@link OpenTelemetryMeterRegistry}. */\n public final class OpenTelemetryMeterRegistryBuilder {\n \n+  static {\n+    Experimental.internalSetMicrometerHistogramGaugesEnabled(\n+        (builder, enabled) -> builder.histogramGaugesEnabled = enabled);\n+  }\n+\n   // Visible for testing\n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.micrometer-1.5\";",
+      "id": "PRRT_kwDODJKVX86Wd53e",
+      "opened": "2026-08-04T20:53:39Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryMeterRegistryBuilder.java",
+      "replies": [],
+      "reviewed": "8effa19be175944ebb4c3048d9f98281647f30c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19404#discussion_r3716103744"
+    }
+  ]
+}

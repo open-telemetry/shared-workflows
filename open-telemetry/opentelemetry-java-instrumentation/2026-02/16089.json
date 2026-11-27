@@ -1,0 +1,40 @@
+{
+  "head": "041eb3c1f9d04f4fd9950898ec104de5cd9ab63b",
+  "merge": "66a81e66b09c3a884cb4b752d003436c2a96f207",
+  "merged": "2026-02-05T00:08:34Z",
+  "missing_roots": 0,
+  "number": 16089,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this was always supposed to be startswith `java-`, but apparently was matching every modules with `java` in the name",
+      "created": "2026-02-03T00:02:56Z",
+      "hunk": "@@ -2,9 +2,9 @@\n \n for dir in $(find instrumentation -name \"*.java\" | grep library/src/main/java | sed 's#/[^/]*$##' | sort -u); do\n \n-  module_name=$(echo \"$dir\" | sed 's#.*/\\([^/]*\\)/library/src/main/java/.*#\\1#')\n+  module_name=$(echo \"$dir\" | sed 's#.*/\\([^/]*\\)/library/src/main/java[0-9]*/.*#\\1#')\n \n-  if [[ \"$module_name\" =~ java-* ]]; then\n+  if [[ \"$module_name\" =~ ^java- ]]; then",
+      "id": "PRRT_kwDODJKVX85sUGax",
+      "opened": "2026-02-03T00:04:42Z",
+      "path": ".github/scripts/check-package-names.sh",
+      "replies": [],
+      "reviewed": "8550f230be7a2695abca4fb7d258d84e6e91a3de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16089#discussion_r2756523749"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "in the meantime, we've developed a convention where we strip trailing `-java` from package names, e.g. in these modules:\n\n- graphql-java\n- openai-java\n- opensearch-java\n- vertx-rx-java\n\nwhich seems pretty reasonable, so just updating the enforcement to match that convention",
+      "created": "2026-02-03T00:04:25Z",
+      "hunk": "@@ -42,7 +63,8 @@ for dir in $(find instrumentation -name \"*.java\" | grep library/src/main/java |\n     exit 1\n   fi\n \n-  simple_module_name=$(echo \"$module_name\" | sed 's/-[0-9.]*$//' | sed 's/-//g')\n+  # convention: if module ends with -java (followed by version), remove -java from the package name\n+  simple_module_name=$(echo \"$module_name\" | sed 's/-[0-9.]*$//' | sed 's/-java$//' | sed 's/-//g')",
+      "id": "PRRT_kwDODJKVX85sUHDq",
+      "opened": "2026-02-03T00:04:42Z",
+      "path": ".github/scripts/check-package-names.sh",
+      "replies": [],
+      "reviewed": "8550f230be7a2695abca4fb7d258d84e6e91a3de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16089#discussion_r2756527171"
+    }
+  ]
+}

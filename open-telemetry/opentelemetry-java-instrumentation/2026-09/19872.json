@@ -1,0 +1,409 @@
+{
+  "head": "3634b93495f574a72d05e31673babb33c022dbfc",
+  "merge": "f53db45eb58e1bde108c9f3bef4d260e59e11a45",
+  "merged": "2026-09-09T05:40:56Z",
+  "missing_roots": 0,
+  "number": 19872,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] Static-final `VirtualField` handles must use `SCREAMING_SNAKE_CASE` per the repository rule in `.github/copilot-instructions.md:42-45`. Rename this handle to `EXECUTION_INFO_PEER` and update its use below.",
+      "created": "2026-08-27T15:37:43Z",
+      "hunk": "@@ -11,18 +11,23 @@\n \n import com.datastax.oss.driver.api.core.CqlIdentifier;\n import com.datastax.oss.driver.api.core.cql.ExecutionInfo;\n+import com.datastax.oss.driver.api.core.metadata.EndPoint;\n import com.datastax.oss.driver.api.core.metadata.Node;\n+import com.datastax.oss.driver.internal.core.metadata.DefaultEndPoint;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n import io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues;\n import java.net.InetSocketAddress;\n-import java.net.SocketAddress;\n import java.util.Collection;\n import javax.annotation.Nullable;\n \n final class CassandraSqlAttributesGetter\n     implements SqlClientAttributesGetter<CassandraRequest, ExecutionInfo> {\n \n+  private static final VirtualField<ExecutionInfo, InetSocketAddress> executionInfoPeer =\n+      VirtualField.find(ExecutionInfo.class, InetSocketAddress.class);",
+      "id": "PRRT_kwDODJKVX86c4NZY",
+      "opened": "2026-08-27T15:37:44Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-27T19:18:16Z",
+          "body": "Addressed in 642c072a341a9c2488f7766e6370300431ddc0fe.\n\nAnalysis: The field is a static final VirtualField handle. The repository naming rule requires SCREAMING_SNAKE_CASE, so the declaration and its use now use EXECUTION_INFO_PEER.\n\nUpsides: The handle follows the repository convention and clearly reads as a semantic handle.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875090249"
+        }
+      ],
+      "reviewed": "ae89d53096cc7d78a64222e219028e35b634daf2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3873299252"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `DefaultEndPoint` can wrap an unresolved `InetSocketAddress`, and its `resolve()` method simply returns that value. Returning it here contradicts the PR's requirement to omit unresolved peers and can emit a hostname as `network.peer.address` instead of an actual connected address. Check `isUnresolved()` before using the fallback (and cover this case alongside the existing endpoint fallback tests).",
+      "created": "2026-08-27T19:23:42Z",
+      "hunk": "@@ -73,14 +78,20 @@ public InetSocketAddress getNetworkPeerInetSocketAddress(\n     if (executionInfo == null) {\n       return null;\n     }\n+    InetSocketAddress peer = EXECUTION_INFO_PEER.get(executionInfo);\n+    if (peer != null) {\n+      return peer;\n+    }\n     Node coordinator = executionInfo.getCoordinator();\n     if (coordinator == null) {\n       return null;\n     }\n-    // resolve() returns an existing InetSocketAddress, it does not do a dns resolve,\n-    // at least in the only current EndPoint implementation (DefaultEndPoint)\n-    SocketAddress address = coordinator.getEndPoint().resolve();\n-    return address instanceof InetSocketAddress ? (InetSocketAddress) address : null;\n+    EndPoint endPoint = coordinator.getEndPoint();\n+    if (endPoint instanceof DefaultEndPoint) {\n+      // resolve() returns the already-resolved InetSocketAddress, it does not do a dns lookup\n+      return (InetSocketAddress) endPoint.resolve();\n+    }",
+      "id": "PRRT_kwDODJKVX86c82Hl",
+      "opened": "2026-08-27T19:23:42Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-27T19:31:16Z",
+          "body": "Addressed in 8cd0b1e5f80e0460f6121dca5886b515ede881dc.\n\nAnalysis: DefaultEndPoint.resolve() can return its stored unresolved InetSocketAddress. The fallback now checks isUnresolved() and returns null in that case. A focused test covers both the unresolved omission and the existing resolved fallback.\n\nUpsides: Network peer attributes cannot contain an unresolved hostname from the coordinator fallback. The test protects this behavior.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875181422"
+        }
+      ],
+      "reviewed": "642c072a341a9c2488f7766e6370300431ddc0fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875128577"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] `VirtualField.find` is not a cheap accessor: its runtime implementation performs `Class.forName`, `getMethod`, and `Method.invoke` (`RuntimeFieldBasedImplementationSupplier.java:29-38`). This executes for every inbound `Frame`, adding repeated reflection to the response hot path. Cache the frame-to-peer handle once in a shared static helper and reuse it in both advices.",
+      "created": "2026-08-27T20:42:27Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.datastax.oss.protocol.internal.Frame;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.InetSocketAddress;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class InFlightHandlerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.datastax.oss.driver.internal.core.channel.InFlightHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"channelRead\").and(takesArguments(2)), getClass().getName() + \"$ChannelReadAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ChannelReadAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class)\n+    public static void onEnter(\n+        @Advice.Argument(0) Object context, @Advice.Argument(1) Object message)\n+        throws ReflectiveOperationException {\n+      if (!(message instanceof Frame)) {\n+        return;\n+      }\n+      InetSocketAddress remoteAddress = CassandraChannel.getRemoteAddress(context);\n+      if (remoteAddress != null) {\n+        VirtualField.find(Frame.class, InetSocketAddress.class).set((Frame) message, remoteAddress);",
+      "id": "PRRT_kwDODJKVX86c-RnJ",
+      "opened": "2026-08-27T20:42:29Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/InFlightHandlerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T20:54:46Z",
+          "body": "Addressed in ca69c3b678. `CassandraResponsePeers` now caches the frame and execution-info `VirtualField` handles once and the channel advice reuses them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875788955"
+        }
+      ],
+      "reviewed": "f9405ded7d531878d079a9fc37cdb187fdcf65b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875697568"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] These `VirtualField.find` calls repeat reflective class and method lookup for every constructed execution result. Reuse cached `Frame`→peer and `ExecutionInfo`→peer handles instead, ideally from the same shared helper used by the channel advice.",
+      "created": "2026-08-27T20:42:28Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.datastax.oss.driver.api.core.cql.ExecutionInfo;\n+import com.datastax.oss.protocol.internal.Frame;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.InetSocketAddress;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class DefaultExecutionInfoInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.datastax.oss.driver.internal.core.cql.DefaultExecutionInfo\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(11))\n+            .and(takesArgument(6, named(\"com.datastax.oss.protocol.internal.Frame\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class)\n+    public static void onExit(\n+        @Advice.This ExecutionInfo executionInfo, @Advice.Argument(6) Frame frame) {\n+      if (frame == null) {\n+        return;\n+      }\n+      InetSocketAddress peer = VirtualField.find(Frame.class, InetSocketAddress.class).get(frame);\n+      if (peer != null) {\n+        VirtualField.find(ExecutionInfo.class, InetSocketAddress.class).set(executionInfo, peer);",
+      "id": "PRRT_kwDODJKVX86c-Rnx",
+      "opened": "2026-08-27T20:42:29Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/DefaultExecutionInfoInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T20:54:46Z",
+          "body": "Addressed in ca69c3b678. Both advices and the attributes getter now use the shared cached handles in `CassandraResponsePeers`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875788952"
+        }
+      ],
+      "reviewed": "f9405ded7d531878d079a9fc37cdb187fdcf65b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875697627"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This endpoint remains a valid fallback for exactly the same address, so the test passes even if either new advice is never applied: the getter can obtain these values from `executionInfo.getCoordinator().getEndPoint().resolve()`. Make the endpoint return an unresolved or different value after `build()` and before the query so the integration test—including the shaded tasks—only succeeds when response-channel correlation actually ran.",
+      "created": "2026-08-27T20:42:28Z",
+      "hunk": "@@ -24,4 +33,37 @@ protected String getInstrumentationName() {\n   protected InstrumentationExtension testing() {\n     return testing;\n   }\n+\n+  @Test\n+  void responsePeerComesFromTheChannel() {\n+    EndPoint customEndPoint =\n+        new EndPoint() {\n+          @Override\n+          public SocketAddress resolve() {\n+            return new InetSocketAddress(cassandraHost, cassandraPort);\n+          }\n+\n+          @Override\n+          public String asMetricPrefix() {\n+            return \"response_peer_test\";\n+          }\n+        };\n+    CqlSession session =\n+        CqlSession.builder()\n+            .addContactEndPoint(customEndPoint)\n+            .withLocalDatacenter(\"datacenter1\")\n+            .build();\n+    cleanup.deferCleanup(session);",
+      "id": "PRRT_kwDODJKVX86c-RoO",
+      "opened": "2026-08-27T20:42:29Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T20:54:46Z",
+          "body": "Addressed in ca69c3b678. The test now changes the endpoint fallback to an unresolved address after the session connects, so only response-channel correlation can supply the asserted peer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875788950"
+        }
+      ],
+      "reviewed": "f9405ded7d531878d079a9fc37cdb187fdcf65b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3875697670"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This is needed because the class itself is package private?",
+      "created": "2026-09-08T13:58:39Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import java.lang.invoke.MethodHandle;\n+import java.lang.invoke.MethodHandles;\n+import java.lang.invoke.MethodType;\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Modifier;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraChannel {\n+\n+  private static final MethodType ACCESSOR_TYPE = MethodType.methodType(Object.class, Object.class);\n+\n+  private static final ClassValue<MethodHandle> channelMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"channel\");\n+        }\n+      };\n+\n+  private static final ClassValue<MethodHandle> remoteAddressMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"remoteAddress\");\n+        }\n+      };\n+\n+  @Nullable\n+  public static InetSocketAddress getRemoteAddress(Object context) {\n+    try {\n+      Object channel = (Object) channelMethods.get(context.getClass()).invokeExact(context);\n+      Object remoteAddress =\n+          (Object) remoteAddressMethods.get(channel.getClass()).invokeExact(channel);\n+      if (!(remoteAddress instanceof InetSocketAddress)\n+          || ((InetSocketAddress) remoteAddress).isUnresolved()) {\n+        return null;\n+      }\n+      return (InetSocketAddress) remoteAddress;\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  private static MethodHandle createAccessor(Class<?> type, String name) {\n+    Method method = findPublicInterfaceMethod(type, name);",
+      "id": "PRRT_kwDODJKVX86gRLeK",
+      "opened": "2026-09-08T13:58:39Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraChannel.java",
+      "replies": [
+        {
+          "at": "2026-09-09T03:54:30Z",
+          "body": "added a couple of comments https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872/commits/07c0e55c3dbda5305f300fecf3655c2f61376d9c",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3964483476"
+        }
+      ],
+      "reviewed": "7be9eec3568852e216dd4d1ea7886f04ed96859e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3958670590"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `createAccessor()` throws from `ClassValue.computeValue`, `ClassValue.get()` will re-run `computeValue` and rethrow on every call for that class (the failed value is not cached), which can turn unexpected context types into a repeated exception path inside `getRemoteAddress()`. Consider returning a cached non-throwing `MethodHandle` (e.g., a handle that returns `null`) when the method is not found or not accessible, and let `getRemoteAddress()` treat a `null` result as 'peer unavailable'.",
+      "created": "2026-09-08T18:15:26Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import java.lang.invoke.MethodHandle;\n+import java.lang.invoke.MethodHandles;\n+import java.lang.invoke.MethodType;\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Modifier;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraChannel {\n+\n+  private static final MethodType ACCESSOR_TYPE = MethodType.methodType(Object.class, Object.class);\n+\n+  private static final ClassValue<MethodHandle> channelMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"channel\");\n+        }\n+      };\n+\n+  private static final ClassValue<MethodHandle> remoteAddressMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"remoteAddress\");\n+        }\n+      };\n+\n+  @Nullable\n+  public static InetSocketAddress getRemoteAddress(Object context) {\n+    try {\n+      Object channel = (Object) channelMethods.get(context.getClass()).invokeExact(context);\n+      Object remoteAddress =\n+          (Object) remoteAddressMethods.get(channel.getClass()).invokeExact(channel);\n+      if (!(remoteAddress instanceof InetSocketAddress)\n+          || ((InetSocketAddress) remoteAddress).isUnresolved()) {\n+        return null;\n+      }\n+      return (InetSocketAddress) remoteAddress;\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  private static MethodHandle createAccessor(Class<?> type, String name) {\n+    Method method = findPublicInterfaceMethod(type, name);\n+    if (method == null) {\n+      throw new IllegalStateException(\n+          \"No public \" + name + \"() interface method on \" + type.getName());\n+    }\n+    try {\n+      return MethodHandles.publicLookup().unreflect(method).asType(ACCESSOR_TYPE);\n+    } catch (IllegalAccessException e) {\n+      throw new IllegalStateException(\"Cannot access \" + method, e);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86gW6iO",
+      "opened": "2026-09-08T18:15:27Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraChannel.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:28:23Z",
+          "body": "Addressed in 4a605ad796396393b40514ee89445afbb33271dc.\n\nAnalysis: `createAccessor()` now returns one null-producing method handle when a public accessor is missing or inaccessible. `ClassValue` caches that handle, and `getRemoteAddress()` treats its null result as an unavailable peer.\n\nUpsides: Unsupported context and channel types no longer repeat failed accessor discovery on every response.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961018761"
+        }
+      ],
+      "reviewed": "7be9eec3568852e216dd4d1ea7886f04ed96859e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3960915548"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These helper utilities look internal to the javaagent instrumentation and do not appear to be intended as a supported public API surface. Consider making the class package-private (and, if feasible, narrowing method visibility as well) to reduce accidental external coupling and keep the instrumentation module's public surface minimal.",
+      "created": "2026-09-08T18:15:27Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import com.datastax.oss.driver.api.core.cql.ExecutionInfo;\n+import com.datastax.oss.protocol.internal.Frame;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraResponsePeers {",
+      "id": "PRRT_kwDODJKVX86gW6i6",
+      "opened": "2026-09-08T18:15:27Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraResponsePeers.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:28:26Z",
+          "body": "No code change.\n\nAnalysis: Byte Buddy inlines both callers into DataStax driver classes in other packages. JVM access checks require those instrumented classes to reach a public `CassandraResponsePeers` class and its public methods. Package-private access would fail with `IllegalAccessError` when the advice runs.\n\nUpsides: Keeping the current visibility preserves valid cross-package calls from the instrumented driver bytecode.\n\nDownsides: The helper remains publicly visible in bytecode, but it is an internal javaagent helper rather than a supported API artifact.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961019228"
+        }
+      ],
+      "reviewed": "7be9eec3568852e216dd4d1ea7886f04ed96859e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3960915617"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces a hard dependency on the driver's internal type `com.datastax.oss.driver.internal.core.metadata.DefaultEndPoint` to gate stable-mode fallback behavior. Relying on internal driver classes increases the chance of breakage across driver updates and variants; consider switching to a less coupled check (e.g., comparing `endPoint.getClass().getName()` to the expected FQCN via reflection, or isolating the internal reference behind a small helper that fails closed without linking) so the instrumentation is more resilient while still enforcing the intended 'DefaultEndPoint-only' fallback.",
+      "created": "2026-09-08T18:15:27Z",
+      "hunk": "@@ -75,17 +75,42 @@ public InetSocketAddress getNetworkPeerInetSocketAddress(\n     if (executionInfo == null) {\n       return null;\n     }\n+    if (!emitStableDatabaseSemconv()) {\n+      return getLegacyNetworkPeer(executionInfo);\n+    }\n+    InetSocketAddress peer = CassandraResponsePeers.getExecutionInfoPeer(executionInfo);\n+    if (peer != null) {\n+      return peer;\n+    }\n+    return getStableNetworkPeerFallback(executionInfo);\n+  }\n+\n+  @Nullable\n+  private static InetSocketAddress getLegacyNetworkPeer(ExecutionInfo executionInfo) {\n+    Node coordinator = executionInfo.getCoordinator();\n+    if (coordinator == null) {\n+      return null;\n+    }\n+    SocketAddress address = coordinator.getEndPoint().resolve();\n+    return address instanceof InetSocketAddress ? (InetSocketAddress) address : null;\n+  }\n+\n+  @Nullable\n+  private static InetSocketAddress getStableNetworkPeerFallback(ExecutionInfo executionInfo) {\n     Node coordinator = executionInfo.getCoordinator();\n     if (coordinator == null) {\n       return null;\n     }\n     EndPoint endPoint = coordinator.getEndPoint();\n-    if (emitStableDatabaseSemconv() && isSniEndPoint(endPoint)) {\n+    if (!(endPoint instanceof DefaultEndPoint)) {\n       return null;\n     }",
+      "id": "PRRT_kwDODJKVX86gW6io",
+      "opened": "2026-09-08T18:15:27Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:28:25Z",
+          "body": "Addressed in c2ed61ea05d19892c1cdd7bd71f52b5973292733.\n\nAnalysis: The stable fallback now reuses `CassandraEndPoints.isDefaultEndPoint()`. That helper compares the runtime class name, so the fallback still accepts only `DefaultEndPoint` without linking its internal driver class.\n\nUpsides: Driver variants or updates that omit the internal class can load the instrumentation safely, and the existing fallback restriction remains unchanged.\n\nDownsides: The check still depends on the driver's exact class name, but it fails closed without linking.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961019025"
+        }
+      ],
+      "reviewed": "7be9eec3568852e216dd4d1ea7886f04ed96859e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3960915586"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`CassandraResponsePeers` looks like an internal helper (used only by this instrumentation) but it's declared `public`, which increases API surface and implies compatibility guarantees. Consider making it package-private (and optionally `final`) to keep it clearly internal.",
+      "created": "2026-09-08T18:46:22Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import com.datastax.oss.driver.api.core.cql.ExecutionInfo;\n+import com.datastax.oss.protocol.internal.Frame;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraResponsePeers {\n+\n+  private static final VirtualField<Frame, InetSocketAddress> FRAME_PEER =\n+      VirtualField.find(Frame.class, InetSocketAddress.class);\n+\n+  private static final VirtualField<ExecutionInfo, InetSocketAddress> EXECUTION_INFO_PEER =\n+      VirtualField.find(ExecutionInfo.class, InetSocketAddress.class);",
+      "id": "PRRT_kwDODJKVX86gXie_",
+      "opened": "2026-09-08T18:46:23Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraResponsePeers.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:53:09Z",
+          "body": "No code change.\n\nAnalysis: Byte Buddy inlines both callers into DataStax driver classes in other packages. JVM access checks require those instrumented classes to reach a public `CassandraResponsePeers` class and its public methods. Package-private access would fail with `IllegalAccessError` when the advice runs. The repository also excludes `final` from javaagent classes.\n\nUpsides: Keeping the current declaration preserves valid cross-package calls from the instrumented driver bytecode and follows the javaagent class convention.\n\nDownsides: The helper remains publicly visible in bytecode, but it is an internal javaagent helper rather than a supported API artifact.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961215072"
+        }
+      ],
+      "reviewed": "c2ed61ea05d19892c1cdd7bd71f52b5973292733",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961162415"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The constructor matcher is very brittle due to the hard-coded arity (`takesArguments(11)`) and positional argument index (`6`). If the driver adds/removes parameters in this constructor within the supported range, the instrumentation will silently stop applying. Consider matching using a more type-based signature (e.g., matching on the presence/position of `Frame` without pinning total arity) or adding an in-code comment explaining why this exact signature is necessary and stable across the targeted versions.",
+      "created": "2026-09-08T18:46:22Z",
+      "hunk": "@@ -0,0 +1,53 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.datastax.oss.driver.api.core.cql.ExecutionInfo;\n+import com.datastax.oss.protocol.internal.Frame;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.InetSocketAddress;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class DefaultExecutionInfoInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.datastax.oss.driver.internal.core.cql.DefaultExecutionInfo\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(11))\n+            .and(takesArgument(6, named(\"com.datastax.oss.protocol.internal.Frame\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");",
+      "id": "PRRT_kwDODJKVX86gXifd",
+      "opened": "2026-09-08T18:46:23Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/DefaultExecutionInfoInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:53:11Z",
+          "body": "Addressed in 401a8abf4384461e16032f4cf86b358eb91d6546.\n\nAnalysis: The pinned 4.0.0 and latest supported 4.3.1 artifacts expose the same sole 11-argument constructor with `Frame` at index 6. The new comment documents that supported range and explains why the matcher keeps the full shape instead of matching a future overload.\n\nUpsides: Readers can distinguish an intentional fail-closed matcher from an unexplained magic arity, and incompatible overloads cannot receive advice with the wrong argument binding.\n\nDownsides: A changed constructor inside the supported range would disable this instrumentation until its binding is reviewed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961215349"
+        }
+      ],
+      "reviewed": "c2ed61ea05d19892c1cdd7bd71f52b5973292733",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961162468"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test helper assumes `session` is a JDK dynamic proxy; `Proxy.getInvocationHandler(session)` will throw if the wrapper implementation changes to a concrete class. Consider adding an explicit `Proxy.isProxyClass(session.getClass())` check with a clearer failure message, or unwrapping via a more stable mechanism (if available) to reduce test fragility.",
+      "created": "2026-09-08T18:46:23Z",
+      "hunk": "@@ -84,4 +101,97 @@ void configuredContactPointsRemainSeparateFromTheCoordinator() {\n                                   .isEqualTo((long) cassandraPort);\n                             })));\n   }\n+\n+  @Test\n+  void responsePeerComesFromTheChannel() throws ReflectiveOperationException {\n+    CqlSession instrumentedSession = getSession(null);\n+    CqlSession delegate = getDelegate(instrumentedSession);\n+    InetSocketAddress coordinatorAddress = new InetSocketAddress(\"127.0.0.2\", 19042);\n+    CqlSession mutatingDelegate =\n+        (CqlSession)\n+            Proxy.newProxyInstance(\n+                delegate.getClass().getClassLoader(),\n+                new Class<?>[] {CqlSession.class},\n+                (proxy, method, args) -> {\n+                  Object result = method.invoke(delegate, args);\n+                  if (\"execute\".equals(method.getName())\n+                      && method.getParameterCount() == 1\n+                      && PEER_QUERY.equals(args[0])) {\n+                    ResultSet resultSet = (ResultSet) result;\n+                    setEndPoint(\n+                        resultSet.getExecutionInfo().getCoordinator(),\n+                        new DefaultEndPoint(coordinatorAddress));\n+                  }\n+                  return result;\n+                });\n+    CqlSession session = TracingCqlSession.wrapSession(mutatingDelegate, emptySet());\n+    cleanup.deferCleanup(session);\n+    Node node = delegate.getMetadata().getNodes().values().iterator().next();\n+    EndPoint originalEndPoint = node.getEndPoint();\n+    ResultSet result;\n+    try {\n+      result = session.execute(PEER_QUERY);\n+    } finally {\n+      setEndPoint(node, originalEndPoint);\n+    }\n+    testing.waitForTraces(1);\n+\n+    InetSocketAddress responsePeer =\n+        CassandraResponsePeers.getExecutionInfoPeer(result.getExecutionInfo());\n+    assertThat(responsePeer).isNotNull();\n+    assertThat(responsePeer.getAddress().getHostAddress()).isEqualTo(cassandraIp);\n+    assertThat(responsePeer.getPort()).isEqualTo(cassandraPort);\n+\n+    assertThat(testing.spans())\n+        .singleElement()\n+        .satisfies(\n+            span -> {\n+              assertThat(span.getAttributes().get(NETWORK_PEER_ADDRESS))\n+                  .isEqualTo(\n+                      emitStableDatabaseSemconv()\n+                          ? cassandraIp\n+                          : coordinatorAddress.getAddress().getHostAddress());\n+              assertThat(span.getAttributes().get(NETWORK_PEER_PORT))\n+                  .isEqualTo(\n+                      emitStableDatabaseSemconv() ? cassandraPort : coordinatorAddress.getPort());\n+              assertThat(span.getAttributes().get(NETWORK_TYPE))\n+                  .isEqualTo(emitOldDatabaseSemconv() ? \"ipv4\" : null);\n+            });\n+    if (emitStableDatabaseSemconv()) {\n+      testing.waitAndAssertMetrics(\n+          getInstrumentationName(),\n+          metric ->\n+              metric\n+                  .hasName(\"db.client.operation.duration\")\n+                  .hasHistogramSatisfying(\n+                      histogram ->\n+                          histogram.hasPointsSatisfying(\n+                              point ->\n+                                  point.hasAttributesSatisfyingExactly(\n+                                      equalTo(DB_COLLECTION_NAME, \"system.local\"),\n+                                      equalTo(DB_OPERATION_NAME, \"SELECT\"),\n+                                      equalTo(DB_QUERY_SUMMARY, \"SELECT system.local\"),\n+                                      equalTo(DB_SYSTEM_NAME, \"cassandra\"),\n+                                      equalTo(NETWORK_PEER_ADDRESS, cassandraIp),\n+                                      equalTo(NETWORK_PEER_PORT, cassandraPort)))));\n+    }\n+  }\n+\n+  private static CqlSession getDelegate(CqlSession session) throws IllegalAccessException {\n+    InvocationHandler invocationHandler = Proxy.getInvocationHandler(session);\n+    for (Field field : invocationHandler.getClass().getDeclaredFields()) {\n+      if (CqlSession.class.isAssignableFrom(field.getType())) {\n+        field.setAccessible(true);\n+        return (CqlSession) field.get(invocationHandler);\n+      }\n+    }\n+    throw new IllegalStateException(\"Could not find the delegate session\");\n+  }",
+      "id": "PRRT_kwDODJKVX86gXif6",
+      "opened": "2026-09-08T18:46:23Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:53:12Z",
+          "body": "No code change.\n\nAnalysis: This helper receives the direct result of `TracingCqlSession.wrapSession()`, which unconditionally calls `Proxy.newProxyInstance()`. `Proxy.getInvocationHandler()` already validates that invariant and throws at this focused test helper if it changes. There is no public delegate accessor to use instead.\n\nUpsides: The test stays tied to the exact production wrapper it exercises without duplicating the JDK proxy check.\n\nDownsides: A future wrapper implementation change will require this test helper to change with it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961215622"
+        }
+      ],
+      "reviewed": "c2ed61ea05d19892c1cdd7bd71f52b5973292733",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961162512"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These `static final` fields are effectively constants, but their names (`channelMethods`, `remoteAddressMethods`) don't match the constant-style naming used elsewhere in the class (`ACCESSOR_TYPE`, `MISSING_ACCESSOR`). Renaming to `CHANNEL_METHODS` / `REMOTE_ADDRESS_METHODS` (or aligning the entire file to one convention) would improve consistency.",
+      "created": "2026-09-08T18:46:23Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import java.lang.invoke.MethodHandle;\n+import java.lang.invoke.MethodHandles;\n+import java.lang.invoke.MethodType;\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Modifier;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraChannel {\n+\n+  private static final MethodType ACCESSOR_TYPE = MethodType.methodType(Object.class, Object.class);\n+  private static final MethodHandle MISSING_ACCESSOR =\n+      MethodHandles.dropArguments(MethodHandles.constant(Object.class, null), 0, Object.class);\n+\n+  private static final ClassValue<MethodHandle> channelMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"channel\");\n+        }\n+      };\n+\n+  private static final ClassValue<MethodHandle> remoteAddressMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"remoteAddress\");\n+        }\n+      };",
+      "id": "PRRT_kwDODJKVX86gXign",
+      "opened": "2026-09-08T18:46:23Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraChannel.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:53:14Z",
+          "body": "No code change.\n\nAnalysis: The repository naming rule keeps runtime collaborators and caches in lower camel case even when they are `static final`. These `ClassValue` instances are per-class caches. `ACCESSOR_TYPE` and `MISSING_ACCESSOR` are immutable method-handle constants, so their uppercase names follow the other side of the same rule.\n\nUpsides: The current names distinguish mutable runtime caches from immutable handle constants and follow repository style.\n\nDownsides: The fields do not use one visual convention based only on the `static final` modifiers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961215791"
+        }
+      ],
+      "reviewed": "c2ed61ea05d19892c1cdd7bd71f52b5973292733",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961162567"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces a new `public` class and `public` methods in the javaagent instrumentation package, which can unintentionally become part of the javaagent's supported surface area. If this is only an internal helper, make the class (and ideally its methods) package-private and consider marking the class `final` to prevent external use/extension.",
+      "created": "2026-09-08T19:11:49Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import com.datastax.oss.driver.api.core.cql.ExecutionInfo;\n+import com.datastax.oss.protocol.internal.Frame;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraResponsePeers {\n+\n+  private static final VirtualField<Frame, InetSocketAddress> FRAME_PEER =\n+      VirtualField.find(Frame.class, InetSocketAddress.class);\n+\n+  private static final VirtualField<ExecutionInfo, InetSocketAddress> EXECUTION_INFO_PEER =\n+      VirtualField.find(ExecutionInfo.class, InetSocketAddress.class);\n+\n+  public static void setFramePeer(Frame frame, InetSocketAddress peer) {\n+    FRAME_PEER.set(frame, peer);\n+  }\n+\n+  @Nullable\n+  public static InetSocketAddress getFramePeer(Frame frame) {\n+    return FRAME_PEER.get(frame);\n+  }\n+\n+  public static void setExecutionInfoPeer(ExecutionInfo executionInfo, InetSocketAddress peer) {\n+    EXECUTION_INFO_PEER.set(executionInfo, peer);\n+  }\n+\n+  @Nullable\n+  public static InetSocketAddress getExecutionInfoPeer(ExecutionInfo executionInfo) {\n+    return EXECUTION_INFO_PEER.get(executionInfo);\n+  }",
+      "id": "PRRT_kwDODJKVX86gYDBp",
+      "opened": "2026-09-08T19:11:50Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraResponsePeers.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:17:11Z",
+          "body": "No code change.\n\nAnalysis: Byte Buddy inlines both callers into DataStax driver classes in other packages. JVM access checks require those instrumented classes to reach a public `CassandraResponsePeers` class and its public methods. Package-private access would fail with `IllegalAccessError` when the advice runs. The repository also excludes `final` from javaagent classes.\n\nUpsides: Keeping the current declaration preserves valid cross-package calls from the instrumented driver bytecode and follows the javaagent class convention.\n\nDownsides: The helper remains publicly visible in bytecode, but it is an internal javaagent helper rather than a supported API artifact.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961401658"
+        }
+      ],
+      "reviewed": "401a8abf4384461e16032f4cf86b358eb91d6546",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961361166"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Both reflective helpers only inspect the immediate class (`getDeclaredFields()` / `getDeclaredField()`), which makes the tests brittle if the proxy invocation handler or `Node` implementation stores the delegate/endpoint in a superclass. To make the tests more robust across driver/internal changes, walk the class hierarchy when searching for the field (and consider using a dedicated unwrap API if one exists for the wrapped session).",
+      "created": "2026-09-08T19:11:50Z",
+      "hunk": "@@ -84,4 +101,97 @@ void configuredContactPointsRemainSeparateFromTheCoordinator() {\n                                   .isEqualTo((long) cassandraPort);\n                             })));\n   }\n+\n+  @Test\n+  void responsePeerComesFromTheChannel() throws ReflectiveOperationException {\n+    CqlSession instrumentedSession = getSession(null);\n+    CqlSession delegate = getDelegate(instrumentedSession);\n+    InetSocketAddress coordinatorAddress = new InetSocketAddress(\"127.0.0.2\", 19042);\n+    CqlSession mutatingDelegate =\n+        (CqlSession)\n+            Proxy.newProxyInstance(\n+                delegate.getClass().getClassLoader(),\n+                new Class<?>[] {CqlSession.class},\n+                (proxy, method, args) -> {\n+                  Object result = method.invoke(delegate, args);\n+                  if (\"execute\".equals(method.getName())\n+                      && method.getParameterCount() == 1\n+                      && PEER_QUERY.equals(args[0])) {\n+                    ResultSet resultSet = (ResultSet) result;\n+                    setEndPoint(\n+                        resultSet.getExecutionInfo().getCoordinator(),\n+                        new DefaultEndPoint(coordinatorAddress));\n+                  }\n+                  return result;\n+                });\n+    CqlSession session = TracingCqlSession.wrapSession(mutatingDelegate, emptySet());\n+    cleanup.deferCleanup(session);\n+    Node node = delegate.getMetadata().getNodes().values().iterator().next();\n+    EndPoint originalEndPoint = node.getEndPoint();\n+    ResultSet result;\n+    try {\n+      result = session.execute(PEER_QUERY);\n+    } finally {\n+      setEndPoint(node, originalEndPoint);\n+    }\n+    testing.waitForTraces(1);\n+\n+    InetSocketAddress responsePeer =\n+        CassandraResponsePeers.getExecutionInfoPeer(result.getExecutionInfo());\n+    assertThat(responsePeer).isNotNull();\n+    assertThat(responsePeer.getAddress().getHostAddress()).isEqualTo(cassandraIp);\n+    assertThat(responsePeer.getPort()).isEqualTo(cassandraPort);\n+\n+    assertThat(testing.spans())\n+        .singleElement()\n+        .satisfies(\n+            span -> {\n+              assertThat(span.getAttributes().get(NETWORK_PEER_ADDRESS))\n+                  .isEqualTo(\n+                      emitStableDatabaseSemconv()\n+                          ? cassandraIp\n+                          : coordinatorAddress.getAddress().getHostAddress());\n+              assertThat(span.getAttributes().get(NETWORK_PEER_PORT))\n+                  .isEqualTo(\n+                      emitStableDatabaseSemconv() ? cassandraPort : coordinatorAddress.getPort());\n+              assertThat(span.getAttributes().get(NETWORK_TYPE))\n+                  .isEqualTo(emitOldDatabaseSemconv() ? \"ipv4\" : null);\n+            });\n+    if (emitStableDatabaseSemconv()) {\n+      testing.waitAndAssertMetrics(\n+          getInstrumentationName(),\n+          metric ->\n+              metric\n+                  .hasName(\"db.client.operation.duration\")\n+                  .hasHistogramSatisfying(\n+                      histogram ->\n+                          histogram.hasPointsSatisfying(\n+                              point ->\n+                                  point.hasAttributesSatisfyingExactly(\n+                                      equalTo(DB_COLLECTION_NAME, \"system.local\"),\n+                                      equalTo(DB_OPERATION_NAME, \"SELECT\"),\n+                                      equalTo(DB_QUERY_SUMMARY, \"SELECT system.local\"),\n+                                      equalTo(DB_SYSTEM_NAME, \"cassandra\"),\n+                                      equalTo(NETWORK_PEER_ADDRESS, cassandraIp),\n+                                      equalTo(NETWORK_PEER_PORT, cassandraPort)))));\n+    }\n+  }\n+\n+  private static CqlSession getDelegate(CqlSession session) throws IllegalAccessException {\n+    InvocationHandler invocationHandler = Proxy.getInvocationHandler(session);\n+    for (Field field : invocationHandler.getClass().getDeclaredFields()) {\n+      if (CqlSession.class.isAssignableFrom(field.getType())) {\n+        field.setAccessible(true);\n+        return (CqlSession) field.get(invocationHandler);\n+      }\n+    }\n+    throw new IllegalStateException(\"Could not find the delegate session\");\n+  }\n+\n+  private static void setEndPoint(Node node, EndPoint endPoint)\n+      throws ReflectiveOperationException {\n+    Field field = node.getClass().getDeclaredField(\"endPoint\");\n+    field.setAccessible(true);\n+    field.set(node, endPoint);\n+  }",
+      "id": "PRRT_kwDODJKVX86gYDCX",
+      "opened": "2026-09-08T19:11:50Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:17:13Z",
+          "body": "Addressed in c9cb41dbf3dc5ce0db865b19130ef1ede1d1e24e.\n\nAnalysis: Both test helpers now search each superclass up to `Object`. The session wrapper has no delegate accessor, so the test still finds its captured `CqlSession` by type while the endpoint helper finds the driver's named field.\n\nUpsides: The peer integration test tolerates invocation handler and node implementations that move these fields into a superclass.\n\nDownsides: The hierarchy walks add a small amount of test-only reflection code.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961401876"
+        }
+      ],
+      "reviewed": "401a8abf4384461e16032f4cf86b358eb91d6546",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961361239"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Proxy.getInvocationHandler(session)` throws `IllegalArgumentException` when `session` is not a JDK dynamic proxy. Since this helper is used by the new test, it can fail with an unexpected runtime exception if `getSession(null)` returns a non-proxy wrapper. Consider guarding with `Proxy.isProxyClass(session.getClass())` (or catching `IllegalArgumentException`) and throwing a clear `IllegalStateException`, and update the method signature accordingly.",
+      "created": "2026-09-08T19:35:18Z",
+      "hunk": "@@ -84,4 +101,110 @@ void configuredContactPointsRemainSeparateFromTheCoordinator() {\n                                   .isEqualTo((long) cassandraPort);\n                             })));\n   }\n+\n+  @Test\n+  void responsePeerComesFromTheChannel() throws ReflectiveOperationException {\n+    CqlSession instrumentedSession = getSession(null);\n+    CqlSession delegate = getDelegate(instrumentedSession);\n+    InetSocketAddress coordinatorAddress = new InetSocketAddress(\"127.0.0.2\", 19042);\n+    CqlSession mutatingDelegate =\n+        (CqlSession)\n+            Proxy.newProxyInstance(\n+                delegate.getClass().getClassLoader(),\n+                new Class<?>[] {CqlSession.class},\n+                (proxy, method, args) -> {\n+                  Object result = method.invoke(delegate, args);\n+                  if (\"execute\".equals(method.getName())\n+                      && method.getParameterCount() == 1\n+                      && PEER_QUERY.equals(args[0])) {\n+                    ResultSet resultSet = (ResultSet) result;\n+                    setEndPoint(\n+                        resultSet.getExecutionInfo().getCoordinator(),\n+                        new DefaultEndPoint(coordinatorAddress));\n+                  }\n+                  return result;\n+                });\n+    CqlSession session = TracingCqlSession.wrapSession(mutatingDelegate, emptySet());\n+    cleanup.deferCleanup(session);\n+    Node node = delegate.getMetadata().getNodes().values().iterator().next();\n+    EndPoint originalEndPoint = node.getEndPoint();\n+    ResultSet result;\n+    try {\n+      result = session.execute(PEER_QUERY);\n+    } finally {\n+      setEndPoint(node, originalEndPoint);\n+    }\n+    testing.waitForTraces(1);\n+\n+    InetSocketAddress responsePeer =\n+        CassandraResponsePeers.getExecutionInfoPeer(result.getExecutionInfo());\n+    assertThat(responsePeer).isNotNull();\n+    assertThat(responsePeer.getAddress().getHostAddress()).isEqualTo(cassandraIp);\n+    assertThat(responsePeer.getPort()).isEqualTo(cassandraPort);\n+\n+    assertThat(testing.spans())\n+        .singleElement()\n+        .satisfies(\n+            span -> {\n+              assertThat(span.getAttributes().get(NETWORK_PEER_ADDRESS))\n+                  .isEqualTo(\n+                      emitStableDatabaseSemconv()\n+                          ? cassandraIp\n+                          : coordinatorAddress.getAddress().getHostAddress());\n+              assertThat(span.getAttributes().get(NETWORK_PEER_PORT))\n+                  .isEqualTo(\n+                      emitStableDatabaseSemconv() ? cassandraPort : coordinatorAddress.getPort());\n+              assertThat(span.getAttributes().get(NETWORK_TYPE))\n+                  .isEqualTo(emitOldDatabaseSemconv() ? \"ipv4\" : null);\n+            });\n+    if (emitStableDatabaseSemconv()) {\n+      testing.waitAndAssertMetrics(\n+          getInstrumentationName(),\n+          metric ->\n+              metric\n+                  .hasName(\"db.client.operation.duration\")\n+                  .hasHistogramSatisfying(\n+                      histogram ->\n+                          histogram.hasPointsSatisfying(\n+                              point ->\n+                                  point.hasAttributesSatisfyingExactly(\n+                                      equalTo(DB_COLLECTION_NAME, \"system.local\"),\n+                                      equalTo(DB_OPERATION_NAME, \"SELECT\"),\n+                                      equalTo(DB_QUERY_SUMMARY, \"SELECT system.local\"),\n+                                      equalTo(DB_SYSTEM_NAME, \"cassandra\"),\n+                                      equalTo(NETWORK_PEER_ADDRESS, cassandraIp),\n+                                      equalTo(NETWORK_PEER_PORT, cassandraPort)))));\n+    }\n+  }\n+\n+  private static CqlSession getDelegate(CqlSession session) throws IllegalAccessException {\n+    InvocationHandler invocationHandler = Proxy.getInvocationHandler(session);\n+    Class<?> type = invocationHandler.getClass();\n+    while (type != Object.class) {\n+      for (Field field : type.getDeclaredFields()) {\n+        if (CqlSession.class.isAssignableFrom(field.getType())) {\n+          field.setAccessible(true);\n+          return (CqlSession) field.get(invocationHandler);\n+        }\n+      }\n+      type = type.getSuperclass();\n+    }\n+    throw new IllegalStateException(\"Could not find the delegate session\");\n+  }",
+      "id": "PRRT_kwDODJKVX86gYgyi",
+      "opened": "2026-09-08T19:35:19Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:45:10Z",
+          "body": "Addressed in 7763a2faa00d16021061a762b421a4010f55c7ac.\n\nAnalysis: `getDelegate()` now checks the production wrapper invariant before asking for its invocation handler. A non-proxy session fails with a test-specific `IllegalStateException` instead of the JDK's generic `IllegalArgumentException`.\n\nUpsides: A wrapper implementation change produces a clear failure at the test helper boundary.\n\nDownsides: The explicit guard duplicates the proxy validation that `Proxy.getInvocationHandler()` already performs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961622752"
+        }
+      ],
+      "reviewed": "c9cb41dbf3dc5ce0db865b19130ef1ede1d1e24e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961545928"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Class#getMethod` already searches superinterfaces; when `interfaceType` is public, the recursive call starting at line 79 is redundant and can cause repeated graph traversal (especially with diamonds). A straightforward improvement is to only recurse into `interfaceType` when it is *not* public (to locate methods declared on public ancestors), which reduces reflection work during `ClassValue` initialization.",
+      "created": "2026-09-08T19:35:19Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import java.lang.invoke.MethodHandle;\n+import java.lang.invoke.MethodHandles;\n+import java.lang.invoke.MethodType;\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Modifier;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraChannel {\n+\n+  private static final MethodType ACCESSOR_TYPE = MethodType.methodType(Object.class, Object.class);\n+  private static final MethodHandle MISSING_ACCESSOR =\n+      MethodHandles.dropArguments(MethodHandles.constant(Object.class, null), 0, Object.class);\n+\n+  private static final ClassValue<MethodHandle> channelMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"channel\");\n+        }\n+      };\n+\n+  private static final ClassValue<MethodHandle> remoteAddressMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"remoteAddress\");\n+        }\n+      };\n+\n+  @Nullable\n+  public static InetSocketAddress getRemoteAddress(Object context) {\n+    try {\n+      Object channel = (Object) channelMethods.get(context.getClass()).invokeExact(context);\n+      if (channel == null) {\n+        return null;\n+      }\n+      Object remoteAddress =\n+          (Object) remoteAddressMethods.get(channel.getClass()).invokeExact(channel);\n+      if (!(remoteAddress instanceof InetSocketAddress)\n+          || ((InetSocketAddress) remoteAddress).isUnresolved()) {\n+        return null;\n+      }\n+      return (InetSocketAddress) remoteAddress;\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  private static MethodHandle createAccessor(Class<?> type, String name) {\n+    Method method = findPublicInterfaceMethod(type, name);\n+    if (method == null) {\n+      return MISSING_ACCESSOR;\n+    }\n+    try {\n+      return MethodHandles.publicLookup().unreflect(method).asType(ACCESSOR_TYPE);\n+    } catch (IllegalAccessException ignored) {\n+      return MISSING_ACCESSOR;\n+    }\n+  }\n+\n+  @Nullable\n+  private static Method findPublicInterfaceMethod(Class<?> type, String name) {\n+    for (Class<?> interfaceType : type.getInterfaces()) {\n+      if (Modifier.isPublic(interfaceType.getModifiers())) {\n+        try {\n+          return interfaceType.getMethod(name);\n+        } catch (NoSuchMethodException ignored) {\n+          // Continue with the other public interfaces.\n+        }\n+      }\n+      Method method = findPublicInterfaceMethod(interfaceType, name);\n+      if (method != null) {\n+        return method;\n+      }\n+    }\n+    Class<?> superclass = type.getSuperclass();\n+    if (superclass != null) {\n+      return findPublicInterfaceMethod(superclass, name);\n+    }\n+    return null;\n+  }",
+      "id": "PRRT_kwDODJKVX86gYgz5",
+      "opened": "2026-09-08T19:35:19Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraChannel.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:45:14Z",
+          "body": "Addressed in d953a9c8ba2ecf62834a60b1cc09f5c850b25bcd.\n\nAnalysis: Public interfaces now rely on `Class.getMethod()` to search their full public hierarchy. The helper recurses only through non-public interfaces, where it still needs to find an accessible method declared by a public ancestor.\n\nUpsides: Accessor discovery avoids repeated traversal of public interface graphs while retaining support for package-private interfaces that extend public APIs.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961623512"
+        }
+      ],
+      "reviewed": "c9cb41dbf3dc5ce0db865b19130ef1ede1d1e24e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961546082"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests are directly calling `VirtualField.find(...).set(...)` here, while production code introduces `CassandraResponsePeers.setExecutionInfoPeer(...)` as the abstraction. Using the new helper in tests keeps the tests aligned with the intended API surface and avoids duplicating the `VirtualField` lookup details in multiple places.",
+      "created": "2026-09-08T19:35:19Z",
+      "hunk": "@@ -214,6 +222,123 @@ void customEndPointOnlyUsesResolvedAddressForServerInLegacyMode() {\n     }\n   }\n \n+  @Test\n+  void sniPeerSourceFollowsSemconvMode() throws UnknownHostException {\n+    InetSocketAddress responsePeer = resolved(29042);\n+    InetSocketAddress legacyPeer = resolved(39042);\n+    VirtualField.find(ExecutionInfo.class, InetSocketAddress.class)\n+        .set(executionInfo, responsePeer);",
+      "id": "PRRT_kwDODJKVX86gYgzL",
+      "opened": "2026-09-08T19:35:19Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraEndpointAttributesTest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:45:11Z",
+          "body": "Addressed in 1f438362bad4896c249de17de7c57d11ef1c28d4.\n\nAnalysis: All three endpoint tests that seed a response peer now call `CassandraResponsePeers.setExecutionInfoPeer()`. The direct `VirtualField` import and repeated lookup details are removed.\n\nUpsides: Test setup follows the same response-peer abstraction as production code and cannot drift to a different virtual field definition.\n\nDownsides: The endpoint tests now depend on the helper method in addition to the attributes getter.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961623008"
+        }
+      ],
+      "reviewed": "c9cb41dbf3dc5ce0db865b19130ef1ede1d1e24e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961545998"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These are `static final` fields but use lowerCamelCase, while the same class uses `ACCESSOR_TYPE` / `MISSING_ACCESSOR` constant-style names. Aligning the naming convention (either constant-style for all `static final`, or lowerCamel for all caches/constants) would improve readability and consistency within this new utility.",
+      "created": "2026-09-08T19:35:19Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v4_0;\n+\n+import java.lang.invoke.MethodHandle;\n+import java.lang.invoke.MethodHandles;\n+import java.lang.invoke.MethodType;\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Modifier;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+public class CassandraChannel {\n+\n+  private static final MethodType ACCESSOR_TYPE = MethodType.methodType(Object.class, Object.class);\n+  private static final MethodHandle MISSING_ACCESSOR =\n+      MethodHandles.dropArguments(MethodHandles.constant(Object.class, null), 0, Object.class);\n+\n+  private static final ClassValue<MethodHandle> channelMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"channel\");\n+        }\n+      };\n+\n+  private static final ClassValue<MethodHandle> remoteAddressMethods =\n+      new ClassValue<MethodHandle>() {\n+        @Override\n+        protected MethodHandle computeValue(Class<?> type) {\n+          return createAccessor(type, \"remoteAddress\");\n+        }\n+      };",
+      "id": "PRRT_kwDODJKVX86gYgzq",
+      "opened": "2026-09-08T19:35:19Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraChannel.java",
+      "replies": [
+        {
+          "at": "2026-09-08T19:45:13Z",
+          "body": "No code change.\n\nAnalysis: The repository naming rule keeps runtime collaborators and caches in lower camel case even when they are `static final`. These `ClassValue` instances are per-class caches. `ACCESSOR_TYPE` and `MISSING_ACCESSOR` are immutable method-handle constants, so their uppercase names follow the other side of the same rule.\n\nUpsides: The current names distinguish mutable runtime caches from immutable handle constants and follow repository style.\n\nDownsides: The fields do not use one visual convention based only on the `static final` modifiers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961623228"
+        }
+      ],
+      "reviewed": "c9cb41dbf3dc5ce0db865b19130ef1ede1d1e24e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19872#discussion_r3961546053"
+    }
+  ]
+}

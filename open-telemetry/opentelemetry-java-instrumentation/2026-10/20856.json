@@ -1,0 +1,31 @@
+{
+  "head": "992c71890343815efc5e263d5421c877fb1ac1a5",
+  "merge": "8cbdffe0309ceaf4ae67adeb607e58fab464fbb1",
+  "merged": "2026-10-23T17:10:34Z",
+  "missing_roots": 0,
+  "number": 20856,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the request bookkeeping in this PR using scoped thread state, updating this PR directly rather than creating another PR.\r\n\r\nThe user asked \"can this be simplified?\" and invoked /cloud to implement the discussed simplification. Replace the added propagated-Context request tracking and nestedExecutionDepth mechanism with the existing ScopedThreadValue<SpringRabbitRequest>. This is synchronous executeListener bookkeeping, not state that needs to propagate with OpenTelemetry Context.\r\n\r\nOn each executeListener entry, install the newly traced request, or null when tracing does not start, and carry the previous value to exit. A suppressed nested execution must mask the outer request for its whole invocation and restore that outer value afterward. Use the repository's non-null bookkeeping placeholder advice-state pattern when a span is not started; preserve paired restoration on normal and exceptional exits. Keep the holder next to its owning instrumentation, with direct set/restore lifecycle operations visible in the advice. Restore previous thread state before fallible telemetry completion work. Avoid introducing redundant state wrappers, duplicate nullable guards, or another depth counter.\r\n\r\nThe invokeListener advice should read the scoped current request and record delivery when appropriate. Let SpringRabbitRequest own delivery accounting, but remove its new ImplicitContextKeyed implementation, request ContextKey, storeInContext, static enterExecution/exitExecution lifecycle helpers, and nestedExecutionDepth. Remove the added .with(request) from span startup.\r\n\r\nPreserve the existing fix's observable behavior: count logical fragments actually delivered to ordinary listeners, including partial failures, without trusting producer batch-size headers. Preserve single-message and list-batch accounting, nested suppressed-delivery exclusion, producer correlation, Spring/RabbitMQ processing ownership, error handling, and message processing-context cleanup. Consumer-side batching fallback remains out of scope.\r\n\r\nAdapt and retain the current focused integration and unit regressions, especially nested suppressed execution and restoration across failures. Run the narrowest relevant spotlessApply task directly before focused behavior validation, and validate the relevant module tests using the repository's documented commands. Keep this a surgical simplification of the existing PR, not a broader cleanup.\r\n",
+      "created": "2026-10-22T17:31:14Z",
+      "hunk": "@@ -9,19 +9,26 @@\n \n import com.rabbitmq.client.Channel;\n import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.ImplicitContextKeyed;\n import io.opentelemetry.instrumentation.api.util.VirtualField;\n import java.util.List;\n import javax.annotation.Nullable;\n import org.springframework.amqp.core.Message;\n \n-public class SpringRabbitRequest {\n+public class SpringRabbitRequest implements ImplicitContextKeyed {\n+\n+  private static final ContextKey<SpringRabbitRequest> KEY =\n+      ContextKey.named(\"opentelemetry-spring-rabbit-request\");\n \n   private static final VirtualField<Message, Context> PROCESSING_CONTEXT =\n       VirtualField.find(Message.class, Context.class);\n \n   private final Channel channel;\n   private final List<Message> messages;\n   private final int batchMessageCount;\n+  private int deliveredMessageCount;\n+  private int nestedExecutionDepth;",
+      "id": "PRRT_kwDODJKVX86vTcbe",
+      "opened": "2026-10-22T17:31:14Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T17:58:49Z",
+          "body": "Implemented scoped request tracking and paired restoration in c99a9f3b. Focused unit and baseline installed-agent producer-batch tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20856#discussion_r4351742939"
+        }
+      ],
+      "reviewed": "eba5714542dba5c94dde12e53b734fbf407df9eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20856#discussion_r4351478918"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "4489bca73014a8bda480b7d37935ac68c7dc63d8",
+  "merge": "ae7447f7b022fbece52bbe9e996495db4b61bb67",
+  "merged": "2026-03-24T07:58:03Z",
+  "missing_roots": 0,
+  "number": 17005,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "TIL",
+      "created": "2026-03-24T00:46:24Z",
+      "hunk": "@@ -64,7 +64,7 @@ void validCgroupLines(String line, String expectedContainerId) throws IOExceptio\n \n     CgroupV1ContainerIdExtractor extractor = new CgroupV1ContainerIdExtractor(filesystem);\n     Optional<String> result = extractor.extractContainerId();\n-    assertThat(result.orElse(\"fail\")).isEqualTo(expectedContainerId);\n+    assertThat(result).contains(expectedContainerId);",
+      "id": "PRRT_kwDODJKVX852SBL2",
+      "opened": "2026-03-24T00:46:24Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/CgroupV1ContainerIdExtractorTest.java",
+      "replies": [],
+      "reviewed": "4489bca73014a8bda480b7d37935ac68c7dc63d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17005#discussion_r2978396567"
+    }
+  ]
+}

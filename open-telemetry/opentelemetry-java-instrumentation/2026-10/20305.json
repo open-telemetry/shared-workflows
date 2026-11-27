@@ -1,0 +1,121 @@
+{
+  "head": "1010b942c46f4869b938011309cf1a644cad6608",
+  "merge": "5eea4918e5e20a91add620a79eccf2b50d73594b",
+  "merged": "2026-10-02T18:08:24Z",
+  "missing_roots": 0,
+  "number": 20305,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The new exact selector omits Protostellar’s component baseline. This module starts at Couchbase 3.4.3 (the matcher and Muzzle range both establish that), so the convention’s component-version ordering calls for `couchbase-3.2-protostellar-3.4.3`, not the unversioned component selector.",
+      "created": "2026-09-30T05:06:03Z",
+      "hunk": "@@ -21,8 +22,12 @@ public class CouchbaseProtostellarInstrumentationModule extends InstrumentationM\n   public CouchbaseProtostellarInstrumentationModule() {\n     super(\n         \"couchbase\",\n-        expandDeprecatedNames(\n-            \"couchbase-3.2|deprecated:couchbase-3.4\", \"couchbase\", \"couchbase-3.4.3-protostellar\"));\n+        AgentCommonConfig.get().isV3Preview()\n+            ? new String[] {\"couchbase-3.2\", \"couchbase-3.2-protostellar\"}",
+      "id": "PRRT_kwDODJKVX86nZGvI",
+      "opened": "2026-09-30T05:06:04Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "9c0b50e2683d7cf8855fd8f6790a7069407bbe75",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4140996843"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This exact selector drops the component’s 2.3 baseline. The cluster module only applies from Jedis 2.3 (as documented by the class-loader matcher and Muzzle range), and the convention requires a component-specific version after the component. Without it, `jedis-2.0-cluster` does not fully identify the selected component baseline; use `jedis-2.0-cluster-2.3`.",
+      "created": "2026-09-30T05:06:03Z",
+      "hunk": "@@ -23,7 +24,11 @@\n public class JedisClusterInstrumentationModule extends InstrumentationModule {\n \n   public JedisClusterInstrumentationModule() {\n-    super(\"jedis\", \"jedis-2.0\", \"jedis-2.3-cluster\");\n+    super(\n+        \"jedis\",\n+        AgentCommonConfig.get().isV3Preview()\n+            ? new String[] {\"jedis-2.0\", \"jedis-2.0-cluster\"}",
+      "id": "PRRT_kwDODJKVX86nZGvr",
+      "opened": "2026-09-30T05:06:04Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "9c0b50e2683d7cf8855fd8f6790a7069407bbe75",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4140996889"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'd guess that this list is the same as akka server instrumentation + `akka-http-server-route` so that this module would get disabled whenever the server instrumentation is disabled. There are 2 instrumentations only because the code lives in separate jars. If I remember correctly play tests had only 1 of these jars.",
+      "created": "2026-09-30T06:40:27Z",
+      "hunk": "@@ -19,7 +20,11 @@\n @AutoService(InstrumentationModule.class)\n public class AkkaHttpServerRouteInstrumentationModule extends InstrumentationModule {\n   public AkkaHttpServerRouteInstrumentationModule() {\n-    super(\"akka-http\", \"akka-http-10.0\", \"akka-http-server\", \"akka-http-server-route\");",
+      "id": "PRRT_kwDODJKVX86nabtO",
+      "opened": "2026-09-30T06:40:27Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/route/AkkaHttpServerRouteInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "d62f6f084baddb70170f619bab438b338b40e898",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4141542103"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "adding `\"akka-http-10.0-server\"` would ensure that this instrumentation is disabled along with the server instrumentation",
+      "created": "2026-09-30T06:41:40Z",
+      "hunk": "@@ -19,7 +20,11 @@\n @AutoService(InstrumentationModule.class)\n public class AkkaHttpServerRouteInstrumentationModule extends InstrumentationModule {\n   public AkkaHttpServerRouteInstrumentationModule() {\n-    super(\"akka-http\", \"akka-http-10.0\", \"akka-http-server\", \"akka-http-server-route\");\n+    super(\n+        \"akka-http\",\n+        AgentCommonConfig.get().isV3Preview()\n+            ? new String[] {\"akka-http-10.0\", \"akka-http-10.0-server-route\"}",
+      "id": "PRRT_kwDODJKVX86nadOV",
+      "opened": "2026-09-30T06:41:40Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/route/AkkaHttpServerRouteInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "d62f6f084baddb70170f619bab438b338b40e898",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4141551767"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether having a common key to disable all elasticsearch instrumentations would be useful. Not really important though.",
+      "created": "2026-09-30T06:56:25Z",
+      "hunk": "@@ -18,7 +19,11 @@\n @AutoService(InstrumentationModule.class)\n public class ElasticsearchApiClientInstrumentationModule extends InstrumentationModule {\n   public ElasticsearchApiClientInstrumentationModule() {\n-    super(\"elasticsearch-api-client\", \"elasticsearch-api-client-7.16\", \"elasticsearch\");",
+      "id": "PRRT_kwDODJKVX86nawQZ",
+      "opened": "2026-09-30T06:56:24Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-api-client-7.16/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/api/client/v7_16/ElasticsearchApiClientInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "d62f6f084baddb70170f619bab438b338b40e898",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4141675873"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Slightly inconsistent with jsf keys https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3a521e2b63a576030dedb1e4a9b2bcd9d3fce685/instrumentation/jsf/jsf-mojarra-1.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jsf/mojarra/v1_2/MojarraInstrumentationModule.java#L20 and also jaxws where we don't include the api version number.",
+      "created": "2026-09-30T07:03:24Z",
+      "hunk": "@@ -8,14 +8,19 @@\n import static java.util.Arrays.asList;\n \n import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import java.util.List;\n \n @AutoService(InstrumentationModule.class)\n public class CxfInstrumentationModule extends InstrumentationModule {\n   public CxfInstrumentationModule() {\n-    super(\"jaxrs\", \"jaxrs-2.0\", \"cxf\", \"cxf-3.2\");\n+    super(",
+      "id": "PRRT_kwDODJKVX86na5om",
+      "opened": "2026-09-30T07:03:24Z",
+      "path": "instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-cxf-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v2_0/cxf/v3_2/CxfInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "d62f6f084baddb70170f619bab438b338b40e898",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4141737743"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The non-preview branch drops the existing `kotlinx-coroutines-1.0-core` selector. As a result, `otel.instrumentation.kotlinx-coroutines-1.0-core.enabled` no longer controls this module even when v3 preview is disabled. Preserve this legacy alias after `kotlinx-coroutines-1.0`; only the preview branch should use the consolidated selectors.",
+      "created": "2026-10-02T15:24:06Z",
+      "hunk": "@@ -16,7 +17,11 @@\n public class KotlinCoroutinesInstrumentationModule extends InstrumentationModule {\n \n   public KotlinCoroutinesInstrumentationModule() {\n-    super(\"kotlinx-coroutines\", \"kotlinx-coroutines-1.0\", \"kotlinx-coroutines-1.0-core\");\n+    super(\n+        AgentCommonConfig.get().isV3Preview() ? \"kotlinx-coroutines-1.0\" : \"kotlinx-coroutines\",\n+        AgentCommonConfig.get().isV3Preview()\n+            ? new String[] {\"kotlinx-coroutines\"}\n+            : new String[] {\"kotlinx-coroutines-1.0\"});",
+      "id": "PRRT_kwDODJKVX86oY_Pq",
+      "opened": "2026-10-02T15:24:07Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/KotlinCoroutinesInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-02T16:43:03Z",
+          "body": "Restored `kotlinx-coroutines-1.0-core` after `kotlinx-coroutines-1.0` in the non-preview branch in [1010b942c4](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1010b942c46f4869b938011309cf1a644cad6608). Preview selectors are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4167811332"
+        }
+      ],
+      "reviewed": "0d0e915e0a7b8d6c345771c9bc79428b2981199b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20305#discussion_r4167155007"
+    }
+  ]
+}

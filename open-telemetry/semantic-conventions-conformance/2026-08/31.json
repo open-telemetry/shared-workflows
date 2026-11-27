@@ -1,0 +1,56 @@
+{
+  "head": "cc463ad97e8f3a2763ccce94c58bac6b16370be2",
+  "merge": "6421afdb594c32f2a6211956efcbe24e11a2114a",
+  "merged": "2026-08-20T14:36:51Z",
+  "missing_roots": 0,
+  "number": 31,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jsuereth"
+      },
+      "body": "You only need to use `identity` here for this match.  Specifically - you should detect *presense* of the resource by its identifying attributes.  You can use the rest to check conformance, but you don't need them to verify the linkage.",
+      "created": "2026-08-12T16:41:44Z",
+      "hunk": "@@ -83,3 +84,21 @@ def _signals(\n         if present or bare:\n             recorded[name] = present\n     return recorded\n+\n+\n+def _entities(\n+    resources: set[str],\n+    declared: Mapping[str, Any],\n+) -> dict[str, list[str]]:\n+    \"\"\"Which of each declared entity's attributes the run carried on its resources.\n+\n+    Only entities the registry declares are recorded — anything else is not\n+    coverage of it. An entity is recorded only when at least one of its\n+    declared attributes was present on a resource.\n+    \"\"\"\n+    recorded: dict[str, list[str]] = {}\n+    for name, entity in sorted(declared.items()):",
+      "id": "PRRT_kwDOTuzK5c6YphrT",
+      "opened": "2026-08-12T16:43:41Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_semconv.py",
+      "replies": [
+        {
+          "at": "2026-08-12T18:38:33Z",
+          "body": "Done. And just to be clear, this is the generated `data.json`. It's just the flat resource attributes, which I think is OK, but do you think it would be better if I split identifying vs descriptive?\n\n```diff\ndiff --git a/reference/scenarios/adk_a2a/data.json b/reference/scenarios/adk_a2a/data.json\nindex cdfa55476d..b3f0cd000e 100644\n--- a/reference/scenarios/adk_a2a/data.json\n+++ b/reference/scenarios/adk_a2a/data.json\n@@ -31,5 +31,12 @@\n       \"gen_ai.response.model\",\n       \"gen_ai.token.type\"\n     ]\n+  },\n+  \"entities\": {\n+    \"gen_ai.main_agent\": [\n+      \"gen_ai.main_agent.description\",\n+      \"gen_ai.main_agent.id\",\n+      \"gen_ai.main_agent.name\"\n+    ]\n   }\n }\n```",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/31#discussion_r3769308577"
+        },
+        {
+          "at": "2026-08-19T15:33:59Z",
+          "body": "I'd prefer if we split them, so we can interact with them in reasonable fashion going forward.  What you have is ok as a starting point - but it'd be better to keep 'em separated.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/31#discussion_r3814414523"
+        },
+        {
+          "at": "2026-08-19T19:52:03Z",
+          "body": "It was a small change, pushed cc463ad97e8f3a2763ccce94c58bac6b16370be2",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/31#discussion_r3816242388"
+        }
+      ],
+      "reviewed": "4e30384e3f8bd722f06867d054ad4038f10c7108",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/31#discussion_r3768423529"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jsuereth"
+      },
+      "body": "You probably want a new structure for entities, something like:\n\n```{ \"entities\" : {name: {\"identity\": {name: true}, \"description\": {name: level}}```\n\ni.e. identity attributes are always required.\n\nSee my other comment about looking up entity.",
+      "created": "2026-08-12T16:43:38Z",
+      "hunk": "@@ -1,15 +1,16 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-\"\"\"The coverage model: what a registry declares, per signal.\n+\"\"\"The coverage model: what a registry declares, per signal and entity.\n \n Weaver resolves a registry into one JSON file. Provider refinements\n (``openai.inference.client`` refines ``gen_ai.inference.client``) are left out:\n a provider's attributes are not coverage of the general span type::\n \n-    {\"spans\":   {\"http.server\": {\"kind\": \"server\", \"attributes\": {name: level}}},\n-     \"events\":  {name: {\"attributes\": {name: level}}},\n-     \"metrics\": {name: {\"attributes\": {name: level}}}}\n+    {\"spans\":    {\"http.server\": {\"kind\": \"server\", \"attributes\": {name: level}}},\n+     \"events\":   {name: {\"attributes\": {name: level}}},\n+     \"metrics\":  {name: {\"attributes\": {name: level}}},\n+     \"entities\": {name: {\"attributes\": {name: level}}}}",
+      "id": "PRRT_kwDOTuzK5c6Ypj7Z",
+      "opened": "2026-08-12T16:43:41Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_model.py",
+      "replies": [],
+      "reviewed": "4e30384e3f8bd722f06867d054ad4038f10c7108",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/31#discussion_r3768437062"
+    }
+  ]
+}

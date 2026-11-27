@@ -1,0 +1,31 @@
+{
+  "head": "84724fed1a9362ee161916f326de1336304ce3bc",
+  "merge": "8f67bdd64b7808510c80dbf6d240739f1a9e26e2",
+  "merged": "2026-09-10T04:31:28Z",
+  "missing_roots": 0,
+  "number": 20068,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot this shouldn't change under legacy (default) semconv, only under the opt-in \"stable\" semconv flag",
+      "created": "2026-09-09T23:00:31Z",
+      "hunk": "@@ -104,7 +104,7 @@ void shouldGetStatusWithTraces() throws IOException {\n                             .hasAttributesSatisfyingExactly(\n                                 equalTo(maybeStable(DB_SYSTEM), OPENSEARCH),\n                                 equalTo(maybeStable(DB_OPERATION), \"GET\"),\n-                                equalTo(maybeStable(DB_STATEMENT), \"GET _cluster/health\"),\n+                                equalTo(maybeStable(DB_STATEMENT), null),",
+      "id": "PRRT_kwDODJKVX86g3UEJ",
+      "opened": "2026-09-09T23:00:31Z",
+      "path": "instrumentation/opensearch/opensearch-rest-common-1.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/AbstractOpenSearchRestTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T23:16:01Z",
+          "body": "Fixed in 74d52a54. Legacy semconv continues to emit the method and endpoint as `db.statement`; only stable semconv omits `db.query.text` when no query body is captured.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20068#discussion_r3973862279"
+        }
+      ],
+      "reviewed": "c1fc6fe49351262e183e5d0c646eec986f60a101",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20068#discussion_r3973783307"
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "head": "f478c9d8b97602782e96ebda292e7a692b55d790",
+  "merge": "9c427b3be1ff431601786f31611425115ec5222b",
+  "merged": "2026-09-29T01:34:34Z",
+  "missing_roots": 0,
+  "number": 20139,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Rebuilding from `Context.root()` drops the global `InstrumentationUtil` suppression key. A raw poll wrapped in `InstrumentationUtil.suppressInstrumentation(...)` inside a Spring listener will therefore emit a receive span because `shouldStart` is evaluated against this stripped context. Preserve or explicitly check global instrumentation suppression while bypassing only the framework process-span suppression.",
+      "created": "2026-09-14T17:33:32Z",
+      "hunk": "@@ -37,5 +44,18 @@ public static BooleanSupplier getWrappingEnabledSupplier() {\n     return KafkaClientsConsumerProcessTracing::isWrappingEnabled;\n   }\n \n+  public static Context markFrameworkProcess(Context context) {\n+    return context.with(FRAMEWORK_PROCESS_KEY, true);\n+  }\n+\n+  public static Context withoutFrameworkProcessSuppression(Context context) {\n+    if (!Boolean.TRUE.equals(context.get(FRAMEWORK_PROCESS_KEY))) {\n+      return context;\n+    }\n+\n+    Context parentContext = Context.root().with(Span.fromContext(context));\n+    return Baggage.fromContext(context).storeInContext(parentContext);",
+      "id": "PRRT_kwDODJKVX86iNnpx",
+      "opened": "2026-09-14T17:33:33Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/kafka/KafkaClientsConsumerProcessTracing.java",
+      "replies": [
+        {
+          "at": "2026-09-14T18:07:39Z",
+          "body": "Addressed in 31d84e8449f7abc21e7ebd3a6d2b5d120c2562b4.\n\nAnalysis: The framework-specific context rebuild must not run when the parent context carries global instrumentation suppression. Returning that context unchanged lets the instrumenter's standard suppressor prevent the receive span. A focused unit test reproduces the suppression loss.\n\nUpsides: Raw Kafka polls remain fully suppressed when application code requests global suppression, including inside a Spring listener.\n\nDownsides: The bootstrap helper performs one extra suppression-key lookup when it sees the Spring framework marker. The unit test needs explicit OpenTelemetry API and javaagent bootstrap dependencies.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4008109963"
+        }
+      ],
+      "reviewed": "c11e48b1cf0ad1c2e1aff4b98444f1f062a5472b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4007831538"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This overload is only called by `AbstractMessageListenerContainerInstrumentation` in the same package, so making it public unnecessarily adds an agent-only customization hook to the Spring Kafka library API. Keep it package-private.",
+      "created": "2026-09-14T17:33:32Z",
+      "hunk": "@@ -58,7 +60,14 @@ public <K, V> RecordInterceptor<K, V> createRecordInterceptor() {\n    */\n   public <K, V> RecordInterceptor<K, V> createRecordInterceptor(\n       @Nullable RecordInterceptor<K, V> decoratedInterceptor) {\n-    return new InstrumentedRecordInterceptor<>(processInstrumenter, decoratedInterceptor);\n+    return new InstrumentedRecordInterceptor<>(processInstrumenter, decoratedInterceptor, null);\n+  }\n+\n+  public <K, V> RecordInterceptor<K, V> createRecordInterceptor(",
+      "id": "PRRT_kwDODJKVX86iNnq3",
+      "opened": "2026-09-14T17:33:33Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-09-14T18:07:42Z",
+          "body": "No code change.\n\nAnalysis: `SpringKafkaTelemetry` is in `io.opentelemetry.instrumentation.spring.kafka.v2_7`, while `AbstractMessageListenerContainerInstrumentation` is in `io.opentelemetry.javaagent.instrumentation.spring.kafka.v2_7`. Package-private access cannot cross that package boundary, so the suggested modifier would break the javaagent caller.\n\nUpsides: Keeping the overload public preserves the direct, type-safe call between the javaagent and library modules without adding a bridge solely to hide this method.\n\nDownsides: The agent-only overload remains visible on the library class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4008110454"
+        }
+      ],
+      "reviewed": "c11e48b1cf0ad1c2e1aff4b98444f1f062a5472b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4007831652"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new raw-consumer regression test exercises only the record-interceptor path, while batch listeners reach this independent advice path. Add a batch-listener case that polls and iterates a raw consumer and verifies exactly one nested receive/process operation so this ownership marker and batch claim are covered.",
+      "created": "2026-09-14T17:33:32Z",
+      "hunk": "@@ -101,6 +119,7 @@ public static AdviceScope start(ConsumerRecords<?, ?> records, Consumer<?, ?> co\n           return null;\n         }\n         Context context = batchProcessInstrumenter().start(parentContext, request);\n+        context = KafkaClientsConsumerProcessTracing.markFrameworkProcess(context);",
+      "id": "PRRT_kwDODJKVX86iNnqV",
+      "opened": "2026-09-14T17:33:33Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/ListenerConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T18:07:41Z",
+          "body": "Addressed in cf6183eec1f4c92afbf4679a7fe5696ecf1d676e.\n\nAnalysis: The batch listener reaches ListenerConsumerInstrumentation instead of the record interceptor. A dedicated callback now runs the same raw poll-and-iterate scenario from the batch listener against a separate topic, and the test asserts exactly one nested receive span and one nested process span.\n\nUpsides: The independent batch ownership and claim path now has regression coverage in the default and messaging semantic convention test variants.\n\nDownsides: The integration test adds one Kafka topic and another listener callback hook, which modestly increases test runtime and fixture state.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4008110231"
+        }
+      ],
+      "reviewed": "c11e48b1cf0ad1c2e1aff4b98444f1f062a5472b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4007831606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "InstrumentationUtil suppression is only used in tests?",
+      "created": "2026-09-24T14:28:28Z",
+      "hunk": "@@ -18,23 +19,32 @@\n // have separate copies of helper classes.\n public final class KafkaClientsConsumerProcessTracing {\n \n-  // This holder is the coordination key, so its suppressed signals stay invisible to every other\n-  // messaging stack that runs on the same thread.\n-  private static final MessagingTelemetrySuppression suppression =\n-      MessagingTelemetrySuppression.create();\n+  private static final ContextKey<Boolean> FRAMEWORK_PROCESS_KEY =\n+      ContextKey.named(\"opentelemetry-kafka-framework-process-span\");\n+\n+  private static final ScopedThreadSuppression processSpanSuppression =\n+      new ScopedThreadSuppression();\n \n-  public static boolean setWrappingEnabled(boolean enabled) {\n-    MessagingTelemetrySignals previous = suppression.current();\n-    suppression.restore(enabled ? previous.without(PROCESS, SPAN) : previous.with(PROCESS, SPAN));\n-    return !previous.contains(PROCESS, SPAN);\n+  public static ScopedThreadSuppression processSpanSuppression() {\n+    return processSpanSuppression;\n   }\n \n-  public static boolean isWrappingEnabled() {\n-    return !suppression.isSuppressed(PROCESS, SPAN);\n+  public static BooleanSupplier processSpanEnabledSupplier() {\n+    return () -> !processSpanSuppression.isActive();\n   }\n \n-  public static BooleanSupplier getWrappingEnabledSupplier() {\n-    return KafkaClientsConsumerProcessTracing::isWrappingEnabled;\n+  public static Context markFrameworkProcess(Context context) {\n+    return context.with(FRAMEWORK_PROCESS_KEY, true);\n+  }\n+\n+  public static Context withoutFrameworkProcessSuppression(Context context) {\n+    if (!Boolean.TRUE.equals(context.get(FRAMEWORK_PROCESS_KEY))\n+        || InstrumentationUtil.shouldSuppressInstrumentation(context)) {",
+      "id": "PRRT_kwDODJKVX86loD61",
+      "opened": "2026-09-24T14:28:28Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/kafka/KafkaClientsConsumerProcessTracing.java",
+      "replies": [
+        {
+          "at": "2026-09-26T02:15:32Z",
+          "body": "removed unused code e99a065d476ff9e5f74ab9e1d5d9c055719acff1",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4109852779"
+        }
+      ],
+      "reviewed": "12ffd2926d1a0274c90a281368c434d88942c35f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4094757083"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "won't `result.addAll(partitionRecords)` work?",
+      "created": "2026-09-24T14:37:05Z",
+      "hunk": "@@ -86,6 +100,28 @@ public static boolean markConsumedMessageCounted(ConsumerRecord<?, ?> record) {\n     return true;\n   }\n \n+  public static void setRawProcessingEligibility(\n+      ConsumerRecord<?, ?> record, BooleanSupplier rawProcessingEligibility) {\n+    RAW_PROCESSING_ELIGIBILITY.set(record, rawProcessingEligibility);\n+  }\n+\n+  @Nullable\n+  public static BooleanSupplier getRawProcessingEligibility(ConsumerRecord<?, ?> record) {\n+    return RAW_PROCESSING_ELIGIBILITY.get(record);\n+  }\n+\n+  /** Reads batch membership without invoking tracing iterators. */\n+  public static List<ConsumerRecord<?, ?>> getRecords(ConsumerRecords<?, ?> records) {\n+    List<ConsumerRecord<?, ?>> result = new ArrayList<>(records.count());\n+    for (TopicPartition partition : records.partitions()) {\n+      List<? extends ConsumerRecord<?, ?>> partitionRecords = records.records(partition);\n+      for (int i = 0; i < partitionRecords.size(); i++) {",
+      "id": "PRRT_kwDODJKVX86loRnD",
+      "opened": "2026-09-24T14:37:05Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerContextUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-25T15:58:25Z",
+          "body": "ebd6b58d3baa8c1a9c5525dae6eca9aa113255e7",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4106291947"
+        }
+      ],
+      "reviewed": "12ffd2926d1a0274c90a281368c434d88942c35f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4094842705"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is `InstrumentationUtil.shouldSuppressInstrumentation` future proofing or is it necessary right now?",
+      "created": "2026-09-24T14:41:43Z",
+      "hunk": "@@ -90,14 +99,16 @@ private AdviceScope(KafkaReceiveRequest request, Context context, Scope scope) {\n \n       @Nullable\n       public static AdviceScope start(ConsumerRecords<?, ?> records, Consumer<?, ?> consumer) {\n+        SpringKafkaProcessingOwnership.markSpringKafkaAsProcessingOwner(records);\n         KafkaConsumerContext consumerContext = KafkaConsumerContextUtil.get(records);\n         Context receiveContext = consumerContext.getContext();\n \n         // use the receive CONSUMER span as parent if it's available\n         Context parentContext = receiveContext != null ? receiveContext : Context.current();\n         KafkaReceiveRequest request = KafkaReceiveRequest.create(records, consumer);\n \n-        if (!batchProcessInstrumenter().shouldStart(parentContext, request)) {\n+        if (InstrumentationUtil.shouldSuppressInstrumentation(Context.current())",
+      "id": "PRRT_kwDODJKVX86loY5l",
+      "opened": "2026-09-24T14:41:43Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/ListenerConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-26T04:10:49Z",
+          "body": "not needed, removed in 914925e5820ed325e20bce9e8068a2ff5926e26e",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4110130430"
+        }
+      ],
+      "reviewed": "12ffd2926d1a0274c90a281368c434d88942c35f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20139#discussion_r4094889583"
+    }
+  ]
+}

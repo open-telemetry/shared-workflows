@@ -1,0 +1,107 @@
+{
+  "head": "ee1fbf34c7ff7717b0576aa643ad8a2b6e751a52",
+  "merge": "3042028f03bc24fc9c8848a5c99e3b66155ca6d0",
+  "merged": "2026-03-09T19:14:32Z",
+  "missing_roots": 0,
+  "number": 16097,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I have a vague memory that once upon a time you pointed out that in this project there is a preference to spelling out words instead of using abbreviations. Wondering whether it is still the case.",
+      "created": "2026-02-03T20:23:09Z",
+      "hunk": "@@ -176,14 +177,28 @@ public DefaultHttpClientInstrumenterBuilder<REQUEST, RESPONSE> setKnownMethods(\n    * Configures the instrumentation to redact sensitive URL parameters.\n    *\n    * @param redactQueryParameters {@code true} if the sensitive URL parameters have to be redacted.\n+   * @deprecated Use {@link #setSensitiveQueryParams(Set)} instead.\n    */\n+  @Deprecated\n   @CanIgnoreReturnValue\n   public DefaultHttpClientInstrumenterBuilder<REQUEST, RESPONSE> setRedactQueryParameters(\n       boolean redactQueryParameters) {\n     Experimental.setRedactQueryParameters(httpAttributesExtractorBuilder, redactQueryParameters);\n     return this;\n   }\n \n+  /**\n+   * Configures the instrumentation to redact specific URL query parameters.\n+   *\n+   * @param sensitiveQueryParams the set of query parameter names whose values should be redacted.",
+      "id": "PRRT_kwDODJKVX85sgg_6",
+      "opened": "2026-02-03T20:23:08Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-02-03T20:43:36Z",
+          "body": "good point 👍",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2760909394"
+        }
+      ],
+      "reviewed": "a94c837b1ae09905b5e01dd64ee118b40af44fb7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2760840607"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "essentially same test cases from `HttpClientAttributesExtractorTest`",
+      "created": "2026-02-05T02:36:50Z",
+      "hunk": "@@ -550,4 +551,40 @@ void shouldExtractProtocolNameDifferentFromHttp() {\n             entry(NETWORK_PROTOCOL_NAME, \"spdy\"),\n             entry(NETWORK_PROTOCOL_VERSION, \"3.1\"));\n   }\n+\n+  @ParameterizedTest\n+  @CsvSource({\n+    \"paramA=valA&paramB=valB, paramA=valA&paramB=valB\",\n+    \"AWSAccessKeyId=AKIAIOSFODNN7, AWSAccessKeyId=REDACTED\",\n+    \"Signature=39Up9jzHkxhuIhFE9594DJxe7w6cIRCg0V6ICGS0%3A377, Signature=REDACTED\",\n+    \"sig=39Up9jzHkxhuIhFE9594DJxe7w6cIRCg0V6ICGS0, sig=REDACTED\",\n+    \"X-Goog-Signature=39Up9jzHkxhuIhFE9594DJxe7w6cIRCg0V6ICGS0, X-Goog-Signature=REDACTED\",\n+    \"paramA=valA&AWSAccessKeyId=AKIAIOSFODNN7&paramB=valB, paramA=valA&AWSAccessKeyId=REDACTED&paramB=valB\",\n+    \"AWSAccessKeyId=AKIAIOSFODNN7&paramA=valA, AWSAccessKeyId=REDACTED&paramA=valA\",\n+    \"paramA=valA&AWSAccessKeyId=AKIAIOSFODNN7, paramA=valA&AWSAccessKeyId=REDACTED\",\n+    \"AWSAccessKeyId=AKIAIOSFODNN7&AWSAccessKeyId=ZGIAIOSFODNN7, AWSAccessKeyId=REDACTED&AWSAccessKeyId=REDACTED\",\n+    \"AWSAccessKeyId=AKIAIOSFODNN7#ref, AWSAccessKeyId=REDACTED#ref\",\n+    \"AWSAccessKeyId=AKIAIOSFODNN7&aa&bb, AWSAccessKeyId=REDACTED&aa&bb\",\n+    \"aa&bb&AWSAccessKeyId=AKIAIOSFODNN7, aa&bb&AWSAccessKeyId=REDACTED\",\n+    \"AWSAccessKeyId=AKIAIOSFODNN7&&, AWSAccessKeyId=REDACTED&&\",\n+    \"&&AWSAccessKeyId=AKIAIOSFODNN7, &&AWSAccessKeyId=REDACTED\",\n+    \"AWSAccessKeyId=AKIAIOSFODNN7&a&b#fragment, AWSAccessKeyId=REDACTED&a&b#fragment\"",
+      "id": "PRRT_kwDODJKVX85sxpKh",
+      "opened": "2026-02-05T15:55:29Z",
+      "path": "instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpServerAttributesExtractorTest.java",
+      "replies": [],
+      "reviewed": "76cbca7af9b9a474e2c38e159db706d379992164",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2766789833"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(note: this class has no usages)",
+      "created": "2026-02-05T03:44:47Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85syAFU",
+      "opened": "2026-02-05T15:55:29Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/url/UrlAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "a96c83cac8790ca4b6356a8b4a10f5cc7905c40b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2766911631"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "let's block this PR on https://github.com/open-telemetry/semantic-conventions/pull/3403",
+      "created": "2026-02-06T20:12:30Z",
+      "hunk": "@@ -86,11 +90,26 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n             .get(\"http\")\n             .get(\"client\")\n             .getBoolean(\"emit_experimental_telemetry/development\", false);\n-    redactQueryParameters =\n-        commonConfig\n-            .get(\"http\")\n-            .get(\"client\")\n-            .getBoolean(\"redact_query_parameters/development\", true);\n+\n+    DeclarativeConfigProperties httpConfig = commonConfig.get(\"http\");\n+    Boolean oldRedact = httpConfig.get(\"client\").getBoolean(\"redact_query_parameters/development\");\n+    if (oldRedact != null) {\n+      logger.warning(\n+          \"otel.instrumentation.common.http.client.redact_query_parameters is deprecated. \"\n+              + \"Use otel.instrumentation.common.http.sensitive_query_parameters instead.\");\n+    }\n+    List<String> newConfigValue =\n+        httpConfig.getScalarList(\"sensitive_query_parameters\", String.class);",
+      "id": "PRRT_kwDODJKVX85tLzay",
+      "opened": "2026-02-06T20:12:30Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-10T16:14:58Z",
+          "body": "Maybe it would be better to merge this PR using a temporary name. Could add `experimental` suffix/prefix  or maybe even something like `dontuse` to indicate that it is subjected to change. This could let us avoid potential conflict resolution.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2788919838"
+        },
+        {
+          "at": "2026-02-13T21:13:51Z",
+          "body": "Update: I'm trying to get this supported under the `.general` node by the next SDK release",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2806120726"
+        },
+        {
+          "at": "2026-03-03T16:17:41Z",
+          "body": "Update: this will be available in the upcoming SDK release",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2879216538"
+        }
+      ],
+      "reviewed": "4160a5a677f4c645a647a64cc941c892c1a14a4b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2775834893"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe replace `this choice` with `it`",
+      "created": "2026-02-11T10:22:12Z",
+      "hunk": "@@ -191,6 +191,10 @@ public <T> List<T> getScalarList(String name, Class<T> scalarType) {\n     }\n     List<String> list = configProperties.getList(resolvePropertyKey(name));\n     if (list.isEmpty()) {\n+      // this choice has some implications, such as that there's no way to explicitly\n+      // set an empty list using env var / sys props, e.g. for known_methods or\n+      // sensitive_query_parameters, but this choice seems safer to return null",
+      "id": "PRRT_kwDODJKVX85t8ic7",
+      "opened": "2026-02-11T10:22:12Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [],
+      "reviewed": "27957015320f73b68c64698fd0b7f2d299fb9421",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16097#discussion_r2792477255"
+    }
+  ]
+}

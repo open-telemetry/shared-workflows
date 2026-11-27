@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "aa9224fc9fe9ed7f02bcfff14da1c619c35633c60098d525042f3c4327881aa7",
+  "input_digest": "f82d0a3b3f2800e7b128be97b33e0faeb8a451f62fe335fcc09b8f58a43102c2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7273170b58488894fbde92b67b3ab87236553461/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractTimerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1c263d7ee2234d598a3e921a0465bd6ebf2f49d/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractTimerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1c263d7ee2234d598a3e921a0465bd6ebf2f49d/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/MaxGaugeAssertions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6be96fa9d331097bef25d141bd7768c38c8d8f42"
+      ],
+      "id": "PRRT_kwDODJKVX86WWz5d",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7273170b58488894fbde92b67b3ab87236553461/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractDistributionSummaryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1c263d7ee2234d598a3e921a0465bd6ebf2f49d/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractDistributionSummaryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1c263d7ee2234d598a3e921a0465bd6ebf2f49d/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/MaxGaugeAssertions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6be96fa9d331097bef25d141bd7768c38c8d8f42"
+      ],
+      "id": "PRRT_kwDODJKVX86WWz52",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

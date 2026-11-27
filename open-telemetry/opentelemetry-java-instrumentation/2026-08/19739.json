@@ -1,0 +1,52 @@
+{
+  "head": "67412f1810ff8efe6d7ec8ba52d946a64d0f39e9",
+  "merge": "4816b4dd47e3506156e0658e80cb6469b2ce3504",
+  "merged": "2026-08-26T07:29:07Z",
+  "missing_roots": 0,
+  "number": 19739,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This task enables `otel.instrumentation.pulsar.experimental-span-attributes=true`, but labels collected metadata only with the semconv setting. As a result, metadata from this task can add `messaging.pulsar.message.type` to the same condition used by `testBothSemconv`, even though that task explicitly disables the Pulsar experimental attributes. Include both active settings in `metadataConfig` so the generated metadata remains configuration-specific.",
+      "created": "2026-08-25T06:06:02Z",
+      "hunk": "@@ -104,8 +104,24 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=messaging\")\n   }\n \n+  val testBothSemconvReceiveSpansDisabled = register<Test>(\"testBothSemconvReceiveSpansDisabled\") {\n+    testClassesDirs = sourceSets[\"testReceiveSpansDisabled\"].output.classesDirs\n+    classpath = sourceSets[\"testReceiveSpansDisabled\"].runtimeClasspath\n+    isEnabled = project.tasks.named(\"testReceiveSpansDisabled\").get().enabled\n+    jvmArgs(\"-Dotel.instrumentation.pulsar.experimental-span-attributes=true\")\n+    jvmArgs(\"-Dotel.instrumentation.messaging.experimental.receive-telemetry.enabled=false\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=messaging/dup\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=messaging/dup\")",
+      "id": "PRRT_kwDODJKVX86b9BfG",
+      "opened": "2026-08-25T06:06:02Z",
+      "path": "instrumentation/spring/spring-pulsar-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-25T08:46:08Z",
+          "body": "`testMessagingPreviewReceiveSpansDisabled` above have the same issue",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19739#discussion_r3851120547"
+        }
+      ],
+      "reviewed": "e33a0141c6b576d2a1178d1ee46c412db992e313",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19739#discussion_r3850007400"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess you are deliberately adding these even though these are the defaults?",
+      "created": "2026-08-25T08:37:47Z",
+      "hunk": "@@ -86,7 +86,23 @@ tasks {\n     jvmArgs(\"-Dotel.semconv-stability.preview=messaging\")\n   }\n \n+  val testBothSemconvNoReceiveTelemetry = register<Test>(\"testBothSemconvNoReceiveTelemetry\") {\n+    testClassesDirs = sourceSets[\"testNoReceiveTelemetry\"].output.classesDirs\n+    classpath = sourceSets[\"testNoReceiveTelemetry\"].runtimeClasspath\n+    isEnabled = project.tasks.named(\"testNoReceiveTelemetry\").get().enabled\n+    jvmArgs(\"-Dotel.instrumentation.kafka.experimental-span-attributes=false\")\n+    jvmArgs(\"-Dotel.instrumentation.messaging.experimental.receive-telemetry.enabled=false\")",
+      "id": "PRRT_kwDODJKVX86b_n1E",
+      "opened": "2026-08-25T08:37:47Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-4-testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-25T18:08:26Z",
+          "body": "not deliberate, but does seem consistent at this point with other places, will revisit in https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19792",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19739#discussion_r3855843554"
+        }
+      ],
+      "reviewed": "e33a0141c6b576d2a1178d1ee46c412db992e313",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19739#discussion_r3851032453"
+    }
+  ]
+}

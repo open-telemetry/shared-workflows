@@ -1,0 +1,129 @@
+{
+  "head": "4e92d1a2c29be8f6c1ad9ecc14d7290cabdbdc03",
+  "merge": "0adc60b636ef2e55f2a2ade68ba430865c352ced",
+  "merged": "2026-08-25T04:36:46Z",
+  "missing_roots": 0,
+  "number": 450,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The triple-quoted \".. deprecated::\" blocks after alias assignments (e.g., `Text = TextPart` followed by a standalone string literal) don’t attach to the alias and won’t be shown by pydoc/Sphinx as a deprecation notice (it’s just a no-op expression). This is misleading and adds dead code. Consider either (a) replacing these with inline comments (no fake docstrings), or (b) using a deprecation strategy that can actually surface to users (e.g., keep a thin subclass named `Text` with a deprecation note in its class docstring / warning on construction) if you need user-visible deprecation messaging.",
+      "created": "2026-08-21T18:49:04Z",
+      "hunk": "@@ -202,6 +202,65 @@ class Uri:\n     type: Literal[\"uri\"] = \"uri\"\n \n \n+# Deprecated aliases for the message part classes, keeping for backward compatibility\n+# for users who import these classes directly. Delete\n+# this block once the deprecation period ends.\n+\n+Text = TextPart\n+\"\"\"\n+.. deprecated:: 1.0b0\n+    Use ``TextPart`` instead.\n+\"\"\"\n+",
+      "id": "PRRT_kwDOSbspP86bQily",
+      "opened": "2026-08-21T18:49:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "1404133c9b0d0a753c59b83f1a808ccc09e1984a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3832836096"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "All these deprecated notices and extra classes looks like a lot of tech debt to take on for an experimental package.\n\nIs there a strong reason to align with the non-normative conventions? We could even update the non-normative conventions to match the names in this util. WDYT?",
+      "created": "2026-08-21T22:14:16Z",
+      "hunk": "@@ -202,6 +274,15 @@ class Uri:\n     type: Literal[\"uri\"] = \"uri\"\n \n \n+@dataclass()\n+class Uri(UriPart):\n+    \"\"\"Represents an external referenced file sent to the model by URI\n+\n+    .. deprecated:: 1.2b0\n+        Use ``UriPart`` instead.\n+    \"\"\"\n+",
+      "id": "PRRT_kwDOSbspP86bTrCW",
+      "opened": "2026-08-21T22:14:19Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [
+        {
+          "at": "2026-08-21T22:29:21Z",
+          "body": "@aabmass The initial discussion for this change started in another PR -\r\n\r\n<img width=\"958\" height=\"914\" alt=\"image\" src=\"https://github.com/user-attachments/assets/88fcf86a-5882-468b-89be-8248f08fd8b2\" />\r\n\r\nFollowing Liudmila's remark, I went and checked that for some data classes we were following the non-normative semantic conventions and for some we weren't. \r\n\r\nEven if we move with the suggestion of modifying the semantic conventions, we will still have to provide backward compatibility for the classes which already included the *Part suffix such as `GenericPart, CompactionPart`. Unless we don't mind some classes having the *Part suffix and others not.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3834118557"
+        },
+        {
+          "at": "2026-08-22T16:10:58Z",
+          "body": "> We could even update the non-normative conventions to match the names in this util. WDYT?\r\n\r\n1. The JSON schemas in semconv are normative\r\n2.  I think `Blob` and `Url` are not great names - they are too broad and confusing. Having Part suffix make them readable.\r\n3. We have an inconsistent mix of parts, some of them have Part suffix and others don't\r\n\r\nHaving few deprecated things that will be removed in around the util stabilization time does not look like  a huge debt to me.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3836440350"
+        }
+      ],
+      "reviewed": "6e0b3e65bcf820deec18d8be1caa098ff678fe7d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3834056640"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Subclassing isn't a drop-in rename - a dataclass subclass is not equal to its parent, and `isinstance` doesn't hold in the parent -> child direction. Against this branch:\n\n```python\nText(content=\"a\") == TextPart(content=\"a\")            # False\nisinstance(TextPart(content=\"a\"), Text)                 # False\nisinstance(ToolCallRequestPart(...), ToolCallRequest)   # False\n```\n\nSo a `CompletionHook` written against the old names silently stops matching once instrumentations emit `*Part`:\n\n```python\nfor p in message.parts:\n    if isinstance(p, Text):        # False for TextPart -> content is no longer redacted\n        p.content = \"[redacted]\"\n```\n\nIn this repo, langchain `test_callback_handler.py` (`isinstance(part, ToolCallRequest)`) and smolagents `test_models.py` (`isinstance(parts[1], Blob)`) break as soon as the instrumentation PR lands.\n\nA plain alias keeps identity, equality and `isinstance` intact. Sphinx autodoc picks up the string literal after a module-level assignment as that attribute's docstring, so the deprecation note still renders:\n\n```suggestion\nToolCallRequest = ToolCallRequestPart\n\"\"\".. deprecated:: 1.2b0\n    Alias of :class:`ToolCallRequestPart`, kept for backwards compatibility.\n\"\"\"\n```\n\nSame for the other eight deprecated names (`ToolCallResponse`, `ServerToolCall`, `ServerToolCallResponse`, `Text`, `Reasoning`, `Blob`, `File`, `Uri`).",
+      "created": "2026-08-22T16:34:04Z",
+      "hunk": "@@ -67,7 +67,16 @@ class ToolCallRequest:\n \n \n @dataclass()\n-class ToolCallResponse:\n+class ToolCallRequest(ToolCallRequestPart):\n+    \"\"\"Represents a tool call requested by the model (message part only).\n+\n+    .. deprecated:: 1.2b0\n+        Use ``ToolCallRequestPart`` instead.\n+    \"\"\"",
+      "id": "PRRT_kwDOSbspP86bZ7C-",
+      "opened": "2026-08-22T16:35:38Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [
+        {
+          "at": "2026-08-24T16:08:12Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3845264735"
+        }
+      ],
+      "reviewed": "32f99cf3b2d82bdf057a3d3d94270b2883b78b91",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3836485234"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`issubclass` passes for both the subclass and the alias shape, so it can't pin the behavior that matters. Assert identity:\n\n```suggestion\n    def test_deprecated_names_are_aliases(self):\n        self.assertIs(Text, TextPart)\n        self.assertIs(Reasoning, ReasoningPart)\n        self.assertIs(Blob, BlobPart)\n        self.assertIs(File, FilePart)\n        self.assertIs(Uri, UriPart)\n\n    def test_parts_compare_equal_across_names(self):\n        self.assertEqual(Text(content=\"hello\"), TextPart(content=\"hello\"))\n        self.assertIsInstance(TextPart(content=\"hello\"), Text)\n```",
+      "created": "2026-08-22T16:34:04Z",
+      "hunk": "@@ -136,6 +147,21 @@ def _normalize_to_dict(value: Any) -> dict[str, Any]:\n     return dict(value) if isinstance(value, tuple) else value\n \n \n+class TestDeprecatedMessagePartNames(unittest.TestCase):\n+    def test_names_subclass_part_classes(self):\n+        self.assertTrue(issubclass(Text, TextPart))\n+        self.assertTrue(issubclass(Reasoning, ReasoningPart))\n+        self.assertTrue(issubclass(Blob, BlobPart))\n+        self.assertTrue(issubclass(File, FilePart))\n+        self.assertTrue(issubclass(Uri, UriPart))\n+",
+      "id": "PRRT_kwDOSbspP86bZ7C_",
+      "opened": "2026-08-22T16:35:38Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils.py",
+      "replies": [
+        {
+          "at": "2026-08-24T16:08:17Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3845265360"
+        }
+      ],
+      "reviewed": "32f99cf3b2d82bdf057a3d3d94270b2883b78b91",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3836485237"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\ndef test_deprecated_tool_call_names_are_aliases():\n    \"\"\"The pre-*Part tool call names are aliases of their replacements.\"\"\"\n    assert ToolCallRequest is ToolCallRequestPart\n    assert ToolCallResponse is ToolCallResponsePart\n    assert ServerToolCall is ServerToolCallPart\n    assert ServerToolCallResponse is ServerToolCallResponsePart\n```",
+      "created": "2026-08-22T16:34:04Z",
+      "hunk": "@@ -155,6 +160,31 @@ def test_compactionpart_is_message_part():\n     assert isinstance(msg.parts[0], CompactionPart)\n \n \n+def test_deprecated_tool_call_names_subclass_part_classes():\n+    \"\"\"The pre-*Part tool call names subclass their replacements.\"\"\"\n+    assert issubclass(ToolCallRequest, ToolCallRequestPart)\n+    assert issubclass(ToolCallResponse, ToolCallResponsePart)\n+    assert issubclass(ServerToolCall, ServerToolCallPart)\n+    assert issubclass(ServerToolCallResponse, ServerToolCallResponsePart)",
+      "id": "PRRT_kwDOSbspP86bZ7DC",
+      "opened": "2026-08-22T16:35:38Z",
+      "path": "util/opentelemetry-util-genai/tests/test_toolcall.py",
+      "replies": [
+        {
+          "at": "2026-08-24T16:08:23Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3845266048"
+        }
+      ],
+      "reviewed": "32f99cf3b2d82bdf057a3d3d94270b2883b78b91",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3836485241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "\"deprecated subclasses\" is left over from the earlier implementation - they are aliases now. The distinction matters to users: `Text is TextPart`, so `isinstance` and equality hold in both directions.\n\n```suggestion\nDeprecate the message part classes `Text`, `Reasoning`, `Blob`, `File`, `Uri`, `ToolCallRequest`, `ToolCallResponse`, `ServerToolCall` and `ServerToolCallResponse`; they remain available as aliases of their *Part replacements.\n```",
+      "created": "2026-08-25T04:05:31Z",
+      "hunk": "@@ -0,0 +1 @@\n+Deprecate the message part classes `Text`, `Reasoning`, `Blob`, `File`, `Uri`, `ToolCallRequest`, `ToolCallResponse`, `ServerToolCall` and `ServerToolCallResponse`; they remain available as deprecated subclasses of their *Part replacements.",
+      "id": "PRRT_kwDOSbspP86b7qA_",
+      "opened": "2026-08-25T04:06:19Z",
+      "path": "util/opentelemetry-util-genai/.changelog/450.deprecated",
+      "replies": [],
+      "reviewed": "ed0a38520f5b5bb02ab7dd6c5b284b0c4a643303",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/450#discussion_r3849471470"
+    }
+  ]
+}

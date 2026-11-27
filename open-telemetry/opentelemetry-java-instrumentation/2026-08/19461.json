@@ -1,0 +1,25 @@
+{
+  "head": "ca7ba56f7f46f4a91e5c43774548b00a383650f3",
+  "merge": "e4f744a72c5606f923267192a20764dcea33fe63",
+  "merged": "2026-08-10T07:50:57Z",
+  "missing_roots": 0,
+  "number": 19461,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment indicates this version must match the `google_checks.xml` basis for the configuration, but the PR only bumps `toolVersion`. If `buildscripts/checkstyle.xml` was derived from a specific `google_checks.xml` version, consider adding a short note (or link/constant) documenting which upstream `google_checks.xml` revision/version it matches so future bumps can be validated and kept in sync.",
+      "created": "2026-08-10T01:10:37Z",
+      "hunk": "@@ -421,7 +421,7 @@ afterEvaluate {\n checkstyle {\n   configFile = rootProject.file(\"buildscripts/checkstyle.xml\")\n   // this version should match the version of google_checks.xml used as basis for above configuration\n-  toolVersion = \"13.9.0\"\n+  toolVersion = \"13.10.0\"\n   maxWarnings = 0\n }",
+      "id": "PRRT_kwDODJKVX86Xtj22",
+      "opened": "2026-08-10T01:10:37Z",
+      "path": "conventions/src/main/kotlin/otel.java-conventions.gradle.kts",
+      "replies": [],
+      "reviewed": "ca7ba56f7f46f4a91e5c43774548b00a383650f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19461#discussion_r3745941182"
+    }
+  ]
+}

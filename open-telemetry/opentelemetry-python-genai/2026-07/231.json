@@ -1,0 +1,52 @@
+{
+  "head": "19e03556fb22488840db3eb8bbffaad0af5dd47e",
+  "merge": "558c016bb4d477c9881d7fe032d6034a8ef6d95f",
+  "merged": "2026-07-09T04:14:31Z",
+  "missing_roots": 0,
+  "number": 231,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The paragraph after this list item says “All packages share the same workflow…”, but this section now instructs configuring multiple root workflows for Trusted Publishing. Reword to avoid implying there’s only one workflow, and keep the focus on the shared `pypi` environment + per-workflow publisher activation.",
+      "created": "2026-07-09T03:51:13Z",
+      "hunk": "@@ -116,18 +116,20 @@ When a new package is ready to ship:\n    (`package-prepare-release.yml`, `package-release.yml`,\n    `package-prepare-patch-release.yml`).\n 3. Create the PyPI project and register a trusted publisher (*Manage* →\n-   *Publishing* → *Add a new pending publisher*):\n+   *Publishing* → *Add a new pending publisher*). For detailed instructions, refer to PyPI's documentation on [Creating a PyPI project with a Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/) or [Adding a Trusted Publisher to an existing PyPI project](https://docs.pypi.org/trusted-publishers/adding-a-publisher/). Note that [creating a pending publisher does not reserve the project name on PyPI](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/):\n \n | Field | Value |\n |-------|-------|\n | PyPI project name | e.g. `opentelemetry-util-genai` |\n | Owner | `open-telemetry` |\n | Repository name | `opentelemetry-python-genai` |\n-| Workflow name | `_release-package.yml` |\n+| Workflow name | `release-all.yml` (and `package-release.yml`) |\n | Environment name | `pypi` |\n \n-4. Optionally upload the current `.dev` version manually once to prevent\n-   name-squatting, shortly after the introductory PR lands on `main`.\n+4. Optionally reserve the package name in the PyPI organization without uploading a dummy\n+   release by navigating to the [opentelemetry PyPI organization projects page](https://pypi.org/manage/organization/opentelemetry/projects/),\n+   scrolling to **Add project to organization**, selecting **New project**, and\n+   clicking **Create and add new project**.\n \n All packages share the same workflow and environment. The first upload from CI\n activates the publisher.",
+      "id": "PRRT_kwDOSbspP86Pcak2",
+      "opened": "2026-07-09T03:51:13Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-07-09T03:58:35Z",
+          "body": "Address",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/231#discussion_r3548790495"
+        }
+      ],
+      "reviewed": "f610e382af2a57e672760a4e8a6bc48352bc5ae4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/231#discussion_r3548768198"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PyPI Trusted Publisher form only accepts a single workflow file per publisher entry, so listing two workflows in the same “Workflow name” cell is likely to be interpreted as “enter this exact string” rather than “repeat for both workflows”. Clarify that the publisher should be added twice (once per workflow).",
+      "created": "2026-07-09T03:51:13Z",
+      "hunk": "@@ -116,18 +116,20 @@ When a new package is ready to ship:\n    (`package-prepare-release.yml`, `package-release.yml`,\n    `package-prepare-patch-release.yml`).\n 3. Create the PyPI project and register a trusted publisher (*Manage* →\n-   *Publishing* → *Add a new pending publisher*):\n+   *Publishing* → *Add a new pending publisher*). For detailed instructions, refer to PyPI's documentation on [Creating a PyPI project with a Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/) or [Adding a Trusted Publisher to an existing PyPI project](https://docs.pypi.org/trusted-publishers/adding-a-publisher/). Note that [creating a pending publisher does not reserve the project name on PyPI](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/):\n \n | Field | Value |\n |-------|-------|\n | PyPI project name | e.g. `opentelemetry-util-genai` |\n | Owner | `open-telemetry` |\n | Repository name | `opentelemetry-python-genai` |\n-| Workflow name | `_release-package.yml` |\n+| Workflow name | `release-all.yml` (and `package-release.yml`) |",
+      "id": "PRRT_kwDOSbspP86Pcakp",
+      "opened": "2026-07-09T03:51:13Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-07-09T03:58:41Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/231#discussion_r3548790915"
+        }
+      ],
+      "reviewed": "f610e382af2a57e672760a4e8a6bc48352bc5ae4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/231#discussion_r3548768179"
+    }
+  ]
+}

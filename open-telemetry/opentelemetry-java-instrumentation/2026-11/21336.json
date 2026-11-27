@@ -1,0 +1,25 @@
+{
+  "head": "b6c08d061f15828d7cb2f5171183e230cb18fff6",
+  "merge": "a9655bbf3f2e1c04a3a293319d432a1bdd93b2b2",
+  "merged": "2026-11-23T23:29:29Z",
+  "missing_roots": 0,
+  "number": 21336,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This is just a note. Since this is a unit test that runs without the agent the virtual field will use the fallback map. Guess it is fine.",
+      "created": "2026-11-18T13:43:07Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace;\n+\n+import static application.io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import application.io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.AttributeType;\n+import org.junit.jupiter.api.Test;\n+\n+class AttributeKeyBridgeTest {\n+  @Test\n+  void reusesConvertedKey() {\n+    AttributeKey<String> text = stringKey(\"order.id\");",
+      "id": "PRRT_kwDODJKVX864_Q_K",
+      "opened": "2026-11-18T13:43:07Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/AttributeKeyBridgeTest.java",
+      "replies": [],
+      "reviewed": "b6c08d061f15828d7cb2f5171183e230cb18fff6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21336#discussion_r4614910493"
+    }
+  ]
+}

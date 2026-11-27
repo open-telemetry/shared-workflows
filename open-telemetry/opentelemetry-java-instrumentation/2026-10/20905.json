@@ -1,0 +1,31 @@
+{
+  "head": "4e2123fb57246a4980e4dde1bc6cdf93f6fea26c",
+  "merge": "c2044227ef0b8cd630f420aacd9c7813cfa0c8cc",
+  "merged": "2026-10-26T08:00:53Z",
+  "missing_roots": 0,
+  "number": 20905,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the new WebFlux proxy-handler test in this PR. Update this PR directly, not a separate follow-up PR.\n\nIn instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java, make the existing client field and registered static testing extension protected so subclasses can reuse them. Keep the superclass port private and keep the existing @BeforeEach client initialization and extension registration.\n\nIn SpringWebfluxTest.java under the javaagent test sources, use the inherited client for the /proxy-handler request and the inherited testing extension for waitAndAssertTraces. Remove the duplicate @Value port field, the local AgentInstrumentationExtension.create() call, and imports made unused by these changes. Preserve the existing response and telemetry assertions and the proxied-handler fixture.\n\nKeep ForceSingleThreadedNettyAutoConfiguration extending SpringWebfluxTest.ForceNettyAutoConfiguration and its nettyFactory override. The threaded subclass inherits this test and needs the proxy-handler beans while retaining its single-threaded server.\n\nDo not change production span-name behavior or unrelated tests. Run the narrowest relevant spotlessApply task before relevant validation, and exercise the proxy-handler test in both SpringWebfluxTest and SpringThreadedSpringWebfluxTest using the repository's documented test setup.",
+      "created": "2026-10-23T21:51:45Z",
+      "hunk": "@@ -22,11 +44,58 @@\n       SpringWebfluxTest.ForceNettyAutoConfiguration.class\n     })\n class SpringWebfluxTest extends AbstractSpringWebfluxTest {\n+  @Value(\"${local.server.port}\")",
+      "id": "PRRT_kwDODJKVX86vyOMi",
+      "opened": "2026-10-23T21:51:45Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/server/SpringWebfluxTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T21:59:58Z",
+          "body": "Updated in 4e2123fb. The proxy-handler test now uses the inherited client and extension, and passes in both WebFlux test classes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20905#discussion_r4364587888"
+        }
+      ],
+      "reviewed": "dcec8b03dd88f764d3efaa39b2c02ec38779575a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20905#discussion_r4364538484"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "deb34536a366b8f465a0f921bde75f55301b99e6",
+  "merge": "033dcdd57642eb87b43eab4cc844b62b4ed6aaed",
+  "merged": "2026-10-19T07:07:12Z",
+  "missing_roots": 0,
+  "number": 20665,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the Hystrix CI failures on this existing PR while preserving the RxJava demand and cancellation propagation fix, including `super(delegate)` and its regression tests. Update this PR's existing head branch rather than opening another PR.\n\nThe Java 8 representative failure log is https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/39059007273/job/117473098049 . Six `test3` checks fail across Java 8, 11, 17, 21, 25, and 27. In the representative log, both `:instrumentation:hystrix-1.4:javaagent:test` and `:instrumentation:hystrix-1.4:javaagent:testExperimental` start reporting `HystrixRuntimeException: TestCommand fallback execution rejected.` at `HystrixObservableTest.testCommandFallbacks` parameter 11, after the first ten cases. The final queue-based case then blocks and both tasks exceed their 15-minute timeouts.\n\nThe code trace points to an upstream Hystrix 1.4.0 cleanup limitation exposed by correct cancellation propagation. `super(delegate)` shares subscriptions, so `.toBlocking().first()` now cancels the fallback's `Observable.just(\"Fallback!\").repeat(1)` before completion. Hystrix 1.4.0 releases fallback semaphore permits only from `doOnTerminate`, not cancellation, so the first ten invocations exhaust its default ten permits. Confirm this diagnosis rather than hiding it by increasing permit limits, resetting Hystrix between parameter cases, disabling tests, or reverting cancellation propagation.\n\nIn `instrumentation/hystrix-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hystrix/v1_4/HystrixObservableTest.java`, use completion-consuming `.toBlocking().single()` instead of `.first()` for the applicable single-result command and fallback cases. Make the queue-based success/fallback cases wait for source completion before unsubscribing, with errors surfaced rather than leaving `queue.take()` blocked. Preserve the scheduler parameter coverage and existing telemetry assertions. Keep changes limited to this CI failure and any directly necessary regression coverage; do not add a production workaround for the old Hystrix cleanup behavior.\n\nAcceptance criteria: all parameter cases, including the final queue-based case, complete without fallback rejection, hangs, or semaphore leaks in both normal and experimental Hystrix tests; the RxJava bounded-demand, cancellation, and context-restoration tests remain passing. Follow repository formatting rules and run the narrowest relevant validation, covering `:instrumentation:rxjava:rxjava-1.0:library:test`, `:instrumentation:hystrix-1.4:javaagent:test`, and `:instrumentation:hystrix-1.4:javaagent:testExperimental`.",
+      "created": "2026-10-17T19:41:44Z",
+      "hunk": "@@ -25,6 +25,7 @@ final class TracedSubscriber<T, REQUEST> extends Subscriber<T> {\n       AtomicReference<Context> contextRef,\n       REQUEST request,\n       Context parentContext) {\n+    super(delegate);",
+      "id": "PRRT_kwDODJKVX86tjuHS",
+      "opened": "2026-10-17T19:41:44Z",
+      "path": "instrumentation/rxjava/rxjava-1.0/library/src/main/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedSubscriber.java",
+      "replies": [
+        {
+          "at": "2026-10-17T19:55:58Z",
+          "body": "Fixed in deb34536 on this PR’s existing branch. Confirmed Hystrix 1.4.0 releases fallback permits only on termination. Single-result cases now use `.single()`; queue success/fallback cases await completion, surface errors, and unsubscribe in `finally`. Scheduler coverage and telemetry assertions are unchanged, as are `super(delegate)` and the RxJava regressions.\n\nAll three requested test tasks pass on Java 25 and Java 8: 13 RxJava tests plus 81 normal and 81 experimental Hystrix tests per runtime, including all 69 observable parameter cases. Module spotlessApply and secret scanning passed. Independent review found no issues; automated review was unavailable and CodeQL validation timed out.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20665#discussion_r4304250884"
+        }
+      ],
+      "reviewed": "86a944fc97c77e77c855753dced97ad9dcdb68ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20665#discussion_r4304202102"
+    }
+  ]
+}

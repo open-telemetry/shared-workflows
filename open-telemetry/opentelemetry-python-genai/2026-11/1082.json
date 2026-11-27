@@ -1,0 +1,31 @@
+{
+  "head": "21320bd7a6320a89c0e5649c565207fa971131f9",
+  "merge": "dabc1e7737bbaf5c80cdc3abd411a5e16911cd1e",
+  "merged": "2026-11-14T03:03:40Z",
+  "missing_roots": 0,
+  "number": 1082,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`hash_tool_definitions()` still hashes the old representation, so parameters `{1: \"x\"}` and `{\"1\": \"x\"}` share a filename even though the new serializer drops the former mapping and retains the latter. `_do_upload()` reuses the first file, causing references to contain the wrong definition; it also reuses pre-upgrade files containing unset optional fields as nulls. Derive a versioned cache key from the normalized upload payload, and add regression tests for both conflicting payloads and reuse of pre-upgrade files.",
+      "created": "2026-11-12T05:36:17Z",
+      "hunk": "@@ -334,7 +337,11 @@ def to_dict(\n             | list[MessagePart]\n             | list[ToolDefinition],\n         ) -> JsonEncodeable:\n-            return [asdict(dc) for dc in dataclass_list]\n+            return [\n+                converted\n+                for dc in dataclass_list\n+                if isinstance(converted := object_to_any_value(dc), dict)",
+      "id": "PRRT_kwDOSbspP862e6dZ",
+      "opened": "2026-11-12T05:36:17Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_upload/completion_hook.py",
+      "replies": [
+        {
+          "at": "2026-11-12T08:16:29Z",
+          "body": "Fixed in 21320bd.\n\nI left out a versioned key. A reused older file can differ only by `null` for unset fields, which means the same as an absent field.\n\nA new key would re-upload every tool definition once after the upgrade.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1082#discussion_r4547922976"
+        }
+      ],
+      "reviewed": "e722feb1a2ba2365595194a44db134bdee47031e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1082#discussion_r4546723237"
+    }
+  ]
+}

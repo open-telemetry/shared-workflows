@@ -1,0 +1,55 @@
+{
+  "head": "9576d0bbcc86a1c2983bdd74e6349a5e5ac12e4f",
+  "merge": "5055ffcac54be3680c52360f7345e363d626d120",
+  "merged": "2026-10-06T23:54:40Z",
+  "missing_roots": 0,
+  "number": 20389,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing `LEGACY_MESSAGING_SCHEMA_URL` is premature. `instrumentation-api` is a stable published artifact (`instrumentation-api/gradle.properties:1`), so a 2.x consumer compiled against this public field can fail with `NoSuchFieldError`. Keep the compatibility field until the next major release.\n\nThis issue also appears on line 174 of the same file.",
+      "created": "2026-10-04T12:07:44Z",
+      "hunk": "@@ -21,8 +21,6 @@\n  */\n public final class SemconvStability {\n \n-  public static final String LEGACY_MESSAGING_SCHEMA_URL = SchemaUrls.V1_24_0;\n-\n   private static final boolean v3Preview;",
+      "id": "PRRT_kwDODJKVX86oyHCm",
+      "opened": "2026-10-04T12:07:44Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [],
+      "reviewed": "c4ba43342637cd8a3148aa639d90792ecdbc6980",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20389#discussion_r4177476966"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why do we need to mention that `MessagingAttributesGetter` doesn't provide body and envelope size?",
+      "created": "2026-10-06T10:55:47Z",
+      "hunk": "@@ -415,6 +415,23 @@ In some rare cases it may be useful to completely disable the constructed `Instr\n example, based on a configuration property. The `InstrumenterBuilder` exposes a `setEnabled()`\n method for that: passing `false` will turn the newly created `Instrumenter` into a no-op instance.\n \n+### Messaging extractors and metrics\n+\n+The alpha `opentelemetry-instrumentation-api-incubator` artifact provides messaging extractors for the adopted v1.43.0 conventions. Pass a `MessagingOperationType` and a system-specific operation name to the attribute and span-name extractors:\n+\n+```java\n+MessagingAttributesExtractor.create(getter, MessagingOperationType.SEND, \"send\");\n+MessagingSpanNameExtractor.create(getter, MessagingOperationType.SEND, \"send\");\n+MessagingSpanKindExtractor.create(MessagingOperationType.SEND);\n+MessagingProducerMetrics.get();\n+MessagingConsumerMetrics.get();\n+MessagingProcessMetrics.get();\n+```\n+\n+Use `MessagingProducerMetrics.getSentMessages()`, `MessagingConsumerMetrics.getConsumedMessages()`, or `MessagingConsumerMetrics.getClientOperationDuration()` when only that metric is needed. `MessagingAttributesGetter` does not extract message body or envelope sizes.",
+      "id": "PRRT_kwDODJKVX86pbfLz",
+      "opened": "2026-10-06T10:55:47Z",
+      "path": "docs/contributing/using-instrumenter-api.md",
+      "replies": [],
+      "reviewed": "039cfeca6ef150bf05da53ec6c2923546438d71d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20389#discussion_r4194414092"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Remove `MessageOperation` and its overloads in the messaging attribute, span-name and span-kind\n  extractors from `opentelemetry-instrumentation-api-incubator`.\n  `MessagingAttributesGetter` no longer requires or exposes `getMessageBodySize()` or\n  `getMessageEnvelopeSize()`.\n```",
+      "created": "2026-10-06T22:35:04Z",
+      "hunk": "@@ -57,6 +57,19 @@\n - Remove the deprecated `OpenTelemetryMeterRegistryBuilder#setMicrometerHistogramGaugesEnabled(boolean)`.\n   Use `Experimental#setMicrometerHistogramGaugesEnabled(OpenTelemetryMeterRegistryBuilder, boolean)`\n   instead.\n+- Remove the unused `KafkaMessagingMetricsAssertions.assertNoNewMetrics` helper from\n+  `io.opentelemetry.javaagent:opentelemetry-testing-common`.\n+- Remove `MessageOperation` and its overloads in the messaging attribute, span-name and span-kind\n+  extractors from `opentelemetry-instrumentation-api-incubator`. Use `MessagingOperationType` and\n+  supply a system-specific operation name, for example\n+  `MessagingAttributesExtractor.create(getter, MessagingOperationType.SEND, \"send\")` instead of\n+  `MessagingAttributesExtractor.create(getter, MessageOperation.PUBLISH)`.\n+  Replace producer and consumer metric factories `getForOperationType()` and\n+  `getForOperationTypeWithOldMetrics()` with `get()`.\n+  `MessagingAttributesGetter` no longer requires or exposes `getMessageBodySize()` or\n+  `getMessageEnvelopeSize()`; remove their overrides. The internal\n+  `MessagingProcessInstrumenterFactory.create()` no longer takes a receive-enabled argument.\n+  These API removals do not change the adopted v1.43.0 messaging telemetry.",
+      "id": "PRRT_kwDODJKVX86prrr8",
+      "opened": "2026-10-06T22:35:04Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "3f4ff41406cc8ae1f7571f73fbbffb43cbbca9f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20389#discussion_r4201082225"
+    }
+  ]
+}

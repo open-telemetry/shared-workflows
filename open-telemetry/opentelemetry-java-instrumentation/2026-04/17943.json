@@ -1,0 +1,25 @@
+{
+  "head": "a63accd2b053039fb131c8a72f6036b341a3a6df",
+  "merge": "ae43a7c1a5d4578a428f4ffc7c3749fada3fce16",
+  "merged": "2026-04-18T20:48:05Z",
+  "missing_roots": 0,
+  "number": 17943,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // introduced in java-client 3.1.0 (core-io 2.1.0)\n    return hasClassesNamed(\"com.couchbase.client.core.cnc.TracingIdentifiers\")\n        // introduced in java-client 3.1.6 (core-io 2.1.6)\n        .and(not(hasClassesNamed(\"com.couchbase.client.core.endpoint.EventingEndpoint\")));\n```",
+      "created": "2026-04-18T20:01:46Z",
+      "hunk": "@@ -23,10 +23,14 @@ public CouchbaseInstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    // introduced in java-client 3.1.0 (core-io 2.1.0)\n-    return hasClassesNamed(\"com.couchbase.client.core.cnc.TracingIdentifiers\")\n-        // introduced in java-client 3.1.6 (core-io 2.1.6)\n-        .and(not(hasClassesNamed(\"com.couchbase.client.core.endpoint.EventingEndpoint\")));\n+    return hasClassesNamed(\n+            // added in java-client 3.1.0 (core-io 2.1.0)\n+            \"com.couchbase.client.core.cnc.TracingIdentifiers\")\n+        .and(\n+            not(\n+                hasClassesNamed(\n+                    // added in java-client 3.1.6 (core-io 2.1.6)\n+                    \"com.couchbase.client.core.endpoint.EventingEndpoint\")));",
+      "id": "PRRT_kwDODJKVX85794Ll",
+      "opened": "2026-04-18T20:01:46Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "79bd07961102c625a7192297db7b48b2a1b29d67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17943#discussion_r3105752469"
+    }
+  ]
+}

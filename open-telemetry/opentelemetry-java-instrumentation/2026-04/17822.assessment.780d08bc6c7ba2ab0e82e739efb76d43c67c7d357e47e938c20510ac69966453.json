@@ -1,0 +1,66 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "02fe8864c51cc3fed635b64447d5709a135e13f86f015ab970bb2590de0df311",
+  "input_digest": "780d08bc6c7ba2ab0e82e739efb76d43c67c7d357e47e938c20510ac69966453",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e7272fc9377d4cfe6005409a2f20ed93949a39ef/instrumentation/servlet/servlet-common/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e7272fc9377d4cfe6005409a2f20ed93949a39ef/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfbf501d6a3284dd9b87a2812ffd2a11ae87e699/instrumentation/servlet/servlet-common/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfbf501d6a3284dd9b87a2812ffd2a11ae87e699/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e86dfcca3f182bcc91372b92e908c4bec6984953"
+      ],
+      "id": "PRRT_kwDODJKVX856uyH2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e7272fc9377d4cfe6005409a2f20ed93949a39ef/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e7272fc9377d4cfe6005409a2f20ed93949a39ef/instrumentation/servlet/servlet-common/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfbf501d6a3284dd9b87a2812ffd2a11ae87e699/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfbf501d6a3284dd9b87a2812ffd2a11ae87e699/instrumentation/servlet/servlet-common/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e86dfcca3f182bcc91372b92e908c4bec6984953"
+      ],
+      "id": "PRRT_kwDODJKVX856uy1x",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ab28987fa532e23bc32496d2e778512812f7ca4e/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfbf501d6a3284dd9b87a2812ffd2a11ae87e699/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/607681b6c12e7209ff04d4b899c10ba09251de62"
+      ],
+      "id": "PRRT_kwDODJKVX857FwTW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/607681b6c12e7209ff04d4b899c10ba09251de62/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfbf501d6a3284dd9b87a2812ffd2a11ae87e699/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1eba58f2df1f34b480d46a90c32baaf163d891d2"
+      ],
+      "id": "PRRT_kwDODJKVX858Duic",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX858Dujh",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

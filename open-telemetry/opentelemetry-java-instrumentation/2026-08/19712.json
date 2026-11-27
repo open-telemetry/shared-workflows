@@ -1,0 +1,31 @@
+{
+  "head": "7f37933a526d4b11132d9af6c29f30d8f4f11bc3",
+  "merge": "bb6908966fb187cf5abeb9e586ac524a0208e7e7",
+  "merged": "2026-08-25T12:26:14Z",
+  "missing_roots": 0,
+  "number": 19712,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether it would work if we reset the exception status at the start of `writeMessageBegin`",
+      "created": "2026-08-19T14:09:27Z",
+      "hunk": "@@ -25,6 +25,10 @@ public ServerOutProtocolDecorator(TProtocol protocol) {\n     super(protocol);\n   }\n \n+  public void resetExceptionState() {\n+    hasException = false;",
+      "id": "PRRT_kwDODJKVX86afnDd",
+      "opened": "2026-08-19T14:09:27Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ServerOutProtocolDecorator.java",
+      "replies": [
+        {
+          "at": "2026-08-20T02:58:09Z",
+          "body": "@laurit Resetting only at the start of `writeMessageBegin` would not cover all async-server paths.\r\n\r\nFor a truly asynchronous two-way call, `TBaseAsyncProcessor.process()` may return before the callback writes the response. The exit instrumentation reads `hasException` at that point, so it could still observe `true` from the previous request and end the new span as an error before `writeMessageBegin` is reached.\r\n\r\nIt also does not cover one-way requests, because they do not write a server response and therefore never call `writeMessageBegin`.\r\n\r\nSince the output protocol is reused by requests on the same connection, the reset needs to remain at the request-processing boundary. Resetting again in `writeMessageBegin` would be harmless, but it would not replace the request-entry reset.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19712#discussion_r3818283739"
+        }
+      ],
+      "reviewed": "7f37933a526d4b11132d9af6c29f30d8f4f11bc3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19712#discussion_r3813724500"
+    }
+  ]
+}

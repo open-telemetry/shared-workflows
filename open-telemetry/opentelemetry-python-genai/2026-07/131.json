@@ -1,0 +1,112 @@
+{
+  "head": "086063df17a628738bac74a11ac1b98305979319",
+  "merge": "056dd80888d38a8e361b98cb941bef6995d272f1",
+  "merged": "2026-07-07T22:59:32Z",
+  "missing_roots": 0,
+  "number": 131,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Responses.stream` / `AsyncResponses.stream` are wrapped and unwrapped unconditionally. This will raise at instrumentation time (or uninstrumentation time) on OpenAI SDK versions where the Responses API exists but the `stream` manager method does not. Fix by guarding both wrapping and unwrapping with `hasattr(responses_module.Responses, \"stream\")` / `hasattr(responses_module.AsyncResponses, \"stream\")` (and similarly for `AsyncResponses` itself if that type can be absent). This aligns with the tests’ `_has_stream_method` checks and prevents a runtime regression for supported older SDKs.",
+      "created": "2026-06-14T03:13:05Z",
+      "hunk": "@@ -190,11 +192,21 @@ def _instrument(self, **kwargs):\n                 \"Responses.create\",\n                 responses_create(handler),\n             )\n+            wrap_function_wrapper(\n+                \"openai.resources.responses.responses\",\n+                \"Responses.stream\",\n+                responses_stream(handler),\n+            )\n             wrap_function_wrapper(\n                 \"openai.resources.responses.responses\",\n                 \"AsyncResponses.create\",\n                 async_responses_create(handler),\n             )\n+            wrap_function_wrapper(\n+                \"openai.resources.responses.responses\",\n+                \"AsyncResponses.stream\",\n+                async_responses_stream(handler),\n+            )",
+      "id": "PRRT_kwDOSbspP86JXvRc",
+      "opened": "2026-06-14T03:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-06-14T03:26:10Z",
+          "body": "Not valid as we are doing a top-level check for presence of responses api.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3408954733"
+        }
+      ],
+      "reviewed": "eb4ad0a9846dcdeced5f20a2b4478034da2ae05b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3408943978"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Responses.stream` / `AsyncResponses.stream` are wrapped and unwrapped unconditionally. This will raise at instrumentation time (or uninstrumentation time) on OpenAI SDK versions where the Responses API exists but the `stream` manager method does not. Fix by guarding both wrapping and unwrapping with `hasattr(responses_module.Responses, \"stream\")` / `hasattr(responses_module.AsyncResponses, \"stream\")` (and similarly for `AsyncResponses` itself if that type can be absent). This aligns with the tests’ `_has_stream_method` checks and prevents a runtime regression for supported older SDKs.",
+      "created": "2026-06-14T03:13:05Z",
+      "hunk": "@@ -209,8 +221,9 @@ def _uninstrument(self, **kwargs):\n         responses_module = _get_responses_module()\n         if responses_module is not None:\n             unwrap(responses_module.Responses, \"create\")\n-            if hasattr(responses_module, \"AsyncResponses\"):\n-                unwrap(responses_module.AsyncResponses, \"create\")\n+            unwrap(responses_module.Responses, \"stream\")\n+            unwrap(responses_module.AsyncResponses, \"create\")\n+            unwrap(responses_module.AsyncResponses, \"stream\")",
+      "id": "PRRT_kwDOSbspP86JXvRl",
+      "opened": "2026-06-14T03:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [],
+      "reviewed": "eb4ad0a9846dcdeced5f20a2b4478034da2ae05b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3408943987"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This conformance scenario calls `OpenAI().responses.stream(...)` without checking whether the installed OpenAI SDK provides the `stream` method. Since the test suite elsewhere explicitly supports older SDKs (and even adds `_skip_if_no_stream_method()` helpers), this scenario can hard-fail the conformance test matrix. Consider skipping this scenario at runtime when `hasattr(OpenAI().responses, \"stream\")` is false (or registering the scenario conditionally in `test_conformance.py`).",
+      "created": "2026-06-14T03:13:06Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: OpenAI Responses API stream helper.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from openai import OpenAI\n+\n+from opentelemetry.instrumentation.genai.openai import OpenAIInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+DEFAULT_MODEL = \"gpt-4o-mini\"\n+SYSTEM_INSTRUCTIONS = \"You are a helpful assistant.\"\n+USER_PROMPT = \"Say this is a test\"\n+\n+\n+class ResponsesStreamScenario(Scenario):\n+    expected_spans = (\"chat\",)\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            OpenAIInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            semconv=\"gen_ai_latest_experimental\",\n+            content_capture=\"SPAN_ONLY\",\n+        ):\n+            with vcr.use_cassette(\n+                \"responses_stream_conformance.yaml\"\n+            ):\n+                with OpenAI().responses.stream(\n+                    model=DEFAULT_MODEL,\n+                    instructions=SYSTEM_INSTRUCTIONS,\n+                    input=USER_PROMPT,\n+                ) as stream:\n+                    stream.until_done()",
+      "id": "PRRT_kwDOSbspP86JXvRn",
+      "opened": "2026-06-14T03:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/conformance/responses_stream.py",
+      "replies": [],
+      "reviewed": "eb4ad0a9846dcdeced5f20a2b4478034da2ae05b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3408943989"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Increasing `max_output_tokens` changes the outgoing request payload. If this test is VCR-backed (as many others in this file are), the existing cassette for this test will no longer match and the test will fail unless the corresponding cassette is updated. If the change is only to address occasional truncation, it may be better to set just enough tokens to stabilize the response and re-record the cassette accordingly.",
+      "created": "2026-06-14T03:13:06Z",
+      "hunk": "@@ -727,7 +866,7 @@ def test_responses_create_reports_reasoning_tokens(\n                 \"content\": REASONING_PROMPT,\n             }\n         ],\n-        max_output_tokens=300,\n+        max_output_tokens=1000,\n         timeout=30.0,\n     )",
+      "id": "PRRT_kwDOSbspP86JXvRo",
+      "opened": "2026-06-14T03:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [],
+      "reviewed": "eb4ad0a9846dcdeced5f20a2b4478034da2ae05b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3408943990"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`responses_stream_context` stores `(invocation, capture_content)` but the `create` wrappers only check whether the value is non-`None` and do not use either element. To reduce confusion, either (a) store only a boolean marker, or (b) use the stored invocation/capture_content in the `create(stream=True)` fast-path (e.g., to ensure any stream parsing/wrapping decisions are consistent). Keeping unused tuple elements makes future changes riskier because it’s unclear which component is the source of truth.",
+      "created": "2026-06-14T03:13:06Z",
+      "hunk": "@@ -41,6 +41,28 @@\n \n TextFormatT = TypeVar(\"TextFormatT\")\n ResponseT = TypeVar(\"ResponseT\")\n+ResponsesStreamContext = tuple[\"GenAIInvocation\", bool]\n+\n+responses_stream_context: ContextVar[ResponsesStreamContext | None] = (\n+    ContextVar(\"responses_stream_context\", default=None)\n+)",
+      "id": "PRRT_kwDOSbspP86JXvRr",
+      "opened": "2026-06-14T03:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [],
+      "reviewed": "eb4ad0a9846dcdeced5f20a2b4478034da2ae05b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3408943994"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "unrelated to this PR, but we should get rid of the need for the SemConv param here.. \"gen_ai_latest_experimental\" should be the default",
+      "created": "2026-07-07T14:52:35Z",
+      "hunk": "@@ -0,0 +1,53 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: OpenAI Responses API stream helper.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from openai import OpenAI\n+\n+from opentelemetry.instrumentation.genai.openai import OpenAIInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+DEFAULT_MODEL = \"gpt-4o-mini\"\n+SYSTEM_INSTRUCTIONS = \"You are a helpful assistant.\"\n+USER_PROMPT = \"Say this is a test\"\n+\n+\n+class ResponsesStreamScenario(Scenario):\n+    expected_spans = (\"chat\",)\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            OpenAIInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            semconv=\"gen_ai_latest_experimental\",",
+      "id": "PRRT_kwDOSbspP86O9EZQ",
+      "opened": "2026-07-07T14:52:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/conformance/responses_stream.py",
+      "replies": [
+        {
+          "at": "2026-07-07T22:54:35Z",
+          "body": "#200 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3540146566"
+        }
+      ],
+      "reviewed": "086063df17a628738bac74a11ac1b98305979319",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/131#discussion_r3537441641"
+    }
+  ]
+}

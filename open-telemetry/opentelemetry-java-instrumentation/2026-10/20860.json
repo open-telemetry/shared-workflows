@@ -1,0 +1,31 @@
+{
+  "head": "53efa7bed6586722fc994626ce3afc32037d5f13",
+  "merge": "c8642c8690136bc98b03bfe9ab22cb529a47f40b",
+  "merged": "2026-10-23T05:37:11Z",
+  "missing_roots": 0,
+  "number": 20860,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the remaining Azure scope-schema regression assertions discussed below. Keep this a test-only change and preserve the existing default-schema assertions and custom-schema override test.\n\nIn instrumentation/azure-core/azure-core-1.14/javaagent/src/testAzure/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_14/AzureSdkTest.java and the corresponding azure-core-1.19/v1_19/AzureSdkTest.java, add .satisfies(hasScopeSchemaUrl(null)) to the existing testSpan() exported-span assertions, with the static import from InstrumentationScopeAssertions. The bundled Azure tracing bridges are 1.0.0-beta.12 and 1.0.0-beta.23; both use GlobalOpenTelemetry.getTracer(\"Azure-OpenTelemetry\") without declaring a schema URL. These assertions should document that intentional absence rather than assigning the agent's current schema.\n\nIn instrumentation/azure-core/azure-core-1.36/javaagent/src/testAzure/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_36/AzureSdkTestOld.java and the corresponding azure-core-1.53/v1_53/AzureSdkTestOld.java, add .satisfies(hasScopeSchemaUrl(\"https://opentelemetry.io/schemas/1.23.1\")) to the existing testSpan() assertions, with the same static import. These tests use the legacy ServiceLoader<Tracer> entry point, but still load the newer bundled Azure bridges, beta.45 and beta.61, whose default constructors set schema 1.23.1. The word Old in the test class name does not mean their schema should be null.\n\nAcceptance criteria: assert null in the 1.14 and 1.19 testSpan() tests; assert the literal Azure schema URL 1.23.1 in both 1.36 and 1.53 AzureSdkTestOld.testSpan() tests; retain the PR's existing 1.36 and 1.53 AzureSdkTest assertions and the 1.53 custom-schema precedence test; preserve the other assertions and avoid production or dependency changes. Run the narrowest relevant spotlessApply tasks directly, then the relevant Azure test suites using the repository's documented test commands.",
+      "created": "2026-10-22T18:16:48Z",
+      "hunk": "@@ -5,6 +5,7 @@\n \n package io.opentelemetry.javaagent.instrumentation.azurecore.v1_36;\n ",
+      "id": "PRRT_kwDODJKVX86vUejk",
+      "opened": "2026-10-22T18:16:48Z",
+      "path": "instrumentation/azure-core/azure-core-1.36/javaagent/src/testAzure/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_36/AzureSdkTest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T18:35:52Z",
+          "body": "Added the requested schema assertions to the four Azure tests while preserving existing coverage. Commit: `53efa7be`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20860#discussion_r4352107645"
+        }
+      ],
+      "reviewed": "a7286f3b880db454b0edab98afd4b3f661c66f9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20860#discussion_r4351920018"
+    }
+  ]
+}

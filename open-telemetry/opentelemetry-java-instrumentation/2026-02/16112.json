@@ -1,0 +1,41 @@
+{
+  "head": "800c8fd8dc0398b2c0f951b81c5503e7ad0ff4d4",
+  "merge": "d9e61af0470ef76028d216fc82043bc21cc406b7",
+  "merged": "2026-02-06T20:42:30Z",
+  "missing_roots": 0,
+  "number": 16112,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why are these two methods needed? doesn't look like db semconv needed them?",
+      "created": "2026-02-06T16:06:05Z",
+      "hunk": "@@ -134,5 +161,41 @@ public static boolean isEmitStableCodeSemconv() {\n     return emitStableCodeSemconv;\n   }\n \n+  public static boolean emitOldRpcSemconv() {\n+    return emitOldRpcSemconv;\n+  }\n+\n+  public static boolean emitStableRpcSemconv() {\n+    return emitStableRpcSemconv;\n+  }\n+\n+  private static final Map<String, String> rpcSystemNameMap = new HashMap<>();\n+\n+  static {\n+    rpcSystemNameMap.put(\"apache_dubbo\", \"dubbo\");\n+    rpcSystemNameMap.put(\"connect_rpc\", \"connectrpc\");\n+  }\n+\n+  public static String stableRpcSystemName(String oldRpcSystem) {\n+    String rpcSystemName = rpcSystemNameMap.get(oldRpcSystem);\n+    return rpcSystemName != null ? rpcSystemName : oldRpcSystem;\n+  }\n+\n+  public static AttributeKey<String> getOldRpcMethodAttributeKey() {\n+    if (emitStableRpcSemconv()) {\n+      // to avoid clash when both semconv are emitted\n+      return RPC_METHOD_OLD;\n+    }\n+    return RPC_METHOD;\n+  }\n+\n+  public static Attributes getOldRpcMetricAttributes(Attributes attributes) {\n+    if (emitStableRpcSemconv()) {\n+      // need to copy attributes\n+      return attributes.toBuilder().put(RPC_METHOD, attributes.get(RPC_METHOD_OLD)).build();\n+    }\n+    return attributes;\n+  }",
+      "id": "PRRT_kwDODJKVX85tI_dk",
+      "opened": "2026-02-06T16:06:05Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [
+        {
+          "at": "2026-02-06T16:50:19Z",
+          "body": "when we emit both semantic conventions we want to keep track of both method styles - so they can be added to the corresponding metrics. Spans will get new method in that case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16112#discussion_r2775076096"
+        },
+        {
+          "at": "2026-02-06T17:41:31Z",
+          "body": "I'm still not following, let's just remove for now and you can add them back when you need them, then I can understand the context better and whether there's better option or not",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16112#discussion_r2775306990"
+        },
+        {
+          "at": "2026-02-06T17:49:48Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16112#discussion_r2775337741"
+        }
+      ],
+      "reviewed": "d78066aa79ee40705c45fba8e1ae94de2a519199",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16112#discussion_r2774872636"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "b9dae50f3dfd34b8c8aae6d76df000a9e6ec708a",
+  "merge": "dca884a2a93679c5d6f8975d5a1de92cfd181c2b",
+  "merged": "2026-06-09T11:07:28Z",
+  "missing_roots": 0,
+  "number": 18923,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`writer.flush()` is redundant inside try-with-resources because `close()` will flush the `BufferedWriter`. You can remove the explicit flush to simplify the test and avoid implying that flushing is required for correctness here.",
+      "created": "2026-06-07T01:24:18Z",
+      "hunk": "@@ -77,41 +77,42 @@ void testPrintInstrumentationList() throws Exception {\n             .build());\n \n     StringWriter stringWriter = new StringWriter();\n-    BufferedWriter writer = new BufferedWriter(stringWriter);\n+    try (BufferedWriter writer = new BufferedWriter(stringWriter)) {\n \n-    YamlHelper.generateInstrumentationYaml(modules, writer);\n-    writer.flush();\n+        YamlHelper.generateInstrumentationYaml(modules, writer);\n+        writer.flush();",
+      "id": "PRRT_kwDODJKVX86Hnkt0",
+      "opened": "2026-06-07T01:24:18Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/YamlHelperTest.java",
+      "replies": [],
+      "reviewed": "947a0962f367e7088cdd439e26ec9a696432e583",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18923#discussion_r3368561119"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a42b4e3121e04b77e87b618f332f587922d91284c3ffcc70d571a4997f115895",
+  "input_digest": "92f68a41a7ff22d3b253ef872791a0c7610864c763aabe1b4fdba4719965e9cd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b71de77caf284d8c671996b4869311786474040/scenarios/gen-ai/python/pydantic-ai/native/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/82d89d872f08647bf5acde2105f5ac554d3523ab/scenarios/gen-ai/python/pydantic-ai/native/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/d94ad240b85bb97eb602f32cc7f604fe09d03450"
+      ],
+      "id": "PRRT_kwDOTuzK5c6y1oCu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b71de77caf284d8c671996b4869311786474040/scenarios/gen-ai/python/pydantic-ai/scenarios/streaming.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b71de77caf284d8c671996b4869311786474040/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b71de77caf284d8c671996b4869311786474040/scenarios/gen-ai/python/pydantic-ai/native/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/82d89d872f08647bf5acde2105f5ac554d3523ab/scenarios/gen-ai/python/pydantic-ai/scenarios/streaming.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/82d89d872f08647bf5acde2105f5ac554d3523ab/scenarios/gen-ai/python/pydantic-ai/native/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/d94ad240b85bb97eb602f32cc7f604fe09d03450"
+      ],
+      "id": "PRRT_kwDOTuzK5c6y1oDs",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "4f2ad02469e1f834e4c3a7a5447ba7f3e6d23426",
+  "merge": "18e4a876d2cfc2d418ff8f83348e84a33af8b075",
+  "merged": "2026-06-08T06:23:11Z",
+  "missing_roots": 0,
+  "number": 18914,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says nonstable semconv opt-ins (e.g., `service.peer`, `rpc`) should move from `otel.semconv-stability.opt-in` to `otel.semconv-stability.preview`. However, these lines still use `optInValues` whenever `v3Preview` is false (the only case where the provided set affects the result), so the new `preview` flag won't actually control `service.peer`/`rpc` in non-v3-preview mode. This also makes the ternary effectively a no-op when `v3Preview` is true because `shouldEmitOld/shouldEmitStable` ignore the set in that case.",
+      "created": "2026-06-05T22:44:26Z",
+      "hunk": "@@ -54,11 +54,11 @@ public final class SemconvStability {\n     emitOldCodeSemconv = shouldEmitOld(\"code\", v3Preview, optInValues);\n     emitStableCodeSemconv = shouldEmitStable(\"code\", v3Preview, optInValues);\n \n-    emitOldServicePeerSemconv = shouldEmitOld(\"service.peer\", v3Preview, optInValues);\n-    emitStableServicePeerSemconv = shouldEmitStable(\"service.peer\", v3Preview, optInValues);\n+    emitOldServicePeerSemconv = shouldEmitOld(\"service.peer\", v3Preview, v3Preview ? previewValues : optInValues);\n+    emitStableServicePeerSemconv = shouldEmitStable(\"service.peer\", v3Preview, v3Preview ? previewValues : optInValues);\n \n-    emitOldRpcSemconv = shouldEmitOld(\"rpc\", v3Preview, optInValues);\n-    emitStableRpcSemconv = shouldEmitStable(\"rpc\", v3Preview, optInValues);\n+    emitOldRpcSemconv = shouldEmitOld(\"rpc\", v3Preview, v3Preview ? previewValues : optInValues);\n+    emitStableRpcSemconv = shouldEmitStable(\"rpc\", v3Preview, v3Preview ? previewValues : optInValues);",
+      "id": "PRRT_kwDODJKVX86HfxuC",
+      "opened": "2026-06-05T22:44:26Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [
+        {
+          "at": "2026-06-05T23:29:29Z",
+          "body": "Thanks, updated this so the behavior is split intentionally:\n\n- outside `v3_preview`, `service.peer` and `rpc` continue to use `otel.semconv-stability.opt-in` so we do not break users before 3.0\n- under `v3_preview`, they use `otel.semconv-stability.preview`, matching the intended 3.0 behavior\n\nI also removed the misleading ternary/no-op behavior by selecting the config value set up front and then applying the existing opt-in semantics to that set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18914#discussion_r3365901046"
+        }
+      ],
+      "reviewed": "8b142ac431adafadddea693b256d8e02ca1f3849",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18914#discussion_r3365769323"
+    }
+  ]
+}

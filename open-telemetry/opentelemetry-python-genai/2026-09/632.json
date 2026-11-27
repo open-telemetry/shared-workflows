@@ -1,0 +1,76 @@
+{
+  "head": "f8b181668098dc0b56ec694a5d234eb3b699de69",
+  "merge": "83b1cdbe4e7b282eae5370ce2fb334cf6cbf368e",
+  "merged": "2026-09-12T19:05:39Z",
+  "missing_roots": 0,
+  "number": 632,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nDeprecate get_telemetry_handler, construct and cache  TelemetryHandler instead.\n```",
+      "created": "2026-09-05T00:34:48Z",
+      "hunk": "@@ -0,0 +1 @@\n+Deprecate get_telemetry_handler, construct a TelemetryHandler with instrumentation_scope_name instead",
+      "id": "PRRT_kwDOSbspP86fepdJ",
+      "opened": "2026-09-05T00:34:48Z",
+      "path": "util/opentelemetry-util-genai/.changelog/632.deprecated",
+      "replies": [],
+      "reviewed": "b24f7c1b62a627c9e22c2dae07db98131f4b07f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/632#discussion_r3938830408"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`TelemetryHandler.__init__` currently coerces a missing `instrumentation_scope_version` to an empty string (`\"\"`) and also allows passing a version without a scope name (producing a util scope name with a potentially unrelated version). This can lead to spans/metrics/logs reporting a surprising scope version (`\"\"`) or a mismatched name/version pair. Prefer passing `None` through when the version is unknown, and if the scope name is omitted, always default both name and version to the util module for backwards compatibility.",
+      "created": "2026-09-05T00:36:40Z",
+      "hunk": "@@ -84,21 +86,42 @@ def __init__(\n         meter_provider: MeterProvider | None = None,\n         logger_provider: LoggerProvider | None = None,\n         completion_hook: CompletionHook | None = None,\n+        instrumentation_scope_name: str | None = None,\n+        instrumentation_scope_version: str | None = None,\n     ):\n+        \"\"\"Creates a new telemetry handler.\n+\n+        Args:\n+            instrumentation_scope_name: the name of the instrumentation library\n+                emitting the telemetry, reported as the instrumentation scope\n+                name. Instrumentations must pass their own ``__name__`` so that\n+                telemetry is attributable to them; it defaults to this module\n+                for backwards compatibility.\n+            instrumentation_scope_version: the version of the instrumentation\n+                library, reported as the instrumentation scope version.\n+        \"\"\"\n         schema_url = Schemas.V1_37_0.value\n+        if instrumentation_scope_name is None:\n+            instrumentation_scope_name = __name__\n+            if instrumentation_scope_version is None:\n+                instrumentation_scope_version = __version__\n+        version = instrumentation_scope_version or \"\"",
+      "id": "PRRT_kwDOSbspP86feqQY",
+      "opened": "2026-09-05T00:36:40Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "b24f7c1b62a627c9e22c2dae07db98131f4b07f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/632#discussion_r3938835466"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "xrmx"
+      },
+      "body": "I'd add the possibility that sometime `__name__` is not what you want, e.g. google-genai instrumentation",
+      "created": "2026-09-10T13:09:08Z",
+      "hunk": "@@ -37,6 +37,10 @@ prefer opt-in or additive. Breaking changes need explicit justification in the P\n \n - Spans, logs, metrics, and events must go through `opentelemetry-util-genai`. Direct use of\n   `Tracer`, `Meter`, `Logger`, or event APIs is not allowed.\n+- `TelemetryHandler` must be constructed with `instrumentation_scope_name=__name__` and",
+      "id": "PRRT_kwDOSbspP86hFWv3",
+      "opened": "2026-09-10T13:12:23Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-12T18:29:19Z",
+          "body": "thanks, addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/632#discussion_r3997147619"
+        }
+      ],
+      "reviewed": "7c706de4b1eef554b6512612a20d7b129805c180",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/632#discussion_r3979380241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "xrmx"
+      },
+      "body": "Same here, I'd say the name should be the dotted path of the instrumentation module.",
+      "created": "2026-09-10T13:12:14Z",
+      "hunk": "@@ -191,6 +191,12 @@ Apply to packages under `instrumentation/`.\n - Spans, logs, metrics, and events should go through `opentelemetry-util-genai`. Do not call OTel\n   `Tracer`/`Meter`/`Logger` directly, and import only its public surface — never an\n   `opentelemetry.util.genai._*` module.\n+- Construct the `TelemetryHandler` with `instrumentation_scope_name=__name__` and",
+      "id": "PRRT_kwDOSbspP86hFbXq",
+      "opened": "2026-09-10T13:12:23Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "7c706de4b1eef554b6512612a20d7b129805c180",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/632#discussion_r3979407923"
+    }
+  ]
+}

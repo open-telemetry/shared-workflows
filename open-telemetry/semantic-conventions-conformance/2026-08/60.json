@@ -1,0 +1,52 @@
+{
+  "head": "2aebbe7738e18cb3ceb1b58b72cce1bc1be3c8c4",
+  "merge": "bae90c4741b2e5fc1703f63486139efaad58b5e8",
+  "merged": "2026-08-17T22:35:00Z",
+  "missing_roots": 0,
+  "number": 60,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says the workflow runs the `pedantic` persona, but the reusable workflow input defaults to `regular`. Pass `with: persona: pedantic` to ensure the intended strict scan level is used.",
+      "created": "2026-08-17T22:25:14Z",
+      "hunk": "@@ -17,20 +14,7 @@ permissions:\n jobs:\n   zizmor:\n     name: Zizmor Security Analysis\n-    runs-on: ubuntu-latest\n-    concurrency:\n-      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}\n-      cancel-in-progress: true\n     permissions:\n-      contents: read\n-      security-events: write  # for zizmor to upload SARIF results\n-    steps:\n-      - name: Checkout repository\n-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n-        with:\n-          persist-credentials: false\n-\n-      - name: Run zizmor\n-        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2\n-        with:\n-          persona: pedantic\n+      contents: read # for actions/checkout\n+      security-events: write # for zizmor to upload SARIF results\n+    uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@62d5939b47144252763c5ff9fffe8c20d76cd806 # v0.4.0",
+      "id": "PRRT_kwDOTuzK5c6Z6cR5",
+      "opened": "2026-08-17T22:25:14Z",
+      "path": ".github/workflows/zizmor.yml",
+      "replies": [
+        {
+          "at": "2026-08-17T22:29:53Z",
+          "body": "The persona change is intentional: v0.4.0 standardizes organization rollout callers on the shared workflow’s default `regular` persona. The PR description is now corrected to say `regular`, and this exact candidate passed with zero regular-persona SARIF findings.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/60#discussion_r3799273924"
+        }
+      ],
+      "reviewed": "2aebbe7738e18cb3ceb1b58b72cce1bc1be3c8c4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/60#discussion_r3799252915"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change removes the `branches: [main]` filter for the `pull_request` trigger, expanding the workflow to run on PRs targeting any branch. If you want to preserve prior behavior (and match the shared-workflow triggers), add the branch filter back under `pull_request`.",
+      "created": "2026-08-17T22:25:14Z",
+      "hunk": "@@ -2,11 +2,8 @@ name: Zizmor GitHub Actions Security Analysis\n \n on:\n   push:\n-    branches:\n-      - main\n+    branches: [main]\n   pull_request:\n-    branches:\n-      - main\n   schedule:",
+      "id": "PRRT_kwDOTuzK5c6Z6cSC",
+      "opened": "2026-08-17T22:25:14Z",
+      "path": ".github/workflows/zizmor.yml",
+      "replies": [
+        {
+          "at": "2026-08-17T22:29:54Z",
+          "body": "The unscoped `pull_request` trigger is intentional rollout policy: pull requests targeting any branch are scanned, while push scanning remains restricted to configured long-lived branches (`main` here).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/60#discussion_r3799274051"
+        }
+      ],
+      "reviewed": "2aebbe7738e18cb3ceb1b58b72cce1bc1be3c8c4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/60#discussion_r3799252933"
+    }
+  ]
+}

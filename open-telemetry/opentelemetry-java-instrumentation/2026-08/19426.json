@@ -1,0 +1,25 @@
+{
+  "head": "d278a3028f1ba7392abed4edd0ec40f3df6de3b6",
+  "merge": "2f472a7b3073eabc842540bcb1f48e71ae54825d",
+  "merged": "2026-08-06T06:43:13Z",
+  "missing_roots": 0,
+  "number": 19426,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The CXF entries keyed with `#+` should represent the latest available version line, but `cxf-rt-rs-client#+`, `cxf-rt-transports-http-jetty#+`, and `cxf-rt-ws-policy#+` are still pinned to the 3.6.x track while related CXF `#+` artifacts in the same block are updated to 4.2.3. This likely causes the automation to recommend an older major version for those artifacts. Consider aligning these `#+` entries to the same latest 4.2.3 version (and keep the `#3.+` entries on 3.6.12).",
+      "created": "2026-08-06T05:27:06Z",
+      "hunk": "@@ -280,18 +280,18 @@\n     \"org.apache.camel:camel-undertow#2.+\": \"2.25.4\",\n     \"org.apache.cassandra:java-driver-core#+\": \"4.19.3\",\n     \"org.apache.commons:commons-dbcp2#+\": \"2.14.0\",\n-    \"org.apache.cxf:cxf-rt-frontend-jaxrs#+\": \"4.2.2\",\n-    \"org.apache.cxf:cxf-rt-frontend-jaxrs#3.+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-frontend-jaxws#+\": \"4.2.2\",\n-    \"org.apache.cxf:cxf-rt-frontend-jaxws#3.+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-rs-client#+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-rs-client#3.+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-transports-http#+\": \"4.2.2\",\n-    \"org.apache.cxf:cxf-rt-transports-http#3.+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-transports-http-jetty#+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-transports-http-jetty#3.+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-ws-policy#+\": \"3.6.11\",\n-    \"org.apache.cxf:cxf-rt-ws-policy#3.+\": \"3.6.11\",\n+    \"org.apache.cxf:cxf-rt-frontend-jaxrs#+\": \"4.2.3\",\n+    \"org.apache.cxf:cxf-rt-frontend-jaxrs#3.+\": \"3.6.12\",\n+    \"org.apache.cxf:cxf-rt-frontend-jaxws#+\": \"4.2.3\",\n+    \"org.apache.cxf:cxf-rt-frontend-jaxws#3.+\": \"3.6.12\",\n+    \"org.apache.cxf:cxf-rt-rs-client#+\": \"3.6.12\",\n+    \"org.apache.cxf:cxf-rt-rs-client#3.+\": \"3.6.12\",\n+    \"org.apache.cxf:cxf-rt-transports-http#+\": \"4.2.3\",\n+    \"org.apache.cxf:cxf-rt-transports-http#3.+\": \"3.6.12\",\n+    \"org.apache.cxf:cxf-rt-transports-http-jetty#+\": \"3.6.12\",\n+    \"org.apache.cxf:cxf-rt-transports-http-jetty#3.+\": \"3.6.12\",\n+    \"org.apache.cxf:cxf-rt-ws-policy#+\": \"3.6.12\",",
+      "id": "PRRT_kwDODJKVX86W4ApE",
+      "opened": "2026-08-06T05:27:06Z",
+      "path": ".github/config/latest-dep-versions.json",
+      "replies": [],
+      "reviewed": "d278a3028f1ba7392abed4edd0ec40f3df6de3b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19426#discussion_r3726120750"
+    }
+  ]
+}

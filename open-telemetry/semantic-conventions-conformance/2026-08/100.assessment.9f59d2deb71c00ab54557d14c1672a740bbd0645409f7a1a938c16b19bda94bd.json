@@ -1,0 +1,82 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "508fc6bb34e8e96ab7b8d8c1f5a1c908261f545741207291f7cabbeaf1efb2de",
+  "input_digest": "9f59d2deb71c00ab54557d14c1672a740bbd0645409f7a1a938c16b19bda94bd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a1ba96d824f7f0db1bd46f8ce3cc05826e510b33/scenarios/gen-ai/python/mistral/openinference/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b64a670b16664ebf3ead0d6867e4593722f0a30d/scenarios/gen-ai/python/mistral/openinference/conformance.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dFOSZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a1ba96d824f7f0db1bd46f8ce3cc05826e510b33/tools/gen-ai/mock-server/src/genai_mock_server/mistral.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b64a670b16664ebf3ead0d6867e4593722f0a30d/tools/gen-ai/mock-server/src/genai_mock_server/mistral.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dFOSr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6dN8v3",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/0fdba89f6dc06cdaa10f187a0368c9bd89345a9d/scenarios/gen-ai/AGENTS.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b64a670b16664ebf3ead0d6867e4593722f0a30d/scenarios/gen-ai/AGENTS.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dN-bS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/38e4bc1c0312af7f3aa078faadfb119208842f0a/scenarios/gen-ai/python/mistral/scenarios/embeddings.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b64a670b16664ebf3ead0d6867e4593722f0a30d/scenarios/gen-ai/python/mistral/scenarios/embeddings.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dP-Um",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/38e4bc1c0312af7f3aa078faadfb119208842f0a/scenarios/gen-ai/python/mistral/scenarios/multimodal.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/38e4bc1c0312af7f3aa078faadfb119208842f0a/tools/gen-ai/mock-server/src/genai_mock_server/mistral.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b64a670b16664ebf3ead0d6867e4593722f0a30d/scenarios/gen-ai/python/mistral/scenarios/multimodal.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b64a670b16664ebf3ead0d6867e4593722f0a30d/tools/gen-ai/mock-server/src/genai_mock_server/mistral.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dP-Uq",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/38e4bc1c0312af7f3aa078faadfb119208842f0a/tools/gen-ai/mock-server/src/genai_mock_server/mistral.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b64a670b16664ebf3ead0d6867e4593722f0a30d/tools/gen-ai/mock-server/src/genai_mock_server/mistral.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dP-Uu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

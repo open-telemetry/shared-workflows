@@ -1,0 +1,41 @@
+{
+  "head": "7269173edd774fb00a9fabc374955e0888714fa7",
+  "merge": "4ab2021c86018a2610ad8cc039fa3db2c4a4066a",
+  "merged": "2026-06-08T18:37:12Z",
+  "missing_roots": 0,
+  "number": 211,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "MikeGoldsmith"
+      },
+      "body": "Should the scenario fall back to `usage.tokens` when `usage.billed_units` is absent? Real responses may report only one. If the spec intent is \"billed if present, else consumed\", worth showing that here (and saying so in the registry note).",
+      "created": "2026-06-04T11:47:02Z",
+      "hunk": "@@ -44,11 +44,11 @@ def run_chat(client):\n             span.set_attribute(\"gen_ai.response.id\", resp.id)\n         if hasattr(resp, \"finish_reason\") and resp.finish_reason:\n             span.set_attribute(\"gen_ai.response.finish_reasons\", [resp.finish_reason])\n-        if hasattr(resp, \"usage\") and resp.usage and hasattr(resp.usage, \"tokens\") and resp.usage.tokens:\n-            if hasattr(resp.usage.tokens, \"input_tokens\"):\n-                span.set_attribute(\"gen_ai.usage.input_tokens\", int(resp.usage.tokens.input_tokens))\n-            if hasattr(resp.usage.tokens, \"output_tokens\"):\n-                span.set_attribute(\"gen_ai.usage.output_tokens\", int(resp.usage.tokens.output_tokens))\n+        if hasattr(resp, \"usage\") and resp.usage and hasattr(resp.usage, \"billed_units\") and resp.usage.billed_units:",
+      "id": "PRRT_kwDOSUeMrM6HDyxU",
+      "opened": "2026-06-04T11:47:12Z",
+      "path": "reference/scenarios/cohere/scenario.py",
+      "replies": [
+        {
+          "at": "2026-06-04T14:58:08Z",
+          "body": "> Real responses may report only one\r\n\r\nIs this true for Cohere?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/211#discussion_r3356915059"
+        },
+        {
+          "at": "2026-06-05T16:40:54Z",
+          "body": "I'm not sure, the PR description says Cohere sends both. I'm unsure whether it sends one or the other, or potentially both at the same time. If it's one or the other, a fallback wouldn't be necessary.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/211#discussion_r3364040124"
+        },
+        {
+          "at": "2026-06-05T18:16:37Z",
+          "body": "As far as I know, Cohere always sends both and so no need for a fallback.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/211#discussion_r3364554529"
+        }
+      ],
+      "reviewed": "fba71e1738b7bbd9433bd20a0d071f7c52b0f337",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/211#discussion_r3355733170"
+    }
+  ]
+}

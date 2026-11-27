@@ -1,0 +1,46 @@
+{
+  "head": "ddde2d43d382b79dff5c5fa28c34e5f085656beb",
+  "merge": "63ef9a2e74a22706dc5bd1736eb936755d03b3af",
+  "merged": "2026-11-10T09:56:49Z",
+  "missing_roots": 0,
+  "number": 20591,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This shared replacement also runs under the Java agent, but the new library suite covers only delays and dispatcher hops. The existing agent `/child` fixture likewise covers only a dispatcher hop, leaving the external-job suspension behavior this PR promises to preserve untested. Add an agent-backed regression that actually suspends while awaiting a job launched in a separate coroutine scope. Run it on baseline Ktor 3 and 3.4.3+, and verify the active request span after resumption and independent exported traces across successive requests.",
+      "created": "2026-10-19T02:27:02Z",
+      "hunk": "@@ -46,7 +46,7 @@ object KtorServerTelemetryUtil {\n       if (context != null) {\n         call.attributes.put(contextKey, context)\n         val dispatcher = coroutineContext[ContinuationInterceptor] as? CoroutineDispatcher\n-        val extra = if (dispatcher != null) EmptyInterceptor(dispatcher) else EmptyCoroutineContext\n+        val extra = if (dispatcher != null) ContextRestoringDispatcher(dispatcher) else EmptyCoroutineContext",
+      "id": "PRRT_kwDODJKVX86txIih",
+      "opened": "2026-10-19T02:27:02Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/internal/KtorServerTelemetryUtil.kt",
+      "replies": [],
+      "reviewed": "fdb8ce57b43fff1315660d9c1777d161a6079d61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20591#discussion_r4309848680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  // Ktor 3.4.3 changes how SuspendFunctionGun resumes pipeline continuations (KTOR-9431), so\n  // rerun the external job tests against it.\n  register<JvmTestSuite>(\"version343Test\") {\n```",
+      "created": "2026-11-06T21:19:12Z",
+      "hunk": "@@ -55,9 +55,32 @@ kotlin {\n }\n \n testing.suites {\n+  register<JvmTestSuite>(\"externalJobTest\") {\n+    dependencies {\n+      implementation(\"org.jetbrains.kotlin:kotlin-stdlib-jdk8\")\n+      implementation(\"io.ktor:ktor-server-cio:${baseVersion(ktorVersion).orLatest(\"+\")}\")\n+    }\n+  }\n+\n+  register<JvmTestSuite>(\"version343Test\") {",
+      "id": "PRRT_kwDODJKVX860smkz",
+      "opened": "2026-11-06T22:05:53Z",
+      "path": "instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-07T18:33:40Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20591#discussion_r4503234322"
+        }
+      ],
+      "reviewed": "fec880a8be04ea653e2d045cc87471eac3135d23",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20591#discussion_r4497705894"
+    }
+  ]
+}

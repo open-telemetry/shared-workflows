@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "699b52d4ccc6a0780c331f4e01383468abaa9bc7664c1b606280423142081ba3",
+  "input_digest": "37216a9ac646b3eaa1217610ee6a6b87af27cf08760efd0cfec5cbddd4eeaca6",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9c93c6dde579b9dba2b6dc0e6fc4f1967b1df4f/instrumentation/armeria/armeria-1.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/v1_3/ArmeriaHttpServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec20c8353b8f61e51880ad53e405783e95993d50/instrumentation/armeria/armeria-1.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/v1_3/ArmeriaHttpServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/025e5b39dea777e82e3d342ea5acb7f47603cded"
+      ],
+      "id": "PRRT_kwDODJKVX86uBK7B",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025e5b39dea777e82e3d342ea5acb7f47603cded/instrumentation/armeria/armeria-1.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/v1_3/ArmeriaHttpServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec20c8353b8f61e51880ad53e405783e95993d50/instrumentation/armeria/armeria-1.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/v1_3/ArmeriaHttpServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/599e8b8bbcbbbcea0da73646078e5526dc78a8e7"
+      ],
+      "id": "PRRT_kwDODJKVX86uB2e2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/599e8b8bbcbbbcea0da73646078e5526dc78a8e7/instrumentation/armeria/armeria-1.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/v1_3/ArmeriaHttpServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec20c8353b8f61e51880ad53e405783e95993d50/instrumentation/armeria/armeria-1.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/v1_3/ArmeriaHttpServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6e45df9b60b0e11a5c70b3a40133747d7f419b1d"
+      ],
+      "id": "PRRT_kwDODJKVX86uCV5l",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    }
+  ]
+}

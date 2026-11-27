@@ -1,0 +1,46 @@
+{
+  "head": "ad7c9990765c50c721e7db83b00219eb2d5d187b",
+  "merge": "7f4d6a0216495d7afeb5b99cf0837c64fd7a3e2b",
+  "merged": "2026-02-23T04:08:29Z",
+  "missing_roots": 0,
+  "number": 16138,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "pepeshore"
+      },
+      "body": "It looks like this method can only be called once from now on. This kind of implicit rule is counterintuitive.\n\nYou might consider having the method throw an exception—for example, a checked exception like throw new MethodHasBeenCalledException()—or alternatively a RuntimeException, so that callers can become aware of this rule as early as possible.",
+      "created": "2026-02-12T02:03:02Z",
+      "hunk": "@@ -46,15 +46,21 @@ public static void recordException(Context context, Throwable exception) {\n    * Get exception that happened during servlet invocation.\n    *\n    * @param context server context\n+   * @param error exception that happened during server span, may be null. If this parameter is not\n+   *     null, it will be returned by this method. If it is null, then exception recorded by servlet\n    * @return exception that happened during servlet invocation\n    */\n   @Nullable\n-  public static Throwable getException(Context context) {\n-    AppServerBridge appServerBridge = context.get(AppServerBridge.CONTEXT_KEY);\n+  public static Throwable getException(Context context, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX85uIByb",
+      "opened": "2026-02-12T02:03:06Z",
+      "path": "instrumentation/servlet/servlet-common/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/servlet/AppServerBridge.java",
+      "replies": [
+        {
+          "at": "2026-02-16T16:04:30Z",
+          "body": "There generally isn't a reason to call this method more than once. We rely on our tests to verify that this method is called when needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16138#discussion_r2813134905"
+        }
+      ],
+      "reviewed": "1c01826f36b69bd5708e7e6f6f043e8747d788ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16138#discussion_r2796410624"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   *     null, it will be returned by this method. If it is null, then the exception recorded by servlet will be returned.\n```",
+      "created": "2026-02-13T16:13:03Z",
+      "hunk": "@@ -46,15 +46,21 @@ public static void recordException(Context context, Throwable exception) {\n    * Get exception that happened during servlet invocation.\n    *\n    * @param context server context\n+   * @param error exception that happened during server span, may be null. If this parameter is not\n+   *     null, it will be returned by this method. If it is null, then exception recorded by servlet",
+      "id": "PRRT_kwDODJKVX85ug5E4",
+      "opened": "2026-02-13T16:46:00Z",
+      "path": "instrumentation/servlet/servlet-common/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/servlet/AppServerBridge.java",
+      "replies": [],
+      "reviewed": "1c01826f36b69bd5708e7e6f6f043e8747d788ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16138#discussion_r2804979092"
+    }
+  ]
+}

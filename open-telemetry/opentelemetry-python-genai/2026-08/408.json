@@ -1,0 +1,40 @@
+{
+  "head": "e7dcffd4156567166b479812376037df545146c0",
+  "merge": "9bea7406e2a0e52d0361411640cf7d3d3233bdf3",
+  "merged": "2026-08-19T13:04:33Z",
+  "missing_roots": 0,
+  "number": 408,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`rm \"$fragment\"` can treat a path beginning with `-` as an option (quotes don’t prevent that), which is risky for file deletion. Use `rm -- \"$fragment\"` (and consider `-f` if the script runs with `set -e`) to make deletion robust and non-option-injectable.",
+      "created": "2026-08-18T17:40:08Z",
+      "hunk": "@@ -48,4 +48,20 @@ else\n \n     # update the real CHANGELOG.md\n     cp /tmp/CHANGELOG.md ${CHANGELOG}\n+fi\n+\n+# remove any changelog fragments on main that were included in this release section\n+changelog_dir=\"$(dirname \"${CHANGELOG}\")/.changelog\"\n+if [[ -d \"$changelog_dir\" && -f /tmp/CHANGELOG_SECTION.md ]]; then\n+    for fragment in \"$changelog_dir\"/*; do\n+        if [[ -f \"$fragment\" ]]; then\n+            frag_name=$(basename \"$fragment\")\n+            if [[ \"$frag_name\" != .* ]]; then\n+                pr_num=\"${frag_name%%.*}\"\n+                if grep -q \"\\[#${pr_num}\\]\" /tmp/CHANGELOG_SECTION.md; then\n+                    rm \"$fragment\"",
+      "id": "PRRT_kwDOSbspP86aNFwL",
+      "opened": "2026-08-18T17:40:09Z",
+      "path": "scripts/merge_changelog_to_main.sh",
+      "replies": [],
+      "reviewed": "45173dfcb03060a19ba25db4a4fd73d95991dbd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/408#discussion_r3806487165"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `grep` pattern is regex-based; while `pr_num` is likely numeric, using fixed-string matching avoids accidental regex interpretation and makes intent clearer. Consider switching to `grep -Fq \"[#${pr_num}]\" /tmp/CHANGELOG_SECTION.md` for a literal match.",
+      "created": "2026-08-18T17:40:08Z",
+      "hunk": "@@ -48,4 +48,20 @@ else\n \n     # update the real CHANGELOG.md\n     cp /tmp/CHANGELOG.md ${CHANGELOG}\n+fi\n+\n+# remove any changelog fragments on main that were included in this release section\n+changelog_dir=\"$(dirname \"${CHANGELOG}\")/.changelog\"\n+if [[ -d \"$changelog_dir\" && -f /tmp/CHANGELOG_SECTION.md ]]; then\n+    for fragment in \"$changelog_dir\"/*; do\n+        if [[ -f \"$fragment\" ]]; then\n+            frag_name=$(basename \"$fragment\")\n+            if [[ \"$frag_name\" != .* ]]; then\n+                pr_num=\"${frag_name%%.*}\"\n+                if grep -q \"\\[#${pr_num}\\]\" /tmp/CHANGELOG_SECTION.md; then",
+      "id": "PRRT_kwDOSbspP86aNFwp",
+      "opened": "2026-08-18T17:40:09Z",
+      "path": "scripts/merge_changelog_to_main.sh",
+      "replies": [],
+      "reviewed": "45173dfcb03060a19ba25db4a4fd73d95991dbd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/408#discussion_r3806487209"
+    }
+  ]
+}

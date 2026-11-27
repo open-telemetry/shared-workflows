@@ -1,0 +1,166 @@
+{
+  "head": "35f02ce981ad5f9224b336e9742d4d66f9123e59",
+  "merge": "0aceb69e4b358ff700e2d293f1be550236b2697d",
+  "merged": "2026-10-08T02:02:32Z",
+  "missing_roots": 0,
+  "number": 20423,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This runs only the opt-in branch in the default suite, so the newly introduced default-off behavior is not asserted for Servlet 5 Tomcat. Keep the flag off `test` and run the same conditional access-log tests again in a wired `testExperimental` task with the flag enabled.",
+      "created": "2026-10-07T04:01:07Z",
+      "hunk": "@@ -23,5 +23,6 @@ tasks {\n   test {\n     // exercises an exclude-only selector, which captures every parameter that it does not exclude\n     jvmArgs(\"-Dotel.instrumentation.servlet.experimental.request-parameters.excluded=ignored-*\")\n+    jvmArgs(\"-Dotel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86pwClM",
+      "opened": "2026-10-07T04:01:08Z",
+      "path": "instrumentation/servlet/servlet-5.0/tomcat-testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1650eae0452db7d8c3ae4d7ab25e1a565f69a4b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4202923451"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Enabling this experimental setting on the default test JVM prevents this Tomcat version from exercising the new default-off behavior. Keep the default suite unconfigured and add a wired `testExperimental` suite for the opt-in path; the servlet fixture that currently requires these attributes will also need to make its expectation mode-dependent.",
+      "created": "2026-10-07T04:01:07Z",
+      "hunk": "@@ -29,6 +29,7 @@ dependencies {\n tasks {\n   test {\n     jvmArgs(\"-Dotel.instrumentation.servlet.experimental.request-parameters.included=test-*\")\n+    jvmArgs(\"-Dotel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86pwClb",
+      "opened": "2026-10-07T04:01:08Z",
+      "path": "instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1650eae0452db7d8c3ae4d7ab25e1a565f69a4b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4202923479"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Enabling this experimental setting on the default test JVM prevents this Tomcat version from exercising the new default-off behavior. Keep the default suite unconfigured and add a wired `testExperimental` suite for the opt-in path; the servlet fixture that currently requires these attributes will also need to make its expectation mode-dependent.",
+      "created": "2026-10-07T04:01:08Z",
+      "hunk": "@@ -36,6 +36,7 @@ dependencies {\n tasks {\n   test {\n     jvmArgs(\"-Dotel.instrumentation.servlet.experimental.request-parameters.included=test-parameter\")\n+    jvmArgs(\"-Dotel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86pwCln",
+      "opened": "2026-10-07T04:01:08Z",
+      "path": "instrumentation/tomcat/tomcat-7.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1650eae0452db7d8c3ae4d7ab25e1a565f69a4b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4202923510"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'd remove `now` or add a clarification that the all lowercase variant was used before v3.",
+      "created": "2026-10-07T05:55:00Z",
+      "hunk": "@@ -8,9 +8,10 @@\n | `otel.instrumentation.servlet.experimental.request-parameters.included`        | List    | Empty   | Case-sensitive request parameter name patterns to capture. `?` matches one character and `*` matches zero or more characters.                                                                                                                                                                                           |\n | `otel.instrumentation.servlet.experimental.request-parameters.excluded`        | List    | Empty   | Case-sensitive request parameter name patterns to exclude. Excluded patterns take precedence over included patterns.                                                                                                                                                                                                    |\n | `otel.instrumentation.servlet.experimental.capture-request-parameters`         | List    | Empty   | Deprecated include-only alias for `otel.instrumentation.servlet.experimental.request-parameters.included`. It does not support glob patterns: an entry containing `*` or `?` is ignored with a warning, and every other entry is matched as a literal request parameter name. May be removed in the next minor release. |\n-| `otel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled` | Boolean | `true`  | Enable adding `trace_id` and `span_id` as request attributes.                                                                                                                                                                                                                                                           |\n+| `otel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled` | Boolean | `false` | Enable adding `trace_id` and `span_id` as request attributes.                                                                                                                                                                                                                                                           |\n \n An absent or empty request parameter selector captures nothing. An exclude-only selector captures every available request parameter except those matching an excluded pattern, which may expose sensitive information. To capture all parameters explicitly, configure `otel.instrumentation.servlet.experimental.request-parameters.included=*`.\n+Captured parameter names retain their original casing in `servlet.request.parameter.<name>` attribute keys. For example, `userId` now produces `servlet.request.parameter.userId` instead of `servlet.request.parameter.userid`.",
+      "id": "PRRT_kwDODJKVX86pxlUE",
+      "opened": "2026-10-07T05:54:59Z",
+      "path": "instrumentation/servlet/README.md",
+      "replies": [],
+      "reviewed": "4beb1167c7505140bcaa2f7b159cef2f276e4fe4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4203559834"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think this could be removed.",
+      "created": "2026-10-07T05:56:48Z",
+      "hunk": "@@ -21,8 +22,13 @@ instrumentation/development:\n       request_parameters/development:\n         included: [\"user-*\", \"search-?\"]\n         excluded: [\"password\", \"*-token\"]\n+      trace_id_request_attribute/development:\n+        enabled: true\n ```\n \n+Request attributes are disabled by default. To re-enable them, set\n+`otel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true`.",
+      "id": "PRRT_kwDODJKVX86pxo34",
+      "opened": "2026-10-07T05:56:48Z",
+      "path": "instrumentation/servlet/README.md",
+      "replies": [],
+      "reviewed": "4beb1167c7505140bcaa2f7b159cef2f276e4fe4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4203581057"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this also a breaking change?",
+      "created": "2026-10-07T05:58:15Z",
+      "hunk": "@@ -22,9 +22,14 @@\n   singular count units such as `{connection}`, and seconds instead of milliseconds for durations.\n   Pool attributes use `db.client.connection.pool.name` and `db.client.connection.state`; unnamed\n   pools use stable database-derived names, and DBCP retains the first registered pool name.\n+- Servlet request parameter attribute keys now preserve the original parameter-name casing, and",
+      "id": "PRRT_kwDODJKVX86pxqRB",
+      "opened": "2026-10-07T05:58:14Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-07T22:08:25Z",
+          "body": "ya, there are 2 breaking changes sections (one for stable and one for non-stable)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4212503637"
+        }
+      ],
+      "reviewed": "4beb1167c7505140bcaa2f7b159cef2f276e4fe4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4203590032"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T20:29:55Z",
+      "hunk": "@@ -63,7 +63,8 @@ Experimental.setRequestParameters(\n         .setIncluded(\"user-*\", \"search-?\")\n         .setExcluded(\"password\", \"*-token\")\n         .build());\n+Experimental.setTraceIdRequestAttributeEnabled(builder, true);",
+      "id": "PRRT_kwDODJKVX86qFWoT",
+      "opened": "2026-10-07T20:29:55Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/README.md",
+      "replies": [],
+      "reviewed": "cf8b3827a3d82c4d38933ef0aad8d4c384da4656",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4211649407"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nMatching is case-sensitive, and excluded patterns take precedence over included patterns. An absent or empty selector captures nothing; an exclude-only selector captures all available parameters except those excluded.\n```",
+      "created": "2026-10-07T20:30:08Z",
+      "hunk": "@@ -63,7 +63,8 @@ Experimental.setRequestParameters(\n         .setIncluded(\"user-*\", \"search-?\")\n         .setExcluded(\"password\", \"*-token\")\n         .build());\n+Experimental.setTraceIdRequestAttributeEnabled(builder, true);\n Filter filter = builder.build().createFilter();\n ```\n \n-Matching is case-sensitive, and excluded patterns take precedence over included patterns. An absent or empty selector captures nothing; an exclude-only selector captures all available parameters except those excluded.\n+Matching is case-sensitive, and excluded patterns take precedence over included patterns. An absent or empty selector captures nothing; an exclude-only selector captures all available parameters except those excluded. Captured parameter names retain their original casing in `servlet.request.parameter.<name>` attribute keys.",
+      "id": "PRRT_kwDODJKVX86qFW6Y",
+      "opened": "2026-10-07T20:30:08Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/README.md",
+      "replies": [],
+      "reviewed": "cf8b3827a3d82c4d38933ef0aad8d4c384da4656",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4211651303"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T20:31:31Z",
+      "hunk": "@@ -63,7 +63,8 @@ Experimental.setRequestParameters(\n         .setIncluded(\"user-*\", \"search-?\")\n         .setExcluded(\"password\", \"*-token\")\n         .build());\n+Experimental.setTraceIdRequestAttributeEnabled(builder, true);",
+      "id": "PRRT_kwDODJKVX86qFY36",
+      "opened": "2026-10-07T20:31:31Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/README.md",
+      "replies": [],
+      "reviewed": "ded948f1a0968e94de6c18282a5fdf60a0e4751c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4211663977"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nMatching is case-sensitive, and excluded patterns take precedence over included patterns. An absent or empty selector captures nothing; an exclude-only selector captures all available parameters except those excluded.\n```",
+      "created": "2026-10-07T20:31:39Z",
+      "hunk": "@@ -63,7 +63,8 @@ Experimental.setRequestParameters(\n         .setIncluded(\"user-*\", \"search-?\")\n         .setExcluded(\"password\", \"*-token\")\n         .build());\n+Experimental.setTraceIdRequestAttributeEnabled(builder, true);\n Filter filter = builder.build().createFilter();\n ```\n \n-Matching is case-sensitive, and excluded patterns take precedence over included patterns. An absent or empty selector captures nothing; an exclude-only selector captures all available parameters except those excluded.\n+Matching is case-sensitive, and excluded patterns take precedence over included patterns. An absent or empty selector captures nothing; an exclude-only selector captures all available parameters except those excluded. Captured parameter names retain their original casing in `servlet.request.parameter.<name>` attribute keys.",
+      "id": "PRRT_kwDODJKVX86qFZCX",
+      "opened": "2026-10-07T20:31:39Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/README.md",
+      "replies": [],
+      "reviewed": "ded948f1a0968e94de6c18282a5fdf60a0e4751c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20423#discussion_r4211665109"
+    }
+  ]
+}

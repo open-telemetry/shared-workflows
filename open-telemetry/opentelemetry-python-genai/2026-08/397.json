@@ -1,0 +1,115 @@
+{
+  "head": "6943bb4a523f82ead5d78fc52230e4ac3bee45bf",
+  "merge": "55eb063cc3cb39dbee9ebe4d4ba33800911f479a",
+  "merged": "2026-08-26T23:38:31Z",
+  "missing_roots": 0,
+  "number": 397,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Calling `fail(exc_val)` can itself raise (or be non-callable), which would change the original exception behavior of the `with` block. To preserve caller semantics, guard with `callable(fail)` and wrap the call in `try/except Exception` (optionally logging at debug) so the wrapper never overrides the original exception path.",
+      "created": "2026-08-16T13:42:00Z",
+      "hunk": "@@ -96,6 +119,68 @@ def __getattr__(self, name: str):\n         return getattr(self._response, name)\n \n \n+class MessagesStreamingResponseContextManagerWrapper(Generic[ResponseT]):\n+    \"\"\"Preserve caller exceptions across Anthropic's response context manager.\n+\n+    ``ResponseContextManager.__exit__`` closes the response without forwarding\n+    the exception raised inside the ``with`` block.  The raw-response proxy\n+    therefore only sees a normal close and records a successful invocation.\n+    Give the proxy the exception before delegating to the SDK manager so its\n+    normal close hook remains responsible for cleanup without changing the\n+    exception visible to the caller.\n+    \"\"\"\n+\n+    def __init__(self, manager: _SyncResponseContextManager[ResponseT]):\n+        self._manager = manager\n+        self._response: ResponseT | None = None\n+\n+    def __enter__(self) -> ResponseT:\n+        self._response = self._manager.__enter__()\n+        return self._response\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Any:\n+        if exc_val is not None:\n+            fail = getattr(self._response, \"_fail\", None)\n+            if fail is not None:\n+                fail(exc_val)\n+        return self._manager.__exit__(exc_type, exc_val, exc_tb)",
+      "id": "PRRT_kwDOSbspP86ZnHI1",
+      "opened": "2026-08-16T13:42:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "59fd839cc603dd50ffbcbae7aab1f960277b4c49",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/397#discussion_r3791878055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same concern as the sync variant: ensure `fail` is callable and that exceptions from `fail(exc_val)` do not alter the original async context-manager exception behavior. Swallow/log exceptions from the fail hook before delegating to `__aexit__`.",
+      "created": "2026-08-16T13:42:01Z",
+      "hunk": "@@ -96,6 +119,68 @@ def __getattr__(self, name: str):\n         return getattr(self._response, name)\n \n \n+class MessagesStreamingResponseContextManagerWrapper(Generic[ResponseT]):\n+    \"\"\"Preserve caller exceptions across Anthropic's response context manager.\n+\n+    ``ResponseContextManager.__exit__`` closes the response without forwarding\n+    the exception raised inside the ``with`` block.  The raw-response proxy\n+    therefore only sees a normal close and records a successful invocation.\n+    Give the proxy the exception before delegating to the SDK manager so its\n+    normal close hook remains responsible for cleanup without changing the\n+    exception visible to the caller.\n+    \"\"\"\n+\n+    def __init__(self, manager: _SyncResponseContextManager[ResponseT]):\n+        self._manager = manager\n+        self._response: ResponseT | None = None\n+\n+    def __enter__(self) -> ResponseT:\n+        self._response = self._manager.__enter__()\n+        return self._response\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Any:\n+        if exc_val is not None:\n+            fail = getattr(self._response, \"_fail\", None)\n+            if fail is not None:\n+                fail(exc_val)\n+        return self._manager.__exit__(exc_type, exc_val, exc_tb)\n+\n+    def __getattr__(self, name: str) -> Any:\n+        return getattr(self._manager, name)\n+\n+\n+class AsyncMessagesStreamingResponseContextManagerWrapper(Generic[ResponseT]):\n+    \"\"\"Async counterpart of ``MessagesStreamingResponseContextManagerWrapper``.\"\"\"\n+\n+    def __init__(self, manager: _AsyncResponseContextManager[ResponseT]):\n+        self._manager = manager\n+        self._response: ResponseT | None = None\n+\n+    async def __aenter__(self) -> ResponseT:\n+        self._response = await self._manager.__aenter__()\n+        return self._response\n+\n+    async def __aexit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Any:\n+        if exc_val is not None:\n+            fail = getattr(self._response, \"_fail\", None)\n+            if fail is not None:\n+                fail(exc_val)\n+        return await self._manager.__aexit__(exc_type, exc_val, exc_tb)",
+      "id": "PRRT_kwDOSbspP86ZnHJB",
+      "opened": "2026-08-16T13:42:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "59fd839cc603dd50ffbcbae7aab1f960277b4c49",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/397#discussion_r3791878070"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring says this wraps an 'async' `create` method, but `traced_create` is intentionally synchronous (it returns an async context manager; it is not awaited). Clarify the wording to avoid confusion for maintainers (e.g., 'Wrap `Async*WithStreamingResponse.create`, which returns an async context manager').",
+      "created": "2026-08-16T13:42:01Z",
+      "hunk": "@@ -49,6 +52,58 @@\n ANTHROPIC = \"anthropic\"\n \n \n+def _wrap_streaming_response_create(\n+    create: Callable[..., Any],\n+) -> Callable[..., Any]:\n+    \"\"\"Wrap an SDK ``with_streaming_response.create`` bound method.\"\"\"\n+\n+    @functools.wraps(create)\n+    def traced_create(*args: Any, **kwargs: Any) -> Any:\n+        return MessagesStreamingResponseContextManagerWrapper(\n+            create(*args, **kwargs)\n+        )\n+\n+    return traced_create\n+\n+\n+def _wrap_async_streaming_response_create(\n+    create: Callable[..., Any],\n+) -> Callable[..., Any]:\n+    \"\"\"Wrap an async SDK ``with_streaming_response.create`` bound method.\"\"\"\n+\n+    @functools.wraps(create)\n+    def traced_create(*args: Any, **kwargs: Any) -> Any:\n+        return AsyncMessagesStreamingResponseContextManagerWrapper(\n+            create(*args, **kwargs)\n+        )",
+      "id": "PRRT_kwDOSbspP86ZnHJG",
+      "opened": "2026-08-16T13:42:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/patch.py",
+      "replies": [],
+      "reviewed": "59fd839cc603dd50ffbcbae7aab1f960277b4c49",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/397#discussion_r3791878080"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For Protocols, using `async def ...: ...` creates coroutine functions at runtime and is less consistent with typical typing patterns. Prefer defining these as regular `def` methods returning `Awaitable[...]` (e.g., `def __aenter__(...) -> Awaitable[ResponseT_co]: ...`) to better communicate intent and match common stub conventions.",
+      "created": "2026-08-16T13:42:01Z",
+      "hunk": "@@ -58,6 +59,28 @@ class _StreamWrapperWithStream(Protocol):\n     def stream(self) -> object: ...\n \n \n+class _SyncResponseContextManager(Protocol[ResponseT_co]):\n+    def __enter__(self) -> ResponseT_co: ...\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Any: ...\n+\n+\n+class _AsyncResponseContextManager(Protocol[ResponseT_co]):\n+    async def __aenter__(self) -> ResponseT_co: ...\n+\n+    async def __aexit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Any: ...",
+      "id": "PRRT_kwDOSbspP86ZnHJK",
+      "opened": "2026-08-16T13:42:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "59fd839cc603dd50ffbcbae7aab1f960277b4c49",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/397#discussion_r3791878086"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This is a plain class, not a transparent proxy, so instrumentation changes the type the SDK returns (repo rule: \"Don't change the returned type\"). Fails today:\n\n```python\nfrom anthropic._response import ResponseContextManager\n\ncm = client.messages.with_streaming_response.create(...)\nassert isinstance(cm, ResponseContextManager)  # AssertionError\n```\n\nSuggest patching `ResponseContextManager.__exit__` / `AsyncResponseContextManager.__aexit__` at class level instead: keeps the SDK type intact, and drops both wrapper classes and the two `__init__` patch targets. Please add a test asserting the returned context manager's type is unchanged.",
+      "created": "2026-08-16T19:24:53Z",
+      "hunk": "@@ -96,6 +134,64 @@ def __getattr__(self, name: str):\n         return getattr(self._response, name)\n \n \n+class MessagesStreamingResponseContextManagerWrapper(Generic[ResponseT]):",
+      "id": "PRRT_kwDOSbspP86ZpEn5",
+      "opened": "2026-08-16T19:27:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "5dacce889d20dcf3ab9c1c75a470b29d8e616833",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/397#discussion_r3792627541"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This calls the subclass hook directly, bypassing the base stream wrapper's `_self_finalized` guard. It only works because `MessagesStreamWrapper._fail` keeps a second, independent guard (`_self_message_telemetry_finalized`) — two guards that must stay in sync. Route through the base finalization instead:\n\n```python\nself._self_stream_wrapper._finalize_failure(error)\n```",
+      "created": "2026-08-16T19:24:53Z",
+      "hunk": "@@ -105,6 +105,15 @@ def __init__(\n         self._self_stream_wrapper: Any = None\n         self._install_hooks(raw_response)\n \n+    def _fail(self, error: BaseException) -> None:",
+      "id": "PRRT_kwDOSbspP86ZpEn6",
+      "opened": "2026-08-16T19:27:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/_raw_response.py",
+      "replies": [],
+      "reviewed": "5dacce889d20dcf3ab9c1c75a470b29d8e616833",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/397#discussion_r3792627543"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Coverage is just the two un-skipped tests. Please add (sync + async):\n\n- context manager type transparency (see the `wrappers.py` comment)\n- `instrument()` / `uninstrument()` round-trip on `with_streaming_response`\n- caller exception raised *after* the stream is fully drained, and *before* `parse()` — both must finalize once, with the right `error.type`\n- non-streaming `with_raw_response` + caller exception",
+      "created": "2026-08-16T19:24:53Z",
+      "hunk": "@@ -1773,14 +1773,6 @@ def boom(*args, **kwargs):\n     assert len(span_exporter.get_finished_spans()) == 1\n \n \n-@pytest.mark.skip(\n-    reason=\"Known gap, tracked in #389: the SDK's \"\n-    \"ResponseContextManager.__exit__ discards the caller's exception before \"\n-    \"closing the response, so the proxy never sees it and the span is \"\n-    \"finalized as a success. Fixing it means instrumenting \"\n-    \"MessagesWithStreamingResponse.create and wrapping the context manager \"\n-    \"itself, which is a new patch target and out of scope here.\"\n-)\n @pytest.mark.vcr()\n @pytest.mark.cassette(\"test_sync_messages_create_streaming_with_raw_response\")\n def test_sync_messages_with_streaming_response_user_exception(",
+      "id": "PRRT_kwDOSbspP86ZpEn7",
+      "opened": "2026-08-16T19:27:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "5dacce889d20dcf3ab9c1c75a470b29d8e616833",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/397#discussion_r3792627544"
+    }
+  ]
+}

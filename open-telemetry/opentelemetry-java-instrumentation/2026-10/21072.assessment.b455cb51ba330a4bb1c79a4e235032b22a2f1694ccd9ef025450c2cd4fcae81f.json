@@ -1,0 +1,120 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "461305b100620820aacd00f940765ba7f204da5f31c972b2bf374a3d4fe7db4d",
+  "input_digest": "b455cb51ba330a4bb1c79a4e235032b22a2f1694ccd9ef025450c2cd4fcae81f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ef3c97d3ce379c0563ef449a7c7eac25057bb885/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ef3c97d3ce379c0563ef449a7c7eac25057bb885/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingMetricsAdvice.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingMetricsAdvice.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xrJxl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ef3c97d3ce379c0563ef449a7c7eac25057bb885/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ef3c97d3ce379c0563ef449a7c7eac25057bb885/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsCreateRequestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsCreateRequestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ef3c97d3ce379c0563ef449a7c7eac25057bb885/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsProcessRequestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsProcessRequestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ef3c97d3ce379c0563ef449a7c7eac25057bb885/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsReceiveRequestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsReceiveRequestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ef3c97d3ce379c0563ef449a7c7eac25057bb885/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xry7l",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07d76f895c99c4651feeab809c1a4e04813160b4/instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AbstractAwsLambdaSqsEventHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AbstractAwsLambdaSqsEventHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0fc3eee8a421810ef96fddb110aa3130319a3c2c"
+      ],
+      "id": "PRRT_kwDODJKVX86xss7m",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0fc3eee8a421810ef96fddb110aa3130319a3c2c/instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e3cb5f2ee0b10792fe055ad63417f65d35a8dccc"
+      ],
+      "id": "PRRT_kwDODJKVX86xtU-2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cb5f2ee0b10792fe055ad63417f65d35a8dccc/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerExperimentalAttributeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerExperimentalAttributeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cb5f2ee0b10792fe055ad63417f65d35a8dccc/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqProducerExperimentalAttributeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqProducerExperimentalAttributeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cb5f2ee0b10792fe055ad63417f65d35a8dccc/instrumentation/rocketmq/rocketmq-client-4.8/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/rocketmq/rocketmq-client-4.8/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cb5f2ee0b10792fe055ad63417f65d35a8dccc/instrumentation/kafka/kafka-clients/kafka-clients-0.11/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/kafka/kafka-clients/kafka-clients-0.11/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3cb5f2ee0b10792fe055ad63417f65d35a8dccc/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xtp-b",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/523f8829f571acf141cac762322c3838fce52e9c/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/523f8829f571acf141cac762322c3838fce52e9c/docs/declarative-configuration-example.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/docs/declarative-configuration-example.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86xuQyT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/523f8829f571acf141cac762322c3838fce52e9c/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingMetricsAdviceTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingMetricsAdviceTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e9a7b8db04568f7ff04cfca03a35ae05ba9a09d8"
+      ],
+      "id": "PRRT_kwDODJKVX86xwuK_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b4129d7603abe49a7455ab13ff81bbae96effe6e/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b72e33737b6e30690e7ba2ff4014856f6914f2c3/CHANGELOG.md"
+      ],
+      "id": "PRRT_kwDODJKVX86x3dYW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

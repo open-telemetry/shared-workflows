@@ -1,0 +1,46 @@
+{
+  "head": "610b007ab8014b39e99a32a69befb12474f92ca1",
+  "merge": "fa2cf8c4af51a73ae0f45b00e5b76e42e26b8810",
+  "merged": "2026-11-20T21:02:14Z",
+  "missing_roots": 0,
+  "number": 501,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Every function-call response has the ID `resp-mock-tool-001`, so this new storage assignment overwrites previously stored function-call responses. Creating a stored response with `get_weather`, then another with `get_time`, makes retrieving the first response return the second request's tools and output instead. Assign a deterministic request-derived response ID before storing, and add a regression test that creates two distinct stored requests and retrieves both afterward.",
+      "created": "2026-11-17T23:47:40Z",
+      "hunk": "@@ -771,10 +773,14 @@ def responses():\n     called, _ = _responses_called_tool_info(_responses_current_turn(request_input))\n     _, call_ids = _responses_called_tool_info(request_input)\n     if body.get(\"tools\") and \"agent_reference\" not in body and not (offered & called):\n-        return _responses_tool_call_response(body, call_index=len(set(call_ids)) + 1)\n+        resp = _responses_tool_call_response(body, call_index=len(set(call_ids)) + 1)\n+        if body.get(\"store\"):\n+            _STORED_RESPONSES[resp[\"id\"]] = copy.deepcopy(resp)",
+      "id": "PRRT_kwDOTuzK5c64teFa",
+      "opened": "2026-11-17T23:47:41Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [
+        {
+          "at": "2026-11-18T00:23:03Z",
+          "body": "Fixed in d470a4dc. Stored function-call responses now use IDs derived from the sorted request JSON, so distinct requests no longer overwrite each other while identical requests remain deterministic. Added regression cases that create responses with different tools, models, or inputs before retrieving both.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/501#discussion_r4607614283"
+        }
+      ],
+      "reviewed": "a2f9db337a9d2f0d7e567d20dbf5166b8dab3128",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/501#discussion_r4607342647"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The background-stream storage exception is bypassed when the response requests a function call. For example, `{\"input\":\"weather?\",\"tools\":[{\"type\":\"function\",\"name\":\"get_weather\"}],\"background\":true,\"stream\":true,\"store\":false}` reaches this return without storing or registering the response: create returns JSON, retrieval loses the tools, and resumption returns 400. Apply the background-stream finalization here too, and cover a first-turn function call rather than only inputs where the tool has already been called.",
+      "created": "2026-11-20T18:55:21Z",
+      "hunk": "@@ -771,10 +784,14 @@ def responses():\n     called, _ = _responses_called_tool_info(_responses_current_turn(request_input))\n     _, call_ids = _responses_called_tool_info(request_input)\n     if body.get(\"tools\") and \"agent_reference\" not in body and not (offered & called):\n-        return _responses_tool_call_response(body, call_index=len(set(call_ids)) + 1)\n+        resp = _responses_tool_call_response(body, call_index=len(set(call_ids)) + 1)\n+        if store:\n+            _store_response(body, resp)\n+        return resp",
+      "id": "PRRT_kwDOTuzK5c66IN6M",
+      "opened": "2026-11-20T18:55:22Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "6ce99244e1be1226f83624236187aa6253422f3c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/501#discussion_r4646454419"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "head": "3e3f297d22040e0beee77d6b0cc7a32c542c3722",
+  "merge": "6493e55dce5c9f61d3d01fac98dc951a4b4d83e5",
+  "merged": "2026-11-15T20:14:16Z",
+  "missing_roots": 0,
+  "number": 1053,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion checks an exporter that is never connected to a tracer provider, so it passes even if a leftover DSPy wrapper emits spans elsewhere. Instrument and uninstrument with this test's providers before the control call, then check the same exporter so the test can detect spans emitted after uninstrumentation.",
+      "created": "2026-11-06T16:31:58Z",
+      "hunk": "@@ -0,0 +1,234 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Exercise the real DSPy client against the GenAI conformance HTTP server.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import io\n+import json\n+import threading\n+from collections.abc import Iterator\n+from dataclasses import dataclass, field\n+from typing import Any\n+\n+import dspy\n+import pytest\n+\n+pytest.importorskip(\"genai_mock_server\")\n+\n+from dspy.utils.exceptions import LMInvalidRequestError\n+from genai_mock_server import app\n+from werkzeug.serving import make_server\n+\n+from opentelemetry.instrumentation.genai.dspy import DSPyInstrumentor\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+from opentelemetry.semconv.attributes import error_attributes\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import StatusCode\n+\n+MODEL = \"openai/gpt-4o-mini\"\n+PROMPT = \"Describe the weather.\"\n+ANSWER = \"This is a response from the mock server.\"\n+ENGINES = [\"lm15\", \"litellm\"] if hasattr(dspy, \"lm15\") else [\"litellm\"]\n+\n+\n+@dataclass\n+class MockServer:\n+    url: str = \"\"\n+    requests: list[dict[str, Any]] = field(default_factory=list)\n+\n+    def __call__(self, environ: dict[str, Any], start_response: Any) -> Any:\n+        size = int(environ.get(\"CONTENT_LENGTH\") or 0)\n+        raw = environ[\"wsgi.input\"].read(size)\n+        environ[\"wsgi.input\"] = io.BytesIO(raw)\n+        if environ[\"REQUEST_METHOD\"] == \"POST\":\n+            self.requests.append(\n+                {\"path\": environ[\"PATH_INFO\"], \"body\": json.loads(raw)}\n+            )\n+        return app(environ, start_response)\n+\n+\n+@pytest.fixture\n+def mock_server() -> Iterator[MockServer]:\n+    recorded = MockServer()\n+    server = make_server(\"127.0.0.1\", 0, recorded, threaded=True)\n+    recorded.url = f\"http://127.0.0.1:{server.server_port}/v1\"\n+    thread = threading.Thread(target=server.serve_forever, daemon=True)\n+    thread.start()\n+    try:\n+        yield recorded\n+    finally:\n+        server.shutdown()\n+        server.server_close()\n+        thread.join(timeout=5)\n+        assert not thread.is_alive()\n+\n+\n+def make_lm(server: MockServer, engine: str = \"lm15\") -> dspy.LM:\n+    return dspy.LM(\n+        MODEL,\n+        **({\"engine\": engine} if hasattr(dspy, \"lm15\") else {}),\n+        api_base=server.url,\n+        api_key=\"local-test-key\",\n+        cache=False,\n+        num_retries=0,\n+        timeout=5,\n+        temperature=0.2,\n+        max_tokens=40,\n+    )\n+\n+\n+def call_lm(lm: dspy.LM, *, asynchronous: bool, explicit: bool) -> Any:\n+    argument: Any = PROMPT\n+    if explicit:\n+        if hasattr(dspy, \"lm15\"):\n+            argument = dspy.lm15.Request(\n+                model=MODEL,\n+                messages=[\n+                    dspy.lm15.Message(\n+                        role=\"user\", parts=[dspy.lm15.TextPart(text=PROMPT)]\n+                    )\n+                ],\n+                config=dspy.lm15.Config(temperature=0.2, max_tokens=40),\n+            )\n+        else:\n+            argument = dspy.LMRequest.from_call(\n+                model=MODEL, prompt=PROMPT, temperature=0.2, max_tokens=40\n+            )\n+    if asynchronous:\n+        return asyncio.run(lm.acall(argument))\n+    return lm(argument)\n+\n+\n+def assert_http(server: MockServer) -> None:\n+    assert len(server.requests) == 1\n+    request = server.requests[0]\n+    assert request[\"path\"] == \"/v1/chat/completions\"\n+    assert request[\"body\"][\"model\"] == \"gpt-4o-mini\"\n+    assert request[\"body\"][\"messages\"] == [{\"role\": \"user\", \"content\": PROMPT}]\n+    assert request[\"body\"][\"temperature\"] == 0.2\n+    assert (\n+        request[\"body\"].get(\n+            \"max_tokens\", request[\"body\"].get(\"max_completion_tokens\")\n+        )\n+        == 40\n+    )\n+\n+\n+def assert_result(result: Any, explicit: bool) -> None:\n+    if explicit:\n+        assert result.text == ANSWER\n+    else:\n+        assert result == [ANSWER]\n+\n+\n+@pytest.mark.parametrize(\"asynchronous\", [False, True], ids=[\"sync\", \"async\"])\n+@pytest.mark.parametrize(\"explicit\", [False, True], ids=[\"list\", \"request\"])\n+@pytest.mark.parametrize(\"engine\", ENGINES)\n+def test_http_inference(\n+    mock_server: MockServer,\n+    tracer_provider: Any,\n+    logger_provider: Any,\n+    meter_provider: Any,\n+    span_exporter: Any,\n+    asynchronous: bool,\n+    explicit: bool,\n+    engine: str,\n+) -> None:\n+    with instrument(\n+        DSPyInstrumentor(),\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+        content_capture=\"SPAN_ONLY\",\n+    ):\n+        result = call_lm(\n+            make_lm(mock_server, engine),\n+            asynchronous=asynchronous,\n+            explicit=explicit,\n+        )\n+\n+    assert_result(result, explicit)\n+    assert_http(mock_server)\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"chat gpt-4o-mini\"\n+    attributes = span.attributes\n+    assert attributes[GenAI.GEN_AI_OPERATION_NAME] == \"chat\"\n+    assert attributes[GenAI.GEN_AI_PROVIDER_NAME] == \"openai\"\n+    assert attributes[GenAI.GEN_AI_REQUEST_MODEL] == \"gpt-4o-mini\"\n+    assert attributes[GenAI.GEN_AI_RESPONSE_MODEL] == \"gpt-4o-mini\"\n+    assert attributes[GenAI.GEN_AI_RESPONSE_ID] == \"chatcmpl-mock-001\"\n+    assert attributes[GenAI.GEN_AI_RESPONSE_FINISH_REASONS] == (\"stop\",)\n+    assert attributes[GenAI.GEN_AI_USAGE_INPUT_TOKENS] == 25\n+    assert attributes[GenAI.GEN_AI_USAGE_OUTPUT_TOKENS] == 12\n+    assert type(attributes[GenAI.GEN_AI_USAGE_INPUT_TOKENS]) is int\n+    assert type(attributes[GenAI.GEN_AI_USAGE_OUTPUT_TOKENS]) is int\n+    assert attributes[GenAI.GEN_AI_REQUEST_TEMPERATURE] == 0.2\n+    assert attributes[GenAI.GEN_AI_REQUEST_MAX_TOKENS] == 40\n+    inputs = json.loads(attributes[GenAI.GEN_AI_INPUT_MESSAGES])\n+    outputs = json.loads(attributes[GenAI.GEN_AI_OUTPUT_MESSAGES])\n+    assert len(inputs) == len(outputs) == 1\n+    assert inputs[0][\"role\"] == \"user\"\n+    assert inputs[0][\"parts\"] == [{\"type\": \"text\", \"content\": PROMPT}]\n+    assert outputs[0][\"role\"] == \"assistant\"\n+    assert outputs[0][\"parts\"] == [{\"type\": \"text\", \"content\": ANSWER}]\n+    assert outputs[0][\"finish_reason\"] == \"stop\"\n+\n+\n+@pytest.mark.parametrize(\"asynchronous\", [False, True], ids=[\"sync\", \"async\"])\n+@pytest.mark.parametrize(\"explicit\", [False, True], ids=[\"list\", \"request\"])\n+@pytest.mark.parametrize(\"engine\", ENGINES)\n+def test_http_without_instrumentation(\n+    mock_server: MockServer,\n+    span_exporter: Any,\n+    asynchronous: bool,\n+    explicit: bool,\n+    engine: str,\n+) -> None:",
+      "id": "PRRT_kwDOSbspP860mIEs",
+      "opened": "2026-11-06T16:31:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_lm_http.py",
+      "replies": [
+        {
+          "at": "2026-11-10T05:59:08Z",
+          "body": "Fixed in d134d899. The control call now runs after uninstrumenting with this test's providers and checks the same exporter. With `_uninstrument` turned into a no-op, all 8 `test_http_after_uninstrumentation` cases fail on the leftover span.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1053#discussion_r4521617211"
+        }
+      ],
+      "reviewed": "37a508539e5851ad894908b71225d1b70a91e720",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1053#discussion_r4494918480"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nENGINES = [\"lm15\"] if hasattr(dspy, \"lm15\") else []\nif importlib.util.find_spec(\"litellm\"):\n    ENGINES.append(\"litellm\")\n```\n(needs `import importlib.util`)",
+      "created": "2026-11-12T05:04:50Z",
+      "hunk": "@@ -0,0 +1,254 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Exercise the real DSPy client against the GenAI conformance HTTP server.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import io\n+import json\n+import threading\n+from collections.abc import Iterator\n+from dataclasses import dataclass, field\n+from typing import Any\n+\n+import dspy\n+import pytest\n+\n+pytest.importorskip(\"genai_mock_server\")\n+\n+from dspy.utils.exceptions import LMInvalidRequestError\n+from genai_mock_server import app\n+from werkzeug.serving import make_server\n+\n+from opentelemetry.instrumentation.genai.dspy import DSPyInstrumentor\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+from opentelemetry.semconv.attributes import error_attributes\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import StatusCode\n+\n+MODEL = \"openai/gpt-4o-mini\"\n+PROMPT = \"Describe the weather.\"\n+ANSWER = \"This is a response from the mock server.\"\n+ENGINES = [\"lm15\", \"litellm\"] if hasattr(dspy, \"lm15\") else [\"litellm\"]",
+      "id": "PRRT_kwDOSbspP862eee1",
+      "opened": "2026-11-12T05:10:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_lm_http.py",
+      "replies": [],
+      "reviewed": "d134d8997a2cb8e2ea4525a9d5d009e05ec59f5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1053#discussion_r4546533653"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "What do you think about dropping the `e2e` / `e2e-native` envs? If the test skips the LiteLLM engine when `litellm` isn't installed (see the suggestion on `ENGINES`), adding `-r requirements.e2e.txt` to `requirements.latest.txt` lets the existing `py3{11,15}-latest` envs run it - same as `oldest` already does in this PR - without new factors or the `-k \"not litellm\"` filter.\n\n```suggestion\n```",
+      "created": "2026-11-12T05:04:50Z",
+      "hunk": "@@ -59,6 +59,9 @@ envlist =\n     py3{11,15}-test-instrumentation-genai-dspy-latest\n     py311-test-instrumentation-genai-dspy-oldest\n     py314-test-instrumentation-genai-dspy-conformance\n+    py311-test-instrumentation-genai-dspy-e2e\n+    ; DSPy excludes LiteLLM from its default dependencies on Python 3.15.\n+    py315-test-instrumentation-genai-dspy-e2e-native",
+      "id": "PRRT_kwDOSbspP862eeeu",
+      "opened": "2026-11-12T05:10:51Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "d134d8997a2cb8e2ea4525a9d5d009e05ec59f5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1053#discussion_r4546533641"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The mock server is now a hard requirement in both `oldest` and `latest`, so `importorskip` only hides a broken install - the whole module would just show as skipped.\n\n```suggestion\n```",
+      "created": "2026-11-14T03:03:40Z",
+      "hunk": "@@ -0,0 +1,257 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Exercise the real DSPy client against the GenAI conformance HTTP server.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import importlib.util\n+import io\n+import json\n+import threading\n+from collections.abc import Iterator\n+from dataclasses import dataclass, field\n+from typing import Any\n+\n+import dspy\n+import pytest\n+\n+pytest.importorskip(\"genai_mock_server\")\n+",
+      "id": "PRRT_kwDOSbspP863X_-g",
+      "opened": "2026-11-14T03:04:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_lm_http.py",
+      "replies": [
+        {
+          "at": "2026-11-14T10:48:30Z",
+          "body": "Removed in 3e3f297, thanks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1053#discussion_r4573173120"
+        }
+      ],
+      "reviewed": "50470d0468d93340a6a19c232570a20e2fb9807d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1053#discussion_r4571129575"
+    }
+  ]
+}

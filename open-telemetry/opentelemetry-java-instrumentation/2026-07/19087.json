@@ -1,0 +1,340 @@
+{
+  "head": "2274953bfd55c3b3a327a37881bf9822c2277762",
+  "merge": "805db774042343899df567d59fb71dbe944c0946",
+  "merged": "2026-07-15T14:39:36Z",
+  "missing_roots": 0,
+  "number": 19087,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Per the repository Java style rules, classes under `javaagent/src/main/` should not be declared `final`. This newly added helper class uses `public final class`, which is inconsistent with the new `HbaseSingletons` classes added in this same PR (declared as `public class`). Consider dropping `final` here for consistency.",
+      "created": "2026-06-26T12:52:37Z",
+      "hunk": "@@ -0,0 +1,44 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.common;\n+\n+import javax.annotation.Nullable;\n+import org.apache.hadoop.hbase.TableName;\n+\n+public final class HbaseClientState {",
+      "id": "PRRT_kwDODJKVX86MhXO_",
+      "opened": "2026-06-26T12:52:38Z",
+      "path": "instrumentation/hbase/hbase-client-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseClientState.java",
+      "replies": [],
+      "reviewed": "6244e80601c6b4587f22a947580fdad31c9fd19b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3481487877"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Per the repository Java style rules, classes under `javaagent/src/main/` should not be declared `final`. This newly added factory class uses `public final class`, which is inconsistent with the new `HbaseSingletons` classes added in this same PR (declared as `public class`). Consider dropping `final` here for consistency.",
+      "created": "2026-06-26T12:52:37Z",
+      "hunk": "@@ -0,0 +1,29 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.common;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesExtractor;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientMetrics;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientSpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+\n+public final class HbaseInstrumenterFactory {",
+      "id": "PRRT_kwDODJKVX86MhXPe",
+      "opened": "2026-06-26T12:52:38Z",
+      "path": "instrumentation/hbase/hbase-client-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "6244e80601c6b4587f22a947580fdad31c9fd19b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3481487916"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we try to avoid repeated lookups for reflection objects. `ClassValue` is usually good for such caching.",
+      "created": "2026-07-03T08:51:07Z",
+      "hunk": "@@ -0,0 +1,103 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.getTableName;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.resetRequestAndContext;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.setRequestAndContext;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4.HbaseSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseRequest;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.RequestAndContext;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.hadoop.hbase.security.User;\n+\n+class AbstractRpcClientInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.hadoop.hbase.ipc.AbstractRpcClient\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"com.google.protobuf.Descriptors\")\n+        .or(hasClassesNamed(\"org.apache.hadoop.hbase.shaded.com.google.protobuf.Descriptors\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"callMethod\")\n+            .and(\n+                takesArgument(\n+                    0,\n+                    namedOneOf(\n+                        \"com.google.protobuf.Descriptors$MethodDescriptor\",\n+                        \"org.apache.hadoop.hbase.shaded.com.google.protobuf.Descriptors$MethodDescriptor\")))\n+            .and(takesArgument(4, named(\"org.apache.hadoop.hbase.security.User\")))\n+            .and(takesArgument(5, named(\"java.net.InetSocketAddress\"))),\n+        getClass().getName() + \"$CallMethodAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class CallMethodAdvice {\n+    @Advice.OnMethodEnter(suppress = Throwable.class)\n+    public static RequestAndContext onEnter(\n+        @Advice.Argument(0) Object md,\n+        @Advice.Argument(4) User ticket,\n+        @Advice.Argument(5) InetSocketAddress addr) {\n+      String tableName = null;\n+      try {\n+        tableName = (String) md.getClass().getMethod(\"getName\").invoke(md);",
+      "id": "PRRT_kwDODJKVX86OIzhs",
+      "opened": "2026-07-03T08:51:07Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/AbstractRpcClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "5b465b02c7ecded8133d0da2165ed75d9fa8b5b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3518668629"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask should version suffix be added for the common module too?",
+      "created": "2026-07-03T08:52:30Z",
+      "hunk": "@@ -306,11 +306,13 @@ include(\":instrumentation:grpc-1.6:testing\")\n include(\":instrumentation:guava-10.0:javaagent\")\n include(\":instrumentation:guava-10.0:library\")\n include(\":instrumentation:gwt-2.0:javaagent\")\n+include(\":instrumentation:hbase:hbase-client-1.4:javaagent\")\n+include(\":instrumentation:hbase:hbase-client-2.0:javaagent\")\n+include(\":instrumentation:hbase:hbase-client-common:javaagent\")",
+      "id": "PRRT_kwDODJKVX86OI1BR",
+      "opened": "2026-07-03T08:52:30Z",
+      "path": "settings.gradle.kts",
+      "replies": [],
+      "reviewed": "5b465b02c7ecded8133d0da2165ed75d9fa8b5b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3518677448"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "i think these should be sufficient\n```suggestion\n  \"hbase:hbase-client-1.4:javaagent:test\"\n  \"hbase:hbase-client-1.4:javaagent:testStableSemconv\"\n  \"hbase:hbase-client-2.0:javaagent:test\"\n  \"hbase:hbase-client-2.0:javaagent:testStableSemconv\"\n```",
+      "created": "2026-07-03T14:29:25Z",
+      "hunk": "@@ -114,8 +114,19 @@ readonly INSTRUMENTATIONS=(\n   \"grpc-1.6:javaagent:testStableSemconv\"\n   \"grpc-1.6:javaagent:testExperimental\"\n   \"gwt-2.0:javaagent:test\"\n+<<<<<<< feature/hbase-1.4\n+  \"hbase:hbase-client-1.4:javaagent:test\"\n+  \"hbase:hbase-client-1.4:javaagent:testStableSemconv\"\n+  \"hbase:hbase-client-1.4:javaagent:shadedClientTest\"\n+  \"hbase:hbase-client-1.4:javaagent:shadedClientTestStableSemconv\"\n+  \"hbase:hbase-client-2.0:javaagent:test\"\n+  \"hbase:hbase-client-2.0:javaagent:testStableSemconv\"\n+  \"hbase:hbase-client-2.0:javaagent:shadedClientTest\"\n+  \"hbase:hbase-client-2.0:javaagent:shadedClientTestStableSemconv\"",
+      "id": "PRRT_kwDODJKVX86ON4IU",
+      "opened": "2026-07-03T14:29:32Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "b52ff52ba791c90c5dc9e6a3ad980cbf370d5e38",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3520483692"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This creates a single-region table, so the shared `mixedAcrossRegions` batch scenario no longer exercises actions split across regions as its name and comment require. Preserve the previous split at `\"m\"` so this suite continues covering multi-region batch metadata aggregation.",
+      "created": "2026-07-14T00:48:02Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import java.io.IOException;\n+import org.apache.hadoop.hbase.CompareOperator;\n+import org.apache.hadoop.hbase.client.Admin;\n+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptor;\n+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;\n+import org.apache.hadoop.hbase.client.RowMutations;\n+import org.apache.hadoop.hbase.client.Table;\n+import org.apache.hadoop.hbase.client.TableDescriptor;\n+import org.apache.hadoop.hbase.client.TableDescriptorBuilder;\n+import org.apache.hadoop.hbase.util.Bytes;\n+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")\n+class HbaseClient20Test extends AbstractHbaseTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  protected InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected String instrumentationName() {\n+    return \"io.opentelemetry.hbase-client-2.0\";\n+  }\n+\n+  @Override\n+  protected void createTable(Admin admin) throws IOException {\n+    ColumnFamilyDescriptor columnFamilyDescriptor =\n+        ColumnFamilyDescriptorBuilder.newBuilder(COLUMN_FAMILY).build();\n+    TableDescriptor tableDescriptor =\n+        TableDescriptorBuilder.newBuilder(TABLE_NAME)\n+            .setColumnFamily(columnFamilyDescriptor)\n+            .build();\n+    admin.createTable(tableDescriptor);",
+      "id": "PRRT_kwDODJKVX86QlhI0",
+      "opened": "2026-07-14T00:48:03Z",
+      "path": "instrumentation/hbase/hbase-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseClient20Test.java",
+      "replies": [],
+      "reviewed": "034fd5a1a618424fea065396481b7c175c6f78ac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3575290435"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This creates a single-region table, so the shared `mixedAcrossRegions` batch scenario no longer exercises actions split across regions as its name and comment require. Preserve the previous split at `\"m\"` so this suite continues covering multi-region batch metadata aggregation.",
+      "created": "2026-07-14T00:48:03Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import java.io.IOException;\n+import org.apache.hadoop.hbase.CompareOperator;\n+import org.apache.hadoop.hbase.client.Admin;\n+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptor;\n+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;\n+import org.apache.hadoop.hbase.client.RowMutations;\n+import org.apache.hadoop.hbase.client.Table;\n+import org.apache.hadoop.hbase.client.TableDescriptor;\n+import org.apache.hadoop.hbase.client.TableDescriptorBuilder;\n+import org.apache.hadoop.hbase.util.Bytes;\n+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")\n+class HbaseShadedClient20Test extends AbstractHbaseTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  protected InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected String instrumentationName() {\n+    return \"io.opentelemetry.hbase-client-2.0\";\n+  }\n+\n+  @Override\n+  protected void createTable(Admin admin) throws IOException {\n+    ColumnFamilyDescriptor columnFamilyDescriptor =\n+        ColumnFamilyDescriptorBuilder.newBuilder(COLUMN_FAMILY).build();\n+    TableDescriptor tableDescriptor =\n+        TableDescriptorBuilder.newBuilder(TABLE_NAME)\n+            .setColumnFamily(columnFamilyDescriptor)\n+            .build();\n+    admin.createTable(tableDescriptor);",
+      "id": "PRRT_kwDODJKVX86QlhJN",
+      "opened": "2026-07-14T00:48:03Z",
+      "path": "instrumentation/hbase/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java",
+      "replies": [],
+      "reviewed": "034fd5a1a618424fea065396481b7c175c6f78ac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3575290473"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This creates a single-region table, so the shared `mixedAcrossRegions` batch scenario no longer exercises actions split across regions as its name and comment require. Preserve the previous split at `\"m\"` so this suite actually covers the multi-region path.",
+      "created": "2026-07-14T00:48:03Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import java.io.IOException;\n+import org.apache.hadoop.hbase.HColumnDescriptor;\n+import org.apache.hadoop.hbase.HTableDescriptor;\n+import org.apache.hadoop.hbase.client.Admin;\n+import org.apache.hadoop.hbase.util.Bytes;\n+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")\n+class HbaseClient14Test extends AbstractHbaseTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  protected InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected String instrumentationName() {\n+    return \"io.opentelemetry.hbase-client-1.4\";\n+  }\n+\n+  @Override\n+  protected void createTable(Admin admin) throws IOException {\n+    HTableDescriptor tableDescriptor = new HTableDescriptor(TABLE_NAME);\n+    tableDescriptor.addFamily(new HColumnDescriptor(COLUMN_FAMILY));\n+    admin.createTable(tableDescriptor);",
+      "id": "PRRT_kwDODJKVX86QlhJV",
+      "opened": "2026-07-14T00:48:03Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseClient14Test.java",
+      "replies": [],
+      "reviewed": "034fd5a1a618424fea065396481b7c175c6f78ac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3575290485"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This creates a single-region table, so the shared `mixedAcrossRegions` batch scenario no longer exercises actions split across regions as its name and comment require. Preserve the previous split at `\"m\"` so this suite actually covers the multi-region path.",
+      "created": "2026-07-14T00:48:03Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import java.io.IOException;\n+import org.apache.hadoop.hbase.HColumnDescriptor;\n+import org.apache.hadoop.hbase.HTableDescriptor;\n+import org.apache.hadoop.hbase.client.Admin;\n+import org.apache.hadoop.hbase.util.Bytes;\n+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")\n+class HbaseShadedClient14Test extends AbstractHbaseTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Override\n+  protected InstrumentationExtension testing() {\n+    return testing;\n+  }\n+\n+  @Override\n+  protected String instrumentationName() {\n+    return \"io.opentelemetry.hbase-client-1.4\";\n+  }\n+\n+  @Override\n+  protected void createTable(Admin admin) throws IOException {\n+    HTableDescriptor tableDescriptor = new HTableDescriptor(TABLE_NAME);\n+    tableDescriptor.addFamily(new HColumnDescriptor(COLUMN_FAMILY));\n+    admin.createTable(tableDescriptor);",
+      "id": "PRRT_kwDODJKVX86QlhJi",
+      "opened": "2026-07-14T00:48:03Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseShadedClient14Test.java",
+      "replies": [],
+      "reviewed": "034fd5a1a618424fea065396481b7c175c6f78ac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3575290506"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/AbstractRpcClientInstrumentation.java`\n\n````diff\nindex 23326681b9..6f8ac37836 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/AbstractRpcClientInstrumentation.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/AbstractRpcClientInstrumentation.java\n@@ -3,14 +3,17 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n \n import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.getTableName;\n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.instrumenter;\n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.resetRequestAndContext;\n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.setRequestAndContext;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.getTableName;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.resetRequestAndContext;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.setRequestAndContext;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4.HbaseSingletons.instrumenter;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4.HbaseSingletons.methodDescriptorName;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n \n import io.opentelemetry.context.Context;\n@@ -18,16 +21,15 @@ import io.opentelemetry.context.Scope;\n import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseRequest;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.RequestAndContext;\n import java.net.InetSocketAddress;\n import javax.annotation.Nullable;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n-import org.apache.hadoop.hbase.net.Address;\n+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;\n import org.apache.hadoop.hbase.security.User;\n-import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;\n-import org.apache.hbase.thirdparty.com.google.protobuf.Descriptors;\n-import org.apache.hbase.thirdparty.com.google.protobuf.Message;\n \n class AbstractRpcClientInstrumentation implements TypeInstrumentation {\n \n@@ -36,6 +38,12 @@ class AbstractRpcClientInstrumentation implements TypeInstrumentation {\n     return named(\"org.apache.hadoop.hbase.ipc.AbstractRpcClient\");\n   }\n \n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"com.google.protobuf.Descriptors\")\n+        .or(hasClassesNamed(\"org.apache.hadoop.hbase.shaded.com.google.protobuf.Descriptors\"));\n+  }\n+\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n@@ -43,9 +51,11 @@ class AbstractRpcClientInstrumentation implements TypeInstrumentation {\n             .and(\n                 takesArgument(\n                     0,\n-                    named(\n-                        \"org.apache.hbase.thirdparty.com.google.protobuf.Descriptors$MethodDescriptor\")))\n-            .and(takesArgument(4, named(\"org.apache.hadoop.hbase.security.User\"))),\n+                    namedOneOf(\n+                        \"com.google.protobuf.Descriptors$MethodDescriptor\",\n+                        \"org.apache.hadoop.hbase.shaded.com.google.protobuf.Descriptors$MethodDescriptor\")))\n+            .and(takesArgument(4, named(\"org.apache.hadoop.hbase.security.User\")))\n+            .and(takesArgument(5, named(\"java.net.InetSocketAddress\"))),\n         getClass().getName() + \"$CallMethodAdvice\");\n   }\n \n@@ -53,22 +63,11 @@ class AbstractRpcClientInstrumentation implements TypeInstrumentation {\n   public static class CallMethodAdvice {\n     @Advice.OnMethodEnter(suppress = Throwable.class)\n     public static RequestAndContext onEnter(\n-        @Advice.Argument(0) Descriptors.MethodDescriptor md,\n-        @Advice.Argument(2) Message param,\n+        @Advice.Argument(0) Object md,\n+        @Advice.Argument(2) Object param,\n         @Advice.Argument(4) User ticket,\n-        @Advice.Argument(5) Object addr) {\n-      String hostname = null;\n-      Integer port = null;\n-      if (addr instanceof Address) {\n-        Address address = (Address) addr;\n-        port = address.getPort();\n-        hostname = address.getHostname();\n-      } else if (addr instanceof InetSocketAddress) {\n-        InetSocketAddress address = (InetSocketAddress) addr;\n-        port = address.getPort();\n-        hostname = address.getHostString();\n-      }\n-      String operation = md.getName();\n+        @Advice.Argument(5) InetSocketAddress addr) {\n+      String operation = methodDescriptorName(md);\n       Long batchSize = null;\n       if (emitStableDatabaseSemconv() && param instanceof ClientProtos.MultiRequest) {\n         HbaseBatchMetadata batchMetadata =\n@@ -76,9 +75,15 @@ class AbstractRpcClientInstrumentation implements TypeInstrumentation {\n         operation = batchMetadata.getOperation();\n         batchSize = batchMetadata.getOperationBatchSize();\n       }\n+\n       HbaseRequest request =\n           HbaseRequest.create(\n-              operation, getTableName(), ticket.getName(), hostname, port, batchSize);\n+              operation,\n+              getTableName(),\n+              ticket.getName(),\n+              addr.getHostString(),\n+              addr.getPort(),\n+              batchSize);\n       Context parentContext = Java8BytecodeBridge.currentContext();\n       if (!instrumenter().shouldStart(parentContext, request)) {\n         return null;\n@@ -99,8 +104,7 @@ class AbstractRpcClientInstrumentation implements TypeInstrumentation {\n         return;\n       }\n \n-      Scope scope = requestAndContext.getScope();\n-      scope.close();\n+      requestAndContext.getScope().close();\n \n       if (throwable != null) {\n         instrumenter()\n````",
+      "created": "2026-07-14T19:37:59Z",
+      "hunk": "@@ -0,0 +1,115 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GT4",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/AbstractRpcClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090688"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/build.gradle.kts`\n\n````diff\nindex f8cf2b4fac..44cc11a904 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/build.gradle.kts\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts\n@@ -3,7 +3,7 @@ plugins {\n }\n \n otelJava {\n-  // HBase 2.0.x test stack is not reliable on JDK 25+.\n+  // HBase 1.4.x test stack is not reliable on JDK 25+.\n   maxJavaVersionForTests.set(JavaVersion.VERSION_24)\n }\n \n@@ -11,28 +11,39 @@ muzzle {\n   pass {\n     group.set(\"org.apache.hbase\")\n     module.set(\"hbase-client\")\n-    versions.set(\"[2.0.0, 2.5.0)\")\n+    versions.set(\"[1.4.0,2.0.0)\")\n     assertInverse.set(true)\n   }\n }\n \n dependencies {\n-  library(\"org.apache.hbase:hbase-client:2.0.0\")\n+  implementation(project(\":instrumentation:hbase:hbase-client-common-1.4:javaagent\"))\n+\n+  library(\"org.apache.hbase:hbase-client:1.4.0\")\n \n   compileOnly(\"com.google.auto.value:auto-value-annotations\")\n   annotationProcessor(\"com.google.auto.value:auto-value\")\n \n-  testImplementation(project(\":instrumentation:hbase-client-2.0:testing\"))\n+  compileOnly(\"org.apache.hbase:hbase-shaded-client:1.4.0\")\n+\n+  testImplementation(project(\":instrumentation:hbase:hbase-client-common-1.4:testing\"))\n+  testInstrumentation(project(\":instrumentation:hbase:hbase-client-2.0:javaagent\"))\n \n-  latestDepTestLibrary(\"org.apache.hbase:hbase-client:2.4.+\") // native on-by-default instrumentation after this version\n+  latestDepTestLibrary(\"org.apache.hbase:hbase-client:1.7.+\") // see hbase-client-2.0 module\n }\n \n+configurations\n+  .matching { it.name == \"testRuntimeClasspath\" || it.name == \"shadedClientTestRuntimeClasspath\" }\n+  .configureEach {\n+    resolutionStrategy.force(\"com.google.guava:guava:19.0\")\n+  }\n+\n testing {\n   suites {\n     register<JvmTestSuite>(\"shadedClientTest\") {\n       dependencies {\n-        implementation(\"org.apache.hbase:hbase-shaded-client:${baseVersion(\"2.0.0\").orLatest(\"2.4.+\")}\")\n-        implementation(project(\":instrumentation:hbase-client-2.0:testing\"))\n+        implementation(\"org.apache.hbase:hbase-shaded-client:${baseVersion(\"1.4.0\").orLatest(\"1.7.+\")}\")\n+        implementation(project(\":instrumentation:hbase:hbase-client-common-1.4:testing\"))\n       }\n     }\n   }\n@@ -52,8 +63,8 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n-  val stableSemconvSuites = testing.suites.withType(JvmTestSuite::class)\n-    .map { suite ->\n+  val stableSemconvSuites =\n+    testing.suites.withType(JvmTestSuite::class).map { suite ->\n       register<Test>(\"${suite.name}StableSemconv\") {\n         testClassesDirs = suite.sources.output.classesDirs\n         classpath = suite.sources.runtimeClasspath\n````",
+      "created": "2026-07-14T19:37:59Z",
+      "hunk": "@@ -0,0 +1,86 @@\n+plugins {",
+      "id": "PRRT_kwDODJKVX86Q4GTz",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090683"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseBatchMetadata.java`\n\n````diff\nindex 6788117526..8f6436d088 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseBatchMetadata.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseBatchMetadata.java\n@@ -3,11 +3,11 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n \n import com.google.auto.value.AutoValue;\n import javax.annotation.Nullable;\n-import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;\n+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;\n \n @AutoValue\n public abstract class HbaseBatchMetadata {\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GT7",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseBatchMetadata.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090695"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseInstrumentationModule.java`\n\n````diff\nindex ff9b3001f8..e0cdc20470 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseInstrumentationModule.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseInstrumentationModule.java\n@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n \n import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n import static java.util.Arrays.asList;\n@@ -18,24 +18,21 @@ import java.util.List;\n import net.bytebuddy.matcher.ElementMatcher;\n \n @AutoService(InstrumentationModule.class)\n-public final class HbaseInstrumentationModule extends InstrumentationModule\n+public class HbaseInstrumentationModule extends InstrumentationModule\n     implements ExperimentalInstrumentationModule {\n \n   private static final String CALL_UTIL = \"org.apache.hadoop.hbase.ipc.OpenTelemetryCallUtil\";\n \n   public HbaseInstrumentationModule() {\n-    super(\"hbase-client\", \"hbase-client-2.0\");\n+    super(\"hbase-client\", \"hbase-client-1.4\");\n   }\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    return hasClassesNamed(\n-            // added in 2.0.0\n-            \"org.apache.hadoop.hbase.ipc.RpcConnection\",\n-            // added in 2.0.0\n-            \"org.apache.hadoop.hbase.client.AsyncAdmin\")\n-        // added in 2.5.0 (native OTel support)\n-        .and(not(hasClassesNamed(\"org.apache.hadoop.hbase.client.trace.IpcClientSpanBuilder\")));\n+    // added in 1.4.0\n+    return hasClassesNamed(\"org.apache.hadoop.hbase.ipc.RpcConnection\")\n+        // added in 2.0.0\n+        .and(not(hasClassesNamed(\"org.apache.hadoop.hbase.client.AsyncAdmin\")));\n   }\n \n   @Override\n@@ -51,9 +48,9 @@ public final class HbaseInstrumentationModule extends InstrumentationModule\n   @Override\n   public List<TypeInstrumentation> typeInstrumentations() {\n     return asList(\n-        new RegionServerCallableInstrumentation(),\n-        new AbstractRpcClientInstrumentation(),\n         new RpcConnectionInstrumentation(),\n-        new IpcCallInstrumentation());\n+        new RetryingCallableInstrumentation(),\n+        new IpcCallInstrumentation(),\n+        new AbstractRpcClientInstrumentation());\n   }\n }\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GT_",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090701"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseSingletons.java`\n\n````diff\nindex d13764d9ef..8584173860 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseSingletons.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseSingletons.java\n@@ -3,64 +3,47 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n \n-import io.opentelemetry.api.GlobalOpenTelemetry;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesExtractor;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientMetrics;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientSpanNameExtractor;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n-import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseInstrumenterFactory;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseRequest;\n+import java.lang.reflect.Method;\n import javax.annotation.Nullable;\n-import org.apache.hadoop.hbase.TableName;\n \n public class HbaseSingletons {\n \n-  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.hbase-client-2.0\";\n-  private static final ThreadLocal<TableName> tableNameThreadLocal = new ThreadLocal<>();\n-  private static final ThreadLocal<RequestAndContext> requestAndContextThreadLocal =\n-      new ThreadLocal<>();\n-  private static final Instrumenter<HbaseRequest, Void> instrumenter = createInstrumenter();\n-\n-  public static void setTableName(TableName tableName) {\n-    tableNameThreadLocal.set(tableName);\n-  }\n-\n-  @Nullable\n-  public static TableName getTableName() {\n-    return tableNameThreadLocal.get();\n-  }\n-\n-  public static void resetTableName() {\n-    tableNameThreadLocal.remove();\n-  }\n-\n-  public static void setRequestAndContext(RequestAndContext requestAndContext) {\n-    requestAndContextThreadLocal.set(requestAndContext);\n-  }\n-\n-  @Nullable\n-  public static RequestAndContext getRequestAndContext() {\n-    return requestAndContextThreadLocal.get();\n-  }\n-\n-  public static void resetRequestAndContext() {\n-    requestAndContextThreadLocal.remove();\n-  }\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.hbase-client-1.4\";\n+  private static final Instrumenter<HbaseRequest, Void> instrumenter =\n+      HbaseInstrumenterFactory.create(INSTRUMENTATION_NAME);\n+  private static final ClassValue<Method> getNameMethod =\n+      new ClassValue<Method>() {\n+        @Nullable\n+        @Override\n+        protected Method computeValue(Class<?> type) {\n+          try {\n+            return type.getMethod(\"getName\");\n+          } catch (NoSuchMethodException ignored) {\n+            return null;\n+          }\n+        }\n+      };\n \n   public static Instrumenter<HbaseRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n-  private static Instrumenter<HbaseRequest, Void> createInstrumenter() {\n-    HbaseAttributesGetter hbaseAttributesGetter = new HbaseAttributesGetter();\n-    return Instrumenter.<HbaseRequest, Void>builder(\n-            GlobalOpenTelemetry.get(),\n-            INSTRUMENTATION_NAME,\n-            DbClientSpanNameExtractor.create(hbaseAttributesGetter))\n-        .addAttributesExtractor(DbClientAttributesExtractor.create(hbaseAttributesGetter))\n-        .addOperationMetrics(DbClientMetrics.get())\n-        .buildInstrumenter(SpanKindExtractor.alwaysClient());\n+  @Nullable\n+  public static String methodDescriptorName(Object methodDescriptor) {\n+    try {\n+      Method method = getNameMethod.get(methodDescriptor.getClass());\n+      if (method != null) {\n+        return (String) method.invoke(methodDescriptor);\n+      }\n+    } catch (ReflectiveOperationException ignored) {\n+      // ignored\n+    }\n+    return null;\n   }\n \n   private HbaseSingletons() {}\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GUE",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseSingletons.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090707"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/IpcCallInstrumentation.java`\n\n````diff\nindex f54627975b..59be65b758 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/IpcCallInstrumentation.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/IpcCallInstrumentation.java\n@@ -3,14 +3,15 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n \n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.instrumenter;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4.HbaseSingletons.instrumenter;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n \n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.RequestAndContext;\n import java.io.IOException;\n import javax.annotation.Nullable;\n import net.bytebuddy.asm.Advice;\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GUJ",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/IpcCallInstrumentation.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090713"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/RegionServerCallableInstrumentation.java`\n\n````diff\nindex 45fb5d22d3..a7fb683ec2 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/RegionServerCallableInstrumentation.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/RetryingCallableInstrumentation.java\n@@ -3,12 +3,12 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n \n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.resetTableName;\n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.setTableName;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.resetTableName;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.setTableName;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n-import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n \n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n@@ -17,13 +17,12 @@ import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n import org.apache.hadoop.hbase.TableName;\n \n-class RegionServerCallableInstrumentation implements TypeInstrumentation {\n+class RetryingCallableInstrumentation implements TypeInstrumentation {\n \n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    return namedOneOf(\n-        \"org.apache.hadoop.hbase.client.RegionServerCallable\",\n-        \"org.apache.hadoop.hbase.client.RegionAdminServiceCallable\");\n+    return extendsClass(named(\"org.apache.hadoop.hbase.client.RegionServerCallable\"))\n+        .or(extendsClass(named(\"org.apache.hadoop.hbase.client.RegionAdminServiceCallable\")));\n   }\n \n   @Override\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GUN",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/RetryingCallableInstrumentation.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090718"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/RpcConnectionInstrumentation.java`\n\n````diff\nindex fe457e1675..9775cc6253 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/RpcConnectionInstrumentation.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/RpcConnectionInstrumentation.java\n@@ -3,16 +3,17 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n \n import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n-import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.getRequestAndContext;\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.common.HbaseClientState.getRequestAndContext;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n \n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.hbase.client.common.RequestAndContext;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GUQ",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/RpcConnectionInstrumentation.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090722"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java`\n\n````diff\nindex c3541cc66b..2a3605b5d8 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseShadedClient14Test.java\n@@ -3,16 +3,23 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n \n import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import java.io.IOException;\n+import org.apache.hadoop.hbase.HColumnDescriptor;\n+import org.apache.hadoop.hbase.HTableDescriptor;\n+import org.apache.hadoop.hbase.client.Admin;\n+import org.apache.hadoop.hbase.util.Bytes;\n import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n @DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")\n-class HbaseShadedClient20Test extends AbstractHbaseTest {\n+class HbaseShadedClient14Test extends AbstractHbaseTest {\n \n   @RegisterExtension\n   static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n@@ -21,4 +28,36 @@ class HbaseShadedClient20Test extends AbstractHbaseTest {\n   protected InstrumentationExtension testing() {\n     return testing;\n   }\n+\n+  @Override\n+  protected String instrumentationName() {\n+    return \"io.opentelemetry.hbase-client-1.4\";\n+  }\n+\n+  @Override\n+  protected void createTable(Admin admin) throws IOException {\n+    HTableDescriptor tableDescriptor = new HTableDescriptor(TABLE_NAME);\n+    tableDescriptor.addFamily(new HColumnDescriptor(COLUMN_FAMILY));\n+    admin.createTable(tableDescriptor, new byte[][] {Bytes.toBytes(\"m\")});\n+  }\n+\n+  @Override\n+  protected int getTimeoutClientRetriesNumber() {\n+    return 1;\n+  }\n+\n+  @Override\n+  protected String putOperation() {\n+    return emitStableDatabaseSemconv() ? MUTATE : MULTI;\n+  }\n+\n+  @Override\n+  protected byte[] checkAndMutateCheckedRowKey() {\n+    return Bytes.toBytes(CHECK_MUTATE_ROW);\n+  }\n+\n+  @Override\n+  protected byte[] checkAndMutateMutatedRowKey() {\n+    return checkAndMutateCheckedRowKey();\n+  }\n }\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GUR",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseShadedClient14Test.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090723"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/hbase-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseClient20Test.java`\n\n````diff\nindex 28e37c070c..bc1150eb85 100644\n--- a/instrumentation/hbase-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseClient20Test.java\n+++ b/instrumentation/hbase/hbase-client-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseClient14Test.java\n@@ -3,16 +3,23 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v1_4;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n \n import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import java.io.IOException;\n+import org.apache.hadoop.hbase.HColumnDescriptor;\n+import org.apache.hadoop.hbase.HTableDescriptor;\n+import org.apache.hadoop.hbase.client.Admin;\n+import org.apache.hadoop.hbase.util.Bytes;\n import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n @DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")\n-class HbaseClient20Test extends AbstractHbaseTest {\n+class HbaseClient14Test extends AbstractHbaseTest {\n \n   @RegisterExtension\n   static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n@@ -21,4 +28,36 @@ class HbaseClient20Test extends AbstractHbaseTest {\n   protected InstrumentationExtension testing() {\n     return testing;\n   }\n+\n+  @Override\n+  protected String instrumentationName() {\n+    return \"io.opentelemetry.hbase-client-1.4\";\n+  }\n+\n+  @Override\n+  protected void createTable(Admin admin) throws IOException {\n+    HTableDescriptor tableDescriptor = new HTableDescriptor(TABLE_NAME);\n+    tableDescriptor.addFamily(new HColumnDescriptor(COLUMN_FAMILY));\n+    admin.createTable(tableDescriptor, new byte[][] {Bytes.toBytes(\"m\")});\n+  }\n+\n+  @Override\n+  protected int getTimeoutClientRetriesNumber() {\n+    return 1;\n+  }\n+\n+  @Override\n+  protected String putOperation() {\n+    return emitStableDatabaseSemconv() ? MUTATE : MULTI;\n+  }\n+\n+  @Override\n+  protected byte[] checkAndMutateCheckedRowKey() {\n+    return Bytes.toBytes(CHECK_MUTATE_ROW);\n+  }\n+\n+  @Override\n+  protected byte[] checkAndMutateMutatedRowKey() {\n+    return checkAndMutateCheckedRowKey();\n+  }\n }\n````",
+      "created": "2026-07-14T19:38:00Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Q4GUX",
+      "opened": "2026-07-14T19:39:04Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v1_4/HbaseClient14Test.java",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582090729"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this would be better if it works\n```suggestion\n  latestDepTestLibrary(\"org.apache.hbase:hbase-client:1.+\") // see hbase-client-2.0 module\n```",
+      "created": "2026-07-14T19:58:31Z",
+      "hunk": "@@ -0,0 +1,86 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+otelJava {\n+  // HBase 1.4.x test stack is not reliable on JDK 25+.\n+  maxJavaVersionForTests.set(JavaVersion.VERSION_24)\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"org.apache.hbase\")\n+    module.set(\"hbase-client\")\n+    versions.set(\"[1.4.0,2.0.0)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+dependencies {\n+  implementation(project(\":instrumentation:hbase:hbase-client-common-1.4:javaagent\"))\n+\n+  library(\"org.apache.hbase:hbase-client:1.4.0\")\n+\n+  compileOnly(\"com.google.auto.value:auto-value-annotations\")\n+  annotationProcessor(\"com.google.auto.value:auto-value\")\n+\n+  compileOnly(\"org.apache.hbase:hbase-shaded-client:1.4.0\")\n+\n+  testImplementation(project(\":instrumentation:hbase:hbase-client-common-1.4:testing\"))\n+  testInstrumentation(project(\":instrumentation:hbase:hbase-client-2.0:javaagent\"))\n+\n+  latestDepTestLibrary(\"org.apache.hbase:hbase-client:1.7.+\") // see hbase-client-2.0 module",
+      "id": "PRRT_kwDODJKVX86Q4cZC",
+      "opened": "2026-07-14T20:05:19Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582219182"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        implementation(\"org.apache.hbase:hbase-shaded-client:${baseVersion(\"1.4.0\").orLatest(\"1.+\")}\")\n```",
+      "created": "2026-07-14T19:59:05Z",
+      "hunk": "@@ -0,0 +1,86 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+otelJava {\n+  // HBase 1.4.x test stack is not reliable on JDK 25+.\n+  maxJavaVersionForTests.set(JavaVersion.VERSION_24)\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"org.apache.hbase\")\n+    module.set(\"hbase-client\")\n+    versions.set(\"[1.4.0,2.0.0)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+dependencies {\n+  implementation(project(\":instrumentation:hbase:hbase-client-common-1.4:javaagent\"))\n+\n+  library(\"org.apache.hbase:hbase-client:1.4.0\")\n+\n+  compileOnly(\"com.google.auto.value:auto-value-annotations\")\n+  annotationProcessor(\"com.google.auto.value:auto-value\")\n+\n+  compileOnly(\"org.apache.hbase:hbase-shaded-client:1.4.0\")\n+\n+  testImplementation(project(\":instrumentation:hbase:hbase-client-common-1.4:testing\"))\n+  testInstrumentation(project(\":instrumentation:hbase:hbase-client-2.0:javaagent\"))\n+\n+  latestDepTestLibrary(\"org.apache.hbase:hbase-client:1.7.+\") // see hbase-client-2.0 module\n+}\n+\n+configurations\n+  .matching { it.name == \"testRuntimeClasspath\" || it.name == \"shadedClientTestRuntimeClasspath\" }\n+  .configureEach {\n+    resolutionStrategy.force(\"com.google.guava:guava:19.0\")\n+  }\n+\n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"shadedClientTest\") {\n+      dependencies {\n+        implementation(\"org.apache.hbase:hbase-shaded-client:${baseVersion(\"1.4.0\").orLatest(\"1.7.+\")}\")",
+      "id": "PRRT_kwDODJKVX86Q4dFv",
+      "opened": "2026-07-14T20:05:19Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582223195"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "usually we lead with the library that's being instrumented\n```suggestion\n  library(\"org.apache.hbase:hbase-client:2.0.0\")\n\n  implementation(project(\":instrumentation:hbase:hbase-client-common-1.4:javaagent\"))\n```",
+      "created": "2026-07-14T20:00:55Z",
+      "hunk": "@@ -17,12 +17,15 @@ muzzle {\n }\n \n dependencies {\n+  implementation(project(\":instrumentation:hbase:hbase-client-common-1.4:javaagent\"))\n+\n   library(\"org.apache.hbase:hbase-client:2.0.0\")",
+      "id": "PRRT_kwDODJKVX86Q4fIT",
+      "opened": "2026-07-14T20:05:19Z",
+      "path": "instrumentation/hbase/hbase-client-2.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c56e342589a647c4afc635203b8c0c237952e5c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087#discussion_r3582235016"
+    }
+  ]
+}

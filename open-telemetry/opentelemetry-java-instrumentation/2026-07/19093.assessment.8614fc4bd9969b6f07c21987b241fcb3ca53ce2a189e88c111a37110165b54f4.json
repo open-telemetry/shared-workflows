@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "071a3ed9462c0a1b122d05122818c7bc40cb99535995921399cae9a0d7c7a716",
+  "input_digest": "8614fc4bd9969b6f07c21987b241fcb3ca53ce2a189e88c111a37110165b54f4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fff321f49bbf1816374ebcbb6505b23716ef3e9f/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/PreparedStatementInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f6b43c36565ae00f0e62e32e8952d751e4a978fb/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/PreparedStatementInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fff321f49bbf1816374ebcbb6505b23716ef3e9f/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryPreparedStatement.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f6b43c36565ae00f0e62e32e8952d751e4a978fb/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryPreparedStatement.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4a0b80b49813b808146d9087916af31079ec8fd4"
+      ],
+      "id": "PRRT_kwDODJKVX86QjM8T",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

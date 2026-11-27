@@ -1,0 +1,31 @@
+{
+  "head": "944946ffe47671f542c2511396897a1b0e787c43",
+  "merge": "b1e395ca4b8fd05b60a03ec42e8558871a18f93e",
+  "merged": "2026-08-18T17:48:34Z",
+  "missing_roots": 0,
+  "number": 19690,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The centralization misses `instrumentation/okhttp/okhttp-3.0/library/src/http2Test/java/io/opentelemetry/instrumentation/okhttp/v3_0/OkHttp3Http2Test.java:29-36`, which still builds exact request and response selectors. Consequently, the HTTP/2 base-test matrix neither uses this shared selector nor exercises header-name enumeration, contrary to the stated “every call site”/whole-matrix goal. Please switch both HTTP/2 call sites to `AbstractHttpClientTest.TEST_HEADERS` as well.",
+      "created": "2026-08-18T14:58:57Z",
+      "hunk": "@@ -88,6 +89,13 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA\n   public static final String TEST_REQUEST_HEADER = \"X-Test-Request\";\n   public static final String TEST_RESPONSE_HEADER = \"X-Test-Response\";\n \n+  /**\n+   * Header selector that the shared client tests configure. The wildcard pattern makes the tests\n+   * exercise capturing headers by name enumeration.\n+   */\n+  public static final IncludeExclude TEST_HEADERS =\n+      IncludeExclude.builder().setIncluded(\"X-Test-*\").build();",
+      "id": "PRRT_kwDODJKVX86aJ8l4",
+      "opened": "2026-08-18T14:58:58Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T15:11:37Z",
+          "body": "Addressed in 944946ffe47671f542c2511396897a1b0e787c43.\n\nAnalysis: The HTTP/2 test used exact selectors while the equivalent HTTP/1 test used the shared wildcard selector. Reusing `AbstractHttpClientTest.TEST_HEADERS` keeps both protocol variants aligned and exercises name enumeration in the HTTP/2 matrix.\n\nUpsides: The HTTP/2 tests now cover the same wildcard selector behavior as the other shared client tests. The change also removes duplicate selector construction.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19690#discussion_r3805379495"
+        }
+      ],
+      "reviewed": "cb4fdaa6cda0a12480f15f6b78b7ff0b7c9252e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19690#discussion_r3805271374"
+    }
+  ]
+}

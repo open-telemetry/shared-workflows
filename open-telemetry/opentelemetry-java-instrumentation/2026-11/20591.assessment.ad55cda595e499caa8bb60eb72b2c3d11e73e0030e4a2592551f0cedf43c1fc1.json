@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "eec619e39f37ca7547ac30ed2c596b2ce37a970bb67587f95bd622fc1e67a6c8",
+  "input_digest": "ad55cda595e499caa8bb60eb72b2c3d11e73e0030e4a2592551f0cedf43c1fc1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fdb8ce57b43fff1315660d9c1777d161a6079d61/instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fdb8ce57b43fff1315660d9c1777d161a6079d61/instrumentation/ktor/ktor-3.0/javaagent/src/externalJobTest/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorServerExternalJobTest.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fdb8ce57b43fff1315660d9c1777d161a6079d61/instrumentation/ktor/ktor-3.0/library/src/version343Test/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorServerContextTest.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/63ef9a2e74a22706dc5bd1736eb936755d03b3af/instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/63ef9a2e74a22706dc5bd1736eb936755d03b3af/instrumentation/ktor/ktor-3.0/javaagent/src/externalJobTest/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorServerExternalJobTest.kt"
+      ],
+      "id": "PRRT_kwDODJKVX86txIih",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fec880a8be04ea653e2d045cc87471eac3135d23/instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/63ef9a2e74a22706dc5bd1736eb936755d03b3af/instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ddde2d43d382b79dff5c5fa28c34e5f085656beb"
+      ],
+      "id": "PRRT_kwDODJKVX860smkz",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

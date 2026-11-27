@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6f75b5ab9f96f7510455f28a67c188f39766039e8ea301d7dd960d8adadb2c35",
+  "input_digest": "b54e9aa1252792090b2c2e799fc64ea36c2fd26f10f1bca918f8319d62fe54f8",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c392413829f2b3128d5f772fa5e2de858b14fa17/docs/gen-ai/non-normative/models.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c392413829f2b3128d5f772fa5e2de858b14fa17/docs/gen-ai/gen-ai-system-instructions.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/78350d4a2711780b24d0de7885e7fa132e01fdf8/docs/gen-ai/non-normative/models.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/78350d4a2711780b24d0de7885e7fa132e01fdf8/docs/gen-ai/gen-ai-system-instructions.json"
+      ],
+      "id": "PRRT_kwDOSUeMrM6HgVpi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c392413829f2b3128d5f772fa5e2de858b14fa17/docs/gen-ai/gen-ai-system-instructions.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/78350d4a2711780b24d0de7885e7fa132e01fdf8/docs/gen-ai/gen-ai-system-instructions.json"
+      ],
+      "id": "PRRT_kwDOSUeMrM6HgVps",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

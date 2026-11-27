@@ -1,0 +1,142 @@
+{
+  "head": "9e3461d1a2d4e471e28e9569dceee6bfe01379bd",
+  "merge": "61084f8e777ac3679ce446ce5c690db5a3b3c8f9",
+  "merged": "2026-06-19T23:00:00Z",
+  "missing_roots": 0,
+  "number": 132,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the `provider` argument from this (deprecated but still public) method is a backward-incompatible API change: existing callers using `handler.start_invoke_local_agent(\"openai\", ...)` will now raise `TypeError`. To stay compatible while aligning with the updated semconv (no provider attribute emitted for invoke_agent), keep `provider` as an optional parameter but ignore it.",
+      "created": "2026-06-18T02:29:49Z",
+      "hunk": "@@ -389,7 +389,6 @@ def tool(\n \n     def start_invoke_local_agent(\n         self,\n-        provider: str,\n         *,\n         request_model: str | None = None,\n         agent_name: str | None = None,",
+      "id": "PRRT_kwDOSbspP86KZ8_K",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-06-18T02:32:51Z",
+          "body": "This is not used by anything that's been released",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432626763"
+        }
+      ],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618665"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the `provider` argument from this (deprecated but still public) method is a backward-incompatible API change: existing callers using `handler.start_invoke_remote_agent(\"openai\", ...)` will now raise `TypeError`. To preserve compatibility while following the updated semconv (no `gen_ai.provider.name` on invoke_agent), keep `provider` as an optional parameter but ignore it.",
+      "created": "2026-06-18T02:29:49Z",
+      "hunk": "@@ -409,15 +408,13 @@ def start_invoke_local_agent(\n             self._metrics_recorder,\n             self._logger,\n             self._completion_hook,\n-            provider,\n             span_kind=SpanKind.INTERNAL,\n             request_model=request_model,\n             agent_name=agent_name,\n         )\n \n     def start_invoke_remote_agent(\n         self,\n-        provider: str,\n         *,\n         request_model: str | None = None,\n         server_address: str | None = None,",
+      "id": "PRRT_kwDOSbspP86KZ8_P",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618675"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Dropping the positional `provider` argument from `invoke_local_agent` is a breaking API change (existing code calling `handler.invoke_local_agent(\"openai\")` will now raise `TypeError`). Consider keeping `provider` as an optional/ignored argument for at least one release to preserve back-compat while still omitting `gen_ai.provider.name` from agent spans.",
+      "created": "2026-06-18T02:29:49Z",
+      "hunk": "@@ -449,7 +445,6 @@ def start_invoke_remote_agent(\n \n     def invoke_local_agent(\n         self,\n-        provider: str,\n         *,\n         request_model: str | None = None,\n         agent_name: str | None = None,",
+      "id": "PRRT_kwDOSbspP86KZ8_Z",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618685"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `provider` is kept for backward compatibility, it should also be assigned onto the invocation instance so existing code that reads `invocation.provider` doesn’t start failing at runtime. The attribute can remain unused for span/metric emission to comply with the updated invoke_agent semconv.",
+      "created": "2026-06-18T02:29:50Z",
+      "hunk": "@@ -64,7 +63,6 @@ def __init__(\n             else _operation_name,\n             span_kind=span_kind,\n         )\n-        self.provider = provider\n         self.request_model = request_model\n         self.server_address = server_address\n         self.server_port = server_port",
+      "id": "PRRT_kwDOSbspP86KZ8_3",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618720"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Dropping the positional `provider` argument from `invoke_remote_agent` is a breaking API change (existing code calling `handler.invoke_remote_agent(\"openai\")` will now raise `TypeError`). To preserve compatibility while still following the updated semconv (provider not present on invoke_agent spans/metrics), keep `provider` as an optional parameter but ignore it.",
+      "created": "2026-06-18T02:29:50Z",
+      "hunk": "@@ -469,15 +464,13 @@ def invoke_local_agent(\n             self._metrics_recorder,\n             self._logger,\n             self._completion_hook,\n-            provider,\n             span_kind=SpanKind.INTERNAL,\n             request_model=request_model,\n             agent_name=agent_name,\n         )\n \n     def invoke_remote_agent(\n         self,\n-        provider: str,\n         *,\n         request_model: str | None = None,\n         server_address: str | None = None,",
+      "id": "PRRT_kwDOSbspP86KZ8_i",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-06-18T02:52:28Z",
+          "body": "it's not used in this repo yet",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432681792"
+        }
+      ],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618696"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`AgentInvocation` is the return type of the public `TelemetryHandler.invoke_*_agent()` APIs. Removing the `provider` constructor parameter is a breaking change for any callers that were constructing `AgentInvocation` directly (even though the module is private) and for any internal uses that may still pass it positionally/by name. If the goal is only to stop emitting `gen_ai.provider.name`, consider keeping an optional `provider` parameter for backward compatibility but not including it in span/metric attributes.",
+      "created": "2026-06-18T02:29:50Z",
+      "hunk": "@@ -43,7 +43,6 @@ def __init__(\n         metrics_recorder: InvocationMetricsRecorder,\n         logger: Logger,\n         completion_hook: CompletionHook,\n-        provider: str,\n         *,\n         span_kind: SpanKind = SpanKind.INTERNAL,\n         request_model: str | None = None,",
+      "id": "PRRT_kwDOSbspP86KZ8_t",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618710"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `invoke_local_agent` keeps a (deprecated/compat) `provider` parameter, it should be forwarded into `AgentInvocation` so existing code that expects `invocation.provider` to reflect the input doesn’t silently break (even if the provider is no longer emitted as a semconv attribute).",
+      "created": "2026-06-18T02:29:50Z",
+      "hunk": "@@ -469,15 +464,13 @@ def invoke_local_agent(\n             self._metrics_recorder,\n             self._logger,\n             self._completion_hook,\n-            provider,\n             span_kind=SpanKind.INTERNAL,",
+      "id": "PRRT_kwDOSbspP86KZ9AE",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618737"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `invoke_remote_agent` keeps a (deprecated/compat) `provider` parameter, it should be forwarded into `AgentInvocation` so existing code that expects `invocation.provider` to reflect the input doesn’t silently break (even if the provider is no longer emitted as a semconv attribute).",
+      "created": "2026-06-18T02:29:50Z",
+      "hunk": "@@ -499,7 +492,6 @@ def invoke_remote_agent(\n             self._metrics_recorder,\n             self._logger,\n             self._completion_hook,\n-            provider,\n             span_kind=SpanKind.CLIENT,",
+      "id": "PRRT_kwDOSbspP86KZ9AN",
+      "opened": "2026-06-18T02:29:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "1ec80503c36c72111bf2fcc0210989a1ebf0015d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/132#discussion_r3432618751"
+    }
+  ]
+}

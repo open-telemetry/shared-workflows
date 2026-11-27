@@ -1,0 +1,70 @@
+{
+  "head": "311f667b25b0b5a8615d0b968892abca228ddfcb",
+  "merge": "6b24681cd0ee64b9bcb83d391a7e2c6703c4b3ec",
+  "merged": "2026-09-29T22:10:52Z",
+  "missing_roots": 0,
+  "number": 20265,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\ndescription: This instrumentation provides context propagation for Akka actors, it does not emit any telemetry on its own.\n```",
+      "created": "2026-09-27T02:25:05Z",
+      "hunk": "@@ -1,5 +1,5 @@\n display_name: Akka Actors\n-description: This instrumentation provides context propagation for Akka actors, it does not emit any telemetry on its own.\n+description: This instrumentation provides context propagation for Akka actors and the Akka 2.5 Fork-Join Pool; it does not emit any telemetry on its own.",
+      "id": "PRRT_kwDODJKVX86mWq5f",
+      "opened": "2026-09-27T02:25:05Z",
+      "path": "instrumentation/akka/akka-actor-2.3/metadata.yaml",
+      "replies": [],
+      "reviewed": "42cc61997c06016f5e377197818f6c9121e6d5e9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20265#discussion_r4113813180"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-27T02:26:52Z",
+      "hunk": "@@ -40,6 +40,7 @@ public void transform(TypeTransformer transformer) {\n   public static class InvokeAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Nullable",
+      "id": "PRRT_kwDODJKVX86mWrer",
+      "opened": "2026-09-27T02:26:52Z",
+      "path": "instrumentation/akka/akka-actor-2.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkaactor/v2_3/AkkaActorCellInstrumentation.java",
+      "replies": [],
+      "reviewed": "0ef922b37a8e311911d971b0ef43a56032d63d2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20265#discussion_r4113816848"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-27T02:27:00Z",
+      "hunk": "@@ -57,6 +58,7 @@ public static void exit(@Advice.Enter @Nullable Scope scope) {\n   public static class SystemInvokeAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Nullable",
+      "id": "PRRT_kwDODJKVX86mWrhN",
+      "opened": "2026-09-27T02:26:59Z",
+      "path": "instrumentation/akka/akka-actor-2.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkaactor/v2_3/AkkaActorCellInstrumentation.java",
+      "replies": [],
+      "reviewed": "0ef922b37a8e311911d971b0ef43a56032d63d2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20265#discussion_r4113817093"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-27T02:27:26Z",
+      "hunk": "@@ -1,6 +1,7 @@\n plugins {\n   id(\"otel.javaagent-instrumentation\")\n   id(\"otel.scala-conventions\")\n+  id(\"otel.nullaway-conventions\")",
+      "id": "PRRT_kwDODJKVX86mWrp9",
+      "opened": "2026-09-27T02:27:26Z",
+      "path": "instrumentation/akka/akka-actor-2.3/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "0ef922b37a8e311911d971b0ef43a56032d63d2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20265#discussion_r4113817979"
+    }
+  ]
+}

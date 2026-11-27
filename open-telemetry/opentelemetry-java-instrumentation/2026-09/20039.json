@@ -1,0 +1,67 @@
+{
+  "head": "061991410d88b864c7862b0552dda83a3ac11a92",
+  "merge": "02c1fb42838267ecbd620fe64f29fa02e47ea719",
+  "merged": "2026-09-09T05:53:28Z",
+  "missing_roots": 0,
+  "number": 20039,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The JDK gating logic relies on hard-coded string literals (`\"8\"`, `\"11\"`) inline, which makes the policy easy to miss and harder to extend (e.g., if additional “exploded-only” JDKs are needed). Consider centralizing this decision behind a small helper (e.g., `usesExplodedSpringBootImage(jdk)`), or at least extracting the supported values into a constant (e.g., a set) so the intent is explicit and the list is maintained in one place.",
+      "created": "2026-09-08T19:17:55Z",
+      "hunk": "@@ -36,10 +36,16 @@ public SmokeTestOptions<T> image(Function<T, String> getImage) {\n   @CanIgnoreReturnValue\n   public SmokeTestOptions<T> springBoot() {\n     image(\n-        jdk ->\n-            String.format(\n-                \"ghcr.io/open-telemetry/opentelemetry-java-instrumentation/smoke-test-spring-boot:jdk%s-%s\",\n-                jdk, TestImageVersions.SPRING_BOOT_VERSION));\n+        jdk -> {\n+          String jdkVersion = jdk.toString();\n+          String imageVersion =\n+              jdkVersion.equals(\"8\") || jdkVersion.equals(\"11\")\n+                  ? TestImageVersions.SPRING_BOOT_JDK_8_11_VERSION\n+                  : TestImageVersions.SPRING_BOOT_VERSION;\n+          return String.format(\n+              \"ghcr.io/open-telemetry/opentelemetry-java-instrumentation/smoke-test-spring-boot:jdk%s-%s\",\n+              jdk, imageVersion);\n+        });",
+      "id": "PRRT_kwDODJKVX86gYK36",
+      "opened": "2026-09-08T19:17:56Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/SmokeTestOptions.java",
+      "replies": [],
+      "reviewed": "1868fc973e8fc4f082254779e6af012d630181ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20039#discussion_r3961408873"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new comment explains why JDK 8/11 need a separate pin, but `SPRING_BOOT_VERSION` itself is now implicitly “JDK 17+ (bootJar/executable layout)”. Consider adding a short comment directly above `SPRING_BOOT_VERSION` clarifying that it refers to the executable/bootJar Spring Boot image for JDK 17+ to prevent future confusion when updating these pins.",
+      "created": "2026-09-08T19:17:56Z",
+      "hunk": "@@ -9,25 +9,28 @@\n public class TestImageVersions {\n \n   // smoke-test-spring-boot\n-  public static final String SPRING_BOOT_VERSION = \"20251116.19402383847\";\n+  public static final String SPRING_BOOT_VERSION = \"20260826.32962641676\";\n+\n+  // Last exploded image, used on JDK 8 and 11 because bootJar launchers require JDK 17\n+  public static final String SPRING_BOOT_JDK_8_11_VERSION = \"20260331.23783210915\";",
+      "id": "PRRT_kwDODJKVX86gYK5V",
+      "opened": "2026-09-08T19:17:56Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+      "replies": [
+        {
+          "at": "2026-09-08T22:49:32Z",
+          "body": "No code change.\n\nAnalysis: The current `SPRING_BOOT_VERSION` pin applies to every Spring smoke image from JDK 8 through 25. The image build selects Jib's exploded layout for JDK 8 and 11 and the executable bootJar layout for JDK 17 and newer under that one coordinated tag. A JDK 17+ comment would therefore describe the constant incorrectly.\n\nUpsides: Keeping the existing comment avoids misleading future updates about the scope of the shared pin.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20039#discussion_r3962962258"
+        }
+      ],
+      "reviewed": "1868fc973e8fc4f082254779e6af012d630181ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20039#discussion_r3961408992"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The image update is the condition explicitly recorded in `PrometheusSmokeTest.java:31-33` for restoring its full JDK matrix, but Java 11 and 17 remain excluded there. That leaves the updated exploded JDK 11 image and the new executable-layout JDK 17 image without Prometheus smoke coverage; please restore `{8, 11, 17, 21, 25}` and remove the temporary comment.",
+      "created": "2026-09-08T22:54:13Z",
+      "hunk": "@@ -9,25 +9,25 @@\n public class TestImageVersions {\n \n   // smoke-test-spring-boot\n-  public static final String SPRING_BOOT_VERSION = \"20251116.19402383847\";\n+  public static final String SPRING_BOOT_VERSION = \"20260908.34272316197\";",
+      "id": "PRRT_kwDODJKVX86gcHQF",
+      "opened": "2026-09-08T22:54:13Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:14:32Z",
+          "body": "Addressed in 061991410d88b864c7862b0552dda83a3ac11a92.\n\nAnalysis: The coordinated Spring image publication now includes working JDK 8 through 25 variants. The temporary Prometheus exclusions no longer apply, so the test should cover both the exploded JDK 11 image and the executable-layout JDK 17 image.\n\nUpsides: Restores the intended Prometheus smoke coverage across every supported Spring image layout and removes stale temporary guidance.\n\nDownsides: Adds two container-backed test cases to the Prometheus smoke test runtime.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20039#discussion_r3963094245"
+        }
+      ],
+      "reviewed": "189f07f6c7ff5bee479f66468fe983bc2838530c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20039#discussion_r3962987329"
+    }
+  ]
+}

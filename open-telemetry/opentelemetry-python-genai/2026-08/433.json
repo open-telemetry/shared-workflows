@@ -1,0 +1,85 @@
+{
+  "head": "90f4bf17145896e3c89f559650ef9fb235b88987",
+  "merge": "ac3729498a2ddab71c95ddabd89260532ab5ba3e",
+  "merged": "2026-08-21T04:19:40Z",
+  "missing_roots": 0,
+  "number": 433,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "extract_floor_version() currently returns min(floors). For specifier sets with multiple lower-bound constraints (e.g. \">= 1.0\" and \">= 1.1\"), the effective floor is the *maximum* lower bound; using min can mis-compute the floor and cause false failures/passes in the editable-oldest check.",
+      "created": "2026-08-20T21:46:22Z",
+      "hunk": "@@ -64,6 +69,147 @@ def pinned_names(oldest_req_path: Path) -> set[str]:\n     return names\n \n \n+def extract_editable_paths(oldest_req_path: Path) -> list[str]:\n+    \"\"\"Extract paths from editable lines (-e / --editable) in an oldest requirements file.\"\"\"\n+    paths: list[str] = []\n+    for raw in oldest_req_path.read_text(encoding=\"utf-8\").splitlines():\n+        line = raw.split(\"#\", 1)[0].strip()\n+        if not line:\n+            continue\n+        if line.startswith(\"--editable=\"):\n+            paths.append(line[11:].strip())\n+        elif line.startswith(\"--editable\"):\n+            paths.append(line[10:].strip())\n+        elif line.startswith(\"-e\"):\n+            paths.append(line[2:].strip())\n+    return [p for p in paths if p]\n+\n+\n+def resolve_package_dir(\n+    target_path_str: str, pkg_dir: Path, repo_root: Path\n+) -> Path | None:\n+    \"\"\"Resolve an editable requirement path to a package directory containing pyproject.toml.\"\"\"\n+    cleaned = re.sub(r\"\\[.*?\\]$\", \"\", target_path_str).strip()\n+    candidates = [\n+        (repo_root / cleaned).resolve(),\n+        (pkg_dir / cleaned).resolve(),\n+        (repo_root / cleaned.lstrip(\"./\")).resolve(),\n+    ]\n+    for candidate in candidates:\n+        if candidate.is_dir() and (candidate / \"pyproject.toml\").exists():\n+            return candidate\n+    return None\n+\n+\n+def get_package_version(\n+    target_pkg_dir: Path, target_pyproject: dict\n+) -> str | None:\n+    \"\"\"Get package version from version.py or pyproject.toml.\"\"\"\n+    version_rel_path = (\n+        target_pyproject.get(\"tool\", {})\n+        .get(\"hatch\", {})\n+        .get(\"version\", {})\n+        .get(\"path\")\n+    )\n+    if version_rel_path:\n+        vfile = target_pkg_dir / version_rel_path\n+        if vfile.exists():\n+            match = re.search(\n+                r\"__version__\\s*=\\s*[\\\"']([^\\\"']+)[\\\"']\",\n+                vfile.read_text(encoding=\"utf-8\"),\n+            )\n+            if match:\n+                return match.group(1)\n+    return target_pyproject.get(\"project\", {}).get(\"version\")\n+\n+\n+def min_dev_version(v_str: str) -> Version:\n+    \"\"\"Return the floor development version for a target version string.\"\"\"\n+    base = v_str.split(\".dev\")[0]\n+    return Version(f\"{base}.dev\")\n+\n+\n+def extract_floor_version(req: Requirement) -> Version | None:\n+    \"\"\"Extract the lowest version bound from a requirement specifier set.\"\"\"\n+    floors: list[Version] = []\n+    for spec in req.specifier:\n+        if spec.operator in (\">=\", \"==\", \"===\", \"~=\") or spec.operator == \">\":\n+            floors.append(Version(spec.version))\n+    return min(floors) if floors else None",
+      "id": "PRRT_kwDOSbspP86a-Dpw",
+      "opened": "2026-08-20T21:46:23Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "6f4f9265ad71f4ae1a9ef9df52eb15bd41be9c11",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/433#discussion_r3825607231"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The editable-oldest validation only checks `floor < min_v`. This won’t catch the key mismatch the check is meant to enforce: a dependency like `>= 1.1b0` (release) will pass even when the editable package’s current version is `1.1b0.dev…`, because `1.1b0` compares greater than `1.1b0.dev0` but does *not* actually allow installing the dev version. Consider additionally verifying that `min_v` itself satisfies the requirement’s specifier set (with prereleases enabled).",
+      "created": "2026-08-20T21:46:22Z",
+      "hunk": "@@ -64,6 +69,147 @@ def pinned_names(oldest_req_path: Path) -> set[str]:\n     return names\n \n \n+def extract_editable_paths(oldest_req_path: Path) -> list[str]:\n+    \"\"\"Extract paths from editable lines (-e / --editable) in an oldest requirements file.\"\"\"\n+    paths: list[str] = []\n+    for raw in oldest_req_path.read_text(encoding=\"utf-8\").splitlines():\n+        line = raw.split(\"#\", 1)[0].strip()\n+        if not line:\n+            continue\n+        if line.startswith(\"--editable=\"):\n+            paths.append(line[11:].strip())\n+        elif line.startswith(\"--editable\"):\n+            paths.append(line[10:].strip())\n+        elif line.startswith(\"-e\"):\n+            paths.append(line[2:].strip())\n+    return [p for p in paths if p]\n+\n+\n+def resolve_package_dir(\n+    target_path_str: str, pkg_dir: Path, repo_root: Path\n+) -> Path | None:\n+    \"\"\"Resolve an editable requirement path to a package directory containing pyproject.toml.\"\"\"\n+    cleaned = re.sub(r\"\\[.*?\\]$\", \"\", target_path_str).strip()\n+    candidates = [\n+        (repo_root / cleaned).resolve(),\n+        (pkg_dir / cleaned).resolve(),\n+        (repo_root / cleaned.lstrip(\"./\")).resolve(),\n+    ]\n+    for candidate in candidates:\n+        if candidate.is_dir() and (candidate / \"pyproject.toml\").exists():\n+            return candidate\n+    return None\n+\n+\n+def get_package_version(\n+    target_pkg_dir: Path, target_pyproject: dict\n+) -> str | None:\n+    \"\"\"Get package version from version.py or pyproject.toml.\"\"\"\n+    version_rel_path = (\n+        target_pyproject.get(\"tool\", {})\n+        .get(\"hatch\", {})\n+        .get(\"version\", {})\n+        .get(\"path\")\n+    )\n+    if version_rel_path:\n+        vfile = target_pkg_dir / version_rel_path\n+        if vfile.exists():\n+            match = re.search(\n+                r\"__version__\\s*=\\s*[\\\"']([^\\\"']+)[\\\"']\",\n+                vfile.read_text(encoding=\"utf-8\"),\n+            )\n+            if match:\n+                return match.group(1)\n+    return target_pyproject.get(\"project\", {}).get(\"version\")\n+\n+\n+def min_dev_version(v_str: str) -> Version:\n+    \"\"\"Return the floor development version for a target version string.\"\"\"\n+    base = v_str.split(\".dev\")[0]\n+    return Version(f\"{base}.dev\")\n+\n+\n+def extract_floor_version(req: Requirement) -> Version | None:\n+    \"\"\"Extract the lowest version bound from a requirement specifier set.\"\"\"\n+    floors: list[Version] = []\n+    for spec in req.specifier:\n+        if spec.operator in (\">=\", \"==\", \"===\", \"~=\") or spec.operator == \">\":\n+            floors.append(Version(spec.version))\n+    return min(floors) if floors else None\n+\n+\n+def check_editable_oldest_dependencies(\n+    pkg_dir: Path,\n+    pyproject: dict,\n+    oldest_path: Path,\n+    repo_root: Path,\n+) -> list[str]:\n+    \"\"\"Verify that any -e in oldest.txt has a pyproject.toml dependency pointing to the unreleased version.\"\"\"\n+    errors: list[str] = []\n+    editable_paths = extract_editable_paths(oldest_path)\n+    if not editable_paths:\n+        return errors\n+\n+    declared_reqs: dict[str, list[Requirement]] = {}\n+    for dep in pyproject.get(\"project\", {}).get(\"dependencies\", []):\n+        r = Requirement(dep)\n+        declared_reqs.setdefault(canonicalize_name(r.name), []).append(r)\n+    for opt_deps in (\n+        pyproject.get(\"project\", {}).get(\"optional-dependencies\", {}).values()\n+    ):\n+        for dep in opt_deps:\n+            r = Requirement(dep)\n+            declared_reqs.setdefault(canonicalize_name(r.name), []).append(r)\n+\n+    for edit_path in editable_paths:\n+        target_dir = resolve_package_dir(edit_path, pkg_dir, repo_root)\n+        if not target_dir:\n+            errors.append(\n+                f\"{pkg_dir.name}: unable to resolve editable path '-e {edit_path}' \"\n+                f\"in {oldest_path.relative_to(repo_root)}\"\n+            )\n+            continue\n+\n+        target_pyproject = tomllib.loads(\n+            (target_dir / \"pyproject.toml\").read_text(encoding=\"utf-8\")\n+        )\n+        target_name = canonicalize_name(\n+            target_pyproject.get(\"project\", {}).get(\"name\", \"\")\n+        )\n+\n+        if target_name == \"opentelemetry-test-util-genai\":\n+            continue\n+\n+        target_version_str = get_package_version(target_dir, target_pyproject)\n+        if not target_version_str:\n+            errors.append(\n+                f\"{pkg_dir.name}: could not determine version of target package \"\n+                f\"'{target_name}' at {target_dir.relative_to(repo_root)}\"\n+            )\n+            continue\n+\n+        min_v = min_dev_version(target_version_str)\n+\n+        if target_name not in declared_reqs:\n+            errors.append(\n+                f\"{pkg_dir.name}: tests/requirements.oldest.txt has '-e {edit_path}' for '{target_name}', \"\n+                f\"but '{target_name}' is not declared in pyproject.toml dependencies.\"\n+            )\n+            continue\n+\n+        for req in declared_reqs[target_name]:\n+            floor = extract_floor_version(req)\n+            if floor is None or floor < min_v:\n+                expected_version = f\"{target_version_str.split('.dev')[0]}.dev\"",
+      "id": "PRRT_kwDOSbspP86a-DqI",
+      "opened": "2026-08-20T21:46:23Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "6f4f9265ad71f4ae1a9ef9df52eb15bd41be9c11",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/433#discussion_r3825607266"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test module mutates `sys.path` at import time and never restores it, which can leak into other tests (and change import resolution order). It’s safer to remove the inserted path after importing `check_deps` so the rest of the test session runs with the normal sys.path ordering.",
+      "created": "2026-08-20T21:46:23Z",
+      "hunk": "@@ -0,0 +1,201 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import sys\n+import tempfile\n+import unittest\n+from pathlib import Path\n+\n+# Add scripts directory to sys.path to import check_deps\n+repo_root = Path(__file__).resolve().parent.parent.parent.parent\n+sys.path.insert(0, str(repo_root / \"scripts\"))\n+\n+from packaging.requirements import Requirement\n+from packaging.version import Version\n+\n+from check_deps import (\n+    check_editable_oldest_dependencies,\n+    extract_editable_paths,\n+    extract_floor_version,\n+    get_package_version,\n+    min_dev_version,\n+    resolve_package_dir,\n+)",
+      "id": "PRRT_kwDOSbspP86a-DqX",
+      "opened": "2026-08-20T21:46:23Z",
+      "path": "util/opentelemetry-util-genai/tests/test_check_deps.py",
+      "replies": [],
+      "reviewed": "6f4f9265ad71f4ae1a9ef9df52eb15bd41be9c11",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/433#discussion_r3825607289"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "bug number one",
+      "created": "2026-08-20T21:47:46Z",
+      "hunk": "@@ -26,7 +26,7 @@ classifiers = [\n ]\n dependencies = [\n   \"opentelemetry-instrumentation >= 0.64b0, <1\",\n-  \"opentelemetry-util-genai >= 1.0b0, <2\",\n+  \"opentelemetry-util-genai >= 1.1b0, <2\",",
+      "id": "PRRT_kwDOSbspP86a-FBq",
+      "opened": "2026-08-20T21:47:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/pyproject.toml",
+      "replies": [],
+      "reviewed": "6f4f9265ad71f4ae1a9ef9df52eb15bd41be9c11",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/433#discussion_r3825615742"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "bug number two",
+      "created": "2026-08-20T21:48:02Z",
+      "hunk": "@@ -42,7 +42,7 @@ dependencies = [\n   \"opentelemetry-api ~= 1.43\",\n   \"opentelemetry-instrumentation >= 0.64b0, <1\",\n   \"opentelemetry-semantic-conventions >= 0.64b0, <1\",\n-  \"opentelemetry-util-genai >= 1.0b0, <2\",\n+  \"opentelemetry-util-genai >= 1.1b0, <2\",",
+      "id": "PRRT_kwDOSbspP86a-FTo",
+      "opened": "2026-08-20T21:48:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+      "replies": [],
+      "reviewed": "6f4f9265ad71f4ae1a9ef9df52eb15bd41be9c11",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/433#discussion_r3825617495"
+    }
+  ]
+}

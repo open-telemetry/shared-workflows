@@ -1,0 +1,66 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d90a5c511a423d5b586c29a1f509471484ce682f513c9b693a69ffadfd1c375f",
+  "input_digest": "af633e6fc590663d911b4f06b0dc23f48cb6f7a268552902381a0fa0941a6bbf",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d125e227811231ad769a25ed1032c840ddf91b40/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d125e227811231ad769a25ed1032c840ddf91b40/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerExperimentalAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX854Mxxl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d125e227811231ad769a25ed1032c840ddf91b40/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d125e227811231ad769a25ed1032c840ddf91b40/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d125e227811231ad769a25ed1032c840ddf91b40/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryProducerInterceptor.java"
+      ],
+      "id": "PRRT_kwDODJKVX854M8JS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6514ffb8dc47cc4634d0a97f3221071dede4eec3/instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/KafkaStreamsDefaultTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/KafkaStreamsDefaultTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX855RWuG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d70481c62d748b7d4840f02d2e48b3b08b43b4d2/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerExperimentalAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3782234b2e50f3997da113413dc6461f41064a05/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerExperimentalAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX857HS_N",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX857emeY",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

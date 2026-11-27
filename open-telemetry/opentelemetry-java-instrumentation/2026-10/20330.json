@@ -1,0 +1,94 @@
+{
+  "head": "eb8ae633728c4f5b02b3d9916973b31626e45751",
+  "merge": "57ea948e1bf7b27d2a681d99abe690e9f7511fa7",
+  "merged": "2026-10-05T17:26:27Z",
+  "missing_roots": 0,
+  "number": 20330,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that keeping this in separate package could be beneficial since the forkjoin classes are completely independent from the rest of the instrumentation having them in separate package makes it clear which classes belong to which instrumentation.",
+      "created": "2026-10-01T05:40:54Z",
+      "hunk": "@@ -3,14 +3,14 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.akkaactor.v2_3.forkjoin;\n+package io.opentelemetry.javaagent.instrumentation.akkaactor.v2_3;",
+      "id": "PRRT_kwDODJKVX86n0Yrm",
+      "opened": "2026-10-01T05:40:54Z",
+      "path": "instrumentation/akka/akka-actor-2.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkaactor/v2_3/Akka25VirtualFields.java",
+      "replies": [
+        {
+          "at": "2026-10-01T15:18:40Z",
+          "body": "d1c65ced0016ad24d2e8c1488afae5bf33500b9c",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4157121132"
+        }
+      ],
+      "reviewed": "bd49dc531506625f32275988bc1d050c84a5ef57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4152208689"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could also consider `AkkaForkJoinVirtualFields`",
+      "created": "2026-10-01T05:44:29Z",
+      "hunk": "@@ -3,14 +3,14 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.akkaactor.v2_3.forkjoin;\n+package io.opentelemetry.javaagent.instrumentation.akkaactor.v2_3;\n \n import akka.dispatch.forkjoin.ForkJoinTask;\n import io.opentelemetry.instrumentation.api.util.VirtualField;\n import io.opentelemetry.javaagent.bootstrap.executors.PropagatedContext;\n import java.util.concurrent.Callable;\n \n-public class VirtualFields {\n+public class Akka25VirtualFields {",
+      "id": "PRRT_kwDODJKVX86n0bqs",
+      "opened": "2026-10-01T05:44:29Z",
+      "path": "instrumentation/akka/akka-actor-2.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkaactor/v2_3/forkjoin/Akka25VirtualFields.java",
+      "replies": [
+        {
+          "at": "2026-10-01T15:20:45Z",
+          "body": "3cebedd58d625a8c811d6fefe710acba1e82baa1",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4157147251"
+        }
+      ],
+      "reviewed": "bd49dc531506625f32275988bc1d050c84a5ef57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4152227320"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Here I'd also keep the network package. Merging the 2.0 and 2.6 networking packages is fine, can add the version numbers to the classes to distinguish them.",
+      "created": "2026-10-01T05:50:09Z",
+      "hunk": "@@ -3,10 +3,10 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.couchbase.v2_0.network.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v2_0;",
+      "id": "PRRT_kwDODJKVX86n0gaX",
+      "opened": "2026-10-01T05:50:09Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/Couchbase20NetworkInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-01T15:26:03Z",
+          "body": "8bd8e09f28ca4b4aed3fb09394c8cc96281a326a",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4157213337"
+        }
+      ],
+      "reviewed": "bd49dc531506625f32275988bc1d050c84a5ef57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4152256639"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "here too I think the package helps separate these instrumenations",
+      "created": "2026-10-01T05:56:50Z",
+      "hunk": "@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.ratpack.v1_4.httpclient;\n+package io.opentelemetry.javaagent.instrumentation.ratpack.v1_4;",
+      "id": "PRRT_kwDODJKVX86n0mIk",
+      "opened": "2026-10-01T05:56:50Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/ratpack/v1_4/DownstreamWrapper.java",
+      "replies": [
+        {
+          "at": "2026-10-01T15:34:18Z",
+          "body": "73cdb21a308e6ddcef1f8c54d5ff4d992dee185c",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4157306921"
+        }
+      ],
+      "reviewed": "bd49dc531506625f32275988bc1d050c84a5ef57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20330#discussion_r4152292462"
+    }
+  ]
+}

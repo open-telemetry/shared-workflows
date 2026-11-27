@@ -1,0 +1,25 @@
+{
+  "head": "bc1b6cf7228cac5e10c0acb3f746803a457fab04",
+  "merge": "192248b65c9b9a112f2d4794621356880f13e1dc",
+  "merged": "2026-10-12T07:03:28Z",
+  "missing_roots": 0,
+  "number": 20521,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- The Java agent and standalone libraries now use the existing v1.43.0 messaging implementation.\n```",
+      "created": "2026-10-12T00:10:12Z",
+      "hunk": "@@ -93,7 +88,14 @@\n   `otel.instrumentation.graphql.query-sanitizer.enabled`. Use\n   `otel.instrumentation.graphql.operation-name-in-span-name.enabled` and\n   `otel.instrumentation.graphql.query-sanitization.enabled`, respectively.\n-- The Java agent and standalone libraries now use the existing v1.43.0 messaging implementation.\n+- The Java agent and standalone libraries now emit messaging telemetry using schema version 1.43.0.\n+  Update span-name queries, for example `orders publish` becomes `send orders`, and replace\n+  `messaging.operation=publish` with `messaging.operation.name=send` and\n+  `messaging.operation.type=send`. Receive spans now use `CLIENT` instead of `CONSUMER`.\n+  Replace `messaging.publish.duration` and `messaging.receive.duration` with\n+  `messaging.client.operation.duration`, and `messaging.receive.messages` with\n+  `messaging.client.consumed.messages`. Producers also emit `messaging.client.sent.messages`;\n+  processing duration uses `messaging.process.duration`.",
+      "id": "PRRT_kwDODJKVX86rS7Uj",
+      "opened": "2026-10-12T00:10:12Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "19043c3398d0dd29f4ef1efe7493b4c67fc603a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20521#discussion_r4243814496"
+    }
+  ]
+}

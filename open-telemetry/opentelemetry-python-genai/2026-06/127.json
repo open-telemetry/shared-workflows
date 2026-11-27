@@ -1,0 +1,157 @@
+{
+  "head": "c13fcabcb660f2a3d1153fc6b69db68e8307f858",
+  "merge": "af817c2c8537816fc44aed67deda1fbce215c764",
+  "merged": "2026-06-18T02:59:43Z",
+  "missing_roots": 0,
+  "number": 127,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `_set_embeddings_response_properties(...)` throws (e.g., unexpected SDK response shape), the wrapper will call `invocation.fail(...)` and re-raise, which changes the behavior of the wrapped OpenAI call (instrumentation should not break user code). Make response-property extraction “best effort” (catch and swallow/log extraction errors) and ensure `invocation.stop()` is reliably invoked for successful OpenAI calls (e.g., by separating wrapped-call exceptions from instrumentation/extraction exceptions).",
+      "created": "2026-06-11T20:26:09Z",
+      "hunk": "@@ -104,194 +96,40 @@ async def traced_method(wrapped, instance, args, kwargs):\n     return traced_method\n \n \n-def embeddings_create(\n-    tracer: Tracer,\n-    instruments: Instruments,\n-    latest_experimental_enabled: bool,\n-):\n+def embeddings_create(handler: TelemetryHandler):\n     \"\"\"Wrap the `create` method of the `Embeddings` class to trace it.\"\"\"\n \n     def traced_method(wrapped, instance, args, kwargs):\n-        span_attributes = get_llm_request_attributes(\n-            kwargs,\n-            instance,\n-            latest_experimental_enabled,\n-            GenAIAttributes.GenAiOperationNameValues.EMBEDDINGS.value,\n-        )\n-        span_name = _get_embeddings_span_name(span_attributes)\n-\n-        with tracer.start_as_current_span(\n-            name=span_name,\n-            kind=SpanKind.CLIENT,\n-            attributes=span_attributes,\n-            end_on_exit=True,\n-        ) as span:\n-            start = default_timer()\n-            result = None\n-            error_type = None\n-\n-            try:\n-                result = wrapped(*args, **kwargs)\n-\n-                if span.is_recording():\n-                    _set_embeddings_response_attributes(span, result)\n-\n-                return result\n-\n-            except Exception as error:\n-                error_type = type(error).__qualname__\n-                handle_span_exception(span, error)\n-                raise\n-\n-            finally:\n-                duration = max((default_timer() - start), 0)\n-                _record_metrics(\n-                    instruments,\n-                    duration,\n-                    result,\n-                    span_attributes,\n-                    error_type,\n-                    GenAIAttributes.GenAiOperationNameValues.EMBEDDINGS.value,\n-                )\n+        invocation = create_embedding_invocation(handler, kwargs, instance)\n+\n+        try:\n+            result = wrapped(*args, **kwargs)\n+            _set_embeddings_response_properties(invocation, result)\n+            invocation.stop()\n+            return result\n+        except Exception as error:\n+            invocation.fail(error)\n+            raise",
+      "id": "PRRT_kwDOSbspP86I8HC1",
+      "opened": "2026-06-11T20:26:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [
+        {
+          "at": "2026-06-12T21:15:28Z",
+          "body": "Added a try catch for safety.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3406278447"
+        }
+      ],
+      "reviewed": "5cbf2a08d846a3aca6a8e0e64af60e10ff12be04",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3398954823"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`request_model` defaults to an empty string when `model` is missing. That can incorrectly mark the model as “set” (and may produce malformed span/metric attributes or names, e.g., trailing spaces) compared to the previous behavior which omitted the model attribute entirely when absent. Prefer passing `None` (or using `get_value(kwargs.get(\"model\"))`) so “missing model” remains truly unset.",
+      "created": "2026-06-11T20:26:09Z",
+      "hunk": "@@ -426,13 +274,34 @@ def get_value(v: Any):\n     return None\n \n \n-def handle_span_exception(span, error: BaseException):\n-    span.set_status(Status(StatusCode.ERROR, str(error)))\n-    if span.is_recording():\n-        span.set_attribute(\n-            ErrorAttributes.ERROR_TYPE, type(error).__qualname__\n-        )\n-    span.end()\n+def create_embedding_invocation(\n+    handler: TelemetryHandler,\n+    kwargs,\n+    client_instance,\n+) -> EmbeddingInvocation:\n+    address, port = get_server_address_and_port(client_instance)\n+    invocation = handler.embedding(\n+        GenAIAttributes.GenAiProviderNameValues.OPENAI.value,\n+        request_model=kwargs.get(\"model\", \"\"),\n+        server_address=address if address else None,\n+        server_port=port if port else None,\n+    )",
+      "id": "PRRT_kwDOSbspP86I8HCd",
+      "opened": "2026-06-11T20:26:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-06-12T21:14:54Z",
+          "body": "Fixed, now missing model will remain unset.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3406276427"
+        }
+      ],
+      "reviewed": "5cbf2a08d846a3aca6a8e0e64af60e10ff12be04",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3398954791"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The migration intentionally adds `GEN_AI_EMBEDDINGS_DIMENSION_COUNT` to `invocation.metric_attributes` in `create_embedding_invocation(...)` only when `dimensions` is provided in the request. When dimensions are *inferred from the response* (here), the metric attribute is not populated, so metrics may miss the dimension count even though it’s available. Consider also setting `invocation.metric_attributes[GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT]` when deriving the dimension from the response.",
+      "created": "2026-06-11T20:26:10Z",
+      "hunk": "@@ -346,29 +184,19 @@ def _set_response_properties(\n     return chat_invocation\n \n \n-def _set_embeddings_response_attributes(\n-    span: Span,\n+def _set_embeddings_response_properties(\n+    invocation: EmbeddingInvocation,\n     result: Any,\n-):\n-    set_span_attribute(\n-        span, GenAIAttributes.GEN_AI_RESPONSE_MODEL, result.model\n-    )\n+) -> None:\n+    if getattr(result, \"model\", None):\n+        invocation.response_model_name = result.model\n \n     # Set embeddings dimensions if we can determine it from the response\n     if getattr(result, \"data\", None) and len(result.data) > 0:\n         first_embedding = result.data[0]\n         if getattr(first_embedding, \"embedding\", None):\n-            set_span_attribute(\n-                span,\n-                \"gen_ai.embeddings.dimension.count\",\n-                len(first_embedding.embedding),\n-            )\n+            invocation.dimension_count = len(first_embedding.embedding)",
+      "id": "PRRT_kwDOSbspP86I8HDF",
+      "opened": "2026-06-11T20:26:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [
+        {
+          "at": "2026-06-12T21:16:17Z",
+          "body": "Updated to also set `GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT]`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3406282524"
+        }
+      ],
+      "reviewed": "5cbf2a08d846a3aca6a8e0e64af60e10ff12be04",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3398954845"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR removes `tests/test_request_attributes.py` (which covered “model omitted when missing” and embeddings span naming behavior) but doesn’t add replacement tests for the new `EmbeddingInvocation` path. Please add unit tests around `create_embedding_invocation(...)` and embeddings wrappers to verify (at minimum) model omission/setting, dimension count propagation to metric attributes, and encoding_format mapping.",
+      "created": "2026-06-11T20:26:10Z",
+      "hunk": "@@ -426,13 +274,34 @@ def get_value(v: Any):\n     return None\n \n \n-def handle_span_exception(span, error: BaseException):\n-    span.set_status(Status(StatusCode.ERROR, str(error)))\n-    if span.is_recording():\n-        span.set_attribute(\n-            ErrorAttributes.ERROR_TYPE, type(error).__qualname__\n-        )\n-    span.end()\n+def create_embedding_invocation(\n+    handler: TelemetryHandler,\n+    kwargs,\n+    client_instance,\n+) -> EmbeddingInvocation:",
+      "id": "PRRT_kwDOSbspP86I8HDR",
+      "opened": "2026-06-11T20:26:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-06-12T21:16:40Z",
+          "body": "Added further unit test coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3406284531"
+        }
+      ],
+      "reviewed": "5cbf2a08d846a3aca6a8e0e64af60e10ff12be04",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3398954861"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Why are we breaking the pattern and creating invocation in utils instead of having it here?",
+      "created": "2026-06-14T02:01:28Z",
+      "hunk": "@@ -104,194 +102,42 @@ async def traced_method(wrapped, instance, args, kwargs):\n     return traced_method\n \n \n-def embeddings_create(\n-    tracer: Tracer,\n-    instruments: Instruments,\n-    latest_experimental_enabled: bool,\n-):\n+def embeddings_create(handler: TelemetryHandler):\n     \"\"\"Wrap the `create` method of the `Embeddings` class to trace it.\"\"\"\n \n     def traced_method(wrapped, instance, args, kwargs):\n-        span_attributes = get_llm_request_attributes(\n-            kwargs,\n-            instance,\n-            latest_experimental_enabled,\n-            GenAIAttributes.GenAiOperationNameValues.EMBEDDINGS.value,\n-        )\n-        span_name = _get_embeddings_span_name(span_attributes)\n-\n-        with tracer.start_as_current_span(\n-            name=span_name,\n-            kind=SpanKind.CLIENT,\n-            attributes=span_attributes,\n-            end_on_exit=True,\n-        ) as span:\n-            start = default_timer()\n-            result = None\n-            error_type = None\n-\n-            try:\n-                result = wrapped(*args, **kwargs)\n-\n-                if span.is_recording():\n-                    _set_embeddings_response_attributes(span, result)\n-\n-                return result\n-\n-            except Exception as error:\n-                error_type = type(error).__qualname__\n-                handle_span_exception(span, error)\n-                raise\n-\n-            finally:\n-                duration = max((default_timer() - start), 0)\n-                _record_metrics(\n-                    instruments,\n-                    duration,\n-                    result,\n-                    span_attributes,\n-                    error_type,\n-                    GenAIAttributes.GenAiOperationNameValues.EMBEDDINGS.value,\n-                )\n-\n-    return traced_method\n+        invocation = create_embedding_invocation(handler, kwargs, instance)",
+      "id": "PRRT_kwDOSbspP86JXj_p",
+      "opened": "2026-06-14T02:20:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [
+        {
+          "at": "2026-06-14T20:02:33Z",
+          "body": "My thinking was that `create_chat_invocation` lives in `utils.py` too and is called from `patch.py` the same way, but I'm happy to update this per your suggesion. Let me know if the update looks good.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3410150261"
+        }
+      ],
+      "reviewed": "71751a1730d842b6ca39e0ca79d187cb52b7f8f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3408885571"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "suggestion(non-blocking): I think this existed previously too, can you please assign a type instead of `Any` here?",
+      "created": "2026-06-14T02:04:13Z",
+      "hunk": "@@ -346,29 +192,45 @@ def _set_response_properties(\n     return chat_invocation\n \n \n-def _set_embeddings_response_attributes(\n-    span: Span,\n+def _set_embeddings_response_properties(\n+    invocation: EmbeddingInvocation,\n     result: Any,",
+      "id": "PRRT_kwDOSbspP86JXkdP",
+      "opened": "2026-06-14T02:20:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [
+        {
+          "at": "2026-06-14T20:02:36Z",
+          "body": "Added `CreateEmbeddingResponse` typing.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3410150329"
+        }
+      ],
+      "reviewed": "71751a1730d842b6ca39e0ca79d187cb52b7f8f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3408887888"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): I believe we can use is_instance and rewrite it to avoid this exception handling right. Say something like:\n\n```python\ndef _set_embeddings_response_properties(\n    invocation: EmbeddingInvocation,\n    result: Any,\n) -> None:\n    model = getattr(result, \"model\", None)\n    if isinstance(model, str):\n        invocation.response_model_name = model\n\n    data = getattr(result, \"data\", None)\n    if isinstance(data, (list, tuple)) and data:\n        embedding = getattr(data[0], \"embedding\", None)\n        if isinstance(embedding, (list, tuple)):\n            _set_embedding_dimension_count(invocation, len(embedding))\n\n    # Embeddings only have input tokens; output tokens are not applicable.\n    prompt_tokens = getattr(getattr(result, \"usage\", None), \"prompt_tokens\", None)\n    if isinstance(prompt_tokens, int):\n        invocation.input_tokens = prompt_tokens\n```\n\nWe might reduce some verbosity, lmk wdyt.",
+      "created": "2026-06-14T02:20:07Z",
+      "hunk": "@@ -346,29 +192,45 @@ def _set_response_properties(\n     return chat_invocation\n \n \n-def _set_embeddings_response_attributes(\n-    span: Span,\n+def _set_embeddings_response_properties(\n+    invocation: EmbeddingInvocation,\n     result: Any,\n-):\n-    set_span_attribute(\n-        span, GenAIAttributes.GEN_AI_RESPONSE_MODEL, result.model\n-    )\n+) -> None:\n+    if getattr(result, \"model\", None):\n+        invocation.response_model_name = result.model\n \n     # Set embeddings dimensions if we can determine it from the response\n     if getattr(result, \"data\", None) and len(result.data) > 0:\n         first_embedding = result.data[0]\n         if getattr(first_embedding, \"embedding\", None):\n-            set_span_attribute(\n-                span,\n-                \"gen_ai.embeddings.dimension.count\",\n-                len(first_embedding.embedding),\n-            )\n-\n-    # Get the usage\n+            dimension_count = len(first_embedding.embedding)\n+            invocation.dimension_count = dimension_count\n+            # Mirror create_embedding_invocation: EmbeddingInvocation does\n+            # not put dimension_count on metric attributes, so surface it\n+            # explicitly when we derive it from the response too.\n+            invocation.metric_attributes[\n+                GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT\n+            ] = dimension_count\n+\n+    # Embeddings only have input tokens; output tokens are not applicable.\n     if getattr(result, \"usage\", None):\n-        set_span_attribute(\n-            span,\n-            GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS,\n-            result.usage.prompt_tokens,\n+        invocation.input_tokens = result.usage.prompt_tokens\n+\n+\n+def _safe_set_embeddings_response_properties(\n+    invocation: EmbeddingInvocation,\n+    result: Any,\n+) -> None:",
+      "id": "PRRT_kwDOSbspP86JXmz3",
+      "opened": "2026-06-14T02:20:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [
+        {
+          "at": "2026-06-14T20:02:39Z",
+          "body": "Thank you for the suggestion! But I think the `try/except` is the most appropriate solution here as `isinstance` only helps if an attribute is missing or the wrong type and won't save us if a property accessor raises or if a future version changes shape in an unexpected way. I've added `CreateEmbeddingResponse` typing per your above suggestion that I think will mostly address this suggestion.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3410150388"
+        }
+      ],
+      "reviewed": "71751a1730d842b6ca39e0ca79d187cb52b7f8f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/127#discussion_r3408900099"
+    }
+  ]
+}

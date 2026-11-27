@@ -1,0 +1,205 @@
+{
+  "head": "865dd10c961d970610a6c5b11fd95e8150b88bed",
+  "merge": "6daaf4d82813687faa81a07de6bc3b0e74df8009",
+  "merged": "2026-05-26T18:24:41Z",
+  "missing_roots": 0,
+  "number": 18701,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `@TestMethodOrder(OrderAnnotation.class)` + `@Order` introduces ordering requirements across the entire test class (and all subclasses). Since this test already recreates the client in `@BeforeEach`, ordering shouldn’t be needed; keeping tests order-independent helps avoid hidden coupling/flakiness. Consider removing the method ordering unless there’s a concrete dependency that can’t be eliminated.",
+      "created": "2026-05-12T15:26:20Z",
+      "hunk": "@@ -68,6 +71,7 @@\n \n @SuppressWarnings(\"deprecation\") // using deprecated semconv\n @TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)\n public abstract class AbstractRedissonClientTest {",
+      "id": "PRRT_kwDODJKVX86Bd-j2",
+      "opened": "2026-05-12T15:26:22Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [],
+      "reviewed": "0239196c9eebb0dbe5373e70db0f784982dadb35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3227691543"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setConnectionMinimumIdleSize(0)` is applied in the shared `@BeforeEach` setup, so it changes behavior for *all* tests in this class (including existing ones). That can unintentionally alter coverage and can increase flakiness/latency by forcing more reconnects. Consider scoping this setting only to the lazy-connection regression test (e.g., by building a dedicated `RedissonClient` inside that test or using `TestInfo` in `@BeforeEach` to conditionally apply the config).",
+      "created": "2026-05-12T15:26:20Z",
+      "hunk": "@@ -115,6 +119,9 @@ void setup() throws InvocationTargetException, IllegalAccessException {\n     SingleServerConfig singleServerConfig = config.useSingleServer();\n     singleServerConfig.setAddress(newAddress);\n     singleServerConfig.setTimeout(30_000);\n+    // When verifying the stringCommandLazyConnection test case, simulate reconnection during Redis\n+    // command execution.\n+    singleServerConfig.setConnectionMinimumIdleSize(0);",
+      "id": "PRRT_kwDODJKVX86Bd-jI",
+      "opened": "2026-05-12T15:26:22Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [],
+      "reviewed": "0239196c9eebb0dbe5373e70db0f784982dadb35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3227691486"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This regression test is meant to validate context propagation under the `parent` span, but the `SET` span assertion doesn’t currently verify parentage. Adding `.hasParent(trace.getSpan(0))` here would make the test directly assert the intended behavior (no lost context).\n",
+      "created": "2026-05-12T15:26:20Z",
+      "hunk": "@@ -135,6 +142,43 @@ void cleanup() {\n     }\n   }\n \n+  @Test\n+  @Order(1)\n+  void stringCommandLazyConnection() {\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          RBucket<String> keyObject = redisson.getBucket(\"foo\");\n+          keyObject.set(\"bar\");\n+          keyObject.get();\n+        });\n+    testing.waitAndAssertSortedTraces(\n+        orderByRootSpanName(\"parent\", \"SET\", \"GET\"),\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasKind(INTERNAL).hasNoParent(),\n+                span ->\n+                    span.hasName(\"SET\")\n+                        .hasKind(CLIENT)",
+      "id": "PRRT_kwDODJKVX86Bd-kN",
+      "opened": "2026-05-12T15:26:22Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [],
+      "reviewed": "0239196c9eebb0dbe5373e70db0f784982dadb35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3227691574"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Similarly, the `GET` span assertion should verify it remains a child of the `parent` span (e.g., `.hasParent(trace.getSpan(0))`) to directly test that context isn’t lost across command execution.\n",
+      "created": "2026-05-12T15:26:21Z",
+      "hunk": "@@ -135,6 +142,43 @@ void cleanup() {\n     }\n   }\n \n+  @Test\n+  @Order(1)\n+  void stringCommandLazyConnection() {\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          RBucket<String> keyObject = redisson.getBucket(\"foo\");\n+          keyObject.set(\"bar\");\n+          keyObject.get();\n+        });\n+    testing.waitAndAssertSortedTraces(\n+        orderByRootSpanName(\"parent\", \"SET\", \"GET\"),\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasKind(INTERNAL).hasNoParent(),\n+                span ->\n+                    span.hasName(\"SET\")\n+                        .hasKind(CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n+                            equalTo(NETWORK_PEER_ADDRESS, ip),\n+                            equalTo(NETWORK_PEER_PORT, port),\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), \"SET foo ?\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"SET\")),\n+                span ->\n+                    span.hasName(\"GET\")\n+                        .hasKind(CLIENT)",
+      "id": "PRRT_kwDODJKVX86Bd-k1",
+      "opened": "2026-05-12T15:26:22Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [],
+      "reviewed": "0239196c9eebb0dbe5373e70db0f784982dadb35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3227691627"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setConnectionMinimumIdleSize(0)` is set for every test via `@BeforeEach`, which changes behavior for the entire suite (including existing tests like `futureWhenComplete`). Consider scoping this configuration only to the lazy-connection regression scenario so the rest of the tests continue exercising the default pooling behavior.",
+      "created": "2026-05-12T15:26:21Z",
+      "hunk": "@@ -101,6 +105,9 @@ void setup() throws InvocationTargetException, IllegalAccessException {\n     SingleServerConfig singleServerConfig = config.useSingleServer();\n     singleServerConfig.setAddress(newAddress);\n     singleServerConfig.setTimeout(30_000);\n+    // When verifying the futureWhenCompleteLazyConnection test case, simulate reconnection during\n+    // Redis command execution.\n+    singleServerConfig.setConnectionMinimumIdleSize(0);",
+      "id": "PRRT_kwDODJKVX86Bd-lW",
+      "opened": "2026-05-12T15:26:22Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "0239196c9eebb0dbe5373e70db0f784982dadb35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3227691670"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Introducing `@TestMethodOrder(OrderAnnotation.class)` and `@Order` makes the test suite order-dependent. Given the client is recreated in `@BeforeEach`, test ordering shouldn’t be necessary; consider removing ordering to keep the suite resilient and easier to maintain.",
+      "created": "2026-05-12T15:26:21Z",
+      "hunk": "@@ -60,6 +63,7 @@\n \n @SuppressWarnings(\"deprecation\") // using deprecated semconv\n @TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)\n public abstract class AbstractRedissonAsyncClientTest {",
+      "id": "PRRT_kwDODJKVX86Bd-lv",
+      "opened": "2026-05-12T15:26:22Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "0239196c9eebb0dbe5373e70db0f784982dadb35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3227691703"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`futureWhenCompleteLazyConnection()` is currently effectively identical to the existing `futureWhenComplete()` test (same body and assertions). With the global `connectionMinimumIdleSize(0)` change, both tests now exercise the same configuration. Consider either (a) making only this test use the “lazy connection” config, keeping `futureWhenComplete()` as the baseline case, or (b) removing one of the duplicates to avoid redundant coverage/time.",
+      "created": "2026-05-12T15:26:22Z",
+      "hunk": "@@ -121,6 +128,42 @@ void cleanup() {\n     }\n   }\n \n+  @Test\n+  @Order(1)\n+  void futureWhenCompleteLazyConnection() {\n+    RSet<String> set = redisson.getSet(\"set1\");\n+    CompletionStage<Boolean> result =\n+        testing.runWithSpan(\n+            \"parent\",\n+            () -> {\n+              RFuture<Boolean> future = set.addAsync(\"s1\");\n+              return future.whenComplete(\n+                  (res, throwable) -> {\n+                    assertThat(Span.current().getSpanContext().isValid()).isTrue();\n+                    testing.runWithSpan(\"callback\", () -> {});\n+                  });\n+            });",
+      "id": "PRRT_kwDODJKVX86Bd-mH",
+      "opened": "2026-05-12T15:26:22Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "0239196c9eebb0dbe5373e70db0f784982dadb35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3227691735"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`waitAndAssertSortedTraces` makes sense only when you are asserting multiple traces, here you have only 1 trace",
+      "created": "2026-05-18T14:22:28Z",
+      "hunk": "@@ -135,6 +142,43 @@ void cleanup() {\n     }\n   }\n \n+  @Test\n+  void stringCommandLazyConnection() {\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          RBucket<String> keyObject = redisson.getBucket(\"foo\");\n+          keyObject.set(\"bar\");\n+          keyObject.get();\n+        });\n+    testing.waitAndAssertSortedTraces(\n+        orderByRootSpanName(\"parent\", \"SET\", \"GET\"),\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(",
+      "id": "PRRT_kwDODJKVX86C3QoB",
+      "opened": "2026-05-18T14:22:28Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [],
+      "reviewed": "f55df5bd39447bbbb99624d7f0976483b278f40b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3259633507"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why do you need special handling only for `whenComplete` but not for other methods?",
+      "created": "2026-05-18T14:49:27Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.common.v3_0;\n+\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.function.BiConsumer;\n+\n+public final class ContextPropagatingCompletableFuture<T> extends CompletableFuture<T> {\n+  private final CompletableFuture<T> delegate;\n+  private final Context context;\n+\n+  private ContextPropagatingCompletableFuture(CompletableFuture<T> delegate, Context context) {\n+    this.delegate = delegate;\n+    this.context = context;\n+    delegate.whenComplete(\n+        (result, error) -> {\n+          try (Scope ignored = context.makeCurrent()) {\n+            if (delegate.isCancelled()) {\n+              super.cancel(false);\n+            } else if (error != null) {\n+              super.completeExceptionally(error);\n+            } else {\n+              super.complete(result);\n+            }\n+          }\n+        });\n+  }\n+\n+  public static <T> CompletableFuture<T> wrap(CompletableFuture<T> delegate, Context context) {\n+    if (!Span.fromContext(context).getSpanContext().isValid()\n+        || delegate instanceof ContextPropagatingCompletableFuture) {\n+      return delegate;\n+    }\n+    return new ContextPropagatingCompletableFuture<>(delegate, context);\n+  }\n+\n+  @Override\n+  public CompletableFuture<T> whenComplete(BiConsumer<? super T, ? super Throwable> action) {",
+      "id": "PRRT_kwDODJKVX86C3y-M",
+      "opened": "2026-05-18T14:49:27Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/ContextPropagatingCompletableFuture.java",
+      "replies": [],
+      "reviewed": "f55df5bd39447bbbb99624d7f0976483b278f40b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3259823255"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "in some other completable future wrappers we skip when `Context.current() == Context.root()`",
+      "created": "2026-05-18T14:50:35Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.common.v3_0;\n+\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.function.BiConsumer;\n+\n+public final class ContextPropagatingCompletableFuture<T> extends CompletableFuture<T> {\n+  private final CompletableFuture<T> delegate;\n+  private final Context context;\n+\n+  private ContextPropagatingCompletableFuture(CompletableFuture<T> delegate, Context context) {\n+    this.delegate = delegate;\n+    this.context = context;\n+    delegate.whenComplete(\n+        (result, error) -> {\n+          try (Scope ignored = context.makeCurrent()) {\n+            if (delegate.isCancelled()) {\n+              super.cancel(false);\n+            } else if (error != null) {\n+              super.completeExceptionally(error);\n+            } else {\n+              super.complete(result);\n+            }\n+          }\n+        });\n+  }\n+\n+  public static <T> CompletableFuture<T> wrap(CompletableFuture<T> delegate, Context context) {\n+    if (!Span.fromContext(context).getSpanContext().isValid()",
+      "id": "PRRT_kwDODJKVX86C30bK",
+      "opened": "2026-05-18T14:50:35Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/ContextPropagatingCompletableFuture.java",
+      "replies": [],
+      "reviewed": "f55df5bd39447bbbb99624d7f0976483b278f40b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3259831173"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we don't handle cancellation in our completable future wrappers (maybe we should?). I'm not sure this would actually be enough, might need to also override `newIncompleteFuture` to ensure cancellation propagates when stages are added to the returned completable future. In the only place we handle cancellation we use\n```java\n  @Override\n  public boolean cancel(boolean mayInterruptIfRunning) {\n    boolean result = super.cancel(mayInterruptIfRunning);\n    future.cancel(mayInterruptIfRunning);\n    return result;\n  } \n```",
+      "created": "2026-05-18T14:58:35Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.common.v3_0;\n+\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.function.BiConsumer;\n+\n+public final class ContextPropagatingCompletableFuture<T> extends CompletableFuture<T> {\n+  private final CompletableFuture<T> delegate;\n+  private final Context context;\n+\n+  private ContextPropagatingCompletableFuture(CompletableFuture<T> delegate, Context context) {\n+    this.delegate = delegate;\n+    this.context = context;\n+    delegate.whenComplete(\n+        (result, error) -> {\n+          try (Scope ignored = context.makeCurrent()) {\n+            if (delegate.isCancelled()) {\n+              super.cancel(false);\n+            } else if (error != null) {\n+              super.completeExceptionally(error);\n+            } else {\n+              super.complete(result);\n+            }\n+          }\n+        });\n+  }\n+\n+  public static <T> CompletableFuture<T> wrap(CompletableFuture<T> delegate, Context context) {\n+    if (!Span.fromContext(context).getSpanContext().isValid()\n+        || delegate instanceof ContextPropagatingCompletableFuture) {\n+      return delegate;\n+    }\n+    return new ContextPropagatingCompletableFuture<>(delegate, context);\n+  }\n+\n+  @Override\n+  public CompletableFuture<T> whenComplete(BiConsumer<? super T, ? super Throwable> action) {\n+    return super.whenComplete(\n+        (result, error) -> {\n+          if (Context.current() == context) {\n+            action.accept(result, error);\n+            return;\n+          }\n+          try (Scope ignored = context.makeCurrent()) {\n+            action.accept(result, error);\n+          }\n+        });\n+  }\n+\n+  @Override\n+  public boolean cancel(boolean mayInterruptIfRunning) {",
+      "id": "PRRT_kwDODJKVX86C3-R_",
+      "opened": "2026-05-18T14:58:35Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/ContextPropagatingCompletableFuture.java",
+      "replies": [],
+      "reviewed": "f55df5bd39447bbbb99624d7f0976483b278f40b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3259885394"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "just `extendsClass(named(\"org.redisson.command.RedisExecutor\")` is applied to `org.redisson.command.RedisExecutor`\nwhen using class hierarchy based matchers we usually also add\n```java\n  @Override\n  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n    return hasClassesNamed(\"org.redisson.command.RedisExecutor\");\n  }\n```",
+      "created": "2026-05-18T15:00:08Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.v3_17;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.redisson.common.v3_0.ContextPropagatingCompletableFuture;\n+import java.util.concurrent.CompletableFuture;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class RedisExecutorConnectionFutureInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.redisson.command.RedisExecutor\")",
+      "id": "PRRT_kwDODJKVX86C4ATR",
+      "opened": "2026-05-18T15:00:08Z",
+      "path": "instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/RedisExecutorConnectionFutureInstrumentation.java",
+      "replies": [],
+      "reviewed": "f55df5bd39447bbbb99624d7f0976483b278f40b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3259896395"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "commented out all that follows this line and all tests passed, is this needed?",
+      "created": "2026-05-18T16:11:13Z",
+      "hunk": "@@ -0,0 +1,178 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.v3_0;\n+\n+import io.netty.util.concurrent.FutureListener;\n+import io.netty.util.concurrent.ImmediateEventExecutor;\n+import io.netty.util.concurrent.Promise;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import java.util.Map;\n+import java.util.Queue;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.concurrent.ConcurrentLinkedQueue;\n+import java.util.function.BiConsumer;\n+import org.redisson.api.RFuture;\n+import org.redisson.misc.RPromise;\n+import org.redisson.misc.RedissonPromise;\n+\n+public class ContextPropagatingRFuture<T> extends RedissonPromise<T> {\n+\n+  private final RFuture<T> delegate;\n+  private final Context context;\n+  private final Promise<T> listenerPromise = ImmediateEventExecutor.INSTANCE.newPromise();\n+  private final Map<FutureListener<? super T>, Queue<FutureListener<T>>> listenerWrappers =\n+      new ConcurrentHashMap<>();\n+\n+  private ContextPropagatingRFuture(RFuture<T> delegate, Context context) {\n+    this.delegate = delegate;\n+    this.context = context;\n+    delegate.whenComplete(\n+        (result, error) -> {\n+          try (Scope ignored = context.makeCurrent()) {\n+            if (delegate.isCancelled()) {\n+              super.cancel(false);\n+              listenerPromise.cancel(false);\n+            } else if (error != null) {\n+              super.tryFailure(error);\n+              listenerPromise.tryFailure(error);\n+            } else {\n+              super.trySuccess(result);\n+              listenerPromise.trySuccess(result);\n+            }\n+            listenerWrappers.clear();\n+          }\n+        });\n+  }\n+\n+  public static <T> RFuture<T> wrap(RFuture<T> delegate, Context context) {\n+    if (!Span.fromContext(context).getSpanContext().isValid()\n+        || delegate instanceof ContextPropagatingRFuture) {\n+      return delegate;\n+    }\n+    return new ContextPropagatingRFuture<>(delegate, context);\n+  }\n+\n+  @Override",
+      "id": "PRRT_kwDODJKVX86C5WvW",
+      "opened": "2026-05-18T16:11:13Z",
+      "path": "instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/ContextPropagatingRFuture.java",
+      "replies": [],
+      "reviewed": "f55df5bd39447bbbb99624d7f0976483b278f40b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18701#discussion_r3260378821"
+    }
+  ]
+}

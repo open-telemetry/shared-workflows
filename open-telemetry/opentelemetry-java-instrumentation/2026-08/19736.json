@@ -1,0 +1,52 @@
+{
+  "head": "f19e1af63b7f3d48e44559b5b02b8af68f569b48",
+  "merge": "68d46363dc9dc198d25556c2db3fdc84b0ad8548",
+  "merged": "2026-08-25T01:06:16Z",
+  "missing_roots": 0,
+  "number": 19736,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Treating every nonzero Gradle result as documentation drift hides genuine audit execution failures. `DocSynchronization` also exits 1 for HTTP/I/O/runtime errors (`instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/DocSynchronization.java:49-60,79-82`), so a network failure or crashed audit will create/comment the “site out of sync” issue and leave this job green even though no valid audit completed. Please distinguish a detected drift from an execution error (for example with separate exit codes), and only suppress the former.",
+      "created": "2026-08-20T22:37:48Z",
+      "hunk": "@@ -27,16 +30,39 @@ jobs:\n         run: ./gradlew :instrumentation-docs:runAnalysis\n \n       - name: Run doc site audit\n-        run: ./gradlew :instrumentation-docs:docSiteAudit\n+        id: doc-site-audit\n+        run: |\n+          if ./gradlew :instrumentation-docs:docSiteAudit; then\n+            echo \"success=true\" >> \"$GITHUB_OUTPUT\"\n+          else\n+            echo \"success=false\" >> \"$GITHUB_OUTPUT\"\n+          fi",
+      "id": "PRRT_kwDODJKVX86a-w4s",
+      "opened": "2026-08-20T22:37:49Z",
+      "path": ".github/workflows/documentation-synchronization-audit.yml",
+      "replies": [
+        {
+          "at": "2026-08-21T14:48:29Z",
+          "body": "Addressed in b4503e05979e36330e73495e2ca67aa664d31ded.\n\nAnalysis: `DocSynchronization.main` previously used a single `hasFailures` flag and a single exit code (1) for both drift (an auditor returned a non-empty result) and execution errors (IOException / InterruptedException / RuntimeException thrown during an auditor, or an uncaught RuntimeException from the outer loop). Because the workflow treated any nonzero Gradle exit as `success=false`, a network failure or crash would silently open or update the \"site out of sync\" issue instead of failing the job.\n\nThe fix separates the two cases with distinct exit codes:\n- Exit 0: all auditors ran and found no drift.\n- Exit 1: all auditors ran; at least one detected drift.\n- Exit 2: at least one auditor threw an exception, or the outer loop crashed.\n\n`DocSynchronization.java` tracks `hasDrift` and `hasErrors` in separate booleans and separate message builders, and exits with 2 on any execution error and 1 on drift-only.\n\nThe Gradle `docSiteAudit` task is updated with `isIgnoreExitValue = true` and a `doLast` block that writes the Java process exit code to `instrumentation-docs/build/audit-exit-code`, then throws (failing the Gradle task) only when the exit code is greater than 1.\n\nThe workflow step reads Gradle's exit code first. A nonzero Gradle exit (Java exited with 2+) propagates as a step failure, preventing the issue-management step from running. A zero Gradle exit means the Java process exited 0 or 1, and the step reads the saved exit code to set `success=true` or `success=false`.\n\nUpsides: Execution errors (network failures, crashes) now fail the CI job visibly instead of creating a spurious \"site out of sync\" issue. Drift detection continues to open/comment on the issue as before.\n\nDownsides: No material downside identified. The audit-exit-code file is a small build artifact. On a Gradle failure unrelated to the Java process (e.g., compilation), the file is not written, but the step already exits early on the nonzero Gradle exit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19736#discussion_r3831197278"
+        }
+      ],
+      "reviewed": "2057e52da35efe4637750008688c081ecf8d0e38",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19736#discussion_r3825886825"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Treating only exit codes greater than 1 as execution errors still misclassifies unexpected JVM failures as drift. The Java launcher normally returns 1 for an uncaught throwable or startup failure; for example, `HttpClient.newHttpClient()` is outside the `try`, and `Error` is not caught. In those cases this task succeeds, writes `1`, and the workflow opens/comments on the drift issue instead of failing. Reserve a distinct code for intentional drift and fail the task for every other nonzero code (or communicate drift out-of-band).",
+      "created": "2026-08-21T14:53:03Z",
+      "hunk": "@@ -43,9 +43,24 @@ tasks {\n \n   register<JavaExec>(\"docSiteAudit\") {\n     dependsOn(classes)\n+    isIgnoreExitValue = true\n \n     systemProperty(\"basePath\", project.rootDir)\n     mainClass.set(\"io.opentelemetry.instrumentation.docs.DocSynchronization\")\n     classpath(sourceSets[\"main\"].runtimeClasspath)\n+\n+    doLast {\n+      val exitValue = executionResult.get().exitValue\n+      // Write the Java process exit code so the CI workflow can distinguish\n+      // drift (exit 1) from execution errors (exit 2+).\n+      layout.buildDirectory.file(\"audit-exit-code\").get().asFile.also {\n+        it.parentFile.mkdirs()\n+        it.writeText(exitValue.toString())\n+      }\n+      // Execution errors should still fail the Gradle task.\n+      if (exitValue > 1) {",
+      "id": "PRRT_kwDODJKVX86bMYME",
+      "opened": "2026-08-21T14:53:03Z",
+      "path": "instrumentation-docs/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-21T14:57:27Z",
+          "body": "Addressed in eb2b9dc546ead51fe95da8532f627a168b077051.\n\nAnalysis: The previous approach used exit 1 for execution errors and exit 2 for errors caught in the inner loop, letting the Gradle doLast pass for any exit value <= 1. That still left a gap: an uncaught `Error` or a startup failure in `HttpClient.newHttpClient()` (which was outside the try block) would cause the JVM to exit with its default code of 1, which the doLast check would not catch, so Gradle would succeed and the workflow would set `success=false`, opening the drift issue for a run that never completed an audit.\n\nThe fix reserves exit code 42 as the single signal for \"audit ran to completion and detected drift\". Every other nonzero exit (including 1, which the JVM uses by default for uncaught throwables) is treated as an execution error and causes the Gradle task to fail.\n\nChanges:\n- `DocSynchronization.java`: adds a `DRIFT_EXIT_CODE = 42` constant and uses it for the drift path. Execution errors (inner-catch and outer-catch) now both call `exit(1)`. `HttpClient.newHttpClient()` is moved inside the try block so startup failures are caught and exit with 1 rather than propagating as an uncaught throwable.\n- `build.gradle.kts`: the doLast guard changes from `exitValue > 1` to `exitValue != 0 && exitValue != 42`, so exit 1 (any unexpected failure) now correctly fails the Gradle task.\n- Workflow: the audit-exit-code check changes from `== 0` (success) to `== 42` (drift), matching the new contract.\n\nUpsides: Unexpected JVM failures, uncaught Errors, and startup exceptions now all fail the Gradle task and the workflow step, preventing any spurious drift issue creation. Only `exit(42)` (which the Java code can reach only through the explicit drift path) allows the task to succeed with drift.\n\nDownsides: No material downside identified. Exit code 42 is unconventional but unambiguous; it cannot be confused with any JVM default.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19736#discussion_r3831264387"
+        }
+      ],
+      "reviewed": "b4503e05979e36330e73495e2ca67aa664d31ded",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19736#discussion_r3831230358"
+    }
+  ]
+}

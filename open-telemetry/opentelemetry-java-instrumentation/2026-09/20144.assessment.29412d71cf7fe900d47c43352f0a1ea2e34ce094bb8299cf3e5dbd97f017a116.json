@@ -1,0 +1,82 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a8dfbfb995802f2a53d36ae9aa29710d8564f948ee1c3d588a6a1e0aca10514e",
+  "input_digest": "29412d71cf7fe900d47c43352f0a1ea2e34ce094bb8299cf3e5dbd97f017a116",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cfac17d771c23458b3318dc47daf1ea61ee72f19/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaFetchRecordsInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cfac17d771c23458b3318dc47daf1ea61ee72f19/instrumentation/camel-2.20/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaFetchRecordsInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86h8iju",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0195913425c11fdd49cf29e6ea14859918131f59/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86leBjl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d62902f3101930de81366d627ce013d71c5c847b/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SqsConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d62902f3101930de81366d627ce013d71c5c847b/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsProcessTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d62902f3101930de81366d627ce013d71c5c847b/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/TracingList.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SqsConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsProcessTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/TracingList.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lefaz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d66ec8733845755480f60a164c92bec84f87679d/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/ApacheCamelAwsSqsInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/ApacheCamelAwsSqsInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86nLfhI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d66ec8733845755480f60a164c92bec84f87679d/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SqsCamelOwnershipInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SqsCamelOwnershipInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86nLo1K",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d66ec8733845755480f60a164c92bec84f87679d/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaCamelPollInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaCamelPollInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaCamelTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86nLww_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

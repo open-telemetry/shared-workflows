@@ -1,0 +1,70 @@
+{
+  "head": "5267cbcec153c1aee249ca5b176d0a4f464cfb85",
+  "merge": "42aa3425ef6c65039ad6178b739020c558304bbc",
+  "merged": "2026-07-28T16:08:54Z",
+  "missing_roots": 0,
+  "number": 19325,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\naction's hash pin has mismatched or missing version comment: points to unknown ref\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/720)",
+      "created": "2026-07-28T01:57:48Z",
+      "hunk": "@@ -1078,13 +1263,13 @@\n       - name: Configure GH_HOST for enterprise compatibility\n         id: ghes-host-config\n         shell: bash\n-        run: |\n+        run: | # zizmor: ignore[github-env] - GITHUB_SERVER_URL is set by GitHub Actions, not user input.\n           # Derive GH_HOST from GITHUB_SERVER_URL so the gh CLI targets the correct\n           # GitHub instance (GHES/GHEC). On github.com this is a harmless no-op.\n           GH_HOST=\"${GITHUB_SERVER_URL#https://}\"\n           GH_HOST=\"${GH_HOST#http://}\"\n           echo \"GH_HOST=${GH_HOST}\" >> \"$GITHUB_ENV\"\n-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      "id": "PRRT_kwDODJKVX86UQqpQ",
+      "opened": "2026-07-28T01:57:48Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "e088511b091e65807e68ab1311deb3e6bc6448a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19325#discussion_r3662207203"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\naction's hash pin has mismatched or missing version comment: points to unknown ref\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/721)",
+      "created": "2026-07-28T01:57:48Z",
+      "hunk": "@@ -1130,7 +1314,7 @@\n           permission-contents: write\n           permission-pull-requests: write\n           private-key: ${{ secrets.OTELBOT_JAVA_INSTRUMENTATION_PRIVATE_KEY }}\n-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      "id": "PRRT_kwDODJKVX86UQqpe",
+      "opened": "2026-07-28T01:57:48Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "e088511b091e65807e68ab1311deb3e6bc6448a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19325#discussion_r3662207221"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\ncode injection via template expansion: may expand into attacker-controllable code\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/719)",
+      "created": "2026-07-28T01:57:48Z",
+      "hunk": "@@ -692,16 +731,35 @@\n                 }\n               },\n               \"safeoutputs\": {\n-                \"type\": \"http\",\n-                \"url\": \"http://host.docker.internal:$GH_AW_SAFE_OUTPUTS_PORT\",\n-                \"headers\": {\n-                  \"Authorization\": \"\\${GH_AW_SAFE_OUTPUTS_API_KEY}\"\n+                \"type\": \"stdio\",\n+                \"container\": \"ghcr.io/github/gh-aw-node\",\n+                \"mounts\": [\"\\${GITHUB_WORKSPACE}:\\${GITHUB_WORKSPACE}:rw\", \"${RUNNER_TEMP}/gh-aw/safeoutputs:${RUNNER_TEMP}/gh-aw/safeoutputs:rw\", \"/tmp/gh-aw:/tmp/gh-aw:rw\"],\n+                \"args\": [\"-w\", \"\\${GITHUB_WORKSPACE}\"],\n+                \"entrypoint\": \"sh\",\n+                \"entrypointArgs\": [\"-c\", \"sh ${RUNNER_TEMP}/gh-aw/safeoutputs/start_safe_outputs_mcp.sh\"],\n+                \"env\": {\n+                  \"DEBUG\": \"*\",\n+                  \"DEFAULT_BRANCH\": \"\\${DEFAULT_BRANCH}\",\n+                  \"GH_AW_ASSETS_ALLOWED_EXTS\": \"\\${GH_AW_ASSETS_ALLOWED_EXTS}\",\n+                  \"GH_AW_ASSETS_BRANCH\": \"\\${GH_AW_ASSETS_BRANCH}\",\n+                  \"GH_AW_ASSETS_MAX_SIZE_KB\": \"\\${GH_AW_ASSETS_MAX_SIZE_KB}\",\n+                  \"GH_AW_MCP_LOG_DIR\": \"\\${GH_AW_MCP_LOG_DIR}\",\n+                  \"GH_AW_SAFE_OUTPUTS\": \"\\${GH_AW_SAFE_OUTPUTS}\",\n+                  \"GH_AW_SAFE_OUTPUTS_CONFIG_PATH\": \"\\${GH_AW_SAFE_OUTPUTS_CONFIG_PATH}\",\n+                  \"GH_AW_SAFE_OUTPUTS_TOOLS_PATH\": \"\\${GH_AW_SAFE_OUTPUTS_TOOLS_PATH}\",\n+                  \"GH_AW_POLICY_ALLOW_CREATE_PULL_REQUEST\": \"\\${GH_AW_POLICY_ALLOW_CREATE_PULL_REQUEST}\",\n+                  \"GITHUB_REPOSITORY\": \"\\${GITHUB_REPOSITORY}\",\n+                  \"GITHUB_SHA\": \"\\${GITHUB_SHA}\",\n+                  \"GITHUB_TOKEN\": \"\\${GITHUB_TOKEN}\",\n+                  \"GITHUB_WORKSPACE\": \"\\${GITHUB_WORKSPACE}\",\n+                  \"RUNNER_TEMP\": \"\\${RUNNER_TEMP}\"\n                 },\n                 \"guard-policies\": {\n                   \"write-sink\": {\n                     \"accept\": [\n                       \"*\"\n-                    ]\n+                    ],\n+                    \"sink-visibility\": ${{ toJSON(steps.determine-automatic-lockdown.outputs.visibility) }}",
+      "id": "PRRT_kwDODJKVX86UQqpg",
+      "opened": "2026-07-28T01:57:48Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "e088511b091e65807e68ab1311deb3e6bc6448a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19325#discussion_r3662207224"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\ncode injection via template expansion: may expand into attacker-controllable code\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/722)",
+      "created": "2026-07-28T01:57:48Z",
+      "hunk": "@@ -703,16 +746,35 @@\n                 }\n               },\n               \"safeoutputs\": {\n-                \"type\": \"http\",\n-                \"url\": \"http://host.docker.internal:$GH_AW_SAFE_OUTPUTS_PORT\",\n-                \"headers\": {\n-                  \"Authorization\": \"\\${GH_AW_SAFE_OUTPUTS_API_KEY}\"\n+                \"type\": \"stdio\",\n+                \"container\": \"ghcr.io/github/gh-aw-node\",\n+                \"mounts\": [\"\\${GITHUB_WORKSPACE}:\\${GITHUB_WORKSPACE}:rw\", \"${RUNNER_TEMP}/gh-aw/safeoutputs:${RUNNER_TEMP}/gh-aw/safeoutputs:rw\", \"/tmp/gh-aw:/tmp/gh-aw:rw\"],\n+                \"args\": [\"-w\", \"\\${GITHUB_WORKSPACE}\"],\n+                \"entrypoint\": \"sh\",\n+                \"entrypointArgs\": [\"-c\", \"sh ${RUNNER_TEMP}/gh-aw/safeoutputs/start_safe_outputs_mcp.sh\"],\n+                \"env\": {\n+                  \"DEBUG\": \"*\",\n+                  \"DEFAULT_BRANCH\": \"\\${DEFAULT_BRANCH}\",\n+                  \"GH_AW_ASSETS_ALLOWED_EXTS\": \"\\${GH_AW_ASSETS_ALLOWED_EXTS}\",\n+                  \"GH_AW_ASSETS_BRANCH\": \"\\${GH_AW_ASSETS_BRANCH}\",\n+                  \"GH_AW_ASSETS_MAX_SIZE_KB\": \"\\${GH_AW_ASSETS_MAX_SIZE_KB}\",\n+                  \"GH_AW_MCP_LOG_DIR\": \"\\${GH_AW_MCP_LOG_DIR}\",\n+                  \"GH_AW_SAFE_OUTPUTS\": \"\\${GH_AW_SAFE_OUTPUTS}\",\n+                  \"GH_AW_SAFE_OUTPUTS_CONFIG_PATH\": \"\\${GH_AW_SAFE_OUTPUTS_CONFIG_PATH}\",\n+                  \"GH_AW_SAFE_OUTPUTS_TOOLS_PATH\": \"\\${GH_AW_SAFE_OUTPUTS_TOOLS_PATH}\",\n+                  \"GH_AW_POLICY_ALLOW_CREATE_PULL_REQUEST\": \"\\${GH_AW_POLICY_ALLOW_CREATE_PULL_REQUEST}\",\n+                  \"GITHUB_REPOSITORY\": \"\\${GITHUB_REPOSITORY}\",\n+                  \"GITHUB_SHA\": \"\\${GITHUB_SHA}\",\n+                  \"GITHUB_TOKEN\": \"\\${GITHUB_TOKEN}\",\n+                  \"GITHUB_WORKSPACE\": \"\\${GITHUB_WORKSPACE}\",\n+                  \"RUNNER_TEMP\": \"\\${RUNNER_TEMP}\"\n                 },\n                 \"guard-policies\": {\n                   \"write-sink\": {\n                     \"accept\": [\n                       \"*\"\n-                    ]\n+                    ],\n+                    \"sink-visibility\": ${{ toJSON(steps.determine-automatic-lockdown.outputs.visibility) }}",
+      "id": "PRRT_kwDODJKVX86UQqpk",
+      "opened": "2026-07-28T01:57:48Z",
+      "path": ".github/workflows/pr-review.lock.yml",
+      "replies": [],
+      "reviewed": "e088511b091e65807e68ab1311deb3e6bc6448a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19325#discussion_r3662207228"
+    }
+  ]
+}

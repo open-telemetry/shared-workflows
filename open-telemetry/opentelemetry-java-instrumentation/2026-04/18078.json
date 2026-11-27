@@ -1,0 +1,52 @@
+{
+  "head": "cf68bf584b093776e2ca3110ffb557068e3b4d09",
+  "merge": "e2190ed2451093b36e9989d1ea268ac17254f7bc",
+  "merged": "2026-04-21T18:17:44Z",
+  "missing_roots": 0,
+  "number": 18078,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot this should be jaxrs-2.0-resteasy-common-3.0",
+      "created": "2026-04-20T14:37:54Z",
+      "hunk": "@@ -341,7 +341,7 @@ include(\":instrumentation:jaxrs:jaxrs-2.0:jaxrs-2.0-jersey-2.0:javaagent\")\n include(\":instrumentation:jaxrs:jaxrs-2.0:jaxrs-2.0-payara-testing\")\n include(\":instrumentation:jaxrs:jaxrs-2.0:jaxrs-2.0-resteasy-3.0:javaagent\")\n include(\":instrumentation:jaxrs:jaxrs-2.0:jaxrs-2.0-resteasy-3.1:javaagent\")\n-include(\":instrumentation:jaxrs:jaxrs-2.0:jaxrs-2.0-resteasy-common:javaagent\")\n+include(\":instrumentation:jaxrs:jaxrs-2.0:jaxrs-resteasy-common-2.0:javaagent\")",
+      "id": "PRRT_kwDODJKVX858Onxt",
+      "opened": "2026-04-20T14:37:54Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-04-20T14:49:05Z",
+          "body": "Addressed in 2ad162f: renamed the shared module to `jaxrs-2.0-resteasy-common-3.0` and updated the shared package/import references to `...resteasy.common.v3_0`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18078#discussion_r3111532091"
+        }
+      ],
+      "reviewed": "dee64ead477940708ac16dabce5f7035247c9e73",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18078#discussion_r3111458567"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot this should be io.opentelemetry.javaagent.instrumentation.jaxrs.v2_0.resteasy.common.v3_0;",
+      "created": "2026-04-20T17:15:43Z",
+      "hunk": "@@ -3,9 +3,9 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jaxrs.v2_0;\n+package io.opentelemetry.javaagent.instrumentation.jaxrs.resteasy.common.v3_0;",
+      "id": "PRRT_kwDODJKVX858RcIs",
+      "opened": "2026-04-20T17:15:43Z",
+      "path": "instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-resteasy-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/resteasy/common/v3_0/ResteasyResourceLocatorInvokerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-04-20T17:42:33Z",
+          "body": "Addressed in ca001ff: moved the shared RESTEasy classes under `io.opentelemetry.javaagent.instrumentation.jaxrs.v2_0.resteasy.common.v3_0` and updated the consumer imports accordingly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18078#discussion_r3112577352"
+        }
+      ],
+      "reviewed": "2ad162f6e7be47744c28e3a5d2c52562063b12fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18078#discussion_r3112433170"
+    }
+  ]
+}

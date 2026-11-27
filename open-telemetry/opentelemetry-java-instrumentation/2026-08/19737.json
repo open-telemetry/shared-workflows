@@ -1,0 +1,73 @@
+{
+  "head": "225c6e98a822956ddb84638bb7581980c2e764f2",
+  "merge": "f09e466ac18d354c0f45addc1b96b0f3b8c78b06",
+  "merged": "2026-08-24T06:06:03Z",
+  "missing_roots": 0,
+  "number": 19737,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This selector also creates `testSpring3StableSemconv`, but `src/testSpring3` contains only web MVC and RestClient autoconfiguration tests; it does not exercise database instrumentation or assert database attributes. The database opt-in cannot affect that suite, so this adds a redundant test run contrary to the semantic-relevance criterion. Restrict the match to the default, Spring 2, and Spring 4 suites.",
+      "created": "2026-08-21T21:06:07Z",
+      "hunk": "@@ -362,13 +362,19 @@ tasks {\n     from(sourceSets[\"javaSpring4\"].java)\n   }\n \n-  val testStableSemconv = register<Test>(\"testStableSemconv\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n-  }\n+  val stableSemconvSuites = testing.suites.withType(JvmTestSuite::class)\n+    .matching { it.name == \"test\" || it.name.startsWith(\"testSpring\") }",
+      "id": "PRRT_kwDODJKVX86bSy-F",
+      "opened": "2026-08-21T21:06:08Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-21T21:09:18Z",
+          "body": "Addressed in 225c6e98a822956ddb84638bb7581980c2e764f2.\n\nAnalysis: All three selectors were mapping the full JvmTestSuite container without filtering to suites that actually exercise the semconv being opted in. In spring-boot-autoconfigure, `testSpring3` has no database instrumentation tests, so the database opt-in has no effect there. In logback-appender, only `test` and `slf4j2ApiTest` have `captureCodeAttributes` enabled in their logback-test.xml; the other three suites never emit code attributes regardless of the `code` opt-in. In apache-dubbo, `testClusterInvoker` tests only wrapper contract and registry-address propagation and produces no telemetry, so the `rpc` opt-in cannot affect it. Each fix narrows the suite selector to the suites that actually assert the semconv being varied.\n\nUpsides: Eliminates redundant test task registrations and CI runs for suites where the semconv opt-in has no observable effect, reducing CI time and avoiding misleading green results from no-op variants.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19737#discussion_r3833738161"
+        }
+      ],
+      "reviewed": "299be3fba8cb1a98470c1a762e96d7c112df8b13",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19737#discussion_r3833716399"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Mapping every suite adds stable and duplicate-mode runs for `asyncAppenderTest`, `logstashMarkerTest`, and `logstashStructuredArgsTest`, but those suites' appender configurations do not enable `captureCodeAttributes`; only the default and `slf4j2ApiTest` suites exercise code semconv. These six runs therefore cannot add semconv coverage. Filter the collection to the two relevant suites.",
+      "created": "2026-08-21T21:06:08Z",
+      "hunk": "@@ -173,19 +173,27 @@ testing {\n \n tasks {\n \n-  val testStableSemconv = register<Test>(\"testStableSemconv\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=code\")\n+  val testSuites = testing.suites.withType(JvmTestSuite::class)",
+      "id": "PRRT_kwDODJKVX86bSy-h",
+      "opened": "2026-08-21T21:06:08Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-21T21:09:19Z",
+          "body": "Addressed in 225c6e98a822956ddb84638bb7581980c2e764f2.\n\nAnalysis: All three selectors were mapping the full JvmTestSuite container without filtering to suites that actually exercise the semconv being opted in. In spring-boot-autoconfigure, `testSpring3` has no database instrumentation tests, so the database opt-in has no effect there. In logback-appender, only `test` and `slf4j2ApiTest` have `captureCodeAttributes` enabled in their logback-test.xml; the other three suites never emit code attributes regardless of the `code` opt-in. In apache-dubbo, `testClusterInvoker` tests only wrapper contract and registry-address propagation and produces no telemetry, so the `rpc` opt-in cannot affect it. Each fix narrows the suite selector to the suites that actually assert the semconv being varied.\n\nUpsides: Eliminates redundant test task registrations and CI runs for suites where the semconv opt-in has no observable effect, reducing CI time and avoiding misleading green results from no-op variants.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19737#discussion_r3833738346"
+        }
+      ],
+      "reviewed": "299be3fba8cb1a98470c1a762e96d7c112df8b13",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19737#discussion_r3833716451"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `testClusterInvoker` only validates the wrapper contract and registry-address propagation; it creates no telemetry and has no RPC semconv assertions. The `rpc` and `rpc/dup` settings cannot affect it, so mapping the whole suite container adds two redundant runs instead of limiting variants to semantically relevant suites.",
+      "created": "2026-08-21T21:06:08Z",
+      "hunk": "@@ -34,23 +34,29 @@ tasks.withType<Test>().configureEach {\n }\n \n tasks {\n-  val testStableSemconv = register<Test>(\"testStableSemconv\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n+  val testSuites = testing.suites.withType(JvmTestSuite::class)",
+      "id": "PRRT_kwDODJKVX86bSy-x",
+      "opened": "2026-08-21T21:06:08Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-21T21:09:21Z",
+          "body": "Addressed in 225c6e98a822956ddb84638bb7581980c2e764f2.\n\nAnalysis: All three selectors were mapping the full JvmTestSuite container without filtering to suites that actually exercise the semconv being opted in. In spring-boot-autoconfigure, `testSpring3` has no database instrumentation tests, so the database opt-in has no effect there. In logback-appender, only `test` and `slf4j2ApiTest` have `captureCodeAttributes` enabled in their logback-test.xml; the other three suites never emit code attributes regardless of the `code` opt-in. In apache-dubbo, `testClusterInvoker` tests only wrapper contract and registry-address propagation and produces no telemetry, so the `rpc` opt-in cannot affect it. Each fix narrows the suite selector to the suites that actually assert the semconv being varied.\n\nUpsides: Eliminates redundant test task registrations and CI runs for suites where the semconv opt-in has no observable effect, reducing CI time and avoiding misleading green results from no-op variants.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19737#discussion_r3833738494"
+        }
+      ],
+      "reviewed": "299be3fba8cb1a98470c1a762e96d7c112df8b13",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19737#discussion_r3833716478"
+    }
+  ]
+}

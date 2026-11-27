@@ -1,0 +1,102 @@
+{
+  "head": "d44e246ed9158fd5459ab877c70d415bccb1b8b4",
+  "merge": "372918a4c6a5fc6de0b6fd7c1e061fe5d3de5400",
+  "merged": "2026-10-10T23:26:26Z",
+  "missing_roots": 0,
+  "number": 20483,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This change covers only AWS Lambda, but #11939 explicitly says to keep the issue open until GenAI and generic JMX are also covered or excluded. The `Fixes #11939` directive will therefore close the issue prematurely when this PR merges; please replace it with a non-closing reference such as `Part of #11939`, or first narrow the issue's remaining scope.",
+      "created": "2026-10-09T16:53:08Z",
+      "hunk": "@@ -31,6 +32,7 @@ public static AwsLambdaFunctionInstrumenter createInstrumenter(\n     InstrumenterBuilder<AwsLambdaRequest, Object> builder =\n         Instrumenter.<AwsLambdaRequest, Object>builder(\n                 openTelemetry, instrumentationName, AwsLambdaEventsInstrumenterFactory::spanName)\n+            .setSchemaUrl(SchemaUrls.V1_44_0)",
+      "id": "PRRT_kwDODJKVX86q3qEQ",
+      "opened": "2026-10-09T16:53:08Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaEventsInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "a2a146584b0ee12173a9501ead6e6dd9188406cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4232505117"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n                            equalTo(FAAS_TRIGGER, \"http\"))));\n```",
+      "created": "2026-10-09T17:22:22Z",
+      "hunk": "@@ -135,14 +144,18 @@ void handlerTraced_empty() {\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n                     span.hasName(\"my_function\")\n+                        .satisfies(hasScopeSchemaUrl(SchemaUrls.V1_44_0))\n                         .hasKind(SpanKind.SERVER)\n                         .hasAttributesSatisfyingExactly(\n                             equalTo(\n                                 CLOUD_RESOURCE_ID,\n                                 \"arn:aws:lambda:us-east-1:123456789:function:test\"),\n                             equalTo(CLOUD_ACCOUNT_ID, \"123456789\"),\n                             equalTo(FAAS_INVOCATION_ID, \"1-22-333\"),\n-                            equalTo(FAAS_TRIGGER, \"http\"))));\n+                            equalTo(FAAS_TRIGGER, \"http\"),\n+                            equalTo(URL_PATH, null),\n+                            equalTo(URL_SCHEME, null),\n+                            equalTo(HTTP_ROUTE, null))));",
+      "id": "PRRT_kwDODJKVX86q4Oyu",
+      "opened": "2026-10-09T17:22:22Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaApiGatewayWrapperTest.java",
+      "replies": [],
+      "reviewed": "feada433319548bb9ae500b89ffe8ded9bd2c315",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4232744708"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-09T18:08:06Z",
+      "hunk": "@@ -80,18 +85,40 @@ void tracedWithHttpPropagation() {\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n                     span.hasName(\"PUT /hello/{param}\")\n+                        .satisfies(hasScopeSchemaUrl(SchemaUrls.V1_44_0))\n                         .hasKind(SpanKind.SERVER)\n                         .hasTraceId(\"ee13e7026227ebf4c74278ae29691d7a\")\n                         .hasParentSpanId(\"0000000000000456\")\n                         .hasAttributesSatisfyingExactly(\n                             equalTo(FAAS_INVOCATION_ID, \"1-22-2024\"),\n                             equalTo(FAAS_TRIGGER, \"http\"),\n                             equalTo(HTTP_REQUEST_METHOD, \"PUT\"),\n+                            equalTo(URL_PATH, \"/hello/world\"),\n+                            equalTo(URL_SCHEME, \"http\"),\n+                            equalTo(HTTP_ROUTE, \"/hello/{param}\"),\n                             equalTo(USER_AGENT_ORIGINAL, \"Clever Client\"),\n                             equalTo(URL_FULL, \"http://localhost:2024/hello/world\"),\n                             equalTo(HTTP_RESPONSE_STATUS_CODE, 201L))));\n   }\n \n+  @Test\n+  void tracedWithoutOptionalHttpAttributes() {\n+    APIGatewayProxyRequestEvent input = new APIGatewayProxyRequestEvent().withBody(\"hello\");\n+    new TestRequestHandlerApiGateway().handleRequest(input, context);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasAttributesSatisfyingExactly(\n+                        equalTo(FAAS_INVOCATION_ID, \"1-22-2024\"),\n+                        equalTo(FAAS_TRIGGER, \"http\"),\n+                        equalTo(URL_PATH, null),\n+                        equalTo(URL_SCHEME, null),\n+                        equalTo(HTTP_ROUTE, null),",
+      "id": "PRRT_kwDODJKVX86q5OOI",
+      "opened": "2026-10-09T18:08:06Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-2.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/awslambdaevents/v2_2/AwsLambdaApiGatewayHandlerTest.java",
+      "replies": [],
+      "reviewed": "a3d2f2ef693351b99d6e49ea623d9139e287a45c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4233155909"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The v1.44 HTTP server convention makes `url.query` conditionally required whenever a query was received. This extractor already receives `request.getQueryStringParameters()` (and the updated wrapper test sends `a=b&c=d`), but the new v1.44 attribute set still exposes that query only inside `url.full`; `url.full` is not a substitute for `url.query`. Please emit a sanitized `URL_QUERY` using the same sensitive-parameter configuration and cover it in the query-bearing assertions.",
+      "created": "2026-10-09T21:36:02Z",
+      "hunk": "@@ -68,6 +71,9 @@ void onRequest(AttributesBuilder attributes, APIGatewayProxyRequestEvent request\n     String userAgent = headers.get(\"user-agent\");\n     attributes.put(USER_AGENT_ORIGINAL, userAgent);\n \n+    attributes.put(URL_PATH, request.getPath());\n+    attributes.put(URL_SCHEME, headers.get(\"x-forwarded-proto\"));\n+    attributes.put(HTTP_ROUTE, request.getResource());",
+      "id": "PRRT_kwDODJKVX86q9B6_",
+      "opened": "2026-10-09T21:36:03Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/ApiGatewayProxyAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-09T22:13:37Z",
+          "body": "Addressed in b41b44bd805394c9731b626ea6e2d98ead90b2d4.\n\nConfirmed against the factory's explicit v1.44.0 schema and released HTTP server convention. Extract the existing encoded query once and emit URL_QUERY through UrlQuerySanitizer.redactQueryString with the same sensitiveQueryParameters used by URL_FULL. Tests verify default/configured redaction, encoding, omission for null/empty queries, wrapper a=b&c=d, and installed-agent q=value&sig=REDACTED.\n\n<!-- copilot-loop:83b07cbee8f1661997d63806b799747786e0bdd4fdfdd40c5baadb3d8e2e2b00:4234741655:62004a24372645239eafea42f2592062 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4234964097"
+        }
+      ],
+      "reviewed": "7759e9ce35eaf19915ca08336a92af57a7988e5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4234741655"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Not sure this should be documented here",
+      "created": "2026-10-10T20:04:33Z",
+      "hunk": "@@ -9,3 +9,6 @@ We provide two packages for instrumenting AWS lambda functions.\n \n - [aws-lambda-events-3.11](./aws-lambda-events-3.11/library) provides instrumentation of the Lambda library, including standard and custom event\n   types, from `aws-lambda-java-events` 3.11+.\n+\n+API Gateway proxy request spans include `url.query` when query parameters are present.",
+      "id": "PRRT_kwDODJKVX86rHWgj",
+      "opened": "2026-10-10T20:04:33Z",
+      "path": "instrumentation/aws-lambda/README.md",
+      "replies": [
+        {
+          "at": "2026-10-10T21:37:01Z",
+          "body": "@copilot revert this file",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4239290176"
+        },
+        {
+          "at": "2026-10-10T21:40:14Z",
+          "body": "Reverted the README note in `d44e246e`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4239298705"
+        }
+      ],
+      "reviewed": "b41b44bd805394c9731b626ea6e2d98ead90b2d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20483#discussion_r4239029984"
+    }
+  ]
+}

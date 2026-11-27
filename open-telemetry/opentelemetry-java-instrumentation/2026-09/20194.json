@@ -1,0 +1,229 @@
+{
+  "head": "8e5666473cae3515cb0e5b1eab9992424f16fcbf",
+  "merge": "b315e31e30cd326da04a2326d8644ff64d5d37fd",
+  "merged": "2026-09-29T01:34:37Z",
+  "missing_roots": 0,
+  "number": 20194,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `TracingListView` inherits `AbstractList` operations such as `contains`, `indexOf`, and `clear`, which consume this tracing iterator internally. Several of those operations return early or iterate a fixed count without a final `hasNext()`, so they create process telemetry even though no message-processing callback ran and can leave the last `ProcessingInvocation` scope current (for example, `response.getMessages().subList(...).contains(firstMessage)` or `.clear()`). Delegate non-processing list operations directly, as the existing `get`/`set`/`add`/`remove` overrides do, rather than letting `AbstractList` route them through the tracing iterator.",
+      "created": "2026-09-20T06:45:14Z",
+      "hunk": "@@ -102,6 +155,123 @@ private Object writeReplace() {\n     return new SdkInternalList<>(this);\n   }\n \n+  private static final class TracingListView extends AbstractList<Message> {\n+    private final List<Message> delegate;\n+    private final TracingList tracingList;\n+\n+    private TracingListView(List<Message> delegate, TracingList tracingList) {\n+      this.delegate = delegate;\n+      this.tracingList = tracingList;\n+    }\n+\n+    @Override\n+    public Message get(int index) {\n+      return delegate.get(index);\n+    }\n+\n+    @Override\n+    public int size() {\n+      return delegate.size();\n+    }\n+\n+    @Override\n+    public Object[] toArray() {\n+      return delegate.toArray();\n+    }\n+\n+    @Override\n+    public <T> T[] toArray(T[] array) {\n+      return delegate.toArray(array);\n+    }\n+\n+    @Override\n+    public Message set(int index, Message element) {\n+      return delegate.set(index, element);\n+    }\n+\n+    @Override\n+    public void add(int index, Message element) {\n+      delegate.add(index, element);\n+    }\n+\n+    @Override\n+    public Message remove(int index) {\n+      return delegate.remove(index);\n+    }\n+\n+    @Override\n+    public Iterator<Message> iterator() {\n+      return listIterator();\n+    }\n+\n+    @Override\n+    public ListIterator<Message> listIterator(int index) {\n+      return TracingIterator.wrap(delegate.listIterator(index), tracingList);",
+      "id": "PRRT_kwDODJKVX86kHhJ6",
+      "opened": "2026-09-20T06:45:16Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-24T06:53:38Z",
+          "body": "Addressed in 3ca5ae48278ff96301bb3891be102a4dd9aa0f69, b0ef9916c0db8ffba5f6a63b5db86614afcaa384.\n\nFixed in the verified source changes 3ca5ae48278ff96301bb3891be102a4dd9aa0f69, b0ef9916c0db8ffba5f6a63b5db86614afcaa384.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090763025"
+        }
+      ],
+      "reviewed": "283c228562bd09ec220dd1e16d81200368bec13e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4056331392"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Test entry points should declare at most one checked exception type. Since this test combines a timed latch wait and timed `Future.get`, use the single common checked type.",
+      "created": "2026-09-20T06:45:15Z",
+      "hunk": "@@ -0,0 +1,230 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v1_11.internal;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singletonList;\n+import static java.util.Objects.requireNonNull;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+\n+import com.amazonaws.DefaultRequest;\n+import com.amazonaws.Response;\n+import com.amazonaws.internal.SdkInternalList;\n+import com.amazonaws.services.sqs.model.Message;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationListener;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Spliterator;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.ExecutionException;\n+import java.util.concurrent.ExecutorService;\n+import java.util.concurrent.Executors;\n+import java.util.concurrent.TimeoutException;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class SqsTracingListTest {\n+\n+  private static final int MESSAGE_COUNT = 8;\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @Test\n+  void spliteratorsPreserveParallelTraversalAndCountEachDeliveryOnce()\n+      throws ExecutionException, InterruptedException, TimeoutException {",
+      "id": "PRRT_kwDODJKVX86kHhKL",
+      "opened": "2026-09-20T06:45:16Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsTracingListTest.java",
+      "replies": [
+        {
+          "at": "2026-09-24T06:53:40Z",
+          "body": "No code change.\n\nNo change is needed because this test already has no checked exception declaration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090763207"
+        }
+      ],
+      "reviewed": "283c228562bd09ec220dd1e16d81200368bec13e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4056331419"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Test entry points should declare at most one checked exception type. Since this test combines a timed latch wait and timed `Future.get`, use the single common checked type.",
+      "created": "2026-09-20T06:45:15Z",
+      "hunk": "@@ -160,6 +177,133 @@ void testAbandonedIteratorDoesNotParentNextProcessSpan() {\n     SqsMetricsAssertions.assertProcessMetrics(testing(), sqsPort, 2);\n   }\n \n+  @Test\n+  void testNestedTraversalRestoresOuterProcessScope() {\n+    assumeTrue(emitStableMessagingSemconv());\n+    String queueUrl = \"http://localhost:\" + sqsPort + \"/000000000000/testSdkSqs\";\n+    sqsClient.createQueue(\"testSdkSqs\");\n+\n+    sqsClient.sendMessage(new SendMessageRequest(queueUrl, \"outer\"));\n+    ReceiveMessageResult outerResponse = sqsClient.receiveMessage(queueUrl);\n+    sqsClient.sendMessage(new SendMessageRequest(queueUrl, \"inner\"));\n+    ReceiveMessageResult innerResponse = sqsClient.receiveMessage(queueUrl);\n+    testing().clearData();\n+\n+    outerResponse\n+        .getMessages()\n+        .forEach(\n+            message -> {\n+              assertThat(Span.current().getSpanContext().isValid()).isTrue();\n+              String outerSpanId = Span.current().getSpanContext().getSpanId();\n+              innerResponse\n+                  .getMessages()\n+                  .forEach(\n+                      nestedMessage -> {\n+                        assertThat(Span.current().getSpanContext().isValid()).isTrue();\n+                        assertThat(Span.current().getSpanContext().getSpanId())\n+                            .isNotEqualTo(outerSpanId);\n+                      });\n+              assertThat(Span.current().getSpanContext().getSpanId()).isEqualTo(outerSpanId);\n+            });\n+\n+    assertThat(Span.current().getSpanContext().isValid()).isFalse();\n+    assertThat(testing().spans())\n+        .filteredOn(span -> span.getName().equals(\"process testSdkSqs\"))\n+        .hasSize(2);\n+    SqsMetricsAssertions.assertProcessMetrics(testing(), sqsPort, 2);\n+  }\n+\n+  @Test\n+  void testRepeatedTraversalCountsDeliveryOnce() {\n+    assumeTrue(emitStableMessagingSemconv());\n+    String queueUrl = \"http://localhost:\" + sqsPort + \"/000000000000/testSdkSqs\";\n+    sqsClient.createQueue(\"testSdkSqs\");\n+    sqsClient.sendMessage(new SendMessageRequest(queueUrl, \"message\"));\n+    testing().clearData();\n+\n+    ReceiveMessageResult response = sqsClient.receiveMessage(queueUrl);\n+    response.getMessages().forEach(message -> {});\n+    response.getMessages().forEach(message -> {});\n+\n+    SqsMetricsAssertions.assertProcessMetrics(testing(), sqsPort, 2, 1);\n+  }\n+\n+  @Test\n+  void testConcurrentTraversalsCountDeliveryOnce()\n+      throws ExecutionException, InterruptedException, TimeoutException {",
+      "id": "PRRT_kwDODJKVX86kHhKY",
+      "opened": "2026-09-20T06:45:16Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsSuppressReceiveSpansTest.java",
+      "replies": [
+        {
+          "at": "2026-09-24T06:53:42Z",
+          "body": "No code change.\n\nNo change is needed because this test already has no checked exception declaration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090763435"
+        }
+      ],
+      "reviewed": "283c228562bd09ec220dd1e16d81200368bec13e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4056331435"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Test entry points should declare at most one checked exception type. This test uses timed `Future.get`, so `throws Exception` is the established concise form here.",
+      "created": "2026-09-20T06:45:16Z",
+      "hunk": "@@ -1169,6 +1173,62 @@ void testReceiveAndProcessMetrics() {\n     SqsMetricsAssertions.assertReceiveAndProcessMetrics(testing(), sqsPort, 1, 3);\n   }\n \n+  @Test\n+  void testRepeatedTraversalAndListViewsRecordEachAttemptButCountDeliveryOnce() {\n+    assumeTrue(emitStableMessagingSemconv());\n+    String queueUrl = \"http://localhost:\" + sqsPort + \"/000000000000/testSdkSqs\";\n+    sqsClient.createQueue(\"testSdkSqs\");\n+    sqsClient.sendMessageBatch(\n+        new SendMessageBatchRequest()\n+            .withQueueUrl(queueUrl)\n+            .withEntries(\n+                new SendMessageBatchRequestEntry(\"i1\", \"e1\"),\n+                new SendMessageBatchRequestEntry(\"i2\", \"e2\")));\n+    testing().clearData();\n+\n+    ReceiveMessageResult response =\n+        sqsClient.receiveMessage(new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(10));\n+    List<Message> view = response.getMessages().subList(0, 2);\n+    view.forEach(message -> {});\n+    view.stream().forEach(message -> {});\n+\n+    SqsMetricsAssertions.assertReceiveAndProcessMetrics(testing(), sqsPort, 1, 4, 2);\n+  }\n+\n+  @Test\n+  void testAsyncReceiveUsesReturnedDeliveryState()\n+      throws ExecutionException, InterruptedException, TimeoutException {",
+      "id": "PRRT_kwDODJKVX86kHhKl",
+      "opened": "2026-09-20T06:45:16Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [
+        {
+          "at": "2026-09-24T06:53:44Z",
+          "body": "No code change.\n\nNo change is needed because this test already has no checked exception declaration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090763677"
+        }
+      ],
+      "reviewed": "283c228562bd09ec220dd1e16d81200368bec13e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4056331453"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## CodeQL / Uncontrolled data used in path expression\n\nThis path depends on a [user-provided value](1).\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/760)",
+      "created": "2026-09-21T08:20:44Z",
+      "hunk": "@@ -304,6 +328,11 @@\n       // delegate to just the default parent (the agent class loader)\n       return super.getResource(resourceName);\n     }\n+    if (instrumentedClassLoaderClassNames.contains(className)) {\n+      return instrumentedCl != null\n+          ? instrumentedCl.getResource(resourceName)",
+      "id": "PRRT_kwDODJKVX86kR0ez",
+      "opened": "2026-09-21T08:20:44Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/InstrumentationModuleClassLoader.java",
+      "replies": [],
+      "reviewed": "21b2e83b4b6977495d704d420005180edaaeb343",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4060351734"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## CodeQL / Uncontrolled data used in path expression\n\nThis path depends on a [user-provided value](1).\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/761)",
+      "created": "2026-09-21T08:20:44Z",
+      "hunk": "@@ -304,6 +328,11 @@\n       // delegate to just the default parent (the agent class loader)\n       return super.getResource(resourceName);\n     }\n+    if (instrumentedClassLoaderClassNames.contains(className)) {\n+      return instrumentedCl != null\n+          ? instrumentedCl.getResource(resourceName)\n+          : BOOT_LOADER.getResource(resourceName);",
+      "id": "PRRT_kwDODJKVX86kR0fE",
+      "opened": "2026-09-21T08:20:44Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/InstrumentationModuleClassLoader.java",
+      "replies": [],
+      "reviewed": "21b2e83b4b6977495d704d420005180edaaeb343",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4060351756"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Marking a sublist currently flips `tracingList.processingOwnedOutsideSqsSdk`, so ownership is stored on the entire response rather than on the concrete view. If a framework is handed only `response.getMessages().subList(0, 1)`, a later raw traversal of the parent or a sibling view also sees this flag and emits no fallback Process span, even though that work was never handed off. Keep ownership scoped to the exact list/view and have each traversal wrapper consult that scope so unrelated messages remain visible.",
+      "created": "2026-09-24T07:03:41Z",
+      "hunk": "@@ -81,11 +102,21 @@ Context getProcessParentContext() {\n     return processParentContext;\n   }\n \n+  boolean isProcessingOwnedOutsideSqsSdk() {\n+    return processingOwnedOutsideSqsSdk;\n+  }\n+\n+  static void markProcessingOwnedOutsideSqsSdk(List<?> messages) {\n+    if (messages instanceof TracingList) {\n+      ((TracingList) messages).processingOwnedOutsideSqsSdk = true;\n+    } else if (messages instanceof TracingListView) {\n+      ((TracingListView) messages).tracingList.processingOwnedOutsideSqsSdk = true;\n+    }",
+      "id": "PRRT_kwDODJKVX86leVOq",
+      "opened": "2026-09-24T07:03:42Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:21:09Z",
+          "body": "Addressed in 6de7ffd975a4365bcdaa0cdc5eb879d774522d90, 88e06ce97ede3738ab17c35191bd6579f3e7db52.\n\nFixed in the verified source changes 6de7ffd975a4365bcdaa0cdc5eb879d774522d90, 88e06ce97ede3738ab17c35191bd6579f3e7db52.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090960466"
+        }
+      ],
+      "reviewed": "b0ef9916c0db8ffba5f6a63b5db86614afcaa384",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090839636"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `ReceiveMessageResult.toString()` appends `getMessages()`, and the inherited list `toString()` obtains this overridden iterator. Simply logging a response therefore emits one Process span per message; with the removal of `firstIterator`, every log call now does so. Non-processing object methods (at minimum `toString()`, plus `equals()`/`hashCode()` where they iterate on supported JDKs) need an untraced implementation.\n\nThis issue also appears on line 265 of the same file.",
+      "created": "2026-09-24T07:03:41Z",
+      "hunk": "@@ -50,18 +60,29 @@ private TracingList(\n \n   @Override\n   public Iterator<Message> iterator() {\n-    Iterator<Message> it;\n-    // We should only return one iterator with tracing.\n-    // However, this is not thread-safe, but usually the first (hopefully only) traversal of\n-    // List is performed in the same thread that called receiveMessage()\n-    if (firstIterator && !inAwsClient()) {\n-      it = TracingIterator.wrap(super.iterator(), this);\n-      firstIterator = false;\n-    } else {\n-      it = super.iterator();\n-    }\n+    return listIterator();",
+      "id": "PRRT_kwDODJKVX86leVPH",
+      "opened": "2026-09-24T07:03:42Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:21:11Z",
+          "body": "Addressed in 6de7ffd975a4365bcdaa0cdc5eb879d774522d90, 88e06ce97ede3738ab17c35191bd6579f3e7db52.\n\nFixed in the verified source changes 6de7ffd975a4365bcdaa0cdc5eb879d774522d90, 88e06ce97ede3738ab17c35191bd6579f3e7db52.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090960661"
+        }
+      ],
+      "reviewed": "b0ef9916c0db8ffba5f6a63b5db86614afcaa384",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4090839680"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This documentation says ownership applies to a list “and its views,” but the implementation gives every `TracingListView` independent ownership, and `parentProcessingOwnershipDoesNotDisableListView` explicitly verifies that marking the parent does not suppress a view. Describe the exact-object behavior so framework callers do not incorrectly assume ownership propagates to subsequently created views.",
+      "created": "2026-09-24T07:32:19Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v1_11.internal;\n+\n+import java.util.List;\n+\n+/**\n+ * Coordinates SQS response traversal with processing owned outside the raw SDK.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SqsProcessTracing {\n+\n+  /**\n+   * Disables raw process spans for a traced response list and its views. The owner must mark the\n+   * list before traversal, and only when it will instrument processing itself. Otherwise, leave raw\n+   * tracing enabled.",
+      "id": "PRRT_kwDODJKVX86le1q3",
+      "opened": "2026-09-24T07:32:19Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsProcessTracing.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:46:37Z",
+          "body": "Addressed in 58a3def3eb3ca8fc1e16353f217f345838e152ef.\n\nFixed in the verified source changes 58a3def3eb3ca8fc1e16353f217f345838e152ef.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4091147106"
+        }
+      ],
+      "reviewed": "88e06ce97ede3738ab17c35191bd6579f3e7db52",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4091043861"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess we could skip the `inAwsClient` check if we already know that it doesn't call this method",
+      "created": "2026-09-25T08:51:04Z",
+      "hunk": "@@ -102,6 +173,235 @@ private Object writeReplace() {\n     return new SdkInternalList<>(this);\n   }\n \n+  private static final class TracingListView extends AbstractList<Message> {\n+    private final List<Message> delegate;\n+    private final TracingList tracingList;\n+    private final ProcessingOwnership processingOwnership = new ProcessingOwnership();\n+\n+    private TracingListView(List<Message> delegate, TracingList tracingList) {\n+      this.delegate = delegate;\n+      this.tracingList = tracingList;\n+    }\n+\n+    @Override\n+    public Message get(int index) {\n+      return delegate.get(index);\n+    }\n+\n+    @Override\n+    public int size() {\n+      return delegate.size();\n+    }\n+\n+    @Override\n+    public Object[] toArray() {\n+      return delegate.toArray();\n+    }\n+\n+    @Override\n+    public <T> T[] toArray(T[] array) {\n+      return delegate.toArray(array);\n+    }\n+\n+    @Override\n+    public boolean contains(Object object) {\n+      return delegate.contains(object);\n+    }\n+\n+    @Override\n+    public boolean containsAll(Collection<?> collection) {\n+      for (Object element : collection.toArray()) {\n+        if (!delegate.contains(element)) {\n+          return false;\n+        }\n+      }\n+      return true;\n+    }\n+\n+    @Override\n+    public int indexOf(Object object) {\n+      return delegate.indexOf(object);\n+    }\n+\n+    @Override\n+    public int lastIndexOf(Object object) {\n+      return delegate.lastIndexOf(object);\n+    }\n+\n+    @Override\n+    public boolean equals(Object object) {\n+      if (object == this) {\n+        return true;\n+      }\n+      if (!(object instanceof List)) {\n+        return false;\n+      }\n+      List<?> list = (List<?>) object;\n+      if (delegate.size() != list.size()) {\n+        return false;\n+      }\n+      for (int i = 0; i < delegate.size(); i++) {\n+        if (!Objects.equals(delegate.get(i), list.get(i))) {\n+          return false;\n+        }\n+      }\n+      return true;\n+    }\n+\n+    @Override\n+    public int hashCode() {\n+      return delegate.hashCode();\n+    }\n+\n+    @Override\n+    public String toString() {\n+      return delegate.toString();\n+    }\n+\n+    @Override\n+    public Message set(int index, Message element) {\n+      return delegate.set(index, element);\n+    }\n+\n+    @Override\n+    public void add(int index, Message element) {\n+      delegate.add(index, element);\n+    }\n+\n+    @Override\n+    public Message remove(int index) {\n+      return delegate.remove(index);\n+    }\n+\n+    @Override\n+    public boolean remove(Object object) {\n+      return delegate.remove(object);\n+    }\n+\n+    @Override\n+    public boolean removeAll(Collection<?> collection) {\n+      return delegate.removeAll(collection);\n+    }\n+\n+    @Override\n+    public boolean retainAll(Collection<?> collection) {\n+      return delegate.retainAll(collection);\n+    }\n+\n+    @Override\n+    public boolean removeIf(Predicate<? super Message> filter) {\n+      return delegate.removeIf(filter);\n+    }\n+\n+    @Override\n+    public void replaceAll(UnaryOperator<Message> operator) {\n+      delegate.replaceAll(operator);\n+    }\n+\n+    @Override\n+    public void sort(Comparator<? super Message> comparator) {\n+      delegate.sort(comparator);\n+    }\n+\n+    @Override\n+    public void clear() {\n+      delegate.clear();\n+    }\n+\n+    @Override\n+    public Iterator<Message> iterator() {\n+      return listIterator();\n+    }\n+\n+    @Override\n+    public ListIterator<Message> listIterator(int index) {\n+      ListIterator<Message> iterator = delegate.listIterator(index);\n+      return inAwsClient()\n+          ? iterator\n+          : TracingIterator.wrap(iterator, tracingList, processingOwnership);\n+    }\n+\n+    @Override\n+    public List<Message> subList(int fromIndex, int toIndex) {\n+      return new TracingListView(delegate.subList(fromIndex, toIndex), tracingList);\n+    }\n+\n+    @Override\n+    public void forEach(Consumer<? super Message> action) {\n+      iterator().forEachRemaining(action);\n+    }\n+\n+    @Override\n+    public Spliterator<Message> spliterator() {\n+      Spliterator<Message> spliterator = delegate.spliterator();\n+      return inAwsClient()",
+      "id": "PRRT_kwDODJKVX86l7wDp",
+      "opened": "2026-09-25T08:51:04Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-26T04:56:43Z",
+          "body": "e3d2c6d1a175b4a68b09ae079f1124263e23996d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4110243101"
+        }
+      ],
+      "reviewed": "f5630354d2d30d6547d0054fcb198278e8cf81a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4102839181"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "aws 2.2 and kafka have similar list that also might need similar updates",
+      "created": "2026-09-25T08:52:05Z",
+      "hunk": "@@ -5,16 +5,26 @@\n \n package io.opentelemetry.instrumentation.awssdk.v1_11.internal;\n \n+import static java.util.Objects.requireNonNull;\n+\n import com.amazonaws.Request;\n import com.amazonaws.Response;\n import com.amazonaws.internal.SdkInternalList;\n import com.amazonaws.services.sqs.AmazonSQSClient;\n import com.amazonaws.services.sqs.model.Message;\n import io.opentelemetry.context.Context;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import java.util.AbstractList;\n+import java.util.Collection;\n+import java.util.Comparator;\n import java.util.Iterator;\n import java.util.List;\n+import java.util.ListIterator;\n+import java.util.Objects;\n+import java.util.Spliterator;\n import java.util.function.Consumer;\n+import java.util.function.Predicate;\n+import java.util.function.UnaryOperator;\n import javax.annotation.Nullable;\n \n class TracingList extends SdkInternalList<Message> {",
+      "id": "PRRT_kwDODJKVX86l7xKc",
+      "opened": "2026-09-25T08:52:05Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-27T22:08:47Z",
+          "body": "I deferred a bit here, and opened https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20261",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4117210243"
+        }
+      ],
+      "reviewed": "f5630354d2d30d6547d0054fcb198278e8cf81a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20194#discussion_r4102846242"
+    }
+  ]
+}

@@ -1,0 +1,314 @@
+{
+  "head": "9d8571bd3454d3d9efd6283e7d65825b30ef25a7",
+  "merge": "0e6a0b845f99a15992218cca220d6b734157158c",
+  "merged": "2026-11-24T17:15:35Z",
+  "missing_roots": 0,
+  "number": 688,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "JETSKI please confirm there is a test somewhere here that verifies that optional properties are still typed. for example text parts should only allow string content",
+      "created": "2026-11-05T04:45:35Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6z7Tax",
+      "opened": "2026-11-05T04:45:34Z",
+      "path": "docs/gen-ai/non-normative/tests/cases/system-instructions-unsupported-parts.yaml",
+      "replies": [
+        {
+          "at": "2026-11-05T04:48:21Z",
+          "body": "Confirmed! This is tested right below in this file (`system-instructions-unsupported-parts.yaml` lines 10-22: `{ \"type\": \"text\", \"content\": 123 }` fails with `123 is not of type 'string'`), as well as in `input-messages-parts-wrong-field-types.yaml`, `output-messages-wrong-field-types.yaml`, `tool-definitions-wrong-field-types.yaml`, and `memory-records-missing-content.yaml`. Because `GenericSystemInstructionPart`, `GenericPart`, and `GenericToolDefinition` carry `_not_known_types(...)` (`not.enum`) constraints on `type`, known types cannot fall through to the generic catch-all when an optional field has the wrong type.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4476707389"
+        }
+      ],
+      "reviewed": "eacbf2b83fe6eb2fc8f68aea4a610036634a84fb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4476692571"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The snapshots do not cover omitted payloads for server-tool, file/URI, tool-call, reasoning, or transcription parts, or an omitted generic tool name, so restoring those requirements would go unnoticed. Add discriminator-only cases for these branches, output-message wrapper omission cases, and a system-instruction text part without content. For both server-tool variants, also verify that an omitted nested payload is accepted but a present `{}` is rejected for missing `type`.",
+      "created": "2026-11-05T04:53:42Z",
+      "hunk": "@@ -125,8 +130,11 @@ class ServerToolCallPart(BaseModel):\n     id: Optional[str] = Field(\n         default=None, description=\"Unique identifier for the server tool call.\"\n     )\n-    name: str = Field(description=\"Name of the server tool.\")\n-    server_tool_call: ServerToolCall = Field(\n+    name: Optional[str] = Field(\n+        default=None, description=\"Name of the server tool.\"\n+    )\n+    server_tool_call: Optional[ServerToolCall] = Field(\n+        default=None,",
+      "id": "PRRT_kwDOSUeMrM6z7aBy",
+      "opened": "2026-11-05T04:53:42Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-05T05:01:51Z",
+          "body": "Addressed: added discriminator-only and nested empty-object (`{}`) snapshot cases across `input-messages-parts-missing-required.yaml`, `output-messages-wrong-field-types.yaml`, `system-instructions-unsupported-parts.yaml`, and `tool-definitions-missing-required.yaml`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4476780629"
+        }
+      ],
+      "reviewed": "dd57d0c6398124da8c371cf6e69e07b306e768da",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4476736445"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`model/gen-ai/registry.yaml:662-664` says that non-required tool-definition properties are NOT RECOMMENDED to be populated by default. Making `name` optional therefore also discourages producers from recording function names, even when the SDK provides them; this is not just a consumer-validation change. Please decouple that producer recommendation from schema requiredness and explicitly preserve which tool fields should be captured by default.",
+      "created": "2026-11-05T04:53:42Z",
+      "hunk": "@@ -469,7 +487,7 @@ class FunctionToolDefinition(BaseModel):\n     \"\"\"\n \n     type: Literal[\"function\"] = Field(description=\"The type of the tool.\")\n-    name: str = Field(description=\"The name of the tool.\")\n+    name: Optional[str] = Field(default=None, description=\"The name of the tool.\")",
+      "id": "PRRT_kwDOSUeMrM6z7aCD",
+      "opened": "2026-11-05T04:53:42Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-05T05:01:53Z",
+          "body": "Addressed: updated `gen_ai.tool.definitions` in `model/gen-ai/registry.yaml` (and regenerated docs) to explicitly state that properties other than `type` and `name` (such as `description` and `parameters`) are NOT RECOMMENDED to be populated by default.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4476780779"
+        }
+      ],
+      "reviewed": "dd57d0c6398124da8c371cf6e69e07b306e768da",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4476736480"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The new rule says to move producer requirements to the spec docs, but nothing replaces the dropped `required` - no doc now says instrumentations should record `role`, `parts`, tool call `name`, part `content`, etc. when available. Maybe add something like this to the `gen_ai.input.messages`/`gen_ai.output.messages`/`gen_ai.system_instructions` notes?\r\n\r\n```yaml\r\n      Instrumentations SHOULD populate all fields defined in the JSON schema\r\n      when the value is available.\r\n```",
+      "created": "2026-11-05T21:21:08Z",
+      "hunk": "@@ -354,11 +372,12 @@ class Role(StrEnum):\n \n \n class ChatMessage(BaseModel):\n-    role: Union[Role, str] = Field(\n-        description=\"Role of the entity that created the message.\"\n+    role: Union[Role, str, None] = Field(\n+        default=None, description=\"Role of the entity that created the message.\"\n     )\n-    parts: List[MessagePart] = Field(\n-        description=\"List of message parts that make up the message content.\"\n+    parts: Optional[List[MessagePart]] = Field(\n+        default=None,\n+        description=\"List of message parts that make up the message content.\",\n     )",
+      "id": "PRRT_kwDOSUeMrM60RsJD",
+      "opened": "2026-11-05T21:49:31Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-10T23:11:43Z",
+          "body": "Makes sense, though a few fields are available at runtime and shouldn't be populated by default (`OutputMessage.finish_reason` is deprecated, tool `description`/`parameters` are `NOT RECOMMENDED`, and #144 made `BlobPart.content` optional to avoid inlining large binary payloads).\n\nWhat do you think about adding this to the attribute notes and `gen-ai-spans.md`, plus noting on `BlobPart.content` that instrumentations `MAY` omit it?\n\n> Unless a property is deprecated or its description states otherwise, instrumentations SHOULD populate every property defined in the JSON schema when the value is supplied by the caller or provider.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4531732960"
+        },
+        {
+          "at": "2026-11-16T19:05:22Z",
+          "body": "sounds good, small suggestion to make it tighter \"Instrumentations SHOULD populate fields when values are available, unless the field description says otherwise.\". In general, feel free to make these calls and push the changes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4590166852"
+        },
+        {
+          "at": "2026-11-18T21:50:37Z",
+          "body": "Done in 29ec3b4.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4621341084"
+        }
+      ],
+      "reviewed": "e69f0e7c10be05913192a4c54b879babc14143c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4486215006"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`Optional[...]` does more than make a field non-required: pydantic adds `anyOf: [..., {\"type\": \"null\"}]` to the schema, so every optional field now also accepts `null`. In JSON Schema those are two separate decisions, and the widely used schemas I checked make fields optional without allowing `null`:\n\n| Schema | `null` allowed |\n|---|---|\n| [OpenAPI 3.1 meta-schema](https://spec.openapis.org/oas/3.1/schema/2022-10-07), [MCP](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-06-18/schema.json), [ESLint](https://json.schemastore.org/eslintrc.json) | nowhere |\n| [Docker Compose](https://github.com/compose-spec/compose-spec/blob/main/schema/compose-spec.json), [GitHub Actions](https://json.schemastore.org/github-workflow.json) | only for empty YAML keys (`on: { push: }`) |\n| [tsconfig](https://json.schemastore.org/tsconfig.json) | only where `null` means \"reset the inherited value\" |\n| [CloudEvents](https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.json) | on a few optional attributes |\n| [Kubernetes](https://github.com/yannh/kubernetes-json-schema) (generated) | everywhere, added by the converter |\n\nThe [Google JSON style guide](https://google.github.io/styleguide/jsoncstyleguide.xml) also says to drop optional or null properties rather than emit them. Protobuf's [JSON mapping](https://protobuf.dev/programming-guides/json/) omits unset fields and lets parsers treat `null` as unset, but it never puts `null` into a schema.\n\nDropping the `null` branch shouldn't hurt consumers either:\n- Python code generated from the schema (e.g. [datamodel-code-generator](https://github.com/koxudaxi/datamodel-code-generator)) already turns non-required properties into `str | None = None`, with or without the `null` branch.\n- Most JSON parsers treat `null` like a missing field by default or let you configure it (Go `encoding/json`, serde `Option`, Jackson `@JsonSetter(nulls=...)`, kotlinx `explicitNulls`).\n\nWhat do you think about using `SkipJsonSchema[None]`? Anyone reading `models.py` still sees that `None` is expected, and the schema just says `\"type\": \"string\"`:\n\n```suggestion\n    content: Union[str, SkipJsonSchema[None]] = Field(\n        default=None,\n        description=\"Text content sent to or received from the model.\",\n    )\n```",
+      "created": "2026-11-05T21:47:56Z",
+      "hunk": "@@ -50,7 +50,10 @@ class TextPart(BaseModel):\n     type: Literal[\"text\"] = Field(\n         description=\"The type of the content captured in this part.\"\n     )\n-    content: str = Field(description=\"Text content sent to or received from the model.\")\n+    content: Optional[str] = Field(\n+        default=None,\n+        description=\"Text content sent to or received from the model.\",\n+    )",
+      "id": "PRRT_kwDOSUeMrM60SSFO",
+      "opened": "2026-11-05T21:49:31Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-10T23:11:45Z",
+          "body": "Agreed, though I'd rather do this across all optional fields in a follow-up PR for #53 since ~half the optional fields in `models.py` already use `Optional[...]` and changing everything here adds a lot of noise to the diff.\n\n@AgentGymLeader also noted below that `opentelemetry-util-genai` 1.3b0 emits `\"name\": null` on every message, and `SkipJsonSchema[None]` with `Field(default=None)` still leaves `\"default\": null` in the generated schema (so we may want `MISSING` instead).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4531733179"
+        }
+      ],
+      "reviewed": "e69f0e7c10be05913192a4c54b879babc14143c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4486469016"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nOnly structural union `type` discriminators may be required in `models.py`. Mark all other fields on messages, message parts, tool definitions, retrieval documents, and memory records optional with `Optional[...] = Field(default=None, ...)`, and put normative producer requirements in the specification docs. Never add a required field to an existing type.:\n```\n\nno need to justify to an agent? ",
+      "created": "2026-11-16T19:00:19Z",
+      "hunk": "@@ -11,8 +11,17 @@ change that produced them. Sample documents under\n `make test-json-schemas`, with the errors each schema reports snapshotted in the\n case file's `errors:` block (see `docs/gen-ai/non-normative/tests/README.md`).\n \n+## Schema compatibility rules\n+\n+Only structural union `type` discriminators may be required in `models.py`. Mark all other fields on messages, message parts, tool definitions, retrieval documents, and memory records optional with `Optional[...] = Field(default=None, ...)`, and put normative producer requirements in the specification docs. Never add a required field to an existing type. See [Understanding JSON Schema Compatibility](https://yokota.blog/2021/03/29/understanding-json-schema-compatibility/), Protobuf's [Required Is Forever](https://protobuf.dev/programming-guides/proto2/#required-deprecated), and [Don't Add a Required Field](https://protobuf.dev/best-practices/dos-donts/#add-required):",
+      "id": "PRRT_kwDOSUeMrM64FU_J",
+      "opened": "2026-11-16T19:05:22Z",
+      "path": ".github/instructions/json-schemas.instructions.md",
+      "replies": [
+        {
+          "at": "2026-11-18T21:50:40Z",
+          "body": "Removed the links in 29ec3b4.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4621341702"
+        }
+      ],
+      "reviewed": "eca78623e20a7f9f11a724c20540eb1ed10a977c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4590134102"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nno need to justify or explain to a bot",
+      "created": "2026-11-16T19:05:04Z",
+      "hunk": "@@ -37,6 +37,19 @@ GenAI clients, MCP, and provider-specific conventions. Attributes live in\n 9. **Stay in the GenAI domain.** This repo holds GenAI-related conventions. If a\n    proposal is broader than GenAI, take it to\n    [open-telemetry/semantic-conventions](https://github.com/open-telemetry/semantic-conventions).\n+10. **Only require structural discriminators in JSON schemas.** In\n+    `docs/gen-ai/non-normative/models.py`, only union `type` discriminators\n+    may be required. Mark all other fields optional with\n+    `Optional[...] = Field(default=None, ...)` and put normative producer\n+    requirements in the specification docs. Never add a required field to an\n+    existing type. Doing so breaks newer validators reading telemetry from older\n+    producers, prevents deprecating, replacing, or offloading fields without\n+    breaking older validators, and forces dummy values when redacting content.\n+    See\n+    [.github/instructions/json-schemas.instructions.md](.github/instructions/json-schemas.instructions.md),\n+    [Understanding JSON Schema Compatibility](https://yokota.blog/2021/03/29/understanding-json-schema-compatibility/),\n+    Protobuf's [Required Is Forever](https://protobuf.dev/programming-guides/proto2/#required-deprecated),\n+    and [Don't Add a Required Field](https://protobuf.dev/best-practices/dos-donts/#add-required).",
+      "id": "PRRT_kwDOSUeMrM64Fc_P",
+      "opened": "2026-11-16T19:05:22Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-11-18T21:50:38Z",
+          "body": "Removed the links in 29ec3b4.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4621341437"
+        }
+      ],
+      "reviewed": "eca78623e20a7f9f11a724c20540eb1ed10a977c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4590187020"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The unconditional `MUST record` requires producers to include `description` and `parameters`, but their field descriptions below and `model/gen-ai/registry.yaml:673-676` say those properties are NOT RECOMMENDED by default. This gives instrumentation authors conflicting capture requirements. Qualify the normalization rule with \"When recorded\" so it governs property names and placement without requiring optional content to be captured, then regenerate the schema.",
+      "created": "2026-11-18T21:58:38Z",
+      "hunk": "@@ -465,11 +483,14 @@ def __get_pydantic_json_schema__(\n \n class FunctionToolDefinition(BaseModel):\n     \"\"\"\n-    Represents a tool definition in the form of a function.\n+    Represents a tool definition in the form of a function. Instrumentations\n+    MUST record `name`, `description`, and `parameters` as top-level properties,\n+    not nested in a provider-specific wrapper or renamed (for example,\n+    `input_schema` or `inputSchema`).",
+      "id": "PRRT_kwDOSUeMrM65OKRw",
+      "opened": "2026-11-18T21:58:38Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-18T22:39:18Z",
+          "body": "Changed to \"When recorded\" in 2b85675.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4621842100"
+        }
+      ],
+      "reviewed": "8e9bb31bf3dad8ba0f09c9758ed33f6805b7ce42",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4621425655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new producer rule for nameless tools has no matching reference scenario. The existing generic-tool example in `reference/scenarios/anthropic/scenario.py:529-530` always supplies the SDK-defined `t[\"name\"]`; the new `{ \"type\": \"web_search\" }` YAML case only establishes schema acceptance. Please add a real SDK scenario whose tool definition has no name and demonstrate omitting it, with the corresponding README and telemetry updates, or defer this producer rule until it can be demonstrated.",
+      "created": "2026-11-18T21:58:38Z",
+      "hunk": "@@ -502,7 +523,9 @@ class GenericToolDefinition(BaseModel):\n     \"\"\"\n     Fallback for consumers when a tool definition has a `type` not defined by\n     this version of semantic conventions (such as a provider-specific built-in\n-    tool or a tool type added in a newer version).\n+    tool or a tool type added in a newer version). Instrumentations SHOULD omit\n+    `name` when the provider does not define a name for the tool, rather than\n+    copying the `type` value.",
+      "id": "PRRT_kwDOSUeMrM65OKSa",
+      "opened": "2026-11-18T21:58:38Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-18T22:39:20Z",
+          "body": "Dropped the rule from this PR until it has a scenario.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4621842362"
+        }
+      ],
+      "reviewed": "8e9bb31bf3dad8ba0f09c9758ed33f6805b7ce42",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4621425730"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`name` used to be required by the schema. Now it's optional, and I don't see anything in the spec that still asks instrumentations to record it. The message attributes got a \"SHOULD populate fields when values are available\" line, but `gen_ai.tool.definitions` didn't. Is that intentional?",
+      "created": "2026-11-19T19:07:45Z",
+      "hunk": "@@ -671,8 +671,9 @@ attributes:\n       > This attribute may contain sensitive information.\n \n       Since this attribute could be large, it's NOT RECOMMENDED to populate\n-      non-required properties by default. Instrumentations MAY provide a way\n-      to enable populating optional properties.\n+      properties other than `type` and `name` (such as `description` and\n+      `parameters`) by default. Instrumentations MAY provide a way to enable\n+      populating additional properties.",
+      "id": "PRRT_kwDOSUeMrM65qkZs",
+      "opened": "2026-11-19T19:21:21Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-24T04:21:36Z",
+          "body": "Added to `gen_ai.tool.definitions` (and its `spans.yaml` overrides) in 9d8571b.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4675478557"
+        }
+      ],
+      "reviewed": "2b85675b4b7e973b9cb8c35b289bd588f20a32c7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4633696615"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same question for memory records. `content` used to be required, and now neither the schema nor the `gen_ai.memory.records` note says anything about populating it. Should it get similar guidance?",
+      "created": "2026-11-19T19:07:45Z",
+      "hunk": "@@ -573,7 +594,9 @@ class MemoryRecord(BaseModel):\n     Represents a single memory record stored in or retrieved from a memory store.\n     \"\"\"\n \n-    content: Any = Field(description=\"The content of the memory record.\")\n+    content: Any = Field(\n+        default=None, description=\"The content of the memory record.\"\n+    )",
+      "id": "PRRT_kwDOSUeMrM65qkaG",
+      "opened": "2026-11-19T19:21:21Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-24T04:21:38Z",
+          "body": "Added to `gen_ai.memory.records` in 9d8571b.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4675478695"
+        }
+      ],
+      "reviewed": "2b85675b4b7e973b9cb8c35b289bd588f20a32c7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4633696647"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This reads like a new requirement for instrumentations, and the changelog and PR description don't mention it. Was it implied before, or is it new? And should it go in the spec docs (the `gen_ai.tool.definitions` note) instead of `models.py`, given the new guidance in `json-schemas.instructions.md`?",
+      "created": "2026-11-19T19:07:45Z",
+      "hunk": "@@ -465,11 +483,14 @@ def __get_pydantic_json_schema__(\n \n class FunctionToolDefinition(BaseModel):\n     \"\"\"\n-    Represents a tool definition in the form of a function.\n+    Represents a tool definition in the form of a function. When recorded,\n+    `name`, `description`, and `parameters` MUST be top-level properties,\n+    not nested in a provider-specific wrapper or renamed (for example,\n+    `input_schema` or `inputSchema`).",
+      "id": "PRRT_kwDOSUeMrM65qkaP",
+      "opened": "2026-11-19T19:21:21Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-24T04:21:39Z",
+          "body": "Dropped that `MUST` sentence in 9d8571b since the schema already defines those properties at the top level and `SHOULD populate` covers `name`. Also clarified `json-schemas.instructions.md` and `AGENTS.md` on attribute-level vs field-specific producer rules.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4675478838"
+        }
+      ],
+      "reviewed": "2b85675b4b7e973b9cb8c35b289bd588f20a32c7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4633696661"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This used to fail validation and now passes, so the schema no longer catches `text` used in place of `content`. Is that tradeoff intended?",
+      "created": "2026-11-19T19:07:45Z",
+      "hunk": "@@ -1,27 +1,38 @@\n # yaml-language-server: $schema=../case.schema.json\n description: >\n-  A text part without `content` (even with the content in another field), and\n-  a blob part without `modality`. Parts are not accepted as generic parts when\n-  their `type` conflicts with a defined part type.\n+  Every message part requires a `type` discriminator, while non-discriminator\n+  fields such as `content` and `modality` may be omitted when redacted or\n+  offloaded.\n schema: gen-ai-input-messages.json\n document: [\n   {\n     \"role\": \"user\",\n     \"parts\": [\n+      { \"content\": \"hello\" },\n       { \"type\": \"text\" },\n       { \"type\": \"text\", \"text\": \"hello\" },",
+      "id": "PRRT_kwDOSUeMrM65qkaV",
+      "opened": "2026-11-19T19:21:21Z",
+      "path": "docs/gen-ai/non-normative/tests/cases/input-messages-parts-missing-required.yaml",
+      "replies": [
+        {
+          "at": "2026-11-24T04:21:41Z",
+          "body": "Yes, intended tradeoff since parts allow `additionalProperties: true` and `content` can be omitted (e.g. when redacted). Producer conformance is still covered by the `SHOULD populate` rule.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4675478993"
+        }
+      ],
+      "reviewed": "2b85675b4b7e973b9cb8c35b289bd588f20a32c7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4633696667"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Nit: this case now expects no errors, so `missing-required` in the file name seems off. Same for `tool-definitions-missing-required.yaml`. Worth renaming?",
+      "created": "2026-11-19T19:07:45Z",
+      "hunk": "@@ -1,15 +1,9 @@\n # yaml-language-server: $schema=../case.schema.json\n-description: Every message needs `role` and `parts`\n+description: Messages may omit non-discriminator fields like `role` or `parts`",
+      "id": "PRRT_kwDOSUeMrM65qkai",
+      "opened": "2026-11-19T19:21:21Z",
+      "path": "docs/gen-ai/non-normative/tests/cases/input-messages-message-optional-fields.yaml",
+      "replies": [
+        {
+          "at": "2026-11-24T04:21:43Z",
+          "body": "Renamed both to `*-optional-fields.yaml` in 9d8571b.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4675479153"
+        }
+      ],
+      "reviewed": "2b85675b4b7e973b9cb8c35b289bd588f20a32c7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/688#discussion_r4633696689"
+    }
+  ]
+}

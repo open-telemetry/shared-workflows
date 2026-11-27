@@ -1,0 +1,25 @@
+{
+  "head": "e4c2f4cd63af7d2b129b0c27a638dc44b2da6f1a",
+  "merge": "87158296d846f1faca9560dbd5e399e832d4bd0b",
+  "merged": "2026-03-21T20:34:19Z",
+  "missing_roots": 0,
+  "number": 16869,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "> constructors are named `<init>`\n\nI think that for bytebuddy the name that matches a constructor is actually an empty string.\n`NameMatcher` uses `atcher.matches(target.getActualName());` \n`MethodDescription` has\n```\n        public String getActualName() {\n            return isMethod()\n                    ? getName()\n                    : EMPTY_NAME;\n        } \n```\ndidn't test",
+      "created": "2026-03-21T12:36:02Z",
+      "hunk": "@@ -228,9 +228,11 @@ sufficient for optimization.\n   `extendsClass(...)` and `implementsInterface(...)` are appropriate when the instrumentation\n   targets subclasses or implementors of a type.\n - `transform()` wires method matchers to advice classes via `applyAdviceToMethod()`.\n-- Do not add `isMethod()` in method matchers inside `transform()`. `isMethod()` only\n-  serves to exclude constructors, but `named(...)` already excludes them because\n-  constructors are named `<init>`. Remove `isMethod()` when not needed.\n+- `isMethod()` in method matchers inside `transform()` is only redundant when the matcher\n+  uses explicit method names — e.g. `named(\"foo\")` or `namedOneOf(\"foo\", \"bar\")` — because\n+  constructors are named `<init>` and will never match. Remove `isMethod()` only in that",
+      "id": "PRRT_kwDODJKVX8514gur",
+      "opened": "2026-03-21T12:36:02Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [],
+      "reviewed": "9fa92270ac253fef053684b50c33d286eb0b65d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16869#discussion_r2969537388"
+    }
+  ]
+}

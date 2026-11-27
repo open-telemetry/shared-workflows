@@ -1,0 +1,127 @@
+{
+  "head": "10c51a9befc9690e788c44c400499d6fd23d0831",
+  "merge": "ebbb23f031e7ff9d590436b19f4d772c9366fe78",
+  "merged": "2026-09-10T21:33:55Z",
+  "missing_roots": 0,
+  "number": 672,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Catching BaseException here can swallow KeyboardInterrupt/SystemExit and hide process termination signals. Limit this to Exception so only regular runtime errors disable accumulation.",
+      "created": "2026-09-10T18:40:51Z",
+      "hunk": "@@ -134,14 +152,29 @@ def _process_chunk(\n         if snapshot is not None:\n             self._self_message = snapshot\n             return\n-        if accumulate_event is None:\n+        if accumulate_event is None or _accumulation_disabled:\n             return\n-        self._self_message = accumulate_event(\n-            event=cast(\"RawMessageStreamEvent\", chunk),\n-            current_snapshot=cast(\n+\n+        kwargs: dict[str, Any] = {\n+            \"event\": cast(\"RawMessageStreamEvent\", chunk),\n+            \"current_snapshot\": cast(\n                 \"ParsedMessage[ResponseFormatT] | None\", self._self_message\n             ),\n-        )\n+        }\n+        if _accumulate_takes_json_bufs:\n+            kwargs[\"json_bufs\"] = self._self_json_bufs\n+\n+        try:\n+            self._self_message = accumulate_event(**kwargs)\n+        except BaseException:\n+            _accumulation_disabled = True",
+      "id": "PRRT_kwDOSbspP86hM5gd",
+      "opened": "2026-09-10T18:40:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "7306c1d4c3696f2c57b4b6590b720919a562645a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3982354403"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This fragment says accumulation is suppressed only on signature mismatches, but wrappers.py disables accumulation on any exception from accumulate_event. Either narrow the disable condition to signature mismatches, or update this text to match the broader behavior.",
+      "created": "2026-09-10T18:40:51Z",
+      "hunk": "@@ -0,0 +1 @@\n+Fix streaming message accumulation with ``anthropic>=1.5.0`` and gracefully suppress future accumulation on signature mismatches.",
+      "id": "PRRT_kwDOSbspP86hM5hD",
+      "opened": "2026-09-10T18:40:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/672.fixed",
+      "replies": [],
+      "reviewed": "7306c1d4c3696f2c57b4b6590b720919a562645a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3982354457"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion is coupled to the exact warning text; if the warning is made more accurate/generic (see wrappers.py), update the expected substring accordingly.\n\nThis issue also appears on line 604 of the same file.",
+      "created": "2026-09-10T18:40:52Z",
+      "hunk": "@@ -482,3 +482,193 @@ async def test_async_manager_enter_constructs_async_stream_wrapper():\n     async with wrapper as result:\n         assert isinstance(result, AsyncMessagesStreamWrapper)\n         assert result.stream is stream\n+\n+\n+def test_stream_wrapper_accumulate_event_failure_logs_warning_and_disables(\n+    monkeypatch, caplog\n+):\n+    import logging\n+\n+    from opentelemetry.instrumentation.genai.anthropic import wrappers\n+\n+    monkeypatch.setattr(wrappers, \"_accumulation_disabled\", False)\n+\n+    calls = []\n+\n+    def mock_accumulate(**kwargs):\n+        calls.append(kwargs)\n+        raise TypeError(\"Unexpected argument in new SDK version\")\n+\n+    monkeypatch.setattr(wrappers, \"accumulate_event\", mock_accumulate)\n+\n+    stream = _FakeSyncStream(events=[\"chunk1\", \"chunk2\"])\n+    wrapper = _make_stream_wrapper(stream)\n+\n+    with caplog.at_level(logging.WARNING):\n+        list(wrapper)\n+\n+    assert len(calls) == 1\n+    assert wrappers._accumulation_disabled is True\n+    assert (\n+        \"Failed to accumulate streaming content; this Anthropic SDK version is not supported.\"\n+        in caplog.text\n+    )",
+      "id": "PRRT_kwDOSbspP86hM5h5",
+      "opened": "2026-09-10T18:40:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_wrappers.py",
+      "replies": [],
+      "reviewed": "7306c1d4c3696f2c57b4b6590b720919a562645a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3982354541"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The warning text unconditionally claims the Anthropic SDK version is unsupported, but the handler disables accumulation for any exception (including transient/corrupt events). Make the message describe what actually happened to avoid misleading operators.",
+      "created": "2026-09-10T18:40:52Z",
+      "hunk": "@@ -134,14 +152,29 @@ def _process_chunk(\n         if snapshot is not None:\n             self._self_message = snapshot\n             return\n-        if accumulate_event is None:\n+        if accumulate_event is None or _accumulation_disabled:\n             return\n-        self._self_message = accumulate_event(\n-            event=cast(\"RawMessageStreamEvent\", chunk),\n-            current_snapshot=cast(\n+\n+        kwargs: dict[str, Any] = {\n+            \"event\": cast(\"RawMessageStreamEvent\", chunk),\n+            \"current_snapshot\": cast(\n                 \"ParsedMessage[ResponseFormatT] | None\", self._self_message\n             ),\n-        )\n+        }\n+        if _accumulate_takes_json_bufs:\n+            kwargs[\"json_bufs\"] = self._self_json_bufs\n+\n+        try:\n+            self._self_message = accumulate_event(**kwargs)\n+        except BaseException:\n+            _accumulation_disabled = True\n+            _logger.warning(\n+                \"Failed to accumulate streaming content; this Anthropic SDK \"\n+                \"version is not supported. Future content accumulation is \"\n+                \"suppressed; please upgrade opentelemetry-instrumentation-genai-anthropic \"\n+                \"or report an issue.\",",
+      "id": "PRRT_kwDOSbspP86hM5hb",
+      "opened": "2026-09-10T18:40:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "7306c1d4c3696f2c57b4b6590b720919a562645a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3982354499"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests should avoid raising BaseException (it includes KeyboardInterrupt/SystemExit). Raise Exception here so the test models a normal runtime failure and still exercises the warning/disable path.",
+      "created": "2026-09-10T18:40:52Z",
+      "hunk": "@@ -482,3 +482,193 @@ async def test_async_manager_enter_constructs_async_stream_wrapper():\n     async with wrapper as result:\n         assert isinstance(result, AsyncMessagesStreamWrapper)\n         assert result.stream is stream\n+\n+\n+def test_stream_wrapper_accumulate_event_failure_logs_warning_and_disables(\n+    monkeypatch, caplog\n+):\n+    import logging\n+\n+    from opentelemetry.instrumentation.genai.anthropic import wrappers\n+\n+    monkeypatch.setattr(wrappers, \"_accumulation_disabled\", False)\n+\n+    calls = []\n+\n+    def mock_accumulate(**kwargs):\n+        calls.append(kwargs)\n+        raise TypeError(\"Unexpected argument in new SDK version\")\n+\n+    monkeypatch.setattr(wrappers, \"accumulate_event\", mock_accumulate)\n+\n+    stream = _FakeSyncStream(events=[\"chunk1\", \"chunk2\"])\n+    wrapper = _make_stream_wrapper(stream)\n+\n+    with caplog.at_level(logging.WARNING):\n+        list(wrapper)\n+\n+    assert len(calls) == 1\n+    assert wrappers._accumulation_disabled is True\n+    assert (\n+        \"Failed to accumulate streaming content; this Anthropic SDK version is not supported.\"\n+        in caplog.text\n+    )\n+\n+\n+def test_stream_wrapper_passes_json_bufs_when_supported(monkeypatch):\n+    from opentelemetry.instrumentation.genai.anthropic import wrappers\n+\n+    monkeypatch.setattr(wrappers, \"_accumulation_disabled\", False)\n+    monkeypatch.setattr(wrappers, \"_accumulate_takes_json_bufs\", True)\n+\n+    captured_kwargs = []\n+\n+    def mock_accumulate(**kwargs):\n+        captured_kwargs.append(kwargs)\n+        return SimpleNamespace(\n+            model=\"claude-test\",\n+            id=\"msg_1\",\n+            usage=None,\n+            content=[],\n+            stop_reason=None,\n+        )\n+\n+    monkeypatch.setattr(wrappers, \"accumulate_event\", mock_accumulate)\n+\n+    stream = _FakeSyncStream(events=[\"chunk1\"])\n+    wrapper = _make_stream_wrapper(stream)\n+\n+    list(wrapper)\n+\n+    assert len(captured_kwargs) == 1\n+    assert \"json_bufs\" in captured_kwargs[0]\n+    assert captured_kwargs[0][\"json_bufs\"] is wrapper._self_json_bufs\n+\n+\n+def test_stream_wrapper_does_not_pass_json_bufs_when_unsupported(monkeypatch):\n+    from opentelemetry.instrumentation.genai.anthropic import wrappers\n+\n+    monkeypatch.setattr(wrappers, \"_accumulation_disabled\", False)\n+    monkeypatch.setattr(wrappers, \"_accumulate_takes_json_bufs\", False)\n+\n+    captured_kwargs = []\n+\n+    def mock_accumulate(**kwargs):\n+        captured_kwargs.append(kwargs)\n+        return SimpleNamespace(\n+            model=\"claude-test\",\n+            id=\"msg_1\",\n+            usage=None,\n+            content=[],\n+            stop_reason=None,\n+        )\n+\n+    monkeypatch.setattr(wrappers, \"accumulate_event\", mock_accumulate)\n+\n+    stream = _FakeSyncStream(events=[\"chunk1\"])\n+    wrapper = _make_stream_wrapper(stream)\n+\n+    list(wrapper)\n+\n+    assert len(captured_kwargs) == 1\n+    assert \"json_bufs\" not in captured_kwargs[0]\n+\n+\n+@pytest.mark.asyncio\n+async def test_async_stream_wrapper_accumulate_event_failure_logs_warning_and_disables(\n+    monkeypatch, caplog\n+):\n+    import logging\n+\n+    from opentelemetry.instrumentation.genai.anthropic import wrappers\n+\n+    monkeypatch.setattr(wrappers, \"_accumulation_disabled\", False)\n+\n+    calls = []\n+\n+    def mock_accumulate(**kwargs):\n+        calls.append(kwargs)\n+        raise BaseException(\"Unexpected failure\")\n+",
+      "id": "PRRT_kwDOSbspP86hM5ii",
+      "opened": "2026-09-10T18:40:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_wrappers.py",
+      "replies": [],
+      "reviewed": "7306c1d4c3696f2c57b4b6590b720919a562645a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3982354588"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Should clear snapshot when accumulation fails midway? Say something like:\n\n```python\nself._self_message = None\n```",
+      "created": "2026-09-10T20:32:56Z",
+      "hunk": "@@ -134,14 +152,29 @@ def _process_chunk(\n         if snapshot is not None:\n             self._self_message = snapshot\n             return\n-        if accumulate_event is None:\n+        if accumulate_event is None or _accumulation_disabled:\n             return\n-        self._self_message = accumulate_event(\n-            event=cast(\"RawMessageStreamEvent\", chunk),\n-            current_snapshot=cast(\n+\n+        kwargs: dict[str, Any] = {\n+            \"event\": cast(\"RawMessageStreamEvent\", chunk),\n+            \"current_snapshot\": cast(\n                 \"ParsedMessage[ResponseFormatT] | None\", self._self_message\n             ),\n-        )\n+        }\n+        if _accumulate_takes_json_bufs:\n+            kwargs[\"json_bufs\"] = self._self_json_bufs\n+\n+        try:\n+            self._self_message = accumulate_event(**kwargs)\n+        except BaseException:\n+            _accumulation_disabled = True",
+      "id": "PRRT_kwDOSbspP86hPG6o",
+      "opened": "2026-09-10T20:44:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [
+        {
+          "at": "2026-09-10T20:54:40Z",
+          "body": "why? in practice it'd fail right away and there will be nothing. if there was something in the past, why don't we record it? yes, it's partial, but that's as much as we were able to get",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3983408239"
+        }
+      ],
+      "reviewed": "7306c1d4c3696f2c57b4b6590b720919a562645a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3983238538"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Is the module-level _accumulation_disabled thread-safe? Since one stream’s failure would disable accumulation for all concurrent and future streams, could this instead be per-wrapper state such as `self._self_accumulation_disabled`?",
+      "created": "2026-09-10T20:34:16Z",
+      "hunk": "@@ -126,6 +143,7 @@ def _process_chunk(\n         | ParsedMessageStreamEvent[ResponseFormatT],\n     ) -> None:\n         \"\"\"Accumulate a final message snapshot from a streaming chunk.\"\"\"\n+        global _accumulation_disabled",
+      "id": "PRRT_kwDOSbspP86hPIgm",
+      "opened": "2026-09-10T20:44:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [
+        {
+          "at": "2026-09-10T20:57:59Z",
+          "body": "\nthis is protection from unsupported SDK version, it won't change on the next request.\n\nAssigning and reading a boolean in Python is atomic, so there is no thread-safety issue. The flag is intentionally global as a circuit breaker: if accumulate_event fails due to an unsupported SDK version, we want to stop attempting it process-wide rather than spamming warnings and wasting cycles on every every stream.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3983432805"
+        }
+      ],
+      "reviewed": "7306c1d4c3696f2c57b4b6590b720919a562645a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/672#discussion_r3983248771"
+    }
+  ]
+}

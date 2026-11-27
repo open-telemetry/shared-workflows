@@ -1,0 +1,46 @@
+{
+  "head": "7822cfb3c24cd6f30900aafc209b37fbb7ec562f",
+  "merge": "5bd86088f3384d2eabfdb196fff5809cf497dbbf",
+  "merged": "2026-09-21T07:38:34Z",
+  "missing_roots": 0,
+  "number": 20086,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new cluster fixture only exercises direct routing from the synthetic partition map; it never returns a `MOVED` or `ASK` response. The wrapper reuse and last-peer behavior claimed for reroutes is therefore untested, so add a redirect scenario that writes first to one node, retries on the other, and asserts the final span peer is the last endpoint.",
+      "created": "2026-09-10T02:47:55Z",
+      "hunk": "@@ -235,14 +289,18 @@ private void writeResponse(List<String> command, OutputStream output) throws IOE\n           && command.size() > 1\n           && \"NODES\".equals(command.get(1).toUpperCase(Locale.ROOT))) {\n         String nodes =\n-            NODE_ID\n+            FIRST_NODE_ID\n                 + \" \"\n                 + getHost()\n                 + \":\"\n                 + getPort()\n                 + \" myself,master - 0 0 1 connected 0-16383\\n\";\n         write(output, \"$\" + nodes.getBytes(UTF_8).length + \"\\r\\n\" + nodes + \"\\r\\n\");\n-      } else if (\"SET\".equals(name) || \"CLIENT\".equals(name)) {\n+      } else if (\"SET\".equals(name)) {\n+        String key = command.get(1);\n+        receivedSetKeys.add(key);\n+        write(output, \"+OK\\r\\n\");\n+      } else if (\"CLIENT\".equals(name)) {",
+      "id": "PRRT_kwDODJKVX86g6SEl",
+      "opened": "2026-09-10T02:47:55Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceClusterClientTest.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:39:18Z",
+          "body": "Addressed in b00802c683a670bbe9a3ff3dace468da1e1f143e.\n\nAnalysis: The fixture now returns a one-shot MOVED response for a selected key. The test verifies that Lettuce writes the same command to the original node and the redirected node, and that the completed span uses the redirected node as its network peer. Lettuce 4.0.Final cannot execute its redirect path with the test runtime's Guava because it calls the removed HostAndPort.getHostText() method, so this scenario runs with the supported latest Lettuce 4 dependency.\n\nUpsides: This exercises the real ClusterCommand retry and wrapper reuse path, and it detects regressions that keep the first peer instead of the last peer.\n\nDownsides: The redirect scenario runs only in latest-dependency builds because the baseline Lettuce release cannot follow redirects with the current test runtime.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20086#discussion_r3975561670"
+        }
+      ],
+      "reviewed": "f231d2619fc70a989e0daa2b583c9836097d2c2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20086#discussion_r3975004118"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "To me these feel a bit random. Imo elsewhere we don't guard against invoking the method with wrong arguments.",
+      "created": "2026-09-21T07:34:19Z",
+      "hunk": "@@ -0,0 +1,80 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import java.lang.reflect.Method;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import javax.annotation.Nullable;\n+\n+final class LettuceCommandPeer {\n+  private static final String DOMAIN_SOCKET_ADDRESS_CLASS =\n+      \"io.netty.channel.unix.DomainSocketAddress\";\n+\n+  @Nullable\n+  private static final Method domainSocketAddressPathMethod = getDomainSocketAddressPathMethod();\n+\n+  // Completion and outbound writes can race on different threads.\n+  @Nullable private SocketAddress address;\n+  private boolean finished;\n+\n+  synchronized void record(SocketAddress address) {\n+    if (!finished) {\n+      this.address = address;\n+    }\n+  }\n+\n+  synchronized void finish() {\n+    finished = true;\n+  }\n+\n+  @Nullable\n+  synchronized SocketAddress getAddress() {\n+    return address;\n+  }\n+\n+  @Nullable\n+  static String getNetworkPeerAddress(@Nullable SocketAddress peerAddress) {\n+    if (peerAddress instanceof InetSocketAddress) {\n+      InetSocketAddress inetPeerAddress = (InetSocketAddress) peerAddress;\n+      return inetPeerAddress.isUnresolved() ? null : inetPeerAddress.getAddress().getHostAddress();\n+    }\n+    if (peerAddress != null\n+        && peerAddress.getClass().getName().equals(DOMAIN_SOCKET_ADDRESS_CLASS)) {\n+      if (domainSocketAddressPathMethod == null) {\n+        return null;\n+      }\n+      try {\n+        return (String) domainSocketAddressPathMethod.invoke(peerAddress);\n+      } catch (ReflectiveOperationException\n+          | IllegalArgumentException\n+          | ClassCastException ignored) {",
+      "id": "PRRT_kwDODJKVX86kRGdu",
+      "opened": "2026-09-21T07:34:18Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceCommandPeer.java",
+      "replies": [],
+      "reviewed": "7822cfb3c24cd6f30900aafc209b37fbb7ec562f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20086#discussion_r4060075396"
+    }
+  ]
+}

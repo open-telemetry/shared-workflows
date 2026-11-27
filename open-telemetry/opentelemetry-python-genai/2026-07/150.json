@@ -1,0 +1,291 @@
+{
+  "head": "55e8e2112b7b5591cad58ad421eb32b0ee8afb63",
+  "merge": "a2fe7545f26ee8eef323703789209488aa074102",
+  "merged": "2026-07-21T21:39:46Z",
+  "missing_roots": 0,
+  "number": 150,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "attributes validated below",
+      "created": "2026-06-18T04:31:56Z",
+      "hunk": "@@ -77,8 +75,6 @@ def test_model_preserved_when_provided(handler, span_exporter):\n     )\n     invocation.stop()\n \n-    assert invocation.request_model == \"text-embedding-3-small\"",
+      "id": "PRRT_kwDOSbspP86KbITi",
+      "opened": "2026-06-18T04:31:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_embedding_invocation_unit.py",
+      "replies": [],
+      "reviewed": "56db4f03f45d0d57a11169cc3a60afee0bfba2ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3433051101"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this one is used by langchain, convert to read-only property",
+      "created": "2026-06-18T04:32:19Z",
+      "hunk": "@@ -99,37 +99,35 @@ def __init__(\n         self.system_instruction: list[MessagePart] = []\n         self.tool_definitions: list[ToolDefinition] | None = None\n \n-        self._start(self._get_base_attributes())\n+        self._start(self._get_start_attributes())\n \n-    def _get_base_attributes(self) -> dict[str, Any]:\n+    @property\n+    def agent_name(self) -> str | None:",
+      "id": "PRRT_kwDOSbspP86KbIpn",
+      "opened": "2026-06-18T04:32:19Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "56db4f03f45d0d57a11169cc3a60afee0bfba2ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3433052964"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "so `_` means don't directly set this, instead pass it in on initialization.. Is that enforced somehow or is it just a convention ? Does it cause a lint error at least ?",
+      "created": "2026-06-18T13:31:22Z",
+      "hunk": "@@ -64,12 +64,12 @@ def __init__(\n             else _operation_name,\n             span_kind=span_kind,\n         )\n-        self.provider = provider\n-        self.request_model = request_model\n-        self.server_address = server_address\n-        self.server_port = server_port\n+        self._provider: str = provider",
+      "id": "PRRT_kwDOSbspP86KjsmL",
+      "opened": "2026-06-18T13:31:22Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [
+        {
+          "at": "2026-06-19T22:54:37Z",
+          "body": "it a conventions, pylint can detect it, but is not configured to do it in this and contrib repos. I can look into enabling it, but it's a common convention in python to mark internal API, it's what we do for all private methods on these classes. I don't think it needs to be bullet-proof",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444849159"
+        },
+        {
+          "at": "2026-06-26T13:40:28Z",
+          "body": "Ack, I think it's fine although in some places in utils we allow instrumentations to access `_` (like the streaming wrappers although maybe that's a special case).. anyway I think it's better then nothing",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3481750595"
+        }
+      ],
+      "reviewed": "56db4f03f45d0d57a11169cc3a60afee0bfba2ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3436163573"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`WorkflowInvocation` is part of the public surface (`opentelemetry.util.genai.invocation`). Replacing the public `name` attribute with a private `_name` breaks existing callers and forces tests to reach into a private field. Keep `name` as a public read-only property (backed by `_name`) so callers can still read it without mutating start-time attributes (util guideline 1000003: API backwards compatibility).",
+      "created": "2026-06-19T23:36:52Z",
+      "hunk": "@@ -52,12 +52,12 @@ def __init__(\n             span_name=f\"{_operation_name} {name}\" if name else _operation_name,\n             span_kind=SpanKind.INTERNAL,\n         )\n-        self.name = name\n+        self._name: str | None = name\n         self.input_messages: list[InputMessage] = []\n         self.output_messages: list[OutputMessage] = []\n-        self._start(self._get_base_attributes())\n+        self._start(self._get_start_attributes())",
+      "id": "PRRT_kwDOSbspP86K8PNU",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933627"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ToolInvocation` is a public invocation type, but tool metadata is now stored only in private fields (`_name`, `_tool_call_id`, `_tool_type`, `_tool_description`) with no public accessors. That’s a breaking API change for callers/tests that previously read `name`, `tool_call_id`, etc. Keep the public names as read-only properties backed by these private fields (util guideline 1000003: API backwards compatibility).",
+      "created": "2026-06-19T23:36:53Z",
+      "hunk": "@@ -62,25 +62,25 @@ def __init__(\n             span_name=f\"{_operation_name} {name}\" if name else _operation_name,\n         )\n         self.should_capture_content_on_span = should_capture_content_on_spans()\n-        self.name = name\n+        self._name: str = name\n         self.tool_result: AttributeValue | None = None\n         # Since arguments and tool_result can be expensive to serialize,\n         # it's recommended to check the content capture flag in the\n         # instrumentation library before assigning these attributes\n         # to the invocation.\n         self.arguments: AttributeValue | None = None\n-        self.tool_call_id = tool_call_id\n-        self.tool_type = tool_type\n-        self.tool_description = tool_description\n-        self._start(self._get_base_attributes())\n+        self._tool_call_id: str | None = tool_call_id\n+        self._tool_type: str | None = tool_type\n+        self._tool_description: str | None = tool_description\n+        self._start(self._get_start_attributes())",
+      "id": "PRRT_kwDOSbspP86K8PN5",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933671"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_get_start_attributes()` always includes `gen_ai.provider.name` even when `provider` is `None` (`GenAI.GEN_AI_PROVIDER_NAME: self._provider`). Span attributes must not be `None`; this will either be dropped silently by the SDK or cause attribute validation errors. Filter provider the same way as the other optional start attributes.",
+      "created": "2026-06-19T23:36:53Z",
+      "hunk": "@@ -99,37 +99,35 @@ def __init__(\n         self.system_instruction: list[MessagePart] = []\n         self.tool_definitions: list[ToolDefinition] | None = None\n \n-        self._start(self._get_base_attributes())\n+        self._start(self._get_start_attributes())\n \n-    def _get_base_attributes(self) -> dict[str, Any]:\n+    @property\n+    def agent_name(self) -> str | None:\n+        \"\"\"The agent name provided at construction time.\"\"\"\n+        return self._agent_name\n+\n+    def _get_start_attributes(self) -> dict[str, Any]:\n         \"\"\"Return sampling-relevant attributes available at span creation time.\"\"\"\n         optional_attrs = (\n-            (GenAI.GEN_AI_PROVIDER_NAME, self.provider),\n-            (GenAI.GEN_AI_REQUEST_MODEL, self.request_model),\n-            (GenAI.GEN_AI_AGENT_NAME, self.agent_name),\n-            (server_attributes.SERVER_ADDRESS, self.server_address),\n-            (server_attributes.SERVER_PORT, self.server_port),\n+            (GenAI.GEN_AI_REQUEST_MODEL, self._request_model),\n+            (GenAI.GEN_AI_AGENT_NAME, self._agent_name),\n+            (server_attributes.SERVER_ADDRESS, self._server_address),\n+            (server_attributes.SERVER_PORT, self._server_port),\n         )\n         return {\n             GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n+            GenAI.GEN_AI_PROVIDER_NAME: self._provider,\n             **{k: v for k, v in optional_attrs if v is not None},\n         }",
+      "id": "PRRT_kwDOSbspP86K8PN_",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933677"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`RetrievalInvocation` is publicly re-exported, but this change makes start-time fields private (`_data_source_id`, `_provider`, `_request_model`, `_server_address`, `_server_port`) with no public accessors. That is a breaking API change and also drives tests to use private fields. Please keep the public attribute names as read-only properties backed by these private fields (util guideline 1000003: API backwards compatibility).",
+      "created": "2026-06-19T23:36:53Z",
+      "hunk": "@@ -68,24 +68,24 @@ def __init__(\n             else _operation_name,\n             span_kind=SpanKind.CLIENT,\n         )\n-        self.data_source_id = data_source_id\n-        self.provider = provider\n-        self.request_model = request_model\n-        self.server_address = server_address\n-        self.server_port = server_port\n+        self._data_source_id: str | None = data_source_id\n+        self._provider: str | None = provider\n+        self._request_model: str | None = request_model\n+        self._server_address: str | None = server_address\n+        self._server_port: int | None = server_port",
+      "id": "PRRT_kwDOSbspP86K8PNh",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933644"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`InferenceInvocation` is a public type (re-exported from `opentelemetry.util.genai.invocation`). Converting `provider`, `request_model`, `server_address`, and `server_port` into private fields without public accessors is a breaking change and forces downstream code/tests to use `_provider` / `_request_model` etc. Keep the public names as read-only properties backed by the private fields (util guideline 1000003: API backwards compatibility).",
+      "created": "2026-06-19T23:36:53Z",
+      "hunk": "@@ -67,10 +67,10 @@ def __init__(\n             else operation_name,\n             span_kind=SpanKind.CLIENT,\n         )\n-        self.provider = provider\n-        self.request_model = request_model\n-        self.server_address = server_address\n-        self.server_port = server_port\n+        self._provider: str = provider\n+        self._request_model: str | None = request_model\n+        self._server_address: str | None = server_address\n+        self._server_port: int | None = server_port",
+      "id": "PRRT_kwDOSbspP86K8PNl",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933648"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`EmbeddingInvocation` is publicly re-exported, but this change makes `provider` / `request_model` / `server_address` / `server_port` private without any public accessors. That’s a breaking API change; keep the public names as read-only properties backed by these private fields (util guideline 1000003: API backwards compatibility).",
+      "created": "2026-06-19T23:36:53Z",
+      "hunk": "@@ -48,25 +48,26 @@ def __init__(\n             else _operation_name,\n             span_kind=SpanKind.CLIENT,\n         )\n-        self.provider = provider  # e.g., azure.ai.openai, openai, aws.bedrock\n-        self.request_model = request_model\n-        self.server_address = server_address\n-        self.server_port = server_port\n+        # e.g., azure.ai.openai, openai, aws.bedrock\n+        self._provider: str = provider\n+        self._request_model: str | None = request_model\n+        self._server_address: str | None = server_address\n+        self._server_port: int | None = server_port",
+      "id": "PRRT_kwDOSbspP86K8PNx",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_embedding_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933661"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`AgentInvocation` is publicly re-exported. This change hides start-time fields behind private names (`_provider`, `_request_model`, `_server_address`, `_server_port`) without public accessors, which is a breaking API change and drives tests/callers to use private attributes. Please keep the public names as read-only properties backed by the private fields (util guideline 1000003: API backwards compatibility).",
+      "created": "2026-06-19T23:36:54Z",
+      "hunk": "@@ -64,12 +64,12 @@ def __init__(\n             else _operation_name,\n             span_kind=span_kind,\n         )\n-        self.request_model = request_model\n-        self.server_address = server_address\n-        self.server_port = server_port\n-        self.provider = provider\n+        self._provider: str | None = provider\n+        self._request_model: str | None = request_model\n+        self._server_address: str | None = server_address\n+        self._server_port: int | None = server_port",
+      "id": "PRRT_kwDOSbspP86K8POA",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933681"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests should avoid asserting private implementation details (`_name`). If `WorkflowInvocation.name` remains the public API (even as a read-only property), assert `invocation.name` instead so the test tracks the supported surface.",
+      "created": "2026-06-19T23:36:54Z",
+      "hunk": "@@ -29,7 +29,7 @@ def setUp(self):\n     def test_default_values(self):\n         invocation = self.handler.workflow(name=None)\n         invocation.stop()\n-        assert invocation.name is None\n+        assert invocation._name is None",
+      "id": "PRRT_kwDOSbspP86K8POH",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/tests/test_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933689"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests should avoid asserting private implementation details (`_name`). Prefer asserting the public `WorkflowInvocation.name` API.",
+      "created": "2026-06-19T23:36:54Z",
+      "hunk": "@@ -39,7 +39,7 @@ def test_default_values(self):\n     def test_custom_name(self):\n         invocation = self.handler.workflow(name=\"customer_support_pipeline\")\n         invocation.stop()\n-        assert invocation.name == \"customer_support_pipeline\"\n+        assert invocation._name == \"customer_support_pipeline\"",
+      "id": "PRRT_kwDOSbspP86K8POP",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/tests/test_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933698"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests should avoid asserting private implementation details (`_name`). Prefer asserting the public `WorkflowInvocation.name` API.",
+      "created": "2026-06-19T23:36:54Z",
+      "hunk": "@@ -95,7 +95,7 @@ def test_full_construction(self):\n         invocation.input_messages = [inp]\n         invocation.output_messages = [out]\n         invocation.stop()\n-        assert invocation.name == \"my_workflow\"\n+        assert invocation._name == \"my_workflow\"",
+      "id": "PRRT_kwDOSbspP86K8POS",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/tests/test_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933703"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests should avoid asserting private implementation details (`_name`). Prefer asserting the public `WorkflowInvocation.name` API (read-only) so the test tracks supported behavior.",
+      "created": "2026-06-19T23:36:55Z",
+      "hunk": "@@ -178,7 +178,7 @@ def test_workflow_context_manager_creates_and_ends_span(self) -> None:\n     def test_workflow_context_manager_default_invocation(self) -> None:\n         with self.handler.workflow() as inv:\n             self.assertIsInstance(inv, WorkflowInvocation)\n-            self.assertIsNone(inv.name)\n+            self.assertIsNone(inv._name)",
+      "id": "PRRT_kwDOSbspP86K8POV",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_workflow.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933707"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests should avoid asserting private implementation details (`_data_source_id`). Prefer asserting the public `RetrievalInvocation.data_source_id` API so the test tracks supported behavior.",
+      "created": "2026-06-19T23:36:55Z",
+      "hunk": "@@ -279,7 +279,7 @@ def test_context_manager_creates_and_ends_span(self) -> None:\n     def test_context_manager_default_invocation(self) -> None:\n         with self.handler.retrieval() as inv:\n             self.assertIsInstance(inv, RetrievalInvocation)\n-            self.assertIsNone(inv.data_source_id)\n+            self.assertIsNone(inv._data_source_id)",
+      "id": "PRRT_kwDOSbspP86K8POb",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_retrieval.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933714"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests should avoid asserting private implementation details (`_request_model`). Prefer asserting the public `AgentInvocation.request_model` API so the test tracks supported behavior.",
+      "created": "2026-06-19T23:36:55Z",
+      "hunk": "@@ -175,16 +175,16 @@ def test_context_manager_error(self):\n         )\n \n     def test_context_manager_default_invocation(self):\n-        with self.handler.invoke_local_agent() as inv:\n-            inv.agent_name = \"Dynamic Agent\"\n+        with self.handler.invoke_local_agent(agent_name=\"Dynamic Agent\"):\n+            pass\n         assert len(self.span_exporter.get_finished_spans()) == 1\n \n     def test_default_values(self):\n         invocation = self.handler.invoke_local_agent()\n         invocation.stop()\n         assert invocation._operation_name == \"invoke_agent\"\n         assert invocation.agent_name is None\n-        assert invocation.request_model is None\n+        assert invocation._request_model is None",
+      "id": "PRRT_kwDOSbspP86K8POe",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_agent.py",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933719"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog fragment has trailing whitespace and a wrapped line; this commonly trips whitespace checks and produces awkward formatting in the rendered changelog. Prefer a single line with no trailing spaces.",
+      "created": "2026-06-19T23:36:55Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+Restricted start-time sampling attributes to invocation construction time; \n+they should not be settable after start.",
+      "id": "PRRT_kwDOSbspP86K8POi",
+      "opened": "2026-06-19T23:36:55Z",
+      "path": "util/opentelemetry-util-genai/.changelog/150.changed",
+      "replies": [],
+      "reviewed": "dd7d8f23419d46373087b659459af7654b9dbf2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3444933723"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "I believe `_get_attributes()` is called in `_apply_finish()` when the inference ends and is also set on the span when finished. Is this setting the starting attributes twice then?",
+      "created": "2026-07-07T16:41:02Z",
+      "hunk": "@@ -118,20 +118,20 @@ def _get_finish_reasons(self) -> list[str] | None:\n             return reasons or None\n         return None\n \n-    def _get_base_attributes(self) -> dict[str, Any]:\n+    def _get_start_attributes(self) -> dict[str, Any]:\n         optional_attrs = (\n-            (GenAI.GEN_AI_REQUEST_MODEL, self.request_model),\n-            (GenAI.GEN_AI_PROVIDER_NAME, self.provider),\n-            (server_attributes.SERVER_ADDRESS, self.server_address),\n-            (server_attributes.SERVER_PORT, self.server_port),\n+            (GenAI.GEN_AI_REQUEST_MODEL, self._request_model),\n+            (GenAI.GEN_AI_PROVIDER_NAME, self._provider),\n+            (server_attributes.SERVER_ADDRESS, self._server_address),\n+            (server_attributes.SERVER_PORT, self._server_port),\n         )\n         return {\n             GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n             **{k: v for k, v in optional_attrs if v is not None},\n         }\n \n     def _get_attributes(self) -> dict[str, Any]:\n-        attrs = self._get_base_attributes()",
+      "id": "PRRT_kwDOSbspP86O_E0-",
+      "opened": "2026-07-07T16:41:02Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "185262675b4f1fed2bda7132447df8135e52f74d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/150#discussion_r3538166360"
+    }
+  ]
+}

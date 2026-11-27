@@ -1,0 +1,61 @@
+{
+  "head": "53f49398ed2b225ed1f8d527d9e2f1b291dacb8a",
+  "merge": "57fda9976244c91dde1b17156a7de8fe01f028fd",
+  "merged": "2026-10-21T20:24:49Z",
+  "missing_roots": 0,
+  "number": 20761,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * If this method is not called, the telemetry has no schema URL.\n```",
+      "created": "2026-10-20T20:50:38Z",
+      "hunk": "@@ -126,6 +124,10 @@ public InstrumenterBuilder<REQUEST, RESPONSE> setInstrumentationVersion(\n   /**\n    * Sets the OpenTelemetry schema URL that will be associated with all telemetry produced by this\n    * {@link Instrumenter}.\n+   *\n+   * <p>The schema URL identifies the semantic conventions followed by the spans, metrics, and logs.\n+   * It is not inferred from attribute or span name extractors. If this method is not called, the\n+   * telemetry has no schema URL.",
+      "id": "PRRT_kwDODJKVX86uhPJ9",
+      "opened": "2026-10-20T20:50:38Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [],
+      "reviewed": "9916458be6153191df52f67252c9d85658cf5a8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20761#discussion_r4330162576"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the schema-selection tests in this PR according to `.github/instructions/java-tests.instructions.md`. Update this PR directly on its existing head branch; do not create a separate follow-up PR as a workaround. Preserve its existing draft/ready state.\n\nThe requested cleanup is in `instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/HttpInstrumenterSchemaTest.java`. Remove the newly added `conventionalSpanNameDoesNotSelectSchema()` test: span naming never participated in schema inference, and this PR does not change that behavior. Remove the newly added `attributeExtractorsDoNotSelectSchema(boolean multipleDomains)` domain-combination test rather than preserving the removed inference algorithm's cases as historical-absence tests.\n\nKeep focused central coverage of the supported schema default and explicit schema propagation, without duplicating it in HTTP or per-domain tests. The PR already adds `schemaUrl_allSignals(String schemaUrl)` in `instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterTest.java`, including a null case that omits `setSchemaUrl()` and explicit URLs, with span, metric, and conditional exception-log assertions. Inspect and reuse that coverage; do not add another default-schema test if it is already sufficient.\n\nAssess the newly added `supportingAttributesDoNotChangeSignalSchema()` against that central all-signals test and the existing `emitsHttpSchemaOnSignals()` and `customClientInstrumenterEmitsHttpSchema()` tests. Remove it if it only repeats supported behavior those tests already establish. Retain it only if it adds distinct coverage of a supported contract that would merit testing independently of the removed inference feature. Do not add absence tests merely to prove removed functionality stays removed or to cover unrelated combinations.\n\nLimit changes to this test cleanup and directly resulting unused imports, mocks, or fixtures. Preserve the PR's production behavior and useful existing schema coverage. Follow the repository testing guidance, run the narrowest relevant formatting and tests, and commit and push the cleanup to this PR's existing head branch.",
+      "created": "2026-10-20T20:56:53Z",
+      "hunk": "@@ -62,6 +74,76 @@ void emitsHttpSchemaOnSignals(boolean client) {\n     }\n   }\n \n+  @Test\n+  void supportingAttributesDoNotChangeSignalSchema() {\n+    when(dbGetter.getDbSystemName(\"request\")).thenReturn(\"test-db\");\n+    when(messagingGetter.getSystem(\"request\")).thenReturn(\"test-messaging\");\n+    Instrumenter<String, String> instrumenter =\n+        DefaultHttpClientInstrumenterBuilder.create(\n+                \"test\", otelTesting.getOpenTelemetry(), clientGetter)\n+            .addAttributesExtractor(DbClientAttributesExtractor.create(dbGetter))\n+            .addAttributesExtractor(\n+                MessagingAttributesExtractor.create(\n+                    messagingGetter, MessagingOperationType.SEND, \"send\"))\n+            .build();\n+\n+    Context context = instrumenter.start(Context.root(), \"request\");\n+    instrumenter.end(context, \"request\", null, new IllegalStateException(\"test\"));\n+\n+    assertThat(otelTesting.getSpans())\n+        .singleElement()\n+        .satisfies(hasScopeSchemaUrl(SchemaUrls.V1_41_0))\n+        .satisfies(\n+            span ->\n+                assertThat(span.getAttributes())\n+                    .containsEntry(DB_SYSTEM_NAME, \"test-db\")\n+                    .containsEntry(MESSAGING_SYSTEM, \"test-messaging\"));\n+    assertThat(otelTesting.getMetrics())\n+        .singleElement()\n+        .satisfies(hasScopeSchemaUrl(SchemaUrls.V1_41_0));\n+    if (emitExceptionAsLogs()) {\n+      assertThat(otelTesting.getLogRecords())\n+          .singleElement()\n+          .satisfies(hasScopeSchemaUrl(SchemaUrls.V1_41_0));\n+    }\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {true, false})\n+  void attributeExtractorsDoNotSelectSchema(boolean multipleDomains) {\n+    InstrumenterBuilder<String, String> builder =\n+        Instrumenter.<String, String>builder(\n+                otelTesting.getOpenTelemetry(), \"test\", unused -> \"custom operation\")\n+            .addAttributesExtractor(DbClientAttributesExtractor.create(dbGetter));\n+    if (multipleDomains) {\n+      builder.addAttributesExtractor(\n+          MessagingAttributesExtractor.create(\n+              messagingGetter, MessagingOperationType.SEND, \"send\"));\n+    }\n+    Instrumenter<String, String> instrumenter = builder.buildInstrumenter();\n+\n+    Context context = instrumenter.start(Context.root(), \"request\");\n+    instrumenter.end(context, \"request\", null, null);\n+\n+    assertThat(otelTesting.getSpans()).singleElement().satisfies(hasScopeSchemaUrl(null));\n+  }\n+\n+  @Test\n+  void conventionalSpanNameDoesNotSelectSchema() {",
+      "id": "PRRT_kwDODJKVX86uhX9Q",
+      "opened": "2026-10-20T20:56:53Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/HttpInstrumenterSchemaTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T21:03:48Z",
+          "body": "Removed the three redundant/non-contract tests and their unused fixtures/imports, retaining the HTTP-specific schema coverage. The focused tests and formatting checks passed. Commit: `14d292de`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20761#discussion_r4330295038"
+        }
+      ],
+      "reviewed": "fbde88110371fef19a67eeb53bc2fc8a2db552c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20761#discussion_r4330221665"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly on its existing head branch with the following documentation-only change. Preserve its draft/ready state and existing stacked base; do not create a follow-up PR as a workaround.\n\nIn `docs/contributing/using-instrumenter-api.md`, retain the schema subsection, its existing `setSchemaUrl()` builder example, and the schema-overview link. Replace the schema introduction immediately before the example with this paragraph:\n\nIf semantic conventions define the instrumented operation, explicitly select their schema URL using `setSchemaUrl()` on the `InstrumenterBuilder`:\n\nReplace the explanatory prose after the example and before the schema-overview link with these two paragraphs:\n\nChoose the version adopted by the operation and its effective mode, not the latest semconv dependency. Supporting attributes from other domains do not change that choice. If no semantic convention defines the operation, leave the schema URL unset.\n\nThe setting applies to the instrumenter's spans, operation metrics, and exception logs. Without `setSchemaUrl()`, telemetry has no schema URL.\n\nKeep the rest of the document unchanged. Do not add cross-signal independence or shared-schema requirements. This change should explain convention-based selection and the existing API behavior, without changing API behavior or telemetry. Do not change Java code or tests or redo the earlier test cleanup.\n\nFollow the repository's Markdown formatting guidance, then commit and push this documentation update to the PR's existing head branch. Do not post replies or resolve review threads.",
+      "created": "2026-10-20T21:06:16Z",
+      "hunk": "@@ -139,8 +139,23 @@ the `Instrumenter`. You can do this in two ways:\n   The `Instrumenter` automatically detects the properties file and determines the instrumentation\n   version based on its name.\n \n-If the `Instrumenter` adheres to a specific OpenTelemetry schema, you can set the schema URL using\n-the `setSchemaUrl()` method on the `InstrumenterBuilder`. To learn more about the OpenTelemetry\n+If the `Instrumenter` follows semantic conventions defining its spans, metrics, or logs, explicitly",
+      "id": "PRRT_kwDODJKVX86uhmGC",
+      "opened": "2026-10-20T21:06:16Z",
+      "path": "docs/contributing/using-instrumenter-api.md",
+      "replies": [],
+      "reviewed": "14d292de6185635b6ba1ec5dee32f6ed6ba277c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20761#discussion_r4330316550"
+    }
+  ]
+}

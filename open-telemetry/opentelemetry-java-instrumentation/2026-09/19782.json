@@ -1,0 +1,336 @@
+{
+  "head": "10654afc27b80afa0a2517f7eb2dd70380ab99be",
+  "merge": "5e55b6afab844542eaa409a50a1831bc4053a1a3",
+  "merged": "2026-09-12T16:45:49Z",
+  "missing_roots": 0,
+  "number": 19782,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The filtering wrapper does not override `Meter.batchCallback(...)`. The interface default creates a no-op callback instead of delegating to this wrapper's underlying meter, so handlers that use batch callbacks never collect even included metrics. `CassandraCompactionProgressHandler` does this at lines 87–95. The wrapper needs batch-callback handling that preserves filtering, including the case where a handler's measurements are split between included and excluded names.",
+      "created": "2026-08-25T09:27:29Z",
+      "hunk": "@@ -268,4 +273,41 @@ public void close() {\n     }\n     instruments.clear();\n   }\n+\n+  /**\n+   * Wraps a meter to filter on metric name\n+   *\n+   * @param meter meter to wrap\n+   * @param metrics include exclude filter for metrics\n+   * @return meter that will filter metric based on include exclude filter\n+   */\n+  private static Meter filterByName(Meter meter, IncludeExclude metrics) {\n+    Meter noop = OpenTelemetry.noop().getMeter(\"noop\");\n+    return new Meter() {\n+\n+      private Meter getMeter(String s) {\n+        return (metrics.matches(s) ? meter : noop);\n+      }",
+      "id": "PRRT_kwDODJKVX86cA0-Q",
+      "opened": "2026-08-25T09:27:30Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [
+        {
+          "at": "2026-08-25T09:59:54Z",
+          "body": "fixed in 9702232",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3851822700"
+        }
+      ],
+      "reviewed": "0deab385c8b2ef960c68607d20379b3f00a90cde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3851530627"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When a handler's metrics are all excluded, each observable measurement comes from the no-op meter, but this still delegates them to the real SDK meter. The SDK discards measurements not created by that meter and then rejects the empty batch with `IllegalStateException(\"Callback with no instruments is not allowed\")`, so `JmxTelemetry.start()` fails instead of simply suppressing the handler's metrics. Handle the all-filtered case without registering a real batch callback, while preserving delegation for any included measurements.",
+      "created": "2026-08-25T12:42:51Z",
+      "hunk": "@@ -268,4 +275,50 @@ public void close() {\n     }\n     instruments.clear();\n   }\n+\n+  /**\n+   * Wraps a meter to filter on metric name\n+   *\n+   * @param meter meter to wrap\n+   * @param metrics include exclude filter for metrics\n+   * @return meter that will filter metric based on include exclude filter\n+   */\n+  private static Meter filterByName(Meter meter, IncludeExclude metrics) {\n+    Meter noop = OpenTelemetry.noop().getMeter(\"noop\");\n+    return new Meter() {\n+\n+      private Meter getMeter(String s) {\n+        return (metrics.matches(s) ? meter : noop);\n+      }\n+\n+      @Override\n+      public LongCounterBuilder counterBuilder(String s) {\n+        return getMeter(s).counterBuilder(s);\n+      }\n+\n+      @Override\n+      public LongUpDownCounterBuilder upDownCounterBuilder(String s) {\n+        return getMeter(s).upDownCounterBuilder(s);\n+      }\n+\n+      @Override\n+      public DoubleHistogramBuilder histogramBuilder(String s) {\n+        return getMeter(s).histogramBuilder(s);\n+      }\n+\n+      @Override\n+      public DoubleGaugeBuilder gaugeBuilder(String s) {\n+        return getMeter(s).gaugeBuilder(s);\n+      }\n+\n+      @Override\n+      public BatchCallback batchCallback(\n+          Runnable callback,\n+          ObservableMeasurement observableMeasurement,\n+          ObservableMeasurement... additionalMeasurements) {\n+        // delegate to the underlying meter, filtered metrics should be no-op\n+        return meter.batchCallback(callback, observableMeasurement, additionalMeasurements);",
+      "id": "PRRT_kwDODJKVX86cEu7A",
+      "opened": "2026-08-25T12:42:52Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [
+        {
+          "at": "2026-08-26T07:57:00Z",
+          "body": "This is effectively an interesting issue here, marking PR as draft until this is solved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3860731882"
+        },
+        {
+          "at": "2026-08-26T12:16:42Z",
+          "body": "this is now fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3862602848"
+        }
+      ],
+      "reviewed": "582faf34587681fdd2ae70bec8627ee5c9bd2040",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3853047357"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description specifies the new public API as `JmxTelemetryBuilder#metrics(IncludeExclude)`, but the implementation exposes `setMetrics(...)`. Since this is the consumer-facing API introduced by the PR, either rename it to the documented method or update the stated API contract before release.",
+      "created": "2026-08-25T12:42:52Z",
+      "hunk": "@@ -88,6 +106,18 @@ public JmxTelemetryBuilder addRules(Path path) {\n     }\n   }\n \n+  /**\n+   * Set metrics to include and exclude\n+   *\n+   * @param metrics metrics to include/exclude\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {",
+      "id": "PRRT_kwDODJKVX86cEu7x",
+      "opened": "2026-08-25T12:42:52Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "582faf34587681fdd2ae70bec8627ee5c9bd2040",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3853047425"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These tests only inspect the computed selector and never start telemetry or assert exported metrics, so the new filtering implementation is not exercised. Add functional coverage for included/excluded rule metrics and handler metrics, including excluding every metric in a batch handler; otherwise failures in the `Meter` wrapper are missed.",
+      "created": "2026-08-25T12:42:52Z",
+      "hunk": "@@ -46,7 +47,32 @@ void invalidClasspathTarget() {\n   void knownValidYaml() {\n     JmxTelemetryBuilder jmxtelemetry = JmxTelemetry.builder(OpenTelemetry.noop());\n     addClasspathRules(jmxtelemetry, \"jmx/rules/jvm.yaml\");\n-    assertThat(jmxtelemetry.build()).isNotNull();\n+    jmxtelemetry.setMetrics(IncludeExclude.builder().setExcluded(\"excluded.metric\").build());\n+    JmxTelemetry telemetry = jmxtelemetry.build();\n+    assertThat(telemetry).isNotNull();\n+\n+    // by default include should contain all registered metrics, and the provided excluded should\n+    // be preserved as-is\n+    IncludeExclude includeExclude = telemetry.getMetrics();\n+    assertThat(includeExclude.getIncluded()).isNotEmpty();\n+    assertThat(includeExclude.getIncluded()).allMatch(m -> m.startsWith(\"jvm.\"));\n+    assertThat(includeExclude.getExcluded()).contains(\"excluded.metric\");\n+  }\n+\n+  @Test\n+  void metricsExplicitInclude() {\n+    JmxTelemetryBuilder jmxtelemetry = JmxTelemetry.builder(OpenTelemetry.noop());\n+    addClasspathRules(jmxtelemetry, \"jmx/rules/jvm.yaml\");\n+    jmxtelemetry.setMetrics(\n+        IncludeExclude.builder()\n+            .setIncluded(\"jvm.memory.used\")\n+            .setExcluded(\"missing.metric\")\n+            .build());\n+    JmxTelemetry telemetry = jmxtelemetry.build();\n+    assertThat(telemetry).isNotNull();\n+\n+    assertThat(telemetry.getMetrics().getIncluded()).containsOnly(\"jvm.memory.used\");\n+    assertThat(telemetry.getMetrics().getExcluded()).containsOnly(\"missing.metric\");",
+      "id": "PRRT_kwDODJKVX86cEu8L",
+      "opened": "2026-08-25T12:42:52Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryTest.java",
+      "replies": [
+        {
+          "at": "2026-08-25T13:38:12Z",
+          "body": "Actual usage tests will be included in the next PR #19783 when testing per-system metrics. This is testing the implementation and it's enough as a first tep.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3853537960"
+        }
+      ],
+      "reviewed": "582faf34587681fdd2ae70bec8627ee5c9bd2040",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3853047465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Excluded metrics still go through `enrollExtractor`, which unconditionally logs `INFO \"Created Gauge/Counter/UpDownCounter for {0}\"`, so a metric the user excluded is still reported as created in the agent log. Skip enrollment, or that log, when `metrics.matches(metricName)` is false.",
+      "created": "2026-08-25T13:40:29Z",
+      "hunk": "@@ -39,13 +43,16 @@ class MetricRegistrar implements AutoCloseable {\n   private final Collection<AutoCloseable> instruments = ConcurrentHashMap.newKeySet();\n \n   MetricRegistrar(\n-      OpenTelemetry openTelemetry, String instrumentationScope, String versionLookupName) {\n+      OpenTelemetry openTelemetry,\n+      String instrumentationScope,\n+      String versionLookupName,\n+      IncludeExclude metrics) {\n     MeterBuilder meterBuilder = openTelemetry.getMeterProvider().meterBuilder(instrumentationScope);\n     String version = EmbeddedInstrumentationProperties.findVersion(versionLookupName);\n     if (version != null) {\n       meterBuilder.setInstrumentationVersion(version);\n     }\n-    meter = meterBuilder.build();\n+    meter = filterByName(meterBuilder.build(), metrics);",
+      "id": "PRRT_kwDODJKVX86cGDK5",
+      "opened": "2026-08-25T13:42:48Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [
+        {
+          "at": "2026-08-25T14:48:12Z",
+          "body": "Good point, I've fixed that in b315021",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3854194963"
+        }
+      ],
+      "reviewed": "582faf34587681fdd2ae70bec8627ee5c9bd2040",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3853557987"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "see https://github.com/open-telemetry/opentelemetry-java/blob/e2efec5dc0f68e5396aa0f0699b1a112a54670ab/sdk/metrics/src/main/java/io/opentelemetry/sdk/metrics/internal/state/CallbackRegistration.java#L45 implementation for details on why this is required.",
+      "created": "2026-08-26T12:23:01Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal.engine;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.metrics.BatchCallback;\n+import io.opentelemetry.api.metrics.DoubleGaugeBuilder;\n+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;\n+import io.opentelemetry.api.metrics.LongCounterBuilder;\n+import io.opentelemetry.api.metrics.LongUpDownCounterBuilder;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.api.metrics.ObservableDoubleMeasurement;\n+import io.opentelemetry.api.metrics.ObservableLongMeasurement;\n+import io.opentelemetry.api.metrics.ObservableMeasurement;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import java.util.ArrayList;\n+import java.util.Arrays;\n+import java.util.List;\n+\n+class FilteringMeter implements Meter {\n+\n+  private static final Meter NOOP_METER = OpenTelemetry.noop().getMeter(\"noop\");\n+  private static final ObservableLongMeasurement NOOP_LONG_MEASUREMENT =\n+      NOOP_METER.counterBuilder(\"\").buildObserver();\n+  private static final ObservableDoubleMeasurement NOOP_DOUBLE_MEASUREMENT =\n+      NOOP_METER.counterBuilder(\"\").ofDoubles().buildObserver();\n+\n+  private final Meter delegate;\n+  private final IncludeExclude metrics;\n+\n+  FilteringMeter(Meter delegate, IncludeExclude metrics) {\n+    this.delegate = delegate;\n+    this.metrics = metrics;\n+  }\n+\n+  @Override\n+  public LongCounterBuilder counterBuilder(String s) {\n+    return (metrics.matches(s) ? delegate : NOOP_METER).counterBuilder(s);\n+  }\n+\n+  @Override\n+  public LongUpDownCounterBuilder upDownCounterBuilder(String s) {\n+    return (metrics.matches(s) ? delegate : NOOP_METER).upDownCounterBuilder(s);\n+  }\n+\n+  @Override\n+  public DoubleHistogramBuilder histogramBuilder(String s) {\n+    return (metrics.matches(s) ? delegate : NOOP_METER).histogramBuilder(s);\n+  }\n+\n+  @Override\n+  public DoubleGaugeBuilder gaugeBuilder(String s) {\n+    return (metrics.matches(s) ? delegate : NOOP_METER).gaugeBuilder(s);\n+  }\n+\n+  @Override\n+  public BatchCallback batchCallback(\n+      Runnable callback,\n+      ObservableMeasurement observableMeasurement,\n+      ObservableMeasurement... additionalMeasurements) {\n+\n+    // The delegate implementation requires to have at least one (real) observable measurement, so\n+    // we need to call it only when there is at least one non-noop observable measurement.",
+      "id": "PRRT_kwDODJKVX86cdD57",
+      "opened": "2026-08-26T12:23:01Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/FilteringMeter.java",
+      "replies": [],
+      "reviewed": "13de5f1482ebb95ad0ee889f61276a63ab91c297",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3862654072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Removing this method leaves `OPTIONAL_APACHE_METRICS` populated by the static initializer and never read. Remove the field and that initializer too.",
+      "created": "2026-08-26T16:44:53Z",
+      "hunk": "@@ -172,57 +163,6 @@ private JmxConfig loadKafkaConnectConfig() throws Exception {\n     }\n   }\n \n-  private Set<String> loadKafkaConnectMetricNames(boolean includeOptional) throws Exception {\n-    JmxConfig config = loadKafkaConnectConfig();\n-    Set<String> metricNames = new TreeSet<>();\n-    for (JmxRule rule : config.getRules()) {\n-      String prefix = rule.getPrefix();\n-      for (Map.Entry<String, Metric> entry : rule.getMapping().entrySet()) {\n-        Metric metric = entry.getValue();\n-        String baseName =\n-            metric == null || metric.getMetric() == null ? entry.getKey() : metric.getMetric();\n-        metricNames.add(prefix == null ? baseName : prefix + baseName);\n-      }\n-    }\n-    if (!includeOptional) {\n-      metricNames.removeAll(OPTIONAL_APACHE_METRICS);",
+      "id": "PRRT_kwDODJKVX86cioFg",
+      "opened": "2026-08-26T16:55:36Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaConnectTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T12:43:09Z",
+          "body": "This constant is being used by weaver tests added in #19724, I've updated with latest `main` and this is not being used so we need to keep it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3871790733"
+        }
+      ],
+      "reviewed": "d885793c5a9fed5c9c0a9da0e41ee90387038890",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3864830730"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The bundled resource is packaged as `jmx/rules/tomcat.yaml`, not `rules/tomcat.yaml`. This lookup therefore returns `null`, and the following `addRules` call throws `IllegalArgumentException(\"missing JMX rules\")`, so the usage example fails as written.",
+      "created": "2026-08-31T14:02:57Z",
+      "hunk": "@@ -38,16 +38,17 @@ import io.opentelemetry.instrumentation.jmx.JmxTelemetryBuilder;\n import java.time.Duration;\n \n // Get an OpenTelemetry instance\n-OpenTelemetry openTelemetry = ...;\n+OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();\n \n JmxTelemetry jmxTelemetry = JmxTelemetry.builder(openTelemetry)\n-  // Configure included metrics (optional)\n-  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"jmx/rules/jetty.yaml\"), \"jetty\")\n-  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"jmx/rules/tomcat.yaml\"), \"tomcat\")\n-  // Configure custom metrics (optional)\n+  // Load metrics from classpath resource (optional)\n+  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"rules/tomcat.yaml\"))",
+      "id": "PRRT_kwDODJKVX86dv3Dk",
+      "opened": "2026-08-31T14:02:57Z",
+      "path": "instrumentation/jmx-metrics/library/README.md",
+      "replies": [
+        {
+          "at": "2026-08-31T15:00:02Z",
+          "body": "this is intentional as an example as we don't want users to rely on the classpath resources included in the library.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3895631771"
+        }
+      ],
+      "reviewed": "6e052c9c2a94edda639f70cf0a9c9bdc589935a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3895148928"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These lookups resolve to `otel.instrumentation.jmx.metrics.included` and `.excluded` under the flat configuration bridge, not the documented `otel.jmx.*` properties. The existing JMX keys require explicit entries in `ConfigPropertiesBackedDeclarativeConfigProperties.SPECIAL_MAPPINGS`; without matching entries here, both newly documented system properties/environment variables are silently ignored. Add the two bridge mappings (plus coverage) for `java.jmx.metrics.included/excluded` to the advertised flat keys.",
+      "created": "2026-09-01T14:35:41Z",
+      "hunk": "@@ -52,6 +54,19 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n           .getScalarList(\"system\", String.class, emptyList())\n           .forEach(target -> addClasspathRules(target, jmx));\n \n+      // include/exclude metrics by name\n+      List<String> metricsInclude =\n+          config.get(\"metrics\").getScalarList(\"included\", String.class, emptyList());\n+      List<String> metricsExclude =\n+          config.get(\"metrics\").getScalarList(\"excluded\", String.class, emptyList());",
+      "id": "PRRT_kwDODJKVX86eJau8",
+      "opened": "2026-09-01T14:35:42Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-02T09:47:36Z",
+          "body": "fixed in 6523fc8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3912820878"
+        }
+      ],
+      "reviewed": "b05e67d06b74aeba617f68de4b8d831ee0bf1f22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3905199957"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This now presents concrete, copyable code but does not import `GlobalOpenTelemetry` or the newly used `IncludeExclude` (and the snippet also uses `Paths`). Add those imports so the documented example compiles.",
+      "created": "2026-09-01T14:35:41Z",
+      "hunk": "@@ -38,16 +38,17 @@ import io.opentelemetry.instrumentation.jmx.JmxTelemetryBuilder;\n import java.time.Duration;\n \n // Get an OpenTelemetry instance\n-OpenTelemetry openTelemetry = ...;\n+OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();",
+      "id": "PRRT_kwDODJKVX86eJawX",
+      "opened": "2026-09-01T14:35:42Z",
+      "path": "instrumentation/jmx-metrics/library/README.md",
+      "replies": [],
+      "reviewed": "b05e67d06b74aeba617f68de4b8d831ee0bf1f22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3905200082"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] These new public configuration properties are absent from `instrumentation/jmx-metrics/metadata.yaml`. That file feeds the generated instrumentation/configuration references, so both supported filters remain missing from `docs/instrumentation-list.yaml` and the declarative configuration catalog. Add list-valued metadata entries for `otel.jmx.metrics.included` and `.excluded` with their `java.jmx.metrics.*` declarative names.",
+      "created": "2026-09-02T09:56:54Z",
+      "hunk": "@@ -36,24 +38,36 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n     DeclarativeConfigProperties config =\n         DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"jmx\");\n \n-    if (config.getBoolean(\"enabled\", true)) {\n-      JmxTelemetryBuilder jmx =\n-          JmxTelemetry.builder(GlobalOpenTelemetry.get())\n-              .beanDiscoveryDelay(\n-                  Duration.ofMillis(\n-                      config.get(\"discovery\").getLong(\"delay\", Duration.ofMinutes(1).toMillis())));\n+    if (!config.getBoolean(\"enabled\", true)) {\n+      return;\n+    }\n+\n+    JmxTelemetryBuilder jmx =\n+        JmxTelemetry.builder(GlobalOpenTelemetry.get())\n+            .beanDiscoveryDelay(\n+                Duration.ofMillis(\n+                    config.get(\"discovery\").getLong(\"delay\", Duration.ofMinutes(1).toMillis())));\n \n-      config.getScalarList(\"config\", String.class, emptyList()).stream()\n-          .map(Paths::get)\n-          .forEach(path -> addFileRules(path, jmx));\n+    config.getScalarList(\"config\", String.class, emptyList()).stream()\n+        .map(Paths::get)\n+        .forEach(path -> addFileRules(path, jmx));\n \n-      config\n-          .get(\"target\")\n-          .getScalarList(\"system\", String.class, emptyList())\n-          .forEach(target -> addClasspathRules(target, jmx));\n+    config\n+        .get(\"target\")\n+        .getScalarList(\"system\", String.class, emptyList())\n+        .forEach(target -> addClasspathRules(target, jmx));\n \n-      jmx.build().start();\n+    // include/exclude metrics by name\n+    List<String> metricsInclude =\n+        config.get(\"metrics\").getScalarList(\"included\", String.class, emptyList());\n+    List<String> metricsExclude =\n+        config.get(\"metrics\").getScalarList(\"excluded\", String.class, emptyList());",
+      "id": "PRRT_kwDODJKVX86ec8lw",
+      "opened": "2026-09-02T09:56:54Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-03T07:23:11Z",
+          "body": "fixed in 71d0ac8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3922085217"
+        }
+      ],
+      "reviewed": "738b77d391edfd739ff4e86548b75c0a5abe0324",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3912903021"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The metadata now advertises `otel.instrumentation.jmx.enabled`, but the non-v3 installer still reads `config.getBoolean(\"enabled\", true)` and the bridge explicitly maps `java.jmx.enabled` to `otel.jmx.enabled` (`ConfigPropertiesBackedDeclarativeConfigProperties.java:101`). As a result, the generated configuration reference tells standard-mode users to set a property that this installer ignores. Keep the existing name until the installer/bridge migration is implemented together.",
+      "created": "2026-09-03T07:31:01Z",
+      "hunk": "@@ -4,9 +4,10 @@ description: >\n   Collects and reports metrics exposed through Java Management Extensions (JMX). It can be\n   configured to extract JVM and application-level telemetry data from JMX MBeans such as memory\n   usage, thread counts, and garbage collection statistics, and translate these measurements into\n-  OpenTelemetry metrics.\n+  OpenTelemetry metrics. Collected metrics can be filtered by name using include and exclude\n+  patterns.\n configurations:\n-  - name: otel.jmx.enabled\n+  - name: otel.instrumentation.jmx.enabled",
+      "id": "PRRT_kwDODJKVX86e0Ukr",
+      "opened": "2026-09-03T07:31:01Z",
+      "path": "instrumentation/jmx-metrics/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T07:36:05Z",
+          "body": "fixed in 6679ec5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3922176699"
+        }
+      ],
+      "reviewed": "a065a65dae7cfdd988d094a4a8dd482351315352",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3922140813"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new public setter accepts `null`, but `build()` immediately dereferences the stored value via `metrics.isEmpty()`. Rejecting it here keeps the builder valid and reports the bad argument at the call site instead of failing later during build.",
+      "created": "2026-09-03T09:18:37Z",
+      "hunk": "@@ -95,6 +107,18 @@ public JmxTelemetryBuilder addRules(Path path) {\n     }\n   }\n \n+  /**\n+   * Set metrics to include and exclude\n+   *\n+   * @param metrics metrics to include/exclude\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n+    this.metrics = metrics;",
+      "id": "PRRT_kwDODJKVX86e2hw6",
+      "opened": "2026-09-03T09:18:37Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "8b5bcfcede41e6eb1fff406328eee7f7c582df0f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3923002716"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The usage example now references `IncludeExclude`, but the snippet does not import that type, so users copying the new filtering example get an unresolved symbol. Add the instrumentation API import to the shown import block.",
+      "created": "2026-09-03T09:18:37Z",
+      "hunk": "@@ -41,13 +41,14 @@ import java.time.Duration;\n OpenTelemetry openTelemetry = ...;\n \n JmxTelemetry jmxTelemetry = JmxTelemetry.builder(openTelemetry)\n-  // Configure included metrics (optional)\n-  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"jmx/rules/jetty.yaml\"), \"jetty\")\n-  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"jmx/rules/tomcat.yaml\"), \"tomcat\")\n-  // Configure custom metrics (optional)\n+  // Load metrics from classpath resource (optional)\n+  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"rules/tomcat.yaml\"))\n+  // Load custom metrics by path (optional)\n   .addRules(Paths.get(\"/path/to/custom-jmx.yaml\"))\n   // delay bean discovery by 5 seconds\n   .beanDiscoveryDelay(Duration.ofSeconds(5))\n+  // filter captured metrics by their name (optional), will affect all loaded metric definitions\n+  .setMetrics(IncludeExclude.builder().setIncluded(\"tomcat.*\", \"jvm.*\").setExcluded(\"kafka.connect.*\").build())",
+      "id": "PRRT_kwDODJKVX86e2hxZ",
+      "opened": "2026-09-03T09:18:37Z",
+      "path": "instrumentation/jmx-metrics/library/README.md",
+      "replies": [
+        {
+          "at": "2026-09-10T09:04:18Z",
+          "body": "the IncludeExclude import is now part of the example, this is no longer relevant.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3977394753"
+        }
+      ],
+      "reviewed": "8b5bcfcede41e6eb1fff406328eee7f7c582df0f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3923002763"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: filtering meter is required because jmx metrics handler can register any metric at runtime, unlike other metrics where the name is known earlier before registration time.",
+      "created": "2026-09-03T07:38:23Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal.engine;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.metrics.BatchCallback;\n+import io.opentelemetry.api.metrics.DoubleGaugeBuilder;\n+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;\n+import io.opentelemetry.api.metrics.LongCounterBuilder;\n+import io.opentelemetry.api.metrics.LongUpDownCounterBuilder;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.api.metrics.ObservableDoubleMeasurement;\n+import io.opentelemetry.api.metrics.ObservableLongMeasurement;\n+import io.opentelemetry.api.metrics.ObservableMeasurement;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import java.util.ArrayList;\n+import java.util.Arrays;\n+import java.util.List;\n+\n+class FilteringMeter implements Meter {",
+      "id": "PRRT_kwDODJKVX86e0dQP",
+      "opened": "2026-09-03T12:19:52Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/FilteringMeter.java",
+      "replies": [],
+      "reviewed": "6679ec5d29871f7a67d5d3b63190640596f4cc60",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3922193131"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: this allows to get a list of all the handler names that are part of the metric definition, this enables doing a lookup after the handler instances have been initialized to then resolve the metric names.",
+      "created": "2026-09-03T07:40:33Z",
+      "hunk": "@@ -124,4 +126,13 @@ public Set<String> getMetricNames() {\n     }\n     return metricNames;\n   }\n+\n+  /**\n+   * Get handler names included in this MetricDef.\n+   *\n+   * @return handler names.\n+   */\n+  public Set<String> getHandlerNames() {",
+      "id": "PRRT_kwDODJKVX86e0gAg",
+      "opened": "2026-09-03T12:19:52Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricDef.java",
+      "replies": [],
+      "reviewed": "6679ec5d29871f7a67d5d3b63190640596f4cc60",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3922209631"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "did you want to make these stable? if so, https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969 will save a few lines here (we can apply before or after merging this)",
+      "created": "2026-09-04T01:24:53Z",
+      "hunk": "@@ -63,6 +65,16 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .getScalarList(\"system\", String.class, emptyList())\n         .forEach(target -> addClasspathRules(target, jmx));\n \n+    // include/exclude metrics by name\n+    List<String> metricsInclude =\n+        config.get(\"metrics\").getScalarList(\"included\", String.class, emptyList());\n+    List<String> metricsExclude =\n+        config.get(\"metrics\").getScalarList(\"excluded\", String.class, emptyList());\n+    if (!metricsInclude.isEmpty() || !metricsExclude.isEmpty()) {\n+      jmx.setMetrics(\n+          IncludeExclude.builder().setIncluded(metricsInclude).setExcluded(metricsExclude).build());\n+    }",
+      "id": "PRRT_kwDODJKVX86fIkag",
+      "opened": "2026-09-04T01:25:07Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-10T09:03:29Z",
+          "body": "Yes, very good point, I think it's better to make them stable, I've implemented the change in 9e834eb.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3977388432"
+        }
+      ],
+      "reviewed": "8b5bcfcede41e6eb1fff406328eee7f7c582df0f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19782#discussion_r3930095953"
+    }
+  ]
+}

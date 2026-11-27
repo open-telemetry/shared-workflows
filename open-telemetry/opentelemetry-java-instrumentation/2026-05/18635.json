@@ -1,0 +1,31 @@
+{
+  "head": "b3379c0cffe34389a38efbafac27fb029dfaba10",
+  "merge": "51a1cd7da9ab80908181a66c3a9a4ccba0881173",
+  "merged": "2026-05-15T19:53:06Z",
+  "missing_roots": 0,
+  "number": 18635,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Consider adding a regression test for the new computeIfAbsent/expunge interaction (e.g., mappingFunction performs an operation on another WeakLockFreeCache/WeakConcurrentMap that would normally trigger inline expunge) to guard against reintroducing the deadlock reported in #18232. Current CacheTest covers weak-key GC behavior but doesn’t exercise this concurrency-sensitive path.",
+      "created": "2026-05-10T23:03:01Z",
+      "hunk": "@@ -236,6 +244,13 @@ protected V defaultValue(K key) {\n \n   /** Cleans all unused references. */\n   public static void expungeStaleEntries() {\n+    // Skip expunging stale entries if we are inside computeIfAbsent. This check prevents a deadlock\n+    // when there are 2 threads calling computeIfAbsent, that locks the map, and both threads try\n+    // to remove entry from the map locked by the other thread.\n+    // See https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/18232\n+    if (isInComputeIfAbsent()) {\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX86A8ATl",
+      "opened": "2026-05-10T23:03:01Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/cache/weaklockfree/AbstractWeakConcurrentMap.java",
+      "replies": [
+        {
+          "at": "2026-05-11T12:48:13Z",
+          "body": "Added a test, but it isn't 100% reliable at reproducing the original issue.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18635#discussion_r3218989030"
+        }
+      ],
+      "reviewed": "4563d3a7caf380fd3077cd73c160c78d8faf8c9e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18635#discussion_r3215665771"
+    }
+  ]
+}

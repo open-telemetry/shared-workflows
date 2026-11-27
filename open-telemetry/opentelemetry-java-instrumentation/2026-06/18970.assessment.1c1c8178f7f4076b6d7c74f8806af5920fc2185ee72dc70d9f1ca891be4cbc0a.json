@@ -1,0 +1,20 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4fb78a6fe5142574174945875fa53d2f8c06939e32f4db38b10bf81ce5803aca",
+  "input_digest": "1c1c8178f7f4076b6d7c74f8806af5920fc2185ee72dc70d9f1ca891be4cbc0a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cdbe83e5d4bda248f646ca8b2c9463eef1f119a9/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c20de9d51c0bc84a0121b174eed0fa79e030be2/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JAMlj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

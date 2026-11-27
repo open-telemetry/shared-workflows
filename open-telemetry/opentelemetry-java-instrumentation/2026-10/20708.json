@@ -1,0 +1,61 @@
+{
+  "head": "f4cb51cb85fb7b63af6aa1d07f12d109a131cae8",
+  "merge": "6e5036132589d9872ee0041b292b056924cd09ae",
+  "merged": "2026-10-20T07:09:51Z",
+  "missing_roots": 0,
+  "number": 20708,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Reduce the testing added by this PR to basic integration coverage of the new terminal protocol error classification. This is a test-scope reduction, not a request to change production behavior.\n\nKeep SpymemcachedTest.storeRejectedAsTooLarge(), including an agent-backed execution with spymemcached 2.12.3 where future.get() returns false and the span reports ERROR with error.type=ERR_2BIG. Keep the matching db.client.operation.duration error.type assertion in that same test. The 2.12.0 execution throws OperationException and alone does not demonstrate the newly detected response-level failure.\n\nNarrow the newly added protocolStatusTest suite to this regression instead of rerunning the entire SpymemcachedTest class. Preserve the baseline and existing latest-dependency coverage, correct testLatestDeps propagation, and existing experimental coverage. Remove the getter-unit-test matrix added by this PR from SpymemcachedAttributesGetterTest, and remove the new conditionalOutcomesAreSuccessful() matrix. Leave pre-existing success, miss, cancellation, and CAS tests intact. Remove new exception-signal executions introduced solely to repeat this regression; do not delete pre-existing suites.\n\nPreserve exact emitted-telemetry assertions and the production fix. Remove imports, helpers, dependencies, or test wiring made unused by these deletions. Use the repository's narrow formatting and relevant validation commands, without adding test permutations or unrelated fixes. Keep this deliverable scoped to this existing PR and preserve its draft/ready state. Update the PR description only where the reduced coverage makes it stale, while preserving its repository template. Report exactly what was retained and removed.",
+      "created": "2026-10-19T03:33:43Z",
+      "hunk": "@@ -206,6 +212,121 @@ void getDurationMetric() {\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void storeRejectedAsTooLarge() throws Exception {",
+      "id": "PRRT_kwDODJKVX86txvHn",
+      "opened": "2026-10-19T03:33:43Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T03:48:10Z",
+          "body": "Implemented in `f0a11f1a`. Retained `storeRejectedAsTooLarge()` with exact ERROR/`ERR_2BIG` span and duration-metric assertions on the agent-backed 2.12.3 client, plus baseline and existing experimental coverage and `testLatestDeps` propagation. Filtered `protocolStatusTest` to that regression. Removed the getter unit-test matrix, conditional-outcomes matrix, added miss/cancellation/CAS assertions, and the new exception-signal execution. Production behavior and pre-existing suites remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20708#discussion_r4310157193"
+        }
+      ],
+      "reviewed": "acd36f97b70fdb314cdaa4a094846212f1695ef4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20708#discussion_r4310101669"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the new metric assertions in this PR only. In SpymemcachedTest.storeRejectedAsTooLarge, the corresponding span already checks the version-dependent errorType, and assertDurationMetric already checks the metric's identity/type/unit and exact keys including ERROR_TYPE. Remove the second waitAndAssertMetrics block that repeats ERROR_TYPE and adds a generic hasCount(1). Keep assertDurationMetric and the span and application-outcome assertions unchanged.\n\nApply the metric-testing guidance proposed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20738: when corresponding spans already verify attribute values, keep metric identity, type, unit, and exact point attribute-key checks instead of repeating those values. Assert different success/failure point key sets separately, including whether ERROR_TYPE is present. Reuse existing domain helpers or containsOnlyKeys. Keep numeric/value assertions that verify aggregation, duplicate recording, terminal timing, or other metric-specific behavior; this is not a blanket numeric-assertion removal.\n\nUpdate this existing PR directly on its current head branch. Limit this assignment to the test cleanup described above; do not change production behavior, weaken span assertions, update unrelated PR branches, merge or rebase the stack, or create a duplicate/follow-up PR as a workaround. Preserve the PR's existing base and draft/ready state. Follow repository instructions, apply the narrowest spotlessApply before relevant targeted validation, and keep only meaningful test changes. Acceptance: the identified redundant value assertions are removed, exact metric key-set and metric identity/type/unit coverage remains, and all metric-specific behavior coverage is preserved. Do not post replies to human comments or resolve review threads.",
+      "created": "2026-10-19T20:37:04Z",
+      "hunk": "@@ -206,6 +211,68 @@ void getDurationMetric() {\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void storeRejectedAsTooLarge() throws Exception {\n+    MemcachedClient memcached = getMemcached();\n+    byte[] value = new byte[2 * 1024 * 1024];\n+    new Random(0).nextBytes(value);\n+    String errorType = testLatestDeps() ? \"ERR_2BIG\" : OperationException.class.getName();\n+\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          OperationFuture<Boolean> future =\n+              memcached.set(key(\"too-large\"), EXPIRATION_SECONDS, value);\n+          if (testLatestDeps()) {\n+            assertThat(future.get()).isFalse();\n+            assertThat(future.getStatus().getStatusCode().name()).isEqualTo(\"ERR_2BIG\");\n+          } else {\n+            assertThatThrownBy(future::get)\n+                .isInstanceOf(ExecutionException.class)\n+                .hasCauseInstanceOf(OperationException.class);\n+          }\n+        });\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\"),\n+                span ->\n+                    span.hasName(spanName(\"set\"))\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasParent(trace.getSpan(0))\n+                        .hasStatus(StatusData.error())\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(DB_SYSTEM_NAME, MEMCACHED),\n+                            equalTo(DB_OPERATION_NAME, \"set\"),\n+                            equalTo(SERVER_ADDRESS, memcachedAddress.getHostString()),\n+                            equalTo(SERVER_PORT, memcachedAddress.getPort()),\n+                            equalTo(\n+                                NETWORK_PEER_ADDRESS,\n+                                memcachedAddress.getAddress().getHostAddress()),\n+                            equalTo(NETWORK_PEER_PORT, memcachedAddress.getPort()),\n+                            equalTo(ERROR_TYPE, errorType))));\n+    assertDurationMetric(\n+        testing,\n+        \"io.opentelemetry.spymemcached-2.12\",\n+        DB_SYSTEM_NAME,\n+        DB_OPERATION_NAME,\n+        NETWORK_PEER_ADDRESS,\n+        NETWORK_PEER_PORT,\n+        SERVER_ADDRESS,\n+        SERVER_PORT,\n+        ERROR_TYPE);\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.spymemcached-2.12\",\n+        metric ->\n+            metric\n+                .hasName(\"db.client.operation.duration\")\n+                .hasHistogramSatisfying(\n+                    histogram ->\n+                        histogram.hasPointsSatisfying(\n+                            point -> point.hasAttribute(ERROR_TYPE, errorType).hasCount(1))));",
+      "id": "PRRT_kwDODJKVX86uGE1b",
+      "opened": "2026-10-19T20:37:04Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+      "replies": [],
+      "reviewed": "f0a11f1a77deaf4c6cc94387bbfa9635cb5cd559",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20708#discussion_r4318603507"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify instrumentation/spymemcached-2.12/javaagent/build.gradle.kts to use the existing baseline/latest-dependency test matrix instead of the bespoke protocolStatusTest suite. Remove that extra JvmTestSuite, its source-directory override, method-name filter, duplicated dependencies, and task-name-based testLatestDeps override. Restore the original tasks-based testExperimental registration, its experimental-span-attributes setting and metadataConfig, testClassesDirs/runtimeClasspath, check dependency, and shared Testcontainers build-service declaration. Remove the executions import and DSL wiring made unnecessary by this cleanup. In the existing withType<Test>().configureEach block, add only systemProperty(\"testLatestDeps\", otelProps.testLatestDeps) alongside usesService.\n\nKeep library(\"net.spy:spymemcached:2.12.0\") as the baseline. Existing latest-dependency infrastructure already pins spymemcached to 2.12.3, so it should run the same storeRejectedAsTooLarge regression with testLatestDeps=true. Preserve that regression and its application-outcome, exact span, and duration-metric assertions unchanged: baseline 2.12.0 must exercise the OperationException path, while latest-dependency 2.12.3 must exercise future.get()==false and ERROR/error.type=ERR_2BIG. Preserve experimental coverage and all production behavior. Do not introduce another suite, dependency upgrade, test permutation, or new configuration flag to replace protocolStatusTest.\n\nUpdate this existing PR directly on its current head branch; do not create a duplicate or follow-up PR as a workaround, merge/rebase the stack, or update other PRs. Preserve its base and draft/ready state. Follow repository instructions, apply the narrowest spotlessApply directly before relevant targeted validation, and verify the baseline and latest-dependency executions retain the described coverage. Update the PR description only if the final test wiring makes it stale, preserving any repository template. Do not reply to human comments or resolve review threads. Acceptance: the build file returns to its original conventional tasks-based wiring with only the required testLatestDeps propagation added; the production fix and regression assertions remain intact.",
+      "created": "2026-10-19T21:38:06Z",
+      "hunk": "@@ -20,20 +22,41 @@ dependencies {\n   testImplementation(\"com.google.guava:guava\")\n }\n \n-tasks {\n-  withType<Test>().configureEach {\n-    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n-  }\n-\n-  val testExperimental = register<Test>(\"testExperimental\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.instrumentation.spymemcached.experimental-span-attributes=true\")\n-    systemProperty(\"metadataConfig\", \"otel.instrumentation.spymemcached.experimental-span-attributes=true\")\n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"protocolStatusTest\") {",
+      "id": "PRRT_kwDODJKVX86uHUiM",
+      "opened": "2026-10-19T21:38:06Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c9e891038148827430af961f945a35ddc9f68fdd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20708#discussion_r4319135585"
+    }
+  ]
+}

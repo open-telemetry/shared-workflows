@@ -1,0 +1,40 @@
+{
+  "head": "f36ba33a63922f44218f69650a50fb89c1985e10",
+  "merge": "93987417f9d0f21dbed73d9076056faa04eaeba9",
+  "merged": "2026-03-20T20:36:02Z",
+  "missing_roots": 0,
+  "number": 16817,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot was this a bug? add test coverage if missing",
+      "created": "2026-03-20T16:14:19Z",
+      "hunk": "@@ -153,7 +153,7 @@ public static void setSpanAttribute(int label, String name, Object value) {\n     } else if (value instanceof Byte) {\n       Span.current().setAttribute(name, (Byte) value);\n     } else if (value instanceof Character) {\n-      Span.current().setAttribute(name, (Character) value);\n+      Span.current().setAttribute(name, String.valueOf((char) (Character) value));",
+      "id": "PRRT_kwDODJKVX851wakt",
+      "opened": "2026-03-20T16:14:19Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/instrumentationannotations/AnnotationInstrumentationHelper.java",
+      "replies": [],
+      "reviewed": "57ee436903cc53734a5b4837c7e6f3bd4ac8dff9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16817#discussion_r2966677786"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      Span.current().setAttribute(name, value.toString());\n```",
+      "created": "2026-03-20T19:20:59Z",
+      "hunk": "@@ -153,7 +153,7 @@ public static void setSpanAttribute(int label, String name, Object value) {\n     } else if (value instanceof Byte) {\n       Span.current().setAttribute(name, (Byte) value);\n     } else if (value instanceof Character) {\n-      Span.current().setAttribute(name, (Character) value);\n+      Span.current().setAttribute(name, String.valueOf((char) (Character) value));",
+      "id": "PRRT_kwDODJKVX851y7AU",
+      "opened": "2026-03-20T19:20:59Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/instrumentationannotations/AnnotationInstrumentationHelper.java",
+      "replies": [],
+      "reviewed": "7662d7d03b5a7e628139704382efe0e5befcdc0a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16817#discussion_r2967566151"
+    }
+  ]
+}

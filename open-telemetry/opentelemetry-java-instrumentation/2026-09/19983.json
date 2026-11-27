@@ -1,0 +1,130 @@
+{
+  "head": "b8b8414051a4d59bf509d8bbf7445c5f69967caf",
+  "merge": "e2262f240afff35e0c74b7d0ff8743e251c8795c",
+  "merged": "2026-09-12T00:48:53Z",
+  "missing_roots": 0,
+  "number": 19983,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The stated Unix-socket behavior requires preserving a single configured path unchanged, but trimming here changes valid socket names with trailing whitespace (and can turn a non-socket value such as `\" /path\"` into a socket). Determine whether the raw value starts with `/` first, and only trim ordinary network hosts; `DbServerTarget.unixSocket()` already validates and preserves socket paths.",
+      "created": "2026-09-04T13:16:17Z",
+      "hunk": "@@ -0,0 +1,154 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.common.v4_0;\n+\n+import static io.opentelemetry.semconv.DbAttributes.DbSystemNameValues.MICROSOFT_SQL_SERVER;\n+import static io.opentelemetry.semconv.DbAttributes.DbSystemNameValues.MYSQL;\n+import static io.opentelemetry.semconv.DbAttributes.DbSystemNameValues.POSTGRESQL;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.IBM_DB2;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.ORACLE_DB;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import io.vertx.sqlclient.SqlConnectOptions;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+public class VertxSqlAddressGroup {\n+\n+  private final List<Endpoint> endpoints;\n+  @Nullable private final String address;\n+  @Nullable private final Integer port;\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(@Nullable SqlConnectOptions database) {\n+    return of(database, null);\n+  }\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(\n+      @Nullable SqlConnectOptions database, @Nullable String dbSystem) {\n+    Endpoint endpoint = Endpoint.from(database);\n+    if (endpoint == null) {\n+      return null;\n+    }\n+    return new VertxSqlAddressGroup(singletonList(endpoint), dbSystem);\n+  }\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(@Nullable List<? extends SqlConnectOptions> databases) {\n+    return of(databases, null);\n+  }\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(\n+      @Nullable List<? extends SqlConnectOptions> databases, @Nullable String dbSystem) {\n+    if (databases == null || databases.isEmpty()) {\n+      return null;\n+    }\n+    List<Endpoint> endpoints = new ArrayList<>(databases.size());\n+    for (SqlConnectOptions database : databases) {\n+      Endpoint endpoint = Endpoint.from(database);\n+      if (endpoint == null) {\n+        return null;\n+      }\n+      endpoints.add(endpoint);\n+    }\n+    return new VertxSqlAddressGroup(endpoints, dbSystem);\n+  }\n+\n+  private VertxSqlAddressGroup(List<Endpoint> endpoints, @Nullable String dbSystem) {\n+    this.endpoints = endpoints;\n+    DbServerTarget target = buildTarget(endpoints, dbSystem);\n+    address = target == null ? null : target.getAddress();\n+    port = target == null ? null : target.getPort();\n+  }\n+\n+  public VertxSqlAddressGroup withDbSystem(@Nullable String dbSystem) {\n+    return new VertxSqlAddressGroup(endpoints, dbSystem);\n+  }\n+\n+  @Nullable\n+  public String getAddress() {\n+    return address;\n+  }\n+\n+  @Nullable\n+  public Integer getPort() {\n+    return port;\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget buildTarget(List<Endpoint> endpoints, @Nullable String dbSystem) {\n+    if (endpoints.size() == 1 && endpoints.get(0).unixSocket) {\n+      return DbServerTarget.unixSocket(endpoints.get(0).host);\n+    }\n+\n+    DbServerTargetBuilder builder = DbServerTarget.builder(defaultPort(dbSystem));\n+    for (Endpoint endpoint : endpoints) {\n+      if (endpoint.unixSocket) {\n+        return null;\n+      }\n+      builder.addEndpoint(endpoint.host, endpoint.port);\n+    }\n+    return builder.build();\n+  }\n+\n+  private static int defaultPort(@Nullable String dbSystem) {\n+    if (POSTGRESQL.equals(dbSystem)) {\n+      return 5432;\n+    }\n+    if (MYSQL.equals(dbSystem)) {\n+      return 3306;\n+    }\n+    if (MICROSOFT_SQL_SERVER.equals(dbSystem)) {\n+      return 1433;\n+    }\n+    if (ORACLE_DB.equals(dbSystem)) {\n+      return 1521;\n+    }\n+    if (IBM_DB2.equals(dbSystem)) {\n+      return 50000;\n+    }\n+    return -1;\n+  }\n+\n+  private static class Endpoint {\n+    private final String host;\n+    private final int port;\n+    private final boolean unixSocket;\n+\n+    @Nullable\n+    private static Endpoint from(@Nullable SqlConnectOptions database) {\n+      if (database == null || database.getHost() == null) {\n+        return null;\n+      }\n+      String host = database.getHost().trim();\n+      if (host.isEmpty()) {\n+        return null;\n+      }\n+      boolean unixSocket = host.startsWith(\"/\");",
+      "id": "PRRT_kwDODJKVX86fTUtu",
+      "opened": "2026-09-04T13:16:19Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-04T18:25:22Z",
+          "body": "No code change.\n\nAnalysis: The current head reads the raw host before classifying it. It passes Unix socket paths unchanged to DbServerTarget.unixSocket(). It passes network hosts and the raw port to DbServerTargetBuilder, so port 0 rejects the configured target instead of using the database default.\n\nUpsides: Socket paths keep their exact configured value. Invalid zero-port targets no longer produce a misleading default-port address.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3936850272"
+        }
+      ],
+      "reviewed": "027343f7593ec17582073a408ccb41cbb2547995",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3934339293"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Port `0` is a distinct (and invalid for this target format) configured value, but this conversion treats it as an omitted port and later substitutes the database default. Vert.x 4 accepts `setPort(0)`, while `DbServerTargetBuilder` deliberately rejects zero, so preserve the raw value and let the builder drop the configured target instead of emitting a misleading default-port address.",
+      "created": "2026-09-04T13:16:18Z",
+      "hunk": "@@ -0,0 +1,154 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.common.v4_0;\n+\n+import static io.opentelemetry.semconv.DbAttributes.DbSystemNameValues.MICROSOFT_SQL_SERVER;\n+import static io.opentelemetry.semconv.DbAttributes.DbSystemNameValues.MYSQL;\n+import static io.opentelemetry.semconv.DbAttributes.DbSystemNameValues.POSTGRESQL;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.IBM_DB2;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.ORACLE_DB;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import io.vertx.sqlclient.SqlConnectOptions;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+public class VertxSqlAddressGroup {\n+\n+  private final List<Endpoint> endpoints;\n+  @Nullable private final String address;\n+  @Nullable private final Integer port;\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(@Nullable SqlConnectOptions database) {\n+    return of(database, null);\n+  }\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(\n+      @Nullable SqlConnectOptions database, @Nullable String dbSystem) {\n+    Endpoint endpoint = Endpoint.from(database);\n+    if (endpoint == null) {\n+      return null;\n+    }\n+    return new VertxSqlAddressGroup(singletonList(endpoint), dbSystem);\n+  }\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(@Nullable List<? extends SqlConnectOptions> databases) {\n+    return of(databases, null);\n+  }\n+\n+  @Nullable\n+  public static VertxSqlAddressGroup of(\n+      @Nullable List<? extends SqlConnectOptions> databases, @Nullable String dbSystem) {\n+    if (databases == null || databases.isEmpty()) {\n+      return null;\n+    }\n+    List<Endpoint> endpoints = new ArrayList<>(databases.size());\n+    for (SqlConnectOptions database : databases) {\n+      Endpoint endpoint = Endpoint.from(database);\n+      if (endpoint == null) {\n+        return null;\n+      }\n+      endpoints.add(endpoint);\n+    }\n+    return new VertxSqlAddressGroup(endpoints, dbSystem);\n+  }\n+\n+  private VertxSqlAddressGroup(List<Endpoint> endpoints, @Nullable String dbSystem) {\n+    this.endpoints = endpoints;\n+    DbServerTarget target = buildTarget(endpoints, dbSystem);\n+    address = target == null ? null : target.getAddress();\n+    port = target == null ? null : target.getPort();\n+  }\n+\n+  public VertxSqlAddressGroup withDbSystem(@Nullable String dbSystem) {\n+    return new VertxSqlAddressGroup(endpoints, dbSystem);\n+  }\n+\n+  @Nullable\n+  public String getAddress() {\n+    return address;\n+  }\n+\n+  @Nullable\n+  public Integer getPort() {\n+    return port;\n+  }\n+\n+  @Nullable\n+  private static DbServerTarget buildTarget(List<Endpoint> endpoints, @Nullable String dbSystem) {\n+    if (endpoints.size() == 1 && endpoints.get(0).unixSocket) {\n+      return DbServerTarget.unixSocket(endpoints.get(0).host);\n+    }\n+\n+    DbServerTargetBuilder builder = DbServerTarget.builder(defaultPort(dbSystem));\n+    for (Endpoint endpoint : endpoints) {\n+      if (endpoint.unixSocket) {\n+        return null;\n+      }\n+      builder.addEndpoint(endpoint.host, endpoint.port);\n+    }\n+    return builder.build();\n+  }\n+\n+  private static int defaultPort(@Nullable String dbSystem) {\n+    if (POSTGRESQL.equals(dbSystem)) {\n+      return 5432;\n+    }\n+    if (MYSQL.equals(dbSystem)) {\n+      return 3306;\n+    }\n+    if (MICROSOFT_SQL_SERVER.equals(dbSystem)) {\n+      return 1433;\n+    }\n+    if (ORACLE_DB.equals(dbSystem)) {\n+      return 1521;\n+    }\n+    if (IBM_DB2.equals(dbSystem)) {\n+      return 50000;\n+    }\n+    return -1;\n+  }\n+\n+  private static class Endpoint {\n+    private final String host;\n+    private final int port;\n+    private final boolean unixSocket;\n+\n+    @Nullable\n+    private static Endpoint from(@Nullable SqlConnectOptions database) {\n+      if (database == null || database.getHost() == null) {\n+        return null;\n+      }\n+      String host = database.getHost().trim();\n+      if (host.isEmpty()) {\n+        return null;\n+      }\n+      boolean unixSocket = host.startsWith(\"/\");\n+      int configuredPort = database.getPort();\n+      int port = configuredPort > 0 ? configuredPort : -1;",
+      "id": "PRRT_kwDODJKVX86fTUuk",
+      "opened": "2026-09-04T13:16:19Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlAddressGroup.java",
+      "replies": [
+        {
+          "at": "2026-09-04T18:25:24Z",
+          "body": "No code change.\n\nAnalysis: The current head reads the raw host before classifying it. It passes Unix socket paths unchanged to DbServerTarget.unixSocket(). It passes network hosts and the raw port to DbServerTargetBuilder, so port 0 rejects the configured target instead of using the database default.\n\nUpsides: Socket paths keep their exact configured value. Invalid zero-port targets no longer produce a misleading default-port address.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3936850555"
+        }
+      ],
+      "reviewed": "027343f7593ec17582073a408ccb41cbb2547995",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3934339359"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This recomputes and renders the entire configured endpoint list for every SQL operation: `withDbSystem()` constructs another group and `buildTarget()` iterates all endpoints, even though the configured target is immutable. For large server lists this adds O(n) allocations to the query hot path; normalize the group once when the driver/db system is resolved and propagate that normalized snapshot through the client, pool, and prepared-statement state.",
+      "created": "2026-09-04T13:16:18Z",
+      "hunk": "@@ -11,22 +11,61 @@\n public class VertxSqlClientRequest {\n \n   private final String queryText;\n-  @Nullable private final SqlConnectOptions sqlConnectOptions;\n   private final boolean parameterizedQuery;\n   private final String dbSystemName;\n   @Nullable private final Long operationBatchSize;\n+  @Nullable private final SqlConnectOptions sqlConnectOptions;\n+  @Nullable private final VertxSqlAddressGroup addressGroup;\n+  private final boolean configuredServerTarget;\n \n   public VertxSqlClientRequest(\n       String queryText,\n       @Nullable SqlConnectOptions sqlConnectOptions,\n       boolean parameterizedQuery,\n       String dbSystemName,\n       @Nullable Long operationBatchSize) {\n+    this(\n+        queryText,\n+        sqlConnectOptions,\n+        parameterizedQuery,\n+        dbSystemName,\n+        operationBatchSize,\n+        null,\n+        false);\n+  }\n+\n+  public VertxSqlClientRequest(\n+      String queryText,\n+      @Nullable SqlConnectOptions sqlConnectOptions,\n+      boolean parameterizedQuery,\n+      String dbSystemName,\n+      @Nullable Long operationBatchSize,\n+      @Nullable VertxSqlAddressGroup addressGroup) {\n+    this(\n+        queryText,\n+        sqlConnectOptions,\n+        parameterizedQuery,\n+        dbSystemName,\n+        operationBatchSize,\n+        addressGroup,\n+        true);\n+  }\n+\n+  private VertxSqlClientRequest(\n+      String queryText,\n+      @Nullable SqlConnectOptions sqlConnectOptions,\n+      boolean parameterizedQuery,\n+      String dbSystemName,\n+      @Nullable Long operationBatchSize,\n+      @Nullable VertxSqlAddressGroup addressGroup,\n+      boolean configuredServerTarget) {\n     this.queryText = queryText;\n     this.sqlConnectOptions = sqlConnectOptions;\n     this.parameterizedQuery = parameterizedQuery;\n     this.dbSystemName = dbSystemName;\n     this.operationBatchSize = operationBatchSize;\n+    this.addressGroup = addressGroup != null ? addressGroup.withDbSystem(dbSystemName) : null;",
+      "id": "PRRT_kwDODJKVX86fTUvP",
+      "opened": "2026-09-04T13:16:19Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientRequest.java",
+      "replies": [
+        {
+          "at": "2026-09-04T18:25:25Z",
+          "body": "No code change.\n\nAnalysis: The current head snapshots the endpoints in VertxSqlClientData and resolves the database system on that stored state. Pool, client, connection, and prepared-statement instrumentation pass the same data object forward. VertxSqlClientRequest reads the precomputed address and port, so it no longer rebuilds the endpoint list for each operation.\n\nUpsides: SQL operations avoid O(n) endpoint rendering and related allocations. The target also stays consistent if Vert.x later mutates the connect options.\n\nDownsides: Each client keeps a small endpoint snapshot for its lifetime.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3936850717"
+        }
+      ],
+      "reviewed": "027343f7593ec17582073a408ccb41cbb2547995",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3934339420"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Feels weird. The reason this method returns scope is to have callbacks that are executed right after ending the span run in the context of the parent span. Perhaps it would be better to create a new method that doesn't return Scope. The new method could return Context so that `endQuerySpan` could delegate to it and this method could then just ignore the return value.",
+      "created": "2026-09-10T11:47:27Z",
+      "hunk": "@@ -109,50 +103,36 @@ public static AdviceScope start(Object queryExecutor, String methodName, Object[\n           return new AdviceScope(callDepth);\n         }\n \n-        VertxSqlClientData data = VertxSqlClientUtil.getQueryExecutorData(queryExecutor);\n-        if (data == null) {\n+        VertxSqlClientInfo info = VertxSqlClientSingletons.getQueryExecutorInfo(queryExecutor);\n+        if (info == null) {\n           return new AdviceScope(callDepth);\n         }\n-        SqlConnectOptions connectOptions = data.getConnectOptions();\n-        // connectOptions is null when the pool was created via JDBCPool which bypasses the\n-        // Pool.pool() factory, in that case we skip vertx-sql-client span creation and let JDBC\n-        // instrumentation handle it\n-        if (connectOptions == null) {\n-          return new AdviceScope(callDepth);\n-        }\n-        // Prefer the db system captured when the prepared statement was created, then the value\n-        // stored from the pool class (handles generic SqlConnectOptions), and finally fall back to\n-        // class name detection on the connect options itself\n-        String dbSystem = data.getDbSystem();\n-        if (dbSystem == null) {\n-          dbSystem = VertxSqlClientSingletons.getConnectOptionsDbSystem(connectOptions);\n-        }\n-        if (dbSystem == null) {\n-          dbSystem = VertxSqlClientUtil.getDbSystemNameFromClassName(connectOptions);\n-        }\n         VertxSqlClientRequest otelRequest =\n-            new VertxSqlClientRequest(sql, connectOptions, parameterizedQuery, dbSystem, batchSize);\n+            new VertxSqlClientRequest(sql, info, parameterizedQuery, batchSize);\n         Context parentContext = Context.current();\n         if (!instrumenter().shouldStart(parentContext, otelRequest)) {\n           return new AdviceScope(callDepth);\n         }\n \n         Context context = instrumenter().start(parentContext, otelRequest);\n         VertxSqlClientUtil.attachRequest(promiseInternal, otelRequest, context, parentContext);\n-        return new AdviceScope(callDepth, otelRequest, context, context.makeCurrent());\n+        return new AdviceScope(callDepth, promiseInternal, context.makeCurrent());\n       }\n \n       public void end(@Nullable Throwable throwable) {\n         if (callDepth.decrementAndGet() > 0) {\n           return;\n         }\n-        if (scope == null || context == null || otelRequest == null) {\n+        if (scope == null || promise == null) {\n           return;\n         }\n \n         scope.close();\n         if (throwable != null) {\n-          instrumenter().end(context, otelRequest, null, throwable);\n+          Scope parentScope = VertxSqlClientUtil.endQuerySpan(instrumenter(), promise, throwable);",
+      "id": "PRRT_kwDODJKVX86hDpvJ",
+      "opened": "2026-09-10T11:47:27Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/QueryExecutorInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T17:18:30Z",
+          "body": "d4ffce14b8417e011dac5d465118df66e75a831c",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3981700084"
+        }
+      ],
+      "reviewed": "b65dcdf724a80ebdd46ea61df57a7a2dfe7eab6b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3978716644"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether ti would make sense to allow setting the value only once. Then once you have checked that `get() != null` you can be sure that it won't return `null` at a later point. Probably this is true even without doing it since the value is set only once.",
+      "created": "2026-09-10T11:53:36Z",
+      "hunk": "@@ -0,0 +1,27 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.v4_0;\n+\n+import io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.common.v4_0.VertxSqlClientInfo;\n+import javax.annotation.Nullable;\n+\n+public final class VertxSqlClientInfoReference {\n+\n+  @Nullable private volatile VertxSqlClientInfo info;\n+\n+  public VertxSqlClientInfoReference(@Nullable VertxSqlClientInfo info) {\n+    this.info = info;\n+  }\n+\n+  public void set(@Nullable VertxSqlClientInfo info) {\n+    this.info = info;",
+      "id": "PRRT_kwDODJKVX86hDyB6",
+      "opened": "2026-09-10T11:53:36Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/VertxSqlClientInfoReference.java",
+      "replies": [],
+      "reviewed": "b65dcdf724a80ebdd46ea61df57a7a2dfe7eab6b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3978766808"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "might be a nitpick but this name doesn't convey that there's also a side effect of altering the call depth counter\r\n\r\n```suggestion\r\n    public boolean decrementAndCheckNested() {\r\n```",
+      "created": "2026-09-09T13:52:43Z",
+      "hunk": "@@ -25,17 +23,40 @@\n import io.opentelemetry.javaagent.bootstrap.CallDepth;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.common.v4_0.VertxSqlClientInfo;\n import io.vertx.core.Future;\n import io.vertx.sqlclient.Pool;\n import io.vertx.sqlclient.SqlConnectOptions;\n import io.vertx.sqlclient.SqlConnection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.asm.Advice.AssignReturned;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n \n class PoolInstrumentation implements TypeInstrumentation {\n \n+  public static final class PoolConstructionState {\n+    private final CallDepth callDepth;\n+    @Nullable private final VertxSqlClientInfoReference infoReference;\n+\n+    public PoolConstructionState(\n+        CallDepth callDepth, @Nullable VertxSqlClientInfoReference infoReference) {\n+      this.callDepth = callDepth;\n+      this.infoReference = infoReference;\n+    }\n+\n+    public boolean isNested() {",
+      "id": "PRRT_kwDODJKVX86grxUU",
+      "opened": "2026-09-10T11:55:15Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/PoolInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T17:16:12Z",
+          "body": "d576ec03227753d449e8d20e3045014eac223aed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3981679196"
+        }
+      ],
+      "reviewed": "b65dcdf724a80ebdd46ea61df57a7a2dfe7eab6b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19983#discussion_r3969211133"
+    }
+  ]
+}

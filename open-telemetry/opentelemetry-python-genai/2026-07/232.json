@@ -1,0 +1,106 @@
+{
+  "head": "c7e183211a501e366716cffb3c2efd0596650ddc",
+  "merge": "cb4c1c0f57a60cf648057d0a68577227b549f965",
+  "merged": "2026-07-09T22:00:02Z",
+  "missing_roots": 0,
+  "number": 232,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`expected_spans` uses `interactions.create`, but the weaver policy enforces `gen_ai.operation.name` to be one of the documented enum values; `interactions.create` will trigger a `genai_operation_name_unknown` violation and fail `run_conformance`. Either update the instrumentation to emit a semconv operation like `chat`, or (at minimum) declare this as an `expected_violations` entry so the conformance suite can run without unexpected violations.",
+      "created": "2026-07-09T14:14:36Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: google-genai chat completion (inference).\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from google.genai import Client\n+\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class InferenceScenario(Scenario):\n+    expected_spans = (\"interactions.create\",)\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )",
+      "id": "PRRT_kwDOSbspP86PmNF9",
+      "opened": "2026-07-09T14:14:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/inference.py",
+      "replies": [],
+      "reviewed": "6a2743472f3e2e14f8aed9cf13330e3fb08c559c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/232#discussion_r3552290499"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The conformance cassette replays a Gemini (non-Vertex) call; existing google-genai tests construct the client with `vertexai=False` and a fake `api_key`. Using `Client()` here risks failing before the HTTP request (missing credentials/api key) and makes the scenario dependent on external environment credentials.",
+      "created": "2026-07-09T14:14:36Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: google-genai chat completion (inference).\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from google.genai import Client\n+\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class InferenceScenario(Scenario):\n+    expected_spans = (\"interactions.create\",)\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            GoogleGenAiSdkInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            content_capture=\"SPAN_ONLY\",\n+        ):\n+            with vcr.use_cassette(\"inference_conformance.yaml\"):\n+                client = Client()\n+                client.interactions.create(",
+      "id": "PRRT_kwDOSbspP86PmNGs",
+      "opened": "2026-07-09T14:14:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/inference.py",
+      "replies": [],
+      "reviewed": "6a2743472f3e2e14f8aed9cf13330e3fb08c559c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/232#discussion_r3552290556"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The conformance cassette targets the Gemini API (non-Vertex). To avoid depending on external credentials, construct the client with `vertexai=False` and a deterministic test `api_key` (consistent with the package’s existing e2e tests).",
+      "created": "2026-07-09T14:14:37Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: google-genai generate_content.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from google.genai import Client\n+\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class GenerateContentScenario(Scenario):\n+    expected_spans = (\"generate_content\",)\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            GoogleGenAiSdkInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            content_capture=\"SPAN_ONLY\",\n+        ):\n+            with vcr.use_cassette(\"generate_content_conformance.yaml\"):\n+                client = Client()\n+                client.models.generate_content(",
+      "id": "PRRT_kwDOSbspP86PmNHO",
+      "opened": "2026-07-09T14:14:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/generate_content.py",
+      "replies": [],
+      "reviewed": "6a2743472f3e2e14f8aed9cf13330e3fb08c559c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/232#discussion_r3552290598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The conformance cassette targets the Gemini API (non-Vertex). To avoid depending on external credentials, construct the client with `vertexai=False` and a deterministic test `api_key` (consistent with the package’s existing e2e tests).",
+      "created": "2026-07-09T14:14:37Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: google-genai embeddings.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from google.genai import Client\n+\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class EmbeddingScenario(Scenario):\n+    expected_spans = (\"embeddings\",)\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            GoogleGenAiSdkInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            content_capture=\"SPAN_ONLY\",\n+        ):\n+            with vcr.use_cassette(\"embedding_conformance.yaml\"):\n+                client = Client()\n+                client.models.embed_content(",
+      "id": "PRRT_kwDOSbspP86PmNHy",
+      "opened": "2026-07-09T14:14:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/embedding.py",
+      "replies": [],
+      "reviewed": "6a2743472f3e2e14f8aed9cf13330e3fb08c559c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/232#discussion_r3552290647"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This conformance suite doesn’t currently exercise any tool-calling path. The google-genai instrumentation wraps `GenerateContentConfig.tools` and can emit `execute_tool` spans via `TelemetryHandler.tool(...)`, so conformance coverage should include a tool-calling scenario (and include it in this scenario list) to validate `execute_tool` telemetry against semconv/weaver policies.",
+      "created": "2026-07-09T14:14:37Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Per-scenario conformance tests for google-genai.\n+\n+Each scenario runs the instrumentation against a recorded API call and\n+validates the emitted telemetry against the GenAI semantic conventions via\n+Weaver live-check.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+import pytest\n+\n+# Skip collection when weaver_live_check isn't installed (non-conformance envs).\n+pytest.importorskip(\"opentelemetry.test.weaver_live_check\")\n+\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck  # noqa: E402\n+from opentelemetry.test_util_genai.conformance import (  # noqa: E402\n+    Scenario,\n+    run_conformance,\n+)\n+\n+from .conformance.embedding import EmbeddingScenario\n+from .conformance.generate_content import GenerateContentScenario\n+from .conformance.inference import InferenceScenario\n+\n+\n+@pytest.mark.parametrize(\n+    \"scenario\",\n+    [\n+        InferenceScenario(),\n+        EmbeddingScenario(),\n+        GenerateContentScenario(),\n+    ],",
+      "id": "PRRT_kwDOSbspP86PmNIE",
+      "opened": "2026-07-09T14:14:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_conformance.py",
+      "replies": [],
+      "reviewed": "6a2743472f3e2e14f8aed9cf13330e3fb08c559c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/232#discussion_r3552290671"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not sure what to do about it (we probably don't want this as a violation reported by weaver, but also in many cases it's good to have it flagged), will keep thinking how we can improve it",
+      "created": "2026-07-09T15:42:21Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: google-genai tool execution.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from google.genai import Client\n+\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import (\n+    ExpectedViolation,\n+    Scenario,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class ToolCallingScenario(Scenario):\n+    expected_spans = (\"generate_content\", \"execute_tool\")\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+    expected_violations = (\n+        ExpectedViolation(",
+      "id": "PRRT_kwDOSbspP86Pn-rO",
+      "opened": "2026-07-09T15:43:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/tool_calling.py",
+      "replies": [
+        {
+          "at": "2026-07-09T19:40:16Z",
+          "body": "Ack, I think for this PR we can leave it as is ? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/232#discussion_r3554334186"
+        }
+      ],
+      "reviewed": "db17246773f718744c101a2f417d267d8b680dd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/232#discussion_r3552927582"
+    }
+  ]
+}

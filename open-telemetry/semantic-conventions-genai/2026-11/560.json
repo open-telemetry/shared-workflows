@@ -1,0 +1,118 @@
+{
+  "head": "fcfdaabc71c414e17bd1b1cfb55fd270096c0cb9",
+  "merge": "dc3571562603552dc555c667dfa327a638d94ab2",
+  "merged": "2026-11-01T22:06:01Z",
+  "missing_roots": 0,
+  "number": 560,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This release note does not fully match the convention change. The requirement-level group is also reused by `gen_ai.client.inference.operation.details` events (`model/gen-ai/events.yaml:13`), and recording unknown modality is a SHOULD rather than unconditional behavior. Include the event and preserve the normative level in the summary.",
+      "created": "2026-10-02T17:08:32Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify that `gen_ai.usage.input_tokens` and `gen_ai.usage.output_tokens` are totals across all modalities. Per-modality span attributes are recommended only when the provider reports them. Usage metrics record tokens with no known modality as `unknown`.",
+      "id": "PRRT_kwDOSUeMrM6obD85",
+      "opened": "2026-10-02T17:08:32Z",
+      "path": "changelog.d/560.clarification.md",
+      "replies": [],
+      "reviewed": "c026ec4aa277f45e602250a064b64650bc47e3f9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4168009322"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "psx95"
+      },
+      "body": "Why are these still `SHOULD` and not `MUST` ? ",
+      "created": "2026-10-02T18:01:41Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6ocDBj",
+      "opened": "2026-10-02T18:01:41Z",
+      "path": "docs/registry/attributes/gen-ai.md",
+      "replies": [
+        {
+          "at": "2026-10-04T17:28:13Z",
+          "body": "this is an existing clause in this repo and overall in semconv we use MUST only when we're absolutely sure its always possible or absolutely essential. SHOULD is enough for all well-meaning instrumentations to follow.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4178613239"
+        }
+      ],
+      "reviewed": "3d4aecded3682f474c59969f057f71ea7d2f24f5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4168417378"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "psx95"
+      },
+      "body": "\"cached tokens and input tokens of all modalities\"\n\nwould add more clarity.",
+      "created": "2026-10-02T18:04:04Z",
+      "hunk": "@@ -368,7 +374,7 @@ Datastore: A tool used by the agent to access and query structured or unstructur\n \n **[45] `gen_ai.usage.image.output_tokens`:** The value SHOULD be included in `gen_ai.usage.output_tokens`.\n \n-**[46] `gen_ai.usage.input_tokens`:** This value SHOULD include all types of input tokens, including cached tokens.\n+**[46] `gen_ai.usage.input_tokens`:** This value SHOULD include cached tokens and tokens of all modalities.",
+      "id": "PRRT_kwDOSUeMrM6ocF5l",
+      "opened": "2026-10-02T18:04:04Z",
+      "path": "docs/registry/attributes/gen-ai.md",
+      "replies": [],
+      "reviewed": "3d4aecded3682f474c59969f057f71ea7d2f24f5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4168435534"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "psx95"
+      },
+      "body": "and `gen_ai.client.inference.usage.input_tokens`",
+      "created": "2026-10-02T18:18:12Z",
+      "hunk": "@@ -239,7 +247,13 @@ should have the `gen_ai.provider.name` set to `aws.bedrock` and include\n applicable `aws.bedrock.*` attributes and are not expected to include\n `openai.*` attributes.\n \n-**[3] `gen_ai.token.modality`:** When the provider does not break usage down by modality and the modality cannot be reliably determined, instrumentations SHOULD report the tokens under the `unknown` modality.\n+**[3] `gen_ai.token.modality`:** On token usage metrics, values across all modalities SHOULD add up to the\n+total, such as `gen_ai.usage.input_tokens`.",
+      "id": "PRRT_kwDOSUeMrM6ocWt8",
+      "opened": "2026-10-02T18:23:51Z",
+      "path": "docs/gen-ai/gen-ai-token-metrics.md",
+      "replies": [
+        {
+          "at": "2026-10-04T17:25:48Z",
+          "body": "updated to \r\n\r\n>  such as the `gen_ai.usage.input_tokens`\r\n      attribute or a measurement on the `gen_ai.client.inference.operation.input_tokens`\r\n\r\n\r\n`gen_ai.client.inference.usage.input_tokens` is reported multiple times (per modality), so no single measurement of it a sum",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4178606436"
+        }
+      ],
+      "reviewed": "3d4aecded3682f474c59969f057f71ea7d2f24f5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4168544117"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      See `gen_ai.token.modality` attribute for how to split tokens by modality.\n```",
+      "created": "2026-10-30T17:41:49Z",
+      "hunk": "@@ -19,6 +19,8 @@ metrics:\n       When systems report both used tokens and billable tokens, instrumentation\n       MUST report billable tokens.\n \n+      See `gen_ai.token.modality` for how to split tokens by modality.",
+      "id": "PRRT_kwDOSUeMrM6yE5L3",
+      "opened": "2026-10-30T17:49:01Z",
+      "path": "model/gen-ai/token-metrics.yaml",
+      "replies": [],
+      "reviewed": "3eef7234e74d10000888e74c8c96c7993a36dd37",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4426662687"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "> record tokens as `unknown` when the provider ... reports one not listed here\n\nany particular reason for this to be a closed vs open enum?",
+      "created": "2026-10-30T17:48:43Z",
+      "hunk": "@@ -415,10 +417,16 @@ attributes:\n           value: \"unknown\"\n           brief: 'The modality is not known.'\n     brief: The modality of the tokens being counted.\n-    note: >\n-      When the provider does not break usage down by modality and the modality\n-      cannot be reliably determined, instrumentations SHOULD report the tokens\n-      under the `unknown` modality.\n+    note: |\n+      For each operation, token usage counter measurements across all modalities\n+      SHOULD add up to the corresponding total, such as the `gen_ai.usage.input_tokens`\n+      attribute or a measurement on the `gen_ai.client.inference.operation.input_tokens`\n+      histogram.\n+\n+      Instrumentations SHOULD record tokens as `unknown` when the provider does\n+      not report their modality or reports one not listed here. For example, if a",
+      "id": "PRRT_kwDOSUeMrM6yFB-Q",
+      "opened": "2026-10-30T17:49:01Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-01T21:44:55Z",
+          "body": "good point! not really. Updated in https://github.com/open-telemetry/semantic-conventions-genai/pull/560/changes/4a62a0897c118dc9d9b0ce9328bb518b5ed508c4",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4437478732"
+        }
+      ],
+      "reviewed": "3eef7234e74d10000888e74c8c96c7993a36dd37",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/560#discussion_r4426720677"
+    }
+  ]
+}

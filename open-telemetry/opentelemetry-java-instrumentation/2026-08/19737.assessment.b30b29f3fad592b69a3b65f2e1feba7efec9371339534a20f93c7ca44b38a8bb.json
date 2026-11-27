@@ -1,0 +1,47 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "67b655dcde80c7b4e84880875f35bc481422d52ce4a17c9de1c7a6f2a6b43d80",
+  "input_digest": "b30b29f3fad592b69a3b65f2e1feba7efec9371339534a20f93c7ca44b38a8bb",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/299be3fba8cb1a98470c1a762e96d7c112df8b13/instrumentation/spring/spring-boot-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f09e466ac18d354c0f45addc1b96b0f3b8c78b06/instrumentation/spring/spring-boot-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/299be3fba8cb1a98470c1a762e96d7c112df8b13...225c6e98a822956ddb84638bb7581980c2e764f2",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f09e466ac18d354c0f45addc1b96b0f3b8c78b06",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/225c6e98a822956ddb84638bb7581980c2e764f2"
+      ],
+      "id": "PRRT_kwDODJKVX86bSy-F",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/299be3fba8cb1a98470c1a762e96d7c112df8b13/instrumentation/logback/logback-appender-1.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f09e466ac18d354c0f45addc1b96b0f3b8c78b06/instrumentation/logback/logback-appender-1.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/225c6e98a822956ddb84638bb7581980c2e764f2"
+      ],
+      "id": "PRRT_kwDODJKVX86bSy-h",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/299be3fba8cb1a98470c1a762e96d7c112df8b13/instrumentation/apache-dubbo-2.7/library-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f09e466ac18d354c0f45addc1b96b0f3b8c78b06/instrumentation/apache-dubbo-2.7/library-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/225c6e98a822956ddb84638bb7581980c2e764f2"
+      ],
+      "id": "PRRT_kwDODJKVX86bSy-x",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

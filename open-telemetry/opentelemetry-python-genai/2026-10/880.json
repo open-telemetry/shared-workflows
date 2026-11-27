@@ -1,0 +1,106 @@
+{
+  "head": "741a1f613c1217be7c72a6ddf31d0a68a59338b8",
+  "merge": "87173e06d35e434ebdb9755d7a29791e58a412d3",
+  "merged": "2026-10-28T05:48:55Z",
+  "missing_roots": 0,
+  "number": 880,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This inheritance change is what preserves chunk timing for `fetch_response`, but no test asserts that a streamed `FetchResponseInvocation` emits both timing metrics; the new positive wrapper test only exercises `handler.inference`, and the Google fetch tests do not assert these metrics. Add a fetch-response regression test that checks both metric names and their operation/provider attribute value types.",
+      "created": "2026-10-12T02:50:12Z",
+      "hunk": "@@ -37,7 +37,7 @@\n _GEN_AI_RESPONSE_STATUS: Final = \"gen_ai.response.status\"\n \n \n-class FetchResponseInvocation(GenAIInvocation):\n+class FetchResponseInvocation(StreamedResponseInvocation):",
+      "id": "PRRT_kwDOSbspP86rUIqm",
+      "opened": "2026-10-12T02:50:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_fetch_response_invocation.py",
+      "replies": [],
+      "reviewed": "15bb982aaf72f155018c3a147fa7e058faa1cc1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/880#discussion_r4244311984"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This base is intentionally internal and is not re-exported, but its unprefixed name makes it look public. The util API convention requires module-private objects to start with `_`; please rename it to `_StreamedResponseInvocation` and update the two private imports/subclasses so it does not become an accidental API commitment.",
+      "created": "2026-10-12T02:50:12Z",
+      "hunk": "@@ -402,6 +363,58 @@ def _json_dumps_unless_str(value: object) -> str | None:\n     return gen_ai_json_dumps(converted)\n \n \n+class StreamedResponseInvocation(GenAIInvocation):",
+      "id": "PRRT_kwDOSbspP86rUIqz",
+      "opened": "2026-10-12T02:50:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "15bb982aaf72f155018c3a147fa7e058faa1cc1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/880#discussion_r4244312004"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This comment omits `fetch_response`, even though `FetchResponseInvocation` now implements `_on_stream_chunk` and the PR explicitly preserves timing for it. Since fetch-response performs no inference, describing the condition as inference-only is inaccurate.\n\nThis issue also appears on line 491 of the same file.",
+      "created": "2026-10-12T02:50:13Z",
+      "hunk": "@@ -272,14 +270,18 @@ def _advance(self, read: Callable[[], ChunkT]) -> ChunkT:\n             except BaseException as error:\n                 self._finalize_failure(error)\n                 raise\n-            invocation = self._self_invocation\n+            # Agent and workflow invocations are passed for context scoping\n+            # only; chunk timing is defined for inference streams.",
+      "id": "PRRT_kwDOSbspP86rUIrB",
+      "opened": "2026-10-12T02:50:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "15bb982aaf72f155018c3a147fa7e058faa1cc1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/880#discussion_r4244312024"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Should `fetch_response` be excluded here too? The current semconv defines these chunk-timing histograms as client inference metrics, while `fetch_response` explicitly performs no inference. Keeping this inheritance means streamed response retrievals still emit inference-only metrics. I think only `InferenceInvocation` should use this timing base.",
+      "created": "2026-10-12T17:45:38Z",
+      "hunk": "@@ -37,7 +37,7 @@\n _GEN_AI_RESPONSE_STATUS: Final = \"gen_ai.response.status\"\n \n \n-class FetchResponseInvocation(GenAIInvocation):\n+class FetchResponseInvocation(StreamedResponseInvocation):",
+      "id": "PRRT_kwDOSbspP86rkKiP",
+      "opened": "2026-10-12T17:45:38Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_fetch_response_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-15T00:01:04Z",
+          "body": "Yep that should be excluded.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/880#discussion_r4277570833"
+        }
+      ],
+      "reviewed": "15bb982aaf72f155018c3a147fa7e058faa1cc1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/880#discussion_r4250832672"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we check invocation instance type instread? Or have some class-level flag on invocations indicating when to record streaming metrics (and attribute) ? ",
+      "created": "2026-10-16T00:48:53Z",
+      "hunk": "@@ -486,14 +488,18 @@ async def _advance(self, read: Callable[[], Awaitable[ChunkT]]) -> ChunkT:\n                 self._finalize_failure(error)\n                 raise\n \n-            invocation = self._self_invocation\n+            # Non-inference invocations (agent, workflow, fetch_response) are\n+            # passed for context scoping only; chunk timing is inference-only.\n+            on_stream_chunk: Callable[[float], None] | None = getattr(\n+                self._self_invocation, \"_on_stream_chunk\", None\n+            )",
+      "id": "PRRT_kwDOSbspP86tBWci",
+      "opened": "2026-10-16T00:48:53Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "f4f3b033a53dabf5913404fbf926675b2c6e91a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/880#discussion_r4289762190"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "PR title says we record chunks for fetch_response too and here we say we don't.\n\nI don't think we should (at least it's not in semconv)",
+      "created": "2026-10-16T00:50:26Z",
+      "hunk": "@@ -272,14 +270,18 @@ def _advance(self, read: Callable[[], ChunkT]) -> ChunkT:\n             except BaseException as error:\n                 self._finalize_failure(error)\n                 raise\n-            invocation = self._self_invocation\n+            # Non-inference invocations (agent, workflow, fetch_response) are",
+      "id": "PRRT_kwDOSbspP86tBXsB",
+      "opened": "2026-10-16T00:50:26Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "f4f3b033a53dabf5913404fbf926675b2c6e91a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/880#discussion_r4289770624"
+    }
+  ]
+}

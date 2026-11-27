@@ -1,0 +1,52 @@
+{
+  "head": "efca5cea51aeec331531b308774e01c972b79be3",
+  "merge": "42adc4f128b7d7f88527cb0e64d940c48a528b4e",
+  "merged": "2026-09-20T07:46:24Z",
+  "missing_roots": 0,
+  "number": 749,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `Modality` docstring says only `TEXT` supports token accounting, but the inference token setters support `text`, `image`, and `audio` (see `_inference_invocation._set_modality_tokens`). This is misleading for users of the public API.\n\nThis issue also appears on line 176 of the same file.",
+      "created": "2026-09-20T07:10:34Z",
+      "hunk": "@@ -154,7 +154,24 @@ class CompactionPart:\n     type: Literal[\"compaction\"] = \"compaction\"\n \n \n-Modality = Literal[\"text\", \"image\", \"video\", \"audio\", \"document\"]\n+class Modality(str, Enum):\n+    \"\"\"Well-known content and token modalities.\n+\n+    Based on the `GenAI messages Python models - Modality\n+    <https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/non-normative/models.py>`__.\n+    ``TEXT`` also supports token accounting. Use plain strings for\n+    provider-specific modalities.\n+    \"\"\"",
+      "id": "PRRT_kwDOSbspP86kHokK",
+      "opened": "2026-09-20T07:10:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [
+        {
+          "at": "2026-09-20T07:16:41Z",
+          "body": "I clarified both `Modality` and `ModalityTokens` docstrings:\r\n- Token setters record **text, image, and audio**; other modalities are ignored.\r\n- Message parts accept all enum members and provider-specific strings.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/749#discussion_r4056386352"
+        }
+      ],
+      "reviewed": "dcc33df006a32d555e46ddec641fadbd01b5fa5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/749#discussion_r4056375808"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`image_from_url`’s docstring says it returns a media part for an *image* URL, but callers (and tests) also use it for non-image modalities (e.g., audio/document). Updating the wording helps avoid confusion for public API consumers.",
+      "created": "2026-09-20T07:10:34Z",
+      "hunk": "@@ -55,7 +56,9 @@ def decode_base64(data: str) -> bytes | None:\n         return None\n \n \n-def image_from_url(url: str, *, modality: str = \"image\") -> MessagePart | None:\n+def image_from_url(\n+    url: str, *, modality: Modality | str = Modality.IMAGE\n+) -> MessagePart | None:\n     \"\"\"Return a media part for an image ``url``.",
+      "id": "PRRT_kwDOSbspP86kHokM",
+      "opened": "2026-09-20T07:10:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-20T07:17:23Z",
+          "body": "Updated `image_from_url`’s docstring to clarify that images are the default, but callers can override `modality` for audio, documents, or provider-specific media.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/749#discussion_r4056387432"
+        }
+      ],
+      "reviewed": "dcc33df006a32d555e46ddec641fadbd01b5fa5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/749#discussion_r4056375812"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "d5212dea61d79220e02c1f8a723b863021627554",
+  "merge": "9e1d9f543b22b78b147b2ad6a668246812eaed5e",
+  "merged": "2026-05-10T15:02:22Z",
+  "missing_roots": 0,
+  "number": 18669,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`is_copilot_review()` currently uses a broad substring heuristic (`\"copilot\" in login` + `endswith(\"[bot]\")` or contains `pull-request-reviewer`). This can misclassify unrelated bots/users that happen to include \"copilot\" in their login (and any bot ending with `[bot]`), causing the dashboard to show a ✅ for non-Copilot reviews. Consider matching the expected reviewer bot login explicitly (e.g., `copilot-pull-request-reviewer[bot]`), or using an allowlist of known Copilot reviewer accounts to avoid false positives.\n",
+      "created": "2026-05-09T21:58:07Z",
+      "hunk": "@@ -556,6 +556,23 @@ def ts_text(ts: datetime | None) -> str:\n     return ts.isoformat() if ts else \"\"\n \n \n+def is_copilot_review(review: dict[str, Any]) -> bool:\n+    login = actor_login(review.get(\"user\") or {}).lower()\n+    if not login:\n+        return False\n+    return \"copilot\" in login and (login.endswith(\"[bot]\") or \"pull-request-reviewer\" in login)",
+      "id": "PRRT_kwDODJKVX86A2zfR",
+      "opened": "2026-05-09T21:58:07Z",
+      "path": ".github/scripts/pull-request-dashboard.py",
+      "replies": [],
+      "reviewed": "e641d0d1a33e95972efe16c226d56790240d90bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18669#discussion_r3213950595"
+    }
+  ]
+}

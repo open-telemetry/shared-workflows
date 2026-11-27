@@ -1,0 +1,51 @@
+{
+  "head": "08a23c2f446b368ae515a6a281189fa699d5250c",
+  "merge": "26573c6a8ea85d87d55b2ae211f5075ea464f65b",
+  "merged": "2026-01-09T17:09:03Z",
+  "missing_roots": 0,
+  "number": 15805,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Relying on `toString` isn't ideal. I don't really get the need to change this test like that. It is testing the property based configuration, what is wrong in using  the `ConfigurationProperties` for this? Imo the old version of the test is more straightforward.",
+      "created": "2026-01-09T14:51:04Z",
+      "hunk": "@@ -35,9 +34,9 @@ void keepUserOtlpProtocolConfiguration() {\n             this.getClass().getClassLoader(), EarlyInitAgentConfig.create());\n \n     // then\n-    assertThat(\n-            AutoConfigureUtil.getConfig(autoConfiguredSdk).getString(\"otel.exporter.otlp.protocol\"))\n-        .isEqualTo(\"grpc\");\n+    assertThat(autoConfiguredSdk.getOpenTelemetrySdk().toString())",
+      "id": "PRRT_kwDODJKVX85otyTr",
+      "opened": "2026-01-09T14:51:04Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/OtlpProtocolPropertiesSupplierTest.java",
+      "replies": [
+        {
+          "at": "2026-01-09T14:59:57Z",
+          "body": "- The goal for all production code is to use ConfigProvider instead of ConfigProperties.\r\n  - It's then confusing if some tests still use ConfigProperties.\r\n- I'm not sure why `toString()` is tested here - but lots of SDK tests do that - it's sort of a paradigm",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15805#discussion_r2676510657"
+        },
+        {
+          "at": "2026-01-09T16:03:19Z",
+          "body": "this is an interesting case. this test is here because we override the default otlp protocol in the Javaagent to be `http/protobuf` (instead of the SDK autoconfigure's default) of `grpc`.\n\nso this test is very specific to ConfigProperties, and isn't needed for declarative configuration (where the default has been updated to `http/protobuf` and so we don't need to test that)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15805#discussion_r2676740239"
+        },
+        {
+          "at": "2026-01-09T16:28:02Z",
+          "body": "removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15805#discussion_r2676829537"
+        },
+        {
+          "at": "2026-01-09T16:35:03Z",
+          "body": "I think we still want this test as long as we have ConfigProperties users, to ensure we don't break this change of the default value that we have implemented in the Java agent",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15805#discussion_r2676851832"
+        },
+        {
+          "at": "2026-01-09T16:43:27Z",
+          "body": "makes sense - fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15805#discussion_r2676878844"
+        }
+      ],
+      "reviewed": "d37600c69917115cf76ae816cb3ba35d53a41311",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15805#discussion_r2676473176"
+    }
+  ]
+}

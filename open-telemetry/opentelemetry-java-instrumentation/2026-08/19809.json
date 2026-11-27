@@ -1,0 +1,31 @@
+{
+  "head": "5c0ddb64f648717b2a555903b4d318b91546abae",
+  "merge": "3c9d984a50a273f7ee1a8dea8d4fcae91cfb2477",
+  "merged": "2026-08-26T06:24:19Z",
+  "missing_roots": 0,
+  "number": 19809,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use the exact attribute assertion here. The non-exact variant silently accepts unexpected attributes, weakening this regression test if the configured URL is ever emitted elsewhere; the surrounding query tests enumerate the complete expected attribute set.",
+      "created": "2026-08-25T13:02:14Z",
+      "hunk": "@@ -439,4 +439,22 @@ void testWriteWithUdp() {\n                                 maybeStable(DB_OPERATION),\n                                 emitStableDatabaseSemconv() ? \"write\" : \"WRITE\"))));\n   }\n+\n+  @Test\n+  void testConfiguredUrlIsSanitized() {\n+    // the credentials and the path of the configured url must not reach server.address\n+    String serverUrl = \"http://omitted:password@\" + host + \":\" + port + \"/\";\n+    InfluxDB influxDbWithCredentialsInUrl = InfluxDBFactory.connect(serverUrl);\n+    cleanup.deferCleanup(influxDbWithCredentialsInUrl);\n+\n+    influxDbWithCredentialsInUrl.query(new Query(\"SELECT * FROM cpu\", DATABASE_NAME));\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfying(\n+                            equalTo(SERVER_ADDRESS, host), equalTo(SERVER_PORT, port))));",
+      "id": "PRRT_kwDODJKVX86cFJph",
+      "opened": "2026-08-25T13:02:15Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-25T14:05:58Z",
+          "body": "Addressed in c872d8c37afb7cfe6bf45cdcff513b1aae295fbe.\n\nAnalysis: The test checked only the target fields with a non-exact assertion even though the query span emits database attributes in both semantic-convention modes. Enumerating the complete expected set makes the configured URL regression test reject any unexpected attribute.\n\nUpsides: The test now catches configured URL data emitted under an unintended attribute and stays consistent with the surrounding query tests.\n\nDownsides: Intended changes to the query attribute set will require updating this assertion.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19809#discussion_r3853789047"
+        }
+      ],
+      "reviewed": "911e6bf6f6f2004978831c44b41f10db38c86d69",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19809#discussion_r3853209802"
+    }
+  ]
+}

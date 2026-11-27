@@ -1,0 +1,157 @@
+{
+  "head": "8b1952a28b38d953689803be5712a572b1c6246e",
+  "merge": "9eb20bb6515cb1425a1354e5b55e637fac8efae7",
+  "merged": "2026-09-24T14:57:00Z",
+  "missing_roots": 0,
+  "number": 20082,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `RedisConnectionManagerUtil` casts to Vert.x 4.4.5's package-private `RedisConnectionManager`, so it must be defined in the library class loader. `isHelperClass()` enables helper discovery but does not force injection for isolated advice; this currently works only while the 4.0 module is also enabled and injects the class. If `vertx-redis-client-4.0` is disabled independently, these advices silently lose targets because their access errors are suppressed. Declare the injected helper in this module as well.",
+      "created": "2026-09-10T05:53:42Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.redisclient.v4_4_5;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Arrays.asList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+@AutoService(InstrumentationModule.class)\n+public class VertxRedisClientInstrumentationModule extends InstrumentationModule {\n+\n+  public VertxRedisClientInstrumentationModule() {\n+    super(\"vertx-redis-client\", \"vertx-redis-client-4.4.5\", \"vertx\");\n+  }\n+\n+  @Override\n+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    // added in 4.4.5\n+    return hasClassesNamed(\"io.vertx.redis.client.RedisConnectOptions\");\n+  }\n+\n+  @Override\n+  public boolean isHelperClass(String className) {\n+    return \"io.vertx.redis.client.impl.RedisConnectionManagerUtil\".equals(className);\n+  }\n+\n+  @Override\n+  public List<TypeInstrumentation> typeInstrumentations() {",
+      "id": "PRRT_kwDODJKVX86g8rs8",
+      "opened": "2026-09-10T05:53:43Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.4.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_4_5/VertxRedisClientInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-10T05:59:16Z",
+          "body": "Addressed in 2ad548d1beffb80e923bac4393fc0546592911e7.\n\nAnalysis: The helper casts to a package-private Vert.x class. The 4.4.5 module uses non-inlined advice, so the agent may isolate its helpers. `isHelperClass()` makes the helper discoverable but does not force the agent to define it in the Vert.x class loader. The module must return this helper from `injectedClassNames()` instead of relying on the 4.0 module to do so.\n\nUpsides: The 4.4.5 module now owns the injection it needs. Its advice can set configured targets even when users disable the 4.0 module independently.\n\nDownsides: The helper class name now appears in both sibling module declarations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r3976006194"
+        }
+      ],
+      "reviewed": "446f3572b08fe9a16c1ca123b9caabf1ac326464",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r3975976446"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test name says the shared port is extracted, but the assertions verify the opposite: each endpoint retains `:7000` and `getPort()` is null. Rename it so failures and test reports describe the behavior being protected.",
+      "created": "2026-09-19T22:51:00Z",
+      "hunk": "@@ -0,0 +1,412 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.redisclient.v4_4_5;\n+\n+import static io.vertx.redis.client.RedisReplicationConnectOptions.TestTopology.DISCOVER;\n+import static io.vertx.redis.client.RedisReplicationConnectOptions.TestTopology.STATIC;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.vertx.core.Future;\n+import io.vertx.redis.client.RedisClusterConnectOptions;\n+import io.vertx.redis.client.RedisConnectOptions;\n+import io.vertx.redis.client.RedisReplicationConnectOptions;\n+import io.vertx.redis.client.RedisSentinelConnectOptions;\n+import io.vertx.redis.client.RedisStandaloneConnectOptions;\n+import io.vertx.redis.client.TestConstantSupplier;\n+import java.lang.reflect.Method;\n+import java.net.URL;\n+import java.net.URLClassLoader;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.function.Supplier;\n+import org.junit.jupiter.api.Test;\n+\n+class VertxRedisServerTargetsTest {\n+\n+  @Test\n+  void standalone() {\n+    RedisServerTarget target =\n+        VertxRedisServerTargets.of(\n+            new RedisStandaloneConnectOptions().setConnectionString(\"redis://host:6379\"));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"host\");\n+    assertThat(target.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void standaloneUsesTheEffectiveDefaultPort() {\n+    RedisServerTarget target =\n+        VertxRedisServerTargets.of(\n+            new RedisStandaloneConnectOptions().setConnectionString(\"redis://host\"));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"host\");\n+    assertThat(target.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void standaloneDropsCredentialsDatabaseAndQuery() {\n+    RedisServerTarget target =\n+        VertxRedisServerTargets.of(\n+            new RedisStandaloneConnectOptions()\n+                .setConnectionString(\"redis://user:secret@host:6379/2?client_name=app#fragment\"));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"host\");\n+    assertThat(target.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void standaloneIgnoresTheEndpointsItNeverConnectsTo() {\n+    RedisServerTarget target =\n+        VertxRedisServerTargets.of(\n+            new RedisStandaloneConnectOptions()\n+                .addConnectionString(\"redis://host1:6379\")\n+                .addConnectionString(\"redis://host2:6380\"));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"host1\");\n+    assertThat(target.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void standaloneKeepsNonDefaultPortSeparate() {\n+    RedisServerTarget target =\n+        VertxRedisServerTargets.of(\n+            new RedisStandaloneConnectOptions().setConnectionString(\"redis://host:6380\"));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"host\");\n+    assertThat(target.getPort()).isEqualTo(6380);\n+  }\n+\n+  @Test\n+  void clusterEndpointPermutationsRenderIdentically() {\n+    RedisServerTarget first =\n+        VertxRedisServerTargets.of(\n+            new RedisClusterConnectOptions()\n+                .addConnectionString(\"redis://node2:7001\")\n+                .addConnectionString(\"redis://node1:7000\"));\n+    RedisServerTarget second =\n+        VertxRedisServerTargets.of(\n+            new RedisClusterConnectOptions()\n+                .addConnectionString(\"redis://node1:7000\")\n+                .addConnectionString(\"redis://node2:7001\"));\n+\n+    assertThat(first.getAddress()).isEqualTo(\"node1:7000,node2:7001\");\n+    assertThat(second.getAddress()).isEqualTo(first.getAddress());\n+    assertThat(first.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void clusterWithOneEndpointKeepsItsPort() {\n+    RedisServerTarget target =\n+        VertxRedisServerTargets.of(\n+            new RedisClusterConnectOptions().addConnectionString(\"redis://node1:7000\"));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"node1\");\n+    assertThat(target.getPort()).isEqualTo(7000);\n+  }\n+\n+  @Test\n+  void clusterOmitsSharedDefaultPort() {\n+    RedisServerTarget target =\n+        VertxRedisServerTargets.of(\n+            new RedisClusterConnectOptions()\n+                .addConnectionString(\"redis://node2\")\n+                .addConnectionString(\"redis://node1:6379\"));\n+\n+    assertThat(target.getAddress()).isEqualTo(\"node1,node2\");\n+    assertThat(target.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void clusterExtractsSharedNonDefaultPort() {",
+      "id": "PRRT_kwDODJKVX86kEXAn",
+      "opened": "2026-09-19T22:51:00Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.4.5/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_4_5/VertxRedisServerTargetsTest.java",
+      "replies": [
+        {
+          "at": "2026-09-19T23:02:04Z",
+          "body": "Addressed in 1ce642d47a0f9b75fb9bd9bf2b801b2eeef57e25.\n\nFixed in the verified source change 1ce642d47a0f9b75fb9bd9bf2b801b2eeef57e25.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4055113839"
+        }
+      ],
+      "reviewed": "513fff5dae45a80696182344bf1168d1ab6f47bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4055085721"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'm not sure adding this is necessary, it feels a bit difficult to understand.",
+      "created": "2026-09-23T07:46:57Z",
+      "hunk": "@@ -1,7 +1,9 @@\n display_name: Vert.x Redis Client\n description: >\n   This instrumentation enables database client spans and database client metrics for Redis operations\n-  using the Vert.x Redis Client library.\n+  using the Vert.x Redis Client library. Stable database telemetry also records the durable target\n+  configured on the client. Dynamic options suppliers are omitted because they do not provide a\n+  stable client target.",
+      "id": "PRRT_kwDODJKVX86lD0tR",
+      "opened": "2026-09-23T07:46:57Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-24T04:36:02Z",
+          "body": "147eace73e725c4b70e915d10d49417bfdf94853",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4089982292"
+        }
+      ],
+      "reviewed": "a4f319471245505b3f0c7248c1ae670017b66e5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4080159539"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The widened helper predicate now also recognizes the nested `RedisConnectionManagerUtil$CapturedTarget`, but this module still forces injection of only the outer helper. In isolated/indy mode the outer helper is defined in the Vert.x loader while that nested class remains in the instrumentation loader, which can break helper initialization or `getRedisUriTarget()` linkage. Add the nested class to this module's injected helper names too; otherwise the existing 4.0 path has the same loader failure.",
+      "created": "2026-09-23T21:49:17Z",
+      "hunk": "@@ -22,7 +22,7 @@ public VertxRedisClientInstrumentationModule() {\n   @Override\n   public boolean isHelperClass(String className) {\n     return className.equals(\"io.vertx.redis.client.impl.RequestUtil\")\n-        || className.equals(\"io.vertx.redis.client.impl.RedisConnectionManagerUtil\");\n+        || className.startsWith(\"io.vertx.redis.client.impl.RedisConnectionManagerUtil\");",
+      "id": "PRRT_kwDODJKVX86lWc_X",
+      "opened": "2026-09-23T21:49:17Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-23T22:05:03Z",
+          "body": "Addressed in 0efd907369199cf5e442dc455f60bfb2e3e30f48.\n\nFixed in the verified source changes 0efd907369199cf5e442dc455f60bfb2e3e30f48.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4087772611"
+        }
+      ],
+      "reviewed": "00344dab878ca18edc7f96cc6199777dfa13171b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4087649450"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] In isolated/indy mode, `injectedClassNames()` injects only the outer `RedisConnectionManagerUtil` into the Vert.x class loader. The new outer class directly references `RedisConnectionManagerUtil$CapturedTarget`, but that nested class is not injected with it; it remains in the instrumentation module class loader, so initializing the injected helper or resolving `getRedisUriTarget()` can fail with `NoClassDefFoundError`/a loader mismatch. Include the nested class name in the injected helper list as well.",
+      "created": "2026-09-23T21:49:17Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.redisclient.v4_4_5;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singletonList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+@AutoService(InstrumentationModule.class)\n+public class VertxRedisClientInstrumentationModule extends InstrumentationModule {\n+\n+  public VertxRedisClientInstrumentationModule() {\n+    super(\"vertx-redis-client\", \"vertx-redis-client-4.4.5\", \"vertx\");\n+  }\n+\n+  @Override\n+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    // added in 4.4.5\n+    return hasClassesNamed(\"io.vertx.redis.client.RedisConnectOptions\");\n+  }\n+\n+  @Override\n+  public boolean isHelperClass(String className) {\n+    return className.startsWith(\"io.vertx.redis.client.impl.RedisConnectionManagerUtil\");\n+  }\n+\n+  @Override\n+  public List<String> injectedClassNames() {\n+    return singletonList(\"io.vertx.redis.client.impl.RedisConnectionManagerUtil\");",
+      "id": "PRRT_kwDODJKVX86lWc_y",
+      "opened": "2026-09-23T21:49:17Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_4_5/VertxRedisClientInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-23T22:05:05Z",
+          "body": "Addressed in 0efd907369199cf5e442dc455f60bfb2e3e30f48.\n\nFixed in the verified source changes 0efd907369199cf5e442dc455f60bfb2e3e30f48.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4087772781"
+        }
+      ],
+      "reviewed": "00344dab878ca18edc7f96cc6199777dfa13171b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4087649500"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This 4.4.5+ module does not instrument `connectionEndpointProvider` to set `currentServerTarget`, unlike the 4.0 module. If `vertx-redis-client-4.0` is disabled independently, the provider advice below always reads `null`, so configured targets are never attached to the `RedisURI` and stable spans fall back to the selected endpoint. Add the paired enter/exit advice for this module as well.",
+      "created": "2026-09-23T21:49:17Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.redisclient.v4_4_5;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.vertx.redis.client.RedisConnectOptions;\n+import io.vertx.redis.client.impl.RedisConnectionManagerUtil;\n+import java.util.function.Supplier;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class RedisConnectionManagerInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.vertx.redis.client.impl.RedisConnectionManager\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(5))\n+            .and(takesArgument(3, named(\"io.vertx.redis.client.RedisConnectOptions\"))),\n+        getClass().getName() + \"$ConstructorWithOptionsAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArguments(5)).and(takesArgument(3, Supplier.class)),\n+        getClass().getName() + \"$ConstructorWithSupplierAdvice\");",
+      "id": "PRRT_kwDODJKVX86lWdAD",
+      "opened": "2026-09-23T21:49:17Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_4_5/RedisConnectionManagerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-23T22:05:07Z",
+          "body": "Addressed in 0efd907369199cf5e442dc455f60bfb2e3e30f48.\n\nFixed in the verified source changes 0efd907369199cf5e442dc455f60bfb2e3e30f48.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4087772933"
+        }
+      ],
+      "reviewed": "00344dab878ca18edc7f96cc6199777dfa13171b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4087649536"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This module advertises the same instrumentation-name set as the 4.0 module, but `build.gradle.kts` selects the two modules with `excludeInstrumentationName(\"vertx-redis-client-4.4.5\")` and `excludeInstrumentationName(\"vertx-redis-client-4.0\")`. Because this module does not expose the `vertx-redis-client-4.4.5` alias, the first Muzzle pass does not exclude it and the second pass excludes both modules, so the 4.4.5+ target layer is validated/selected under the wrong range. Give this module a unique `vertx-redis-client-4.4.5` alias, as the sibling Jedis core/cluster modules do.",
+      "created": "2026-09-24T05:00:00Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.redisclient.v4_4_5;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Arrays.asList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+@AutoService(InstrumentationModule.class)\n+public class VertxRedisClientInstrumentationModule extends InstrumentationModule {\n+\n+  public VertxRedisClientInstrumentationModule() {\n+    super(\"vertx-redis-client\", \"vertx-redis-client-4.0\", \"vertx\");",
+      "id": "PRRT_kwDODJKVX86lce7Q",
+      "opened": "2026-09-24T05:00:00Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_4_5/VertxRedisClientInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-24T06:42:08Z",
+          "body": "Addressed in f0d2e5bc460a7159047967fc572ca8079c3900df.\n\nFixed in the verified source changes f0d2e5bc460a7159047967fc572ca8079c3900df.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4090686219"
+        }
+      ],
+      "reviewed": "147eace73e725c4b70e915d10d49417bfdf94853",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4090096387"
+    }
+  ]
+}

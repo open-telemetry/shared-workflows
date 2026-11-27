@@ -1,0 +1,181 @@
+{
+  "head": "1e3eb726a9ba475f0635f3eb0fe5bf7b899c30b3",
+  "merge": "424f614e9d568b7713d195294099f985c574d7f7",
+  "merged": "2026-08-17T02:38:44Z",
+  "missing_roots": 0,
+  "number": 29,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`sample_names` is intended to match the metric sample name; `processorType` looks like an attribute key on the legacy self-telemetry metric (while `queueSize` is the metric name). As written, this filter likely won’t suppress the `missing_attribute` finding for the `queueSize` metric, so the pre-semconv metric may still surface in results.",
+      "created": "2026-08-11T01:29:20Z",
+      "hunk": "@@ -16,3 +16,16 @@ exclude_samples = [\n   \"telemetry.sdk.version\",\n   \"telemetry.auto.version\",\n ]\n+\n+# Java SDK 1.64 autoconfigure has no property to disable only its legacy\n+# self-telemetry; disabling metric export would also hide application metrics.\n+# Keep the pre-semconv metric out of every domain's findings here instead.\n+[[live-check.finding_filters]]\n+signal_type = \"metric\"\n+exclude = [\"missing_metric\"]\n+sample_names = [\"queueSize\"]\n+\n+[[live-check.finding_filters]]\n+signal_type = \"metric\"\n+exclude = [\"missing_attribute\"]\n+sample_names = [\"processorType\"]",
+      "id": "PRRT_kwDOTuzK5c6YFp--",
+      "opened": "2026-08-11T01:29:21Z",
+      "path": "tools/runner/src/opentelemetry/conformance/weaver-defaults.toml",
+      "replies": [
+        {
+          "at": "2026-08-11T01:52:58Z",
+          "body": "Addressed in c5d9d7c8e398eff36a277c7b6bd76e53699198f2.\n\nAnalysis: `sample_names` matches the metric sample name, so using the `processorType` attribute key prevents the `missing_attribute` filter from selecting the legacy `queueSize` metric. Targeting `queueSize` applies both legacy-metric finding filters to the same sample as intended.\n\nUpsides: The pre-semconv `queueSize` metric no longer leaks into conformance findings through its `missing_attribute` result.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3754730242"
+        }
+      ],
+      "reviewed": "75f074b25d7c7b5c63dad0f8f9fc21d550d615e5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3754653976"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_contract()` fallback path points to `.../tools/http/test-client/python/contract.json` (parents[3]), but in a repo checkout the shared contract is at `tools/http/test-client/contract.json` (one directory higher). This will raise `FileNotFoundError` for editable installs and break `CONTRACT.read_text()` in tests/driver.",
+      "created": "2026-08-15T16:37:49Z",
+      "hunk": "@@ -1,141 +1,263 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-\"\"\"The requests every HTTP conformance scenario makes.\n+\"\"\"The HTTP conformance exchanges a server answers or a client sends.\n \n Coverage files are only comparable if every scenario is exercised the same\n-way, so the request sequence lives here once rather than in each scenario.\n-Both sides of the domain use it:\n+way, so both halves live in ``contract.json`` once rather than in each\n+language. Both sides of the domain use it:\n \n-- A **server** scenario is its own server. ``serve_and_drive`` brings the app\n-  up and sends :data:`REQUESTS` at it with the standard library, which is\n-  never the thing under test.\n+- A **server** scenario is a plain server process. It declares matching routes\n+    with the framework under test, listens on the port in\n+    ``OTEL_HTTP_SCENARIO_PORT``, and stays up until its standard input closes;\n+    ``otel-http-drive`` starts it, sends :data:`REQUESTS` at it from outside,\n+    then closes standard input so it flushes and exits.\n - A **client** scenario is the sender. It passes its own library as ``send``\n   to :func:`drive`, pointed at a server the runner started — see\n-  ``tools/http/mock-server``, which answers the same routes.\n-\n-**The route contract.** A scenario's app implements exactly these:\n-\n-===========================  ======  ======================================\n-route                        method  responds\n-===========================  ======  ======================================\n-``/health``                  GET     200\n-``/users/<user_id>``         GET     200 JSON\n-``/items``                   POST    201 JSON, echoing the body\n-``/status/<code>``           GET     that status\n-===========================  ======  ======================================\n-\n-This package itself is standard library only. A third-party client here would\n-be picked up by an HTTP client instrumentation the moment one is installed\n-alongside, and its spans would land in the report as if the scenario had meant\n-to produce them — which is exactly what a client scenario passes ``send`` for.\n+  ``tools/http/mock-server``, which answers :data:`EXCHANGES` from this module.\n+\n+Nothing under test ever drives a server scenario: the driver is a separate\n+process, so no instrumentation loaded into the scenario can pick the driver up\n+and record client spans the scenario never meant to produce.\n+\n+:func:`drive` checks every response against its exchange. A server scenario\n+declares routes in its framework's native form — that declaration is what an\n+instrumentation reads a route from — but every status and body is a constant\n+from the shared file because the requests are fixed.\n+\n+This package is standard library only, so installing it next to a scenario\n+drags no dependency into a run.\n \"\"\"\n \n from __future__ import annotations\n \n-import http.client\n import json\n+import os\n+import socket\n+import sys\n import threading\n import time\n import urllib.error\n import urllib.request\n-from typing import Callable, Sequence\n+from pathlib import Path\n+from typing import Callable, NamedTuple, Sequence\n from wsgiref.simple_server import WSGIRequestHandler, make_server\n \n __all__ = [\n+    \"CONTRACT\",\n+    \"EXCHANGES\",\n+    \"PORT_VARIABLE\",\n     \"REQUESTS\",\n-    \"Request\",\n+    \"USER_AGENT\",\n+    \"ContractError\",\n+    \"Exchange\",\n     \"Send\",\n     \"drive\",\n     \"request\",\n-    \"serve_and_drive\",\n+    \"reserve_port\",\n+    \"respond\",\n+    \"scenario_port\",\n+    \"serve\",\n+    \"verify\",\n     \"wait_for_health\",\n+    \"wait_for_port\",\n ]\n \n-Request = tuple[str, str, \"str | None\"]\n+\n+class ContractError(AssertionError):\n+    \"\"\"A server answered something the contract does not describe.\"\"\"\n+\n+\n+class Exchange(NamedTuple):\n+    \"\"\"One concrete request and the answer the contract requires.\"\"\"\n+\n+    method: str\n+    path: str\n+    body: str | None\n+    status: int\n+    response_body: str\n+    readiness: bool\n+    # What the request is in the sequence for — the attribute it should make\n+    # an instrumentation record. Carried as data rather than as a comment so\n+    # every language reading the contract has it too.\n+    why: str\n+\n+\n # How one request is sent: method, absolute URL, body → status, response body.\n # A client scenario supplies its own so its library is the one instrumented.\n Send = Callable[[str, str, \"str | None\"], \"tuple[int, str]\"]\n \n-# What every HTTP server scenario sends. Each one is here for an attribute it\n-# makes the instrumentation set, so the coverage files say something.\n-REQUESTS: Sequence[Request] = (\n-    # A templated route: `http.route` should be the template, not the path,\n-    # and the span name should be built from it.\n-    (\"GET\", \"/users/123\", None),\n-    # A query string, which is its own attribute (`url.query`) and must not\n-    # leak into `http.route`, `url.path` or the span name.\n-    (\"GET\", \"/users/123?fields=name&verbose=true\", None),\n-    # A non-GET carrying a body.\n-    (\"POST\", \"/items\", json.dumps({\"name\": \"widget\"})),\n-    # Both error classes: `error.type` and a 4xx/5xx `http.response.status_code`,\n-    # on the span and on the duration metric.\n-    (\"GET\", \"/status/404\", None),\n-    (\"GET\", \"/status/500\", None),\n-)\n+# The port a server scenario listens on. ``otel-http-drive`` chooses it, which\n+# is what lets different scenarios run in parallel without colliding.\n+PORT_VARIABLE = \"OTEL_HTTP_SCENARIO_PORT\"\n+\n+# Fixed rather than the interpreter's default, so a server scenario is driven\n+# by the same client whichever Python happens to be installed.\n+USER_AGENT = \"otel-http-conformance/1\"\n \n _HEALTH_POLL_SECONDS = 0.05\n _REQUEST_TIMEOUT_SECONDS = 10\n \n \n-class _QuietHandler(WSGIRequestHandler):\n-    \"\"\"The default handler logs every request to stderr; the driver already does.\"\"\"\n+def _contract() -> Path:\n+    \"\"\"Where ``contract.json`` is.\n \n-    def log_message(self, format: str, *args: object) -> None:  # noqa: A002\n-        del format, args\n+    Installed beside this module, or — in a checkout — above the Python\n+    package, since the contract belongs to every language rather than to this\n+    one.\n+    \"\"\"\n+    packaged = Path(__file__).parent / \"contract.json\"\n+    if packaged.is_file():\n+        return packaged\n+    return Path(__file__).resolve().parents[3] / \"contract.json\"",
+      "id": "PRRT_kwDOTuzK5c6ZhfwA",
+      "opened": "2026-08-15T16:37:49Z",
+      "path": "tools/http/test-client/python/src/otel_http_test_client/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-15T16:39:08Z",
+          "body": "No code change.\n\nAnalysis: `Path.parents` is zero-indexed. For `tools/http/test-client/python/src/otel_http_test_client/__init__.py`, `parents[0]` is the package directory, `parents[1]` is `src`, `parents[2]` is `python`, and `parents[3]` is `tools/http/test-client`. The existing fallback therefore resolves to `tools/http/test-client/contract.json`; the focused editable-checkout test confirms that `CONTRACT.read_text()` succeeds.\n\nUpsides: Keeping the current expression preserves the correct packaged-first/editable-checkout fallback without adding redundant path traversal or changing runtime behavior.\n\nDownsides: The zero-based `parents` indexing is easy to miscount during review, but the nearby docstring and focused contract-loading test document and exercise the intended layout.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3789781020"
+        }
+      ],
+      "reviewed": "62f649bd573b4e89abb009d290ec0f1c1be94b29",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3789778473"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`subprocess.Popen(..., start_new_session=True)` is POSIX-only; on Windows this raises `ValueError` and prevents `otel-http-drive --serve ...` from working, despite the driver being intended as cross-platform. Gate `start_new_session` so it is only enabled on non-Windows platforms (Windows already uses `CREATE_NEW_PROCESS_GROUP`).",
+      "created": "2026-08-16T01:06:48Z",
+      "hunk": "@@ -0,0 +1,228 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"``otel-http-drive``: sends the request contract at a scenario's server.\n+\n+A server scenario's telemetry is the only telemetry its run should hold, so\n+the requests are sent from outside it. This is the outside: it starts the\n+scenario, waits for it to answer, sends the contract with the standard\n+library, and closes the scenario's standard input so it flushes and exits.\n+\n+The scenario itself is any command in any language. It learns which port to\n+bind from ``OTEL_HTTP_SCENARIO_PORT`` and inherits everything else — the OTLP\n+endpoint the runner injected included, which is why this runs as the scenario\n+command rather than as the runner's ``server:``.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import contextlib\n+import os\n+import signal\n+import subprocess\n+import sys\n+import time\n+from typing import Sequence\n+\n+from . import (\n+    PORT_VARIABLE,\n+    drive,\n+    reserve_port,\n+    wait_for_health,\n+    wait_for_port,\n+)\n+\n+# Generous: a cold JVM with a Java agent attached is slow to reach its first\n+# request, and a loaded CI machine slower still.\n+_STARTUP_TIMEOUT_SECONDS = 60\n+_SHUTDOWN_TIMEOUT_SECONDS = 30\n+_POLL_INTERVAL_SECONDS = 0.1\n+# A killed process is gone in an instant unless it is stuck in the kernel, so\n+# this is only there to stop cleanup outlasting the failure it is cleaning up\n+# after.\n+_REAP_TIMEOUT_SECONDS = 10\n+\n+# Windows has no process groups to inherit, so a new one has to be asked for\n+# at creation; POSIX gets the same isolation from ``start_new_session``.\n+if sys.platform == \"win32\":\n+    _NEW_PROCESS_GROUP = subprocess.CREATE_NEW_PROCESS_GROUP\n+else:\n+    _NEW_PROCESS_GROUP = 0\n+\n+\n+def main(argv: Sequence[str] | None = None) -> int:\n+    parser = argparse.ArgumentParser(\n+        prog=\"otel-http-drive\",\n+        description=__doc__,\n+        formatter_class=argparse.RawDescriptionHelpFormatter,\n+    )\n+    parser.add_argument(\n+        \"url\",\n+        nargs=\"?\",\n+        help=\"base URL of a server that is already running\",\n+    )\n+    parser.add_argument(\n+        \"--serve\",\n+        nargs=argparse.REMAINDER,\n+        metavar=\"COMMAND\",\n+        help=(\n+            \"the rest of the command line is a server scenario to start; it \"\n+            f\"binds ${{{PORT_VARIABLE}}} and exits when its standard input \"\n+            \"closes\"\n+        ),\n+    )\n+    arguments = parser.parse_args(argv)\n+\n+    if arguments.url is None:\n+        if arguments.serve is None:\n+            parser.error(\"give either a base URL or --serve COMMAND\")\n+        if not arguments.serve:\n+            parser.error(\"--serve requires COMMAND\")\n+        return _serve_and_drive(arguments.serve)\n+    if arguments.serve is not None:\n+        parser.error(\"give either a base URL or --serve COMMAND, not both\")\n+\n+    wait_for_health(arguments.url)\n+    drive(arguments.url)\n+    return 0\n+\n+\n+def _serve_and_drive(command: Sequence[str]) -> int:\n+    \"\"\"Run ``command`` as a server, drive it, and report how it exited.\"\"\"\n+    port, reservation = reserve_port()\n+    base_url = f\"http://127.0.0.1:{port}\"\n+\n+    # Standard input is a pipe because closing it is the stop signal; output\n+    # is inherited so the scenario's own logging reaches the runner, which\n+    # shows it when something fails. Its own process group, because a scenario\n+    # command is often a launcher rather than the server itself: every Java\n+    # scenario runs as `otel-conformance-java run ...`, which makes the JVM a\n+    # grandchild, and killing the launcher alone would leave it running.\n+    reservation.close()\n+    process = subprocess.Popen(  # noqa: S603\n+        list(command),\n+        stdin=subprocess.PIPE,\n+        env={**os.environ, PORT_VARIABLE: str(port)},\n+        start_new_session=True,\n+        creationflags=_NEW_PROCESS_GROUP,\n+    )",
+      "id": "PRRT_kwDOTuzK5c6Zj1x2",
+      "opened": "2026-08-16T01:06:48Z",
+      "path": "tools/http/test-client/python/src/otel_http_test_client/__main__.py",
+      "replies": [
+        {
+          "at": "2026-08-16T01:07:52Z",
+          "body": "No code change.\n\nAnalysis: The reported Windows failure does not occur. On Windows, CPython's `Popen._execute_child` receives this argument as `unused_start_new_session`, and a direct Windows probe using both `start_new_session=True` and `CREATE_NEW_PROCESS_GROUP` completes successfully. No platform gate is needed.\n\nUpsides: Keeping the existing call avoids a redundant platform-specific branch while preserving the intended process-group behavior on both platforms.\n\nDownsides: The no-op Windows argument remains present in the call, but CPython explicitly supports and ignores it there.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3790649712"
+        }
+      ],
+      "reviewed": "817ba871967222c400110dfa4eb50d3dc9771e64",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3790648288"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "I'm assuming this is to avoid polluting the metrics? if so, maybe we should add a comment explaining",
+      "created": "2026-08-16T11:04:02Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: armeria\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+\n+env:\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"",
+      "id": "PRRT_kwDOTuzK5c6ZmX7g",
+      "opened": "2026-08-16T13:17:57Z",
+      "path": "scenarios/http/java/armeria/opentelemetry-javaagent/client/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-17T02:24:33Z",
+          "body": "6458fb5c9f71b9726f72fdb038c2cb6c86b5f1e3",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3793469907"
+        }
+      ],
+      "reviewed": "70f16dc24e1e844a6c891bf4de8cc73135ac9abb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3791600347"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "unrelated to this PR: I'm thinking I want to add instrumented library version here (rather than setting n config and keeping it sync, we can make runners add it. curious if you had any ideas",
+      "created": "2026-08-16T17:23:26Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+{\n+  \"spans\": {",
+      "id": "PRRT_kwDOTuzK5c6ZoVAK",
+      "opened": "2026-08-16T18:04:21Z",
+      "path": "scenarios/http/java/armeria/opentelemetry-javaagent/client/data.json",
+      "replies": [],
+      "reviewed": "70f16dc24e1e844a6c891bf4de8cc73135ac9abb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3792335874"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not for this PR, do you think it'd make sense to separate client and server commands in the config? ",
+      "created": "2026-08-16T17:25:27Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: armeria\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+\n+env:\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"\n+\n+weaver:\n+  config: ../../../weaver.toml\n+\n+setup: otel-conformance-java prepare armeria:opentelemetry-javaagent\n+\n+scenarios:\n+  server:\n+    # The requests are sent from outside the scenario, so a server run holds\n+    # server telemetry only; the driver starts this command, chooses the port\n+    # it binds, and closes its standard input when it is done.\n+    run: otel-http-drive --serve otel-conformance-java run --agent armeria:opentelemetry-javaagent ArmeriaJavaagentServerScenario",
+      "id": "PRRT_kwDOTuzK5c6ZoV2S",
+      "opened": "2026-08-16T18:04:21Z",
+      "path": "scenarios/http/java/armeria/opentelemetry-javaagent/server/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-17T02:27:35Z",
+          "body": "sorry, I didn't follow",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3793477195"
+        }
+      ],
+      "reviewed": "70f16dc24e1e844a6c891bf4de8cc73135ac9abb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3792341013"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "❤️ ",
+      "created": "2026-08-16T17:58:58Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+{",
+      "id": "PRRT_kwDOTuzK5c6Zom5s",
+      "opened": "2026-08-16T18:04:21Z",
+      "path": "tools/http/test-client/contract.json",
+      "replies": [],
+      "reviewed": "70f16dc24e1e844a6c891bf4de8cc73135ac9abb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3792450874"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the text makes sense, but 'why' gave me a pause. Why what?",
+      "created": "2026-08-16T18:00:24Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+{\n+  \"$comment\": \"The HTTP conformance exchanges, read by every language rather than restated in each. `requests` is the concrete traffic sent in order, each with the answer it must come back with. A server scenario declares matching routes in the framework's native form and answers these exchanges; a client scenario sends them with the library under test at a server answering them. Both sides are therefore measured against identical traffic, which is what makes their coverage files comparable. A response is a constant, because the requests are: the one placeholder is `${requestBody}`, for the body that arrived. See README.md.\",\n+  \"requests\": [\n+    {\n+      \"method\": \"GET\",\n+      \"path\": \"/health\",\n+      \"readiness\": true,\n+      \"status\": 200,\n+      \"responseBody\": \"{\\\"ok\\\": true}\",\n+      \"why\": \"Sent once, before the sequence below, to learn the server is up. Not part of the measured sequence: a client scenario never sends it.\"\n+    },\n+    {\n+      \"method\": \"GET\",\n+      \"path\": \"/users/123\",\n+      \"status\": 200,\n+      \"responseBody\": \"{\\\"id\\\": 123, \\\"name\\\": \\\"Alice\\\"}\",\n+      \"why\": \"A parameterized server route: `http.route` should be the framework's route representation, not the concrete path, and the span name should be built from it.\"",
+      "id": "PRRT_kwDOTuzK5c6ZonjR",
+      "opened": "2026-08-16T18:04:21Z",
+      "path": "tools/http/test-client/contract.json",
+      "replies": [
+        {
+          "at": "2026-08-17T02:27:50Z",
+          "body": "changed to `description`",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3793477883"
+        }
+      ],
+      "reviewed": "70f16dc24e1e844a6c891bf4de8cc73135ac9abb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3792455019"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nEach entry also carries a `test_description`: what it is in the contract for, and therefore\n```\n\nobjective | goal | scenario ?",
+      "created": "2026-08-16T18:02:02Z",
+      "hunk": "@@ -1,37 +1,83 @@\n # HTTP conformance test client\n \n-The requests every HTTP conformance scenario makes, shared so the coverage a\n-client and a server produce is comparable — the same requests against the same\n-routes.\n+The traffic every HTTP conformance scenario is measured against, shared so the\n+coverage a client and a server produce is comparable.\n \n-A **server** scenario is its routes plus one call:\n+[`contract.json`](contract.json) is where that is written down, once. Every\n+language reads that file rather than restating it, so a scenario in the\n+eleventh language is measured against the same traffic as the first.\n \n-```python\n-from otel_http_test_client import serve_and_drive\n+## The contract\n \n-def create_app():\n-    ...\n+`requests` is the concrete traffic sent in order, with each answer. It includes\n+readiness, a parameterized user path with and without a query string, a request\n+body, and two error statuses reached through the same path shape.\n \n-serve_and_drive(create_app)\n-```\n+A server declares matching routes in its framework's native form. This is\n+intentionally not contract data: route builders, annotations, compile-time\n+routing, and Servlet mappings have different construction models and may\n+report different native templates. What they share is the concrete traffic\n+their routes must answer.\n+\n+The requests are fixed, so their statuses and response bodies are constants.\n+Each request carries its answer literally. `${requestBody}` is the one\n+substitution, used to prove that a scenario read the body that arrived; there\n+is no path-parameter template language for every language to reimplement.\n+\n+Each entry also carries a `why`: what it is in the contract for, and therefore",
+      "id": "PRRT_kwDOTuzK5c6ZoofT",
+      "opened": "2026-08-16T18:04:21Z",
+      "path": "tools/http/test-client/README.md",
+      "replies": [],
+      "reviewed": "70f16dc24e1e844a6c891bf4de8cc73135ac9abb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/29#discussion_r3792461143"
+    }
+  ]
+}

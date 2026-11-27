@@ -1,0 +1,162 @@
+{
+  "head": "f8e19d5f3718424ef9e557f994665cd6046c285b",
+  "merge": "1a2d0373b14b6addec5644388b7e09dfa0ab2be9",
+  "merged": "2026-08-28T17:14:34Z",
+  "missing_roots": 0,
+  "number": 19584,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Class members should be ordered as static fields, static initializers, then instance fields. Move this static queue (and its initializer block) ahead of `isSecurityManagerSupportEnabled`.",
+      "created": "2026-08-14T16:34:33Z",
+      "hunk": "@@ -48,6 +54,7 @@ public class ExtensionClassLoader extends URLClassLoader {\n \n   // NOTE it's important not to use logging in this class, because this class is used before logging\n   // is initialized\n+  private static final List<Map.Entry<Level, String>> deferredLogs = new ArrayList<>();",
+      "id": "PRRT_kwDODJKVX86ZWdOE",
+      "opened": "2026-08-14T16:34:33Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ExtensionClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-15T17:49:32Z",
+          "body": "moved `isSecurityManagerSupportEnabled` below static initializer ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3789907403"
+        }
+      ],
+      "reviewed": "51a3e71b37447a71396a97c93b1bbad87d77b69e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3785558440"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This now reads as a ban on logging anywhere in the class, but `logExtensionLoadingMessages` below does log. Say what the field holds instead, the way `ConfigurationFile` does.\n\n```suggestion\n  // this class is used early, and must not use logging in most of its methods\n  // instead we save the messages here and log them later, when the logging subsystem is\n  // initialized\n  private static final List<Map.Entry<Level, String>> deferredLogs = new ArrayList<>();\n```",
+      "created": "2026-08-16T15:47:09Z",
+      "hunk": "@@ -44,15 +50,16 @@\n @SuppressWarnings(\"SystemOut\")\n public class ExtensionClassLoader extends URLClassLoader {\n \n-  private final boolean isSecurityManagerSupportEnabled;\n-\n   // NOTE it's important not to use logging in this class, because this class is used before logging\n   // is initialized\n+  private static final List<Map.Entry<Level, String>> deferredLogs = new ArrayList<>();",
+      "id": "PRRT_kwDODJKVX86Zn0HA",
+      "opened": "2026-08-16T17:55:59Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ExtensionClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-16T19:04:45Z",
+          "body": "good point, i applied the suggestion. i was even thinking about a generic wrapper for such cases, but since the implementation is simple and this case shouldn't appear often in the code i didn't want to introduce additional complexity",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3792589830"
+        }
+      ],
+      "reviewed": "b8c13b663fd113ee2810ae627526b519b7aa08b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3792143104"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This warning cannot fire for the realistic failure. `RemappingUrlStreamHandler` opens the jar while building the URL, so a truncated or non-zip extension jar throws `IllegalStateException`, not `MalformedURLException`. It escapes `createExtensionClassLoader()`, which runs before the `try` in `AgentStarterImpl.start()`, so startup aborts, none of these deferred messages are flushed, and the remaining configured locations are never checked. Could we handle the jar-open failure here too?",
+      "created": "2026-08-18T04:33:17Z",
+      "hunk": "@@ -170,8 +208,11 @@ private static void addFileUrl(List<URL> result, File file) {\n       } else {\n         result.add(file.toURI().toURL());\n       }\n-    } catch (MalformedURLException ignored) {\n-      System.err.println(\"Ignoring \" + file);\n+      addLog(FINE, \"Loaded extension jar file \\\"\" + file + \"\\\"\");\n+      return true;\n+    } catch (MalformedURLException e) {\n+      addLog(WARNING, \"Failed to load extension jar file \\\"\" + file + \"\\\": \" + e.getMessage());\n+      return false;",
+      "id": "PRRT_kwDODJKVX86Z-8Xe",
+      "opened": "2026-08-18T04:38:08Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ExtensionClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-19T18:44:02Z",
+          "body": "changed handling to `IOException`, this will mean we are now failing-safe in case of issues with loading a JAR, but i agree it's a better solution",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3815790188"
+        }
+      ],
+      "reviewed": "9f38bf25fcbe92cba32285fb04cd3ea51ae7444f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3801045577"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] In the shipped shaded agent, an existing `.jar` that `JarFile` cannot open makes `addFileUrl` log the specific failure and return `false`, so this block then contradicts it with the generic \"does not exist, is not a jar file\" warning. The same happens when every candidate jar in a directory fails. Could we track whether a candidate jar was found separately from whether it loaded, and warn here only when none was found?",
+      "created": "2026-08-20T14:36:49Z",
+      "hunk": "@@ -142,25 +164,40 @@ private static void parseLocation(String locationName, File javaagentFile, List<\n     }\n \n     File location = new File(locationName);\n+    boolean loaded = false;\n     if (isJar(location)) {\n-      addFileUrl(locations, location);\n+      loaded = addFileUrl(locations, location);\n     } else if (location.isDirectory()) {\n       File[] files = location.listFiles(ExtensionClassLoader::isJar);\n       if (files != null) {\n         for (File file : files) {\n-          if (isJar(file) && !file.getAbsolutePath().equals(javaagentFile.getAbsolutePath())) {\n-            addFileUrl(locations, file);\n+          if (!file.getAbsolutePath().equals(javaagentFile.getAbsolutePath())\n+              && addFileUrl(locations, file)) {\n+            loaded = true;\n           }\n         }\n       }\n     }\n+    if (!loaded) {",
+      "id": "PRRT_kwDODJKVX86a2Lrx",
+      "opened": "2026-08-20T14:38:44Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ExtensionClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-23T19:38:37Z",
+          "body": "sure, separated found and loaded logs :)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3839412200"
+        }
+      ],
+      "reviewed": "e7fc9ce3f313b962aaea61d42eeaba4e0d3495bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3822530796"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Dropping the `System.err` call from `addFileUrl` leaves `includeEmbeddedExtensionsIfFound` as the only member that needs this suppression. Move `@SuppressWarnings(\"SystemOut\")` from the class onto that method (line 99), the way `AgentStarterImpl` and `NoopLoggingCustomizer` do.",
+      "created": "2026-08-24T17:27:00Z",
+      "hunk": "@@ -44,15 +49,17 @@\n @SuppressWarnings(\"SystemOut\")\n public class ExtensionClassLoader extends URLClassLoader {\n \n-  private final boolean isSecurityManagerSupportEnabled;\n-\n-  // NOTE it's important not to use logging in this class, because this class is used before logging\n-  // is initialized\n+  // this class is used early, and must not use logging in most of its methods\n+  // instead we save the messages here and log them later, when the logging subsystem is\n+  // initialized\n+  private static final List<Map.Entry<Level, String>> deferredLogs = new ArrayList<>();",
+      "id": "PRRT_kwDODJKVX86byfpE",
+      "opened": "2026-08-24T17:32:51Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ExtensionClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:41:28Z",
+          "body": "moved to method-level, also, do you think migrating `System.err` usages in `includeEmbeddedExtensionsIfFound` to the new logging way is a good idea? we could fully unify the logging in this class",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3846861345"
+        },
+        {
+          "at": "2026-08-24T20:53:06Z",
+          "body": "I think the current split makes sense: defer routine discovery logs so they respect the configured logger and debug level, but keep failures that could prevent logging initialization on `System.err`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3847382909"
+        }
+      ],
+      "reviewed": "a878f2f60a4503377c39bb4ec93f6996eadcafca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3845863697"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] `addFileUrl` now returns a boolean that no caller reads, since `parseLocation` tracks `found` on its own. Restore the `void` return type and drop the value returns (lines 212 and 215).",
+      "created": "2026-08-24T17:27:00Z",
+      "hunk": "@@ -142,25 +164,41 @@ private static void parseLocation(String locationName, File javaagentFile, List<\n     }\n \n     File location = new File(locationName);\n+    boolean found = false;\n     if (isJar(location)) {\n+      found = true;\n       addFileUrl(locations, location);\n     } else if (location.isDirectory()) {\n       File[] files = location.listFiles(ExtensionClassLoader::isJar);\n       if (files != null) {\n         for (File file : files) {\n-          if (isJar(file) && !file.getAbsolutePath().equals(javaagentFile.getAbsolutePath())) {\n+          if (!file.getAbsolutePath().equals(javaagentFile.getAbsolutePath())) {\n+            found = true;\n             addFileUrl(locations, file);\n           }\n         }\n       }\n     }\n+    if (!found) {\n+      addLog(\n+          WARNING,\n+          \"Configured extensions location \\\"\"\n+              + locationName\n+              + \"\\\" does not exist, is not a jar file or directory, or contains no extension jar\"\n+              + \" files; ignoring it\");\n+    }\n+  }\n+\n+  // visible for testing\n+  static List<Map.Entry<Level, String>> getLogsForTest() {\n+    return deferredLogs;\n   }\n \n   private static boolean isJar(File f) {\n     return f.isFile() && f.getName().endsWith(\".jar\");\n   }\n \n-  private static void addFileUrl(List<URL> result, File file) {\n+  private static boolean addFileUrl(List<URL> result, File file) {",
+      "id": "PRRT_kwDODJKVX86byfpJ",
+      "opened": "2026-08-24T17:32:51Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ExtensionClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:41:39Z",
+          "body": "good point, reverted to void :)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3846862687"
+        }
+      ],
+      "reviewed": "a878f2f60a4503377c39bb4ec93f6996eadcafca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3845863703"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think ideally the logger should buffer the messages until the logging system is initialized, but this is fine too.",
+      "created": "2026-08-27T11:20:32Z",
+      "hunk": "@@ -41,18 +46,19 @@\n  * MultipleParentClassLoader}.\n  */\n // TODO find a way to initialize logging before using this class\n-@SuppressWarnings(\"SystemOut\")\n public class ExtensionClassLoader extends URLClassLoader {\n \n-  private final boolean isSecurityManagerSupportEnabled;\n-\n-  // NOTE it's important not to use logging in this class, because this class is used before logging\n-  // is initialized\n+  // this class is used early, and must not use logging in most of its methods\n+  // instead we save the messages here and log them later, when the logging subsystem is\n+  // initialized\n+  private static final List<Map.Entry<Level, String>> deferredLogs = new ArrayList<>();",
+      "id": "PRRT_kwDODJKVX86cy2nE",
+      "opened": "2026-08-27T11:20:31Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ExtensionClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-28T17:13:34Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19898",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3882549183"
+        }
+      ],
+      "reviewed": "f8e19d5f3718424ef9e557f994665cd6046c285b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19584#discussion_r3871216351"
+    }
+  ]
+}

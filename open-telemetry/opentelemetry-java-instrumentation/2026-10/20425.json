@@ -1,0 +1,151 @@
+{
+  "head": "49e54a460bc01b9048f63a38893b0836b4f93b9f",
+  "merge": "6dd72c339e57ba2e1ac4b5327d154cfe50dbb994",
+  "merged": "2026-10-07T22:02:44Z",
+  "missing_roots": 0,
+  "number": 20425,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This change also deletes both capture-search-query deprecation entries from Version 2.32.0 (2026-10-03). Removing the settings in 3.0 does not invalidate that release history. Restore both entries and their original PR links under 2.32.0, while keeping this Unreleased removal notice.",
+      "created": "2026-10-07T04:02:40Z",
+      "hunk": "@@ -22,6 +22,14 @@\n   singular count units such as `{connection}`, and seconds instead of milliseconds for durations.\n   Pool attributes use `db.client.connection.pool.name` and `db.client.connection.state`; unnamed\n   pools use stable database-derived names, and DBCP retains the first registered pool name.\n+- Elasticsearch and OpenSearch query bodies are now always captured, regardless of v3-preview.",
+      "id": "PRRT_kwDODJKVX86pwDxk",
+      "opened": "2026-10-07T04:02:40Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "b2fbfba248a6c68b629d71a81846634aa702949a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4202931492"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "testing that a removed property doesn't do anything feels excessive",
+      "created": "2026-10-07T06:26:29Z",
+      "hunk": "@@ -45,15 +45,21 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n-  val testV3Preview = register<Test>(\"testV3Preview\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n+  val testCaptureSearchQuerySettingIgnored =",
+      "id": "PRRT_kwDODJKVX86pyGCL",
+      "opened": "2026-10-07T06:26:29Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "b810cd9dec49333ffdae4bcac14a28052d32db3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4203766467"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could either delete or move under migration notes subheading",
+      "created": "2026-10-07T06:28:50Z",
+      "hunk": "@@ -2,10 +2,15 @@\n \n ## Settings for the [Elasticsearch Java API Client](https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/index.html) instrumentation\n \n-| System property                                                 | Type    | Default | Description                                                                                                                                                                                                                                                                                             |\n-| --------------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.elasticsearch.capture-search-query`       | Boolean | `false` | Deprecated for removal in 3.0 with no replacement. Outside v3-preview, explicitly set this to capture or omit search query bodies. Under v3-preview and in 3.0, the setting is ignored and search query bodies are always captured. Sanitization remains separately configurable with the next setting. |\n-| `otel.instrumentation.elasticsearch.query-sanitization.enabled` | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information.                                                                                                                 |\n+Search query bodies are always captured. The `otel.instrumentation.elasticsearch.capture-search-query`",
+      "id": "PRRT_kwDODJKVX86pyIaJ",
+      "opened": "2026-10-07T06:28:50Z",
+      "path": "instrumentation/elasticsearch/README.md",
+      "replies": [],
+      "reviewed": "b810cd9dec49333ffdae4bcac14a28052d32db3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4203781620"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could either delete or move under migration notes subheading",
+      "created": "2026-10-07T06:30:01Z",
+      "hunk": "@@ -6,9 +6,12 @@\n \n ## Settings for the [OpenSearch Java Client](https://docs.opensearch.org/latest/clients/java/) instrumentation\n \n-| System property                                                | Type    | Default | Description                                                                                                                                                                                                                   |\n-| -------------------------------------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.opensearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes.                                                                                                                                                                           |\n-| `otel.instrumentation.opensearch.capture-search-query`         | Boolean | `true`  | Deprecated and will be removed in 3.0, when search query bodies are always captured. There is no replacement. Until then, set this to false to disable capture. Search queries may contain personal or sensitive information. |\n-| `otel.instrumentation.opensearch.query-sanitization.enabled`   | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information.                                       |\n-| `otel.instrumentation.common.db.query-sanitization.enabled`    | Boolean | `true`  | Whether the query should be sanitized for all database instrumentations. Individual instrumentations may define a property with higher precedence.                                                                            |\n+Search query bodies are always captured. The `otel.instrumentation.opensearch.capture-search-query`",
+      "id": "PRRT_kwDODJKVX86pyJoh",
+      "opened": "2026-10-07T06:30:01Z",
+      "path": "instrumentation/opensearch/README.md",
+      "replies": [],
+      "reviewed": "b810cd9dec49333ffdae4bcac14a28052d32db3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4203789303"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Removing both legacy capture test tasks leaves no installed-agent run with `otel.instrumentation.opensearch.capture-search-query=false`. The remaining tests would still pass if that setting continued to suppress capture. Reuse `OpenSearchCaptureSearchQueryTest` in a separate JVM with the old setting set to `false` and v3-preview unset, and include it in `check` to verify the documented migration behavior.",
+      "created": "2026-10-07T16:13:35Z",
+      "hunk": "@@ -135,8 +102,6 @@ tasks {\n \n   check {\n     dependsOn(\n-      testDisabledCaptureSearchQuery,\n-      testDeprecatedCaptureSearchQueryV3Preview,\n       testQuerySanitizationDisabled,",
+      "id": "PRRT_kwDODJKVX86p_dqP",
+      "opened": "2026-10-07T16:13:36Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-07T20:53:15Z",
+          "body": "No code change.\n\nAnalysis: No code in instrumentation/opensearch reads otel.instrumentation.opensearch.capture-search-query anymore; the CHANGELOG states the property is removed with no replacement. A test setting it to false would only assert that an unread property has no effect, i.e. the absence of removed behavior. The v3-preview flag the comment mentions no longer exists in the current code. The PR deliberately removed these tests as redundant in commit 00c70bd.\n\nUpsides: Keeps the build simpler and avoids an extra JVM test task that guards nothing in the current implementation.\n\nDownsides: No automated check proves a leftover legacy setting is ignored; a future reintroduction of the property would not be caught.\n\n<!-- copilot-loop:d409f2c4b13149c73c4a28cf5c20cdb47368700a4fee0127cdec4f6bbb073c51:4209209113:6023cc993a7a45cea727ab35d7cdc5a5 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4211869808"
+        }
+      ],
+      "reviewed": "00c70bdc9babca8a7baa41af834f69865a8f564a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4209209113"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T17:03:13Z",
+      "hunk": "@@ -2,13 +2,23 @@\n \n ## Settings for the [Elasticsearch Java API Client](https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/index.html) instrumentation\n \n-| System property                                                 | Type    | Default | Description                                                                                                                                                                                                                                                                                             |\n-| --------------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.elasticsearch.capture-search-query`       | Boolean | `false` | Deprecated for removal in 3.0 with no replacement. Outside v3-preview, explicitly set this to capture or omit search query bodies. Under v3-preview and in 3.0, the setting is ignored and search query bodies are always captured. Sanitization remains separately configurable with the next setting. |\n-| `otel.instrumentation.elasticsearch.query-sanitization.enabled` | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information.                                                                                                                 |\n+Search query bodies are always captured. Query sanitization remains enabled by default.\n+The instrumentation-specific setting below overrides\n+`otel.instrumentation.common.db.query-sanitization.enabled`; disabling sanitization captures bodies\n+verbatim.\n+",
+      "id": "PRRT_kwDODJKVX86qAiiJ",
+      "opened": "2026-10-07T17:03:12Z",
+      "path": "instrumentation/elasticsearch/README.md",
+      "replies": [],
+      "reviewed": "00c70bdc9babca8a7baa41af834f69865a8f564a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4209656286"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T17:03:26Z",
+      "hunk": "@@ -2,13 +2,23 @@\n \n ## Settings for the [Elasticsearch Java API Client](https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/index.html) instrumentation\n \n-| System property                                                 | Type    | Default | Description                                                                                                                                                                                                                                                                                             |\n-| --------------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.elasticsearch.capture-search-query`       | Boolean | `false` | Deprecated for removal in 3.0 with no replacement. Outside v3-preview, explicitly set this to capture or omit search query bodies. Under v3-preview and in 3.0, the setting is ignored and search query bodies are always captured. Sanitization remains separately configurable with the next setting. |\n-| `otel.instrumentation.elasticsearch.query-sanitization.enabled` | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information.                                                                                                                 |\n+Search query bodies are always captured. Query sanitization remains enabled by default.\n+The instrumentation-specific setting below overrides\n+`otel.instrumentation.common.db.query-sanitization.enabled`; disabling sanitization captures bodies\n+verbatim.\n+\n+| System property                                                 | Type    | Default | Description                                                                                                                                                                             |\n+| --------------------------------------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n+| `otel.instrumentation.elasticsearch.query-sanitization.enabled` | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information. |\n \n ## Settings for the [Elasticsearch Transport Client](https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/index.html) instrumentation\n \n | System property                                                   | Type    | Default | Description                                         |\n | ----------------------------------------------------------------- | ------- | ------- | --------------------------------------------------- |\n | `otel.instrumentation.elasticsearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes. |\n+\n+## Migration notes\n+\n+In 3.0, `otel.instrumentation.elasticsearch.capture-search-query` is no longer supported and has no\n+replacement. Search query bodies are always captured; query sanitization remains independently\n+configurable using the settings above.",
+      "id": "PRRT_kwDODJKVX86qAi4e",
+      "opened": "2026-10-07T17:03:26Z",
+      "path": "instrumentation/elasticsearch/README.md",
+      "replies": [],
+      "reviewed": "00c70bdc9babca8a7baa41af834f69865a8f564a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4209659229"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T17:04:37Z",
+      "hunk": "@@ -6,9 +6,17 @@\n \n ## Settings for the [OpenSearch Java Client](https://docs.opensearch.org/latest/clients/java/) instrumentation\n \n-| System property                                                | Type    | Default | Description                                                                                                                                                                                                                   |\n-| -------------------------------------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.opensearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes.                                                                                                                                                                           |\n-| `otel.instrumentation.opensearch.capture-search-query`         | Boolean | `true`  | Deprecated and will be removed in 3.0, when search query bodies are always captured. There is no replacement. Until then, set this to false to disable capture. Search queries may contain personal or sensitive information. |\n-| `otel.instrumentation.opensearch.query-sanitization.enabled`   | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information.                                       |\n-| `otel.instrumentation.common.db.query-sanitization.enabled`    | Boolean | `true`  | Whether the query should be sanitized for all database instrumentations. Individual instrumentations may define a property with higher precedence.                                                                            |\n+Search query bodies are always captured. Query sanitization remains enabled by default and can be\n+configured with the following settings.\n+",
+      "id": "PRRT_kwDODJKVX86qAkoM",
+      "opened": "2026-10-07T17:05:49Z",
+      "path": "instrumentation/opensearch/README.md",
+      "replies": [],
+      "reviewed": "5b7392325b6547cb83f5fa5b1d0cef1f1e78f24f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4209673399"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T17:05:43Z",
+      "hunk": "@@ -6,9 +6,17 @@\n \n ## Settings for the [OpenSearch Java Client](https://docs.opensearch.org/latest/clients/java/) instrumentation\n \n-| System property                                                | Type    | Default | Description                                                                                                                                                                                                                   |\n-| -------------------------------------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.opensearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes.                                                                                                                                                                           |\n-| `otel.instrumentation.opensearch.capture-search-query`         | Boolean | `true`  | Deprecated and will be removed in 3.0, when search query bodies are always captured. There is no replacement. Until then, set this to false to disable capture. Search queries may contain personal or sensitive information. |\n-| `otel.instrumentation.opensearch.query-sanitization.enabled`   | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information.                                       |\n-| `otel.instrumentation.common.db.query-sanitization.enabled`    | Boolean | `true`  | Whether the query should be sanitized for all database instrumentations. Individual instrumentations may define a property with higher precedence.                                                                            |\n+Search query bodies are always captured. Query sanitization remains enabled by default and can be\n+configured with the following settings.\n+\n+| System property                                                | Type    | Default | Description                                                                                                                                                                             |\n+| -------------------------------------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n+| `otel.instrumentation.opensearch.experimental-span-attributes` | Boolean | `false` | Enable the capture of experimental span attributes.                                                                                                                                     |\n+| `otel.instrumentation.opensearch.query-sanitization.enabled`   | Boolean | `true`  | Whether captured search query bodies are sanitized by replacing literal values with `?`. When disabled, bodies are captured verbatim and may contain personal or sensitive information. |\n+| `otel.instrumentation.common.db.query-sanitization.enabled`    | Boolean | `true`  | Whether the query should be sanitized for all database instrumentations. Individual instrumentations may define a property with higher precedence.                                      |\n+\n+## Migration notes\n+\n+In 3.0, `otel.instrumentation.opensearch.capture-search-query` is no longer supported and has no\n+replacement. Search query bodies are always captured; query sanitization remains independently\n+configurable using the settings above.",
+      "id": "PRRT_kwDODJKVX86qAmbk",
+      "opened": "2026-10-07T17:05:49Z",
+      "path": "instrumentation/opensearch/README.md",
+      "replies": [],
+      "reviewed": "5b7392325b6547cb83f5fa5b1d0cef1f1e78f24f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20425#discussion_r4209685890"
+    }
+  ]
+}

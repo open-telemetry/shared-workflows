@@ -1,0 +1,25 @@
+{
+  "head": "b14b2c801650dd89d7dd268edb2a304b215f787d",
+  "merge": "d574c9e01b319c5cc57f4f29dc9e69712806b103",
+  "merged": "2026-04-23T15:32:55Z",
+  "missing_roots": 0,
+  "number": 18223,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test that validated event name capture from a single-field Logstash marker (`Markers.append(\"otel.event.name\", ...)`) was removed, leaving only the map-entries marker path covered. Since the README still documents `otel.event.name` support in “Logstash markers” broadly, it would be safer to keep an explicit test for the single-field marker form (or narrow the documentation if only specific marker types are supported).",
+      "created": "2026-04-23T14:34:59Z",
+      "hunk": "@@ -129,23 +129,6 @@ void logstashEmptyAndNullValues() {\n         logRecord -> logRecord.hasBody(\"log message 1\").hasTotalAttributeCount(0));\n   }\n \n-  @Test\n-  void otelEventNameInSingleFieldMarker() {\n-    logger\n-        .atInfo()\n-        .setMessage(\"log message 1\")\n-        .addMarker(Markers.append(\"otel.event.name\", \"MyEventName\"))\n-        .addMarker(Markers.append(\"key1\", \"val1\"))\n-        .log();\n-\n-    testing.waitAndAssertLogRecords(\n-        logRecord ->\n-            logRecord\n-                .hasBody(\"log message 1\")\n-                .hasEventName(\"MyEventName\")\n-                .hasAttributesSatisfyingExactly(equalTo(stringKey(\"key1\"), \"val1\")));\n-  }\n-\n   @Test\n   void otelEventNameInMapEntriesMarker() {\n     Map<String, Object> entries = new HashMap<>();",
+      "id": "PRRT_kwDODJKVX859H_s8",
+      "opened": "2026-04-23T14:34:59Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/logstashMarkerTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/LogstashMarkerTest.java",
+      "replies": [],
+      "reviewed": "b14b2c801650dd89d7dd268edb2a304b215f787d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18223#discussion_r3131587552"
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "head": "0c112d590130275a7d125b95c3bebfae9532254d",
+  "merge": "dff918ad145c99090bdde41fbe526af68b8bda8e",
+  "merged": "2026-08-19T02:40:19Z",
+  "missing_roots": 0,
+  "number": 43,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`waitForEof()` attaches `end` and `close` listeners with `.on()` but never removes the other listener when one fires. If stdin emits both events (common when a pipe ends then closes), `done` runs twice, causing repeated side effects and making debugging harder. Prefer using `.once()` and removing the other listener inside `done` so the promise resolves exactly once.",
+      "created": "2026-08-16T05:25:30Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * What the runner told a scenario, and how a long-running one learns that the\n+ * runner is finished with it.\n+ *\n+ * No OpenTelemetry dependency at all, which is the point: a scenario measuring\n+ * an auto-instrumentation runtime must load only what that runtime brings, so\n+ * what *every* scenario needs cannot live beside the SDK.\n+ */\n+\n+/** The value of `name`, or a failure naming what was missing. */\n+function requireEnv(name) {\n+  const value = process.env[name];\n+  if (!value) {\n+    throw new Error(`required environment variable is missing: ${name}`);\n+  }\n+  return value;\n+}\n+\n+/**\n+ * Resolves when standard input closes, which is how the driver says stop.\n+ *\n+ * A closed pipe rather than a signal: it means the same thing on every\n+ * platform, and resolving is what gives an SDK the chance to flush, so a\n+ * scenario that exits any other way reports less than it produced. The\n+ * protocol is the same in every domain.\n+ */\n+function waitForEof() {\n+  return new Promise((resolve) => {\n+    const done = () => {\n+      // Reading is what keeps the process alive once the workload is idle, so\n+      // stop reading as soon as the driver has said stop.\n+      process.stdin.pause();\n+      resolve();\n+    };\n+    // Nothing arrives on standard input; only its close is the signal. `close`\n+    // as well as `end`, because a standard input that was never a pipe — a\n+    // scenario started by hand — closes without ever ending.\n+    process.stdin.on(\"end\", done);\n+    process.stdin.on(\"close\", done);\n+    process.stdin.resume();\n+  });",
+      "id": "PRRT_kwDOTuzK5c6Zk1bx",
+      "opened": "2026-08-16T05:25:31Z",
+      "path": "tools/js/scenario-support/index.js",
+      "replies": [
+        {
+          "at": "2026-08-16T05:47:33Z",
+          "body": "I don't think this is a bug, and I checked rather than assuming.\n\n`done` does run twice when standard input both ends and closes — that part is right. But its two side effects are `process.stdin.pause()`, which is idempotent, and `resolve()`, and a promise settles once. So the awaiting caller resumes exactly once, and the SDK shutdown that caller performs runs exactly once.\n\nProbed it directly by emitting both events at a `waitForEof()` and counting continuations: one.\n\nSwitching to `.once()` plus mutual removal would add bookkeeping to make an already-single-shot path look single-shot. I've instead extended the comment to say why the double fire is harmless, since the question is a fair one to have while reading it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3791070921"
+        }
+      ],
+      "reviewed": "7c330a45dff4633c83f5169af7a6ae62956c54ed",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3791016625"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`scenarioPort()` returns `Number.parseInt(...)` directly; if the env var is set but not a valid integer (e.g., empty string, non-numeric, or includes unexpected characters), this returns `NaN` and the later `listen()` failure will be less actionable. Validate the parsed value and throw a clear error that includes the bad value.",
+      "created": "2026-08-16T05:25:31Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Shared support for Node server scenarios.\n+ *\n+ * A server scenario declares routes with the framework under test — that\n+ * declaration is what an instrumentation reads `http.route` from — and then\n+ * asks this module what to answer. Every Node framework therefore agrees on\n+ * the statuses and bodies without forcing its route construction into a shared\n+ * runtime model.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, which\n+ * checks every answer against the same contract.\n+ */\n+\n+const { exchangeFor, renderResponseBody } = require(\"./contract\");\n+\n+/**\n+ * The port a server scenario listens on. `otel-http-drive` chooses it, which\n+ * is what lets different scenarios run in parallel without colliding.\n+ */\n+const PORT_VARIABLE = \"OTEL_HTTP_SCENARIO_PORT\";\n+\n+/**\n+ * What the contract answers to one request.\n+ *\n+ * The whole answer contract in one function, so every Node framework answers\n+ * identically. `requestBody` is null for a request that carried none.\n+ */\n+function respond(method, target, requestBody = null) {\n+  const exchange = exchangeFor(method, target);\n+  if (exchange === null) {\n+    return { status: 404, body: '{\"message\": \"no such route\"}' };\n+  }\n+  return {\n+    status: exchange.status,\n+    body: renderResponseBody(exchange, requestBody),\n+  };\n+}\n+\n+/** The port the driver told this scenario to listen on. */\n+function scenarioPort() {\n+  const value = process.env[PORT_VARIABLE];\n+  if (!value) {\n+    throw new Error(\n+      `${PORT_VARIABLE} is not set — a server scenario is started by ` +\n+        \"`otel-http-drive`, which chooses the port\",\n+    );\n+  }\n+  return Number.parseInt(value, 10);\n+}",
+      "id": "PRRT_kwDOTuzK5c6Zk1b0",
+      "opened": "2026-08-16T05:25:31Z",
+      "path": "tools/http/test-client/js/src/server-workload.js",
+      "replies": [
+        {
+          "at": "2026-08-16T05:47:40Z",
+          "body": "Taken in 51f21a7. The function already spends five lines explaining, when the variable is missing, that `otel-http-drive` is what sets it — and that hand-run case is precisely the one that can also set it to something that is not a port, so the guard was half-finished. It now rejects a value that does not parse to an integer and names it, with a test.\n\nI kept it to `Number.isInteger` rather than a strict pattern, so a trailing-garbage value like `3000abc` still yields 3000. That is `parseInt`'s normal leniency and it binds a usable port; the failure worth catching is the one that reached `listen` as `NaN`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3791071086"
+        }
+      ],
+      "reviewed": "7c330a45dff4633c83f5169af7a6ae62956c54ed",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3791016632"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `npm` is not installed or not on PATH, `subprocess.call(...)` will raise `FileNotFoundError` and produce a stack trace, which is a poor UX for a `setup:` step. Catch `FileNotFoundError` and exit with a clear, single-line error (and a conventional non-zero status).",
+      "created": "2026-08-16T05:25:31Z",
+      "hunk": "@@ -0,0 +1,77 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"``otel-conformance-js``: installs a Node conformance build.\n+\n+A scenario is started with plain ``node``, which is an executable on every\n+platform. ``npm`` is not — it is a shell script with a ``.cmd`` shim on\n+Windows, and the runner starts a declared command directly rather than through\n+a shell — so the one Node step a ``conformance.yaml`` cannot name portably is\n+the install. That step is here instead.\n+\n+``install``\n+    What a package's ``setup:`` runs. Installs the whole npm workspace from\n+    its committed lockfile, so a scenario gets the versions the lockfile pins\n+    rather than whatever resolves today.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import shutil\n+import subprocess\n+import sys\n+from pathlib import Path\n+from typing import Sequence\n+\n+# The file that marks the root of a language's build, as `settings.gradle.kts`\n+# does for Java. Searched for upwards from the scenario directory, so a\n+# scenario says nothing about how deep it is nested.\n+BUILD_MARKER = \"package-lock.json\"\n+\n+\n+class LayoutError(RuntimeError):\n+    \"\"\"The Node build could not be found from where this was run.\"\"\"\n+\n+\n+def build_root(start: Path | None = None) -> Path:\n+    \"\"\"The directory holding :data:`BUILD_MARKER`, at or above ``start``.\"\"\"\n+    here = (start or Path.cwd()).resolve()\n+    for candidate in (here, *here.parents):\n+        if (candidate / BUILD_MARKER).is_file():\n+            return candidate\n+    raise LayoutError(\n+        f\"no {BUILD_MARKER} at or above {here} — `otel-conformance-js` runs \"\n+        \"from a scenario directory inside a Node conformance build\"\n+    )\n+\n+\n+def npm_command() -> list[str]:\n+    \"\"\"``npm ci``, with npm found the way the shell would have found it.\n+\n+    ``shutil.which`` rather than the bare name: on Windows npm is\n+    ``npm.cmd``, which the runner's direct ``CreateProcess`` would not find.\n+    \"\"\"\n+    return [shutil.which(\"npm\") or \"npm\", \"ci\"]\n+\n+\n+def main(argv: Sequence[str] | None = None) -> int:\n+    parser = argparse.ArgumentParser(\n+        prog=\"otel-conformance-js\",\n+        description=__doc__,\n+        formatter_class=argparse.RawDescriptionHelpFormatter,\n+    )\n+    subcommands = parser.add_subparsers(dest=\"command\", required=True)\n+    subcommands.add_parser(\n+        \"install\", help=\"install the workspace from its committed lockfile\"\n+    )\n+\n+    parser.parse_args(argv)\n+    root = build_root()\n+    # From the build root, so every scenario in it installs the same tree\n+    # however deep its own directory sits.\n+    return subprocess.call(npm_command(), cwd=root)  # noqa: S603",
+      "id": "PRRT_kwDOTuzK5c6Zk1b3",
+      "opened": "2026-08-16T05:25:31Z",
+      "path": "tools/js/src/otel_conformance_js/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-16T05:47:45Z",
+          "body": "Taken in 51f21a7. A `setup:` failure is read from what the command printed, so a missing npm now prints one line saying that and exits non-zero, rather than putting the useful fact at the bottom of a traceback.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3791071204"
+        }
+      ],
+      "reviewed": "7c330a45dff4633c83f5169af7a6ae62956c54ed",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3791016635"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The JS build step installs `undici@8.10.0`, whose engine constraint in the committed lockfile is `node >=22.19.0`. Using `node-version: \"22\"` may resolve to an older 22.x patch on some runners/toolcaches and cause `npm ci` to fail with an engine mismatch. Pin the workflow to at least 22.19.0 so CI is deterministic.\n\nThis issue also appears on line 230 of the same file.",
+      "created": "2026-08-17T03:35:42Z",
+      "hunk": "@@ -79,6 +79,19 @@ jobs:\n       - name: Build Java\n         run: scenarios/http/java/gradlew --project-dir scenarios/http/java build\n \n+      - name: Set up Node\n+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0\n+        with:\n+          node-version: \"22\"\n+",
+      "id": "PRRT_kwDOTuzK5c6ZryXq",
+      "opened": "2026-08-17T03:35:42Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-17T03:38:39Z",
+          "body": "Addressed in 260a12a5c18eee6c7a5b22cc52e36497f49b528b.\n\nAnalysis: Both setup-node steps selected the floating Node 22 release even though the JavaScript lockfile requires Node 22.19.0 or newer. Pinning both steps to 22.19.0 makes the build job and scenario setup use a compatible runtime.\n\nUpsides: CI always installs a Node version that satisfies the committed lockfile. Both JavaScript execution paths use the same runtime.\n\nDownsides: The workflow will not pick up newer Node 22 patch releases until the pin changes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3793661842"
+        }
+      ],
+      "reviewed": "420c1df9292324d6ba1382881e4bbfd5b16dc6c4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3793654609"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`NodeSDK.start()` is asynchronous and returns a Promise; calling it without `await` can let the workload run before providers/instrumentations are fully initialized, leading to missing or inconsistent telemetry in a conformance run. Await the SDK start before executing the workload so scenario output is deterministic.",
+      "created": "2026-08-17T17:02:23Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * The OpenTelemetry SDK a scenario configures for itself.\n+ *\n+ * Only a scenario measuring instrumentation it registers itself needs this. A\n+ * scenario measuring an auto-instrumentation runtime has its SDK configured\n+ * for it, and must not carry these packages at all.\n+ *\n+ * Everything but the instrumentations comes from the environment the runner\n+ * injected — the OTLP endpoint, its protocol, and the export interval — so a\n+ * scenario names only what it is measuring.\n+ */\n+\n+const { NodeSDK } = require(\"@opentelemetry/sdk-node\");\n+const { requireEnv } = require(\"@otel-conformance/scenario-support\");\n+\n+/**\n+ * Runs `workload` with the SDK started, then shuts it down.\n+ *\n+ * `workload` is a function rather than a promise so the library under test is\n+ * loaded after the instrumentations are registered: Node's instrumentations\n+ * patch a module as it is required, and one required earlier is never patched.\n+ *\n+ * Shutting the SDK down is what flushes, so it happens whether the workload\n+ * finished or threw. Any SDK lifecycle or workload failure fails the run,\n+ * because the runner reads a scenario's result from its exit code.\n+ */\n+async function runScenario({ instrumentations = [] } = {}, workload) {\n+  try {\n+    // Failing here rather than exporting nowhere: a scenario that quietly\n+    // dropped its telemetry would be reported as producing none.\n+    requireEnv(\"OTEL_EXPORTER_OTLP_ENDPOINT\");\n+    const sdk = new NodeSDK({ instrumentations });\n+    sdk.start();\n+    try {\n+      await workload();",
+      "id": "PRRT_kwDOTuzK5c6Z1k5p",
+      "opened": "2026-08-17T17:02:23Z",
+      "path": "tools/js/scenario-sdk/index.js",
+      "replies": [
+        {
+          "at": "2026-08-17T17:03:14Z",
+          "body": "No code change.\n\nAnalysis: The pinned `@opentelemetry/sdk-node@0.221.0` API declares `NodeSDK.start(): void`. Its implementation registers instrumentations, detects resources, and installs providers synchronously. A runtime probe also confirms that `start()` returns `undefined`, not a Promise, so `await` would not add sequencing.\n\nUpsides: The code stays aligned with the pinned SDK API and does not imply asynchronous startup behavior that the dependency does not provide.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3797403364"
+        }
+      ],
+      "reviewed": "f93630168d66de8eee969dd4ad6aa6267bca5036",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3797398084"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need them here? especially since we have findings in the report now?",
+      "created": "2026-08-18T15:35:35Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: express\n+instrumentation_library: \"@opentelemetry/instrumentation-express\"\n+\n+setup: otel-conformance-js install\n+\n+scenarios:\n+  server:\n+    # The requests are sent from outside the scenario, so a server run holds\n+    # server telemetry only; the driver starts this command, chooses the port\n+    # it binds, and closes its standard input when it is done.\n+    run: otel-http-drive --serve node ../server.js\n+    expected_violations:",
+      "id": "PRRT_kwDOTuzK5c6aKv6e",
+      "opened": "2026-08-18T15:37:44Z",
+      "path": "scenarios/http/js/express/opentelemetry-express/server/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-19T02:39:12Z",
+          "body": "removed here and in the other PRs",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3809637152"
+        }
+      ],
+      "reviewed": "9cf91e5dac059702d74f10f9dd31e3b8d263f70a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3805580190"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "maryliag"
+      },
+      "body": "```suggestion\n          for a 4xx or 5xx response but does not set error.type for those cases, which semantic\n```\n\nit does set for some other error types, such as network failures, so it \"never\" could cause confusion",
+      "created": "2026-08-18T20:30:07Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: undici\n+instrumentation_library: \"@opentelemetry/instrumentation-undici\"\n+\n+setup: otel-conformance-js install\n+\n+# The mock server answers the same contract, so what this package measures is\n+# the sending; its base URL arrives as ${MOCK_SERVER_URL}.\n+server:\n+  run: http-mock-server --port ${PORT}\n+\n+scenarios:\n+  client:\n+    run: node ../client.js\n+    expected_violations:\n+      # Both are the instrumentation's, not the scenario's: the requests it\n+      # sends carry the information it would need for either.\n+      - id: error_type_missing_on_error\n+        context:\n+          status_code: error\n+        reason: >-\n+          @opentelemetry/instrumentation-undici sets a span's status to error\n+          for a 4xx or 5xx response but never sets error.type, which semantic",
+      "id": "PRRT_kwDOTuzK5c6aQLkb",
+      "opened": "2026-08-18T20:33:08Z",
+      "path": "scenarios/http/js/undici/opentelemetry-undici/client/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-19T02:39:59Z",
+          "body": "ended up removing this section as its not needed https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3805580190",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3809639788"
+        }
+      ],
+      "reviewed": "9cf91e5dac059702d74f10f9dd31e3b8d263f70a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/43#discussion_r3807684962"
+    }
+  ]
+}

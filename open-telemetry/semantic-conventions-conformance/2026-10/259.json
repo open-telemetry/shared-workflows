@@ -1,0 +1,31 @@
+{
+  "head": "de45e2e8a844cb72d5469a050986925ca37cf44a",
+  "merge": "9d0aa9515ad8890e74fc6ae42a0b6851119f42b1",
+  "merged": "2026-10-21T06:11:52Z",
+  "missing_roots": 0,
+  "number": 259,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The empty-completion sentinel is documented as applying to a user message, but `message_text` includes system, assistant, and tool messages too. Consequently, a marker quoted in non-user conversation history suppresses every streamed response (including tool calls). Restrict sentinel detection to messages whose role is `user`.\n\nThis issue also appears on line 569 of the same file.",
+      "created": "2026-10-02T02:53:28Z",
+      "hunk": "@@ -472,18 +506,22 @@ def _stream_chat(body):\n         }\n     )\n \n-    if should_call_tool(body):\n-        yield from _stream_tool_call(body, model, chunk_id)\n-        return\n-\n     message_text = \"\\n\".join(\n         message.get(\"content\", \"\")\n         for message in body.get(\"messages\", [])\n         if isinstance(message.get(\"content\"), str)\n     )\n-    content = _text_protocol_tool_call(body, message_text)\n+    empty = \"[MOCK_EMPTY_COMPLETION]\" in message_text",
+      "id": "PRRT_kwDOTuzK5c6oNl3M",
+      "opened": "2026-10-02T02:53:29Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [
+        {
+          "at": "2026-10-09T08:40:16Z",
+          "body": "Fixed in 0f6b85a: both markers are read from the last user message only.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/259#discussion_r4228263152"
+        }
+      ],
+      "reviewed": "c7d428a9873f51b2d70befbf6c57f4bb020f0d9c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/259#discussion_r4162461626"
+    }
+  ]
+}

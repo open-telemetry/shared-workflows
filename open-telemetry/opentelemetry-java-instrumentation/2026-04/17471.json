@@ -1,0 +1,31 @@
+{
+  "head": "570be23cfc39ddf152f2838d6c355c8c60baea50",
+  "merge": "2641b97ef60a7488cdeffc785b3c637af19d97d4",
+  "merged": "2026-04-07T16:20:58Z",
+  "missing_roots": 0,
+  "number": 17471,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "This instrumentation aims to represent an existing inlined instrumentation extension.\n\nThe difference is that now this is no longer modified at runtime when indy is enabled but always reused as-is (so always inlined).\n\nIf we want to avoid regressions for existing inlined instrumentation in extensions we should not modify it and keep the `readOnly = false` in the arguments.",
+      "created": "2026-04-07T08:10:51Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX855NveY",
+      "opened": "2026-04-07T08:10:51Z",
+      "path": "smoke-tests/extensions/extension/src/main/java/io/opentelemetry/smoketest/extensions/inlined/SmokeInlinedInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-04-07T10:35:21Z",
+          "body": "It still uses inlined advice but not by using `@AssignReturned` it can also be used as non-inlined without advice transformation (currently the only transform indy instrumentation uses is changing the value of `inlined` attribute). So I'd argue that it still tests inlined advice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17471#discussion_r3044419572"
+        }
+      ],
+      "reviewed": "810a5d4e6777978ab540aa1b01ab1b508b0b01ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17471#discussion_r3043683378"
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "head": "ea96438af0b47e56e18832875d97c4632dac6c57",
+  "merge": "cd115226d7c4e0eb43c9347dd73f18f25994de03",
+  "merged": "2026-10-22T10:37:20Z",
+  "missing_roots": 0,
+  "number": 20776,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with the following consolidated changes. Do not create another PR or work on other PRs.\n\nThe user explicitly decided: \"I'm not worried about low cardinality here as long as we know they are error codes coming back from the server.\" Remove the Redis error-prefix allowlist. Accept custom and newly introduced server error codes, not just ERR, WRONGTYPE, and CLUSTERDOWN. The requirement is confirmed server origin, not membership in a fixed list.\n\nIn RediscalaAttributesGetter, use the decoded server-error reply carried by redis.actors.ReplyErrorException and extract its first space-delimited error-prefix token. Verify that premise across the library versions this instrumentation supports. Do not classify arbitrary exception messages as server error codes. Preserve the shared canonical exception-class fallback for client failures and failures without a usable server prefix; successful operations must not acquire error.type. Do not emit the remainder of the error message as error.type, and do not replace the allowlist with a cardinality-motivated length restriction or another enumeration.\n\nUpdate the unit tests under instrumentation/rediscala-1.8/javaagent-unit-tests and the installed-agent integration tests under instrumentation/rediscala-1.8/javaagent/src/test/scala. Exercise a real Redis WRONGTYPE reply, a real custom error prefix absent from the current allowlist (for example through a Lua error reply), client-side failures, and success. Verify error.type on spans and db.client.operation.duration, using focused tests for distinct failure and fallback behavior rather than exhaustively duplicating cases.\n\nDocument briefly where the prefix comes from and how fallback works, with a Redis protocol reference where useful, instead of listing recognized codes. Follow the repository's contribution and path instructions. Run the narrow formatting tasks and relevant targeted tests in the cloud, including baseline/latest compatibility coverage as appropriate, and report any unavailable validation honestly. Commit and push the changes to this PR's existing head branch, preserve its draft state, and update its title or description only where stale or misleading. Do not post reviewer replies or resolve threads.",
+      "created": "2026-10-20T22:33:11Z",
+      "hunk": "@@ -43,6 +44,51 @@ public Long getDbOperationBatchSize(RediscalaRequest request) {\n     return request.getBatchSize();\n   }\n \n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      RediscalaRequest request, @Nullable Void unused, @Nullable Throwable error) {\n+    if (!(error instanceof ReplyErrorException)) {\n+      return null;\n+    }\n+\n+    String message = error.getMessage();\n+    if (message == null) {\n+      return null;\n+    }\n+\n+    int separator = message.indexOf(' ');\n+    String prefix = separator == -1 ? message : message.substring(0, separator);\n+    switch (prefix) {",
+      "id": "PRRT_kwDODJKVX86ujTB8",
+      "opened": "2026-10-20T22:33:11Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+      "replies": [],
+      "reviewed": "407e4ea43fc5219b5e14e4a603c488f59bbd762e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4331044840"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the remaining metadata work on this existing PR directly. The previous cloud run delivered the code at afb71ca1e0a46e6f05987636e65e6a965d421be6, but the original PR description is still stale. Do not create another PR or work on other PRs.\n\nUpdate this original PR's description to match the final diff. It currently says \"Emit known Redis reply prefixes\" and \"fallback for unknown prefixes\", which are no longer true. Rediscala now extracts the first error-prefix token from confirmed server replies carried by ReplyErrorException, accepts custom and future prefixes without an allowlist, and retains exception-class fallback for unrelated failures or unusable prefixes. Describe that behavior concisely. The user's settled requirement is confirmed server origin, not low cardinality or membership in an enumeration.\n\nInspect and follow the repository's PR template and description instructions, preserving required template content. Update the title only if it is misleading. Preserve the existing draft state and base/head branches. This is metadata-only: do not change implementation or tests, create an empty commit, or rerun builds. If the cloud environment cannot edit the original PR body, report that exact blocker in the cloud session result instead of claiming completion or substituting a code/doc change. Do not reply to reviewer comments or resolve threads. Acceptance is that the live original PR body accurately describes the existing no-allowlist behavior and fallback.",
+      "created": "2026-10-21T01:42:37Z",
+      "hunk": "@@ -43,6 +44,28 @@ public Long getDbOperationBatchSize(RediscalaRequest request) {\n     return request.getBatchSize();\n   }\n \n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      RediscalaRequest request, @Nullable Void unused, @Nullable Throwable error) {\n+    // Rediscala wraps decoded Redis error replies in ReplyErrorException. RESP errors start with an\n+    // error prefix; returning null without a usable prefix preserves the shared exception-class\n+    // fallback.\n+    // https://redis.io/docs/latest/develop/reference/protocol-spec/#resp-errors\n+    if (!(error instanceof ReplyErrorException)) {\n+      return null;\n+    }\n+\n+    String message = error.getMessage();\n+    if (message == null) {\n+      return null;\n+    }\n+\n+    int separator = message.indexOf(' ');\n+    String prefix = separator == -1 ? message : message.substring(0, separator);\n+    return prefix.isEmpty() ? null : prefix;",
+      "id": "PRRT_kwDODJKVX86ul662",
+      "opened": "2026-10-21T01:42:37Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+      "replies": [],
+      "reviewed": "afb71ca1e0a46e6f05987636e65e6a965d421be6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4332178617"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the tests in this existing PR directly. Commit and push to this PR's existing head branch; do not create another PR or work on unrelated branches. Keep production behavior unchanged and preserve the existing draft state and base/head branches.\n\nApply these three reductions in instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala:\n\n1. Remove testCustomServerErrorPrefixSetsErrorType. Keep testWrongTypeCommandSetsErrorType as the real Redis server-error integration test, with its span and database duration metric error.type assertions. Keep the existing RediscalaAttributesGetterTest unit assertions for CUSTOMCODE with and without a message, so arbitrary server prefixes remain covered.\n\n2. In testClientFailureUsesExceptionClassAsErrorType, replace the manual try/catch and explicit AssertionError used to capture the failure with val failure = Await.result(result.failed, Duration(\"3 second\")). Retain the assertion that the failure is not ReplyErrorException and that both span and duration metric error.type equal failure.getClass.getName. A wait timeout must fail the test rather than count as the expected client failure.\n\n3. Remove unused host flexibility from the createClient and assertErrorType helpers. All current callers of these two helpers use the shared host; only the port varies. Replace the forwarding overloads with default port arguments: createClient(db: Option[Int], clientPort: Int = port.intValue()) and assertErrorType(operationName: String, errorType: String, serverPort: JLong = port). Use host directly in their implementations and update all call sites. Do not remove address parameters from assertCommandSpan, whose reconnect tests genuinely need different hosts. Preserve reflective baseline/latest RedisClient constructor compatibility.\n\nKeep the client-failure integration test and metric value assertions. Do not introduce a scenario abstraction or parameterization merely to share setup. Follow repository instructions, use narrow formatting and targeted baseline/latest validation in the cloud as appropriate, and report unavailable validation honestly. Acceptance is the three reductions above with the remaining error telemetry coverage intact. Do not reply to review comments or resolve threads.",
+      "created": "2026-10-21T02:38:42Z",
+      "hunk": "@@ -170,6 +187,80 @@ class RediscalaClientTest {\n     )\n   }\n \n+  @Test def testWrongTypeCommandSetsErrorType(): Unit = {\n+    Await.result(redisClient.set(\"wrong-type\", \"value\"), Duration(\"3 second\"))\n+    testing.waitForTraces(1)\n+    testing.clearData()\n+\n+    val result = testing.runWithSpan(\n+      \"parent\",\n+      new ThrowingSupplier[Future[_], Exception] {\n+        override def get(): Future[_] = {\n+          redisClient.lpush(\"wrong-type\", \"value\")\n+        }\n+      }\n+    )\n+\n+    assertThatThrownBy(new ThrowingCallable {\n+      override def call(): Unit = {\n+        Await.result(result, Duration(\"3 second\"))\n+      }\n+    }).isInstanceOf(classOf[ReplyErrorException])\n+\n+    assertErrorType(\"LPUSH\", \"WRONGTYPE\")\n+  }\n+\n+  @Test def testCustomServerErrorPrefixSetsErrorType(): Unit = {\n+    val result = testing.runWithSpan(\n+      \"parent\",\n+      new ThrowingSupplier[Future[_], Exception] {",
+      "id": "PRRT_kwDODJKVX86umkfB",
+      "opened": "2026-10-21T02:38:41Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+      "replies": [
+        {
+          "at": "2026-10-21T02:47:27Z",
+          "body": "Applied and pushed as `0c0643a6`; baseline integration and unit tests passed, with latest-dependency validation unavailable due to the Java 27/toolchain configuration blocker.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4332516367"
+        }
+      ],
+      "reviewed": "afb71ca1e0a46e6f05987636e65e6a965d421be6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4332461656"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Reduce the port-related diff churn in this existing PR directly. The user asks: \"clientPort - Can we simplify the diff by reverting realigning this?\" Commit and push the narrow change to this PR's existing head branch, preserving its draft state and base/head branches. Do not create another PR.\n\nIn instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala, remove the unnecessary clientPort naming/type churn in createClient. Use a defaulted parameter port: JLong = this.port so that the existing reflective constructor argument Integer.valueOf(port.intValue()) can be restored verbatim in both constructor branches. Update the failure-test call site to pass the allocated port as JLong, for example createClient(None, JLong.valueOf(failedPort.toLong)). Existing callers should still omit the port and use the container's mapped port. Use the formatter's normal layout rather than forcing manual alignment.\n\nAcceptance: both RedisClient constructor port argument lines match the pre-PR form Integer.valueOf(port.intValue()), clientPort is no longer needed in this helper, and the client-failure test still connects to its allocated failure port. Preserve baseline/latest reflective compatibility and all existing error telemetry tests and assertions. Do not undo the previous test reductions, add overloads or abstractions, or change production code or unrelated helpers. Follow repository instructions and use narrow formatting and targeted validation in the cloud as appropriate. Report any unavailable validation honestly. Do not post replies or resolve review threads.",
+      "created": "2026-10-21T02:55:52Z",
+      "hunk": "@@ -78,15 +88,18 @@ class RediscalaClientTest {\n     nonDefaultDbClient = createClient(Some(nonDefaultDbIndex))\n   }\n \n-  private def createClient(db: Option[Int]): RedisClient =\n+  private def createClient(\n+      db: Option[Int],\n+      clientPort: Int = port.intValue()",
+      "id": "PRRT_kwDODJKVX86umzYV",
+      "opened": "2026-10-21T02:55:52Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+      "replies": [],
+      "reviewed": "0c0643a6dca35e7dddd4aeefc7d4b61223c67dcd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4332563249"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Rename the createClient helper's destination-port parameter to serverPort in this existing PR directly. The user's settled request is to use serverPort, and the user now explicitly accepts the formatter wrapping the declaration. This supersedes the earlier request to keep this declaration on one line. Commit and push to this PR's existing head branch, preserve its draft state and base/head branches, and do not create another PR.\n\nIn instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala, change createClient's optional parameter from port: JLong = this.port to serverPort: JLong = port. Use Integer.valueOf(serverPort.intValue()) in both reflective RedisClient constructor branches. The shared field port remains unchanged and is the default server port. Existing callers should still omit the argument; the client-failure test should still explicitly pass its allocated unused port as JLong. Preserve behavior and baseline/latest reflective compatibility. The assertErrorType helper already has a serverPort parameter; no unrelated helper changes are needed.\n\nApply only the module's normal Scala formatter and accept its normal line wrapping. The user has explicitly said tests are not needed for this rename, so do not run tests or unrelated builds. Keep all previous test reductions and telemetry assertions, and make no production-code changes. Acceptance is the serverPort parameter and its two constructor usages, with normal formatting and no behavior changes. Do not post replies or resolve review threads.",
+      "created": "2026-10-21T03:30:17Z",
+      "hunk": "@@ -78,7 +88,7 @@ class RediscalaClientTest {\n     nonDefaultDbClient = createClient(Some(nonDefaultDbIndex))\n   }\n \n-  private def createClient(db: Option[Int]): RedisClient =\n+  private def createClient(db: Option[Int], port: JLong = this.port): RedisClient =",
+      "id": "PRRT_kwDODJKVX86unO0q",
+      "opened": "2026-10-21T03:30:17Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+      "replies": [],
+      "reviewed": "e13432faf8e7fa7a1dbaabcbe847701e75329e55",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4332746660"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20776 directly. Commit and push only to this PR's existing head branch, preserve its draft state and base, and do not create a follow-up PR, dispatch tasks, or work on other PRs.\n\nKeep the Rediscala production parser unchanged because it already matches the common contract. Extend representative custom-prefix unit coverage under instrumentation/rediscala-1.8/javaagent-unit-tests and restore/add a real custom Redis server-error reply integration test under instrumentation/rediscala-1.8/javaagent/src/test/scala, asserting spans and duration metrics. Existing WRONGTYPE, client-failure fallback, and success coverage must remain. The user's current request for real custom-reply coverage supersedes earlier instructions removing that integration test. Preserve the existing serverPort helper naming and reflective baseline/latest constructor compatibility; avoid unrelated helper churn.\n\nCommon classification contract: For a confirmed Redis server-error reply, record the first nonempty, ASCII-space-delimited token exactly as supplied. Preserve case and punctuation. Impose no allowlist, uppercase-only validation, character validation, or 64-character limit. Raw RESP parsing must also stop at the reply's CRLF terminator. Client-side failures and server replies without a usable prefix retain canonical exception-class fallback. Successful operations omit error.type. Spans and db.client.operation.duration metrics must agree. Do not parse arbitrary throwable messages as proof of server origin. Do not add configuration or a shared Gradle module.\n\nCoverage and order: Fix the contract in tests first, then change production code only where this assignment requires it. Use the same representative cases across clients: WRONGTYPE, a dedicated server code where the client represents one, punctuation such as Custom.Code!, lowercase, a prefix longer than 64 characters, prefix-only replies, missing or empty prefixes, client failures, and success. Tabs are not an additional token separator. Keep parser edge cases in focused version-local unit tests, and use integration tests for real server provenance and emitted telemetry. Assert both span and duration-metric labels, exception-class fallback, and omission on success. Do not introduce cross-module test infrastructure solely for this matrix.\n\nValidation and compatibility: Read CONTRIBUTING.md, the knowledge index, and applicable path instructions. Run the narrowest affected spotlessApply tasks directly before targeted behavioral validation. Run relevant integration, compatibility, latest-dependency, and Muzzle checks where advice changes; do not narrow supported/latest version coverage to hide a failure. Use the repository's existing test tasks, no clean or forced reruns. Report exact validation commands and results or concrete unavailable-validation blockers in the cloud session result, not a PR testing checklist. Compare this client's final behavior against the common contract, including span/metric agreement and preserved client-failure fallback. Preserve span boundaries, operation naming, completion ownership, retry behavior, application results, and cleanup. Keep the implementation focused. Do not post reviewer replies or resolve threads.\n\nDo not edit this PR's title or description. Those metadata edits are handled separately by the coordinating session once coding is ready. Report coding delivery and any blockers in the cloud session result; no inline reply is required.",
+      "created": "2026-10-21T03:46:51Z",
+      "hunk": "@@ -37,6 +38,22 @@ void requestWithTargetUsesConfiguredAddress() {\n     assertThat(getter.getNetworkPeerPort(request, null)).isNull();\n   }\n \n+  @Test",
+      "id": "PRRT_kwDODJKVX86unb-X",
+      "opened": "2026-10-21T03:46:51Z",
+      "path": "instrumentation/rediscala-1.8/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetterTest.java",
+      "replies": [],
+      "reviewed": "a29fc974775c8cf797a9d3364e06fadc5b068a1f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4332834021"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to adopt the merged Redis prefix utility.\n\nIn RediscalaAttributesGetter.getErrorType, retain the ReplyErrorException guard and replace the local message-null/ASCII-space/token scanning with RedisErrorPrefix.extract(error.getMessage()). Preserve exception fallback, real custom/Unicode reply span+duration coverage and existing getter behavior. No byte overload is needed in this PR.\n\nThe user has merged main into this existing PR. Shared RedisErrorPrefix.extract(@Nullable String) from merged #20801 is now available in instrumentation-api-incubator. This assignment is only a helper-adoption refactor, not another classification redesign. The String contract skips leading ASCII spaces and returns the first nonempty ASCII-space-delimited token literally, preserving case, punctuation, tabs, Unicode, and unrestricted length; null/empty/all-ASCII-space input returns null. Raw RESP framing and confirmed server-error provenance stay with each client.\n\nPreserve all current exception-class/_OTHER fallback, first-failed-result and terminal server/client precedence, success omission, span/duration labels and exact counts, cleanup, supported versions, application strings/exceptions/results, retries, operation names and original span boundaries. Keep existing real provenance/completion/Unicode integration coverage. Remove or delegate redundant local lexical parsers rather than retaining duplicate scanning. Central lexical edge cases already live in RedisErrorPrefixTest; retain client-specific provenance/decoding/completion regressions.\n\nUpdate this PR directly on its existing head branch. Preserve its draft state and base main. Do not create another PR as a workaround, stack or retarget this PR, modify another PR or branch, add configuration, a Gradle module, a Netty dependency to the shared helper, a registration requirement, or unrelated changes. Do not post comments/replies/reviews or resolve review threads. Do not change the PR title or description; the coordinator owns any needed metadata edits.\n\nUse the narrowest affected spotlessApply tasks immediately before targeted validation on the repository-required JDK. Run relevant parser/getter tests, real integration/compatibility/latest selectors, and affected Muzzle checks where needed for changed injected-helper references. Preserve normal caches; no clean or forced reruns. Report exact commands/results and any concrete blocker rather than claiming unrun validation passed.",
+      "created": "2026-10-21T16:07:14Z",
+      "hunk": "@@ -43,6 +44,34 @@ public Long getDbOperationBatchSize(RediscalaRequest request) {\n     return request.getBatchSize();\n   }\n \n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      RediscalaRequest request, @Nullable Void unused, @Nullable Throwable error) {\n+    // Rediscala wraps decoded Redis error replies in ReplyErrorException. RESP errors start with an\n+    // error prefix; returning null without a usable prefix preserves the shared exception-class\n+    // fallback.\n+    // https://redis.io/docs/latest/develop/reference/protocol-spec/#resp-errors\n+    if (!(error instanceof ReplyErrorException)) {\n+      return null;\n+    }\n+\n+    String message = error.getMessage();\n+    if (message == null) {\n+      return null;\n+    }\n+\n+    int prefixStart = 0;",
+      "id": "PRRT_kwDODJKVX86u2MoE",
+      "opened": "2026-10-21T16:07:14Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+      "replies": [],
+      "reviewed": "3c63019e80c8ccdcccba795b36c0adf449425238",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4339062192"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to remove redundant unit tests now covered by shared parsing and real integration tests.\n\nRemove only errorTypeUsesServerReplyPrefixOnlyForServerErrors from RediscalaAttributesGetterTest and its now-unused ReplyErrorException import. Keep the file and its pre-existing server-address tests, request helper, and mocks. Shared RedisErrorPrefixTest covers extraction; RediscalaClientTest already covers actual server errors, client-failure fallback and both telemetry signals. Preserve those integration tests unchanged.\n\nThis is a tests-only cleanup following adoption of the merged RedisErrorPrefix utility. Do not change production code, the shared String or ByteBuffer implementations, error classification, provenance, UTF-8 recovery, fallback, completion boundaries, application results, metrics, dependencies, Gradle modules, configuration, or documentation. Remove only the named redundant tests and test providers/imports used exclusively by them. Preserve all other existing tests, especially decoder state, framing, buffer/message preservation, request ownership, batch precedence, cleanup, and actual span/metric integration regressions.\n\nWorthwhile lexical cases unique to the removed matrices, including bare CR/LF, are being preserved once in the shared suite by a separately delegated independent new PR against main. That new PR is not your deliverable. Do not move or duplicate those lexical cases in this client PR, add a prerequisite or stack, update another branch, or create another PR.\n\nUpdate this existing PR directly on its original head branch. Preserve open draft state and base main. Do not post comments, replies, reviews, or resolve threads. Do not change the PR title or description; the coordinator owns any necessary metadata edits.\n\nRun the narrowest affected spotlessApply tasks immediately before the retained relevant unit suites, and the smallest relevant integration selectors where feasible. Keep all existing integration/compatibility/latest coverage enabled. These deletions must not change production or advice, so do not invent new Muzzle requirements. Use normal caches without clean or forced reruns. Report exact commands/results and any concrete blocker; do not claim unrun validation passed.",
+      "created": "2026-10-21T17:04:59Z",
+      "hunk": "@@ -37,6 +38,20 @@ void requestWithTargetUsesConfiguredAddress() {\n     assertThat(getter.getNetworkPeerPort(request, null)).isNull();\n   }\n \n+  @Test\n+  void errorTypeUsesServerReplyPrefixOnlyForServerErrors() {",
+      "id": "PRRT_kwDODJKVX86u3lVo",
+      "opened": "2026-10-21T17:04:59Z",
+      "path": "instrumentation/rediscala-1.8/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-10-21T17:11:53Z",
+          "body": "Removed the redundant getter test and its now-unused import in `4bb1a4c1`. The retained unit suite and focused integration tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4339714654"
+        }
+      ],
+      "reviewed": "e97f1397a33dd2566d7a951d2f936441b76d7d1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20776#discussion_r4339643012"
+    }
+  ]
+}

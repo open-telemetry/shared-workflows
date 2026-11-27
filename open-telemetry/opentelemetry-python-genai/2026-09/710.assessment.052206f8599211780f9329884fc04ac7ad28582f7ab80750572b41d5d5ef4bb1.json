@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0e0870fa62299a0f881d050d642abb8d24c8a5bfe1edb7d5bb8c019d61b533e9",
+  "input_digest": "052206f8599211780f9329884fc04ac7ad28582f7ab80750572b41d5d5ef4bb1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/446e770f3b1663cf6ec794cbcfd8b0241133628f/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_processor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/cd6073a1b45fff56d0c41a6a772e77b61bbed4f6/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_processor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/ecc2a1023cab20a4b306ba3c2af52bd4cefa402f"
+      ],
+      "id": "PRRT_kwDOSbspP86h8NS-",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

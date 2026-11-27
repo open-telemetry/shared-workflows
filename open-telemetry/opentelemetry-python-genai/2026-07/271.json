@@ -1,0 +1,61 @@
+{
+  "head": "4152931b40db9888625dea1dcd288df8bc14686a",
+  "merge": "9a629b07a4b5a8850dc081f9b243137048c996c0",
+  "merged": "2026-07-16T18:09:21Z",
+  "missing_roots": 0,
+  "number": 271,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This paragraph has a trailing whitespace at the end of the first line, and the sentence grammar reads awkwardly (\"instrumentation those produce\"). This can break formatting checks and makes the README harder to read.",
+      "created": "2026-07-15T16:56:11Z",
+      "hunk": "@@ -15,9 +15,11 @@ GenAI operations in aggregate.\n Experimental\n ------------\n \n-This package is still experimental. The instrumentation may not be complete or correct just yet.\n+The ``interactions`` and ``embed_content`` methods are newly instrumented, and may contain issues, \n+please treat the instrumentation those produce as experimental still.\n \n-Please see \"TODOS.md\" for a list of known defects/TODOs that are blockers to package stability.\n+``interactions`` API currently does not support automatic function calling, so no ``execute_tool`` spans\n+are generated.",
+      "id": "PRRT_kwDOSbspP86RLd_1",
+      "opened": "2026-07-15T16:56:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/README.rst",
+      "replies": [],
+      "reviewed": "1f1be80b0037c29182b9d824b27771f188803c7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/271#discussion_r3589228500"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For MCP server tools, the fallback `name = tool.get(\"name\") or tool.get(\"url\") ...` can end up recording the full MCP server URL into `gen_ai.tool.definitions` (via the `name` field). URLs can contain sensitive/internal hostnames and shouldn’t be captured by default here. Prefer defaulting to a constant (or only using an explicit `name` provided by the user) until `ToolDefinition` supports a dedicated URI field.",
+      "created": "2026-07-15T16:56:11Z",
+      "hunk": "@@ -305,6 +309,59 @@ def _on_stream_error(self, error: Exception) -> None:\n         self._self_invocation.fail(error)\n \n \n+# See https://ai.google.dev/gemini-api/docs/function-calling\n+def _maybe_get_tool_definitions(\n+    tools: Any | None,\n+) -> list[ToolDefinition] | None:\n+    if not isinstance(tools, Sequence) or isinstance(tools, (str, bytes)):\n+        return None\n+    definitions: list[ToolDefinition] = []\n+    for tool in tools:\n+        # Tool must be a list of dictionaries\n+        if not isinstance(tool, dict):\n+            continue\n+        # This is currently a required field and the SDK will raise an error if it isn't present or\n+        # takes on a type field that isn't supported.\n+        tool_type = tool.get(\"type\")\n+        if tool_type in (\n+            \"bash\",\n+            \"code_execution\",\n+            \"filesystem\",\n+            \"file_search\",\n+            \"google_maps\",\n+            \"google_search\",\n+            \"url_context\",\n+            \"computer_use\",\n+        ):\n+            definitions.append(\n+                GenericToolDefinition(\n+                    name=tool.get(\"name\") or tool_type,\n+                    type=tool_type,\n+                )\n+            )\n+\n+        elif tool_type == \"mcp_server\":\n+            # Name and uri are optional.\n+            name = tool.get(\"name\") or tool.get(\"url\") or \"mcp_server\"\n+            # GenericToolDefinition only has 2 fields (name and type). It'd be useful to",
+      "id": "PRRT_kwDOSbspP86RLd_U",
+      "opened": "2026-07-15T16:56:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [],
+      "reviewed": "1f1be80b0037c29182b9d824b27771f188803c7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/271#discussion_r3589228446"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: looks very similar to line 387-410, maybe add a helper? ",
+      "created": "2026-07-16T01:02:07Z",
+      "hunk": "@@ -381,15 +456,29 @@ async def instrumented_interactions_create(\n         kwargs: dict[str, Any],\n     ) -> Interaction | AsyncInteractionsStreamWrapper:\n         is_vertex, server_address = _get_client_info(instance)\n-        invocation = telemetry_handler.inference(\n-            provider=(\n-                GenAIAttributes.GenAiSystemValues.VERTEX_AI.value\n-                if is_vertex\n-                else GenAIAttributes.GenAiSystemValues.GEMINI.value\n-            ),\n-            request_model=kwargs.get(\"model\") or kwargs.get(\"agent\"),\n-            operation_name=\"interactions.create\",\n-            server_address=server_address,\n+        provider = (\n+            GenAIAttributes.GenAiSystemValues.VERTEX_AI.value\n+            if is_vertex\n+            else GenAIAttributes.GenAiSystemValues.GEMINI.value\n+        )\n+        if agent := kwargs.get(\"agent\"):\n+            invocation: InferenceInvocation | AgentInvocation = (\n+                telemetry_handler.invoke_remote_agent(\n+                    provider=provider,\n+                    request_model=kwargs.get(\"model\"),\n+                    server_address=server_address,\n+                    agent_name=agent,\n+                )\n+            )\n+        else:\n+            invocation = telemetry_handler.inference(\n+                provider=provider,\n+                request_model=kwargs.get(\"model\"),\n+                operation_name=\"interactions.create\",\n+                server_address=server_address,\n+            )\n+        invocation.tool_definitions = _maybe_get_tool_definitions(\n+            kwargs.get(\"tools\")",
+      "id": "PRRT_kwDOSbspP86RSeWq",
+      "opened": "2026-07-16T01:04:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-07-16T16:40:37Z",
+          "body": "True nice. Done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/271#discussion_r3597288939"
+        }
+      ],
+      "reviewed": "b1344da71c1afd0cd311e80ad8f72245f109e010",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/271#discussion_r3591834813"
+    }
+  ]
+}

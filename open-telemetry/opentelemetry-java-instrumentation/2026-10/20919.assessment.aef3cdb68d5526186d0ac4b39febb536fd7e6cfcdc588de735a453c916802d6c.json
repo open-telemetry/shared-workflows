@@ -1,0 +1,120 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "97aef23412a8dd317e43450ecac278cf618cf19374f512a834071735d079b985",
+  "input_digest": "aef3cdb68d5526186d0ac4b39febb536fd7e6cfcdc588de735a453c916802d6c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99a8ade9fc867c543fc2e70f2a6d777c654d69b3/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpResponseMutator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99a8ade9fc867c543fc2e70f2a6d777c654d69b3/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/HttpServerControllerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/HttpServerControllerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99a8ade9fc867c543fc2e70f2a6d777c654d69b3/instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerInstrumentationTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerInstrumentationTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX86v1i3Q",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96d1f4afa4ce5d8255b6eedfaa2bfa3b09971bce/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96d1f4afa4ce5d8255b6eedfaa2bfa3b09971bce/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/HttpServerControllerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/HttpServerControllerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/ParsingErrorHandlerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1f023b897dd1f820ecd680a940252f6afc913561"
+      ],
+      "id": "PRRT_kwDODJKVX86wEFMP",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f023b897dd1f820ecd680a940252f6afc913561/instrumentation/akka/akka-http-10.0/javaagent/src/javaRouteTest/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/javaRouteTest/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/javaRouteTest/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/CustomParsingErrorHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/00f3235eff194e659546ec7763cc7aab456d1c25"
+      ],
+      "id": "PRRT_kwDODJKVX86wESa_",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wESzH",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wESa_",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00f3235eff194e659546ec7763cc7aab456d1c25/instrumentation/akka/akka-http-10.0/javaagent/src/javaRouteTest/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/javaRouteTest/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b6c0401791144b42bbdcbad2f0b5b6b180519b98"
+      ],
+      "id": "PRRT_kwDODJKVX86wEeD0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6c0401791144b42bbdcbad2f0b5b6b180519b98/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/628a4609ace07fe6dad7ef6c233ff87b9764d2a6"
+      ],
+      "id": "PRRT_kwDODJKVX86wEvkw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/628a4609ace07fe6dad7ef6c233ff87b9764d2a6/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/628a4609ace07fe6dad7ef6c233ff87b9764d2a6/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/ParsingErrorHandlerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/ParsingErrorHandlerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/100525eeeaa678b1db7700c87df7029179906c13"
+      ],
+      "id": "PRRT_kwDODJKVX86wFAKx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/100525eeeaa678b1db7700c87df7029179906c13/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c68e7c673baece64e1ccc086cefc452faa3a2045"
+      ],
+      "id": "PRRT_kwDODJKVX86wG-7p",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/29ab5949112651f65cbb9c88b0add69abbcc5e6b/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc8e6f3f47b53540d2809312668a7c267c5aa7e4/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/server/AkkaHttpParsingErrorSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wlubF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

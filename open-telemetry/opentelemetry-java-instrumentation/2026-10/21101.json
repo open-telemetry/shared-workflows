@@ -1,0 +1,25 @@
+{
+  "head": "fb38f6b57e6b8b612f166398f7219dd177d35d48",
+  "merge": "a0ee9ac8a75a57babc9ec48d49f31b1058a9e16e",
+  "merged": "2026-10-31T20:56:36Z",
+  "missing_roots": 0,
+  "number": 21101,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-31T19:09:46Z",
+      "hunk": "@@ -216,6 +216,20 @@ public void transform(TypeTransformer transformer) {\n For matching built-in Java types you can use the `takesArgument(0, String.class)` form. Classes\n originating from the instrumented library need to be matched using the `named()` matcher.\n \n+When a method matcher needs an exact argument-count check, place `takesArguments(n)` before\n+the positional `takesArgument(index, ...)` checks to keep the type checks grouped. This also\n+applies to partial signatures that intentionally leave some argument types unchecked:\n+\n+```java\n+named(\"someMethod\")\n+    .and(takesArguments(3))\n+    .and(takesArgument(0, String.class))\n+    .and(takesArgument(1, int.class))\n+```\n+\n+This ordering convention does not require adding exact-arity checks or checking every argument\n+type. Preserve the intended overload selection.\n+",
+      "id": "PRRT_kwDODJKVX86yTzaJ",
+      "opened": "2026-10-31T19:09:46Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "3ac71e2b78bb50e1227ac6451e1bc3f9dd0cd8b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21101#discussion_r4432964025"
+    }
+  ]
+}

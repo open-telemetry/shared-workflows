@@ -1,0 +1,25 @@
+{
+  "head": "ac68f3bba24f16c4002d1bd122708218b875bf61",
+  "merge": "66666d442d745b56a565dc1102f7ab56fff4b24d",
+  "merged": "2026-10-05T16:27:57Z",
+  "missing_roots": 0,
+  "number": 20352,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description presents this as dependency-only maintenance, but this adds new GraalVM reflection behavior (along with Java compatibility edits in other smoke-test files). Please document the functional smoke-test changes and their rationale in the PR description, or split them from the automated dependency update, so reviewers can assess the expanded scope.",
+      "created": "2026-10-05T12:38:41Z",
+      "hunk": "@@ -0,0 +1,29 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.spring.smoketest;\n+\n+import org.springframework.aot.hint.MemberCategory;\n+import org.springframework.aot.hint.RuntimeHintsRegistrar;\n+import org.springframework.aot.hint.TypeReference;\n+\n+// Necessary for GraalVM native test\n+public class RuntimeHints implements RuntimeHintsRegistrar {",
+      "id": "PRRT_kwDODJKVX86pCMnP",
+      "opened": "2026-10-05T12:38:41Z",
+      "path": "smoke-tests-otel-starter/spring-boot-4/src/main/java/io/opentelemetry/spring/smoketest/RuntimeHints.java",
+      "replies": [],
+      "reviewed": "ac68f3bba24f16c4002d1bd122708218b875bf61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20352#discussion_r4184052580"
+    }
+  ]
+}

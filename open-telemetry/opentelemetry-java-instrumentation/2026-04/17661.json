@@ -1,0 +1,25 @@
+{
+  "head": "72814b592d9322b62fae9b763ae2378f780b9c80",
+  "merge": "6672ba4cb52ae6c410b293e6b56b74587d4c9a19",
+  "merged": "2026-04-07T18:53:28Z",
+  "missing_roots": 0,
+  "number": 17661,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n          // see the comment above in @Advice.OnMethodEnter\n```",
+      "created": "2026-04-07T17:01:45Z",
+      "hunk": "@@ -86,7 +86,7 @@ public static void addHandler(\n         ChannelHandlerContext context = pipeline.context(handler);\n         if (context == null) {\n           // probably a ChannelInitializer that was used and removed\n-          // see the comment above in @Advice.OnMethodEnter\n+          // see the comment above in @Advice.OnMethodEnter(inline = false)",
+      "id": "PRRT_kwDODJKVX855WO3W",
+      "opened": "2026-04-07T17:01:45Z",
+      "path": "instrumentation/netty/netty-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/netty/v4_1/NettyChannelPipelineInstrumentation.java",
+      "replies": [],
+      "reviewed": "d2e9ca3a2f7de06cd526ef61daa92b9df763b2ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17661#discussion_r3046638078"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "head": "0a593b45d3aa78d925507c9ef47b22113f4e13a6",
+  "merge": "243e57bb0718f1ae2515c2814203613f2e5524cb",
+  "merged": "2026-05-23T02:53:22Z",
+  "missing_roots": 0,
+  "number": 176,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new guidance says to disable Deploy Previews / PR comment notifications, but it doesn’t explain where/how to do this in Netlify. Please add the concrete UI path (e.g., Site settings → Build & deploy → Deploy contexts → Deploy Previews) and which notification setting(s) to turn off so someone following this doc can reliably apply it.\n",
+      "created": "2026-05-19T20:48:06Z",
+      "hunk": "@@ -14,6 +14,9 @@ Save the Netlify project ID as a GitHub Actions variable named\n Save a Netlify personal access token as a GitHub Actions secret named\n `NETLIFY_AUTH_TOKEN`.\n \n+Disable Deploy Previews and related PR comment notifications. PR preview\n+deploys are unused and only add noise to PRs.",
+      "id": "PRRT_kwDOSUeMrM6DShZc",
+      "opened": "2026-05-19T20:48:07Z",
+      "path": ".github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md",
+      "replies": [
+        {
+          "at": "2026-05-19T21:19:24Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/176/commits/8b2de5c0e614b82e919af468ec914242e33701d1",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/176#discussion_r3269703417"
+        }
+      ],
+      "reviewed": "59362e99ab3420bf9a15c3aca9a1aaa1eeb508ad",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/176#discussion_r3269524973"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Did we want to add a path to disable PR comments as well?\nhttps://docs.netlify.com/deploy/deploy-notifications/",
+      "created": "2026-05-20T16:42:22Z",
+      "hunk": "@@ -14,6 +14,12 @@ Save the Netlify project ID as a GitHub Actions variable named\n Save a Netlify personal access token as a GitHub Actions secret named\n `NETLIFY_AUTH_TOKEN`.\n \n+Disable Deploy Previews and related PR comment notifications. PR preview",
+      "id": "PRRT_kwDOSUeMrM6DjcPw",
+      "opened": "2026-05-20T16:45:55Z",
+      "path": ".github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md",
+      "replies": [
+        {
+          "at": "2026-05-23T02:51:22Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/pull/176/commits/0a593b45d3aa78d925507c9ef47b22113f4e13a6.\n\nDropped the separate PR-comment-notifications mention — once Deploy Previews are disabled, the PR comment notification has nothing to post, so the single Deploy Previews path covers it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/176#discussion_r3291967527"
+        }
+      ],
+      "reviewed": "8b2de5c0e614b82e919af468ec914242e33701d1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/176#discussion_r3275613572"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "I'm unsure about the path here. Should it be `Project configuration > Build & deploy > Continuous Deployment > Branches and deploy contexts`?\nhttps://docs.netlify.com/deploy/deploy-types/deploy-previews/",
+      "created": "2026-05-20T16:44:26Z",
+      "hunk": "@@ -14,6 +14,12 @@ Save the Netlify project ID as a GitHub Actions variable named\n Save a Netlify personal access token as a GitHub Actions secret named\n `NETLIFY_AUTH_TOKEN`.\n \n+Disable Deploy Previews and related PR comment notifications. PR preview\n+deploys are unused and only add noise to PRs. In Netlify,\n+open the site and go to **Site configuration** (or **Site settings**) →\n+**Build & deploy** → **Deploy contexts** → **Deploy Previews**, then disable",
+      "id": "PRRT_kwDOSUeMrM6DjeQP",
+      "opened": "2026-05-20T16:45:55Z",
+      "path": ".github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md",
+      "replies": [
+        {
+          "at": "2026-05-23T02:51:21Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/pull/176/commits/0a593b45d3aa78d925507c9ef47b22113f4e13a6.\n\nCorrected the path to `Project configuration → Build & deploy → Continuous Deployment → Branches and deploy contexts → Configure`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/176#discussion_r3291967513"
+        }
+      ],
+      "reviewed": "8b2de5c0e614b82e919af468ec914242e33701d1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/176#discussion_r3275624484"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "7b49b4970d7823fc95d8ec17e2538d9b81b7ce47",
+  "merge": "39640f927b8ca0cb6d229052143b964fe0e0edac",
+  "merged": "2026-03-02T15:14:54Z",
+  "missing_roots": 0,
+  "number": 16318,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess an alternative would be to se an internal interface",
+      "created": "2026-03-02T08:37:02Z",
+      "hunk": "@@ -44,6 +44,17 @@ default String getDbQuerySummary(REQUEST request) {\n   @Nullable\n   String getDbNamespace(REQUEST request);\n \n+  /**\n+   * Returns the old db.name value. This is only used for old semantic conventions.\n+   *\n+   * @deprecated Use {@link #getDbNamespace(Object)} instead.\n+   */\n+  @Deprecated // to be removed in 3.0\n+  @Nullable\n+  default String getDbName(REQUEST request) {",
+      "id": "PRRT_kwDODJKVX85xfbcb",
+      "opened": "2026-03-02T08:37:01Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-03-02T15:14:47Z",
+          "body": "Similar to https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16304#discussion_r2872999173, I kind of like making it public to support anyone outside of this repo going through the transition, although maybe that's not too realistic since they'd have to stick to our timeline as we'll be removing them in 3.0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16318#discussion_r2873006480"
+        }
+      ],
+      "reviewed": "7b49b4970d7823fc95d8ec17e2538d9b81b7ce47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16318#discussion_r2871158027"
+    }
+  ]
+}

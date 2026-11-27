@@ -1,0 +1,85 @@
+{
+  "head": "72d6a985bd5346a8608ac49ef75a11f97158194e",
+  "merge": "36a1acc27dd71f98de625a207d4436581f7f9a6d",
+  "merged": "2026-10-06T19:35:13Z",
+  "missing_roots": 0,
+  "number": 20381,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This no longer propagates the messaging preview mode into the Kafka Connect container. `testMessagingPreview` and `testBothSemconv` set `otel.semconv-stability.preview`, but the container only receives the legacy opt-in environment variable, so its agent emits legacy messaging telemetry while the test JVM asserts stable messaging telemetry. Preserve the previous messaging-mode translation and remove only the database token.",
+      "created": "2026-10-04T04:03:08Z",
+      "hunk": "@@ -491,9 +491,7 @@ private void setupKafkaConnect() {\n             .withEnv(\"OTEL_METRIC_EXPORT_INTERVAL\", \"1000\")\n             .withEnv(\n                 \"OTEL_SEMCONV_STABILITY_OPT_IN\",\n-                emitStableMessagingSemconv()\n-                    ? \"messaging\"\n-                    : System.getProperty(\"otel.semconv-stability.opt-in\"))\n+                System.getProperty(\"otel.semconv-stability.opt-in\"))",
+      "id": "PRRT_kwDODJKVX86ouqif",
+      "opened": "2026-10-04T04:03:08Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/testing/src/test/java/io/opentelemetry/instrumentation/kafkaconnect/v2_6/KafkaConnectSinkTaskBaseTest.java",
+      "replies": [],
+      "reviewed": "260a13636e709a7db00b9ea8e79c3c2a48d39d24",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20381#discussion_r4176068438"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T12:55:27Z",
+      "hunk": "@@ -98,23 +84,16 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n-  val testStableSemconv = register<Test>(\"testStableSemconv\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database\")\n-  }\n-\n   val testStableSemconvExperimental = register<Test>(\"testStableSemconvExperimental\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n     jvmArgs(\n-      \"-Dotel.semconv-stability.opt-in=database\",\n+",
+      "id": "PRRT_kwDODJKVX86peM0D",
+      "opened": "2026-10-06T12:55:27Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "440fa4fe78316974982e982e549facbcb00f1314",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20381#discussion_r4195512824"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T12:55:58Z",
+      "hunk": "@@ -78,23 +78,12 @@ tasks {\n     jvmArgs(\"-Dotel.instrumentation.jdbc.enabled=false\")\n   }\n \n-  val stableSemconvSuites = testing.suites.withType(JvmTestSuite::class)\n-    .map { suite ->\n-      register<Test>(\"${suite.name}StableSemconv\") {\n-        testClassesDirs = suite.sources.output.classesDirs\n-        classpath = suite.sources.runtimeClasspath\n-\n-        jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n-        systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database\")\n-      }\n-    }\n-\n   check {\n     dependsOn(\n       testing.suites,\n       testDisabled,\n       testExperimental,\n-      stableSemconvSuites,\n+",
+      "id": "PRRT_kwDODJKVX86peNuZ",
+      "opened": "2026-10-06T12:55:58Z",
+      "path": "instrumentation/hibernate/hibernate-3.3/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "440fa4fe78316974982e982e549facbcb00f1314",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20381#discussion_r4195518878"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T12:56:20Z",
+      "hunk": "@@ -130,7 +119,7 @@ tasks {\n     dependsOn(testSlick)\n     dependsOn(testSqlCommenter)\n     dependsOn(testStableSemconv)\n-    dependsOn(testSlickStableSemconv)\n+",
+      "id": "PRRT_kwDODJKVX86peOS6",
+      "opened": "2026-10-06T12:56:20Z",
+      "path": "instrumentation/jdbc/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "440fa4fe78316974982e982e549facbcb00f1314",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20381#discussion_r4195522912"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T12:57:20Z",
+      "hunk": "@@ -131,29 +118,28 @@ tasks {\n     )\n   }\n \n-  val testQuerySanitizationDisabledStableSemconv =\n-    register<Test>(\"testQuerySanitizationDisabledStableSemconv\") {\n+  val testCommonQuerySanitizationDisabled =\n+    register<Test>(\"testCommonQuerySanitizationDisabled\") {\n       testClassesDirs = sourceSets.test.get().output.classesDirs\n       classpath = sourceSets.test.get().runtimeClasspath\n \n       filter {\n         includeTestsMatching(\"OpenSearchQuerySanitizationDisabledTest\")\n       }\n       jvmArgs(\"-Dotel.instrumentation.common.db.query-sanitization.enabled=false\")\n-      jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+",
+      "id": "PRRT_kwDODJKVX86pePyc",
+      "opened": "2026-10-06T12:57:20Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "440fa4fe78316974982e982e549facbcb00f1314",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20381#discussion_r4195532804"
+    }
+  ]
+}

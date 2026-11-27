@@ -1,0 +1,94 @@
+{
+  "head": "d2914ea769eaf7078fc8e5551bcf85ed804caad5",
+  "merge": "ebe375f2296a06fba7ac4bde7096de6ddb4bcf7e",
+  "merged": "2026-08-26T00:20:55Z",
+  "missing_roots": 0,
+  "number": 107,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Matrix discovery assumes every `conformance.yaml` path is always `scenarios/<domain>/<language>/.../conformance.yaml`. If any file deviates (e.g., missing a segment), `{domain: .[1], language: .[2]}` can produce nulls, leading to confusing downstream paths like `scenarios//` and hard-to-diagnose failures. Consider filtering/validating the split result (e.g., require the expected segment count and that the first segment is `scenarios`) and emitting a clear error when an unexpected layout is encountered.",
+      "created": "2026-08-25T14:36:55Z",
+      "hunk": "@@ -210,13 +210,55 @@ jobs:\n             tools/gen-ai/runner/tests \\\n             tools/http/runner/tests\n \n+  discover-scenarios:\n+    name: Discover scenarios\n+    runs-on: ubuntu-latest\n+    concurrency:\n+      group: ${{ github.workflow }}-discover-scenarios-${{ github.event.pull_request.number || github.ref }}\n+      cancel-in-progress: true\n+    outputs:\n+      matrix: ${{ steps.matrix.outputs.matrix }}\n+    steps:\n+      - name: Checkout repository\n+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        with:\n+          persist-credentials: false\n+\n+      - name: Generate matrix\n+        id: matrix\n+        shell: bash\n+        run: |\n+          scenario_paths=\"$(git ls-files 'scenarios/**/conformance.yaml')\"\n+          if [[ -z \"$scenario_paths\" ]]; then\n+            echo \"::error::no conformance scenarios found\"\n+            exit 1\n+          fi\n+          matrix=\"$(\n+            printf '%s\\n' \"$scenario_paths\" |\n+              jq -Rsc '\n+                split(\"\\n\") |\n+                map(\n+                  select(length > 0) |\n+                  split(\"/\") |\n+                  {domain: .[1], language: .[2]}\n+                ) |\n+                unique |\n+                {include: .}",
+      "id": "PRRT_kwDOTuzK5c6cHZ-Y",
+      "opened": "2026-08-25T14:36:56Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-25T14:41:36Z",
+          "body": "Addressed in ccd9a397dcadbfa35153f0a235bac99e926c77a3.\n\nAnalysis: Matrix discovery must validate each split path before it reads the domain and language segments. The jq filter now rejects short paths, wrong roots, empty matrix values, and wrong filenames with the offending path in the error.\n\nUpsides: Invalid scenario layouts fail in discovery with a direct error instead of creating broken matrix entries and failing later jobs with misleading paths.\n\nDownsides: Scenario files outside the documented layout cannot enter the matrix until their paths are corrected.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3854133449"
+        }
+      ],
+      "reviewed": "957bf29067f824215a0025c9269b738871526b66",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3854090351"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `.NET` toolchain is pinned to `scenarios/http/dotnet/global.json`, but this job is now parameterized by `matrix.domain`/`matrix.language`. If a non-`http` dotnet scenario is discovered, this will point at the wrong `global.json` (or a non-existent path) and break the dotnet leg. Use a matrix-scoped path (e.g., under `scenarios/${{ matrix.domain }}/${{ matrix.language }}`) or derive the correct `global.json` from the scenario root for that leg.",
+      "created": "2026-08-25T14:36:55Z",
+      "hunk": "@@ -256,6 +304,7 @@ jobs:\n       # runs, from its own directory, which is inside the build root the\n       # `global.json` pins.\n       - name: Set up .NET\n+        if: matrix.language == 'dotnet'\n         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0\n         with:\n           global-json-file: scenarios/http/dotnet/global.json",
+      "id": "PRRT_kwDOTuzK5c6cHZ94",
+      "opened": "2026-08-25T14:36:56Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-25T14:41:34Z",
+          "body": "Addressed in c1bcba576bbfe37bbd5d7b382bf32f59c8f4b545.\n\nAnalysis: The matrix job must select the SDK pin from the same domain and language root that it runs. Using both matrix values keeps each future .NET domain independent while preserving the current HTTP path.\n\nUpsides: New .NET domains can provide their own global.json without changing the workflow, and each matrix job installs the SDK version declared by its scenarios.\n\nDownsides: Every domain with .NET scenarios must keep a global.json at its domain-level .NET root.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3854133195"
+        }
+      ],
+      "reviewed": "957bf29067f824215a0025c9269b738871526b66",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3854090300"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Writing JSON to `$GITHUB_OUTPUT` via `echo \"matrix=$matrix\"` is brittle if the value ever contains characters that the runner output parser treats specially (notably newlines). Consider using the recommended multiline output form (`matrix<<EOF ... EOF`) or at least `printf` to avoid `echo` edge cases; this will make the discovery step more robust as scenario count grows or formatting changes.",
+      "created": "2026-08-25T16:57:04Z",
+      "hunk": "@@ -210,13 +210,59 @@ jobs:\n             tools/gen-ai/runner/tests \\\n             tools/http/runner/tests\n \n+  discover-scenarios:\n+    name: Discover scenarios\n+    runs-on: ubuntu-latest\n+    concurrency:\n+      group: ${{ github.workflow }}-discover-scenarios-${{ github.event.pull_request.number || github.ref }}\n+      cancel-in-progress: true\n+    outputs:\n+      matrix: ${{ steps.matrix.outputs.matrix }}\n+    steps:\n+      - name: Checkout repository\n+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        with:\n+          persist-credentials: false\n+\n+      - name: Generate matrix\n+        id: matrix\n+        shell: bash\n+        run: |\n+          scenario_paths=\"$(git ls-files 'scenarios/**/conformance.yaml')\"\n+          if [[ -z \"$scenario_paths\" ]]; then\n+            echo \"::error::no conformance scenarios found\"\n+            exit 1\n+          fi\n+          matrix=\"$(\n+            printf '%s\\n' \"$scenario_paths\" |\n+              jq -Rsc '\n+                split(\"\\n\") |\n+                map(\n+                  select(length > 0) |\n+                  split(\"/\") |\n+                  if length < 4 then\n+                    error(\"unexpected conformance scenario path: \" + join(\"/\"))\n+                  else\n+                    {domain: .[1], language: .[2]}\n+                  end\n+                ) |\n+                unique |\n+                {include: .}\n+              '\n+          )\"\n+          echo \"matrix=$matrix\" >> \"$GITHUB_OUTPUT\"",
+      "id": "PRRT_kwDOTuzK5c6cKfmg",
+      "opened": "2026-08-25T16:57:05Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-25T20:31:07Z",
+          "body": "Addressed in 22c7bd30a2729d1c3580ebf67e8bd2ae854d8797.\n\nAnalysis: jq's compact output is one line, so the multiline output form is unnecessary. printf writes the exact matrix value and one line terminator without echo option or escape handling.\n\nUpsides: The output write no longer depends on shell-specific echo behavior.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3857076322"
+        }
+      ],
+      "reviewed": "b69e2648a931dac0f81b9be8ad5c32d3d9a846f9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3855297637"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`SCENARIO_ROOT` is defined in multiple steps (also in the later “Check the committed coverage…” step). To reduce duplication and avoid drift if the path logic changes, define `SCENARIO_ROOT` once at the job level (`jobs.scenarios.env`) and reference it from all steps that need it.",
+      "created": "2026-08-25T16:57:05Z",
+      "hunk": "@@ -284,19 +337,22 @@ jobs:\n             -e tools/js \\\n             -e tools/dotnet\n \n+      # Keyed by domain too: a matrix job fetches only the registry its own\n+      # domain pins, so one key per domain keeps every cache complete.\n       - name: Cache the semconv registries\n         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0\n         with:\n           path: ~/.cache/otel-conformance/semconv\n-          key: semconv-${{ hashFiles('tools/**/versions.env') }}\n+          key: semconv-${{ matrix.domain }}-${{ hashFiles('tools/**/versions.env') }}\n \n-      - name: Run every scenario\n+      - name: Run scenarios\n         env:\n           FORCE_COLOR: \"1\" # the log renders ANSI; the step's stdout is no tty\n+          SCENARIO_ROOT: scenarios/${{ matrix.domain }}/${{ matrix.language }}\n         run: |\n           set -uo pipefail\n           mapfile -t directories < <(\n-            find scenarios -name .venv -prune -o \\\n+            find \"$SCENARIO_ROOT\" -name .venv -prune -o \\\n               -name conformance.yaml -exec dirname {} \\; | sort\n           )",
+      "id": "PRRT_kwDOTuzK5c6cKfm0",
+      "opened": "2026-08-25T16:57:05Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-25T20:31:09Z",
+          "body": "Addressed in 63ffe501d6aacfb3d6da856d0fb61e813fb7c2a5.\n\nAnalysis: GitHub Actions makes the matrix context available to job-level environment values. Defining SCENARIO_ROOT there gives both shell steps the same resolved path without repeating the expression.\n\nUpsides: Future path changes need one edit, and the scenario and coverage steps cannot drift apart.\n\nDownsides: Every step in the matrix job receives SCENARIO_ROOT, including steps that do not use it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3857076547"
+        }
+      ],
+      "reviewed": "b69e2648a931dac0f81b9be8ad5c32d3d9a846f9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/107#discussion_r3855297671"
+    }
+  ]
+}

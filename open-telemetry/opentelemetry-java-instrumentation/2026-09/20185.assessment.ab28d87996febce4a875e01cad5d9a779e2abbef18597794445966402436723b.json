@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "db0a904e485f6aa3b3add6b5b8396fd6371f13ff1716f7338b5b98c52dc779a8",
+  "input_digest": "ab28d87996febce4a875e01cad5d9a779e2abbef18597794445966402436723b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5032c8fa2c402001f60c49e77b8182dd76da4feb/.github/workflows/codeql.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d761a054d6abfa0140771e62f85c2e4061cb1c7f/.github/workflows/codeql.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1ebfc79f5e0e8aa15a3f6e2579cae20e5e087fe5"
+      ],
+      "id": "PRRT_kwDODJKVX86kB_w4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/237a84bbfeac34e93cf0df03f622ffd50bf026ec/.github/workflows/codeql.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d761a054d6abfa0140771e62f85c2e4061cb1c7f/.github/workflows/codeql.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/518b6eb706ffdfc9804b3f176397b7f5a3689e56"
+      ],
+      "id": "PRRT_kwDODJKVX86k5q29",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/237a84bbfeac34e93cf0df03f622ffd50bf026ec/.github/workflows/codeql.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d761a054d6abfa0140771e62f85c2e4061cb1c7f/.github/workflows/codeql.yml"
+      ],
+      "id": "PRRT_kwDODJKVX86k5q3u",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

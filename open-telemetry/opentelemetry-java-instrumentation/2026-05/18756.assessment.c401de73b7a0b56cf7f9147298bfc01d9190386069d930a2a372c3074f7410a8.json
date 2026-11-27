@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8b80ec484a9b3250e7912e952fb1a020dbfa50c0fbfe2f492583a5a76d52f269",
+  "input_digest": "c401de73b7a0b56cf7f9147298bfc01d9190386069d930a2a372c3074f7410a8",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7e35ad0ae5514afd059a6307d6901d2bbc71b54/.github/scripts/module-cleanup/finalize.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3299de9ea9fc6b3c6fae9108737489624ceae730/.github/scripts/module-cleanup/finalize.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3299de9ea9fc6b3c6fae9108737489624ceae730/.github/scripts/module-cleanup/export-cleanup-patch.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1ef55955dee1ffacd9f42d419f795175c2de61fa"
+      ],
+      "id": "PRRT_kwDODJKVX86CQM8f",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ef55955dee1ffacd9f42d419f795175c2de61fa/.github/scripts/module-cleanup/finalize.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3299de9ea9fc6b3c6fae9108737489624ceae730/.github/scripts/module-cleanup/finalize.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3589d97ca87082b754908ea5f892ff5b747d2a3e"
+      ],
+      "id": "PRRT_kwDODJKVX86CZwpg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

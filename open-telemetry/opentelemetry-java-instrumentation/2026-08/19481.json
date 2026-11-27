@@ -1,0 +1,73 @@
+{
+  "head": "21bb6c3ed443f190ae4f874355290bfd85bdae59",
+  "merge": "9d915c010b439f6b8f0afa411ad89dd380d190a2",
+  "merged": "2026-08-14T18:03:43Z",
+  "missing_roots": 0,
+  "number": 19481,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The request is created before the stable-semconv branch, so these unconditional aggregations also run on the legacy/default path. Each receive now performs several full batch scans plus `ArrayList`/`HashSet` allocations even though the default getter ignores these values, contradicting the PR's stated “Default-path impact: None.” Please gate or lazily compute the stable-only aggregates.",
+      "created": "2026-08-10T23:16:01Z",
+      "hunk": "@@ -6,17 +6,39 @@\n package io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0;\n \n import apache.rocketmq.v2.ReceiveMessageRequest;\n+import java.util.ArrayList;\n+import java.util.HashSet;\n import java.util.List;\n+import java.util.Objects;\n+import java.util.function.Function;\n+import javax.annotation.Nullable;\n import org.apache.rocketmq.client.apis.message.MessageView;\n \n class RocketMqReceiveRequest {\n \n   private final ReceiveMessageRequest request;\n   private final List<MessageView> messages;\n+  private final String destination;\n+  private final String messageId;\n+  private final String messageTag;\n+  private final String messageGroup;\n+  private final Long messageDeliveryTimestamp;\n+  private final List<String> messageKeys;\n \n   private RocketMqReceiveRequest(ReceiveMessageRequest request, List<MessageView> messages) {\n     this.request = request;\n     this.messages = messages;\n+    this.destination =\n+        messages.isEmpty()\n+            ? request.getMessageQueue().getTopic().getName()\n+            : commonValue(messages, MessageView::getTopic);\n+    this.messageId =\n+        commonValue(messages, message -> Objects.toString(message.getMessageId(), null));\n+    this.messageTag = commonValue(messages, message -> message.getTag().orElse(null));\n+    this.messageGroup = commonValue(messages, message -> message.getMessageGroup().orElse(null));\n+    this.messageDeliveryTimestamp =\n+        commonValue(messages, message -> message.getDeliveryTimestamp().orElse(null));\n+    this.messageKeys = commonKeys(messages);",
+      "id": "PRRT_kwDODJKVX86YEUt_",
+      "opened": "2026-08-10T23:16:02Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqReceiveRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-10T23:36:04Z",
+          "body": "Fixed in 858f7a8b986. Batch attributes are now initialized lazily on the first stable-path getter access, so constructing the request before `shouldStart` performs no message scans or aggregate allocations. Added a regression test that verifies request creation does not inspect the request or messages.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19481#discussion_r3754219266"
+        }
+      ],
+      "reviewed": "b3ff56cbafa386b1deab8263fb781ddebb81ab80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19481#discussion_r3754131115"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This aggregation is also executed before `RocketMqConsumerInstrumenter` selects the stable or legacy batch path. Consequently, default-mode batches now scan all messages three times (and read tags even when experimental attributes are disabled), despite the PR's stated “Default-path impact: None.” Please gate or lazily compute these batch aggregates so the legacy path remains unchanged.",
+      "created": "2026-08-10T23:16:02Z",
+      "hunk": "@@ -40,6 +45,9 @@ private RocketMqConsumerRequest(\n     this.consumerGroup = RocketMqNamespaceUtil.withoutNamespace(consumerGroup, namespace);\n     this.batchSize = batchSize;\n     this.namespace = namespace == null ? \"\" : namespace;\n+    this.destination = commonValue(messages, MessageExt::getTopic);\n+    this.messageId = commonValue(messages, MessageExt::getMsgId);\n+    this.messageTag = commonValue(messages, MessageExt::getTags);",
+      "id": "PRRT_kwDODJKVX86YEUuT",
+      "opened": "2026-08-10T23:16:02Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-10T23:36:05Z",
+          "body": "Fixed in 858f7a8b986. Destination, message ID, and tag are now cached independently on first access, so legacy/default batch request construction performs no aggregate scans and tags are not read unless the experimental stable-path extractor requests them. Added focused lazy-access coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19481#discussion_r3754219388"
+        }
+      ],
+      "reviewed": "b3ff56cbafa386b1deab8263fb781ddebb81ab80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19481#discussion_r3754131149"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should we be concerned that messages could be a linked list? checked that here it is an array list",
+      "created": "2026-08-14T14:24:18Z",
+      "hunk": "@@ -66,4 +74,43 @@ int getBatchSize() {\n   String getNamespace() {\n     return namespace;\n   }\n+\n+  @Nullable\n+  String getDestination() {\n+    if (!destinationInitialized) {\n+      destination = commonValue(messages, MessageExt::getTopic);\n+      destinationInitialized = true;\n+    }\n+    return destination;\n+  }\n+\n+  @Nullable\n+  String getMessageId() {\n+    if (!messageIdInitialized) {\n+      messageId = commonValue(messages, MessageExt::getMsgId);\n+      messageIdInitialized = true;\n+    }\n+    return messageId;\n+  }\n+\n+  @Nullable\n+  String getMessageTag() {\n+    if (!messageTagInitialized) {\n+      messageTag = commonValue(messages, MessageExt::getTags);\n+      messageTagInitialized = true;\n+    }\n+    return messageTag;\n+  }\n+\n+  @Nullable\n+  private static String commonValue(\n+      List<MessageExt> messages, Function<MessageExt, String> valueExtractor) {\n+    String value = valueExtractor.apply(messages.get(0));\n+    for (int i = 1; i < messages.size(); i++) {",
+      "id": "PRRT_kwDODJKVX86ZTskm",
+      "opened": "2026-08-14T14:24:18Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T15:43:00Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19481/commits/b4699e589312e6e88b1ef067ec9c6cdc75faf9db",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19481#discussion_r3785208080"
+        }
+      ],
+      "reviewed": "6a90d13a73af6e5b9b9e7e3b98f1eb18f39bc156",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19481#discussion_r3784545344"
+    }
+  ]
+}

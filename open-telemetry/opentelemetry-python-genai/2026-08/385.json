@@ -1,0 +1,40 @@
+{
+  "head": "121cf0c2a492377f8728814a4e17695951294a47",
+  "merge": "ae0343175a418e4d661e2508eec17dbd887ad5a3",
+  "merged": "2026-08-14T20:58:32Z",
+  "missing_roots": 0,
+  "number": 385,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`applyTo` uses brace expansion (`{...}`), which is not part of the documented `applyTo` glob syntax for Copilot instruction files. This may prevent these review rules from ever applying to the intended files, defeating the purpose of the PR. Prefer an explicit comma-separated list (or a YAML list) of globs.",
+      "created": "2026-08-14T03:19:03Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+---\n+applyTo: \"{tox.ini,pytest.ini,pyproject.toml,uv.lock,.codespellrc,.pre-commit-config.yaml,scripts/**,.github/workflows/**,.github/actions/**}\"\n+---",
+      "id": "PRRT_kwDOSbspP86ZJpWn",
+      "opened": "2026-08-14T03:19:03Z",
+      "path": ".github/instructions/build-config.instructions.md",
+      "replies": [],
+      "reviewed": "5e8242a985f71ea4f583661aa948e2e409d00887",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/385#discussion_r3780755474"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Section numbering jumps from \"## 0\" to \"## 2\" with no \"## 1\" section, which reads like an editing mistake and makes it harder to reference these rules consistently.",
+      "created": "2026-08-14T03:19:03Z",
+      "hunk": "@@ -0,0 +1,53 @@\n+# Review rules for all PRs\n+\n+## 0. What not to flag\n+\n+CI already runs deterministic gates on every PR. Do **not** spend review comments on anything they\n+decide. If a gate would catch it, the gate reports it, and a duplicate review comment is noise:\n+\n+| Gate | Covers |\n+| --- | --- |\n+| `precommit` (ruff, ruff-format, uv-lock, rstcheck) | Lint rules, formatting, import order, line length, `uv.lock` freshness, RST syntax |\n+| `typecheck` (pyright, strict) | Type errors and unused `type: ignore` in packages listed under `[tool.pyright] include` |\n+| `spellcheck` (codespell) | Spelling in code, docs, and comments |\n+| `shellcheck` | Shell script correctness in `scripts/*.sh` |\n+| `readme` | `README.rst` renders on PyPI |\n+| `docs` | Docs build |\n+| `generate` | The generated instrumentation README table being up to date |\n+| `lint-license-header-check` | Missing license headers |\n+| `oldest-deps-check` | Redundant pins in `tests/requirements.oldest.txt`, packages missing an `oldest` requirements file |\n+| `changelog` workflow | Direct edits to `CHANGELOG.md`, changelog fragment presence |\n+| `test` matrix | Test failures across the `oldest`/`latest`/`conformance` envs |\n+\n+Review the things a gate cannot decide: whether the change is correct, whether it matches the\n+GenAI semantic conventions, whether it actually achieves what the PR claims, and whether it\n+weakens or bypasses a gate. Style opinions that ruff does not enforce are not review comments.\n+\n+Repo-wide config is `tox.ini`, `pytest.ini`, root `pyproject.toml`, `.codespellrc`,\n+`.pre-commit-config.yaml`, and `scripts/`. A change there affects every package, so:\n+\n+- **No developer-local paths.** Personal venv or scratch directory names must not be added to\n+  shared configs. `.gitignore` already covers `venv*/`, `.venv*/`, and `.tox`; anything else\n+  belongs in a local ignore or gets renamed to match those patterns. Flag entries that only make\n+  sense on one contributor's machine.\n+- **Skip lists must not weaken a gate.** Excluding a bare directory name from a lint or license\n+  check also excludes any real source directory that happens to share that name. Prefer\n+  path-anchored patterns (`*/.tox/*`) over bare components (`.tox`).\n+- **Shell must be portable.** Commands in `tox.ini` and `scripts/*.sh` run on both Linux and\n+  macOS. Flag GNU-only flags (e.g. `xargs --no-run-if-empty`, `sed -i` without a backup suffix,\n+  `readlink -f`).\n+\n+## 2. Config that packages can shadow",
+      "id": "PRRT_kwDOSbspP86ZJpXB",
+      "opened": "2026-08-14T03:19:03Z",
+      "path": ".github/copilot-instructions.md",
+      "replies": [],
+      "reviewed": "5e8242a985f71ea4f583661aa948e2e409d00887",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/385#discussion_r3780755507"
+    }
+  ]
+}

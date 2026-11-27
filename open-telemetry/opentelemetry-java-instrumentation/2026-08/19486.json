@@ -1,0 +1,31 @@
+{
+  "head": "0c208f3fa59c60e669e1a833d758fe5f76760779",
+  "merge": "f3b4a2c339ce064beafbcff6dfefe14ea2f42a6e",
+  "merged": "2026-08-14T15:24:25Z",
+  "missing_roots": 0,
+  "number": 19486,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Scope this suppression to `assertMetrics`, which is the only member using the deprecated semconv constants. A class-level suppression also hides future deprecation warnings from unrelated members.",
+      "created": "2026-08-10T23:45:40Z",
+      "hunk": "@@ -0,0 +1,104 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awslambdaevents.v2_2;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MessagingSystemIncubatingValues.AWS_SQS;\n+\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+public class AwsLambdaSqsMetricsAssertions {\n+\n+  public static void assertMetrics(",
+      "id": "PRRT_kwDODJKVX86YEq_k",
+      "opened": "2026-08-10T23:45:41Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AwsLambdaSqsMetricsAssertions.java",
+      "replies": [
+        {
+          "at": "2026-08-11T00:16:21Z",
+          "body": "Fixed in 8ceb0fb4499 by moving the suppression onto assertMetrics.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19486#discussion_r3754390947"
+        }
+      ],
+      "reviewed": "8c059790c2893cf350bed3dc292bdbf18b9805bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19486#discussion_r3754270093"
+    }
+  ]
+}

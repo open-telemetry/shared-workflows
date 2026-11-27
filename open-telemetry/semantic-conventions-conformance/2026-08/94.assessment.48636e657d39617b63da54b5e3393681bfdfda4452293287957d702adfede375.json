@@ -1,0 +1,48 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "711f168135d2249dfb0fd90a24bcbd63001cee802113c264e51baef901e3bc43",
+  "input_digest": "48636e657d39617b63da54b5e3393681bfdfda4452293287957d702adfede375",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7486ee9a6dd3a6f06746c70390939f3e8eabc105/scenarios/gen-ai/python/autogen/openinference/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ad9f51497d28b8df182305f38a4f0bee19a28f1c/scenarios/gen-ai/python/autogen/openinference/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ad9f51497d28b8df182305f38a4f0bee19a28f1c/scenarios/gen-ai/python/autogen/openinference/invoke_agent.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ad9f51497d28b8df182305f38a4f0bee19a28f1c/scenarios/gen-ai/python/autogen/openinference/automatic_tool_calling.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dElj5",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7486ee9a6dd3a6f06746c70390939f3e8eabc105/scenarios/gen-ai/python/autogen/native/pyproject.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7486ee9a6dd3a6f06746c70390939f3e8eabc105/scenarios/gen-ai/python/autogen/native/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7486ee9a6dd3a6f06746c70390939f3e8eabc105/scenarios/gen-ai/python/autogen/native/uv.lock",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ad9f51497d28b8df182305f38a4f0bee19a28f1c/scenarios/gen-ai/python/autogen/native/pyproject.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ad9f51497d28b8df182305f38a4f0bee19a28f1c/scenarios/gen-ai/python/autogen/native/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ad9f51497d28b8df182305f38a4f0bee19a28f1c/scenarios/gen-ai/python/autogen/native/uv.lock"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dEljl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ed1b393df0ccd8e876d0dd39e5f52db8ebf6b406/scenarios/gen-ai/python/autogen/scenarios/automatic_tool_calling.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ad9f51497d28b8df182305f38a4f0bee19a28f1c/scenarios/gen-ai/python/autogen/scenarios/automatic_tool_calling.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dP9nj",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

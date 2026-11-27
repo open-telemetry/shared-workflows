@@ -1,0 +1,154 @@
+{
+  "head": "e21335494f53db169ddf484669ff3a7aefbe1a27",
+  "merge": "86019ff308870986b5dc2ae2116829f61c3998ed",
+  "merged": "2026-10-22T00:32:35Z",
+  "missing_roots": 0,
+  "number": 20728,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Catch and log telemetry failures inside this callback. Dubbo 2.7.5's `whenCompleteWithContext` replaces its response future with the callback's dependent stage and restores `RpcContext` only after the callback returns. If `instrumenter.end` throws, for example from a custom `AttributesExtractor.onEnd`, a successful RPC becomes exceptional and context restoration is skipped. The catch around `MethodHandle.invoke` cannot intercept exceptions captured by that stage. Keep telemetry failures from escaping the callback, and add a regression test with a throwing extractor.",
+      "created": "2026-10-19T15:35:36Z",
+      "hunk": "@@ -68,4 +88,52 @@ public Result invoke(Invoker<?> invoker, Invocation invocation) {\n     }\n     return result;\n   }\n+\n+  private boolean registerProviderCompletion(\n+      Context context, DubboRequest request, AsyncRpcResult result) {\n+    BiConsumer<Result, Throwable> completion =\n+        (response, throwable) -> endProvider(context, request, response, throwable);",
+      "id": "PRRT_kwDODJKVX86t_Xf4",
+      "opened": "2026-10-19T15:35:37Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java",
+      "replies": [
+        {
+          "at": "2026-10-20T02:18:06Z",
+          "body": "Addressed in a631e64e3399b0ed780edc6cbbf5dc1bbceb7edb.\n\nVerified Dubbo 2.7.5 whenCompleteWithContext replaces responseFuture with its dependent stage and calls context restoration after the callback without finally. Provider completion now catches and logs telemetry failures inside the callback. A throwing onEnd extractor regression verifies the successful response, restoration of both completion-thread RpcContext instances, and one end invocation. The regression passed with the guard and failed with CompletionException caused by telemetry failure when the guard was removed.\n\n<!-- copilot-loop:57781b2bca1313d8d69ff6a40e976673f7fa2c22a94bcc6b6be540ac5e6264fb:4315759828:195404c11fbd498782c2b148d9966cf9 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4320815296"
+        }
+      ],
+      "reviewed": "6e8b4c4fe39ec87700a9a4a1ad5a2cf914dd5975",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4315759828"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Dubbo 2.7.2's `AsyncRpcResult` extends `CompletableFuture<Result>` through `AbstractResult`, but exposes neither of the completion methods detected above. Both handles are null, so this returns false and the provider span ends before a delayed result completes, losing its full duration and terminal failure. Add a `CompletionStage` fallback and exercise the shared delayed-provider test against 2.7.2 as well as 2.7.0.",
+      "created": "2026-10-19T15:35:36Z",
+      "hunk": "@@ -68,4 +88,52 @@ public Result invoke(Invoker<?> invoker, Invocation invocation) {\n     }\n     return result;\n   }\n+\n+  private boolean registerProviderCompletion(\n+      Context context, DubboRequest request, AsyncRpcResult result) {\n+    BiConsumer<Result, Throwable> completion =\n+        (response, throwable) -> endProvider(context, request, response, throwable);\n+    if (resultWhenCompleteWithContext != null) {\n+      try {\n+        resultWhenCompleteWithContext.invoke(result, completion);\n+      } catch (Throwable ignored) {\n+        // Dubbo may invoke the callback inline for completed results; do not end the span twice.\n+      }\n+      return true;\n+    }\n+    if (asyncResultFuture != null) {\n+      try {\n+        @SuppressWarnings(\n+            \"unchecked\") // Dubbo declares getResultFuture() as CompletableFuture<Result>.\n+        CompletableFuture<Result> future =\n+            (CompletableFuture<Result>) asyncResultFuture.invoke(result);\n+        if (future != null) {\n+          future.whenComplete(completion);\n+          return true;\n+        }\n+      } catch (Throwable ignored) {\n+        // Dubbo may invoke the callback inline for completed results; do not end the span twice.\n+      }\n+    }\n+    return false;",
+      "id": "PRRT_kwDODJKVX86t_XfD",
+      "opened": "2026-10-19T15:35:37Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java",
+      "replies": [
+        {
+          "at": "2026-10-20T02:16:52Z",
+          "body": "Addressed in 1924acb035386ef9bbb0608b57ed5af5b81e343c.\n\nVerified Dubbo 2.7.2 AsyncRpcResult extends AbstractResult, which extends CompletableFuture<Result>, and neither cached completion method is available. Added a CompletionStage fallback and a pinned agent-backed 2.7.2 suite alongside 2.7.0, with delayed success/failure assertions in legacy, preview, and duplicate RPC semconv modes. All modes passed; removing the fallback made both 2.7.2 delayed cases fail.\n\n<!-- copilot-loop:57781b2bca1313d8d69ff6a40e976673f7fa2c22a94bcc6b6be540ac5e6264fb:4315759746:a4dd5045354d46c88c9ad990fa480b39 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4320809461"
+        }
+      ],
+      "reviewed": "6e8b4c4fe39ec87700a9a4a1ad5a2cf914dd5975",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4315759746"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the tests in this PR with the two changes below. Update this PR directly rather than creating a follow-up PR.\n\n1. Remove `asyncProviderSuccessAfterReturn` from `instrumentation/apache-dubbo-2.7/library-autoconfigure/src/test/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilterTest.java`. The success case of the shared `delayedProviderCompletion` integration test already exercises delayed provider success, checks that the server span stays recording until completion, and asserts the resulting trace and metrics.\n\n2. In `instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboAsyncTest.java`, remove `completionTime`, its `System.currentTimeMillis()`/epoch-nanos conversion, and the `getEndEpochNanos()` comparison. Simplify the final hello-trace assertion lambda to just call `assertCall(trace, \"hello\", fail)` and remove any imports made unused by these changes. Keep both before/after `serverSpan.isRecording()` assertions and the completed trace assertions.\n\nPreserve the single-threaded provider setup and barrier call: these establish that the filter chain has returned before the future completes. Keep every other focused test, including exceptional future completion before and after return, response-carried failure, and telemetry callback failure. Preserve success/failure integration coverage, metric counts, legacy/preview/duplicate semantic-convention assertions, and the pinned Dubbo 2.7.0/2.7.2 suites. Do not change production behavior or build configuration. Apply the repository formatting and run the narrow relevant tests where feasible.",
+      "created": "2026-10-21T04:20:21Z",
+      "hunk": "@@ -0,0 +1,208 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.apachedubbo.v2_7;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.rpc.SemconvRpcStabilityUtil.emitPreviewRpcSemconv;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.apachedubbo.v2_7.api.HelloService;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import org.apache.dubbo.common.URL;\n+import org.apache.dubbo.rpc.AppResponse;\n+import org.apache.dubbo.rpc.AsyncRpcResult;\n+import org.apache.dubbo.rpc.Filter;\n+import org.apache.dubbo.rpc.Invocation;\n+import org.apache.dubbo.rpc.Invoker;\n+import org.apache.dubbo.rpc.Result;\n+import org.apache.dubbo.rpc.RpcContext;\n+import org.apache.dubbo.rpc.RpcInvocation;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class TracingFilterTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @Test\n+  void asyncProviderFailureAfterReturn() {\n+    CompletableFuture<AppResponse> future = new CompletableFuture<>();\n+    IllegalStateException failure = new IllegalStateException(\"failure\");\n+    invokeAsyncProvider(future);\n+\n+    assertThat(testing.waitForTraces(0)).isEmpty();\n+\n+    future.completeExceptionally(failure);\n+\n+    assertFailure(failure);\n+  }\n+\n+  @Test\n+  void asyncProviderFailureBeforeReturn() {\n+    CompletableFuture<AppResponse> future = new CompletableFuture<>();\n+    IllegalStateException failure = new IllegalStateException(\"failure\");\n+    future.completeExceptionally(failure);\n+\n+    invokeAsyncProvider(future);\n+\n+    assertFailure(failure);\n+  }\n+\n+  @Test\n+  void asyncProviderResponseFailureAfterReturn() {\n+    CompletableFuture<AppResponse> future = new CompletableFuture<>();\n+    IllegalStateException failure = new IllegalStateException(\"failure\");\n+    invokeAsyncProvider(future);\n+\n+    future.complete(new AppResponse(failure));\n+\n+    assertFailure(failure);\n+  }\n+\n+  @Test\n+  void asyncProviderSuccessAfterReturn() {",
+      "id": "PRRT_kwDODJKVX86un0x0",
+      "opened": "2026-10-21T04:20:21Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/src/test/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilterTest.java",
+      "replies": [
+        {
+          "at": "2026-10-21T04:32:44Z",
+          "body": "Simplified the focused tests as requested in f90f9afc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4333059908"
+        }
+      ],
+      "reviewed": "a5dea14febe0bf8048195d56569065b1266f30c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4332998410"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the version-specific javaagent test suites in this PR. Update this PR directly rather than creating a follow-up PR.\n\nIn instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts, replace the map registering testDubbo27 for 2.7.0 and testDubbo272 for 2.7.2 with a single explicitly registered testDubbo272 suite. Remove testDubbo27 because the existing testDubbo suite already runs the shared DubboAgentAsyncTest on 2.7.0 in normal CI. In testDubbo272, use val version = baseVersion(\"2.7.2\").orLatest() for both Dubbo dependencies, following the existing testDubbo convention. Remove the comment about keeping both early completion APIs covered when testing latest dependencies. CI runs both normal and latest-dependency modes, so normal CI still covers both older APIs without keeping the extra suites pinned in latest-dependency runs.\n\nPreserve testDubbo272's selection of only DubboAgentAsyncTest from src/testDubbo/java and the org.apache.dubbo exclusion on the shared testing-project dependency so the requested runtime version is actually selected. Keep the existing testDubbo suite and the wiring that includes all suites and their legacy, preview, and duplicate RPC semantic-convention variants in check. Preserve all current async success/failure integration assertions and focused tests, including prior test simplifications. Do not change production behavior or expand the scope beyond this Gradle test-suite simplification.\n\nVerify that normal CI still exercises the shared async integration tests on 2.7.0 through testDubbo and on 2.7.2 through testDubbo272, and that latest-dependency mode follows the repository's normal version-selection convention. Apply the narrow relevant formatting and run the relevant tests where feasible.",
+      "created": "2026-10-21T04:45:20Z",
+      "hunk": "@@ -38,6 +38,24 @@ testing {\n         }\n       }\n     }\n+    mapOf(\"testDubbo27\" to \"2.7.0\", \"testDubbo272\" to \"2.7.2\").forEach { (suiteName, version) ->",
+      "id": "PRRT_kwDODJKVX86uoHUx",
+      "opened": "2026-10-21T04:45:20Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-21T04:57:48Z",
+          "body": "Simplified the version-specific suite as requested in a075c2e2. Normal mode passes for both `testDubbo` (2.7.0) and `testDubbo272` (2.7.2), including semconv variants. Latest-dependency execution was blocked during project configuration because Java 27 provisioning is unavailable in this environment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4333186605"
+        }
+      ],
+      "reviewed": "f90f9afcd2dc79ab843cacb78e94965374b2218b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4333121781"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new 2.7.0-specific `getResultFuture()` completion path is not exercised by the existing `testDubbo` suite. Its `:testing` dependency exports Dubbo 2.7.5 (`testing/build.gradle.kts:5–11`), which upgrades the suite's 2.7.0 request. Add a filtered 2.7.0 suite with the same transitive exclusion as this 2.7.2 suite so delayed success and failure exercise the oldest completion API too. The existing suite-based task wiring will include it in normal, preview, and duplicate-mode checks.",
+      "created": "2026-10-21T05:10:56Z",
+      "hunk": "@@ -38,6 +38,22 @@ testing {\n         }\n       }\n     }\n+    register<JvmTestSuite>(\"testDubbo272\") {",
+      "id": "PRRT_kwDODJKVX86uobHG",
+      "opened": "2026-10-21T05:10:57Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a075c2e20729f931f478c0c342d2b35d6f6cb0db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4333253160"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Address the baseline-version coverage finding and add the explanatory comments below. Update this PR directly rather than creating a follow-up PR.\n\nIn instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts, add a testDubbo270 JvmTestSuite immediately before testDubbo272, mirroring that existing suite. Select only **/DubboAgentAsyncTest.java from src/testDubbo/java. Depend on project(\":instrumentation:apache-dubbo-2.7:testing\") with exclude(group = \"org.apache.dubbo\"), and declare both org.apache.dubbo:dubbo and org.apache.dubbo:dubbo-config-api using val version = baseVersion(\"2.7.0\").orLatest(). Preserve testDubbo272 and its corresponding 2.7.2 version selection and exclusion.\n\nAdd a concise Gradle comment explaining why these focused older-version suites are needed: the normal testDubbo suite actually resolves Dubbo 2.7.5 through the shared testing project's transitive dependencies, despite its direct 2.7.0 request. The exclusions let the focused suites exercise the earlier completion APIs without loading the existing DubboBootstrap-dependent tests. Describe the current dependency and coverage requirements, not the history of this change.\n\nIn instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java, add concise comments on both cached MethodHandle fields naming the Dubbo versions they support. resultWhenCompleteWithContext is the context-preserving completion API available from Dubbo 2.7.3 onward. asyncResultFuture supports the getResultFuture() API in Dubbo 2.7.0 and 2.7.1. These boundaries were checked against the Apache Dubbo release sources: Result.whenCompleteWithContext is absent in 2.7.0, 2.7.1, and 2.7.2 and present in 2.7.3; AsyncRpcResult.getResultFuture exists in 2.7.0 and 2.7.1 and is absent in 2.7.2. Preserve the existing CompletionStage fallback for 2.7.2. Write comments for someone reading the current code, without explaining what changed.\n\nKeep all production behavior, the declared minimum supported version, Muzzle range, shared fixture dependencies, and existing tests unchanged. Reuse the delayed success/failure integration tests and retain their recording-state, trace, metric, and legacy/preview/duplicate semantic-convention assertions. The existing suite-based variant and check wiring already includes the new suite, so do not add redundant wiring or metadata-collection entries.\n\nVerify the actual normal-mode runtime dependencies select 2.7.0 for testDubbo270 and 2.7.2 for testDubbo272; do not infer the selected versions from declarations or passing tests. Apply the narrow relevant spotlessApply tasks directly before behavior validation, and run testDubbo270, testDubbo270PreviewSemconv, and testDubbo270BothSemconv, plus narrow checks covering the existing 2.7.2 suite where feasible. Follow the existing orLatest() convention for latest-dependency mode and report any environment blocker accurately. Do not reply to or resolve review threads.",
+      "created": "2026-10-21T05:30:59Z",
+      "hunk": "@@ -38,6 +38,22 @@ testing {\n         }\n       }\n     }\n+    register<JvmTestSuite>(\"testDubbo272\") {",
+      "id": "PRRT_kwDODJKVX86uorTF",
+      "opened": "2026-10-21T05:30:59Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a075c2e20729f931f478c0c342d2b35d6f6cb0db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4333360562"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`testDubbo` already runs all the tests in this suite in latest dep mode. The same for `testDubbo272`",
+      "created": "2026-10-21T17:57:14Z",
+      "hunk": "@@ -38,6 +38,41 @@ testing {\n         }\n       }\n     }\n+    // The shared testing project brings in Dubbo 2.7.5, which wins over testDubbo's direct 2.7.0\n+    // request. Exclude it here to exercise the earlier completion APIs without loading tests that\n+    // depend on DubboBootstrap.\n+    register<JvmTestSuite>(\"testDubbo270\") {\n+      sources {\n+        java {\n+          setSrcDirs(listOf(\"src/testDubbo/java\"))\n+          include(\"**/DubboAgentAsyncTest.java\")\n+        }\n+      }\n+      dependencies {\n+        implementation(project(\":instrumentation:apache-dubbo-2.7:testing\")) {\n+          exclude(group = \"org.apache.dubbo\")\n+        }\n+        val version = baseVersion(\"2.7.0\").orLatest()",
+      "id": "PRRT_kwDODJKVX86u4zLU",
+      "opened": "2026-10-21T17:57:14Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "41638bdf318de7c5344708b9a12d0cbf023fd4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4340163401"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove the redundant latest-dependency executions of the two focused older-Dubbo suites in this PR. Update this PR directly rather than creating a follow-up PR.\n\nIn `instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts`, register both `testDubbo270` and `testDubbo272` only inside `if (!otelProps.testLatestDeps)`. Keep the existing `testDubbo` suite unconditional. Both focused suites currently use `baseVersion(...).orLatest()` and select only `DubboAgentAsyncTest`, which `testDubbo` already runs against latest Dubbo, so they add no distinct latest-dependency coverage.\n\nPreserve each focused suite's source selection, version declaration, and `exclude(group = \"org.apache.dubbo\")` on the shared testing-project dependency. Those exclusions are essential: the shared project exports Dubbo 2.7.5, so the ordinary `testDubbo` suite does not cover 2.7.0 in normal mode. Normal mode must retain actual 2.7.0 and 2.7.2 runtime coverage and all existing legacy, preview, and duplicate RPC semantic-convention executions. The existing suite-based variant/check wiring should naturally omit both focused suites and their derived variants in latest-dependency mode while retaining `testDubbo` and its variants.\n\nKeep this change limited to the Gradle suite-registration cleanup. Preserve production behavior, all async assertions and focused tests, shared dependencies, and metadata-collection wiring. Apply the narrow relevant formatting and verify the normal-mode runtime selections and suite/variant execution plan in both modes, running the narrow relevant tests where feasible. Report environment blockers accurately. Do not edit the PR title or description, reply to review comments, resolve threads, or file a tracking issue.",
+      "created": "2026-10-21T21:02:13Z",
+      "hunk": "@@ -38,6 +38,41 @@ testing {\n         }\n       }\n     }\n+    // The shared testing project brings in Dubbo 2.7.5, which wins over testDubbo's direct 2.7.0\n+    // request. Exclude it here to exercise the earlier completion APIs without loading tests that\n+    // depend on DubboBootstrap.\n+    register<JvmTestSuite>(\"testDubbo270\") {\n+      sources {\n+        java {\n+          setSrcDirs(listOf(\"src/testDubbo/java\"))\n+          include(\"**/DubboAgentAsyncTest.java\")\n+        }\n+      }\n+      dependencies {\n+        implementation(project(\":instrumentation:apache-dubbo-2.7:testing\")) {\n+          exclude(group = \"org.apache.dubbo\")\n+        }\n+        val version = baseVersion(\"2.7.0\").orLatest()",
+      "id": "PRRT_kwDODJKVX86u87ad",
+      "opened": "2026-10-21T21:02:13Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "41638bdf318de7c5344708b9a12d0cbf023fd4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20728#discussion_r4341929602"
+    }
+  ]
+}

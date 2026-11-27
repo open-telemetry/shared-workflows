@@ -1,0 +1,97 @@
+{
+  "head": "f48bf9374c1f1b7819ba4f8ada2ddc348664ea61",
+  "merge": "f324d6d7dd28040ed5e0f9804db0383d99113eee",
+  "merged": "2026-10-08T05:22:10Z",
+  "missing_roots": 0,
+  "number": 20420,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The upgrade instructions migrate `.headers.included` but omit the removed `.headers.excluded` property. A user who migrates the include selector as documented while retaining the old exclusion will silently capture headers that were previously excluded, potentially exposing sensitive values. Document the flat and YAML exclusion replacements along with the other removed aliases.",
+      "created": "2026-10-07T04:00:52Z",
+      "hunk": "@@ -18,5 +18,16 @@ This package streamlines the manual instrumentation process of OpenTelemetry for\n | `otel.instrumentation.spring-webflux.experimental-span-attributes`             | Boolean | `false` | Enable the capture of experimental span attributes for Spring WebFlux version 5.0.                                                                                                                                                                                                                                                                      |\n | `otel.instrumentation.spring-webmvc.experimental-span-attributes`              | Boolean | `false` | Enable the capture of experimental span attributes for Spring Web MVC version 3.1.                                                                                                                                                                                                                                                                      |\n | `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` | Boolean | `false` | Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                                                                                                                                                                     |\n-| `otel.instrumentation.messaging.experimental.receive-telemetry.enabled`        | Boolean | `false` | Deprecated: use `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` instead. It may be removed in the next minor release. Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                |\n+| `otel.instrumentation.common.messaging.headers.included`                       | List    |         | Case-sensitive message header name patterns to capture. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence. Captured attribute keys preserve the header name's original spelling, including dashes.                                                                                                   |\n+| `otel.instrumentation.common.messaging.headers.excluded`                       | List    |         | Case-sensitive message header name patterns to exclude. An exclude-only selector captures all other headers, which may expose sensitive information. Captured attribute keys preserve the header name's original spelling, including dashes.                                                                                                            |\n | `otel.instrumentation.kafka.experimental-span-attributes`                      | Boolean | `false` | Enable the capture of experimental span attributes for Spring Kafka version 2.7.                                                                                                                                                                                                                                                                        |\n+\n+When upgrading, replace `otel.instrumentation.messaging.experimental.headers.included=Test-Message-*`\n+with `otel.instrumentation.common.messaging.headers.included=Test-Message-*`. The declarative\n+equivalent changes from `java.messaging.headers/development.included` to\n+`java.common.messaging.headers.included`. Replace\n+`otel.instrumentation.messaging.experimental.capture-headers=Test-Message-Id` with\n+`otel.instrumentation.common.messaging.headers.included=Test-Message-Id`. Captured header keys now preserve dashes in every mode:\n+`messaging.header.Test_Message_Id` becomes `messaging.header.Test-Message-Id`. Replace\n+`otel.instrumentation.messaging.experimental.receive-telemetry.enabled` with\n+`otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled`.",
+      "id": "PRRT_kwDODJKVX86pwCWI",
+      "opened": "2026-10-07T04:00:52Z",
+      "path": "instrumentation/spring/README.md",
+      "replies": [],
+      "reviewed": "60659a8bde24b48ff8bfe3e83826315f8ed2c1dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420#discussion_r4202921881"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The removed messaging mapping is still documented as active in `.github/agents/knowledge/metadata-yaml-format.md:166`. Update that table in this PR so the repository guidance no longer tells contributors that `otel.instrumentation.messaging.experimental.capture-headers` maps to `java.common.messaging.capture_headers/development`.",
+      "created": "2026-10-07T05:05:41Z",
+      "hunk": "@@ -59,7 +59,7 @@ final class ConfigPropertiesBackedDeclarativeConfigProperties\n     SPECIAL_MAPPINGS.put(\"general.semconv_stability.opt_in\", \"otel.semconv-stability.opt-in\");\n     SPECIAL_MAPPINGS.put(\n         \"general.semconv_exception.signal.preview\", \"otel.semconv.exception.signal.preview\");\n-    // moving common http, database, messaging, and gen_ai configs under common\n+    // moving common http, database, and gen_ai configs under common",
+      "id": "PRRT_kwDODJKVX86pw08q",
+      "opened": "2026-10-07T05:05:41Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [
+        {
+          "at": "2026-10-07T21:52:46Z",
+          "body": "No code change.\n\nAnalysis: At the frozen SHA, metadata-yaml-format.md contains no row mapping otel.instrumentation.messaging.experimental.capture-headers to java.common.messaging.capture_headers/development, and the bridge class no longer has that mapping. The documentation is already consistent.\n\nUpsides: No redundant edit; thread can be resolved.\n\nDownsides: None.\n\n<!-- copilot-loop:14498f29483fa059da3754ac33b51a5af5c26e2ad8f1f5f2ae6ee498d8fba0b8:4203246779:d607b3ea0b0f479ea69150bd32819ca9 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420#discussion_r4212381485"
+        }
+      ],
+      "reviewed": "7777dec6426500575c8071e95ce56136a01a3755",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420#discussion_r4203246779"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since `v3-preview` flag is going away this test feels unnecessary ",
+      "created": "2026-10-07T07:06:45Z",
+      "hunk": "@@ -43,6 +45,17 @@ void capturesExactIncludedNames() {\n         .containsOnly(headerEntry(\"Test-Message-Header\", \"one\"));\n   }\n \n+  @Test\n+  void preservesDashesWhenV3PreviewIsDisabled() {",
+      "id": "PRRT_kwDODJKVX86pyyZB",
+      "opened": "2026-10-07T07:06:45Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingHeadersTest.java",
+      "replies": [],
+      "reviewed": "7777dec6426500575c8071e95ce56136a01a3755",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420#discussion_r4204047409"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could move under subheading and make clear that these are migration notes for v3",
+      "created": "2026-10-07T07:08:29Z",
+      "hunk": "@@ -18,5 +18,16 @@ This package streamlines the manual instrumentation process of OpenTelemetry for\n | `otel.instrumentation.spring-webflux.experimental-span-attributes`             | Boolean | `false` | Enable the capture of experimental span attributes for Spring WebFlux version 5.0.                                                                                                                                                                                                                                                                      |\n | `otel.instrumentation.spring-webmvc.experimental-span-attributes`              | Boolean | `false` | Enable the capture of experimental span attributes for Spring Web MVC version 3.1.                                                                                                                                                                                                                                                                      |\n | `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` | Boolean | `false` | Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                                                                                                                                                                     |\n-| `otel.instrumentation.messaging.experimental.receive-telemetry.enabled`        | Boolean | `false` | Deprecated: use `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` instead. It may be removed in the next minor release. Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                |\n+| `otel.instrumentation.common.messaging.headers.included`                       | List    |         | Case-sensitive message header name patterns to capture. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence. Captured attribute keys preserve the header name's original spelling, including dashes.                                                                                                   |\n+| `otel.instrumentation.common.messaging.headers.excluded`                       | List    |         | Case-sensitive message header name patterns to exclude. An exclude-only selector captures all other headers, which may expose sensitive information. Captured attribute keys preserve the header name's original spelling, including dashes.                                                                                                            |\n | `otel.instrumentation.kafka.experimental-span-attributes`                      | Boolean | `false` | Enable the capture of experimental span attributes for Spring Kafka version 2.7.                                                                                                                                                                                                                                                                        |\n+\n+When upgrading, replace `otel.instrumentation.messaging.experimental.headers.included=Test-Message-*`",
+      "id": "PRRT_kwDODJKVX86py0XG",
+      "opened": "2026-10-07T07:08:29Z",
+      "path": "instrumentation/spring/README.md",
+      "replies": [
+        {
+          "at": "2026-10-08T02:09:47Z",
+          "body": "removed migration notes from READMEs, I think changelog is good enough",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420#discussion_r4213905450"
+        }
+      ],
+      "reviewed": "7777dec6426500575c8071e95ce56136a01a3755",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420#discussion_r4204059943"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T20:42:27Z",
+      "hunk": "@@ -18,5 +18,18 @@ This package streamlines the manual instrumentation process of OpenTelemetry for\n | `otel.instrumentation.spring-webflux.experimental-span-attributes`             | Boolean | `false` | Enable the capture of experimental span attributes for Spring WebFlux version 5.0.                                                                                                                                                                                                                                                                      |\n | `otel.instrumentation.spring-webmvc.experimental-span-attributes`              | Boolean | `false` | Enable the capture of experimental span attributes for Spring Web MVC version 3.1.                                                                                                                                                                                                                                                                      |\n | `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` | Boolean | `false` | Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                                                                                                                                                                     |\n-| `otel.instrumentation.messaging.experimental.receive-telemetry.enabled`        | Boolean | `false` | Deprecated: use `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` instead. It may be removed in the next minor release. Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                |\n+| `otel.instrumentation.common.messaging.headers.included`                       | List    |         | Case-sensitive message header name patterns to capture. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence. Captured attribute keys preserve the header name's original spelling, including dashes.                                                                                                   |\n+| `otel.instrumentation.common.messaging.headers.excluded`                       | List    |         | Case-sensitive message header name patterns to exclude. An exclude-only selector captures all other headers, which may expose sensitive information. Captured attribute keys preserve the header name's original spelling, including dashes.                                                                                                            |\n | `otel.instrumentation.kafka.experimental-span-attributes`                      | Boolean | `false` | Enable the capture of experimental span attributes for Spring Kafka version 2.7.                                                                                                                                                                                                                                                                        |\n+\n+## Migration to 3.0\n+\n+When upgrading to 3.0, replace `otel.instrumentation.messaging.experimental.headers.included=Test-Message-*`\n+with `otel.instrumentation.common.messaging.headers.included=Test-Message-*`. Replace\n+`otel.instrumentation.messaging.experimental.capture-headers=Test-Message-Id` with\n+`otel.instrumentation.common.messaging.headers.included=Test-Message-Id`. Also replace\n+`otel.instrumentation.messaging.experimental.headers.excluded=Sensitive-*` with\n+`otel.instrumentation.common.messaging.headers.excluded=Sensitive-*`. Captured header keys now preserve dashes in every mode:\n+`messaging.header.Test_Message_Id` becomes `messaging.header.Test-Message-Id`. Replace\n+`otel.instrumentation.messaging.experimental.receive-telemetry.enabled` with\n+`otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled`.",
+      "id": "PRRT_kwDODJKVX86qFoFF",
+      "opened": "2026-10-07T20:42:27Z",
+      "path": "instrumentation/spring/README.md",
+      "replies": [],
+      "reviewed": "ddd777df6ec285573094f6a0222d9affd305cfb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420#discussion_r4211764812"
+    }
+  ]
+}

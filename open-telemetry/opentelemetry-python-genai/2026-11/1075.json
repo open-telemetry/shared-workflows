@@ -1,0 +1,114 @@
+{
+  "head": "0bf06a00c80da35c7d9a15d3d7c795ba78f003bc",
+  "merge": "b164937d84d378c8fcb7e2cf4190aa21f03aba26",
+  "merged": "2026-11-12T05:12:36Z",
+  "missing_roots": 0,
+  "number": 1075,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The recursion removes optional fields from dataclasses inside `Any` payloads: a nested `Result(detail=None)` with `detail: str | None` becomes `{}` instead of `{\"detail\": null}`. It also runs `get_type_hints()` on user payloads, which can raise `NameError` for annotations unavailable at runtime. Preserve the previous non-filtering `asdict` conversion throughout `Any` subtrees (`arguments`, `response`, and `parameters`), with regression tests for nested dataclasses.",
+      "created": "2026-11-11T06:13:18Z",
+      "hunk": "@@ -126,6 +128,44 @@ def fq_exception_type(exception: BaseException) -> str:\n     return qualname\n \n \n+@lru_cache(maxsize=128)\n+def _optional_field_names(cls: type) -> frozenset[str]:\n+    return frozenset(\n+        name\n+        for name, hint in get_type_hints(cls).items()\n+        if get_origin(hint) in (Union, UnionType)\n+        and type(None) in get_args(hint)\n+    )\n+\n+\n+def _asdict_without_optional_none(value: object) -> object:\n+    \"\"\"Copy dataclass content, omitting None only for optional dataclass fields.\"\"\"\n+    if is_dataclass(value) and not isinstance(value, type):\n+        optional = _optional_field_names(type(value))\n+        return {\n+            field.name: _asdict_without_optional_none(item)",
+      "id": "PRRT_kwDOSbspP862DJkh",
+      "opened": "2026-11-11T06:13:18Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-11-11T12:50:54Z",
+          "body": "Fixed in d806ce8e, which copies fields typed `Any` as `dataclasses.asdict` does.\n\n`test_dataclass_payload_keeps_none` covers the nested `None` and the `NameError` case.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4538075912"
+        }
+      ],
+      "reviewed": "70728bd18fef95462568452abf553a680518b715",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4534611390"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "Take a look at https://github.com/open-telemetry/opentelemetry-python-genai/pull/1013 -- we are going to drop the cast to json, and cast to OTLP `AnyValue` everywhere.. \n\nHere is how we do that cast for dataclass objects, see [here](https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py#L155) and [here](https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py#L218-L219) -- I think we do not drop None values but we should.. I think if you just update that code that is all you need to do though...\n\n",
+      "created": "2026-11-11T15:17:31Z",
+      "hunk": "@@ -0,0 +1 @@\n+Omit unset optional fields from GenAI message, system instruction, and tool definition JSON.",
+      "id": "PRRT_kwDOSbspP862O4dm",
+      "opened": "2026-11-11T15:17:31Z",
+      "path": "util/opentelemetry-util-genai/.changelog/1075.fixed",
+      "replies": [
+        {
+          "at": "2026-11-11T18:00:28Z",
+          "body": "@DylanRussell moved it to `_dump_model` in 2013838a and reverted the JSON-path edits. I updated the description with the scope and the plan for the upload hook.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4541468273"
+        }
+      ],
+      "reviewed": "d806ce8efd573c7c72b750c36c2a7d9befa88083",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4539668463"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "The `Any` fields have no default, which means instrumentations must populate them even if they want to omit the value..\n\nMaybe you can scan the repo and see how instrumentations are passing `None` for these Any values -- are they legit `None` values, or does the instrumentation use this when they are missing..\n\nIf `None` is a legit value in some cases, we should maybe use a sentinel default value to differentiate between None and missing.. There's some discussion on the best way to do this: https://stackoverflow.com/questions/69239403/type-hinting-parameters-with-a-sentinel-value-as-the-default ..",
+      "created": "2026-11-11T18:42:29Z",
+      "hunk": "@@ -214,9 +214,32 @@ def _sanitize_for_any_value(\n         return _OMIT\n \n \n+_GENAI_TYPES_MODULE = \"opentelemetry.util.genai.types\"\n+\n+\n+@cache\n+def _unset_when_none(cls: type) -> frozenset[str]:\n+    \"\"\"Fields of a util-genai type for which None means \"not set\".\n+\n+    Fields typed ``Any`` hold a payload, so None there is a real value.\n+    \"\"\"\n+    hints = get_type_hints(cls)\n+    return frozenset(f.name for f in fields(cls) if hints[f.name] is not Any)",
+      "id": "PRRT_kwDOSbspP862T-3O",
+      "opened": "2026-11-11T18:42:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-11-11T22:45:59Z",
+          "body": "Looking at the 5 `Any` fields in `types.py`, `FunctionToolDefinition.parameters`, `ServerToolCallPart.server_tool_call`, and `ServerToolCallResponsePart.server_tool_call_response` are typed object schemas in semconv (not `Any` payloads), and instrumentations pass `None` for both `FunctionToolDefinition.parameters` and `ToolCallRequestPart.arguments` when unset. Since existing callers already pass `None` explicitly (and `ToolCallRequestPart.arguments` precedes non-default fields), maybe we should omit `None` on everything except `ToolCallResponsePart.response` rather than keying off `is not Any` or adding a sentinel?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4543874324"
+        },
+        {
+          "at": "2026-11-11T23:51:17Z",
+          "body": "@DylanRussell Anthropic sets `arguments=None` for a tool input that is not a dict. Google GenAI sets `parameters=None` for plain callables.\n\nNothing passes None for `server_tool_call` or `server_tool_call_response`.\n\n`response` is None when a tool result has no content, as in bedrock and anthropic.\n\ne092a5e drops None for every other field. `_unset_when_none` is gone with it, which also settles the `DataclassInstance` suggestion.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4544525979"
+        }
+      ],
+      "reviewed": "e192f66ba5a18edcac43d08fb526bff36937e7c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4541900706"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "One not on typing, you can probably import `DataclassInstance` like below and use `type[DataclassInstance]` annotation here. The `is_dataclass()` call on L231 is already type guarded to return this so I tihnk it will just work\n\n```py\nif TYPE_CHECKING:\n    from _typeshed import DataclassInstance\n```\n```suggestion\ndef _unset_when_none(cls: type[DataclassInstance]) -> frozenset[str]:\n```",
+      "created": "2026-11-11T23:15:38Z",
+      "hunk": "@@ -214,9 +214,32 @@ def _sanitize_for_any_value(\n         return _OMIT\n \n \n+_GENAI_TYPES_MODULE = \"opentelemetry.util.genai.types\"\n+\n+\n+@cache\n+def _unset_when_none(cls: type) -> frozenset[str]:",
+      "id": "PRRT_kwDOSbspP862ZYEv",
+      "opened": "2026-11-11T23:15:46Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "e192f66ba5a18edcac43d08fb526bff36937e7c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4544283910"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please don't special-case `response`. With absent and null being equivalent, `None` can be dropped here too. Semconv making `response` optional is in open-telemetry/semantic-conventions-genai#688.\n\n```suggestion\n        dumped = {f.name: getattr(value, f.name) for f in fields(value)}\n        if type(value).__module__ == _GENAI_TYPES_MODULE:\n            # None means \"not set\" in util-genai types. User dataclasses, such\n            # as those inside tool payloads, keep their None values.\n            dumped = {k: v for k, v in dumped.items() if v is not None}\n```\n\nThe `ToolCallResponsePart` import and `test_tool_response_keeps_none` would go as well.\n",
+      "created": "2026-11-12T03:56:09Z",
+      "hunk": "@@ -214,9 +215,24 @@ def _sanitize_for_any_value(\n         return _OMIT\n \n \n+_GENAI_TYPES_MODULE = \"opentelemetry.util.genai.types\"\n+\n+\n def _dump_model(value: object) -> object | None:\n     if is_dataclass(value) and not isinstance(value, type):\n-        return {f.name: getattr(value, f.name) for f in fields(value)}\n+        dumped = {f.name: getattr(value, f.name) for f in fields(value)}\n+        if type(value).__module__ == _GENAI_TYPES_MODULE:\n+            # None means \"not set\" in util-genai types. A tool response is\n+            # required by semconv, so a None response is kept as null. User\n+            # dataclasses, such as those inside tool payloads, keep their\n+            # None values.\n+            is_tool_response = isinstance(value, ToolCallResponsePart)\n+            dumped = {\n+                k: v\n+                for k, v in dumped.items()\n+                if v is not None or (is_tool_response and k == \"response\")\n+            }",
+      "id": "PRRT_kwDOSbspP862db_0",
+      "opened": "2026-11-12T04:05:03Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-11-12T04:49:59Z",
+          "body": "@lmolkova Applied in 0bf06a0, along with removing the import and the test.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4546445789"
+        }
+      ],
+      "reviewed": "e092a5e7963998d6aa31e13e4698930709abd0ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1075#discussion_r4546075061"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "ff70745a2fbf2c65fe209dca3ac652150775dce7",
+  "merge": "5eec6f92e07d0c637f8d4cfbce6e6c2665cbf26a",
+  "merged": "2026-09-29T22:11:13Z",
+  "missing_roots": 0,
+  "number": 20271,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Mark this additive ContextView Muzzle pass as documentation-only ignored. The instrumentation docs parser emits every unignored pass as a supported target range, so this currently generates both `[3.1.0.RELEASE,)` and the redundant `[3.4.0,)` under the consolidated `reactor-3.1` entry, misleading readers into thinking they are separate support ranges. This follows the additive-pass convention documented in `instrumentation-docs/readme.md:353-379` and used by Couchbase/Jedis.",
+      "created": "2026-09-28T17:29:35Z",
+      "hunk": "@@ -1,15 +1,28 @@\n plugins {\n   id(\"otel.javaagent-instrumentation\")\n+  id(\"otel.nullaway-conventions\")\n }\n \n muzzle {\n   pass {\n+    name.set(\"Reactor 3.1 instrumentation\")\n     group.set(\"io.projectreactor\")\n     module.set(\"reactor-core\")\n     versions.set(\"[3.1.0.RELEASE,)\")\n     assertInverse.set(true)\n     extraDependency(\"io.opentelemetry:opentelemetry-api:1.0.0\")\n     excludeInstrumentationName(\"opentelemetry-api\")\n+    excludeInstrumentationName(\"reactor-3.4\")\n+  }\n+  pass {\n+    name.set(\"Reactor 3.4 ContextView instrumentation\")",
+      "id": "PRRT_kwDODJKVX86myoT1",
+      "opened": "2026-09-28T17:29:35Z",
+      "path": "instrumentation/reactor/reactor-3.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-28T18:11:12Z",
+          "body": "Addressed in 081431ecbfd861ec005390376f3db5bed7f51aa2.\n\nFixed in the verified source changes 081431ecbfd861ec005390376f3db5bed7f51aa2.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20271#discussion_r4125519135"
+        }
+      ],
+      "reviewed": "38d7c6eeb1a830a5a63d55326b97a0478bad9c9c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20271#discussion_r4125154073"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Keep an always-wired integration suite for the ContextView bridge's 3.4.0 lower bound. This suite is disabled in ordinary `check` runs and, when `testLatestDeps` is enabled, runs only against `latest.release`; the default suite uses Reactor 3.1 and cannot load `ContextView`. As a result, consolidating the module removes the installed-agent coverage that the former Reactor 3.4 project ran at its minimum supported version. A dedicated 3.4.0 `JvmTestSuite` (optionally alongside this latest-dependency suite) would preserve that compatibility coverage.",
+      "created": "2026-09-28T23:51:50Z",
+      "hunk": "@@ -51,10 +64,19 @@ testing {\n         implementation(\"io.projectreactor:reactor-test:$version\")\n       }\n     }\n+    register<JvmTestSuite>(\"latestDepTest\") {\n+      dependencies {\n+        implementation(project(\":instrumentation:reactor:reactor-3.1:library\"))\n+        implementation(\"io.projectreactor:reactor-core:latest.release\")",
+      "id": "PRRT_kwDODJKVX86m54SZ",
+      "opened": "2026-09-28T23:51:51Z",
+      "path": "instrumentation/reactor/reactor-3.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "12fac3ff0e4d0a7654a449a14fe614b4a86b7450",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20271#discussion_r4128183978"
+    }
+  ]
+}

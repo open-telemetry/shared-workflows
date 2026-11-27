@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e53354063e186a6563f5b799ed04958ee166e3ceacac74bee37ad6ec26132759",
+  "input_digest": "f761830a9217ab22d65cc1e108dd281d292240fa948af7c25862454de0e308a3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e9e28f5aac4b1923b57e6af59b339b634c74d6e/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchActionNames.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/049fc9c6474dc62702dd754fa293672fdc1af716/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchActionNames.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d4f45e5fe86702ed9694ea8e834b2dbd7f89bfc8"
+      ],
+      "id": "PRRT_kwDODJKVX86a75R9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

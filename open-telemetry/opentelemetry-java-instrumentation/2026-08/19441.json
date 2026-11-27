@@ -1,0 +1,40 @@
+{
+  "head": "961914d20f086bb044dbf6fc8163e29af3586215",
+  "merge": "3b83ef3f7d5cf82e10aa691a23f06711b6a76ac9",
+  "merged": "2026-08-08T17:34:53Z",
+  "missing_roots": 0,
+  "number": 19441,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `description` scalar is unintentionally split across two lines with extra indentation, which introduces a newline into the value (and reads oddly as rendered). Collapse this into a single line or use a folded block scalar (`>`) so the rendered description is consistent and does not include an unintended line break.",
+      "created": "2026-08-08T03:07:53Z",
+      "hunk": "@@ -2004,6 +2004,90 @@ definitions:\n       data_type: HISTOGRAM\n       unit: s\n       attributes: []\n+    messaging.client.consumed.messages-5c21579f:\n+      name: messaging.client.consumed.messages\n+      description: Number of messages that were delivered to the application.\n+      instrument: counter\n+      data_type: LONG_SUM\n+      unit: '{message}'\n+      attributes:\n+      - name: messaging.destination.name\n+        type: STRING\n+      - name: messaging.destination.subscription.name\n+        type: STRING\n+      - name: messaging.operation.name\n+        type: STRING\n+      - name: messaging.system\n+        type: STRING\n+      - name: server.address\n+        type: STRING\n+      - name: server.port\n+        type: LONG\n+    messaging.client.operation.duration-dab7c60a:\n+      name: messaging.client.operation.duration\n+      description: Duration of messaging operation initiated by a producer or consumer\n+        client.\n+      instrument: histogram",
+      "id": "PRRT_kwDODJKVX86Xb2jb",
+      "opened": "2026-08-08T03:07:53Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "961914d20f086bb044dbf6fc8163e29af3586215",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19441#discussion_r3739827055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There are two separate metric definitions with the same metric `name: messaging.process.duration` but different attribute sets. This makes the catalog ambiguous for consumers that key off metric name (and increases the chance of inconsistent references over time). Prefer a single definition that lists the superset of attributes (if attributes are optional), or use distinct metric names if these are truly different metrics; then update any `metric_refs` to point to the consolidated definition.",
+      "created": "2026-08-08T03:07:53Z",
+      "hunk": "@@ -2004,6 +2004,90 @@ definitions:\n       data_type: HISTOGRAM\n       unit: s\n       attributes: []\n+    messaging.client.consumed.messages-5c21579f:\n+      name: messaging.client.consumed.messages\n+      description: Number of messages that were delivered to the application.\n+      instrument: counter\n+      data_type: LONG_SUM\n+      unit: '{message}'\n+      attributes:\n+      - name: messaging.destination.name\n+        type: STRING\n+      - name: messaging.destination.subscription.name\n+        type: STRING\n+      - name: messaging.operation.name\n+        type: STRING\n+      - name: messaging.system\n+        type: STRING\n+      - name: server.address\n+        type: STRING\n+      - name: server.port\n+        type: LONG\n+    messaging.client.operation.duration-dab7c60a:\n+      name: messaging.client.operation.duration\n+      description: Duration of messaging operation initiated by a producer or consumer\n+        client.\n+      instrument: histogram\n+      data_type: HISTOGRAM\n+      unit: s\n+      attributes:\n+      - name: messaging.destination.name\n+        type: STRING\n+      - name: messaging.operation.name\n+        type: STRING\n+      - name: messaging.operation.type\n+        type: STRING\n+      - name: messaging.system\n+        type: STRING\n+      - name: server.address\n+        type: STRING\n+      - name: server.port\n+        type: LONG\n+    messaging.client.sent.messages-38a90199:\n+      name: messaging.client.sent.messages\n+      description: Number of messages producer attempted to send to the broker.\n+      instrument: counter\n+      data_type: LONG_SUM\n+      unit: '{message}'\n+      attributes:\n+      - name: messaging.destination.name\n+        type: STRING\n+      - name: messaging.operation.name\n+        type: STRING\n+      - name: messaging.system\n+        type: STRING\n+      - name: server.address\n+        type: STRING\n+      - name: server.port\n+        type: LONG\n+    messaging.process.duration-9ee3dd0a:\n+      name: messaging.process.duration\n+      description: Duration of processing operation.\n+      instrument: histogram\n+      data_type: HISTOGRAM\n+      unit: s\n+      attributes:\n+      - name: messaging.destination.name\n+        type: STRING\n+      - name: messaging.destination.subscription.name\n+        type: STRING\n+      - name: messaging.operation.name\n+        type: STRING\n+      - name: messaging.system\n+        type: STRING\n+    messaging.process.duration-ab13a22e:\n+      name: messaging.process.duration\n+      description: Duration of processing operation.\n+      instrument: histogram\n+      data_type: HISTOGRAM\n+      unit: s\n+      attributes:\n+      - name: messaging.destination.name\n+        type: STRING\n+      - name: messaging.operation.name\n+        type: STRING\n+      - name: messaging.system\n+        type: STRING",
+      "id": "PRRT_kwDODJKVX86Xb2ji",
+      "opened": "2026-08-08T03:07:53Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "961914d20f086bb044dbf6fc8163e29af3586215",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19441#discussion_r3739827063"
+    }
+  ]
+}

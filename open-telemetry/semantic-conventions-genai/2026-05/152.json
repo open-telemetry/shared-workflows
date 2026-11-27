@@ -1,0 +1,31 @@
+{
+  "head": "e296847d0065664c47d81b40e0b6078b7e3238ef",
+  "merge": "e68d2d3114ed89f56313f2d3c316d68f3c757fbc",
+  "merged": "2026-05-13T20:03:46Z",
+  "missing_roots": 0,
+  "number": 152,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The non-follow-up Slack message uses wording \"moved to waiting on approvers\", but `notification_due()` returns \"initial\" in cases that don’t necessarily imply a state transition (e.g., newly assigned reviewer, or first notification after a missed/failed run). Consider using more neutral wording like \"is waiting on approvers\" for the initial notification to avoid misleading recipients.\n",
+      "created": "2026-05-12T21:32:03Z",
+      "hunk": "@@ -1051,13 +1052,12 @@ def post_slack_webhook(message: str, webhook_url: str) -> None:\n def slack_message(repo: str, result: dict[str, Any], assignee_mention: str, kind: str) -> str:\n     facts = result.get(\"facts\") or {}\n     number = result.get(\"pr_num\")\n-    title = result.get(\"pr_title\") or f\"PR #{number}\"\n     url = result.get(\"pr_url\") or f\"https://github.com/{repo}/pull/{number}\"\n     if kind == \"follow-up\":\n-        lead = f\"PR #{number} is still waiting on approvers after {facts.get('waiting_age') or '24h'}\"\n+        lead = f\"has been waiting on approvers for {facts.get('waiting_age') or '24h'}\"\n     else:\n-        lead = f\"PR #{number} is now waiting on approvers\"\n-    return f\"{lead}, and {assignee_mention} is assigned on GitHub.\\n{title}\\n{url}\"\n+        lead = \"moved to waiting on approvers\"",
+      "id": "PRRT_kwDOSUeMrM6BkV3j",
+      "opened": "2026-05-12T21:32:04Z",
+      "path": ".github/scripts/pull-request-dashboard.py",
+      "replies": [
+        {
+          "at": "2026-05-12T22:16:37Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/e296847d0065664c47d81b40e0b6078b7e3238ef.\n\nThis keeps transition-style initial notifications as “moved to waiting on approvers” while skipping Slack notifications for newly seen assignees on the same waiting period.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/152#discussion_r3230187317"
+        }
+      ],
+      "reviewed": "54073f5ee57e652a723fd849361b9573e49be4cd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/152#discussion_r3229977594"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "head": "ae79454c059146e58032b835a772228508ae3d5f",
+  "merge": "41aad2b16ab1725eb618c5e9a0b82433e9b1c170",
+  "merged": "2026-10-30T21:01:02Z",
+  "missing_roots": 0,
+  "number": 629,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Groq 1.7.0 returns default streaming token counts in `chunk.x_groq.usage`; top-level `chunk.usage` requires `stream_options.include_usage`, which this call does not request. Streams using the default response format therefore skip the new token attributes and measurements. Read `x_groq.usage` as a fallback while preserving usage from earlier chunks.",
+      "created": "2026-10-26T21:13:52Z",
+      "hunk": "@@ -189,9 +189,11 @@ def run_chat_streaming_reference(client):\n         model = None\n         response_id = None\n         finish_reasons = []\n+        usage = None\n         for chunk in stream:\n             model = model or getattr(chunk, \"model\", None)\n             response_id = response_id or getattr(chunk, \"id\", None)\n+            usage = chunk.usage or usage",
+      "id": "PRRT_kwDOSUeMrM6wdLyg",
+      "opened": "2026-10-26T21:13:54Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-26T21:18:09Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629/commits/0a5f4a9ab5e19fb5638611198a99afb7be4dcb2d",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629#discussion_r4382598874"
+        }
+      ],
+      "reviewed": "4bfce77a261bb691e795d547dbba8115b35f18a4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629#discussion_r4382555500"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The tool-call and multimodal paths now capture response IDs, but their details events still omit them because the `_emit_inference_event` calls at lines 353 and 418 do not pass `response_id`. Forward the captured ID in both calls, matching `run_chat`, so the events identify the response too. This also satisfies the capturable-attribute requirement in `.github/instructions/evaluate-reference.instructions.md:40`.",
+      "created": "2026-10-26T21:13:53Z",
+      "hunk": "@@ -315,7 +315,10 @@ def get_weather(location: str) -> str:\n                 \"What's the weather in Seattle?\",\n                 tools=[tool],\n             )\n-        response_model = response.to_dict().get(\"modelVersion\")\n+        response_model = response.to_dict().get(\"model_version\")\n+        response_id = response.to_dict().get(\"response_id\")\n+        if response_id:\n+            span.set_attribute(\"gen_ai.response.id\", response_id)",
+      "id": "PRRT_kwDOSUeMrM6wdL0F",
+      "opened": "2026-10-26T21:13:54Z",
+      "path": "reference/scenarios/vertexai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-26T21:18:13Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629/commits/0a5f4a9ab5e19fb5638611198a99afb7be4dcb2d",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629#discussion_r4382599563"
+        }
+      ],
+      "reviewed": "4bfce77a261bb691e795d547dbba8115b35f18a4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629#discussion_r4382555656"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These new measurements are discarded. `_token_usage` is the `gen_ai.client.token.usage` histogram, and `setup_otel()` installs a `DropAggregation` view for that name in `reference/shared/reference_shared.py:108-110`, so this loop cannot export streaming token metrics. Record the counts on the current `gen_ai.client.inference.operation.input_tokens` and `gen_ai.client.inference.operation.output_tokens` histograms instead, or remove the loop if only span attributes are intended.",
+      "created": "2026-10-26T21:13:53Z",
+      "hunk": "@@ -202,7 +204,22 @@ def run_chat_streaming_reference(client):\n             span.set_attribute(\"gen_ai.response.id\", response_id)\n         if finish_reasons:\n             span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        # The stream carries no usage block, so token.usage MUST NOT be reported here.\n+        if usage:\n+            span.set_attribute(\"gen_ai.usage.input_tokens\", usage.prompt_tokens)\n+            span.set_attribute(\"gen_ai.usage.output_tokens\", usage.completion_tokens)\n+            for token_type, count in ((\"input\", usage.prompt_tokens), (\"output\", usage.completion_tokens)):\n+                _token_usage.record(",
+      "id": "PRRT_kwDOSUeMrM6wdLzn",
+      "opened": "2026-10-26T21:13:54Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-26T21:18:11Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629/commits/0a5f4a9ab5e19fb5638611198a99afb7be4dcb2d",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629#discussion_r4382599249"
+        }
+      ],
+      "reviewed": "4bfce77a261bb691e795d547dbba8115b35f18a4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/629#discussion_r4382555599"
+    }
+  ]
+}

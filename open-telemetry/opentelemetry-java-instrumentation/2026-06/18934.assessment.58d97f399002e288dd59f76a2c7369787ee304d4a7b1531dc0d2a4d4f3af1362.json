@@ -1,0 +1,31 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d161bd205b20ade2c6b9b1675688354c257625e3cbdd7103b8cf5cd313c469e3",
+  "input_digest": "58d97f399002e288dd59f76a2c7369787ee304d4a7b1531dc0d2a4d4f3af1362",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fde19d0d813096e0f18c31519c00ec4f7f6eea75/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c876f5490b084a94322e4ddaeb5ca0b9e2e4028c/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcInstrumenterFactory.java"
+      ],
+      "id": "PRRT_kwDODJKVX86H0jX4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fde19d0d813096e0f18c31519c00ec4f7f6eea75/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c876f5490b084a94322e4ddaeb5ca0b9e2e4028c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java"
+      ],
+      "id": "PRRT_kwDODJKVX86H0jYb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

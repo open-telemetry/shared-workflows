@@ -1,0 +1,73 @@
+{
+  "head": "5742e4da1c6c4fdbf3645a6cbd1f4dec9246fa2e",
+  "merge": "187baa495fac27ede16a9a2f17e3b0129728b729",
+  "merged": "2026-08-30T11:36:50Z",
+  "missing_roots": 0,
+  "number": 19875,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This hard cast to `JacksonJsonpGenerator` can throw `ClassCastException` if a `JacksonJsonpMapper` is paired with a non-standard `jsonProvider()` implementation (e.g., subclass overrides provider). In that case, body extraction will fail and return null. Consider guarding with `instanceof JacksonJsonpGenerator` and falling back to the generic `JsonpUtils` serialization path when the provider doesn’t return a Jackson-backed generator.",
+      "created": "2026-08-27T16:05:42Z",
+      "hunk": "@@ -35,22 +32,23 @@ public static String extractSanitized(JsonpMapper mapper, Object request) {\n       }\n \n       return serializeSanitized(mapper, request, MAX_QUERY_BODY_LENGTH);\n-    } catch (Exception e) {\n+    } catch (RuntimeException e) {\n       logger.log(FINE, \"Failure extracting body\", e);\n       return null;\n     }\n   }\n \n   @Nullable\n-  private static String serializeSanitized(JsonpMapper mapper, Object item, int maxLength)\n-      throws IOException {\n+  private static String serializeSanitized(JsonpMapper mapper, Object item, int maxLength) {\n     BoundedStringWriter writer = new BoundedStringWriter(maxLength);\n \n     try {\n       if (mapper instanceof JacksonJsonpMapper) {\n         // Use Jackson-based sanitizing generator for JacksonJsonpMapper\n+        JacksonJsonpGenerator jacksonJsonpGenerator =\n+            (JacksonJsonpGenerator) mapper.jsonProvider().createGenerator(writer);\n         com.fasterxml.jackson.core.JsonGenerator jacksonGenerator =\n-            JSON_FACTORY.createGenerator(writer);\n+            jacksonJsonpGenerator.jacksonGenerator();",
+      "id": "PRRT_kwDODJKVX86c4y6W",
+      "opened": "2026-08-27T16:05:43Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-28T17:40:25Z",
+          "body": "Addressed in ebfd773aee67f832abc7ccd435d809ea17a3d8da.\n\nAnalysis: The mapper type does not guarantee that an overridden provider returns a Jackson-backed generator. The extractor now inspects the generated value and uses `JsonpUtils` for a non-Jackson generator.\n\nUpsides: Custom mapper subclasses keep body capture and sanitization instead of losing the body to a `ClassCastException`.\n\nDownsides: The fallback delegates generated request serialization through `JsonpUtils`, which adds one type check before serialization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19875#discussion_r3882726598"
+        }
+      ],
+      "reviewed": "fedf9a96528531bda282f7da968cec2ddd471a9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19875#discussion_r3873529245"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Narrowing the catch from `Exception` to `RuntimeException` increases the chance this instrumentation code can propagate unexpected failures (notably `LinkageError`/`NoClassDefFoundError` from optional dependencies or classloader edge cases in a javaagent context). To keep extraction failures from impacting the host app, it’s safer here to catch `Throwable` (or at least `Exception` + `LinkageError`) and return null as before.",
+      "created": "2026-08-27T16:05:42Z",
+      "hunk": "@@ -35,22 +32,23 @@ public static String extractSanitized(JsonpMapper mapper, Object request) {\n       }\n \n       return serializeSanitized(mapper, request, MAX_QUERY_BODY_LENGTH);\n-    } catch (Exception e) {\n+    } catch (RuntimeException e) {",
+      "id": "PRRT_kwDODJKVX86c4y6q",
+      "opened": "2026-08-27T16:05:43Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-28T17:40:27Z",
+          "body": "Addressed in 17acdad34290d6289f45082b305d14ba11d51d36.\n\nAnalysis: Body extraction runs inside javaagent advice and must not affect application requests. Catching `Throwable` at the extraction boundary contains linkage failures as well as serialization exceptions.\n\nUpsides: Optional dependency and classloader failures now disable body capture without breaking the host application.\n\nDownsides: Serious virtual machine errors are also logged and suppressed at this instrumentation boundary.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19875#discussion_r3882726829"
+        }
+      ],
+      "reviewed": "fedf9a96528531bda282f7da968cec2ddd471a9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19875#discussion_r3873529283"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion is brittle across Jackson versions/config because the exact escape casing/formatting (e.g., `\\\\u00E9` vs `\\\\u00e9`, spacing, ordering) can change while still honoring `ESCAPE_NON_ASCII`. To make the test more robust while still proving the JsonFactory is used, assert the output does not contain the literal `é` and does contain a Unicode escape sequence, and separately assert the value sanitization (`\\\"?\\\"`) is applied.",
+      "created": "2026-08-27T16:05:43Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.Collections.singletonMap;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.fasterxml.jackson.core.JsonFactory;\n+import com.fasterxml.jackson.core.json.JsonWriteFeature;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import org.junit.jupiter.api.Test;\n+import org.opensearch.client.json.jackson.JacksonJsonpMapper;\n+\n+class OpenSearchBodyExtractorTest {\n+\n+  @Test\n+  void shouldUseJacksonMapperJsonFactory() {\n+    JsonFactory jsonFactory =\n+        JsonFactory.builder().enable(JsonWriteFeature.ESCAPE_NON_ASCII).build();\n+    JacksonJsonpMapper mapper = new JacksonJsonpMapper(new ObjectMapper(jsonFactory));\n+\n+    String result =\n+        OpenSearchBodyExtractor.extractSanitized(mapper, singletonMap(\"m\\u00e9ssage\", \"secret\"));\n+\n+    assertThat(result).isEqualTo(\"{\\\"m\\\\u00E9ssage\\\":\\\"?\\\"}\");",
+      "id": "PRRT_kwDODJKVX86c4y6_",
+      "opened": "2026-08-27T16:05:43Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-08-28T17:40:28Z",
+          "body": "Addressed in 1ed62df1834a2bacbaaeaacc531bcdce9ec0f78e.\n\nAnalysis: The test only needs to prove that non-ASCII escaping comes from the mapper's factory and that sanitization remains active. Exact JSON text also couples it to unrelated formatting choices.\n\nUpsides: The test accepts equivalent Jackson output while still checking both factory reuse and sanitization.\n\nDownsides: The test no longer checks the complete serialized document byte for byte.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19875#discussion_r3882726986"
+        }
+      ],
+      "reviewed": "fedf9a96528531bda282f7da968cec2ddd471a9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19875#discussion_r3873529321"
+    }
+  ]
+}

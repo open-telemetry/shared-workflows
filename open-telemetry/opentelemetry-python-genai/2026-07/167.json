@@ -1,0 +1,112 @@
+{
+  "head": "294fdf4f2140103968b5775bddf216708b537b64",
+  "merge": "1c19a61de020966f24a63b7163c4f993a3b05060",
+  "merged": "2026-07-03T21:38:28Z",
+  "missing_roots": 0,
+  "number": 167,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as the sync wrapper: `AsyncStreamWrapper._on_stream_error` receives a `BaseException`, but this override narrows the parameter type to `Exception`, which is incompatible with the base class signature and can fail type-checking.",
+      "created": "2026-06-24T15:57:41Z",
+      "hunk": "@@ -484,6 +488,82 @@ def _execute(\n     return instrumented_generate_content\n \n \n+class GenerateContentStreamWrapper(SyncStreamWrapper[GenerateContentResponse]):\n+    def __init__(\n+        self,\n+        stream: Iterable[GenerateContentResponse],\n+        invocation: InferenceInvocation,\n+        telemetry_handler: TelemetryHandler,\n+    ) -> None:\n+        super().__init__(stream)\n+        self._self_invocation = invocation\n+        self._self_telemetry_handler = telemetry_handler\n+        self._self_finish_reasons: list[str] = []\n+        self._self_candidates = []\n+\n+    def _process_chunk(self, chunk: GenerateContentResponse) -> None:\n+        _apply_response_attributes(\n+            chunk,\n+            self._self_finish_reasons,\n+            self._self_invocation,\n+        )\n+        if chunk.candidates:\n+            self._self_candidates.extend(chunk.candidates)\n+\n+    def _on_stream_end(self) -> None:\n+        if (\n+            self._self_telemetry_handler.should_capture_content()\n+            and self._self_candidates\n+        ):\n+            self._self_invocation.output_messages = to_output_messages(\n+                candidates=self._self_candidates\n+            )\n+        self._self_invocation.stop()\n+\n+    def _on_stream_error(self, error: Exception) -> None:\n+        self._self_invocation.fail(error)\n+\n+\n+class AsyncGenerateContentStreamWrapper(\n+    AsyncStreamWrapper[GenerateContentResponse]\n+):\n+    def __init__(\n+        self,\n+        stream: AsyncIterable[GenerateContentResponse],\n+        invocation: InferenceInvocation,\n+        telemetry_handler: TelemetryHandler,\n+    ) -> None:\n+        super().__init__(stream)\n+        # _self_ is a naming convention used by the wrapt library to differentiate\n+        # between attributes on the wrapped function and the original function.\n+        self._self_invocation = invocation\n+        self._self_telemetry_handler = telemetry_handler\n+        self._self_finish_reasons: list[str] = []\n+        self._self_candidates = []\n+\n+    def _process_chunk(self, chunk: GenerateContentResponse) -> None:\n+        _apply_response_attributes(\n+            chunk,\n+            self._self_finish_reasons,\n+            self._self_invocation,\n+        )\n+        if chunk.candidates:\n+            self._self_candidates.extend(chunk.candidates)\n+\n+    def _on_stream_end(self) -> None:\n+        if (\n+            self._self_telemetry_handler.should_capture_content()\n+            and self._self_candidates\n+        ):\n+            self._self_invocation.output_messages = to_output_messages(\n+                candidates=self._self_candidates\n+            )\n+        self._self_invocation.stop()\n+\n+    def _on_stream_error(self, error: Exception) -> None:\n+        self._self_invocation.fail(error)",
+      "id": "PRRT_kwDOSbspP86L9gv4",
+      "opened": "2026-06-24T15:57:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "7165e39edcc7056b95464e97680fef152395e51e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3468487436"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`SyncStreamWrapper._on_stream_error` is defined to receive a `BaseException`, but this override narrows the type to `Exception`. That can cause type-check failures and also misses non-`Exception` failures (e.g. `KeyboardInterrupt`, `GeneratorExit`) that the wrapper may pass through.",
+      "created": "2026-06-24T15:57:41Z",
+      "hunk": "@@ -484,6 +488,82 @@ def _execute(\n     return instrumented_generate_content\n \n \n+class GenerateContentStreamWrapper(SyncStreamWrapper[GenerateContentResponse]):\n+    def __init__(\n+        self,\n+        stream: Iterable[GenerateContentResponse],\n+        invocation: InferenceInvocation,\n+        telemetry_handler: TelemetryHandler,\n+    ) -> None:\n+        super().__init__(stream)\n+        self._self_invocation = invocation\n+        self._self_telemetry_handler = telemetry_handler\n+        self._self_finish_reasons: list[str] = []\n+        self._self_candidates = []\n+\n+    def _process_chunk(self, chunk: GenerateContentResponse) -> None:\n+        _apply_response_attributes(\n+            chunk,\n+            self._self_finish_reasons,\n+            self._self_invocation,\n+        )\n+        if chunk.candidates:\n+            self._self_candidates.extend(chunk.candidates)\n+\n+    def _on_stream_end(self) -> None:\n+        if (\n+            self._self_telemetry_handler.should_capture_content()\n+            and self._self_candidates\n+        ):\n+            self._self_invocation.output_messages = to_output_messages(\n+                candidates=self._self_candidates\n+            )\n+        self._self_invocation.stop()\n+\n+    def _on_stream_error(self, error: Exception) -> None:\n+        self._self_invocation.fail(error)",
+      "id": "PRRT_kwDOSbspP86L9gvc",
+      "opened": "2026-06-24T15:57:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "7165e39edcc7056b95464e97680fef152395e51e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3468487390"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Streaming error/early-exit scenarios introduced/affected here are not covered by tests (e.g. stream creation failure, SDK exception mid-iteration, user exception inside `with/async with` before draining, and content-capture disabled returning a usable stream). The repo’s instrumentation guidelines require explicit streaming error-path coverage to ensure spans are finalized and exceptions are re-raised unchanged.",
+      "created": "2026-06-24T15:57:42Z",
+      "hunk": "@@ -508,57 +588,44 @@ def _execute(\n                 telemetry_handler,\n                 config,\n             )\n-            finish_reasons = []\n-            with telemetry_handler.inference(\n+            invocation = telemetry_handler.inference(\n                 provider=_determine_genai_system(instance),\n                 request_model=model,\n                 operation_name=\"generate_content\",\n-            ) as invocation:\n-                _apply_request_attributes(\n-                    wrapped_config,\n-                    generate_content_config_key_allowlist,\n-                    invocation,\n-                )\n-                invocation.attributes.update(\n-                    _get_extra_generate_content_attributes()\n-                )\n-                invocation.tool_definitions = _maybe_get_tool_definitions(\n-                    wrapped_config\n-                )\n+            )\n+            _apply_request_attributes(\n+                wrapped_config,\n+                generate_content_config_key_allowlist,\n+                invocation,\n+            )\n+            invocation.attributes.update(\n+                _get_extra_generate_content_attributes()\n+            )\n+            invocation.tool_definitions = _maybe_get_tool_definitions(\n+                wrapped_config\n+            )\n \n-                if telemetry_handler.should_capture_content():\n-                    invocation.input_messages = to_input_messages(\n-                        contents=transformers.t_contents(contents)\n+            if telemetry_handler.should_capture_content():\n+                invocation.input_messages = to_input_messages(\n+                    contents=transformers.t_contents(contents)\n+                )\n+                if wrapped_config.system_instruction:\n+                    invocation.system_instruction = to_system_instructions(\n+                        content=transformers.t_contents(\n+                            wrapped_config.system_instruction\n+                        )[0]\n                     )\n-                    if wrapped_config.system_instruction:\n-                        invocation.system_instruction = to_system_instructions(\n-                            content=transformers.t_contents(\n-                                wrapped_config.system_instruction\n-                            )[0]\n-                        )\n-                candidates = []\n-                try:\n-                    for resp in wrapped(\n+                return GenerateContentStreamWrapper(\n+                    wrapped(\n                         model=model,\n                         contents=contents,\n                         config=wrapped_config if has_wrapped_tools else config,\n                         *_args,",
+      "id": "PRRT_kwDOSbspP86L9gw6",
+      "opened": "2026-06-24T15:57:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [
+        {
+          "at": "2026-06-24T16:03:17Z",
+          "body": "That is OK IMO.. we shouldn't instrument if creation fails",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3468521417"
+        }
+      ],
+      "reviewed": "7165e39edcc7056b95464e97680fef152395e51e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3468487535"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_create_instrumented_generate_content_stream` only returns a stream wrapper inside the `should_capture_content()` block. When capture is disabled (e.g. `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT`), `_execute` falls off the end and returns `None`, and the started inference span is never finalized.",
+      "created": "2026-06-24T15:57:42Z",
+      "hunk": "@@ -508,57 +588,44 @@ def _execute(\n                 telemetry_handler,\n                 config,\n             )\n-            finish_reasons = []\n-            with telemetry_handler.inference(\n+            invocation = telemetry_handler.inference(\n                 provider=_determine_genai_system(instance),\n                 request_model=model,\n                 operation_name=\"generate_content\",\n-            ) as invocation:\n-                _apply_request_attributes(\n-                    wrapped_config,\n-                    generate_content_config_key_allowlist,\n-                    invocation,\n-                )\n-                invocation.attributes.update(\n-                    _get_extra_generate_content_attributes()\n-                )\n-                invocation.tool_definitions = _maybe_get_tool_definitions(\n-                    wrapped_config\n-                )\n+            )\n+            _apply_request_attributes(\n+                wrapped_config,\n+                generate_content_config_key_allowlist,\n+                invocation,\n+            )\n+            invocation.attributes.update(\n+                _get_extra_generate_content_attributes()\n+            )\n+            invocation.tool_definitions = _maybe_get_tool_definitions(\n+                wrapped_config\n+            )\n \n-                if telemetry_handler.should_capture_content():\n-                    invocation.input_messages = to_input_messages(\n-                        contents=transformers.t_contents(contents)\n+            if telemetry_handler.should_capture_content():\n+                invocation.input_messages = to_input_messages(\n+                    contents=transformers.t_contents(contents)\n+                )\n+                if wrapped_config.system_instruction:",
+      "id": "PRRT_kwDOSbspP86L9gwQ",
+      "opened": "2026-06-24T15:57:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "7165e39edcc7056b95464e97680fef152395e51e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3468487472"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The async streaming path only returns a wrapped stream inside the `should_capture_content()` block. When capture is disabled, `_execute` returns `None` and the started inference span is never finalized. Also, if `await wrapped(...)` raises before returning a stream, the invocation is never failed.",
+      "created": "2026-06-24T15:57:42Z",
+      "hunk": "@@ -699,42 +765,17 @@ async def _execute(\n                         )[0]\n                     )\n \n-            async def _response_async_generator_wrapper():\n-                candidates = []\n-                try:\n-                    async for resp in await wrapped(\n+                return AsyncGenerateContentStreamWrapper(\n+                    await wrapped(\n                         model=model,\n                         contents=contents,\n                         config=wrapped_config if has_wrapped_tools else config,",
+      "id": "PRRT_kwDOSbspP86L9gwi",
+      "opened": "2026-06-24T15:57:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "7165e39edcc7056b95464e97680fef152395e51e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3468487502"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not for this PR, should we mark these as public (no _) in the base class? not sure what's common approach in python for protected methods",
+      "created": "2026-06-24T21:05:48Z",
+      "hunk": "@@ -484,6 +488,82 @@ def _execute(\n     return instrumented_generate_content\n \n \n+class GenerateContentStreamWrapper(SyncStreamWrapper[GenerateContentResponse]):\n+    def __init__(\n+        self,\n+        stream: Iterable[GenerateContentResponse],\n+        invocation: InferenceInvocation,\n+        telemetry_handler: TelemetryHandler,\n+    ) -> None:\n+        super().__init__(stream)\n+        self._self_invocation = invocation\n+        self._self_telemetry_handler = telemetry_handler\n+        self._self_finish_reasons: list[str] = []\n+        self._self_candidates = []\n+\n+    def _process_chunk(self, chunk: GenerateContentResponse) -> None:",
+      "id": "PRRT_kwDOSbspP86MCiMc",
+      "opened": "2026-06-24T21:06:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [
+        {
+          "at": "2026-06-25T14:37:03Z",
+          "body": "I think `_` is the correct convention for protected",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3475241255"
+        }
+      ],
+      "reviewed": "157b8759026635dd2b78736b13ac4cbcbbcc7fc3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/167#discussion_r3470308586"
+    }
+  ]
+}

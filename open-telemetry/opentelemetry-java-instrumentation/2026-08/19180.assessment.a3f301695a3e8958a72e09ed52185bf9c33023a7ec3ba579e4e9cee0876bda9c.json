@@ -1,0 +1,71 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8b300e2de831a6398edc6f51dc8bb5226d55ff10be782cdad789e5930a4e48fc",
+  "input_digest": "a3f301695a3e8958a72e09ed52185bf9c33023a7ec3ba579e4e9cee0876bda9c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3d8d4150a4a53cac5ac8dfe941c329c68266df1/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/92b43b9b7699e6d4ad862ce660525c7dbf24fb24"
+      ],
+      "id": "PRRT_kwDODJKVX86P8yx0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3d8d4150a4a53cac5ac8dfe941c329c68266df1/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/d3d8d4150a4a53cac5ac8dfe941c329c68266df1...3fcc00d0e03e65b2f0cb347a324d5e4b30709e3d",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/92b43b9b7699e6d4ad862ce660525c7dbf24fb24"
+      ],
+      "id": "PRRT_kwDODJKVX86P8zb6",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92b43b9b7699e6d4ad862ce660525c7dbf24fb24/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92b43b9b7699e6d4ad862ce660525c7dbf24fb24/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/instrumenter/SpanSuppressionStrategyTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ff60c254bb282acee1056a953b94d3c7a3510a46"
+      ],
+      "id": "PRRT_kwDODJKVX86P8_dc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86P9b6p",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4cf442caf1f34dfb969d322000f65fe64eb0488d/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99/CHANGELOG.md"
+      ],
+      "id": "PRRT_kwDODJKVX86P93it",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86YF4PI",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "head": "526ae8a3eaef11b58f6eac79c511a463a89b7179",
+  "merge": "c6934cc4b580e1fe2062b5d4d9258956cec59aae",
+  "merged": "2026-10-07T21:35:31Z",
+  "missing_roots": 0,
+  "number": 855,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The no-span path ignores `_attach_to_context`. When suppression is selected from an explicit `context` in a thread/task whose ambient context differs, entering the invocation never makes that supplied context current, so telemetry created by the underlying SDK is parented to the wrong trace (or becomes a root). Preserve the normal handler contract by attaching `ctx` when requested and detaching it when the suppressed invocation finishes.\n\nThis issue also appears on line 344 of the same file.",
+      "created": "2026-10-07T16:13:10Z",
+      "hunk": "@@ -117,16 +136,32 @@ def __init__(\n             GenAI.GEN_AI_OPERATION_NAME: operation_name,\n             **(start_attributes or {}),\n         }\n-        self.span: Span = self._tracer.start_span(\n-            name=span_name,\n-            kind=span_kind,\n-            attributes=self._start_attributes,\n-            context=context,\n-        )\n-        self._span_context: Context = set_span_in_context(self.span, context)\n-        self._context_token: ContextToken | None = (\n-            attach(self._span_context) if _attach_to_context else None\n-        )\n+        if start_span:\n+            self.span: Span = self._tracer.start_span(\n+                name=span_name,\n+                kind=span_kind,\n+                attributes=self._start_attributes,\n+                context=context,\n+            )\n+            ctx = set_span_in_context(self.span, context)\n+            if (\n+                self._context_key is not None\n+                and self._context_factory is not None\n+            ):\n+                ctx = set_value(\n+                    self._context_key,\n+                    self._context_factory(),\n+                    context=ctx,\n+                )\n+            self._span_context: Context = ctx\n+            self._context_token: ContextToken | None = (\n+                attach(self._span_context) if _attach_to_context else None\n+            )\n+        else:\n+            ctx = get_current() if context is None else context\n+            self.span = get_current_span(context=ctx)\n+            self._span_context = ctx\n+            self._context_token = None",
+      "id": "PRRT_kwDOSbspP86p_dAq",
+      "opened": "2026-10-07T16:13:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "165089543645ce3ee58260e69479778bd8af4448",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4209205223"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An inference context only proves that one inference is an ancestor; it does not prove the new operation is duplicate instrumentation of the same model call. This branch suppresses every legitimate parent/child inference—including retries, fallbacks, or manually nested calls—and drops the child's span, event, and metrics. The previous parent/child test in `tests/test_utils.py` explicitly expected two nested inference spans and is changed in this PR to avoid this path. Deduplication needs an explicit/identity-based opt-in rather than triggering on any nested inference.",
+      "created": "2026-10-07T16:13:10Z",
+      "hunk": "@@ -227,7 +232,15 @@ def inference(\n \n         Only set data attributes on the invocation object, do not modify the span or context.\n         \"\"\"\n-        return InferenceInvocation(\n+        invocation_cls: type[InferenceInvocation] = (\n+            SuppressedInferenceInvocation\n+            if isinstance(\n+                get_value(CLIENT_INFERENCE_CONTEXT_KEY, context=context),\n+                InferenceData,\n+            )\n+            else InferenceInvocation",
+      "id": "PRRT_kwDOSbspP86p_dBv",
+      "opened": "2026-10-07T16:13:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "165089543645ce3ee58260e69479778bd8af4448",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4209205320"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A `LogRecordProcessor` receives an SDK wrapper (`LogData`/`ReadWriteLogRecord`), with the API `LogRecord` stored in its `log_record` field. Checking `event_name` directly on the wrapper therefore returns `None`, so the event is forwarded and this example does not suppress it. Inspect the wrapped record before forwarding.",
+      "created": "2026-10-07T16:13:11Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+# pylint: skip-file\n+from __future__ import annotations\n+\n+import os\n+from typing import Any\n+\n+from openai import OpenAI\n+\n+# NOTE: OpenTelemetry Python Logs API is in beta\n+from opentelemetry import _logs, trace\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.instrumentation.genai.openai import OpenAIInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider, LogRecordProcessor\n+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import BatchSpanProcessor\n+\n+\n+class DropGenAiEventsProcessor(LogRecordProcessor):\n+    \"\"\"LogRecordProcessor wrapper that suppresses GenAI inference operation details events.\n+\n+    This processor filters out the ``gen_ai.client.inference.operation.details`` event:\n+    1. Early drop: ``enabled()`` returns ``False`` when checking the event name,\n+       allowing the SDK and instrumentation to avoid constructing the event payload.\n+    2. Fallback: ``on_emit()`` drops the record if it is emitted.\n+    \"\"\"\n+\n+    def __init__(self, processor: LogRecordProcessor) -> None:\n+        self._processor = processor\n+\n+    def enabled(self, *, event_name: str | None = None, **kwargs: Any) -> bool:\n+        if event_name == \"gen_ai.client.inference.operation.details\":\n+            return False\n+        if hasattr(self._processor, \"enabled\"):\n+            return self._processor.enabled(event_name=event_name, **kwargs)\n+        return True\n+\n+    def on_emit(self, log_record: Any) -> None:\n+        if (\n+            getattr(log_record, \"event_name\", None)\n+            == \"gen_ai.client.inference.operation.details\"\n+        ):\n+            return\n+        self._processor.on_emit(log_record)",
+      "id": "PRRT_kwDOSbspP86p_dCh",
+      "opened": "2026-10-07T16:13:13Z",
+      "path": "examples/suppress-inference-event/manual/main.py",
+      "replies": [],
+      "reviewed": "165089543645ce3ee58260e69479778bd8af4448",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4209205393"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description is limited to event-suppression examples, but this fragment represents a separate repository-wide behavior change that suppresses nested inference telemetry and adds public context APIs. Split the deduplication implementation, tests, fixture changes, and changelog into a dedicated PR so this feature can be reviewed and released independently.",
+      "created": "2026-10-07T16:13:11Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add SuppressedInferenceInvocation to deduplicate nested inference operations and propagate context attributes.",
+      "id": "PRRT_kwDOSbspP86p_dDP",
+      "opened": "2026-10-07T16:13:13Z",
+      "path": "util/opentelemetry-util-genai/.changelog/765.added",
+      "replies": [],
+      "reviewed": "165089543645ce3ee58260e69479778bd8af4448",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4209205463"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`InferenceData` is now exported as public API even though repository production code does not consume it outside the private implementation. This creates a long-term compatibility commitment for an internal mutable transport type without a documented user-facing contract. Keep it private unless external instrumentations genuinely need to construct it; if they do, document and test that supported contract explicitly.",
+      "created": "2026-10-07T16:13:12Z",
+      "hunk": "@@ -37,12 +41,14 @@\n from opentelemetry.util.genai._workflow_invocation import WorkflowInvocation\n \n __all__ = [\n+    \"CLIENT_INFERENCE_CONTEXT_KEY\",\n     \"AgentInvocation\",\n     \"ContextToken\",\n     \"EmbeddingInvocation\",\n     \"Error\",\n     \"FetchResponseInvocation\",\n     \"GenAIInvocation\",\n+    \"InferenceData\",",
+      "id": "PRRT_kwDOSbspP86p_dE-",
+      "opened": "2026-10-07T16:13:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/invocation.py",
+      "replies": [],
+      "reviewed": "165089543645ce3ee58260e69479778bd8af4448",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4209205613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This snippet uses `Any` in method annotations but never imports it, so copying the documented example raises `NameError` while defining the class. Include the typing import in the code block.\n\nThis issue also appears in the following locations of the same file:\n- line 38\n- line 55",
+      "created": "2026-10-07T16:13:12Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+Suppressing Inference Events Programmatically\n+=============================================\n+\n+This example demonstrates how to suppress ``gen_ai.client.inference.operation.details``\n+log events programmatically in Python by wrapping an OpenTelemetry\n+``LogRecordProcessor``.\n+\n+Overview\n+--------\n+\n+When capturing content with ``EVENT_ONLY`` or ``SPAN_AND_EVENT``,\n+the OpenTelemetry GenAI instrumentation emits a\n+``gen_ai.client.inference.operation.details`` log event containing input/output\n+messages and metadata.\n+\n+If you want to collect spans and traces while selectively dropping the inference\n+event without disabling logging globally, you can wrap your log record processor\n+with a custom processor:\n+\n+.. code-block:: python\n+\n+    from opentelemetry.sdk._logs import LogRecordProcessor",
+      "id": "PRRT_kwDOSbspP86p_dEB",
+      "opened": "2026-10-07T16:13:13Z",
+      "path": "examples/suppress-inference-event/manual/README.rst",
+      "replies": [],
+      "reviewed": "165089543645ce3ee58260e69479778bd8af4448",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4209205536"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we call it directly (and require otel sdk version to be high enough)?",
+      "created": "2026-10-07T20:33:21Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+# pylint: skip-file\n+from __future__ import annotations\n+\n+import os\n+from typing import Any\n+\n+from openai import OpenAI\n+\n+# NOTE: OpenTelemetry Python Logs API is in beta\n+from opentelemetry import _logs, trace\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.instrumentation.genai.openai import OpenAIInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider, LogRecordProcessor\n+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import BatchSpanProcessor\n+\n+\n+class DropGenAiEventsProcessor(LogRecordProcessor):\n+    \"\"\"LogRecordProcessor wrapper that suppresses GenAI inference operation details events.\n+\n+    This processor filters out the ``gen_ai.client.inference.operation.details`` event:\n+    1. Early drop: ``enabled()`` returns ``False`` when checking the event name,\n+       allowing the SDK and instrumentation to avoid constructing the event payload.\n+    2. Fallback: ``on_emit()`` drops the record if it is emitted.\n+    \"\"\"\n+\n+    def __init__(self, processor: LogRecordProcessor) -> None:\n+        self._processor = processor\n+\n+    def enabled(self, *, event_name: str | None = None, **kwargs: Any) -> bool:\n+        if event_name == \"gen_ai.client.inference.operation.details\":\n+            return False\n+        if hasattr(self._processor, \"enabled\"):",
+      "id": "PRRT_kwDOSbspP86qFbW3",
+      "opened": "2026-10-07T20:33:21Z",
+      "path": "examples/suppress-inference-event/manual/main.py",
+      "replies": [
+        {
+          "at": "2026-10-07T20:43:13Z",
+          "body": "yes especially since theres a default implementation (https://github.com/open-telemetry/opentelemetry-python/blob/158a41a1d7115cf90bd7acd73772d9e464278c4a/opentelemetry-sdk/src/opentelemetry/sdk/_logs/_internal/__init__.py#L372-L385) i think this is safe.. done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4211771862"
+        }
+      ],
+      "reviewed": "a7ddd8c535642246e8e1f04c196c7b239bdf8a1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4211680677"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why untyped? ",
+      "created": "2026-10-07T20:33:50Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+# pylint: skip-file\n+from __future__ import annotations\n+\n+import os\n+from typing import Any\n+\n+from openai import OpenAI\n+\n+# NOTE: OpenTelemetry Python Logs API is in beta\n+from opentelemetry import _logs, trace\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.instrumentation.genai.openai import OpenAIInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider, LogRecordProcessor\n+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import BatchSpanProcessor\n+\n+\n+class DropGenAiEventsProcessor(LogRecordProcessor):\n+    \"\"\"LogRecordProcessor wrapper that suppresses GenAI inference operation details events.\n+\n+    This processor filters out the ``gen_ai.client.inference.operation.details`` event:\n+    1. Early drop: ``enabled()`` returns ``False`` when checking the event name,\n+       allowing the SDK and instrumentation to avoid constructing the event payload.\n+    2. Fallback: ``on_emit()`` drops the record if it is emitted.\n+    \"\"\"\n+\n+    def __init__(self, processor: LogRecordProcessor) -> None:\n+        self._processor = processor\n+\n+    def enabled(self, *, event_name: str | None = None, **kwargs: Any) -> bool:\n+        if event_name == \"gen_ai.client.inference.operation.details\":\n+            return False\n+        if hasattr(self._processor, \"enabled\"):\n+            return self._processor.enabled(event_name=event_name, **kwargs)\n+        return True\n+\n+    def on_emit(self, log_data: Any) -> None:\n+        record = getattr(log_data, \"log_record\", log_data)",
+      "id": "PRRT_kwDOSbspP86qFb_9",
+      "opened": "2026-10-07T20:33:50Z",
+      "path": "examples/suppress-inference-event/manual/main.py",
+      "replies": [
+        {
+          "at": "2026-10-07T20:43:31Z",
+          "body": "no reason.. fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4211774574"
+        }
+      ],
+      "reviewed": "a7ddd8c535642246e8e1f04c196c7b239bdf8a1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4211684985"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's call `enabled` instead of repeating",
+      "created": "2026-10-07T20:34:16Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+# pylint: skip-file\n+from __future__ import annotations\n+\n+import os\n+from typing import Any\n+\n+from openai import OpenAI\n+\n+# NOTE: OpenTelemetry Python Logs API is in beta\n+from opentelemetry import _logs, trace\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.instrumentation.genai.openai import OpenAIInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider, LogRecordProcessor\n+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import BatchSpanProcessor\n+\n+\n+class DropGenAiEventsProcessor(LogRecordProcessor):\n+    \"\"\"LogRecordProcessor wrapper that suppresses GenAI inference operation details events.\n+\n+    This processor filters out the ``gen_ai.client.inference.operation.details`` event:\n+    1. Early drop: ``enabled()`` returns ``False`` when checking the event name,\n+       allowing the SDK and instrumentation to avoid constructing the event payload.\n+    2. Fallback: ``on_emit()`` drops the record if it is emitted.\n+    \"\"\"\n+\n+    def __init__(self, processor: LogRecordProcessor) -> None:\n+        self._processor = processor\n+\n+    def enabled(self, *, event_name: str | None = None, **kwargs: Any) -> bool:\n+        if event_name == \"gen_ai.client.inference.operation.details\":\n+            return False\n+        if hasattr(self._processor, \"enabled\"):\n+            return self._processor.enabled(event_name=event_name, **kwargs)\n+        return True\n+\n+    def on_emit(self, log_data: Any) -> None:\n+        record = getattr(log_data, \"log_record\", log_data)\n+        if (\n+            getattr(record, \"event_name\", None)\n+            == \"gen_ai.client.inference.operation.details\"\n+        ):",
+      "id": "PRRT_kwDOSbspP86qFckd",
+      "opened": "2026-10-07T20:34:16Z",
+      "path": "examples/suppress-inference-event/manual/main.py",
+      "replies": [
+        {
+          "at": "2026-10-07T20:44:33Z",
+          "body": "done !",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4211783760"
+        }
+      ],
+      "reviewed": "a7ddd8c535642246e8e1f04c196c7b239bdf8a1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/855#discussion_r4211688871"
+    }
+  ]
+}

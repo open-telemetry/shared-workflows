@@ -1,0 +1,67 @@
+{
+  "head": "de197cf70d3256328d613b29ac379f39ac9005f2",
+  "merge": "11d24d2c0c801a9d348660e669dc19046ee82644",
+  "merged": "2026-10-21T08:12:16Z",
+  "missing_roots": 0,
+  "number": 20760,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify its new Thrift and AWS Lambda SQS factory tests while preserving meaningful coverage of explicit schema selection. Do not create a separate follow-up PR or change the PR's base branch.\n\nRemove instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaSqsInstrumenterFactoryTest.java after moving its useful scope-schema assertions into existing SQS integration tests. Assert https://opentelemetry.io/schemas/1.43.0 on both batch and per-message processing spans and their emitted metrics. Existing coverage includes AwsLambdaSqsMessageHandlerTest.processSpans, keyedEventSuppressesSelectedMessage, and AwsLambdaSqsNestedEventHandlerTest.distinctNestedEventStartsProcessing under instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/, plus AwsLambdaSqsMetricsAssertions under instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/. Reuse those tests and metric assertions instead of adding another suppression or processing test suite.\n\nNarrow instrumentation/thrift-0.13/library/src/test/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftInstrumenterFactoryTest.java to a small factory-specific regression proving that client and server span/metric schema selection follows the passed OpenTelemetry instance rather than global RPC configuration. Preserve the useful same-process per-instance distinction that the existing separate-JVM integration variants cannot detect. The expected schema is https://opentelemetry.io/schemas/1.37.0 for legacy RPC and https://opentelemetry.io/schemas/1.44.0 for preview RPC. Remove the duplicated generic RPC attribute and metric-name matrix already covered centrally by RpcInstanceSemconvTest. Its current assertion of \"custom Service/method\" is identical in every mode and does not establish mode-specific initialization of the wrapped name extractor; do not retain that assertion as purported per-instance naming coverage.\n\nKeep production behavior and the explicit schema selections unchanged. Do not remove schema coverage without its replacement, expand this into a broader schema audit, or duplicate shared-helper coverage. Follow the repository instructions, use existing assertion helpers where appropriate, and validate the affected tests with the narrowest relevant formatting and test commands.",
+      "created": "2026-10-20T19:30:34Z",
+      "hunk": "@@ -0,0 +1,93 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awslambdaevents.common.v2_2.internal;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_NAME;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.amazonaws.services.lambda.runtime.events.SQSEvent;\n+import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class AwsLambdaSqsInstrumenterFactoryTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @Test\n+  void batchAndMessageProcessingSelectMessagingSchemaWithoutChangingSuppression() {",
+      "id": "PRRT_kwDODJKVX86ufW9D",
+      "opened": "2026-10-20T19:30:33Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaSqsInstrumenterFactoryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T19:42:36Z",
+          "body": "Addressed in 5fe07a35. SQS schema assertions now use the existing processing and metrics tests, and the Thrift factory test now verifies per-instance span and metric schemas for both client and server instrumenters.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20760#discussion_r4329488030"
+        }
+      ],
+      "reviewed": "a27eb3ba5a408d36c89f9f80aa95f8daa2a977d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20760#discussion_r4329358163"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove instrumentation/thrift-0.13/library/src/test/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftInstrumenterFactoryTest.java entirely and preserve schema coverage in the existing Thrift integration tests. This is the user's revised decision and replaces the earlier instruction to retain a narrowed factory test. Do not create a follow-up PR or change the PR's base branch.\n\nAdd instrumentation-scope schema assertions to the existing client/server span assertions and metric assertions in instrumentation/thrift-0.13/testing/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/AbstractThriftTest.java. Use the existing hasScopeSchemaUrl helper and semconv mode accessors. Expect SchemaUrls.V1_37_0 in legacy RPC mode and SchemaUrls.V1_44_0 in preview and dual-emission RPC modes. The existing library and javaagent integration variants already exercise these modes; reuse them rather than adding a new test class, configuration fixture, or mode matrix.\n\nKeep RpcInstanceSemconvTest as the owner of shared per-instance RPC behavior coverage. Do not recreate the removed factory test's mocked SDK/configuration setup elsewhere. Keep all production behavior, explicit schema selections, the existing SQS cleanup, and unrelated PR changes unchanged. Apply the narrowest relevant formatting and validate the affected integration coverage using the repository's documented commands.",
+      "created": "2026-10-20T20:28:30Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.thrift.v0_13.internal;\n+\n+import static io.opentelemetry.instrumentation.testing.util.InstrumentationScopeAssertions.hasScopeSchemaUrl;\n+import static java.util.Collections.emptyList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.api.incubator.ExtendedOpenTelemetry;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.ContextPropagators;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;\n+import io.opentelemetry.instrumentation.thrift.v0_13.ThriftRequest;\n+import io.opentelemetry.instrumentation.thrift.v0_13.ThriftResponse;\n+import io.opentelemetry.sdk.OpenTelemetrySdk;\n+import io.opentelemetry.sdk.metrics.SdkMeterProvider;\n+import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader;\n+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;\n+import io.opentelemetry.sdk.trace.SdkTracerProvider;\n+import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;\n+import io.opentelemetry.semconv.SchemaUrls;\n+import java.util.function.UnaryOperator;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+\n+class ThriftInstrumenterFactoryTest {\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {true, false})\n+  void schemaSelectionUsesThePassedOpenTelemetryInstance(boolean client) {",
+      "id": "PRRT_kwDODJKVX86ugub9",
+      "opened": "2026-10-20T20:28:29Z",
+      "path": "instrumentation/thrift-0.13/library/src/test/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftInstrumenterFactoryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T20:38:52Z",
+          "body": "Addressed in 6d8ab139. The factory test is removed, and the existing Thrift integration assertions now verify span and metric schema URLs across legacy, preview, and dual-emission modes for both library and javaagent variants.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20760#discussion_r4330047491"
+        }
+      ],
+      "reviewed": "5fe07a3536602edd4a661505d1f61ff7c3256ccd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20760#discussion_r4329945035"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a test-only cleanup of the four new JDBC scope-schema assertions. Do not create a follow-up PR as a workaround.\n\nIn instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/datasource/JdbcTelemetryTest.java, replace the four hand-written satisfies lambdas that assert getInstrumentationScopeInfo().getSchemaUrl() equals \"https://opentelemetry.io/schemas/1.44.0\" with satisfies(hasScopeSchemaUrl(SchemaUrls.V1_44_0)). There are two span expectations and two metric expectations. Add a static import of io.opentelemetry.instrumentation.testing.util.InstrumentationScopeAssertions.hasScopeSchemaUrl and import io.opentelemetry.semconv.SchemaUrls as needed.\n\nThis consolidates the previously requested JDBC shared-helper cleanup with the matching version-constant cleanup. Use the version-specific SchemaUrls.V1_44_0 constant for the expected value, not the production DbSchemaUrls.SCHEMA_URL alias, so a production schema-version change cannot silently change the expectation too.\n\nAcceptance criteria: all four JDBC schema assertions use the shared helper and the version-specific constant, with unchanged expected values and all other assertions and coverage preserved. Keep changes scoped to JdbcTelemetryTest.java. Preserve all production changes, the existing Thrift and SQS cleanup, the current base branch and draft/ready state, and do not update other PR branches, restack, merge, post replies, or resolve threads. Follow repository formatting and targeted validation instructions.",
+      "created": "2026-10-20T20:57:47Z",
+      "hunk": "@@ -58,7 +58,13 @@ void buildWithDefaults() throws SQLException {\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span -> span.hasName(\"parent\"),\n-                span -> span.hasName(\"SELECT\").hasAttribute(equalTo(DB_QUERY_TEXT, \"SELECT ?;\"))));\n+                span ->\n+                    span.hasName(\"SELECT\")\n+                        .hasAttribute(equalTo(DB_QUERY_TEXT, \"SELECT ?;\"))\n+                        .satisfies(\n+                            spanData ->\n+                                assertThat(spanData.getInstrumentationScopeInfo().getSchemaUrl())\n+                                    .isEqualTo(\"https://opentelemetry.io/schemas/1.44.0\"))));",
+      "id": "PRRT_kwDODJKVX86uhZVT",
+      "opened": "2026-10-20T20:57:46Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/datasource/JdbcTelemetryTest.java",
+      "replies": [],
+      "reviewed": "6d8ab1392d8feb894cefe363c21293ea53420174",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20760#discussion_r4330230920"
+    }
+  ]
+}

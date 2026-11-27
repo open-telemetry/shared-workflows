@@ -1,0 +1,46 @@
+{
+  "head": "fa54d1fccd526994ca89fc76d193aa2707709077",
+  "merge": "fcc799ea170c252cf78ed27ecc91964d0c70b385",
+  "merged": "2026-05-21T12:28:32Z",
+  "missing_roots": 0,
+  "number": 18804,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`resp.flushBuffer()` can throw `IOException`, and calling it after `writer.close()` may be less reliable on some servlet containers (the response/writer may be considered closed, causing the flush to fail and potentially mask the intended `IllegalStateException`). Consider flushing before closing (e.g., `writer.flush(); resp.flushBuffer();`) and then closing if needed, or handle any `IOException` from `flushBuffer()` so this branch still deterministically throws the intended exception.",
+      "created": "2026-05-19T14:39:08Z",
+      "hunk": "@@ -161,6 +161,7 @@ protected void service(HttpServletRequest req, HttpServletResponse resp) {\n                         // otherwise there is a chance that tomcat resets the connection before the\n                         // response is sent\n                         writer.close();\n+                        resp.flushBuffer();",
+      "id": "PRRT_kwDODJKVX86DMFZz",
+      "opened": "2026-05-19T14:39:09Z",
+      "path": "instrumentation/servlet/servlet-5.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/v5_0/TestServlet5.java",
+      "replies": [
+        {
+          "at": "2026-05-21T10:49:30Z",
+          "body": "imo not really relevant, we run this only on tomcat an this is where it needs to work",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18804#discussion_r3280574374"
+        }
+      ],
+      "reviewed": "fa54d1fccd526994ca89fc76d193aa2707709077",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18804#discussion_r3267166481"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as in `TestServlet5`: flushing after `writer.close()` can be less robust and may throw, changing the expected exception behavior for this endpoint. Prefer flushing the writer/response before closing, or absorb/handle `IOException` from `flushBuffer()` to keep the intended `IllegalStateException` behavior stable.\n",
+      "created": "2026-05-19T14:39:09Z",
+      "hunk": "@@ -163,6 +163,7 @@ protected void service(HttpServletRequest req, HttpServletResponse resp) {\n                         // otherwise there is a chance that tomcat resets the connection before the\n                         // response is sent\n                         writer.close();\n+                        resp.flushBuffer();",
+      "id": "PRRT_kwDODJKVX86DMFai",
+      "opened": "2026-05-19T14:39:09Z",
+      "path": "instrumentation/servlet/servlet-3.0/testing/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/TestServlet3.java",
+      "replies": [],
+      "reviewed": "fa54d1fccd526994ca89fc76d193aa2707709077",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18804#discussion_r3267166551"
+    }
+  ]
+}

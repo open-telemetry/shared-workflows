@@ -1,0 +1,51 @@
+{
+  "head": "735d708a0c140abe33905112f428a6caf94cfdcd",
+  "merge": "0e7a65df25cdf5e6c43c27400e32cb89038d4c22",
+  "merged": "2026-11-04T23:03:28Z",
+  "missing_roots": 0,
+  "number": 464,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The checked-in `server/data.json` still contains empty signal maps and no findings, so the restored Laravel telemetry is absent from committed coverage. Once the scenario produces telemetry, its regenerated data will fail the freshness check in `.github/workflows/runner.yml:765–773`. Run `otel-conformance scenarios/http/php/laravel/opentelemetry-laravel/server --report-only` and commit the generated coverage, retaining its findings and the current dependency versions.",
+      "created": "2026-11-04T16:22:12Z",
+      "hunk": "@@ -12,6 +12,9 @@\n     \"open-telemetry-conformance/http-test-client\": \"dev-main\"\n   },\n   \"config\": {\n+    \"allow-plugins\": {\n+      \"tbachert/spi\": true",
+      "id": "PRRT_kwDOTuzK5c6zsBaU",
+      "opened": "2026-11-04T16:22:13Z",
+      "path": "scenarios/http/php/laravel/opentelemetry-laravel/composer.json",
+      "replies": [
+        {
+          "at": "2026-11-04T16:48:56Z",
+          "body": "735d708a0c140abe33905112f428a6caf94cfdcd",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/464#discussion_r4470484291"
+        },
+        {
+          "at": "2026-11-04T16:56:35Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/464/commits/735d708a0c140abe33905112f428a6caf94cfdcd",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/464#discussion_r4470575212"
+        }
+      ],
+      "reviewed": "a9947952729c892095ce9de54d17b3bb4c863c78",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/464#discussion_r4470163285"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-11-04T16:58:28Z",
+      "hunk": "@@ -33,6 +33,10 @@ extensions. CodeIgniter needs `intl`, and the curl, PSR-18, and Symfony HTTP\n Client scenarios need `curl`. The self-contained WordPress fixture uses\n `pdo_sqlite`.\n \n+Laravel's SPI-based hooks require the optional `tbachert/spi` Composer plugin.\n+Its package enables the plugin in `config.allow-plugins` so Composer builds\n+the SDK's provider registry.\n+",
+      "id": "PRRT_kwDOTuzK5c6ztCaT",
+      "opened": "2026-11-04T16:58:27Z",
+      "path": "scenarios/http/php/README.md",
+      "replies": [],
+      "reviewed": "735d708a0c140abe33905112f428a6caf94cfdcd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/464#discussion_r4470597765"
+    }
+  ]
+}

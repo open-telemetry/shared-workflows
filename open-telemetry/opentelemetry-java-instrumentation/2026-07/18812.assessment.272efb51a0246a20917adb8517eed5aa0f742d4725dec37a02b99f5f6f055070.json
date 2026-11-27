@@ -1,0 +1,154 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a9afb48ee763553ad5d062f19cef969cb8b87f301f2758cc158507c66f62e140",
+  "input_digest": "272efb51a0246a20917adb8517eed5aa0f742d4725dec37a02b99f5f6f055070",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/OsResourceTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/OsResourceTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a0eb2930f201649c75d3fe15169fc227e27f4f85"
+      ],
+      "id": "PRRT_kwDODJKVX86DjNX8",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b/.github/scripts/code-review/find-parameterized-test-candidates.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/.github/scripts/code-review/find-parameterized-test-candidates.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6dbe4decb861b906ad607d0412146592316f2c59",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a0eb2930f201649c75d3fe15169fc227e27f4f85"
+      ],
+      "id": "PRRT_kwDODJKVX86DjNYx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a0eb2930f201649c75d3fe15169fc227e27f4f85"
+      ],
+      "id": "PRRT_kwDODJKVX86DjNZO",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b/.github/scripts/code-review/find-parameterized-test-candidates.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/.github/scripts/code-review/find-parameterized-test-candidates.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b/instrumentation/kubernetes-client-7.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/kubernetesclient/v7_0/KubernetesRequestUtilsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/kubernetes-client-7.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/kubernetesclient/v7_0/KubernetesRequestUtilsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DjNZn",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a0eb2930f201649c75d3fe15169fc227e27f4f85/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6dbe4decb861b906ad607d0412146592316f2c59"
+      ],
+      "id": "PRRT_kwDODJKVX86PaeuD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a0eb2930f201649c75d3fe15169fc227e27f4f85/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/OsResourceTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/OsResourceTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6dbe4decb861b906ad607d0412146592316f2c59"
+      ],
+      "id": "PRRT_kwDODJKVX86PafWI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86PagNu",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Pagdn",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/54c55617949a90c64b64971d47e0ff4388bf72b1/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/InstrumentationNameComparatorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/InstrumentationNameComparatorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5f48493e1fcb3d1f4f9be3c89be02295c156a1ef"
+      ],
+      "id": "PRRT_kwDODJKVX86Qz3H5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/54c55617949a90c64b64971d47e0ff4388bf72b1/.github/scripts/code-review/find-parameterized-test-candidates.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/.github/scripts/code-review/find-parameterized-test-candidates.py"
+      ],
+      "id": "PRRT_kwDODJKVX86Qz3I_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/54c55617949a90c64b64971d47e0ff4388bf72b1/instrumentation-annotations-support/src/test/java/io/opentelemetry/instrumentation/api/annotation/support/AttributeBindingFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation-annotations-support/src/test/java/io/opentelemetry/instrumentation/api/annotation/support/AttributeBindingFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5f48493e1fcb3d1f4f9be3c89be02295c156a1ef"
+      ],
+      "id": "PRRT_kwDODJKVX86Qz3Ic",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/54c55617949a90c64b64971d47e0ff4388bf72b1/instrumentation/servlet/servlet-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/servlet/v3_0/snippet/SnippetServletOutputStreamTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/servlet/servlet-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/servlet/v3_0/snippet/SnippetServletOutputStreamTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5f48493e1fcb3d1f4f9be3c89be02295c156a1ef"
+      ],
+      "id": "PRRT_kwDODJKVX86Qz3Je",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd543945afcaaef601aeda9d43b4b87f223ff1cf/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18f13c26d593b5bda8779074c317ccfb3b924ad6/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0544dee61014254f0cf399813c2db89c95ffcfa2"
+      ],
+      "id": "PRRT_kwDODJKVX86RI_8j",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

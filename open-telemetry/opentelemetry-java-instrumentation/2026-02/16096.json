@@ -1,0 +1,31 @@
+{
+  "head": "4b99f616d8a88bd9b1fa67db109863560d1b1b84",
+  "merge": "bcbc0842ebc291aec994a80f74fa6dc99776dbdd",
+  "merged": "2026-02-05T01:38:23Z",
+  "missing_roots": 0,
+  "number": 16096,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether this would be a breaking change if we had stable instrumentations? Or could we get away with it because it only affects an attribute value.",
+      "created": "2026-02-03T20:35:00Z",
+      "hunk": "@@ -39,7 +39,7 @@ public final class HttpClientAttributesExtractorBuilder<REQUEST, RESPONSE> {\n   List<String> capturedResponseHeaders = emptyList();\n   Set<String> knownMethods = HttpConstants.KNOWN_METHODS;\n   ToIntFunction<Context> resendCountIncrementer = HttpClientRequestResendCount::getAndIncrement;\n-  boolean redactQueryParameters;\n+  boolean redactQueryParameters = true;",
+      "id": "PRRT_kwDODJKVX85sgohO",
+      "opened": "2026-02-03T20:34:59Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java",
+      "replies": [
+        {
+          "at": "2026-02-03T20:39:26Z",
+          "body": "I believe this change would be acceptable even for stable instrumentation since it only redacts known sensitive parameters (and is essentially a security fix)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16096#discussion_r2760894824"
+        }
+      ],
+      "reviewed": "3c75810794779f92c7c9f712e5c7a63cf8974e39",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16096#discussion_r2760880677"
+    }
+  ]
+}

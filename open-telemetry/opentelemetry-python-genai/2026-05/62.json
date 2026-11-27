@@ -1,0 +1,25 @@
+{
+  "head": "076389e1f3a3e4b7e71906d7a3900805fdd6a814",
+  "merge": "66083934e390898029ae3cf47506f110db6c9af9",
+  "merged": "2026-05-22T16:14:58Z",
+  "missing_roots": 0,
+  "number": 62,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PR description says the failing Perplexity link was replaced, but this README still contains `https://docs.perplexity.ai/api-reference/chat-completions` in the \"OpenAI Compatible Platforms\" table (earlier in the file). Since that URL is 404 per the link check output, please update it to the intended working docs URL (e.g., the api-reference root) so CI link checking will pass.",
+      "created": "2026-05-21T21:16:47Z",
+      "hunk": "@@ -144,7 +144,8 @@ To uninstrument clients, call the uninstrument method:\n \n References\n ----------\n-* `OpenTelemetry OpenAI Instrumentation <https://opentelemetry-python-genai.readthedocs.io/en/latest/instrumentation/openai.html>`_\n-* `OpenTelemetry Project <https://opentelemetry.io/>`_\n-* `OpenTelemetry Python Examples <https://github.com/open-telemetry/opentelemetry-python/tree/main/docs/examples>`_\n \n+* `OpenTelemetry Project <https://opentelemetry.io/>`_\n+* `OpenTelemetry GenAI semantic conventions <https://opentelemetry.io/docs/specs/semconv/gen-ai/>`_\n+* `OpenAI SDK (Python) <https://github.com/openai/openai-python>`_\n+* `OpenAI Documentation <https://developers.openai.com/api/docs>`_",
+      "id": "PRRT_kwDOSbspP86D8AIZ",
+      "opened": "2026-05-21T21:16:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-v2/README.rst",
+      "replies": [],
+      "reviewed": "e3d364ae6751bb050e4ce585222fa29a83b7e8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/62#discussion_r3284394155"
+    }
+  ]
+}

@@ -1,0 +1,470 @@
+{
+  "head": "615c5d50e6fc49699ceab64cf631d7bdd689e134",
+  "merge": "4381f2a4af44fde6efcc0bd395420558c6eb7d35",
+  "merged": "2026-09-02T00:14:25Z",
+  "missing_roots": 0,
+  "number": 19485,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setUseXrayPropagator(false)` no longer fully disables X-Ray extraction: this argument enables the new `X-Amzn-Trace-Id` fallback whenever create spans are enabled. In the W3C-only configuration, a message whose configured propagation is absent or invalid can therefore be parented to an X-Ray context even though X-Ray propagation was explicitly disabled. Gate this fallback on `config.shouldUseXrayPropagator()` as well.",
+      "created": "2026-08-10T23:42:43Z",
+      "hunk": "@@ -95,7 +113,11 @@ public static Context ofMessage(SqsMessage message, TracingExecutionInterceptor\n   public static Context ofMessage(\n       Context parentContext, SqsMessage message, TracingExecutionInterceptor config) {\n     return ofMessage(\n-        parentContext, message, config.getMessagingPropagator(), config.shouldUseXrayPropagator());\n+        parentContext,\n+        message,\n+        config.getMessagingPropagator(),\n+        config.shouldUseXrayPropagator(),\n+        emitStableMessagingSemconv() && config.isSqsMessageCreateSpansEnabled());",
+      "id": "PRRT_kwDODJKVX86YEok7",
+      "opened": "2026-08-10T23:42:44Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsParentContext.java",
+      "replies": [],
+      "reviewed": "70b9481e9c9df4317994f6bb2df533ccd0eeed26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3754254651"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This process-context path has the same X-Ray-disable bypass as `SqsParentContext.ofMessage(message, config)`: the final argument controls extraction from the X-Ray message attribute, but it ignores `useXrayPropagator`. With the W3C-only test configuration, an X-Ray attribute can still become the process parent when configured propagation does not produce a span. Include `useXrayPropagator` in this condition.",
+      "created": "2026-08-10T23:42:44Z",
+      "hunk": "@@ -209,7 +215,8 @@ public Instrumenter<SqsProcessRequest, Response> consumerProcessInstrumenter() {\n                       parentContext,\n                       request.getMessage(),\n                       messagingPropagator,\n-                      useXrayPropagator)));\n+                      useXrayPropagator,\n+                      sqsMessageCreateSpansEnabled)));",
+      "id": "PRRT_kwDODJKVX86YEolJ",
+      "opened": "2026-08-10T23:42:44Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "70b9481e9c9df4317994f6bb2df533ccd0eeed26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3754254689"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This gate also disables discovery of creation contexts that are already present. With the option off, such entries are no longer linked and the batch send remains `PRODUCER`; when configured message-attribute propagation is enabled, the legacy path can even overwrite an existing valid `traceparent` with the send span. The option is documented as disabling span creation only, so existing contexts should still be discovered/preserved; pass the flag into preparation to suppress only creation of missing contexts, and keep link/kind selection based on the discovered contexts.",
+      "created": "2026-08-25T02:59:03Z",
+      "hunk": "@@ -165,6 +190,20 @@ public SdkRequest modifyRequest(\n       return request;\n     }\n \n+    if (emitStableMessagingSemconv() && messageCreateSpansEnabled) {",
+      "id": "PRRT_kwDODJKVX86b7A6j",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:05Z",
+          "body": "Addressed in 3ebf596771ed6d11005853cce0e8bed106527743.\n\nAnalysis: The create-span flag guarded context preparation and the link and span-kind logic. The stable semantic-convention path now always discovers existing contexts. The flag only skips creating and injecting contexts for entries that lack one. Stable batch sends also bypass the legacy send-span propagation path, so existing message attributes remain unchanged.\n\nUpsides: Existing per-message contexts remain linked, batch sends use CLIENT kind when links exist, and valid traceparent values are preserved when create spans are disabled. Focused tests cover both AWS SDK generations.\n\nDownsides: Stable batch sends with create spans disabled still inspect each entry for an existing context. No material compatibility downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266216"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215676"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The eligibility description is inaccurate for SDK v1: creation contexts use the per-entry `AWSTraceHeader` system attribute, which does not consume or depend on user message-attribute capacity. Eligibility instead depends on SDK support for that system attribute.",
+      "created": "2026-08-25T02:59:04Z",
+      "hunk": "@@ -88,6 +89,20 @@ public AwsSdkTelemetryBuilder setMessagingReceiveTelemetryEnabled(\n     return this;\n   }\n \n+  /**\n+   * Sets whether a producer \"Create\" span is emitted for each eligible entry in an SQS batch send.\n+   * An entry is eligible when it does not already contain a creation context and has enough\n+   * message-attribute capacity to inject one.",
+      "id": "PRRT_kwDODJKVX86b7A63",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AwsSdkTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:08Z",
+          "body": "Addressed in 730221da7ef6948f60c93483e39e4b1f1dce33ef.\n\nAnalysis: The builder documentation described user message-attribute capacity as a universal requirement. AWS SDK v1 uses the AWSTraceHeader system attribute. AWS SDK v2 can use either that system attribute or the configured messaging propagator. The revised text states the eligibility rule for each SDK generation and limits the capacity requirement to the carrier that uses message attributes.\n\nUpsides: Users can tell when create spans are available and understand that system attributes do not consume the ten user message-attribute slots.\n\nDownsides: The AWS SDK v2 description is longer because it covers both propagation carriers. No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266430"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215713"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Disabling this option skips the whole batch-context path, including discovery of valid pre-existing `AWSTraceHeader` contexts. Those contexts are then neither linked nor used to classify the send as `CLIENT`, although the option is documented as disabling only creation of new spans and the PR promises to preserve/link existing contexts. Always inspect existing contexts under stable semconv, and use this flag only to decide whether missing contexts get a new create span.",
+      "created": "2026-08-25T02:59:04Z",
+      "hunk": "@@ -128,15 +132,92 @@ private static void addTracing(\n     }\n   }\n \n-  static boolean beforeMarshalling(AmazonWebServiceRequest rawRequest) {\n+  static AmazonWebServiceRequest beforeMarshalling(\n+      AmazonWebServiceRequest rawRequest,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n     if (rawRequest instanceof ReceiveMessageRequest) {\n       ReceiveMessageRequest request = (ReceiveMessageRequest) rawRequest;\n       if (!request.getAttributeNames().contains(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE)) {\n         request.withAttributeNames(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE);\n       }\n-      return true;\n+      return request;\n     }\n-    return false;\n+    if (rawRequest instanceof SendMessageBatchRequest\n+        && emitStableMessagingSemconv()\n+        && messageCreateSpansEnabled) {\n+      return injectBatchCreationContexts(\n+          (SendMessageBatchRequest) rawRequest, producerCreateInstrumenter);",
+      "id": "PRRT_kwDODJKVX86b7A6u",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:07Z",
+          "body": "Addressed in 3ebf596771ed6d11005853cce0e8bed106527743.\n\nAnalysis: The create-span flag guarded context preparation and the link and span-kind logic. The stable semantic-convention path now always discovers existing contexts. The flag only skips creating and injecting contexts for entries that lack one. Stable batch sends also bypass the legacy send-span propagation path, so existing message attributes remain unchanged.\n\nUpsides: Existing per-message contexts remain linked, batch sends use CLIENT kind when links exist, and valid traceparent values are preserved when create spans are disabled. Focused tests cover both AWS SDK generations.\n\nDownsides: Stable batch sends with create spans disabled still inspect each entry for an existing context. No material compatibility downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266323"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215696"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The eligibility description is too restrictive: when X-Ray per-entry system attributes are available, a create context can be injected even if all ten user message-attribute slots are occupied. Capacity matters only when the configured messaging propagator is the sole available carrier.",
+      "created": "2026-08-25T02:59:04Z",
+      "hunk": "@@ -142,6 +143,20 @@ public AwsSdkTelemetryBuilder setMessagingReceiveTelemetryEnabled(\n     return this;\n   }\n \n+  /**\n+   * Sets whether a producer \"Create\" span is emitted for each eligible entry in an SQS batch send.\n+   * An entry is eligible when it does not already contain a creation context and has enough\n+   * message-attribute capacity to inject one.",
+      "id": "PRRT_kwDODJKVX86b7A7I",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AwsSdkTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:10Z",
+          "body": "Addressed in 730221da7ef6948f60c93483e39e4b1f1dce33ef.\n\nAnalysis: The builder documentation described user message-attribute capacity as a universal requirement. AWS SDK v1 uses the AWSTraceHeader system attribute. AWS SDK v2 can use either that system attribute or the configured messaging propagator. The revised text states the eligibility rule for each SDK generation and limits the capacity requirement to the carrier that uses message attributes.\n\nUpsides: Users can tell when create spans are available and understand that system attributes do not consume the ten user message-attribute slots.\n\nDownsides: The AWS SDK v2 description is longer because it covers both propagation carriers. No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266533"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215733"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This newly added class is in an `.internal` package, where the Java style rules explicitly prohibit adding `final` to classes.",
+      "created": "2026-08-25T02:59:05Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import java.util.Collection;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class SqsCreateRequest {",
+      "id": "PRRT_kwDODJKVX86b7A7W",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsCreateRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:12Z",
+          "body": "Addressed in 3cef9b70ca1ff06c2d56abbf708414896d17f644.\n\nAnalysis: All six new SQS helper classes live in internal packages. The repository style rules prohibit final on classes in those packages. Removing the modifier aligns both AWS SDK implementations with that rule without changing visibility or behavior.\n\nUpsides: The classes follow the repository's internal-package convention and avoid repeated style findings.\n\nDownsides: The classes can now be subclassed where their visibility permits it. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266611"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215750"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This newly added class is in an `.internal` package, where the Java style rules explicitly prohibit adding `final` to classes.",
+      "created": "2026-08-25T02:59:05Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v1_11.internal;\n+\n+import java.util.Collection;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class SqsCreateRequest {",
+      "id": "PRRT_kwDODJKVX86b7A7h",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsCreateRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:13Z",
+          "body": "Addressed in 3cef9b70ca1ff06c2d56abbf708414896d17f644.\n\nAnalysis: All six new SQS helper classes live in internal packages. The repository style rules prohibit final on classes in those packages. Removing the modifier aligns both AWS SDK implementations with that rule without changing visibility or behavior.\n\nUpsides: The classes follow the repository's internal-package convention and avoid repeated style findings.\n\nDownsides: The classes can now be subclassed where their visibility permits it. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266685"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215765"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This newly added class is in an `.internal` package, where the Java style rules explicitly prohibit adding `final` to classes.",
+      "created": "2026-08-25T02:59:05Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+final class SqsCreateRequestAttributesGetter",
+      "id": "PRRT_kwDODJKVX86b7A7s",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsCreateRequestAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:14Z",
+          "body": "Addressed in 3cef9b70ca1ff06c2d56abbf708414896d17f644.\n\nAnalysis: All six new SQS helper classes live in internal packages. The repository style rules prohibit final on classes in those packages. Removing the modifier aligns both AWS SDK implementations with that rule without changing visibility or behavior.\n\nUpsides: The classes follow the repository's internal-package convention and avoid repeated style findings.\n\nDownsides: The classes can now be subclassed where their visibility permits it. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266794"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215786"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This newly added class is in an `.internal` package, where the Java style rules explicitly prohibit adding `final` to classes.",
+      "created": "2026-08-25T02:59:05Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v1_11.internal;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+final class SqsCreateRequestAttributesGetter",
+      "id": "PRRT_kwDODJKVX86b7A7y",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsCreateRequestAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:16Z",
+          "body": "Addressed in 3cef9b70ca1ff06c2d56abbf708414896d17f644.\n\nAnalysis: All six new SQS helper classes live in internal packages. The repository style rules prohibit final on classes in those packages. Removing the modifier aligns both AWS SDK implementations with that rule without changing visibility or behavior.\n\nUpsides: The classes follow the repository's internal-package convention and avoid repeated style findings.\n\nDownsides: The classes can now be subclassed where their visibility permits it. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266883"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215796"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This newly added class is in an `.internal` package, where the Java style rules explicitly prohibit adding `final` to classes.",
+      "created": "2026-08-25T02:59:06Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import java.lang.reflect.InvocationTargetException;\n+import java.lang.reflect.Method;\n+import java.util.HashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;\n+\n+final class SqsMessageSystemAttributeAccess {",
+      "id": "PRRT_kwDODJKVX86b7A8B",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsMessageSystemAttributeAccess.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:17Z",
+          "body": "Addressed in 3cef9b70ca1ff06c2d56abbf708414896d17f644.\n\nAnalysis: All six new SQS helper classes live in internal packages. The repository style rules prohibit final on classes in those packages. Removing the modifier aligns both AWS SDK implementations with that rule without changing visibility or behavior.\n\nUpsides: The classes follow the repository's internal-package convention and avoid repeated style findings.\n\nDownsides: The classes can now be subclassed where their visibility permits it. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266929"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215820"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This newly added class is in an `.internal` package, where the Java style rules explicitly prohibit adding `final` to classes.",
+      "created": "2026-08-25T02:59:06Z",
+      "hunk": "@@ -0,0 +1,117 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v1_11.internal;\n+\n+import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;\n+import java.lang.reflect.Constructor;\n+import java.lang.reflect.InvocationTargetException;\n+import java.lang.reflect.Method;\n+import java.util.HashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+final class SqsMessageSystemAttributeAccess {",
+      "id": "PRRT_kwDODJKVX86b7A8G",
+      "opened": "2026-08-25T02:59:06Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsMessageSystemAttributeAccess.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:12:18Z",
+          "body": "Addressed in 3cef9b70ca1ff06c2d56abbf708414896d17f644.\n\nAnalysis: All six new SQS helper classes live in internal packages. The repository style rules prohibit final on classes in those packages. Removing the modifier aligns both AWS SDK implementations with that rule without changing visibility or behavior.\n\nUpsides: The classes follow the repository's internal-package convention and avoid repeated style findings.\n\nDownsides: The classes can now be subclassed where their visibility permits it. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849266977"
+        }
+      ],
+      "reviewed": "960defc766031de1e49ecc9461ceb1b58d288d48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849215833"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This stable-semconv return also disables the previous batch injection through the configured messaging propagator. In a W3C-only setup (`useXrayPropagator=false`), disabling create spans leaves entries without an existing context completely unpropagated: the send span remains `PRODUCER`, but receivers cannot parent or link to it. Please fall back to injecting the send span into context-free entries when no per-message creation contexts are used, while still preserving valid contexts already present.",
+      "created": "2026-08-25T03:19:46Z",
+      "hunk": "@@ -159,13 +173,143 @@ static SdkRequest modifyRequest(\n         return injectIntoSendMessageRequest(\n             (SendMessageRequest) request, otelContext, messagingPropagator);\n       } else if (request instanceof SendMessageBatchRequest) {\n+        if (emitStableMessagingSemconv()) {\n+          return request;\n+        }",
+      "id": "PRRT_kwDODJKVX86b7Nc1",
+      "opened": "2026-08-25T03:19:46Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-08-25T03:24:05Z",
+          "body": "Addressed in d2cec32457a9df06895414ed6738b43c443000d9.\n\nAnalysis: Stable batch preparation still records valid W3C and X-Ray contexts when create spans are disabled. The later propagation step now injects the send span only into entries that have no valid creation context. It leaves valid message-attribute and system-attribute contexts untouched. The existing legacy behavior remains unchanged outside stable messaging semantic conventions.\n\nUpsides: Context-free entries retain send-span propagation in W3C-only setups, while entries with custom contexts keep their original values and links. The regression test covers both cases in one batch.\n\nDownsides: The fallback extracts each entry context again before deciding whether to inject the send span. No material compatibility downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849310272"
+        }
+      ],
+      "reviewed": "3cef9b70ca1ff06c2d56abbf708414896d17f644",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3849294228"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This propagation description is inaccurate for SDK v2: `setUseXrayPropagator(false)` disables both `AWSTraceHeader` and the shared X-Ray request header, while an older SDK can still carry per-message contexts through the configured messaging propagator when attribute capacity permits. Please describe both the X-Ray enablement gate and the configured-propagator fallback.",
+      "created": "2026-08-26T23:53:51Z",
+      "hunk": "@@ -46,6 +46,12 @@ using the [AWS Trace Header](https://docs.aws.amazon.com/xray/latest/devguide/xr\n This format is the only format recognized by AWS managed services, and populating will allow\n propagating the trace through them.\n \n+For SQS batch sends under stable messaging semantic conventions, the instrumentation writes each\n+message creation context to that entry's `AWSTraceHeader` message system attribute. This uses the\n+AWS-defined per-message carrier and does not consume one of the ten user message attributes. The\n+instrumentation falls back to the shared request trace header when the SDK version does not support\n+per-entry message system attributes.",
+      "id": "PRRT_kwDODJKVX86cptHQ",
+      "opened": "2026-08-26T23:53:51Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/README.md",
+      "replies": [
+        {
+          "at": "2026-08-27T00:01:25Z",
+          "body": "Addressed in 4429f2cc00f36cf8dfc88695bdb5ab12d1a677a3.\n\nAnalysis: The README incorrectly described the shared request X-Ray header as the fallback for SDK versions without per-entry system attributes. X-Ray enablement gates both that request header and the per-entry `AWSTraceHeader`. The configured messaging propagator is the per-message fallback when the SDK lacks system-attribute support and user attribute capacity permits injection.\n\nUpsides: Readers can now tell which setting controls each carrier and how older SDK versions preserve per-message contexts.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3867647182"
+        }
+      ],
+      "reviewed": "21fb7876fa9bae378017a15987244f53443d605c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3867613393"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With a no-op tracer, `Instrumenter.start()` returns an invalid span context. Default X-Ray propagation then produces no header, but `injectCreationContext()` still adds an `AWSTraceHeader` with a null string value and treats injection as successful, which can make an otherwise valid batch request fail validation. End the attempted span and skip injection when the returned context is invalid.",
+      "created": "2026-08-27T00:10:10Z",
+      "hunk": "@@ -159,27 +174,196 @@ static SdkRequest modifyRequest(\n         return injectIntoSendMessageRequest(\n             (SendMessageRequest) request, otelContext, messagingPropagator);\n       } else if (request instanceof SendMessageBatchRequest) {\n+        if (emitStableMessagingSemconv()) {\n+          return messageCreateSpansEnabled\n+              ? request\n+              : injectIntoSendMessageBatchRequest(\n+                  (SendMessageBatchRequest) request,\n+                  otelContext,\n+                  messagingPropagator,\n+                  true,\n+                  useXrayPropagator);\n+        }\n         return injectIntoSendMessageBatchRequest(\n-            (SendMessageBatchRequest) request, otelContext, messagingPropagator);\n+            (SendMessageBatchRequest) request,\n+            otelContext,\n+            messagingPropagator,\n+            false,\n+            useXrayPropagator);\n       }\n     }\n     return null;\n   }\n \n+  @Nullable\n+  static SdkRequest prepareBatchRequest(\n+      SdkRequest request,\n+      ExecutionAttributes executionAttributes,\n+      io.opentelemetry.context.Context parentContext,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean useXrayPropagator,\n+      TextMapPropagator messagingPropagator,\n+      boolean messageCreateSpansEnabled) {\n+    if (!(request instanceof SendMessageBatchRequest)) {\n+      return null;\n+    }\n+\n+    SendMessageBatchRequest batchRequest = (SendMessageBatchRequest) request;\n+    ArrayList<SendMessageBatchRequestEntry> entries = new ArrayList<>(batchRequest.entries());\n+    List<io.opentelemetry.context.Context> creationContexts = new ArrayList<>();\n+    io.opentelemetry.context.Context creationParentContext = parentContext.with(Span.getInvalid());\n+\n+    for (int i = 0; i < entries.size(); i++) {\n+      SendMessageBatchRequestEntry entry = entries.get(i);\n+      Map<String, MessageAttributeValue> messageAttributes = entry.messageAttributes();\n+      io.opentelemetry.context.Context customCreationContext =\n+          creationContext(entry, messagingPropagator, useXrayPropagator);\n+      if (Span.fromContext(customCreationContext).getSpanContext().isValid()) {\n+        creationContexts.add(customCreationContext);\n+        continue;\n+      }\n+      if (!messageCreateSpansEnabled) {\n+        continue;\n+      }\n+\n+      io.opentelemetry.context.Context propagationCapacityContext =\n+          creationParentContext.with(PROPAGATION_CAPACITY_SPAN);\n+      if (!canInjectCreationContext(\n+          entry, propagationCapacityContext, useXrayPropagator, messagingPropagator)) {\n+        continue;\n+      }\n+\n+      SqsCreateRequest createRequest =\n+          new SqsCreateRequest(batchRequest.queueUrl(), stringMessageAttributes(messageAttributes));\n+      if (!producerCreateInstrumenter.shouldStart(creationParentContext, createRequest)) {\n+        continue;\n+      }\n+\n+      io.opentelemetry.context.Context creationContext =\n+          producerCreateInstrumenter.start(creationParentContext, createRequest);\n+      SendMessageBatchRequestEntry updatedEntry =\n+          injectCreationContext(entry, creationContext, useXrayPropagator, messagingPropagator);",
+      "id": "PRRT_kwDODJKVX86cp4ZS",
+      "opened": "2026-08-27T00:10:11Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:20:20Z",
+          "body": "Addressed in 43cc263546e187c0eef0082b3950c76644d128d3.\n\nAnalysis: Both SDK versions assumed that a started create instrumenter always returned a valid span context. A no-op OpenTelemetry instance returns an invalid context, so X-Ray injection cannot produce a trace header. Both paths now end the attempted span and leave the batch entry unchanged instead of injecting a null system attribute.\n\nUpsides: No-op telemetry can send SQS batches without invalid message system attributes. Regression tests cover the behavior in both SDK versions.\n\nDownsides: Each eligible batch entry now performs one span-context validity check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3867728517"
+        }
+      ],
+      "reviewed": "4429f2cc00f36cf8dfc88695bdb5ab12d1a677a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3867683939"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With a no-op tracer, `Instrumenter.start()` returns an invalid span context. The X-Ray propagator then produces no header, but this path still adds an `AWSTraceHeader` whose string value is null, which can make an otherwise valid batch request fail validation. End the attempted span and leave this entry unchanged when the returned context is invalid.",
+      "created": "2026-08-27T00:10:10Z",
+      "hunk": "@@ -128,15 +132,91 @@ private static void addTracing(\n     }\n   }\n \n-  static boolean beforeMarshalling(AmazonWebServiceRequest rawRequest) {\n+  static AmazonWebServiceRequest beforeMarshalling(\n+      AmazonWebServiceRequest rawRequest,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n     if (rawRequest instanceof ReceiveMessageRequest) {\n       ReceiveMessageRequest request = (ReceiveMessageRequest) rawRequest;\n       if (!request.getAttributeNames().contains(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE)) {\n         request.withAttributeNames(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE);\n       }\n-      return true;\n+      return request;\n     }\n-    return false;\n+    if (rawRequest instanceof SendMessageBatchRequest && emitStableMessagingSemconv()) {\n+      return injectBatchCreationContexts(\n+          (SendMessageBatchRequest) rawRequest,\n+          producerCreateInstrumenter,\n+          messageCreateSpansEnabled);\n+    }\n+    return rawRequest;\n+  }\n+\n+  private static SendMessageBatchRequest injectBatchCreationContexts(\n+      SendMessageBatchRequest request,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n+    if (!messageCreateSpansEnabled || !SqsMessageSystemAttributeAccess.isAvailable()) {\n+      return request;\n+    }\n+\n+    SendMessageBatchRequest preparedRequest = request.clone();\n+    List<SendMessageBatchRequestEntry> preparedEntries = new ArrayList<>();\n+    Context parentContext = Context.current().with(Span.getInvalid());\n+    for (SendMessageBatchRequestEntry entry : request.getEntries()) {\n+      String traceHeader = SqsMessageSystemAttributeAccess.getTraceHeader(entry);\n+      if (traceHeader != null) {\n+        preparedEntries.add(entry.clone());\n+        continue;\n+      }\n+\n+      SqsCreateRequest createRequest =\n+          new SqsCreateRequest(\n+              request.getQueueUrl(), stringMessageAttributes(entry.getMessageAttributes()));\n+      if (!producerCreateInstrumenter.shouldStart(parentContext, createRequest)) {\n+        preparedEntries.add(entry.clone());\n+        continue;\n+      }\n+      Context creationContext = producerCreateInstrumenter.start(parentContext, createRequest);\n+      SendMessageBatchRequestEntry preparedEntry =\n+          SqsMessageSystemAttributeAccess.withTraceHeader(\n+              entry, SqsParentContext.toTraceHeader(creationContext));",
+      "id": "PRRT_kwDODJKVX86cp4Zo",
+      "opened": "2026-08-27T00:10:11Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:20:22Z",
+          "body": "Addressed in 43cc263546e187c0eef0082b3950c76644d128d3.\n\nAnalysis: Both SDK versions assumed that a started create instrumenter always returned a valid span context. A no-op OpenTelemetry instance returns an invalid context, so X-Ray injection cannot produce a trace header. Both paths now end the attempted span and leave the batch entry unchanged instead of injecting a null system attribute.\n\nUpsides: No-op telemetry can send SQS batches without invalid message system attributes. Regression tests cover the behavior in both SDK versions.\n\nDownsides: Each eligible batch entry now performs one span-context validity check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3867728675"
+        }
+      ],
+      "reviewed": "4429f2cc00f36cf8dfc88695bdb5ab12d1a677a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3867683972"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could dump this into `ExperimentalConfig` where we already have `messagingReceiveInstrumentationEnabled`",
+      "created": "2026-08-28T15:00:23Z",
+      "hunk": "@@ -34,21 +35,37 @@ public class TracingRequestHandler extends RequestHandler2 {\n   public static final HandlerContextKey<Scope> SCOPE =\n       new HandlerContextKey<>(Scope.class.getName());\n \n-  private static final RequestHandler2 tracingHandler =\n-      AwsSdkTelemetry.builder(GlobalOpenTelemetry.get())\n-          .setCaptureExperimentalSpanAttributes(\n-              DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"aws_sdk\")\n-                  .getBoolean(\"experimental_span_attributes/development\", false))\n-          .setMessagingReceiveTelemetryEnabled(\n-              ExperimentalConfig.get().messagingReceiveInstrumentationEnabled())\n-          .setHeaders(ExperimentalConfig.get().getMessagingHeaders())\n-          .build()\n-          .createRequestHandler();\n+  private static final RequestHandler2 tracingHandler = createTracingHandler();\n \n   public static RequestHandler2 tracingHandler() {\n     return tracingHandler;\n   }\n \n+  private static RequestHandler2 createTracingHandler() {\n+    AwsSdkTelemetryBuilder builder =\n+        AwsSdkTelemetry.builder(GlobalOpenTelemetry.get())\n+            .setCaptureExperimentalSpanAttributes(\n+                DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"aws_sdk\")\n+                    .getBoolean(\"experimental_span_attributes/development\", false))\n+            .setMessagingReceiveTelemetryEnabled(\n+                ExperimentalConfig.get().messagingReceiveInstrumentationEnabled())\n+            .setHeaders(ExperimentalConfig.get().getMessagingHeaders());\n+    boolean commonBatchSendMessageCreationSpansEnabled =\n+        DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"common\")\n+            .get(\"messaging\")\n+            .get(\"batch_send\")\n+            .get(\"message_creation_spans\")\n+            .getBoolean(\"enabled\", true);",
+      "id": "PRRT_kwDODJKVX86dNVbI",
+      "opened": "2026-08-28T15:00:23Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v1_11/TracingRequestHandler.java",
+      "replies": [
+        {
+          "at": "2026-08-28T15:08:49Z",
+          "body": "I was thinking to go straight to stable here, since it's mentioned in the semantic conventions to provide this configuration (though the name isn't specified)\r\n\r\nthinking to move `receive-telemetry` to stable in 3.0: https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19828",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3881689843"
+        },
+        {
+          "at": "2026-08-31T16:13:54Z",
+          "body": "Could also use `CommonConfig`.\n\n> thinking to move receive-telemetry to stable in 3.0: #19828\n\nHaven't thought too much about this. The impression I have is that the concept of `receive-telemetry` as we have now might not align with the semantic conventions since the semantic conventions now prescribe when the receive span is created (pull) and when not (push). Where we could consider allowing users to control whether the receive span is created is aws sqs and kafka where our instrumentation produces `process` spans although the api usage in application is pull.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3896253920"
+        },
+        {
+          "at": "2026-09-01T22:54:03Z",
+          "body": "> Could also use CommonConfig\r\n\r\n👍\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/780029fb40\r\n\r\n> Haven't thought too much about this. The impression I have is that the concept of receive-telemetry as we have now might not align with the semantic conventions since the semantic conventions now prescribe when the receive span is created (pull) and when not (push). Where we could consider allowing users to control whether the receive span is created is aws sqs and kafka where our instrumentation produces process spans although the api usage in application is pull.\r\n\r\nlinked that from #19828",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3909123391"
+        }
+      ],
+      "reviewed": "4117ad001059ba88e56fe570879e1e5c40e41f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3881629030"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I thought it always uses `AWSTraceHeader` in aws-sdk-2 instrumentation it is configurable. Guess this is a new batch only behavior.",
+      "created": "2026-08-31T16:17:28Z",
+      "hunk": "@@ -4,9 +4,12 @@ Instrumentation for [AWS Java SDK v1](https://github.com/aws/aws-sdk-java).\n \n ## Trace propagation\n \n-The AWS SDK instrumentation currently only supports injecting the trace header into the request\n-using the [AWS Trace Header](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader) format.\n-This format is the only format recognized by AWS managed services, and populating will allow\n-propagating the trace through them. If this does not fulfill your use case, perhaps because you are\n-using the same SDK with a different non-AWS managed service, let us know so we can provide\n-configuration for this behavior.\n+The AWS SDK instrumentation injects the trace header using the\n+[AWS Trace Header](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader)\n+format. This is the format recognized by AWS managed services.\n+\n+For SQS batch sends under stable messaging semantic conventions, the instrumentation writes each\n+message creation context to that entry's `AWSTraceHeader` message system attribute. This uses the\n+AWS-defined per-message carrier and does not consume one of the ten user message attributes. The\n+instrumentation falls back to the shared request trace header when the SDK version does not support",
+      "id": "PRRT_kwDODJKVX86dywPG",
+      "opened": "2026-08-31T16:17:28Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/javaagent/README.md",
+      "replies": [
+        {
+          "at": "2026-09-01T22:54:25Z",
+          "body": "clarified docs: https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/87b5c5c7fd",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3909125293"
+        }
+      ],
+      "reviewed": "4117ad001059ba88e56fe570879e1e5c40e41f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3896279370"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could use a comment what is the intent.",
+      "created": "2026-08-31T16:31:10Z",
+      "hunk": "@@ -128,15 +132,96 @@ private static void addTracing(\n     }\n   }\n \n-  static boolean beforeMarshalling(AmazonWebServiceRequest rawRequest) {\n+  static AmazonWebServiceRequest beforeMarshalling(\n+      AmazonWebServiceRequest rawRequest,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n     if (rawRequest instanceof ReceiveMessageRequest) {\n       ReceiveMessageRequest request = (ReceiveMessageRequest) rawRequest;\n       if (!request.getAttributeNames().contains(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE)) {\n         request.withAttributeNames(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE);\n       }\n-      return true;\n+      return request;\n     }\n-    return false;\n+    if (rawRequest instanceof SendMessageBatchRequest && emitStableMessagingSemconv()) {\n+      return injectBatchCreationContexts(\n+          (SendMessageBatchRequest) rawRequest,\n+          producerCreateInstrumenter,\n+          messageCreateSpansEnabled);\n+    }\n+    return rawRequest;\n+  }\n+\n+  private static SendMessageBatchRequest injectBatchCreationContexts(\n+      SendMessageBatchRequest request,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n+    if (!messageCreateSpansEnabled || !SqsMessageSystemAttributeAccess.isAvailable()) {\n+      return request;\n+    }\n+\n+    SendMessageBatchRequest preparedRequest = request.clone();\n+    List<SendMessageBatchRequestEntry> preparedEntries = new ArrayList<>();\n+    Context parentContext = Context.current().with(Span.getInvalid());",
+      "id": "PRRT_kwDODJKVX86dzAAX",
+      "opened": "2026-08-31T16:31:10Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-01T22:54:47Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ff767ad17d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3909127337"
+        }
+      ],
+      "reviewed": "4117ad001059ba88e56fe570879e1e5c40e41f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3896375611"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I don't get how this branch is taken, doesn't the instrumenter always create a span?",
+      "created": "2026-08-31T17:06:49Z",
+      "hunk": "@@ -128,15 +132,96 @@ private static void addTracing(\n     }\n   }\n \n-  static boolean beforeMarshalling(AmazonWebServiceRequest rawRequest) {\n+  static AmazonWebServiceRequest beforeMarshalling(\n+      AmazonWebServiceRequest rawRequest,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n     if (rawRequest instanceof ReceiveMessageRequest) {\n       ReceiveMessageRequest request = (ReceiveMessageRequest) rawRequest;\n       if (!request.getAttributeNames().contains(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE)) {\n         request.withAttributeNames(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE);\n       }\n-      return true;\n+      return request;\n     }\n-    return false;\n+    if (rawRequest instanceof SendMessageBatchRequest && emitStableMessagingSemconv()) {\n+      return injectBatchCreationContexts(\n+          (SendMessageBatchRequest) rawRequest,\n+          producerCreateInstrumenter,\n+          messageCreateSpansEnabled);\n+    }\n+    return rawRequest;\n+  }\n+\n+  private static SendMessageBatchRequest injectBatchCreationContexts(\n+      SendMessageBatchRequest request,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n+    if (!messageCreateSpansEnabled || !SqsMessageSystemAttributeAccess.isAvailable()) {\n+      return request;\n+    }\n+\n+    SendMessageBatchRequest preparedRequest = request.clone();\n+    List<SendMessageBatchRequestEntry> preparedEntries = new ArrayList<>();\n+    Context parentContext = Context.current().with(Span.getInvalid());\n+    for (SendMessageBatchRequestEntry entry : request.getEntries()) {\n+      String traceHeader = SqsMessageSystemAttributeAccess.getTraceHeader(entry);\n+      if (traceHeader != null) {\n+        preparedEntries.add(entry.clone());\n+        continue;\n+      }\n+\n+      SqsCreateRequest createRequest =\n+          new SqsCreateRequest(\n+              request.getQueueUrl(), stringMessageAttributes(entry.getMessageAttributes()));\n+      if (!producerCreateInstrumenter.shouldStart(parentContext, createRequest)) {\n+        preparedEntries.add(entry.clone());\n+        continue;\n+      }\n+      Context creationContext = producerCreateInstrumenter.start(parentContext, createRequest);\n+      if (!Span.fromContext(creationContext).getSpanContext().isValid()) {",
+      "id": "PRRT_kwDODJKVX86dzp55",
+      "opened": "2026-08-31T17:06:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-01T22:55:18Z",
+          "body": "added comment https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/94c3534bec",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3909130300"
+        }
+      ],
+      "reviewed": "4117ad001059ba88e56fe570879e1e5c40e41f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3896632521"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps is would be better to use `InstrumenterUtil.startAndEnd`",
+      "created": "2026-08-31T17:10:07Z",
+      "hunk": "@@ -128,15 +132,96 @@ private static void addTracing(\n     }\n   }\n \n-  static boolean beforeMarshalling(AmazonWebServiceRequest rawRequest) {\n+  static AmazonWebServiceRequest beforeMarshalling(\n+      AmazonWebServiceRequest rawRequest,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n     if (rawRequest instanceof ReceiveMessageRequest) {\n       ReceiveMessageRequest request = (ReceiveMessageRequest) rawRequest;\n       if (!request.getAttributeNames().contains(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE)) {\n         request.withAttributeNames(SqsParentContext.AWS_TRACE_SYSTEM_ATTRIBUTE);\n       }\n-      return true;\n+      return request;\n     }\n-    return false;\n+    if (rawRequest instanceof SendMessageBatchRequest && emitStableMessagingSemconv()) {\n+      return injectBatchCreationContexts(\n+          (SendMessageBatchRequest) rawRequest,\n+          producerCreateInstrumenter,\n+          messageCreateSpansEnabled);\n+    }\n+    return rawRequest;\n+  }\n+\n+  private static SendMessageBatchRequest injectBatchCreationContexts(\n+      SendMessageBatchRequest request,\n+      Instrumenter<SqsCreateRequest, Void> producerCreateInstrumenter,\n+      boolean messageCreateSpansEnabled) {\n+    if (!messageCreateSpansEnabled || !SqsMessageSystemAttributeAccess.isAvailable()) {\n+      return request;\n+    }\n+\n+    SendMessageBatchRequest preparedRequest = request.clone();\n+    List<SendMessageBatchRequestEntry> preparedEntries = new ArrayList<>();\n+    Context parentContext = Context.current().with(Span.getInvalid());\n+    for (SendMessageBatchRequestEntry entry : request.getEntries()) {\n+      String traceHeader = SqsMessageSystemAttributeAccess.getTraceHeader(entry);\n+      if (traceHeader != null) {\n+        preparedEntries.add(entry.clone());\n+        continue;\n+      }\n+\n+      SqsCreateRequest createRequest =\n+          new SqsCreateRequest(\n+              request.getQueueUrl(), stringMessageAttributes(entry.getMessageAttributes()));\n+      if (!producerCreateInstrumenter.shouldStart(parentContext, createRequest)) {\n+        preparedEntries.add(entry.clone());\n+        continue;\n+      }\n+      Context creationContext = producerCreateInstrumenter.start(parentContext, createRequest);",
+      "id": "PRRT_kwDODJKVX86dzu9h",
+      "opened": "2026-08-31T17:10:07Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-01T22:56:33Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9630192e5e and https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/615c5d50e6 (also opened https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19941)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3909137486"
+        }
+      ],
+      "reviewed": "4117ad001059ba88e56fe570879e1e5c40e41f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3896664431"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use that auto cleanup extension",
+      "created": "2026-08-31T18:04:49Z",
+      "hunk": "@@ -35,4 +53,189 @@ public AmazonSQSAsyncClientBuilder configureClient(AmazonSQSAsyncClientBuilder c\n             .build()\n             .createRequestHandler());\n   }\n+\n+  @Test\n+  void testDisableSqsMessageCreateSpans() {\n+    assumeTrue(emitStableMessagingSemconv());\n+    AwsSdkTelemetryBuilder telemetryBuilder =\n+        AwsSdkTelemetry.builder(testing().getOpenTelemetry())\n+            .setCaptureExperimentalSpanAttributes(true);\n+    telemetryBuilder.setBatchSendMessageCreationSpansEnabled(false);\n+    AmazonSQSAsync client =\n+        newClientBuilder()\n+            .withRequestHandlers(telemetryBuilder.build().createRequestHandler())\n+            .build();\n+    try {\n+      String queueUrl = \"http://localhost:\" + sqsPort + \"/000000000000/testSdkSqs\";\n+      client.createQueue(\"testSdkSqs\");\n+      client.sendMessageBatch(\n+          new SendMessageBatchRequest()\n+              .withQueueUrl(queueUrl)\n+              .withEntries(\n+                  new SendMessageBatchRequestEntry(\"i1\", \"e1\"),\n+                  new SendMessageBatchRequestEntry(\"i2\", \"e2\")));\n+\n+      testing()\n+          .waitAndAssertTraces(\n+              trace ->\n+                  trace.hasSpansSatisfyingExactly(\n+                      span -> span.hasName(\"SQS.CreateQueue\").hasKind(SpanKind.CLIENT)),\n+              trace ->\n+                  trace.hasSpansSatisfyingExactly(\n+                      span ->\n+                          span.hasName(\"send testSdkSqs\")\n+                              .hasKind(SpanKind.PRODUCER)\n+                              .hasNoParent()\n+                              .hasTotalRecordedLinks(0)));\n+    } finally {\n+      client.shutdown();",
+      "id": "PRRT_kwDODJKVX86d0uIP",
+      "opened": "2026-08-31T18:04:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+      "replies": [
+        {
+          "at": "2026-09-01T22:56:54Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c7445feb0d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3909139223"
+        }
+      ],
+      "reviewed": "4117ad001059ba88e56fe570879e1e5c40e41f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19485#discussion_r3897052569"
+    }
+  ]
+}

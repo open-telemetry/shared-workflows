@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e72dc3c0a039f210174d1514f4b2108e619d553a328e5669920bb64d56ce0abd",
+  "input_digest": "453522f5fe80d998b456c54c16f7b42a46ebe545391f98b4b21d0c6219b3d0dd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e59bd4d9ff9c6c07d32afdc4b2f259cdf9de7264/.github/workflows/copilot-review-guidance-post.yml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e03c84119ad392b94c1a6c64b49d6687f61c4bc8/.github/workflows/copilot-review-guidance-post.yml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e03c84119ad392b94c1a6c64b49d6687f61c4bc8/.github/workflows/pull-request-dashboard.yml"
+      ],
+      "id": "PRRT_kwDOSUeMrM6EU6EQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e59bd4d9ff9c6c07d32afdc4b2f259cdf9de7264/.github/workflows/copilot-review-guidance.yml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e03c84119ad392b94c1a6c64b49d6687f61c4bc8/.github/workflows/copilot-review-guidance.yml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e03c84119ad392b94c1a6c64b49d6687f61c4bc8/.github/workflows/pull-request-dashboard.yml"
+      ],
+      "id": "PRRT_kwDOSUeMrM6EU6Ec",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

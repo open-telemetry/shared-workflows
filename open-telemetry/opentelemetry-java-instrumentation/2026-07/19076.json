@@ -1,0 +1,417 @@
+{
+  "head": "c2dfa58e805ac325f20ea55de8cac619953b03ca",
+  "merge": "ba59f7ccdf16269f9694d0f28b90723ea6a1b849",
+  "merged": "2026-07-14T21:06:59Z",
+  "missing_roots": 0,
+  "number": 19076,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "using `invokedynamic` is an implementation detail",
+      "created": "2026-06-30T13:08:28Z",
+      "hunk": "@@ -231,9 +231,30 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes content is copied into the instrumented class files\n+- non-inlined instrumentation, where advice classes are not copied into the instrumented class files but loaded in a dedicated classloader and called via `invokedynamic` bytecode instruction.",
+      "id": "PRRT_kwDODJKVX86NSBTu",
+      "opened": "2026-06-30T13:08:28Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-07-01T08:33:55Z",
+          "body": "fixed in b772938",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3504398402"
+        }
+      ],
+      "reviewed": "a3e7c8996be0212ec10a2e86a9279bd06958069a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3498946853"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not true, the choice is based on the advice classes use of `inline` attribute",
+      "created": "2026-06-30T13:11:23Z",
+      "hunk": "@@ -231,9 +231,30 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes content is copied into the instrumented class files\n+- non-inlined instrumentation, where advice classes are not copied into the instrumented class files but loaded in a dedicated classloader and called via `invokedynamic` bytecode instruction.\n+\n+The default depends on the agent version:\n+\n+- before 3.0.0: [inlined instrumentation](#inlined-instrumentation) is the default, users can opt-in to use non-inlined by setting the configuration option to `true`.\n+- from 3.0.0 and later: [non-inlined instrumentation](#non-inlined-instrumentation) is the default, users can opt-out to use inlined by setting the configuration option to `false` to restore the previous behavior.",
+      "id": "PRRT_kwDODJKVX86NSEwr",
+      "opened": "2026-06-30T13:11:23Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-07-01T08:35:28Z",
+          "body": "fixed in 472caf8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3504407288"
+        }
+      ],
+      "reviewed": "a3e7c8996be0212ec10a2e86a9279bd06958069a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3498966024"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think it would be more correct to say that there is no default strategy, instrumentation author needs to explicitly choose which to use.",
+      "created": "2026-06-30T13:12:41Z",
+      "hunk": "@@ -231,9 +231,30 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes content is copied into the instrumented class files\n+- non-inlined instrumentation, where advice classes are not copied into the instrumented class files but loaded in a dedicated classloader and called via `invokedynamic` bytecode instruction.\n+\n+The default depends on the agent version:\n+\n+- before 3.0.0: [inlined instrumentation](#inlined-instrumentation) is the default, users can opt-in to use non-inlined by setting the configuration option to `true`.\n+- from 3.0.0 and later: [non-inlined instrumentation](#non-inlined-instrumentation) is the default, users can opt-out to use inlined by setting the configuration option to `false` to restore the previous behavior.\n+\n+It is possible to select which instrumentation strategy is used through configuration:\n+\n+- set it to `true` for non-inlined instrumentation, set it to `false` for inlined instrumentation\n+- use `otel.javaagent.experimental.indy` configuration option for auto-configuration, or `distribution.javaagent.indy/development` with declarative configuration\n+\n+## inlined instrumentation\n+\n+As of 3.0.0, the default instrumentation strategy is [non-inlined](#non-inlined-instrumentation), this section is kept for historical reference and for users that want to opt-out of the new default behavior.",
+      "id": "PRRT_kwDODJKVX86NSGPQ",
+      "opened": "2026-06-30T13:12:41Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-07-01T08:35:21Z",
+          "body": "fixed in 472caf8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3504406650"
+        }
+      ],
+      "reviewed": "a3e7c8996be0212ec10a2e86a9279bd06958069a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3498974305"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we won't publish the option for opting out. We might retain the current option, but that is for only our own usage.",
+      "created": "2026-06-30T13:14:37Z",
+      "hunk": "@@ -231,9 +231,30 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes content is copied into the instrumented class files\n+- non-inlined instrumentation, where advice classes are not copied into the instrumented class files but loaded in a dedicated classloader and called via `invokedynamic` bytecode instruction.\n+\n+The default depends on the agent version:\n+\n+- before 3.0.0: [inlined instrumentation](#inlined-instrumentation) is the default, users can opt-in to use non-inlined by setting the configuration option to `true`.\n+- from 3.0.0 and later: [non-inlined instrumentation](#non-inlined-instrumentation) is the default, users can opt-out to use inlined by setting the configuration option to `false` to restore the previous behavior.\n+\n+It is possible to select which instrumentation strategy is used through configuration:\n+\n+- set it to `true` for non-inlined instrumentation, set it to `false` for inlined instrumentation\n+- use `otel.javaagent.experimental.indy` configuration option for auto-configuration, or `distribution.javaagent.indy/development` with declarative configuration\n+\n+## inlined instrumentation\n+\n+As of 3.0.0, the default instrumentation strategy is [non-inlined](#non-inlined-instrumentation), this section is kept for historical reference and for users that want to opt-out of the new default behavior.\n+All internal instrumentation uses advices that have `inline = false` set to make them compatible with [non-inlined instrumentation](#non-inlined-instrumentation), but those advices\n+will be inlined into the instrumented code if the user opts-out of non-inlined instrumentation.",
+      "id": "PRRT_kwDODJKVX86NSIbc",
+      "opened": "2026-06-30T13:14:37Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-07-01T08:35:12Z",
+          "body": "fixed in 472caf8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3504405768"
+        }
+      ],
+      "reviewed": "a3e7c8996be0212ec10a2e86a9279bd06958069a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3498986606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "As far as I know none of the advice classes are shaded so these can be debugged. Advice classes may use other classes that are shaded e.g. library instrumentations used by agent instrumentations are shaded.",
+      "created": "2026-06-30T13:17:01Z",
+      "hunk": "@@ -381,42 +367,9 @@ invokedynamic bytecode instructions.\n \n Using indy instrumentation has these advantages:\n \n-- allows instrumentations to have breakpoints set in them and be debugged using standard debugging techniques\n+- allows instrumentations to have breakpoints set in them and be debugged using standard debugging techniques (only once shading is removed)",
+      "id": "PRRT_kwDODJKVX86NSLOv",
+      "opened": "2026-06-30T13:17:01Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-07-01T08:12:58Z",
+          "body": "You are right here, I should have clarified it that it allows to use breakpoints in instrumentation advice classes. Maybe we could add that some classes are shaded and thus we can't debug inside them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3504283656"
+        },
+        {
+          "at": "2026-07-01T08:34:39Z",
+          "body": "fixed in 561b34b",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3504402414"
+        }
+      ],
+      "reviewed": "a3e7c8996be0212ec10a2e86a9279bd06958069a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3499001985"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "we should really make the default value depend on v3 preview flag",
+      "created": "2026-06-30T13:18:05Z",
+      "hunk": "@@ -90,7 +90,7 @@ public static void set(AgentDistributionConfig distributionConfig) {\n       @Nullable @JsonProperty(\"exclude_class_loaders\") List<String> excludeClassLoaders,\n       @Nullable @JsonProperty(\"thread_details_enabled\") Boolean threadDetailsEnabled,\n       @Nullable @JsonProperty(\"instrumentation\") InstrumentationConfig instrumentation) {\n-    this.indyEnabled = indyEnabled != null ? indyEnabled : false;\n+    this.indyEnabled = indyEnabled != null ? indyEnabled : true;",
+      "id": "PRRT_kwDODJKVX86NSMfN",
+      "opened": "2026-06-30T13:18:05Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-07-01T13:41:40Z",
+          "body": "I've updated the implementation to enable it when v3 preview flag is active.\r\n\r\nHowever, this brings some extra complication in the case of declarative configuration as both config options are not part of the same node:\r\n\r\n```yaml\r\ninstrumentation/development:\r\n  java:\r\n    common:\r\n      v3_preview: true\r\n\r\ndistribution:\r\n  javaagent:\r\n    indy/development: true\r\n```\r\n\r\nTo fix that, I had to do some magic in the declarative configuration parsing to enable indy when v3 preview is enabled. I know this goes against some of the WYSIWYG principles of declarative configuration and is \"ugly\", but this is a temporary compromise that will go away for 3.0.0.\r\n\r\nIn all cases, the `distribution.javaagent.indy/development` has priority, so we can still enable v3 preview and disable indy.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3506392639"
+        },
+        {
+          "at": "2026-07-13T08:14:40Z",
+          "body": "> In all cases, the distribution.javaagent.indy/development has priority, so we can still enable v3 preview and disable indy.\r\n\r\nThe opt-out has now been removed, so enabling v3 preview means that non-inlined instrumentation is enabled, as [commented here](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536320331) doing that means that we can remove the opt-out configuration for 3.0 and avoid having to preserve compatibility.\r\n\r\nIn practice this means that instrumentation that currently works with inlined and non-inlined instrumentation will only be used non-inlined and we don't have to keep supporting compatibility with both (at the individual instrumentation module level, the instrumentation agent still supports both types of instrumentation).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3569047712"
+        }
+      ],
+      "reviewed": "a3e7c8996be0212ec10a2e86a9279bd06958069a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3499008912"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the `if (javaagent != null)` guard here changes behavior for the non-v3-preview path. When a `distribution` node is present but has no `javaagent` child (and `v3Preview` is false, so the block above does not synthesize one), `javaagent` is `null` and `mapper.convertValue(null, AgentDistributionConfig.class)` returns `null`. `parseConfig` then returns `null`, and `AgentDistributionConfig.set(null)` stores a null instance, so subsequent `AgentDistributionConfig.get()` calls (e.g. in `InstrumentationModuleInstaller.useIndy`) throw NPEs. Previously this case fell through to `AgentDistributionConfig.create()`. Restore the null check so a missing `javaagent` falls back to the default config.",
+      "created": "2026-07-01T14:33:41Z",
+      "hunk": "@@ -55,22 +59,64 @@ public boolean handleUnknownProperty(\n   public void customize(DeclarativeConfigurationCustomizer customizer) {\n     customizer.addModelCustomizer(\n         model -> {\n-          AgentDistributionConfig.set(parseConfig(model.getDistribution()));\n+          boolean isV3Preview = isV3Preview(model);\n+          AgentDistributionConfig distributionConfig =\n+              parseConfig(model.getDistribution(), isV3Preview);\n+          AgentDistributionConfig.set(distributionConfig);\n           return model;\n         });\n   }\n \n-  private static AgentDistributionConfig parseConfig(DistributionModel distribution) {\n+  // to be removed for 3.0.0\n+  private static boolean isV3Preview(OpenTelemetryConfigurationModel model) {\n+    ExperimentalInstrumentationModel instrumentationDevelopment =\n+        model.getInstrumentationDevelopment();\n+    if (instrumentationDevelopment == null) {\n+      return false;\n+    }\n+    ExperimentalLanguageSpecificInstrumentationModel java = instrumentationDevelopment.getJava();\n+    if (java == null) {\n+      return false;\n+    }\n+    ExperimentalLanguageSpecificInstrumentationPropertyModel common =\n+        java.getAdditionalProperties().get(\"common\");\n+    if (common == null) {\n+      return false;\n+    }\n+    return Boolean.TRUE.equals(common.getAdditionalProperties().get(\"v3_preview\"));\n+  }\n+\n+  private static AgentDistributionConfig parseConfig(\n+      DistributionModel distribution, boolean v3Preview) {\n+\n+    // to be removed for 3.0.0\n+    // defaults 'distribution.javaagent.indy/development' to 'true' for v3 preview if unset\n+    if (v3Preview) {\n+      // creating distribution.javaagent is required to add indy/development to it\n+      DistributionPropertyModel javaagent;\n+      if (distribution == null) {\n+        distribution = new DistributionModel();\n+      }\n+      javaagent = distribution.getAdditionalProperties().get(\"javaagent\");\n+      if (javaagent == null) {\n+        javaagent = new DistributionPropertyModel();\n+        distribution.withAdditionalProperty(\"javaagent\", javaagent);\n+      }\n+      // when v3 preview is enabled we enable indy by default when not explicitly set\n+      if (javaagent.getAdditionalProperties().get(\"indy/development\") == null) {\n+        javaagent.withAdditionalProperty(\"indy/development\", true);\n+      }\n+    }\n+\n     if (distribution != null) {\n       DistributionPropertyModel javaagent = distribution.getAdditionalProperties().get(\"javaagent\");\n-      if (javaagent != null) {\n-        try {\n-          return mapper.convertValue(javaagent, AgentDistributionConfig.class);\n-        } catch (IllegalArgumentException e) {\n-          logger.log(WARNING, \"Failed to parse distribution.javaagent configuration\", e);\n-        }\n+      try {\n+        return mapper.convertValue(javaagent, AgentDistributionConfig.class);\n+      } catch (IllegalArgumentException e) {\n+        logger.log(WARNING, \"Failed to parse distribution.javaagent configuration\", e);\n       }\n     }",
+      "id": "PRRT_kwDODJKVX86NnsVg",
+      "opened": "2026-07-01T14:33:41Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-07-01T15:26:44Z",
+          "body": "fixed in e53c92bb3d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3507160433"
+        }
+      ],
+      "reviewed": "feb475df3343789acf2d9ce47477b35bfcd35f88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3506771798"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new default-derivation branch (defaulting `indy/development` to `true` under v3 preview when it is not explicitly set) is not exercised by any test. The only declarative fixture (`javaagent-tooling/src/testDistributionConfig/resources/distribution-config.yaml`) sets `indy/development: true` explicitly, so `testIndyDevelopmentProperty` passes regardless of this branch. Consider adding a fixture/test where `v3_preview: true` is set but `indy/development` is omitted, asserting `isIndyEnabled()` is `true`, to guard this core behavior against regressions.",
+      "created": "2026-07-01T14:33:41Z",
+      "hunk": "@@ -55,22 +59,64 @@ public boolean handleUnknownProperty(\n   public void customize(DeclarativeConfigurationCustomizer customizer) {\n     customizer.addModelCustomizer(\n         model -> {\n-          AgentDistributionConfig.set(parseConfig(model.getDistribution()));\n+          boolean isV3Preview = isV3Preview(model);\n+          AgentDistributionConfig distributionConfig =\n+              parseConfig(model.getDistribution(), isV3Preview);\n+          AgentDistributionConfig.set(distributionConfig);\n           return model;\n         });\n   }\n \n-  private static AgentDistributionConfig parseConfig(DistributionModel distribution) {\n+  // to be removed for 3.0.0\n+  private static boolean isV3Preview(OpenTelemetryConfigurationModel model) {\n+    ExperimentalInstrumentationModel instrumentationDevelopment =\n+        model.getInstrumentationDevelopment();\n+    if (instrumentationDevelopment == null) {\n+      return false;\n+    }\n+    ExperimentalLanguageSpecificInstrumentationModel java = instrumentationDevelopment.getJava();\n+    if (java == null) {\n+      return false;\n+    }\n+    ExperimentalLanguageSpecificInstrumentationPropertyModel common =\n+        java.getAdditionalProperties().get(\"common\");\n+    if (common == null) {\n+      return false;\n+    }\n+    return Boolean.TRUE.equals(common.getAdditionalProperties().get(\"v3_preview\"));\n+  }\n+\n+  private static AgentDistributionConfig parseConfig(\n+      DistributionModel distribution, boolean v3Preview) {\n+\n+    // to be removed for 3.0.0\n+    // defaults 'distribution.javaagent.indy/development' to 'true' for v3 preview if unset\n+    if (v3Preview) {\n+      // creating distribution.javaagent is required to add indy/development to it\n+      DistributionPropertyModel javaagent;\n+      if (distribution == null) {\n+        distribution = new DistributionModel();\n+      }\n+      javaagent = distribution.getAdditionalProperties().get(\"javaagent\");\n+      if (javaagent == null) {\n+        javaagent = new DistributionPropertyModel();\n+        distribution.withAdditionalProperty(\"javaagent\", javaagent);\n+      }\n+      // when v3 preview is enabled we enable indy by default when not explicitly set\n+      if (javaagent.getAdditionalProperties().get(\"indy/development\") == null) {\n+        javaagent.withAdditionalProperty(\"indy/development\", true);\n+      }",
+      "id": "PRRT_kwDODJKVX86NnsWB",
+      "opened": "2026-07-01T14:33:41Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-07-01T15:26:41Z",
+          "body": "fixed in e53c92bb3d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3507160175"
+        }
+      ],
+      "reviewed": "feb475df3343789acf2d9ce47477b35bfcd35f88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3506771841"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "in documentation we usually use `Java agent`",
+      "created": "2026-07-07T11:23:26Z",
+      "hunk": "@@ -515,3 +461,41 @@ public static Object onEnter(@Advice.FieldValue(\"fieldName\") Object originalFiel\n \n It is possible to modify multiple fields at once by using an array, see usages of\n `@Advice.AssignReturned.ToFields` for detailed examples.\n+\n+## Using virtual fields to associate instrumentation classes to instrumented classes\n+\n+Sometimes there is a need to associate some instrumentation class with an instrumented library class, and\n+the library does not offer a way to do this. The OpenTelemetry javaagent provides `VirtualField`",
+      "id": "PRRT_kwDODJKVX86O4_cw",
+      "opened": "2026-07-07T11:23:26Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3535971234"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "it is really only the advice method that is copied into the instrumented method not the whole class, idk whether this makes a difference",
+      "created": "2026-07-07T11:25:18Z",
+      "hunk": "@@ -231,9 +231,23 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes content is copied into the instrumented class files",
+      "id": "PRRT_kwDODJKVX86O5BqC",
+      "opened": "2026-07-07T11:25:17Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3535983402"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that instead of `dedicated classloader` it might be better to rephrase that they are loaded as classes",
+      "created": "2026-07-07T11:28:23Z",
+      "hunk": "@@ -231,9 +231,23 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes content is copied into the instrumented class files\n+- non-inlined instrumentation, where advice classes are not copied into the instrumented class files but loaded in a dedicated classloader.",
+      "id": "PRRT_kwDODJKVX86O5Fm1",
+      "opened": "2026-07-07T11:28:23Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536005877"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "capitalize inlined?",
+      "created": "2026-07-07T11:29:02Z",
+      "hunk": "@@ -231,9 +231,23 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes content is copied into the instrumented class files\n+- non-inlined instrumentation, where advice classes are not copied into the instrumented class files but loaded in a dedicated classloader.\n+\n+The choice between the two strategies is made by instrumentation author by using the `inline` property of the `@Advice.OnMethodEnter` and `@Advice.OnMethodExit` annotations.\n+\n+- if `inline` property is not set or set to `true` (default), the advice is inlined into the instrumented class files\n+- if `inline` property is explicitly set to `false`\n+  - before 3.0.0: the advice is inlined\n+  - as of 3.0.0 and later: the advice is not inlined\n+\n+## inlined instrumentation",
+      "id": "PRRT_kwDODJKVX86O5GX_",
+      "opened": "2026-07-07T11:29:02Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536010185"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`invokedynamic` is an implementation detail. Consider whether it is worth mentioning there.",
+      "created": "2026-07-07T11:30:48Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86O5Iqz",
+      "opened": "2026-07-07T11:30:48Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536023049"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that advice classes are never shaded. There is no impact on debuggability of other classes.",
+      "created": "2026-07-07T11:31:53Z",
+      "hunk": "@@ -381,42 +360,9 @@ invokedynamic bytecode instructions.\n \n Using indy instrumentation has these advantages:\n \n-- allows instrumentations to have breakpoints set in them and be debugged using standard debugging techniques\n+- allows instrumentation to have breakpoints set in them and be debugged using standard debugging techniques (this is however limited to classes that are not shaded).",
+      "id": "PRRT_kwDODJKVX86O5J4O",
+      "opened": "2026-07-07T11:31:53Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536030081"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "a couple more advantages of non-inline instrumentation if you wish to add more of them\n- advice classes have access to agent code so communicating between advice and agent does not need an api in boot loader\n- with inline advice advice code has to be compatible with the instrumented class e.g. calling a static interface method in advice will fail when instrumented class is compiled for java 7 or older since these class versions don't support static interface methods",
+      "created": "2026-07-07T12:07:51Z",
+      "hunk": "@@ -381,42 +360,9 @@ invokedynamic bytecode instructions.\n \n Using indy instrumentation has these advantages:\n \n-- allows instrumentations to have breakpoints set in them and be debugged using standard debugging techniques\n+- allows instrumentation to have breakpoints set in them and be debugged using standard debugging techniques (this is however limited to classes that are not shaded).\n - provides clean isolation of instrumentation advice from the application and other instrumentations\n-- allows advice classes to contain static fields and methods which can be accessed from the advice entry points - in fact generally good development practices are enabled (whereas inlined advices are [restricted in how they can be implemented](#use-advice-classes-to-write-code-that-will-get-injected-to-the-instrumented-library-classes))\n-\n-### Indy modules and transition\n-\n-Making an instrumentation \"indy\" compatible (or native \"indy\") is not as straightforward as making it \"inlined\".\n-However, ByteBuddy provides a set of tools and APIs that are mentioned below to make the process as smooth as possible.\n-\n-Due to the changes needed on most of the instrumentation modules the migration can't be achieved in a single step,\n-we thus have to implement it in two steps:\n-\n-- `InstrumentationModule#isIndyModule` implementation return `true` (and changes needed to make it indy compatible)\n-- set `inline = false` on advice methods annotated with `@Advice.OnMethodEnter` or `@Advice.OnMethodExit`\n-\n-The `otel.javaagent.experimental.indy` (default `false`) configuration option allows to opt-in for\n-using \"indy\". When set to `true`, the `io.opentelemetry.javaagent.tooling.instrumentation.indy.AdviceTransformer`\n-will transform advices automatically to make them \"indy native\". Using this option is temporary and will\n-be removed once all the instrumentations are \"indy native\".\n-\n-This configuration is automatically enabled in CI with `testIndy*` checks or when the `-PtestIndy=true` parameter is added to gradle.\n-\n-In order to preserve compatibility with both instrumentation strategies, we have to omit the `inline = false`\n-from the advice method annotations.\n-\n-We have three sets of instrumentation modules:\n-\n-- \"inlined only\": only compatible with \"inlined\", `isIndyModule` returns `false`.\n-- \"indy compatible\": compatible with both \"indy\" and \"inlined\", do not override `isIndyModule`, advices are modified with `AdviceTransformer` to be made \"indy native\" or \"inlined\" at runtime.\n-- \"indy native\": only compatible with \"indy\" `isIndyModule` returns `true`.\n-\n-The first step of the migration is to move all the \"inlined only\" to the \"indy compatible\" category\n-by refactoring them with the limitations described below.\n-\n-Once everything is \"indy compatible\", we can evaluate changing the default value of `otel.javaagent.experimental.indy`\n-to `true` and make it non-experimental.\n+- allows advice classes to contain static fields and methods which can be accessed from the advice entry points - in fact generally good development practices are enabled (whereas inlined advices are [restricted in how they can be implemented](#inlined-instrumentation))",
+      "id": "PRRT_kwDODJKVX86O51TE",
+      "opened": "2026-07-07T12:07:51Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536278764"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think this should be rephrased to emphasize that `VirtualField.find()` is an expensive call so it is best to call it once and cache the result in a field. We should disable the `VirtualFieldChecker` by default.",
+      "created": "2026-07-07T12:11:43Z",
+      "hunk": "@@ -515,3 +461,41 @@ public static Object onEnter(@Advice.FieldValue(\"fieldName\") Object originalFiel\n \n It is possible to modify multiple fields at once by using an array, see usages of\n `@Advice.AssignReturned.ToFields` for detailed examples.\n+\n+## Using virtual fields to associate instrumentation classes to instrumented classes\n+\n+Sometimes there is a need to associate some instrumentation class with an instrumented library class, and\n+the library does not offer a way to do this. The OpenTelemetry javaagent provides `VirtualField`\n+for that purpose. Consider the following example:\n+\n+```java\n+VirtualField<Runnable, Context> virtualField =\n+    VirtualField.get(Runnable.class, Context.class);\n+```\n+\n+A `VirtualField` has a very similar interface to a map. It is not a simple map though: the javaagent uses many\n+bytecode tweaks to optimize it. Because of this, retrieving a `VirtualField` instance is rather\n+limited: the `VirtualField#get()` method must receive class references as its parameters; it won't\n+work with variables, method params, etc. Both the owner class and the field class must be known at\n+compile time for it to work.\n+\n+Use of `VirtualField` requires the `muzzle-generation` gradle plugin. Failing to use the plugin will result in\n+ClassNotFoundException when trying to access the field.\n+\n+When using [non-inlined instrumentation](#non-inlined-instrumentation), the calls to `VirtualField.find()` must be done outside the advice class and methods\n+because those calls are re-written for efficiency. The `VirtualFieldChecker` class is used to check this at runtime when the advice class is loaded.",
+      "id": "PRRT_kwDODJKVX86O55ZC",
+      "opened": "2026-07-07T12:11:43Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-07-07T14:57:42Z",
+          "body": "I've reworded the paragraph, this should be more clear now.\n\nHowever I am not sure for removing `VirtualFieldChecker` by default, as it does provide some extra safety when building instrumentation. If we disable it by default, then should it still be tested for in CI ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3537479263"
+        },
+        {
+          "at": "2026-07-08T05:47:07Z",
+          "body": "in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19138 I disabled it by default and added a flag to enable it for tests",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3541501271"
+        }
+      ],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536301560"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "For 3.0 we'll probably remove the flag to disable indy, or at least we won't publicly advertise it. The intent is that we don't have to retain compatibility with inline advice any more so we won't be testing it and can make changes that won't work with inline advice.",
+      "created": "2026-07-07T12:14:49Z",
+      "hunk": "@@ -103,7 +103,7 @@ AgentBuilder install(\n   }\n \n   private boolean useIndy(InstrumentationModule instrumentationModule) {\n-    // currently needs to be enabled with a flag\n+    // enabled by default, can be opted-out through configuration",
+      "id": "PRRT_kwDODJKVX86O58z2",
+      "opened": "2026-07-07T12:14:49Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-10T15:30:52Z",
+          "body": "@SylvainJuge can you hide this setting behind `!v3preview`? this will ensure that we remember to remove it in 3.0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3560091569"
+        },
+        {
+          "at": "2026-07-13T08:15:52Z",
+          "body": "I've removed the opt-out configuration, so it means with v3 preview non-inlined will be used whenever possible with compatible instrumentations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3569054866"
+        }
+      ],
+      "reviewed": "1c548576d67dd9fcef8571cb2290a3cc47d447e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3536320331"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "This is the only mention of v3 in the documentation, the change is only opt-in through the v3 preview flag.\n\nFollowing what we discussed yesterday in the SIG meeting, this PR has been moved to the 2.30 milestone. I've renamed the PR to reflect that the change is only with the v3 preview.\n\nI think it's fine to merge it as-is for 2.30, the effective default behavior change will be done separately when the v3 preview is effectively being removed for 3.0 and the 3.0 changes are effective.",
+      "created": "2026-07-10T09:35:57Z",
+      "hunk": "@@ -231,9 +231,23 @@ the `transform()` method.\n > by the agent's class loader, and this string concatenation is an optimization that prevents\n > the actual advice class from being loaded into the agent's class loader.\n \n-## Use advice classes to write code that will get injected to the instrumented library classes\n+## Use advice classes to write instrumentation code\n \n-Advice classes aren't really classes in that they're raw pieces of code that are pasted directly into\n+Two types of instrumentation are currently supported:\n+\n+- inlined instrumentation, where advice classes method body bytecode is copied into the instrumented class files\n+- non-inlined instrumentation, where advice classes are loaded as regular class files.\n+\n+The choice between the two strategies is made by instrumentation author by using the `inline` property of the `@Advice.OnMethodEnter` and `@Advice.OnMethodExit` annotations.\n+\n+- if `inline` property is not set or set to `true` (default), the advice is inlined into the instrumented class files\n+- if `inline` property is explicitly set to `false`\n+  - before 3.0.0: the advice is inlined\n+  - as of 3.0.0 and later: the advice is not inlined",
+      "id": "PRRT_kwDODJKVX86P1j0g",
+      "opened": "2026-07-10T09:35:57Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [],
+      "reviewed": "f2cd4b0f0b51127454cb2d8619611978c7e447e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3557879207"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can remove if we're removing this behind v3preview?\n\n```suggestion\n```",
+      "created": "2026-07-10T15:31:55Z",
+      "hunk": "@@ -7,7 +7,8 @@ instrumentation/development:\n \n distribution:\n   javaagent:\n-    indy/development: true\n+    # enabling v3_preview should enable this\n+    # indy/development: true",
+      "id": "PRRT_kwDODJKVX86P7s0h",
+      "opened": "2026-07-10T15:31:55Z",
+      "path": "javaagent-tooling/src/testDistributionConfig/resources/distribution-config.yaml",
+      "replies": [],
+      "reviewed": "f2cd4b0f0b51127454cb2d8619611978c7e447e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3560098030"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "ok to just simplify and not support `indy/development` under v3preview flag?",
+      "created": "2026-07-10T15:32:59Z",
+      "hunk": "@@ -55,12 +60,55 @@ public boolean handleUnknownProperty(\n   public void customize(DeclarativeConfigurationCustomizer customizer) {\n     customizer.addModelCustomizer(\n         model -> {\n-          AgentDistributionConfig.set(parseConfig(model.getDistribution()));\n+          boolean isV3Preview = isV3Preview(model);\n+          AgentDistributionConfig distributionConfig =\n+              parseConfig(model.getDistribution(), isV3Preview);\n+          AgentDistributionConfig.set(distributionConfig);\n           return model;\n         });\n   }\n \n-  private static AgentDistributionConfig parseConfig(DistributionModel distribution) {\n+  // to be removed for 3.0.0\n+  private static boolean isV3Preview(OpenTelemetryConfigurationModel model) {\n+    ExperimentalInstrumentationModel instrumentationDevelopment =\n+        model.getInstrumentationDevelopment();\n+    if (instrumentationDevelopment == null) {\n+      return false;\n+    }\n+    ExperimentalLanguageSpecificInstrumentationModel java = instrumentationDevelopment.getJava();\n+    if (java == null) {\n+      return false;\n+    }\n+    ExperimentalLanguageSpecificInstrumentationPropertyModel common =\n+        java.getAdditionalProperties().get(\"common\");\n+    if (common == null) {\n+      return false;\n+    }\n+    return Boolean.TRUE.equals(common.getAdditionalProperties().get(\"v3_preview\"));\n+  }\n+\n+  private static AgentDistributionConfig parseConfig(\n+      @Nullable DistributionModel distribution, boolean v3Preview) {\n+\n+    // to be removed for 3.0.0\n+    // defaults 'distribution.javaagent.indy/development' to 'true' for v3 preview if unset\n+    if (v3Preview) {\n+      // creating distribution.javaagent is required to add indy/development to it\n+      DistributionPropertyModel javaagent;\n+      if (distribution == null) {\n+        distribution = new DistributionModel();\n+      }\n+      javaagent = distribution.getAdditionalProperties().get(\"javaagent\");\n+      if (javaagent == null) {\n+        javaagent = new DistributionPropertyModel();\n+        distribution.withAdditionalProperty(\"javaagent\", javaagent);\n+      }\n+      // when v3 preview is enabled we enable indy by default when not explicitly set\n+      if (javaagent.getAdditionalProperties().get(\"indy/development\") == null) {\n+        javaagent.withAdditionalProperty(\"indy/development\", true);\n+      }",
+      "id": "PRRT_kwDODJKVX86P7uH3",
+      "opened": "2026-07-10T15:32:59Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-07-13T08:17:23Z",
+          "body": "I've simplified it for v3 preview: it's now being forced to `true` when v3 preview is enabled, hence removing the ability to opt-out.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3569063035"
+        }
+      ],
+      "reviewed": "f2cd4b0f0b51127454cb2d8619611978c7e447e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3560105264"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can/should we remove special inlined behavior for VirtualField in 3.0?",
+      "created": "2026-07-10T15:42:05Z",
+      "hunk": "@@ -515,3 +459,42 @@ public static Object onEnter(@Advice.FieldValue(\"fieldName\") Object originalFiel\n \n It is possible to modify multiple fields at once by using an array, see usages of\n `@Advice.AssignReturned.ToFields` for detailed examples.\n+\n+## Using virtual fields to associate instrumentation classes to instrumented classes\n+\n+Sometimes there is a need to associate some instrumentation class with an instrumented library class, and\n+the library does not offer a way to do this. The Java javaagent provides `VirtualField`\n+for that purpose. Consider the following example:\n+\n+```java\n+VirtualField<Runnable, Context> virtualField =\n+    VirtualField.get(Runnable.class, Context.class);\n+```\n+\n+A `VirtualField` has a very similar interface to a map. It is not a simple map though: the javaagent uses many\n+bytecode tweaks to optimize it. Because of this, retrieving a `VirtualField` instance is rather\n+limited: the `VirtualField#get()` method must receive class references as its parameters; it won't\n+work with variables, method params, etc. Both the owner class and the field class must be known at\n+compile time for it to work.\n+\n+Use of `VirtualField` requires the `muzzle-generation` gradle plugin. Failing to use the plugin will result in\n+ClassNotFoundException when trying to access the field.\n+\n+The call to `VirtualField.find()` is expensive, so it is best to call it once and cache the result in a field.\n+In addition, when using [non-inlined instrumentation](#non-inlined-instrumentation), the calls to `VirtualField.find()` must be done outside the advice class and methods",
+      "id": "PRRT_kwDODJKVX86P74wL",
+      "opened": "2026-07-10T15:42:05Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-07-13T07:44:56Z",
+          "body": "No, this does not change with 3.0, the behavior remains the same as previously for virtual fields.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3568704333"
+        }
+      ],
+      "reviewed": "f2cd4b0f0b51127454cb2d8619611978c7e447e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076#discussion_r3560166351"
+    }
+  ]
+}

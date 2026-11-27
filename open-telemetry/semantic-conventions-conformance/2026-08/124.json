@@ -1,0 +1,55 @@
+{
+  "head": "6bca6624e9ef8d6b101359261e9e1a641b5fb72e",
+  "merge": "8b74211c6730f63c7532366027cda88195056fe2",
+  "merged": "2026-08-30T18:03:33Z",
+  "missing_roots": 0,
+  "number": 124,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The committed reduction is not reproducible: both Crew kickoff span names contain run-generated UUIDs, and findings preserve `signal_name` verbatim. A fresh conformance run will generate different Crew IDs and rewrite these findings, while `AGENTS.md:59-60` requires `data.json` to match reruns. Stabilize or normalize the Crew IDs/span names, then regenerate this file.",
+      "created": "2026-08-29T00:00:19Z",
+      "hunk": "@@ -0,0 +1,450 @@\n+{\n+  \"spans\": {\n+    \"gen_ai.execute_tool.internal\": [\n+      \"gen_ai.operation.name\",\n+      \"gen_ai.tool.call.arguments\",\n+      \"gen_ai.tool.call.result\",\n+      \"gen_ai.tool.description\",\n+      \"gen_ai.tool.name\",\n+      \"gen_ai.tool.type\"\n+    ],\n+    \"gen_ai.invoke_agent.internal\": [\n+      \"gen_ai.operation.name\"\n+    ]\n+  },\n+  \"events\": {},\n+  \"metrics\": {},\n+  \"entities\": {},\n+  \"findings\": [\n+    {\n+      \"id\": \"missing_attribute\",\n+      \"message\": \"Attribute 'crew_agents' does not exist in the registry.\",\n+      \"signal_type\": \"span\",\n+      \"signal_name\": \"Crew_8041d7e6-d0fd-42b9-9e60-4004ce2e02f3.kickoff\",",
+      "id": "PRRT_kwDOTuzK5c6dVWJT",
+      "opened": "2026-08-29T00:00:19Z",
+      "path": "scenarios/gen-ai/python/crewai/openinference/data.json",
+      "replies": [],
+      "reviewed": "405c34060bae5f1056bf3d42f3b0ec92d8b419a4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/124#discussion_r3884790950"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "where's crew and workflow scenario? ",
+      "created": "2026-08-29T00:59:34Z",
+      "hunk": "@@ -0,0 +1,23 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a single CrewAI agent run.\n+\n+No tools, so the run is the agent and the model call it makes and nothing\n+else. That is what makes the agent span readable on its own. A crew of one\n+agent with one task is the smallest run CrewAI has.\n+\"\"\"\n+\n+from crewai import LLM, Agent, Crew, Task\n+\n+agent = Agent(",
+      "id": "PRRT_kwDOTuzK5c6dVxhl",
+      "opened": "2026-08-29T00:59:34Z",
+      "path": "scenarios/gen-ai/python/crewai/scenarios/invoke_agent.py",
+      "replies": [],
+      "reviewed": "a4adbe7a262dc7c241856c07cae611c2b067e39a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/124#discussion_r3884960453"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "CrewAI's `~=1.42.0` OpenTelemetry constraint admits 1.42.1, and that SDK provides semantic-conventions 0.63b1. This makes instrumentation 0.62.3 compatible.",
+      "created": "2026-08-29T02:34:38Z",
+      "hunk": "@@ -0,0 +1,19 @@\n+[project]\n+name = \"crewai-openllmetry-conformance\"\n+version = \"0.0.0\"\n+# chromadb, which crewai pulls in, imports pydantic v1, and that shim does\n+# not work on Python 3.14.\n+requires-python = \">=3.12,<3.14\"\n+dependencies = [\n+    \"crewai==1.15.18\",\n+    # Not the latest: 0.62 needs semantic-conventions 0.63b1, and crewai caps\n+    # the SDK below the release that carries it.",
+      "id": "PRRT_kwDOTuzK5c6dWYto",
+      "opened": "2026-08-29T15:46:18Z",
+      "path": "scenarios/gen-ai/python/crewai/openllmetry/pyproject.toml",
+      "replies": [],
+      "reviewed": "6bc3037bbb883a91d96463506e8b248d98004611",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/124#discussion_r3885206135"
+    }
+  ]
+}

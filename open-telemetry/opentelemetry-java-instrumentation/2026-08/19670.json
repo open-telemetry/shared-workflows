@@ -1,0 +1,46 @@
+{
+  "head": "85befd251e1b184fb0c349434f5107aa943f227b",
+  "merge": "b5c676f1adee3d935894921e5e66771cd1ae9320",
+  "merged": "2026-08-18T18:05:05Z",
+  "missing_roots": 0,
+  "number": 19670,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This fallback becomes incorrect after a runtime `SELECT`. A connection created without a `select` URI parameter can execute `SELECT 1`, which leaves `redisUri.select()` null; subsequent commands will now report database 0 even though they run in database 1. Because this instrumentation does not track Vert.x's tainted connection state, please account for that state before defaulting to 0 and add a regression test covering `SELECT` followed by another command.",
+      "created": "2026-08-18T00:22:50Z",
+      "hunk": "@@ -93,8 +93,11 @@ Long getDatabaseIndex() {\n     if (redisUri == null) {\n       return null;\n     }\n+    // A connection string without an explicit database connects to Redis database 0, the server\n+    // default. The Vert.x client itself reports \"0\" in this case (see its CommandReporter), so we\n+    // emit 0 rather than dropping the attribute.\n     Integer select = redisUri.select();\n-    return select != null ? select.longValue() : null;\n+    return select != null ? select.longValue() : 0L;",
+      "id": "PRRT_kwDODJKVX86Z8EBb",
+      "opened": "2026-08-18T00:22:51Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T00:24:46Z",
+          "body": "This is a pre-existing limitation rather than a regression from defaulting to 0, and it is deliberately out of scope for this change, which only concerns the value 0. This instrumentation never tracks Vert.x's tainted-connection state, so it already reports the URI's configured database regardless of any runtime `SELECT`. A connection opened with `redis://host:port/1` and then switched with `SELECT 2` already reports database 1 for later commands today, before this change. Defaulting the no-`select` case to 0 just extends that same existing behavior to the default database instead of leaving it absent, which is what matches the Vert.x client's own view of an untainted connection (its `CommandReporter` reports `\"0\"` when `uri.select()` is null and the connection is not tainted).\n\nFixing the tainted-state case would mean teaching the javaagent to track `isTainted()` for every connection, which is a separate change that affects the already-selected case as well, not just database 0. The PR description already calls this gap out as pre-existing and out of scope, so I'm leaving it here and not adding tainted-state tracking or the `SELECT`-then-command regression test in this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19670#discussion_r3799902988"
+        }
+      ],
+      "reviewed": "7658e40c7c418ec454d8bfb3f5f0093b2aa796c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19670#discussion_r3799891343"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-18T14:21:30Z",
+      "hunk": "@@ -117,6 +128,46 @@ void setCommand() throws Exception {\n         NETWORK_PEER_PORT);\n   }\n \n+  @Test\n+  void setCommandOnDefaultDatabase() throws Exception {\n+    defaultDbRedis\n+        .set(asList(\"foo\", \"bar\"))\n+        .toCompletionStage()\n+        .toCompletableFuture()\n+        .get(30, SECONDS);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(emitStableDatabaseSemconv() ? \"SET \" + host + \":\" + port : \"SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), \"SET foo ?\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                            equalTo(DB_NAMESPACE, emitStableDatabaseSemconv() ? \"0\" : null),\n+                            // old semconv output is unchanged: the default database 0 is not\n+                            // reported",
+      "id": "PRRT_kwDODJKVX86aJEmV",
+      "opened": "2026-08-18T14:21:30Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [],
+      "reviewed": "2f93f9cf95c3a8a090d9d2ccb6161eb925d3314c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19670#discussion_r3804935168"
+    }
+  ]
+}

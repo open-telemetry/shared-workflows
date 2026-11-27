@@ -1,0 +1,85 @@
+{
+  "head": "b57a74b14a6a32e194e58b3a9de84c0365d1b16e",
+  "merge": "25d069f538494f1670882673f96c9104d6a59086",
+  "merged": "2026-11-06T22:49:51Z",
+  "missing_roots": 0,
+  "number": 1048,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please qualify this checklist with which variants the instrumented API actually supports. The current instruction requires reviewers to flag every changed method lacking sync, async, streaming, or early-close tests, including methods with no streaming or async counterpart. That produces false-positive findings and contradicts section 6's existing “when both exist” qualification. Apply the checklist only to supported variants and applicable content/error paths.",
+      "created": "2026-11-06T00:52:42Z",
+      "hunk": "@@ -4,6 +4,96 @@ applyTo: \"instrumentation/**\"\n \n Review rules for PRs touching `instrumentation/**`. Flag violations with a link to the rule.\n \n+## Top checks\n+\n+Go through these on every PR before the detailed sections below.\n+\n+**Tests.** For every new or changed instrumented method, list which of these are missing and flag\n+the PR: sync | async | streaming | provider error | stream closed early | content capture on |\n+content capture off (content absent).",
+      "id": "PRRT_kwDOSbspP860VdFl",
+      "opened": "2026-11-06T00:52:44Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "cb8faf0d46caed44265cc0c49c895f5dc229015b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1048#discussion_r4487838576"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Signature inspection can be cached, but `Signature.bind(*args, **kwargs)` must run for each invocation because it binds that call's actual arguments. This wording would flag correct implementations such as LangChain's `_run_context.py:247–257`, which caches the signature and binds inside the wrapper. Please distinguish signature inspection from per-call argument binding.",
+      "created": "2026-11-06T00:52:42Z",
+      "hunk": "@@ -4,6 +4,96 @@ applyTo: \"instrumentation/**\"\n \n Review rules for PRs touching `instrumentation/**`. Flag violations with a link to the rule.\n \n+## Top checks\n+\n+Go through these on every PR before the detailed sections below.\n+\n+**Tests.** For every new or changed instrumented method, list which of these are missing and flag\n+the PR: sync | async | streaming | provider error | stream closed early | content capture on |\n+content capture off (content absent).\n+- For a fix or behavior change, flag tests that would pass without it (no assertion on the\n+  changed value). Tests that only add coverage are fine. Flag presence/length/substring checks\n+  instead of exact values.\n+- Flag tests that call `_private` helpers or hand-built SDK mocks instead of the instrumented\n+  client public API.\n+\n+**Types and speculative code.**\n+- Flag `Any`/`object` in signatures and `getattr`/`hasattr` on known SDK types. Flag reads of\n+  fields, params, or methods that don't exist in every supported library version, and guards for\n+  cases the library never produces.\n+  ```python\n+  # Flag\n+  def _set_response(inv, response: Any) -> None:\n+      inv.response_model_name = getattr(response, \"model\", None)\n+\n+\n+  # Prefer\n+  def _set_response(inv: InferenceInvocation, response: ChatCompletion) -> None:\n+      inv.response_model_name = response.model\n+  ```\n+\n+**Semconv values.**\n+- Flag `gen_ai.provider.name` fallbacks other than `unknown` (e.g. the framework name),\n+  `gen_ai.agent.id` set from a local object id or name, finish reasons defaulted instead of\n+  mapped, and spans/metric points emitted per retry.\n+- Flag sampling-relevant values (agent name, conversation id) set after the `handler.*()` call.\n+\n+**Values and finalization.**\n+- Flag `x or default` / `if x:` on numeric or boolean telemetry values, and placeholder `''`/`0`\n+  for missing values.\n+  ```python\n+  # Flag\n+  inv.temperature = kwargs.get(\"temperature\") or None\n+  # Prefer\n+  if (temperature := kwargs.get(\"temperature\")) is not None:\n+      inv.temperature = temperature\n+  ```\n+- Flag code paths that start an invocation without reaching `stop()`/`fail()`.\n+\n+**Messages and content.**\n+- Flag `json.dumps`/`str()` results assigned to util message or tool fields,\n+  `TextPart(content=str(block))` or `GenericPart` for non-text blocks, and branches that\n+  silently drop block types the library documents.\n+- Flag message parts, tool definitions, or streamed text built when content capture is disabled.\n+- Flag any deprecated util API (e.g. `LLMInvocation`, deprecated part aliases or fields), such as `GenericPart` and `get_telemetry_handler()`.\n+\n+**Versions.**\n+- Flag patches of optional or version-specific symbols that break `instrument()` or uninstrument\n+  when the symbol is missing, patches applied to re-exporting modules instead of the defining\n+  class, and version-specific branches no `oldest`/`latest` test reaches.\n+\n+**Performance.** Flag per-call work that can run once at instrument time (imports, signature\n+binding, feature checks), per-chunk stream processing that re-joins or re-parses everything\n+accumulated so far, and blocking work on async code paths.",
+      "id": "PRRT_kwDOSbspP860VdGD",
+      "opened": "2026-11-06T00:52:44Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "cb8faf0d46caed44265cc0c49c895f5dc229015b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1048#discussion_r4487838619"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.response.finish_reasons` is Recommended, not Required, in the inference semantic conventions, and the util omits an empty list. Using it as the required-list example directs contributors to retain an attribute the util suppresses. Remove this example and defer required-list handling to the relevant attribute's conventions.",
+      "created": "2026-11-06T00:52:43Z",
+      "hunk": "@@ -159,13 +176,66 @@ Follow [Streaming responses](../util/opentelemetry-util-genai/AGENTS.md#streamin\n `SyncStreamWrapper` / `AsyncStreamWrapper`, call `invocation.suspend()` before returning the stream,\n and don't call `invocation.stop()` when the SDK returns the stream.\n \n+### Context propagation\n+\n+- When the instrumented call returns, its span must not be current in the caller's context, on\n+  any path: streams (including tool streams), raw or unparsed responses, early returns. Suspend or\n+  detach before returning.\n+- For async APIs, start the invocation inside the awaited coroutine, not when the coroutine is\n+  created. Otherwise concurrent calls nest under each other.\n+- Don't suppress context detach errors. They signal mismatched attach/detach; fix the pairing.\n+\n+## Library versions\n+\n+- If a symbol you patch is optional or only exists in some supported versions, skip that patch\n+  when it's missing - and skip it on uninstrument too. One missing symbol must not break\n+  `instrument()` for the rest of the library.\n+- Patch the class or function where it's defined, not a module that re-exports it, so the patch\n+  doesn't depend on import order.\n+- Avoid patching private library internals. When you must, check them against the oldest and\n+  latest supported versions.\n+- Every version-specific branch needs a test that runs in the `oldest` or `latest` env. A test\n+  that is skipped in both is not coverage.\n+\n+## Performance\n+\n+Instrumentation runs on every call of the instrumented library.\n+\n+- Resolve imports, signatures, and feature checks once at instrument or import time, not per call.\n+- Keep per-chunk stream processing O(1): append chunks and join or parse once at the end.\n+- Don't block the event loop or move work onto it from async code paths.\n+\n+## Common bugs\n+\n+- Use `is not None` for optional values. `or` and truthiness checks drop valid `0`, `0.0`, and\n+  `False`.\n+- Don't invent `'unknown'`, `''`, or `0` for missing optional attributes - leave them unset,\n+  unless semconv defines a fallback value (e.g. `unknown` for `gen_ai.provider.name`). Omit\n+  optional list attributes when empty; required ones (e.g. `gen_ai.response.finish_reasons`) are\n+  still recorded.",
+      "id": "PRRT_kwDOSbspP860VdG7",
+      "opened": "2026-11-06T00:52:44Z",
+      "path": "instrumentation/AGENTS.md",
+      "replies": [],
+      "reviewed": "cb8faf0d46caed44265cc0c49c895f5dc229015b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1048#discussion_r4487838695"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "As written, this suppresses distinct nested operations, such as tools invoked by agents and application-defined subgraphs, rather than just duplicate wrapper layers. The [agent semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md) explicitly recommend reporting application-defined workflows even when nested. Limit outer-span suppression to entry points representing the same logical operation, preserving distinct child operations and independent batch items.",
+      "created": "2026-11-06T00:52:43Z",
+      "hunk": "@@ -70,6 +70,14 @@ Before emitting an inference (`chat`) or `embeddings` span, ask:\n - **No** → don't emit a workflow span. A single agent run or a plain chain of calls is not an AI\n   workflow.\n \n+### One span per operation\n+\n+- When one wrapped entry point calls another wrapped one in the same library (e.g. `run` calls\n+  `run_async`, or a batch API calls the single-item API), emit only the outer span. Test nested\n+  and threaded topologies for duplicate spans.",
+      "id": "PRRT_kwDOSbspP860VdGo",
+      "opened": "2026-11-06T00:52:44Z",
+      "path": "instrumentation/AGENTS.md",
+      "replies": [],
+      "reviewed": "cb8faf0d46caed44265cc0c49c895f5dc229015b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1048#discussion_r4487838664"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The util's message-level `FinishReason` literal contains `tool_call`, while the OpenAI response extractor test expects `tool_calls` for the span attribute (`test_response_extractors.py:1201`). Requiring that literal would incorrectly normalize valid span finish reasons. Follow the span attribute's semantic conventions instead of constraining it to the message-level literal.",
+      "created": "2026-11-06T00:52:43Z",
+      "hunk": "@@ -179,6 +249,34 @@ and don't call `invocation.stop()` when the SDK returns the stream.\n   for them defined in `opentelemetry.util.genai.types`. Use these models, don't invent new types\n   or hand-roll dicts.\n - Don't use the deprecated `GenericPart`. Map content to a specific part type or drop it.\n+- Don't use any other deprecated util API either (e.g. `LLMInvocation`, deprecated part aliases\n+  or fields) - use the replacement named in its docstring.\n+- `gen_ai.provider.name`: map to semconv well-known values. Fall back to `unknown`, never the\n+  framework or module name.\n+- `gen_ai.agent.id`: only a stable identifier assigned by the provider (remote agents) - not\n+  `id(obj)` or the agent name.\n+- Finish reasons: map to `FinishReason` values. Don't infer them from library internals or default\n+  to `stop`.",
+      "id": "PRRT_kwDOSbspP860VdHJ",
+      "opened": "2026-11-06T00:52:44Z",
+      "path": "instrumentation/AGENTS.md",
+      "replies": [],
+      "reviewed": "cb8faf0d46caed44265cc0c49c895f5dc229015b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1048#discussion_r4487838725"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "head": "a1e14ee89ecf2f35bdca16c10c4c80b2862ee295",
+  "merge": "0e6baa0a5a85bb32d57ec7746fed3162648cf97f",
+  "merged": "2026-09-30T17:59:52Z",
+  "missing_roots": 0,
+  "number": 20326,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This statement is not true for instances returned by `fromConfigProperties(...)`: that subclass overrides this method and looks up the original hyphenated/dotted name so flat-property behavior remains unchanged. Scope the normalization sentence to declarative configuration so the method documentation reflects both implementations.",
+      "created": "2026-09-30T03:23:39Z",
+      "hunk": "@@ -121,16 +121,17 @@ public boolean isInstrumentationDefaultEnabled() {\n    * Returns whether any of the given instrumentations is enabled, falling back to {@code\n    * defaultEnabled} if none of the names are explicitly configured.\n    *\n-   * <p>Names are checked in order; the first name found in either the disabled or enabled list\n-   * wins. For any given name, disabled takes priority over enabled.\n+   * <p>Hyphens and periods in names are converted to underscores. Names are checked in order; the\n+   * first name found in either the disabled or enabled list wins. For any given name, disabled\n+   * takes priority over enabled.",
+      "id": "PRRT_kwDODJKVX86nX8QG",
+      "opened": "2026-09-30T03:23:40Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-30T03:52:49Z",
+          "body": "Addressed in 2808ff5338a70317897c7703e525f1e9a2cd3fb7.\n\nFixed in the verified source changes 2808ff5338a70317897c7703e525f1e9a2cd3fb7.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20326#discussion_r4140644171"
+        }
+      ],
+      "reviewed": "facdda30fa3241e72d01b7a08125b2802fd29929",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20326#discussion_r4140518040"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] A dotted selector that also uses the flat-name hyphens (for example, `reactor-3.1`) is warned and migrated to `reactor-3_1`, but lookup normalizes that module name to `reactor_3_1`, so the suggested replacement still does not work. Normalize both separators when constructing the replacement so the warning points to the canonical declarative selector.",
+      "created": "2026-09-30T03:55:43Z",
+      "hunk": "@@ -101,4 +108,83 @@ private static AgentDistributionConfig parseConfig(\n \n     return AgentDistributionConfig.create();\n   }\n+\n+  private static void migrateInstrumentationSelectors(\n+      Map<String, Object> javaagentProperties, boolean v3Preview) {\n+    Object instrumentation = javaagentProperties.get(\"instrumentation\");\n+    if (instrumentation == null) {\n+      return;\n+    }\n+\n+    Map<String, Object> instrumentationProperties =\n+        mapper.convertValue(instrumentation, new TypeReference<Map<String, Object>>() {});\n+    List<String> enabled = getSelectorList(instrumentationProperties, \"enabled\");\n+    List<String> disabled = getSelectorList(instrumentationProperties, \"disabled\");\n+    Set<String> canonicalSelectors = new HashSet<>();\n+    addCanonicalSelectors(canonicalSelectors, enabled);\n+    addCanonicalSelectors(canonicalSelectors, disabled);\n+    instrumentationProperties.put(\n+        \"enabled\",\n+        migrateSelectorList(\n+            enabled,\n+            canonicalSelectors,\n+            v3Preview,\n+            \"distribution.javaagent.instrumentation.enabled\"));\n+    instrumentationProperties.put(\n+        \"disabled\",\n+        migrateSelectorList(\n+            disabled,\n+            canonicalSelectors,\n+            v3Preview,\n+            \"distribution.javaagent.instrumentation.disabled\"));\n+    javaagentProperties.put(\"instrumentation\", instrumentationProperties);\n+  }\n+\n+  private static List<String> getSelectorList(\n+      Map<String, Object> instrumentationProperties, String name) {\n+    Object selectors = instrumentationProperties.get(name);\n+    return selectors == null\n+        ? new ArrayList<>()\n+        : mapper.convertValue(selectors, new TypeReference<List<String>>() {});\n+  }\n+\n+  private static void addCanonicalSelectors(\n+      Set<String> canonicalSelectors, List<String> selectors) {\n+    for (String selector : selectors) {\n+      if (!selector.contains(\".\")) {\n+        canonicalSelectors.add(selector);\n+      }\n+    }\n+  }\n+\n+  private static List<String> migrateSelectorList(\n+      List<String> selectors, Set<String> canonicalSelectors, boolean v3Preview, String path) {\n+    List<String> result = new ArrayList<>();\n+    Set<String> warnedSelectors = new HashSet<>();\n+    for (String selector : selectors) {\n+      if (!selector.contains(\".\")) {\n+        result.add(selector);\n+        continue;\n+      }\n+\n+      String replacement = selector.replace('.', '_');",
+      "id": "PRRT_kwDODJKVX86nYR5O",
+      "opened": "2026-09-30T03:55:44Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-09-30T15:00:07Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20326/commits/7a309e37383097c5c78c2b2ae8178e2c8b0eff98",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20326#discussion_r4146068327"
+        }
+      ],
+      "reviewed": "2808ff5338a70317897c7703e525f1e9a2cd3fb7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20326#discussion_r4140656456"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Repository test guidance prefers `Arguments.argumentSet(...)` for named method-source cases (`.github/agents/knowledge/testing-general-patterns.md:69-71`). Using `{0}` makes the description an unused test parameter and requires a suppression; make the parameterized test unnamed, remove `description`, and name each row with `Arguments.argumentSet(...)`.",
+      "created": "2026-09-30T15:11:58Z",
+      "hunk": "@@ -0,0 +1,322 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+import static java.util.logging.Level.WARNING;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfiguration;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.logs.export.LogRecordExporter;\n+import io.opentelemetry.sdk.metrics.export.MetricExporter;\n+import io.opentelemetry.sdk.trace.export.SpanExporter;\n+import java.io.ByteArrayInputStream;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.function.BiFunction;\n+import java.util.function.Function;\n+import java.util.logging.Handler;\n+import java.util.logging.LogRecord;\n+import java.util.logging.Logger;\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.CsvSource;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+class JavaagentDistributionAccessCustomizerProviderTest {\n+\n+  private static final Logger logger =\n+      Logger.getLogger(JavaagentDistributionAccessCustomizerProvider.class.getName());\n+\n+  @BeforeEach\n+  @AfterEach\n+  void resetDistributionConfig() {\n+    AgentDistributionConfig.resetForTest();\n+  }\n+\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"selectorResolutionArguments\")\n+  void resolvesSelectors(\n+      @SuppressWarnings(\"unused\") String description,",
+      "id": "PRRT_kwDODJKVX86nl0_H",
+      "opened": "2026-09-30T15:11:59Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProviderTest.java",
+      "replies": [
+        {
+          "at": "2026-09-30T15:56:18Z",
+          "body": "Addressed in fa5da41d64f5c3f7e5753272cdea21e3d0b34100, 7139fb44290d8fe5b4b6d75b22469a43e2b90b22.\n\nFixed in the verified source changes fa5da41d64f5c3f7e5753272cdea21e3d0b34100, 7139fb44290d8fe5b4b6d75b22469a43e2b90b22.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20326#discussion_r4146617692"
+        }
+      ],
+      "reviewed": "e579809a53b61fd0937acf0b5486291b1625c894",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20326#discussion_r4146193576"
+    }
+  ]
+}

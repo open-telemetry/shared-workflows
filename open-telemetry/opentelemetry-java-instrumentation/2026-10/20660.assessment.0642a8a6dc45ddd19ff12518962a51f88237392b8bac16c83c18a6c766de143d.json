@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d9c3b9d35952ba8fdbf6845863954d126db338c80d88227120b21a70874b21db",
+  "input_digest": "0642a8a6dc45ddd19ff12518962a51f88237392b8bac16c83c18a6c766de143d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1871d1eccff149371d55a8f0ed915aa164961421/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0a9e91262a82c764775d45ba97d4617a8026d98/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0a9e91262a82c764775d45ba97d4617a8026d98",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ec19494858493ad4d79fdaf309b18afd52bf4bbe"
+      ],
+      "id": "PRRT_kwDODJKVX86teKKr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

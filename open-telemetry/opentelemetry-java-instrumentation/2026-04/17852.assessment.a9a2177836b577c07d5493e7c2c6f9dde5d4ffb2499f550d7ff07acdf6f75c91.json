@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1d2538deb851094b3c2888ab7dde9de81ac8c2e5cdd7b44b317dedab607d0055",
+  "input_digest": "a9a2177836b577c07d5493e7c2c6f9dde5d4ffb2499f550d7ff07acdf6f75c91",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3df33ce12137372a4ccce4772a52352ff27e0de2/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/YamlHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7173be4d95154169927b185c98d505e711d8350/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/YamlHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3df33ce12137372a4ccce4772a52352ff27e0de2/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/auditors/SuppressionListAuditor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7173be4d95154169927b185c98d505e711d8350/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/auditors/SuppressionListAuditor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3df33ce12137372a4ccce4772a52352ff27e0de2/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/auditors/SuppressionListAuditor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7173be4d95154169927b185c98d505e711d8350/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/auditors/SuppressionListAuditor.java"
+      ],
+      "id": "PRRT_kwDODJKVX857eMM-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3df33ce12137372a4ccce4772a52352ff27e0de2/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/DocGeneratorApplication.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3df33ce12137372a4ccce4772a52352ff27e0de2/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7173be4d95154169927b185c98d505e711d8350/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/DocGeneratorApplication.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7173be4d95154169927b185c98d505e711d8350/docs/instrumentation-list.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX857eMN9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

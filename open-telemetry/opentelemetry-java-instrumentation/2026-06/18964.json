@@ -1,0 +1,187 @@
+{
+  "head": "4dedb7d930a4eb3b60788eec2f674dd3e51e337f",
+  "merge": "a306dde2ceb760cae2789d7acb0c4ab4dbfbec13",
+  "merged": "2026-06-12T17:01:19Z",
+  "missing_roots": 0,
+  "number": 18964,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getQueryText()` can throw `NoSuchElementException` if `getQueryTexts()` is empty (e.g., an empty `BatchStatement`). Even though this method is deprecated, it should be safe and return an empty string when no query texts are available.",
+      "created": "2026-06-11T16:31:51Z",
+      "hunk": "@@ -5,20 +5,145 @@\n \n package io.opentelemetry.instrumentation.cassandra.v4_4;\n \n+import static java.util.Collections.singleton;\n+\n+import com.datastax.oss.driver.api.core.cql.BatchStatement;\n+import com.datastax.oss.driver.api.core.cql.BatchableStatement;\n+import com.datastax.oss.driver.api.core.cql.BoundStatement;\n+import com.datastax.oss.driver.api.core.cql.SimpleStatement;\n+import com.datastax.oss.driver.api.core.cql.Statement;\n import com.datastax.oss.driver.api.core.session.Session;\n import com.google.auto.value.AutoValue;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n \n @AutoValue\n public abstract class CassandraRequest {\n \n+  /**\n+   * @deprecated use {@link #create(Session, String)} instead\n+   */\n+  @Deprecated\n   public static CassandraRequest create(\n       Session session, String queryText, boolean parameterizedQuery) {\n-    return new AutoValue_CassandraRequest(session, queryText, parameterizedQuery);\n+    return create(session, singleton(queryText), parameterizedQuery, null, null);\n+  }\n+\n+  static CassandraRequest create(Session session, String queryText) {\n+    return create(session, singleton(queryText), false, null, null);\n+  }\n+\n+  static CassandraRequest create(Session session, Statement<?> statement) {\n+    if (statement instanceof BatchStatement) {\n+      return create(session, (BatchStatement) statement);\n+    }\n+    return create(session, getQuery(statement), statement instanceof BoundStatement);\n+  }\n+\n+  private static CassandraRequest create(Session session, BatchStatement batchStatement) {\n+    List<String> queryTexts = new ArrayList<>();\n+    List<Boolean> parameterizedQueries = null;\n+    boolean allParameterized = true;\n+    Boolean firstParameterizedQuery = null;\n+    int queryIndex = 0;\n+    for (BatchableStatement<?> batchEntry : batchStatement) {\n+      queryTexts.add(getQuery(batchEntry));\n+      boolean parameterizedQuery = batchEntry instanceof BoundStatement;\n+      if (!parameterizedQuery) {\n+        allParameterized = false;\n+      }\n+      if (firstParameterizedQuery == null) {\n+        firstParameterizedQuery = parameterizedQuery;\n+      } else if (parameterizedQuery != firstParameterizedQuery && parameterizedQueries == null) {\n+        parameterizedQueries = new ArrayList<>(batchStatement.size());\n+        for (int previousQueryIndex = 0; previousQueryIndex < queryIndex; previousQueryIndex++) {\n+          parameterizedQueries.add(firstParameterizedQuery);\n+        }\n+      }\n+      if (parameterizedQueries != null) {\n+        parameterizedQueries.add(parameterizedQuery);\n+      }\n+      queryIndex++;\n+    }\n+    boolean parameterizedQuery = allParameterized;\n+    if (parameterizedQueries == null && firstParameterizedQuery != null) {\n+      parameterizedQuery = firstParameterizedQuery;\n+    }\n+    return create(\n+        session,\n+        queryTexts,\n+        parameterizedQuery,\n+        parameterizedQueries,\n+        Long.valueOf(batchStatement.size()));\n+  }\n+\n+  private static CassandraRequest create(\n+      Session session,\n+      Collection<String> queryTexts,\n+      boolean parameterizedQuery,\n+      @Nullable List<Boolean> parameterizedQueries,\n+      @Nullable Long batchSize) {\n+    return new AutoValue_CassandraRequest(\n+        session, queryTexts, parameterizedQuery, parameterizedQueries, batchSize);\n+  }\n+\n+  private static String getQuery(Statement<?> statement) {\n+    String query = null;\n+    if (statement instanceof SimpleStatement) {\n+      query = ((SimpleStatement) statement).getQuery();\n+    } else if (statement instanceof BoundStatement) {\n+      query = ((BoundStatement) statement).getPreparedStatement().getQuery();\n+    }\n+\n+    return query == null ? \"\" : query;\n+  }\n+\n+  /**\n+   * @deprecated this method will be reduced to package-private visibility\n+   */\n+  @Deprecated\n+  public Session getSession() {\n+    return session();\n   }\n \n-  public abstract Session getSession();\n+  abstract Session session();\n+\n+  abstract Collection<String> getQueryTexts();\n+\n+  /**\n+   * Returns the raw query text.\n+   *\n+   * @deprecated use {@link #getQueryTexts()} instead\n+   */\n+  @Deprecated\n+  public String getQueryText() {\n+    return getQueryTexts().iterator().next();\n+  }",
+      "id": "PRRT_kwDODJKVX86I4R5c",
+      "opened": "2026-06-11T16:31:52Z",
+      "path": "instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-11T17:11:17Z",
+          "body": "addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397776226"
+        }
+      ],
+      "reviewed": "7d9a7610f024f2bdffd763613d6c0cc8a6805547",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397553937"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`CassandraRequest.create(Session, String, boolean)` is deprecated in favor of `create(Session, String)`, but the replacement factory is currently package-private, so external callers cannot migrate off the deprecated API. Either make the replacement factory method(s) public, or adjust the deprecation guidance to point to an accessible alternative.",
+      "created": "2026-06-11T17:14:58Z",
+      "hunk": "@@ -5,20 +5,141 @@\n \n package io.opentelemetry.instrumentation.cassandra.v4_4;\n \n+import static java.util.Collections.singleton;\n+\n+import com.datastax.oss.driver.api.core.cql.BatchStatement;\n+import com.datastax.oss.driver.api.core.cql.BatchableStatement;\n+import com.datastax.oss.driver.api.core.cql.BoundStatement;\n+import com.datastax.oss.driver.api.core.cql.SimpleStatement;\n+import com.datastax.oss.driver.api.core.cql.Statement;\n import com.datastax.oss.driver.api.core.session.Session;\n import com.google.auto.value.AutoValue;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n \n @AutoValue\n public abstract class CassandraRequest {\n \n+  /**\n+   * @deprecated use {@link #create(Session, String)} instead\n+   */\n+  @Deprecated\n   public static CassandraRequest create(\n       Session session, String queryText, boolean parameterizedQuery) {\n-    return new AutoValue_CassandraRequest(session, queryText, parameterizedQuery);\n+    return create(session, singleton(queryText), parameterizedQuery, null, null);\n+  }\n+\n+  static CassandraRequest create(Session session, String queryText) {\n+    return create(session, singleton(queryText), false, null, null);\n+  }\n+\n+  static CassandraRequest create(Session session, Statement<?> statement) {\n+    if (statement instanceof BatchStatement) {\n+      return create(session, (BatchStatement) statement);\n+    }\n+    return create(session, getQuery(statement), statement instanceof BoundStatement);\n+  }",
+      "id": "PRRT_kwDODJKVX86I49B4",
+      "opened": "2026-06-11T17:14:58Z",
+      "path": "instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-11T17:19:17Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964/commits/44cf6f184f530ebec550be81f1ad0c1f103eadf8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397821856"
+        }
+      ],
+      "reviewed": "2af0f4bf6093079af197adc263718dbbb8c3435b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397797217"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`create(Session, Statement<?>)` currently delegates to the deprecated `create(Session, String, boolean)` overload. Even though this is internal code, it can reintroduce deprecation warnings and is a bit confusing since the class already has a non-deprecated internal factory that takes a `Collection<String>`.\n\nConsider calling the private `create(Session, Collection<String>, ...)` overload directly to avoid using the deprecated API internally.",
+      "created": "2026-06-11T17:23:19Z",
+      "hunk": "@@ -5,20 +5,138 @@\n \n package io.opentelemetry.instrumentation.cassandra.v4_4;\n \n+import static java.util.Collections.singleton;\n+\n+import com.datastax.oss.driver.api.core.cql.BatchStatement;\n+import com.datastax.oss.driver.api.core.cql.BatchableStatement;\n+import com.datastax.oss.driver.api.core.cql.BoundStatement;\n+import com.datastax.oss.driver.api.core.cql.SimpleStatement;\n+import com.datastax.oss.driver.api.core.cql.Statement;\n import com.datastax.oss.driver.api.core.session.Session;\n import com.google.auto.value.AutoValue;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n \n @AutoValue\n public abstract class CassandraRequest {\n \n+  @Deprecated\n   public static CassandraRequest create(\n       Session session, String queryText, boolean parameterizedQuery) {\n-    return new AutoValue_CassandraRequest(session, queryText, parameterizedQuery);\n+    return create(session, singleton(queryText), parameterizedQuery, null, null);\n+  }\n+\n+  static CassandraRequest create(Session session, String queryText) {\n+    return create(session, singleton(queryText), false, null, null);\n+  }\n+\n+  static CassandraRequest create(Session session, Statement<?> statement) {\n+    if (statement instanceof BatchStatement) {\n+      return create(session, (BatchStatement) statement);\n+    }\n+    return create(session, getQuery(statement), statement instanceof BoundStatement);",
+      "id": "PRRT_kwDODJKVX86I5FQP",
+      "opened": "2026-06-11T17:23:19Z",
+      "path": "instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraRequest.java",
+      "replies": [],
+      "reviewed": "44cf6f184f530ebec550be81f1ad0c1f103eadf8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397843598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`MultiQuery.Builder.add` accepts a `@Nullable` `queryText`, but the builder stores it into a `Set<String>` that is later joined into `db.query.text`. Since `SqlQueryAnalyzerUtil.analyzeWithSummary(...)` requires a non-null query text, allowing null here is misleading and could result in a literal \"null\" being appended if this builder is ever reused with nullable inputs. Tighten the contract by making `queryText` non-null (or explicitly normalizing null to \"\").",
+      "created": "2026-06-11T17:33:09Z",
+      "hunk": "@@ -56,6 +51,26 @@ public Set<String> getQueryTexts() {\n     return queryTexts;\n   }\n \n+  static class Builder {\n+    private final UniqueValue uniqueStoredProcedureName = new UniqueValue();\n+    private final Set<String> uniqueQueryTexts = new LinkedHashSet<>();\n+    private final UniqueValue uniqueQuerySummary = new UniqueValue();\n+\n+    void add(SqlQuery analyzedQuery, @Nullable String queryText) {\n+      uniqueStoredProcedureName.set(analyzedQuery.getStoredProcedureName());\n+      uniqueQueryTexts.add(queryText);\n+      uniqueQuerySummary.set(analyzedQuery.getQuerySummary());\n+    }",
+      "id": "PRRT_kwDODJKVX86I5O70",
+      "opened": "2026-06-11T17:33:10Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/MultiQuery.java",
+      "replies": [],
+      "reviewed": "e671217fc6aff5395081dbfcd50d7d588fb36d9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397898434"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In this test class, other assertions expect NETWORK_TYPE to be absent when stable DB semconv is enabled (see earlier uses of `emitStableDatabaseSemconv() ? null : \"ipv4\"`). These new batch tests assert `NETWORK_TYPE == \"ipv4\"` unconditionally, which makes them inconsistent with the rest of the file and likely to fail under the stable-semconv configuration.\n\nAlign the expectation with the existing pattern in this test class.",
+      "created": "2026-06-11T17:40:36Z",
+      "hunk": "@@ -291,6 +295,102 @@ void testMetrics() {\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void batchStatementWithSameQuery() {\n+    Session session = cluster.connect();\n+    cleanup.deferCleanup(session);\n+\n+    session.execute(\"DROP KEYSPACE IF EXISTS batch_same_test\");\n+    session.execute(\n+        \"CREATE KEYSPACE batch_same_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}\");\n+    session.execute(\"CREATE TABLE batch_same_test.users ( name text PRIMARY KEY, age int )\");\n+    PreparedStatement preparedStatement =\n+        session.prepare(\"INSERT INTO batch_same_test.users (name, age) values (?, ?)\");\n+    testing.clearData();\n+\n+    BatchStatement batchStatement =\n+        new BatchStatement()\n+            .add(preparedStatement.bind(\"alice\", 1))\n+            .add(preparedStatement.bind(\"bob\", 2));\n+    session.execute(batchStatement);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? \"BATCH INSERT batch_same_test.users\"\n+                                : \"DB Query\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasNoParent()\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(NETWORK_TYPE, \"ipv4\"),\n+                            equalTo(SERVER_ADDRESS, cassandraHost),",
+      "id": "PRRT_kwDODJKVX86I5WTZ",
+      "opened": "2026-06-11T17:40:37Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-11T18:02:28Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/49e75eb6e3efa0e81d90f0e4ab3d0c6fecde85d0.\n\nAligned the same-query batch test NETWORK_TYPE assertion with the existing stable DB semconv pattern.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3398066004"
+        }
+      ],
+      "reviewed": "bb978faa1266fee52ffae5bfa9e47803a8fab839",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397940494"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new batch test asserts `NETWORK_TYPE == \"ipv4\"` unconditionally, but other tests in this class expect NETWORK_TYPE to be absent when stable DB semconv is enabled (`emitStableDatabaseSemconv() ? null : \"ipv4\"`). This inconsistency can cause failures when the stable-semconv configuration is used.\n\nUse the same conditional expectation as the rest of the file.",
+      "created": "2026-06-11T17:40:36Z",
+      "hunk": "@@ -291,6 +295,102 @@ void testMetrics() {\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void batchStatementWithSameQuery() {\n+    Session session = cluster.connect();\n+    cleanup.deferCleanup(session);\n+\n+    session.execute(\"DROP KEYSPACE IF EXISTS batch_same_test\");\n+    session.execute(\n+        \"CREATE KEYSPACE batch_same_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}\");\n+    session.execute(\"CREATE TABLE batch_same_test.users ( name text PRIMARY KEY, age int )\");\n+    PreparedStatement preparedStatement =\n+        session.prepare(\"INSERT INTO batch_same_test.users (name, age) values (?, ?)\");\n+    testing.clearData();\n+\n+    BatchStatement batchStatement =\n+        new BatchStatement()\n+            .add(preparedStatement.bind(\"alice\", 1))\n+            .add(preparedStatement.bind(\"bob\", 2));\n+    session.execute(batchStatement);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? \"BATCH INSERT batch_same_test.users\"\n+                                : \"DB Query\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasNoParent()\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(NETWORK_TYPE, \"ipv4\"),\n+                            equalTo(SERVER_ADDRESS, cassandraHost),\n+                            equalTo(SERVER_PORT, cassandraPort),\n+                            equalTo(NETWORK_PEER_ADDRESS, cassandraIp),\n+                            equalTo(NETWORK_PEER_PORT, cassandraPort),\n+                            equalTo(maybeStable(DB_SYSTEM), CASSANDRA),\n+                            equalTo(\n+                                maybeStable(DB_STATEMENT),\n+                                emitStableDatabaseSemconv()\n+                                    ? \"INSERT INTO batch_same_test.users (name, age) values (?, ?)\"\n+                                    : null),\n+                            equalTo(\n+                                DB_OPERATION_BATCH_SIZE, emitStableDatabaseSemconv() ? 2L : null),\n+                            equalTo(\n+                                DB_QUERY_SUMMARY,\n+                                emitStableDatabaseSemconv()\n+                                    ? \"BATCH INSERT batch_same_test.users\"\n+                                    : null))));\n+  }\n+\n+  @Test\n+  void batchStatementWithDifferentQueries() {\n+    Session session = cluster.connect();\n+    cleanup.deferCleanup(session);\n+\n+    session.execute(\"DROP KEYSPACE IF EXISTS batch_mixed_test\");\n+    session.execute(\n+        \"CREATE KEYSPACE batch_mixed_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}\");\n+    session.execute(\"CREATE TABLE batch_mixed_test.users ( name text PRIMARY KEY, age int )\");\n+    PreparedStatement insertStatement =\n+        session.prepare(\"INSERT INTO batch_mixed_test.users (name, age) values (?, ?)\");\n+    testing.clearData();\n+\n+    BatchStatement batchStatement =\n+        new BatchStatement()\n+            .add(insertStatement.bind(\"alice\", 1))\n+            .add(\n+                new SimpleStatement(\n+                    \"UPDATE batch_mixed_test.users SET age = 2 WHERE name = 'alice'\"));\n+    session.execute(batchStatement);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(emitStableDatabaseSemconv() ? \"BATCH\" : \"DB Query\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasNoParent()\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(NETWORK_TYPE, \"ipv4\"),\n+                            equalTo(SERVER_ADDRESS, cassandraHost),",
+      "id": "PRRT_kwDODJKVX86I5WTz",
+      "opened": "2026-06-11T17:40:37Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-11T18:02:30Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ef0305ec288f78cc33d184ff9614075491886a3b.\n\nAligned the mixed-query batch test NETWORK_TYPE assertion with the existing stable DB semconv pattern.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3398066188"
+        }
+      ],
+      "reviewed": "bb978faa1266fee52ffae5bfa9e47803a8fab839",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3397940537"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These batch tests assert NETWORK_TYPE is always present (ipv4/ipv6), but the other tests in this class expect NETWORK_TYPE to be absent when stable DB semconv is enabled (see syncTest/asyncTest). This inconsistency will likely fail under the stable-semconv configuration; align the assertion with the existing conditional pattern.",
+      "created": "2026-06-11T18:06:43Z",
+      "hunk": "@@ -122,6 +127,129 @@ void testMetrics() {\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void batchStatementWithSameQuery() {\n+    CqlSession session = getSession(null);\n+    cleanup.deferCleanup(session);\n+\n+    session.execute(\"DROP KEYSPACE IF EXISTS batch_same_test\");\n+    session.execute(\n+        \"CREATE KEYSPACE batch_same_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}\");\n+    session.execute(\"CREATE TABLE batch_same_test.users ( name text PRIMARY KEY, age int )\");\n+    PreparedStatement preparedStatement =\n+        session.prepare(\"INSERT INTO batch_same_test.users (name, age) values (?, ?)\");\n+    testing().clearData();\n+\n+    BatchStatement batchStatement =\n+        BatchStatement.newInstance(\n+            DefaultBatchType.LOGGED,\n+            preparedStatement.bind(\"alice\", 1),\n+            preparedStatement.bind(\"bob\", 2));\n+    session.execute(batchStatement);\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasName(\n+                                emitStableDatabaseSemconv()\n+                                    ? \"BATCH INSERT batch_same_test.users\"\n+                                    : \"DB Query\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasNoParent()\n+                            .hasAttributesSatisfyingExactly(\n+                                satisfies(NETWORK_TYPE, val -> val.isIn(\"ipv4\", \"ipv6\")),",
+      "id": "PRRT_kwDODJKVX86I5wzp",
+      "opened": "2026-06-11T18:06:44Z",
+      "path": "instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-06-11T19:03:44Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964/commits/bdbada844ac7e1a170aa19bbe9fe63f3025e7d53",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3398439585"
+        }
+      ],
+      "reviewed": "ef0305ec288f78cc33d184ff9614075491886a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3398090683"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These batch tests assert NETWORK_TYPE is always present (ipv4/ipv6), but the other tests in this class expect NETWORK_TYPE to be absent when stable DB semconv is enabled (see syncTest/asyncTest). This inconsistency will likely fail under the stable-semconv configuration; align the assertion with the existing conditional pattern.",
+      "created": "2026-06-11T18:06:44Z",
+      "hunk": "@@ -122,6 +127,129 @@ void testMetrics() {\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void batchStatementWithSameQuery() {\n+    CqlSession session = getSession(null);\n+    cleanup.deferCleanup(session);\n+\n+    session.execute(\"DROP KEYSPACE IF EXISTS batch_same_test\");\n+    session.execute(\n+        \"CREATE KEYSPACE batch_same_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}\");\n+    session.execute(\"CREATE TABLE batch_same_test.users ( name text PRIMARY KEY, age int )\");\n+    PreparedStatement preparedStatement =\n+        session.prepare(\"INSERT INTO batch_same_test.users (name, age) values (?, ?)\");\n+    testing().clearData();\n+\n+    BatchStatement batchStatement =\n+        BatchStatement.newInstance(\n+            DefaultBatchType.LOGGED,\n+            preparedStatement.bind(\"alice\", 1),\n+            preparedStatement.bind(\"bob\", 2));\n+    session.execute(batchStatement);\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasName(\n+                                emitStableDatabaseSemconv()\n+                                    ? \"BATCH INSERT batch_same_test.users\"\n+                                    : \"DB Query\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasNoParent()\n+                            .hasAttributesSatisfyingExactly(\n+                                satisfies(NETWORK_TYPE, val -> val.isIn(\"ipv4\", \"ipv6\")),\n+                                equalTo(SERVER_ADDRESS, cassandraHost),\n+                                equalTo(SERVER_PORT, cassandraPort),\n+                                equalTo(NETWORK_PEER_ADDRESS, cassandraIp),\n+                                equalTo(NETWORK_PEER_PORT, cassandraPort),\n+                                equalTo(maybeStable(DB_SYSTEM), CASSANDRA),\n+                                equalTo(\n+                                    maybeStable(DB_STATEMENT),\n+                                    emitStableDatabaseSemconv()\n+                                        ? \"INSERT INTO batch_same_test.users (name, age) values (?, ?)\"\n+                                        : null),\n+                                equalTo(\n+                                    DB_OPERATION_BATCH_SIZE,\n+                                    emitStableDatabaseSemconv() ? 2L : null),\n+                                equalTo(\n+                                    DB_QUERY_SUMMARY,\n+                                    emitStableDatabaseSemconv()\n+                                        ? \"BATCH INSERT batch_same_test.users\"\n+                                        : null),\n+                                equalTo(maybeStable(DB_CASSANDRA_CONSISTENCY_LEVEL), \"LOCAL_ONE\"),\n+                                equalTo(maybeStable(DB_CASSANDRA_COORDINATOR_DC), \"datacenter1\"),\n+                                satisfies(\n+                                    maybeStable(DB_CASSANDRA_COORDINATOR_ID),\n+                                    val -> val.isInstanceOf(String.class)),\n+                                satisfies(\n+                                    maybeStable(DB_CASSANDRA_IDEMPOTENCE),\n+                                    val -> val.isInstanceOf(Boolean.class)),\n+                                equalTo(maybeStable(DB_CASSANDRA_PAGE_SIZE), 5000),\n+                                equalTo(\n+                                    maybeStable(DB_CASSANDRA_SPECULATIVE_EXECUTION_COUNT), 0))));\n+  }\n+\n+  @Test\n+  void batchStatementWithDifferentQueries() {\n+    CqlSession session = getSession(null);\n+    cleanup.deferCleanup(session);\n+\n+    session.execute(\"DROP KEYSPACE IF EXISTS batch_mixed_test\");\n+    session.execute(\n+        \"CREATE KEYSPACE batch_mixed_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}\");\n+    session.execute(\"CREATE TABLE batch_mixed_test.users ( name text PRIMARY KEY, age int )\");\n+    PreparedStatement insertStatement =\n+        session.prepare(\"INSERT INTO batch_mixed_test.users (name, age) values (?, ?)\");\n+    testing().clearData();\n+\n+    BatchStatement batchStatement =\n+        BatchStatement.newInstance(\n+            DefaultBatchType.LOGGED,\n+            insertStatement.bind(\"alice\", 1),\n+            SimpleStatement.newInstance(\n+                \"UPDATE batch_mixed_test.users SET age = 2 WHERE name = 'alice'\"));\n+    session.execute(batchStatement);\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasName(emitStableDatabaseSemconv() ? \"BATCH\" : \"DB Query\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasNoParent()\n+                            .hasAttributesSatisfyingExactly(\n+                                satisfies(NETWORK_TYPE, val -> val.isIn(\"ipv4\", \"ipv6\")),",
+      "id": "PRRT_kwDODJKVX86I5w0B",
+      "opened": "2026-06-11T18:06:44Z",
+      "path": "instrumentation/cassandra/cassandra-common-4.0/testing/src/main/java/io/opentelemetry/cassandra/common/v4_0/AbstractCassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-06-11T19:03:34Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964/commits/bdbada844ac7e1a170aa19bbe9fe63f3025e7d53",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3398438560"
+        }
+      ],
+      "reviewed": "ef0305ec288f78cc33d184ff9614075491886a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3398090713"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we add `testing.waitForTraces(4);` before `clearData` to ensure that traces have been received before clearing",
+      "created": "2026-06-12T07:38:38Z",
+      "hunk": "@@ -291,6 +295,102 @@ void testMetrics() {\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void batchStatementWithSameQuery() {\n+    Session session = cluster.connect();\n+    cleanup.deferCleanup(session);\n+\n+    session.execute(\"DROP KEYSPACE IF EXISTS batch_same_test\");\n+    session.execute(\n+        \"CREATE KEYSPACE batch_same_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1}\");\n+    session.execute(\"CREATE TABLE batch_same_test.users ( name text PRIMARY KEY, age int )\");\n+    PreparedStatement preparedStatement =\n+        session.prepare(\"INSERT INTO batch_same_test.users (name, age) values (?, ?)\");\n+    testing.clearData();",
+      "id": "PRRT_kwDODJKVX86JDMyc",
+      "opened": "2026-06-12T07:38:38Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-12T14:44:32Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964/commits/3e74a132e80403a0107e4216ff2cbccee1bd11a6",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3404170466"
+        }
+      ],
+      "reviewed": "a4a583b19861e067cae058763061175fcf3f6bf3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18964#discussion_r3401559064"
+    }
+  ]
+}

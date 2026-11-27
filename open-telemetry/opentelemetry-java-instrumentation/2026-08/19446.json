@@ -1,0 +1,136 @@
+{
+  "head": "19c6cee2dcee2cf23d5e51e0f9a6fddc4ea60d2f",
+  "merge": "9182ee64b80579dd48be335b67ca07ad8747350e",
+  "merged": "2026-08-28T19:12:38Z",
+  "missing_roots": 0,
+  "number": 19446,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This restores only the OpenTelemetry element found in the delegate's `CoroutineContext`, which is not necessarily the effective parent context. For example, this module's `TestContextElement` intentionally runs after the automatic OpenTelemetry element and can make a different context current; after this wrapper completes, the delegate will instead resume under the stale automatic context, so subsequent spans get the wrong parent. Capture `Context.current()` before starting/opening the `WithSpan` span and pass that exact parent context to the wrapper (or otherwise update the full delegate thread context), and cover this combination with a regression test.",
+      "created": "2026-08-08T21:20:53Z",
+      "hunk": "@@ -177,6 +185,45 @@ public static void setSpanAttribute(int label, String name, Object value) {\n     // TODO: arrays and List not supported see AttributeBindingFactoryTest\n   }\n \n+  public static final class ContextContinuation<T> implements Continuation<T> {\n+    private final Continuation<T> delegate;\n+    private final CoroutineContext coroutineContext;\n+    private final ThreadContextElement<Scope> delegateContextElement;\n+    private final Context spanContext;\n+    private final Object request;\n+\n+    @SuppressWarnings(\"unchecked\") // asContextElement returns CoroutineContext to Java\n+    ContextContinuation(Continuation<T> delegate, Context spanContext, Object request) {\n+      this.delegate = delegate;\n+      this.coroutineContext =\n+          delegate.getContext().plus(ContextExtensionsKt.asContextElement(spanContext));\n+      this.delegateContextElement =\n+          (ThreadContextElement<Scope>)\n+              ContextExtensionsKt.asContextElement(\n+                  ContextExtensionsKt.getOpenTelemetryContext(delegate.getContext()));",
+      "id": "PRRT_kwDODJKVX86Xg2Db",
+      "opened": "2026-08-08T21:20:53Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationHelper.java",
+      "replies": [
+        {
+          "at": "2026-08-16T22:49:46Z",
+          "body": "Resolved",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3793007567"
+        }
+      ],
+      "reviewed": "46b5deaada1ee57c545475d54c1d3187aca53d4e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3741676104"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new continuation path explicitly decodes a failed Kotlin `Result` and ends the span with that error, but the added regression test covers only successful completion. Add a tail-delegated `@WithSpan` method whose callee suspends and then throws, and assert that the span completes with error status and the exception event; this also validates the Kotlin `Result` bridge across supported versions.",
+      "created": "2026-08-08T21:20:53Z",
+      "hunk": "@@ -177,6 +185,45 @@ public static void setSpanAttribute(int label, String name, Object value) {\n     // TODO: arrays and List not supported see AttributeBindingFactoryTest\n   }\n \n+  public static final class ContextContinuation<T> implements Continuation<T> {\n+    private final Continuation<T> delegate;\n+    private final CoroutineContext coroutineContext;\n+    private final ThreadContextElement<Scope> delegateContextElement;\n+    private final Context spanContext;\n+    private final Object request;\n+\n+    @SuppressWarnings(\"unchecked\") // asContextElement returns CoroutineContext to Java\n+    ContextContinuation(Continuation<T> delegate, Context spanContext, Object request) {\n+      this.delegate = delegate;\n+      this.coroutineContext =\n+          delegate.getContext().plus(ContextExtensionsKt.asContextElement(spanContext));\n+      this.delegateContextElement =\n+          (ThreadContextElement<Scope>)\n+              ContextExtensionsKt.asContextElement(\n+                  ContextExtensionsKt.getOpenTelemetryContext(delegate.getContext()));\n+      this.spanContext = spanContext;\n+      this.request = request;\n+    }\n+\n+    @Override\n+    public CoroutineContext getContext() {\n+      return coroutineContext;\n+    }\n+\n+    @Override\n+    public void resumeWith(Object result) {\n+      Throwable error = KotlinResultUtilKt.exceptionOrNull(result);\n+      instrumenter().end(spanContext, (MethodRequest) request, null, error);",
+      "id": "PRRT_kwDODJKVX86Xg2Dm",
+      "opened": "2026-08-08T21:20:53Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationHelper.java",
+      "replies": [
+        {
+          "at": "2026-08-16T22:55:42Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446/commits/ef6d631d560f4db07d10370068d7635946f7decc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3793018029"
+        }
+      ],
+      "reviewed": "46b5deaada1ee57c545475d54c1d3187aca53d4e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3741676119"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`BaseContinuationImpl.getCallerFrame()` returns null when the completion is not a `CoroutineStackFrame`, so this wrapper truncates coroutine stack-trace recovery and `DebugProbes` dumps at every tail-delegated `@WithSpan` call. kotlinx-coroutines solves this in its own equivalent wrapper `kotlinx.coroutines.flow.internal.StackFrameContinuation`: also implement `CoroutineStackFrame`, return `delegate` from `getCallerFrame()` when it is one, and null from `getStackTraceElement()`.",
+      "created": "2026-08-17T23:08:33Z",
+      "hunk": "@@ -177,6 +190,45 @@ public static void setSpanAttribute(int label, String name, Object value) {\n     // TODO: arrays and List not supported see AttributeBindingFactoryTest\n   }\n \n+  public static final class ContextContinuation<T> implements Continuation<T> {",
+      "id": "PRRT_kwDODJKVX86Z68Tv",
+      "opened": "2026-08-18T03:38:21Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationHelper.java",
+      "replies": [
+        {
+          "at": "2026-08-18T15:27:41Z",
+          "body": "Added an implementation of that & associated test in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446/commits/2b9a6f7078ab38ae4b8b85d016822a7bb2d0b829.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3805514391"
+        }
+      ],
+      "reviewed": "ef6d631d560f4db07d10370068d7635946f7decc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3799447368"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] `Nothing` here makes the compiler emit a `KotlinNothingValueException` guard after the suspend call, so `annotatedFailure` gets a state machine and the instrumentation takes the pre-existing `exitCoroutine` path. `ContextContinuation.resumeWith` and the `KotlinResultUtilKt.exceptionOrNull` bridge stay uncovered, and the test passes either way. Dropping the return type makes `annotatedFailure` a tail call.\n\n```suggestion\n  private suspend fun unannotatedFailure(exception: RuntimeException) {\n```\n",
+      "created": "2026-08-19T15:19:19Z",
+      "hunk": "@@ -438,6 +441,128 @@ class KotlinCoroutinesInstrumentationTest {\n     delay(10)\n   }\n \n+  // regression test for https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/12837\n+  @Test\n+  fun `WithSpan restores effective context after unannotated suspension`() {\n+    Assumptions.assumeFalse(v3Preview())\n+\n+    val rootSpan = tracer.spanBuilder(\"root\").startSpan()\n+    runBlocking(Context.root().asContextElement()) {\n+      withContext(TestContextElement(rootSpan.storeInContext(Context.root()))) {\n+        annotatedIntermediate()\n+        tracer.spanBuilder(\"after\").startSpan().end()\n+      }\n+    }\n+    rootSpan.end()\n+\n+    testing.waitAndAssertTraces(\n+      { trace ->\n+        trace.hasSpansSatisfyingExactly(\n+          {\n+            it.hasName(\"root\")\n+              .hasNoParent()\n+          },\n+          {\n+            it.hasName(\"intermediate\")\n+              .hasParent(trace.getSpan(0))\n+          },\n+          {\n+            it.hasName(\"leaf\")\n+              .hasParent(trace.getSpan(1))\n+          },\n+          {\n+            it.hasName(\"leaf\")\n+              .hasParent(trace.getSpan(1))\n+          },\n+          {\n+            it.hasName(\"after\")\n+              .hasParent(trace.getSpan(0))\n+          },\n+        )\n+      },\n+    )\n+  }\n+\n+  @WithSpan(\"intermediate\")\n+  private suspend fun annotatedIntermediate() {\n+    unannotatedIntermediate()\n+  }\n+\n+  private suspend fun unannotatedIntermediate() {\n+    annotatedLeaf()\n+    annotatedLeaf()\n+  }\n+\n+  @WithSpan(\"leaf\")\n+  private suspend fun annotatedLeaf() {\n+    delay(10)\n+  }\n+\n+  @Test\n+  fun `WithSpan preserves coroutine stack frames`() {\n+    Assumptions.assumeFalse(v3Preview())\n+\n+    runBlocking {\n+      stackFrameCaller()\n+    }\n+  }\n+\n+  private suspend fun stackFrameCaller() {\n+    annotatedStackFrame()\n+    yield()\n+  }\n+\n+  @WithSpan(\"stack-frame\")\n+  private suspend fun annotatedStackFrame() {\n+    inspectStackFrame()\n+  }\n+\n+  private suspend fun inspectStackFrame() {\n+    suspendCoroutineUninterceptedOrReturn<Unit> { continuation ->\n+      assertThat(continuation).isInstanceOf(CoroutineStackFrame::class.java)\n+      val frame = continuation as CoroutineStackFrame\n+      assertThat(frame.callerFrame).isNotNull()\n+      assertThat(frame.getStackTraceElement()).isNull()\n+      Unit\n+    }\n+  }\n+\n+  @Test\n+  fun `WithSpan ends span on failed completion`() {\n+    Assumptions.assumeFalse(v3Preview())\n+\n+    val exception = IllegalStateException(\"expected\")\n+    val result = runCatching {\n+      runBlocking {\n+        annotatedFailure(exception)\n+      }\n+    }\n+\n+    assertThat(result.exceptionOrNull()).isSameAs(exception)\n+    testing.waitAndAssertTraces(\n+      { trace ->\n+        trace.hasSpansSatisfyingExactly(\n+          {\n+            it.hasName(\"failing\")\n+              .hasNoParent()\n+              .hasStatus(StatusData.error())\n+              .hasException(exception)\n+          },\n+        )\n+      },\n+    )\n+  }\n+\n+  @WithSpan(\"failing\")\n+  private suspend fun annotatedFailure(exception: RuntimeException) {\n+    unannotatedFailure(exception)\n+  }\n+\n+  private suspend fun unannotatedFailure(exception: RuntimeException): Nothing {",
+      "id": "PRRT_kwDODJKVX86ahGPd",
+      "opened": "2026-08-19T15:27:19Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/test/kotlin/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/KotlinCoroutinesInstrumentationTest.kt",
+      "replies": [
+        {
+          "at": "2026-08-19T15:32:53Z",
+          "body": "Fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3814406798"
+        }
+      ],
+      "reviewed": "2b9a6f7078ab38ae4b8b85d016822a7bb2d0b829",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3814299920"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] `intercepted()` only unwraps a `ContinuationImpl`, so it returns this wrapper unchanged. When a tail-optimized `@WithSpan` method suspends through `suspendCancellableCoroutine` or `suspendCoroutine`, the resulting `CancellableContinuationImpl` holds this wrapper instead of a `DispatchedContinuation`, and `DispatchedTask.dispatch` then falls back to resuming the caller directly on the completing thread rather than dispatching it back to its own dispatcher. `ScopeCoroutine.afterCompletion` depends on the same interception. Please keep the continuation interceptable and cover it with a cross-thread dispatcher test.",
+      "created": "2026-08-20T18:27:50Z",
+      "hunk": "@@ -177,6 +191,57 @@ public static void setSpanAttribute(int label, String name, Object value) {\n     // TODO: arrays and List not supported see AttributeBindingFactoryTest\n   }\n \n+  public static final class ContextContinuation<T> implements Continuation<T>, CoroutineStackFrame {",
+      "id": "PRRT_kwDODJKVX86a6rRK",
+      "opened": "2026-08-20T18:30:31Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationHelper.java",
+      "replies": [
+        {
+          "at": "2026-08-20T21:40:50Z",
+          "body": "While this is a valid issue, I don't think it can be easily solved with this (limited) approach. Expanding to cover that issue (without breaking existing regression tests) would require even deeper integration with Kotlin's coroutine resumption mechanism.\r\n\r\nSince this issue is kinda niche, I'm leaning towards keeping this PR as-is to fix the previous issue and tackle this with a redesign later.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3825572201"
+        }
+      ],
+      "reviewed": "8e78a0d77a33c49c7f99c1d8f8eae26709e0447c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3824285214"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Do you really need to add these? You only need to expose classes that are directly used from asm and this only applies when tests are run with `-PtestIndy=true`",
+      "created": "2026-08-26T15:33:19Z",
+      "hunk": "@@ -55,8 +61,10 @@ public List<TypeInstrumentation> typeInstrumentations() {\n \n   @Override\n   public List<String> exposedClassNames() {\n-    // AnnotationInstrumentationHelper is called directly in the instrumented bytecode.\n-    return singletonList(\n-        \"io.opentelemetry.javaagent.instrumentation.kotlinxcoroutines.v1_0.instrumentationannotations.AnnotationInstrumentationHelper\");\n+    // These are called (in-)directly in the instrumented bytecode.\n+    return asList(\n+        \"io.opentelemetry.javaagent.instrumentation.kotlinxcoroutines.v1_0.instrumentationannotations.AnnotationInstrumentationHelper\",\n+        \"io.opentelemetry.javaagent.instrumentation.kotlinxcoroutines.v1_0.instrumentationannotations.AnnotationInstrumentationHelper$ContextContinuation\",\n+        \"io.opentelemetry.javaagent.instrumentation.kotlinxcoroutines.v1_0.instrumentationannotations.KotlinResultUtilKt\");",
+      "id": "PRRT_kwDODJKVX86chVZR",
+      "opened": "2026-08-26T15:33:19Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-08-28T18:47:28Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446/commits/19c6cee2dcee2cf23d5e51e0f9a6fddc4ea60d2f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3883177801"
+        }
+      ],
+      "reviewed": "8e78a0d77a33c49c7f99c1d8f8eae26709e0447c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3864326504"
+    }
+  ]
+}

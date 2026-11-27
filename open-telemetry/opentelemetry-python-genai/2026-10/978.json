@@ -1,0 +1,283 @@
+{
+  "head": "763f48e84e6b0a5b588f50b27521409426e89bf9",
+  "merge": "b4b39c4d032a86a9a102950ffde6a5c262347781",
+  "merged": "2026-10-28T17:39:56Z",
+  "missing_roots": 0,
+  "number": 978,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Both callers (`release-package.yml` and `release-all.yml`) invoke this reusable workflow with only `contents: read`. A reusable workflow cannot elevate its caller's token permissions, so the new write permissions prevent these build calls from running. Add `id-token: write` and `attestations: write`, alongside `contents: read`, to both callers' `build` jobs.",
+      "created": "2026-10-23T14:13:51Z",
+      "hunk": "@@ -19,7 +19,13 @@ permissions:\n \n jobs:\n   build:\n+    permissions:\n+      contents: read\n+      id-token: write\n+      attestations: write",
+      "id": "PRRT_kwDOSbspP86vot0h",
+      "opened": "2026-10-23T14:13:52Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-10-23T16:14:21Z",
+          "body": "Added these permissions to the other workflows",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4361679030"
+        }
+      ],
+      "reviewed": "61b8cfbdc61cf06c7b2e91389f701f44b0a979f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4360475015"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The provenance action derives its source commit from the workflow's OIDC `sha` claim, not from checkout HEAD or `built_sha`. The single-package path still checks out the mutable `github.ref`: if the branch advances between dispatch and checkout, artifacts can be built from commit B while their signed provenance identifies commit A. Default checkout to `github.sha` and reject explicit refs whose resolved commit differs from the attested source SHA.",
+      "created": "2026-10-23T14:13:51Z",
+      "hunk": "@@ -118,6 +113,11 @@ jobs:\n       - name: Build wheels\n         run: ./scripts/build_a_package.sh\n \n+      - name: Attest build provenance\n+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2\n+        with:\n+          subject-path: \"dist/*\"",
+      "id": "PRRT_kwDOSbspP86vot13",
+      "opened": "2026-10-23T14:13:52Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-10-23T16:13:45Z",
+          "body": "Yeah its a good point.. we should use the github.sha .. switched to using that everywhere",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4361672774"
+        }
+      ],
+      "reviewed": "61b8cfbdc61cf06c7b2e91389f701f44b0a979f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4360475137"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This exposes `built_sha` only as an internal job output. Without an `on.workflow_call.outputs` mapping, `needs.build.outputs.built_sha` in `release-package.yml` is empty, so finalization falls back to the mutable `github.ref`. A merge during publishing can therefore still make the release tag point at a different commit from the artifacts. Export the job output through the reusable workflow's interface.",
+      "created": "2026-10-23T14:13:51Z",
+      "hunk": "@@ -19,7 +19,13 @@ permissions:\n \n jobs:\n   build:\n+    permissions:\n+      contents: read\n+      id-token: write\n+      attestations: write\n     runs-on: ubuntu-slim\n+    outputs:\n+      built_sha: ${{ steps.verify_commit.outputs.sha }}",
+      "id": "PRRT_kwDOSbspP86vot1P",
+      "opened": "2026-10-23T14:13:52Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-10-23T16:14:03Z",
+          "body": "Exported it through the workflows interface",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4361675697"
+        }
+      ],
+      "reviewed": "61b8cfbdc61cf06c7b2e91389f701f44b0a979f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4360475090"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The three-day cutoff applies only to this version-validation subprocess. Both subsequent `uv build` commands resolve isolated build dependencies without it, including the unpinned `hatchling` backend. A newly published build backend can therefore execute during release despite the dependency-age protection described in the PR. Export `UV_EXCLUDE_NEWER=3d` so both builds inherit the cutoff.",
+      "created": "2026-10-23T14:13:52Z",
+      "hunk": "@@ -34,11 +34,18 @@ fi\n \n \n # Validate version against PEP 440 conventions: https://packaging.pypa.io/en/latest/version.html\n-uv run --with packaging python -c \"from packaging.version import Version; Version('${pkg_version}')\"\n+uv run --no-project --exclude-newer 3d --with packaging python -c \"from packaging.version import Version; Version('${pkg_version}')\"",
+      "id": "PRRT_kwDOSbspP86vot2Z",
+      "opened": "2026-10-23T14:13:52Z",
+      "path": "scripts/build_a_package.sh",
+      "replies": [
+        {
+          "at": "2026-10-23T16:13:17Z",
+          "body": "Ack, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4361667998"
+        }
+      ],
+      "reviewed": "61b8cfbdc61cf06c7b2e91389f701f44b0a979f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4360475206"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With `id-token: write` here, any build dependency (hatchling, etc.) can mint an OIDC token. PyPI accepts that token for publishing unless the trusted publisher is restricted to the `pypi` environment, which this job doesn't use. Could you confirm the PyPI trusted publisher config has the `pypi` environment set? If not, it'd be good to set it.\n\nOptionally, [dotnet-instrumentation attests in a separate job](https://github.com/open-telemetry/opentelemetry-dotnet-instrumentation/blob/5c59b4a5088c418e2b29826abc99e30e92ae1630/.github/workflows/release.yml#L34-L42) after downloading the artifacts, so the build job doesn't need `id-token` at all.\n",
+      "created": "2026-10-23T20:39:22Z",
+      "hunk": "@@ -13,13 +13,23 @@ on:\n         required: false\n         type: boolean\n         default: false\n+    outputs:\n+      built_sha:\n+        description: \"Verified commit SHA used for the build\"\n+        value: ${{ jobs.build.outputs.built_sha }}\n \n permissions:\n   contents: read\n \n jobs:\n   build:\n+    permissions:\n+      contents: read\n+      id-token: write\n+      attestations: write",
+      "id": "PRRT_kwDOSbspP86vxDPO",
+      "opened": "2026-10-23T20:56:54Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-10-26T16:07:29Z",
+          "body": "ack..  i switched to having attestation as a separate job so the build job no longer needs these permissions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4379537816"
+        }
+      ],
+      "reviewed": "d3d8218b9e8c77b8eb67ba3d6c972f056c2d4323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4364032516"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this check means any `inputs.ref` other than `github.sha` fails, so `ref` no longer does anything here and could be dropped from this workflow and its callers.\n",
+      "created": "2026-10-23T20:39:22Z",
+      "hunk": "@@ -37,9 +47,27 @@ jobs:\n \n       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n         with:\n-          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}\n+          ref: ${{ inputs.ref != '' && inputs.ref || github.sha }}\n           persist-credentials: false\n \n+      - name: Verify commit belongs to a merged pull request\n+        id: verify_commit\n+        env:\n+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n+        run: |\n+          built_sha=$(git rev-parse HEAD)\n+          echo \"sha=${built_sha}\" >> \"$GITHUB_OUTPUT\"\n+          if [[ \"${built_sha}\" != \"${GITHUB_SHA}\" ]]; then\n+            echo \"Error! Resolved commit ${built_sha} differs from attested source SHA ${GITHUB_SHA}.\"\n+            exit 1\n+          fi",
+      "id": "PRRT_kwDOSbspP86vxDPR",
+      "opened": "2026-10-23T20:56:54Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-10-26T16:57:02Z",
+          "body": "I ended up removing this check but kept inputs.ref .. In the scenario that release-all.yml is triggered automatically by PR merge we pass in `github.event.pull_request.merge_commit_sha` (the real commit on main) because in this case $GITHUB_SHA is the synthetic PR ref.\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4380077282"
+        }
+      ],
+      "reviewed": "d3d8218b9e8c77b8eb67ba3d6c972f056c2d4323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4364032525"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Suggest dropping the merged-PR check. It doesn't add protection beyond the branch check above: [`commits/{sha}/pulls`](https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit) returns the PR that introduced any commit on `main`, so every commit on a protected branch passes. Branch protection / rulesets on `main` and `package-release/*` already cover this, and no other OTel repo does an extra check like this.\n```suggestion\n```\n",
+      "created": "2026-10-23T20:39:22Z",
+      "hunk": "@@ -37,9 +47,27 @@ jobs:\n \n       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n         with:\n-          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}\n+          ref: ${{ inputs.ref != '' && inputs.ref || github.sha }}\n           persist-credentials: false\n \n+      - name: Verify commit belongs to a merged pull request\n+        id: verify_commit\n+        env:\n+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n+        run: |\n+          built_sha=$(git rev-parse HEAD)\n+          echo \"sha=${built_sha}\" >> \"$GITHUB_OUTPUT\"\n+          if [[ \"${built_sha}\" != \"${GITHUB_SHA}\" ]]; then\n+            echo \"Error! Resolved commit ${built_sha} differs from attested source SHA ${GITHUB_SHA}.\"\n+            exit 1\n+          fi\n+          merged_prs=$(gh api \"repos/${GITHUB_REPOSITORY}/commits/${built_sha}/pulls\" \\\n+            --jq '[.[] | select(.merged_at != null)] | length')\n+          if [[ \"${merged_prs}\" -lt 1 ]]; then\n+            echo \"Error! Commit ${built_sha} is not associated with any merged pull request.\"\n+            exit 1\n+          fi",
+      "id": "PRRT_kwDOSbspP86vxDPV",
+      "opened": "2026-10-23T20:56:54Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-10-26T16:57:19Z",
+          "body": "Ack got rid of this check entirely..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4380080131"
+        }
+      ],
+      "reviewed": "d3d8218b9e8c77b8eb67ba3d6c972f056c2d4323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4364032530"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`prepare-backport-patch.yml` still checks out with `persist-credentials: true` for this push, so the token stays on disk there. Since the push now uses its own token, that can be `false` too. Also, [java-instrumentation uses `gh auth setup-git` + `git push origin`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/35ab7b529721850466396736905973039f41bc01/.github/workflows/release.yml#L302-L319) here, which keeps the token out of the URL:\n```suggestion\n        gh auth setup-git\n        git push origin HEAD:\"$branch\"\n```\n(with `GH_TOKEN: ${{ github.token }}` scoped to this step)\n",
+      "created": "2026-10-23T20:39:22Z",
+      "hunk": "@@ -103,7 +104,7 @@ runs:\n         esac\n \n         git commit -a -m \"$title\"\n-        git push origin HEAD:\"$branch\"\n+        git push \"https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git\" HEAD:\"$branch\"",
+      "id": "PRRT_kwDOSbspP86vxDPa",
+      "opened": "2026-10-23T20:56:54Z",
+      "path": ".github/actions/bump-package/action.yml",
+      "replies": [
+        {
+          "at": "2026-10-26T16:34:39Z",
+          "body": "nice.. got rid of persist-credentials too from the backport patch.. switchted to using gh auth setup-git instead of putting in the URL in a bunch of places..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4379827855"
+        }
+      ],
+      "reviewed": "d3d8218b9e8c77b8eb67ba3d6c972f056c2d4323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4364032536"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: [attest-build-provenance v4 is a thin wrapper over `actions/attest`](https://github.com/actions/attest-build-provenance/blob/9d57eef8c06cd9d6b433effeeb7a6a77b3ff94ad/README.md?plain=1#L37-L42), which is what [sig-security recommends](https://github.com/open-telemetry/sig-security/blob/48015b753f766f4b3616e5d2d78f22d12c8afa72/docs/recommendations.md#attest-release-artifacts-with-github-artifact-attestations) and what [java](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/35ab7b529721850466396736905973039f41bc01/.github/workflows/release.yml#L171) / [dotnet](https://github.com/open-telemetry/opentelemetry-dotnet/blob/84e494f7a4664205d0406a0dc6340fac2cd313bd/.github/workflows/publish-packages-1.0.yml#L107) use.\n```suggestion\n        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2\n```\n",
+      "created": "2026-10-23T20:39:22Z",
+      "hunk": "@@ -118,6 +121,11 @@ jobs:\n       - name: Build wheels\n         run: ./scripts/build_a_package.sh\n \n+      - name: Attest build provenance\n+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2",
+      "id": "PRRT_kwDOSbspP86vxDPj",
+      "opened": "2026-10-23T20:56:54Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-10-26T16:58:26Z",
+          "body": "Ack.. switched to actions/attest",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4380091749"
+        }
+      ],
+      "reviewed": "d3d8218b9e8c77b8eb67ba3d6c972f056c2d4323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4364032553"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `name.split(\"/\")[0]` never contains `/`, so the second half is dead. The top-level allowlist below already rejects any `.data/` dir, so this whole check could go.",
+      "created": "2026-10-23T20:39:23Z",
+      "hunk": "@@ -72,3 +83,35 @@ fi\n \n # Build a wheel for the source distribution\n uv build --wheel --out-dir ${distdir} $pkg_tar_gz_file\n+\n+# Audit built wheel contents against startup-hook (.pth / sitecustomize.py)\n+# and *.data/ injection attacks (e.g., LiteLLM v1.107.0 supply-chain vector).\n+python3 - \"$distdir\" \"$pkg_name\" \"$pkg_version\" <<'PYEOF'\n+import pathlib\n+import sys\n+import zipfile\n+\n+distdir = pathlib.Path(sys.argv[1])\n+pkg_name_norm = sys.argv[2].replace(\"-\", \"_\")\n+pkg_version = sys.argv[3]\n+expected_dist_info = f\"{pkg_name_norm}-{pkg_version}.dist-info/\"\n+\n+wheels = list(distdir.glob(f\"{pkg_name_norm}-{pkg_version}-*.whl\"))\n+if len(wheels) != 1:\n+    sys.exit(f\"Error! Expected exactly 1 wheel in {distdir}, found: {wheels}\")\n+\n+with zipfile.ZipFile(wheels[0]) as zf:\n+    for name in zf.namelist():\n+        basename = pathlib.PurePosixPath(name).name\n+        if name.endswith(\".pth\") or basename in {\"sitecustomize.py\", \"usercustomize.py\"}:\n+            sys.exit(f\"Error! Forbidden startup hook file in wheel: {name}\")\n+        if f\"{pkg_name_norm}-{pkg_version}.data/\" in name or \".data/\" in name.split(\"/\")[0]:\n+            sys.exit(f\"Error! Unexpected .data/ directory entry in wheel: {name}\")",
+      "id": "PRRT_kwDOSbspP86vxDP0",
+      "opened": "2026-10-23T20:56:54Z",
+      "path": "scripts/build_a_package.sh",
+      "replies": [
+        {
+          "at": "2026-10-26T16:59:44Z",
+          "body": "Ack removed the whole check",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4380105146"
+        }
+      ],
+      "reviewed": "d3d8218b9e8c77b8eb67ba3d6c972f056c2d4323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4364032573"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `attestations: true` is [already the default with trusted publishing](https://github.com/pypa/gh-action-pypi-publish/blob/7245906fb61fa33a13554f9d5fb856fe61758086/README.md?plain=1#L108-L125), so PEP 740 attestations were already being published. Same in `release-package.yml`.\n",
+      "created": "2026-10-23T20:39:23Z",
+      "hunk": "@@ -103,6 +107,7 @@ jobs:\n         with:\n           packages-dir: dist/\n           skip-existing: true\n+          attestations: true",
+      "id": "PRRT_kwDOSbspP86vxDPt",
+      "opened": "2026-10-23T20:56:54Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [
+        {
+          "at": "2026-10-26T16:59:06Z",
+          "body": "Ack removed it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4380098853"
+        }
+      ],
+      "reviewed": "d3d8218b9e8c77b8eb67ba3d6c972f056c2d4323",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4364032565"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This push still embeds the token in the URL, while the other workflows moved to `gh auth setup-git`. Since `GITHUB_TOKEN` here is the otelbot token, it'd need the same split as `_release-finalize.yml` (`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` + `PR_TOKEN: ${{ steps.otelbot-token.outputs.token }}` in `env`):\n```suggestion\n          gh auth setup-git\n          git push origin HEAD:\"$branch\"\n          GH_TOKEN=\"${PR_TOKEN}\" gh pr create --title \"$message\" \\\n```",
+      "created": "2026-10-28T05:27:52Z",
+      "hunk": "@@ -165,7 +170,7 @@ jobs:\n           branch=\"otelbot/bump-after-release-all-$(date +%Y%m%d)\"\n \n           git commit -a -m \"$message\"\n-          git push origin HEAD:\"$branch\"\n+          git push \"https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git\" HEAD:\"$branch\"\n           gh pr create --title \"$message\" \\",
+      "id": "PRRT_kwDOSbspP86w_h-a",
+      "opened": "2026-10-28T05:29:17Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [
+        {
+          "at": "2026-10-28T15:46:14Z",
+          "body": "Ack, fix applied",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4402763654"
+        }
+      ],
+      "reviewed": "437869fbd2b776f1e8db6703243da21c01da5215",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4397178698"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `UV_EXCLUDE_NEWER=3d` is already exported above, so the flag is redundant here.\n```suggestion\nuv run --no-project --with packaging python -c \"from packaging.version import Version; Version('${pkg_version}')\"\n```",
+      "created": "2026-10-28T05:27:52Z",
+      "hunk": "@@ -34,11 +38,18 @@ fi\n \n \n # Validate version against PEP 440 conventions: https://packaging.pypa.io/en/latest/version.html\n-uv run --with packaging python -c \"from packaging.version import Version; Version('${pkg_version}')\"\n+uv run --no-project --exclude-newer 3d --with packaging python -c \"from packaging.version import Version; Version('${pkg_version}')\"",
+      "id": "PRRT_kwDOSbspP86w_h-j",
+      "opened": "2026-10-28T05:29:17Z",
+      "path": "scripts/build_a_package.sh",
+      "replies": [
+        {
+          "at": "2026-10-28T15:45:40Z",
+          "body": "Ack removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4402757125"
+        }
+      ],
+      "reviewed": "437869fbd2b776f1e8db6703243da21c01da5215",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/978#discussion_r4397178717"
+    }
+  ]
+}

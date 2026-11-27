@@ -1,0 +1,85 @@
+{
+  "head": "6a949b1dfc994f8f6ec3c8bf03bf370263cf2f96",
+  "merge": "a48976e8f57273949307813781d45b9098eec1f9",
+  "merged": "2026-03-27T14:44:17Z",
+  "missing_roots": 0,
+  "number": 17134,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we have\n```suggestion\n      if (scope == null) {\n```",
+      "created": "2026-03-27T11:53:54Z",
+      "hunk": "@@ -57,46 +59,37 @@ public static class ForkJoinTaskAdvice {\n \n     /**\n      * When {@link ForkJoinTask} object is submitted to {@link ForkJoinPool} as {@link Runnable} or\n-     * {@link Callable} it will not get wrapped, instead it will be casted to {@code ForkJoinTask}\n+     * {@link Callable} it will not get wrapped, instead it will be cast to {@code ForkJoinTask}\n      * directly. This means state is still stored in {@code Runnable} or {@code Callable} and we\n      * need to use that state.\n      */\n+    @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class)\n     public static Scope enter(@Advice.This ForkJoinTask<?> thiz) {\n-      VirtualField<ForkJoinTask<?>, PropagatedContext> virtualField =\n-          VirtualField.find(ForkJoinTask.class, PropagatedContext.class);\n-      Scope scope = TaskAdviceHelper.makePropagatedContextCurrent(virtualField, thiz);\n+      Scope scope =\n+          TaskAdviceHelper.makePropagatedContextCurrent(FORK_JOIN_TASK_PROPAGATED_CONTEXT, thiz);\n+      Scope newScope = null;\n       if (thiz instanceof Runnable) {\n-        VirtualField<Runnable, PropagatedContext> runnableVirtualField =\n-            VirtualField.find(Runnable.class, PropagatedContext.class);\n-        Scope newScope =\n-            TaskAdviceHelper.makePropagatedContextCurrent(runnableVirtualField, (Runnable) thiz);\n-        if (null != newScope) {\n-          if (null != scope) {\n-            newScope.close();\n-          } else {\n-            scope = newScope;\n-          }\n-        }\n+        newScope =\n+            TaskAdviceHelper.makePropagatedContextCurrent(\n+                RUNNABLE_PROPAGATED_CONTEXT, (Runnable) thiz);\n       }\n       if (thiz instanceof Callable) {\n-        VirtualField<Callable<?>, PropagatedContext> callableVirtualField =\n-            VirtualField.find(Callable.class, PropagatedContext.class);\n-        Scope newScope =\n-            TaskAdviceHelper.makePropagatedContextCurrent(callableVirtualField, (Callable<?>) thiz);\n-        if (null != newScope) {\n-          if (null != scope) {\n-            newScope.close();\n-          } else {\n-            scope = newScope;\n-          }\n-        }\n+        newScope =\n+            TaskAdviceHelper.makePropagatedContextCurrent(\n+                CALLABLE_PROPAGATED_CONTEXT, (Callable<?>) thiz);\n+      }\n+      if (null == scope) {",
+      "id": "PRRT_kwDODJKVX853RFFk",
+      "opened": "2026-03-27T11:53:54Z",
+      "path": "instrumentation/scala-fork-join-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/scalaexecutors/ScalaForkJoinTaskInstrumentation.java",
+      "replies": [],
+      "reviewed": "ce8957f84bd7cd6cea5e5b830b3352ff3f8c78b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17134#discussion_r3000567966"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "in original code when both `scope` and `newScope` are not `null`  `newScope` is closed",
+      "created": "2026-03-27T11:56:33Z",
+      "hunk": "@@ -57,46 +59,37 @@ public static class ForkJoinTaskAdvice {\n \n     /**\n      * When {@link ForkJoinTask} object is submitted to {@link ForkJoinPool} as {@link Runnable} or\n-     * {@link Callable} it will not get wrapped, instead it will be casted to {@code ForkJoinTask}\n+     * {@link Callable} it will not get wrapped, instead it will be cast to {@code ForkJoinTask}\n      * directly. This means state is still stored in {@code Runnable} or {@code Callable} and we\n      * need to use that state.\n      */\n+    @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class)\n     public static Scope enter(@Advice.This ForkJoinTask<?> thiz) {\n-      VirtualField<ForkJoinTask<?>, PropagatedContext> virtualField =\n-          VirtualField.find(ForkJoinTask.class, PropagatedContext.class);\n-      Scope scope = TaskAdviceHelper.makePropagatedContextCurrent(virtualField, thiz);\n+      Scope scope =\n+          TaskAdviceHelper.makePropagatedContextCurrent(FORK_JOIN_TASK_PROPAGATED_CONTEXT, thiz);\n+      Scope newScope = null;\n       if (thiz instanceof Runnable) {\n-        VirtualField<Runnable, PropagatedContext> runnableVirtualField =\n-            VirtualField.find(Runnable.class, PropagatedContext.class);\n-        Scope newScope =\n-            TaskAdviceHelper.makePropagatedContextCurrent(runnableVirtualField, (Runnable) thiz);\n-        if (null != newScope) {\n-          if (null != scope) {\n-            newScope.close();\n-          } else {\n-            scope = newScope;\n-          }\n-        }\n+        newScope =\n+            TaskAdviceHelper.makePropagatedContextCurrent(\n+                RUNNABLE_PROPAGATED_CONTEXT, (Runnable) thiz);\n       }\n       if (thiz instanceof Callable) {\n-        VirtualField<Callable<?>, PropagatedContext> callableVirtualField =\n-            VirtualField.find(Callable.class, PropagatedContext.class);\n-        Scope newScope =\n-            TaskAdviceHelper.makePropagatedContextCurrent(callableVirtualField, (Callable<?>) thiz);\n-        if (null != newScope) {\n-          if (null != scope) {\n-            newScope.close();\n-          } else {\n-            scope = newScope;\n-          }\n-        }\n+        newScope =\n+            TaskAdviceHelper.makePropagatedContextCurrent(\n+                CALLABLE_PROPAGATED_CONTEXT, (Callable<?>) thiz);\n+      }\n+      if (null == scope) {\n+        scope = newScope;\n+      } else if (newScope != null) {\n+        scope.close();",
+      "id": "PRRT_kwDODJKVX853RHsm",
+      "opened": "2026-03-27T11:56:33Z",
+      "path": "instrumentation/scala-fork-join-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/scalaexecutors/ScalaForkJoinTaskInstrumentation.java",
+      "replies": [],
+      "reviewed": "ce8957f84bd7cd6cea5e5b830b3352ff3f8c78b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17134#discussion_r3000582072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "original code does not have this assignment when both `scope` and `newScope` are not `null`",
+      "created": "2026-03-27T11:59:35Z",
+      "hunk": "@@ -57,46 +59,37 @@ public static class ForkJoinTaskAdvice {\n \n     /**\n      * When {@link ForkJoinTask} object is submitted to {@link ForkJoinPool} as {@link Runnable} or\n-     * {@link Callable} it will not get wrapped, instead it will be casted to {@code ForkJoinTask}\n+     * {@link Callable} it will not get wrapped, instead it will be cast to {@code ForkJoinTask}\n      * directly. This means state is still stored in {@code Runnable} or {@code Callable} and we\n      * need to use that state.\n      */\n+    @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class)\n     public static Scope enter(@Advice.This ForkJoinTask<?> thiz) {\n-      VirtualField<ForkJoinTask<?>, PropagatedContext> virtualField =\n-          VirtualField.find(ForkJoinTask.class, PropagatedContext.class);\n-      Scope scope = TaskAdviceHelper.makePropagatedContextCurrent(virtualField, thiz);\n+      Scope scope =\n+          TaskAdviceHelper.makePropagatedContextCurrent(FORK_JOIN_TASK_PROPAGATED_CONTEXT, thiz);\n+      Scope newScope = null;\n       if (thiz instanceof Runnable) {\n-        VirtualField<Runnable, PropagatedContext> runnableVirtualField =\n-            VirtualField.find(Runnable.class, PropagatedContext.class);\n-        Scope newScope =\n-            TaskAdviceHelper.makePropagatedContextCurrent(runnableVirtualField, (Runnable) thiz);\n-        if (null != newScope) {\n-          if (null != scope) {\n-            newScope.close();\n-          } else {\n-            scope = newScope;\n-          }\n-        }\n+        newScope =\n+            TaskAdviceHelper.makePropagatedContextCurrent(\n+                RUNNABLE_PROPAGATED_CONTEXT, (Runnable) thiz);\n       }\n       if (thiz instanceof Callable) {\n-        VirtualField<Callable<?>, PropagatedContext> callableVirtualField =\n-            VirtualField.find(Callable.class, PropagatedContext.class);\n-        Scope newScope =\n-            TaskAdviceHelper.makePropagatedContextCurrent(callableVirtualField, (Callable<?>) thiz);\n-        if (null != newScope) {\n-          if (null != scope) {\n-            newScope.close();\n-          } else {\n-            scope = newScope;\n-          }\n-        }\n+        newScope =\n+            TaskAdviceHelper.makePropagatedContextCurrent(\n+                CALLABLE_PROPAGATED_CONTEXT, (Callable<?>) thiz);\n+      }\n+      if (null == scope) {\n+        scope = newScope;\n+      } else if (newScope != null) {\n+        scope.close();\n+        scope = newScope;",
+      "id": "PRRT_kwDODJKVX853RKPQ",
+      "opened": "2026-03-27T11:59:34Z",
+      "path": "instrumentation/scala-fork-join-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/scalaexecutors/ScalaForkJoinTaskInstrumentation.java",
+      "replies": [],
+      "reviewed": "ce8957f84bd7cd6cea5e5b830b3352ff3f8c78b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17134#discussion_r3000595931"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-03-27T14:08:12Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.scalaexecutors;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.bootstrap.executors.PropagatedContext;\n+import java.util.concurrent.Callable;\n+import scala.concurrent.forkjoin.ForkJoinTask;\n+\n+public class VirtualFields {\n+\n+  public static final VirtualField<ForkJoinTask<?>, PropagatedContext>\n+      FORK_JOIN_TASK_PROPAGATED_CONTEXT =\n+          VirtualField.find(ForkJoinTask.class, PropagatedContext.class);\n+",
+      "id": "PRRT_kwDODJKVX853S-U5",
+      "opened": "2026-03-27T14:08:11Z",
+      "path": "instrumentation/scala-fork-join-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/scalaexecutors/VirtualFields.java",
+      "replies": [],
+      "reviewed": "441a052aaa209c85475a1acb82cbc0ad338e78b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17134#discussion_r3001222081"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-03-27T14:08:19Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.scalaexecutors;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.bootstrap.executors.PropagatedContext;\n+import java.util.concurrent.Callable;\n+import scala.concurrent.forkjoin.ForkJoinTask;\n+\n+public class VirtualFields {\n+\n+  public static final VirtualField<ForkJoinTask<?>, PropagatedContext>\n+      FORK_JOIN_TASK_PROPAGATED_CONTEXT =\n+          VirtualField.find(ForkJoinTask.class, PropagatedContext.class);\n+\n+  public static final VirtualField<Runnable, PropagatedContext> RUNNABLE_PROPAGATED_CONTEXT =\n+      VirtualField.find(Runnable.class, PropagatedContext.class);\n+",
+      "id": "PRRT_kwDODJKVX853S-fK",
+      "opened": "2026-03-27T14:08:19Z",
+      "path": "instrumentation/scala-fork-join-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/scalaexecutors/VirtualFields.java",
+      "replies": [],
+      "reviewed": "441a052aaa209c85475a1acb82cbc0ad338e78b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17134#discussion_r3001222940"
+    }
+  ]
+}

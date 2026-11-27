@@ -1,0 +1,31 @@
+{
+  "head": "ff2516852861e160f9851400b8620837a90307fe",
+  "merge": "6ae66a922be75dccbfc4f489c8274f6ac1f985e5",
+  "merged": "2026-10-31T21:00:12Z",
+  "missing_roots": 0,
+  "number": 1017,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could you also cover the common stream shape - thought-only chunks followed by chunks that carry both counts? It pins `output_tokens = candidates + thoughts` from the last chunk, as semconv says reasoning tokens SHOULD be included in `gen_ai.usage.output_tokens`.\n\n```python\n    def test_thinking_tokens_added_to_last_candidates_count(self):\n        self.configure_valid_response(\n            input_tokens=3, output_tokens=None, thinking_tokens=40\n        )\n        self.configure_valid_response(\n            input_tokens=3, output_tokens=5, thinking_tokens=100\n        )\n        self.configure_valid_response(\n            input_tokens=3, output_tokens=12, thinking_tokens=100\n        )\n\n        self.generate_content(model=\"gemini-2.0-flash\", contents=\"Some input\")\n\n        span = self.otel.get_span_named(\"generate_content gemini-2.0-flash\")\n        self.assertEqual(span.attributes[\"gen_ai.usage.output_tokens\"], 112)\n        self.assertEqual(\n            span.attributes[\"gen_ai.usage.reasoning.output_tokens\"], 100\n        )\n```",
+      "created": "2026-10-31T19:05:58Z",
+      "hunk": "@@ -199,6 +199,27 @@ def test_includes_token_counts_in_span_not_aggregated_from_responses(self):\n         self.assertEqual(span.attributes[\"gen_ai.usage.input_tokens\"], 3)\n         self.assertEqual(span.attributes[\"gen_ai.usage.output_tokens\"], 5)\n \n+    def test_thinking_tokens_are_not_aggregated_without_candidates_count(self):\n+        # A stream that ends while still thinking (e.g. MAX_TOKENS) reports\n+        # cumulative thoughts_token_count with no candidates_token_count.\n+        self.configure_valid_response(\n+            input_tokens=3, output_tokens=None, thinking_tokens=40\n+        )\n+        self.configure_valid_response(\n+            input_tokens=3, output_tokens=None, thinking_tokens=80\n+        )\n+        self.configure_valid_response(\n+            input_tokens=3, output_tokens=None, thinking_tokens=100\n+        )\n+\n+        self.generate_content(model=\"gemini-2.0-flash\", contents=\"Some input\")\n+\n+        span = self.otel.get_span_named(\"generate_content gemini-2.0-flash\")\n+        self.assertEqual(span.attributes[\"gen_ai.usage.output_tokens\"], 100)\n+        self.assertEqual(\n+            span.attributes[\"gen_ai.usage.reasoning.output_tokens\"], 100\n+        )",
+      "id": "PRRT_kwDOSbspP86yTx6h",
+      "opened": "2026-10-31T19:06:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/streaming_base.py",
+      "replies": [
+        {
+          "at": "2026-10-31T20:14:10Z",
+          "body": "Added `test_thinking_tokens_added_to_last_candidates_count` in ff25168, thanks @lmolkova. It passes on main too, so it pins the candidates + thoughts sum from the last chunk.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1017#discussion_r4433149492"
+        }
+      ],
+      "reviewed": "8059b90c3c565855212f6858ed5b3f71ae629dcc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1017#discussion_r4432953887"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "head": "c7eca2dce65e2acb1f8675858394256c31f34078",
+  "merge": "ec16bbbd68aa8e2d72831d87e6cf62b9b5e6cb7a",
+  "merged": "2026-08-14T06:50:26Z",
+  "missing_roots": 0,
+  "number": 19471,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An explicitly configured name is not always distinguishable by comparing values. For example, if this instance's generated name is `p1` and the application calls `setName(\"p1\")` (or supplies that value through `Properties`), this returns `false` and the start advice replaces the explicitly configured name with the derived database name, contrary to the PR's preservation guarantee. Track whether `setName` was invoked (for example, with a boolean `VirtualField` and setter advice, as the Tomcat JDBC instrumentation does) rather than inferring intent from equality.",
+      "created": "2026-08-10T05:56:31Z",
+      "hunk": "@@ -6,15 +6,40 @@\n package io.opentelemetry.javaagent.instrumentation.viburdbcp.v11_0;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n import io.opentelemetry.instrumentation.viburdbcp.v11_0.ViburTelemetry;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import org.vibur.dbcp.ViburConfig;\n+import org.vibur.dbcp.ViburDBCPDataSource;\n \n public class ViburSingletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"vibur-dbcp\";\n+  private static final VirtualField<ViburConfig, String> defaultNameField =\n+      VirtualField.find(ViburConfig.class, String.class);\n+\n   private static final ViburTelemetry telemetry = ViburTelemetry.create(GlobalOpenTelemetry.get());\n \n   public static ViburTelemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static void captureDefaultName(ViburConfig config) {\n+    defaultNameField.set(config, config.getName());\n+  }\n+\n+  public static boolean isDataSourceNameConfigured(ViburConfig config) {\n+    String defaultName = defaultNameField.get(config);\n+    return defaultName == null || !defaultName.equals(config.getName());",
+      "id": "PRRT_kwDODJKVX86XwgkT",
+      "opened": "2026-08-10T05:56:31Z",
+      "path": "instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburSingletons.java",
+      "replies": [],
+      "reviewed": "0fe0b066cf30f225a449e6f2ac2cde77e06edbb9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19471#discussion_r3746972622"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Naming] `VirtualField` is a semantic handle under the Java style guide, so this field should use `SCREAMING_SNAKE_CASE`. Please rename `configuredNameField` to `CONFIGURED_NAME_FIELD` and update both references below.",
+      "created": "2026-08-10T14:07:08Z",
+      "hunk": "@@ -6,15 +6,42 @@\n package io.opentelemetry.javaagent.instrumentation.viburdbcp.v11_0;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n import io.opentelemetry.instrumentation.viburdbcp.v11_0.ViburTelemetry;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.annotation.Nullable;\n+import org.vibur.dbcp.ViburConfig;\n+import org.vibur.dbcp.ViburDBCPDataSource;\n \n public class ViburSingletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"vibur-dbcp\";\n+  private static final VirtualField<ViburConfig, Boolean> configuredNameField =",
+      "id": "PRRT_kwDODJKVX86X5ndo",
+      "opened": "2026-08-10T14:12:08Z",
+      "path": "instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburSingletons.java",
+      "replies": [],
+      "reviewed": "67a549799b450a3edd518de5813eedce102589d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19471#discussion_r3750229716"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This adds a public library API, but the library README still documents only the single-argument `registerMetrics`. Please add a short explicit-pool-name usage example, as the equivalent c3p0 change did, so library users can discover this option.",
+      "created": "2026-08-10T14:07:08Z",
+      "hunk": "@@ -26,6 +26,11 @@ public void registerMetrics(ViburDBCPDataSource dataSource) {\n     ConnectionPoolMetrics.registerMetrics(openTelemetry, dataSource);\n   }\n \n+  /** Start collecting metrics for given data source using the given pool name. */\n+  public void registerMetrics(ViburDBCPDataSource dataSource, String poolName) {",
+      "id": "PRRT_kwDODJKVX86X5nds",
+      "opened": "2026-08-10T14:12:08Z",
+      "path": "instrumentation/vibur-dbcp-11.0/library/src/main/java/io/opentelemetry/instrumentation/viburdbcp/v11_0/ViburTelemetry.java",
+      "replies": [],
+      "reviewed": "67a549799b450a3edd518de5813eedce102589d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19471#discussion_r3750229722"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`metadata.yaml` still describes the module generically, so the published instrumentation list will not mention the derived `server.address[:server.port][/db.namespace]` pool name or the `vibur-dbcp` fallback. Tomcat JDBC and Apache DBCP document this in their metadata descriptions.",
+      "created": "2026-08-13T15:49:14Z",
+      "hunk": "@@ -6,15 +6,43 @@\n package io.opentelemetry.javaagent.instrumentation.viburdbcp.v11_0;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n import io.opentelemetry.instrumentation.viburdbcp.v11_0.ViburTelemetry;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.annotation.Nullable;\n+import org.vibur.dbcp.ViburConfig;\n+import org.vibur.dbcp.ViburDBCPDataSource;\n \n public class ViburSingletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"vibur-dbcp\";\n+  private static final VirtualField<ViburConfig, Boolean> CONFIGURED_NAME_FIELD =\n+      VirtualField.find(ViburConfig.class, Boolean.class);\n+\n   private static final ViburTelemetry telemetry = ViburTelemetry.create(GlobalOpenTelemetry.get());\n \n   public static ViburTelemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static void markDataSourceNameConfigured(ViburConfig config, @Nullable String name) {\n+    // Vibur rejects invalid names and does not support renaming, so this state is monotonic.\n+    if (name != null && !name.trim().isEmpty()) {\n+      CONFIGURED_NAME_FIELD.set(config, true);\n+    }\n+  }\n+\n+  public static boolean isDataSourceNameConfigured(ViburConfig config) {\n+    return Boolean.TRUE.equals(CONFIGURED_NAME_FIELD.get(config));\n+  }\n+\n+  public static String getDataSourceName(ViburDBCPDataSource dataSource) {\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(dataSource.getJdbcUrl(), dataSource.getDriverProperties());\n+    return JdbcConnectionPoolNameUtil.poolName(dbInfo, DEFAULT_DATA_SOURCE_NAME);\n+  }",
+      "id": "PRRT_kwDODJKVX86Y_j8Y",
+      "opened": "2026-08-13T16:53:14Z",
+      "path": "instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburSingletons.java",
+      "replies": [],
+      "reviewed": "7af57716947bba3f5c1c105f0c1efc0537c709f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19471#discussion_r3776871044"
+    }
+  ]
+}

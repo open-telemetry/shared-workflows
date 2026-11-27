@@ -1,0 +1,262 @@
+{
+  "head": "e539205d235f19ec197a65101054bd5873dfbe25",
+  "merge": "13e00dd5c072c3aa67dceaa5cb3819c65f38ba3d",
+  "merged": "2026-09-14T17:29:54Z",
+  "missing_roots": 0,
+  "number": 358,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_decode_base64 catches a blanket Exception and then silently drops the part. This risks masking unrelated bugs (and the pylint disable suggests this is only for base64 decode failures). It’s safer to catch the specific decode exceptions (binascii.Error / ValueError) and avoid the broad except.",
+      "created": "2026-08-05T02:55:00Z",
+      "hunk": "@@ -165,11 +170,87 @@ def get_value(v: Any):\n     return None\n \n \n-def _is_text_part(content: Any) -> bool:\n-    return isinstance(content, str) or (\n-        isinstance(content, Iterable)\n-        and all(isinstance(part, str) for part in content)\n-    )\n+def _decode_base64(data: str) -> bytes | None:\n+    try:\n+        return base64.b64decode(data)\n+    except Exception:  # pylint: disable=broad-exception-caught\n+        return None",
+      "id": "PRRT_kwDOSbspP86WhxWH",
+      "opened": "2026-08-05T02:55:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-13T04:29:40Z",
+          "body": "Narrowed to `except ValueError` (`binascii.Error` is a `ValueError` subclass). For context, the blanket form was copied from the anthropic package's `_decode_base64`; that one may deserve the same narrowing separately.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3772431863"
+        }
+      ],
+      "reviewed": "b8e3bb9c453b4c4ff7878056e74ce7d66f7f33c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3717598993"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_content_to_parts treats any Iterable as a sequence of parts. If `content` is accidentally a Mapping (e.g., a dict), iterating it yields keys (strings), so this will emit Text parts for each key (e.g., \"type\", \"text\") rather than skipping/handling the content. Guard against Mapping inputs so only real part-sequences are iterated.",
+      "created": "2026-08-05T02:55:00Z",
+      "hunk": "@@ -165,11 +170,87 @@ def get_value(v: Any):\n     return None\n \n \n-def _is_text_part(content: Any) -> bool:\n-    return isinstance(content, str) or (\n-        isinstance(content, Iterable)\n-        and all(isinstance(part, str) for part in content)\n-    )\n+def _decode_base64(data: str) -> bytes | None:\n+    try:\n+        return base64.b64decode(data)\n+    except Exception:  # pylint: disable=broad-exception-caught\n+        return None\n+\n+\n+def _convert_content_part(part: Any) -> MessagePart | None:\n+    \"\"\"Convert one OpenAI content part (TypedDict/dict or attribute object)\n+    to a semconv MessagePart. Returns None for unrecognized parts.\"\"\"\n+    if isinstance(part, str):\n+        return Text(content=part)\n+\n+    part_type = get_property_value(part, \"type\")\n+\n+    if part_type == \"text\":\n+        text = get_property_value(part, \"text\")\n+        return Text(content=str(text) if text is not None else \"\")\n+\n+    if part_type == \"image_url\":\n+        image_url = get_property_value(part, \"image_url\")\n+        url = (\n+            get_property_value(image_url, \"url\")\n+            if image_url is not None\n+            else None\n+        )\n+        if not isinstance(url, str):\n+            return None\n+        # Both remote (http/https) and inline (data:) URLs are URIs; record\n+        # them as sent rather than decoding inline payloads.\n+        return Uri(mime_type=None, modality=\"image\", uri=url)\n+\n+    if part_type == \"input_audio\":\n+        input_audio = get_property_value(part, \"input_audio\")\n+        if input_audio is None:\n+            return None\n+        data = get_property_value(input_audio, \"data\")\n+        decoded = _decode_base64(data) if isinstance(data, str) else None\n+        if decoded is None:\n+            return None\n+        audio_format = get_property_value(input_audio, \"format\")\n+        return Blob(\n+            mime_type=f\"audio/{audio_format}\"\n+            if isinstance(audio_format, str)\n+            else None,\n+            modality=\"audio\",\n+            content=decoded,\n+        )\n+\n+    if part_type == \"file\":\n+        file_obj = get_property_value(part, \"file\")\n+        file_id = (\n+            get_property_value(file_obj, \"file_id\")\n+            if file_obj is not None\n+            else None\n+        )\n+        if not isinstance(file_id, str):\n+            return None\n+        return File(mime_type=None, modality=\"document\", file_id=file_id)\n+\n+    if part_type == \"refusal\":\n+        # The refusal string is the message's user-visible text content.\n+        refusal = get_property_value(part, \"refusal\")\n+        return Text(content=str(refusal) if refusal is not None else \"\")\n+\n+    return None\n+\n+\n+def _content_to_parts(content: Any) -> list[MessagePart]:\n+    \"\"\"Convert an OpenAI message ``content`` value — a plain string or a\n+    list of content parts — to semconv message parts.\"\"\"\n+    if isinstance(content, str):\n+        return [Text(content=content)]\n+    if isinstance(content, Iterable):\n+        parts: list[MessagePart] = []\n+        for item in content:\n+            part = _convert_content_part(item)\n+            if part is not None:\n+                parts.append(part)\n+        return parts\n+    return []",
+      "id": "PRRT_kwDOSbspP86WhxWS",
+      "opened": "2026-08-05T02:55:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-13T04:29:42Z",
+          "body": "Added an explicit `Mapping` guard that records no parts — a bare dict is not a valid `content` shape, and iterating it would have produced `Text` parts for its keys. Covered by a unit test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3772431953"
+        }
+      ],
+      "reviewed": "b8e3bb9c453b4c4ff7878056e74ce7d66f7f33c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3717599011"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog fragments in this package use RST inline literals (double backticks) and typically start with a capitalized sentence. This fragment uses single backticks and lowercase, which will render inconsistently in the generated changelog.",
+      "created": "2026-08-05T02:55:01Z",
+      "hunk": "@@ -0,0 +1 @@\n+fix chat message content being dropped from `gen_ai.input.messages`/`gen_ai.output.messages` when it is a list of content parts",
+      "id": "PRRT_kwDOSbspP86WhxWd",
+      "opened": "2026-08-05T02:55:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/358.fixed",
+      "replies": [
+        {
+          "at": "2026-08-13T04:29:45Z",
+          "body": "Reworded to match the existing fragments' style: capitalized sentence with RST double-backtick literals.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3772432114"
+        }
+      ],
+      "reviewed": "b8e3bb9c453b4c4ff7878056e74ce7d66f7f33c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3717599027"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please write realistic tests against real instrumentation flow - this is a private method that might or might not be called",
+      "created": "2026-08-05T05:25:19Z",
+      "hunk": "@@ -0,0 +1,234 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Unit tests for ``_prepare_input_messages`` content-part handling.\n+\n+Chat Completions ``content`` may be a plain string or a list of typed\n+content parts (text, image_url, input_audio, file, refusal). The list\n+form used to be dropped entirely (recorded as ``parts=[]``); these tests\n+pin the conversion of every part shape.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import base64\n+from types import SimpleNamespace\n+\n+from opentelemetry.instrumentation.genai.openai.utils import (\n+    _prepare_input_messages,\n+)\n+from opentelemetry.util.genai.types import (\n+    Blob,\n+    File,\n+    Text,\n+    ToolCallRequest,\n+    Uri,\n+)\n+\n+\n+def test_string_content_is_single_text_part():\n+    messages = [{\"role\": \"user\", \"content\": \"Say this is a test\"}]\n+\n+    result = _prepare_input_messages(messages)",
+      "id": "PRRT_kwDOSbspP86WjOK8",
+      "opened": "2026-08-05T05:26:08Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_prepare_input_messages_unit.py",
+      "replies": [
+        {
+          "at": "2026-08-13T04:29:38Z",
+          "body": "Rewrote the coverage to drive the real instrumentation flow: `test_chat_completion_multiturn_content_parts` and `test_chat_completion_multimodal_content_parts` (in `test_chat_completions.py`) make instrumented `chat.completions.create` calls against cassettes and assert `gen_ai.input.messages` / `gen_ai.output.messages` on the exported span. Both fail against the unpatched code. A slim unit module remains only for degenerate content shapes a well-formed request wouldn't carry (unknown part types, mapping-shaped content, invalid base64, `None`).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3772431750"
+        }
+      ],
+      "reviewed": "b8e3bb9c453b4c4ff7878056e74ce7d66f7f33c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3718166708"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The new `refusal` branch only fires for request-side content lists. The actual API shape is `choice.message.refusal` with `content=None`, and that path is still unrecorded — both new cassettes have `\"refusal\": null`, so nothing covers it.\n\n```python\nparts += _content_to_parts(content)\nrefusal = get_property_value(choice.message, \"refusal\")\nif isinstance(refusal, str):\n    parts.append(Text(content=refusal))\n```\n\nWorth a cassette with `\"content\": null, \"refusal\": \"...\"`.",
+      "created": "2026-08-14T02:18:03Z",
+      "hunk": "@@ -274,8 +357,7 @@ def _prepare_output_messages(choices) -> list[OutputMessage]:\n             if tool_calls:\n                 parts += extract_tool_calls_new(tool_calls)\n             content = get_property_value(choice.message, \"content\")\n-            if _is_text_part(content):\n-                parts.append(Text(content=str(content)))\n+            parts += _content_to_parts(content)",
+      "id": "PRRT_kwDOSbspP86ZJEg2",
+      "opened": "2026-08-14T02:18:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-06T08:54:49Z",
+          "body": "Good catch — that path was indeed unrecorded. `_prepare_output_messages` now appends `choice.message.refusal` as a `TextPart`, and `test_chat_completion_refusal` drives it through a new cassette with `\"content\": null, \"refusal\": \"...\"`. It fails without the fix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3943475823"
+        }
+      ],
+      "reviewed": "39aa1076756fb628d9ec0b9011be2a81ea962878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3780532290"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`data:` URLs put the full base64 payload inline in a `Uri` — semconv wants inline data as a `Blob`, and this can push multi-MB strings into a span attribute while `mime_type` stays `None` even though the data URL carries it.\n\n#296 adds `image_from_url()` to `opentelemetry.util.genai.utils` which does exactly this split. Suggest waiting for #296 to merge and then reusing it instead of adding a second implementation here:\n\n```python\nif part_type == \"image_url\":\n    ...\n    return image_from_url(url, modality=\"image\", capture_content=True)\n```\n\n@rads-1996 could you take a look at this one, given the overlap with #296?",
+      "created": "2026-08-14T02:18:03Z",
+      "hunk": "@@ -185,11 +190,91 @@ def get_value(v: Any):\n     return None\n \n \n-def _is_text_part(content: Any) -> bool:\n-    return isinstance(content, str) or (\n-        isinstance(content, Iterable)\n-        and all(isinstance(part, str) for part in content)\n-    )\n+def _decode_base64(data: str) -> bytes | None:\n+    try:\n+        return base64.b64decode(data)\n+    except ValueError:\n+        # binascii.Error (invalid padding/characters) is a ValueError subclass.\n+        return None\n+\n+\n+def _convert_content_part(part: Any) -> MessagePart | None:\n+    \"\"\"Convert one OpenAI content part (TypedDict/dict or attribute object)\n+    to a semconv MessagePart. Returns None for unrecognized parts.\"\"\"\n+    if isinstance(part, str):\n+        return Text(content=part)\n+\n+    part_type = get_property_value(part, \"type\")\n+\n+    if part_type == \"text\":\n+        text = get_property_value(part, \"text\")\n+        return Text(content=str(text) if text is not None else \"\")\n+\n+    if part_type == \"image_url\":\n+        image_url = get_property_value(part, \"image_url\")\n+        url = (\n+            get_property_value(image_url, \"url\")\n+            if image_url is not None\n+            else None\n+        )\n+        if not isinstance(url, str):\n+            return None\n+        # Both remote (http/https) and inline (data:) URLs are URIs; record\n+        # them as sent rather than decoding inline payloads.\n+        return Uri(mime_type=None, modality=\"image\", uri=url)",
+      "id": "PRRT_kwDOSbspP86ZJEgp",
+      "opened": "2026-08-14T02:18:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-06T08:54:41Z",
+          "body": "Now that #296 is merged, this uses `image_from_url()` as suggested, so a `data:` URL becomes a `BlobPart` carrying the mime type from the URL header and only remote URLs stay as a `UriPart`. (The merged signature is `image_from_url(url, *, modality=\"image\")` — no `capture_content` argument — and this call site already runs under the capture-content check.)\n\nThe multimodal cassette covers both: a remote `https://` URL and an inline `data:image/png;base64,...` one.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3943475603"
+        }
+      ],
+      "reviewed": "39aa1076756fb628d9ec0b9011be2a81ea962878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3780532275"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Without `validate=True`, non-alphabet characters are silently discarded, so malformed audio decodes to garbage instead of being skipped. `test_invalid_base64_audio_part_is_skipped` only passes because `\"!!not-base64!!\"` happens to leave a bad length — e.g. `\"$$$$abcd!!!!\"` decodes to `b'i\\xb7\\x1d'`.\n\n#296 lands `decode_base64()` in util-genai with `validate=True`; reuse that once it merges. A case that fails today:\n\n```python\n{\"type\": \"input_audio\", \"input_audio\": {\"data\": \"$$$$abcd!!!!\", \"format\": \"wav\"}}\n# expect the part to be skipped, not a Blob of 3 junk bytes\n```",
+      "created": "2026-08-14T02:18:03Z",
+      "hunk": "@@ -185,11 +190,91 @@ def get_value(v: Any):\n     return None\n \n \n-def _is_text_part(content: Any) -> bool:\n-    return isinstance(content, str) or (\n-        isinstance(content, Iterable)\n-        and all(isinstance(part, str) for part in content)\n-    )\n+def _decode_base64(data: str) -> bytes | None:\n+    try:\n+        return base64.b64decode(data)",
+      "id": "PRRT_kwDOSbspP86ZJEgs",
+      "opened": "2026-08-14T02:18:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-06T08:54:43Z",
+          "body": "Switched to `decode_base64()` from util-genai, so a malformed payload is skipped instead of decoding to garbage. Your exact counterexample is now a test: `\"$$$$abcd!!!!\"` (which used to decode to `b'i\\xb7\\x1d'`) leaves only the sibling text part.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3943475658"
+        }
+      ],
+      "reviewed": "39aa1076756fb628d9ec0b9011be2a81ea962878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3780532278"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Only `file_id` is handled; `{\"type\": \"file\", \"file\": {\"file_data\": ..., \"filename\": ...}}` (the inline PDF upload shape) still drops the part entirely — same bug class as #357.\n\n```python\nfile_data = get_property_value(file_obj, \"file_data\")\nif isinstance(file_data, str):\n    # file_data is a data: URL — decode to a Blob(modality=\"document\")\n    ...\n```",
+      "created": "2026-08-14T02:18:03Z",
+      "hunk": "@@ -185,11 +190,91 @@ def get_value(v: Any):\n     return None\n \n \n-def _is_text_part(content: Any) -> bool:\n-    return isinstance(content, str) or (\n-        isinstance(content, Iterable)\n-        and all(isinstance(part, str) for part in content)\n-    )\n+def _decode_base64(data: str) -> bytes | None:\n+    try:\n+        return base64.b64decode(data)\n+    except ValueError:\n+        # binascii.Error (invalid padding/characters) is a ValueError subclass.\n+        return None\n+\n+\n+def _convert_content_part(part: Any) -> MessagePart | None:\n+    \"\"\"Convert one OpenAI content part (TypedDict/dict or attribute object)\n+    to a semconv MessagePart. Returns None for unrecognized parts.\"\"\"\n+    if isinstance(part, str):\n+        return Text(content=part)\n+\n+    part_type = get_property_value(part, \"type\")\n+\n+    if part_type == \"text\":\n+        text = get_property_value(part, \"text\")\n+        return Text(content=str(text) if text is not None else \"\")\n+\n+    if part_type == \"image_url\":\n+        image_url = get_property_value(part, \"image_url\")\n+        url = (\n+            get_property_value(image_url, \"url\")\n+            if image_url is not None\n+            else None\n+        )\n+        if not isinstance(url, str):\n+            return None\n+        # Both remote (http/https) and inline (data:) URLs are URIs; record\n+        # them as sent rather than decoding inline payloads.\n+        return Uri(mime_type=None, modality=\"image\", uri=url)\n+\n+    if part_type == \"input_audio\":\n+        input_audio = get_property_value(part, \"input_audio\")\n+        if input_audio is None:\n+            return None\n+        data = get_property_value(input_audio, \"data\")\n+        decoded = _decode_base64(data) if isinstance(data, str) else None\n+        if decoded is None:\n+            return None\n+        audio_format = get_property_value(input_audio, \"format\")\n+        return Blob(\n+            mime_type=f\"audio/{audio_format}\"\n+            if isinstance(audio_format, str)\n+            else None,\n+            modality=\"audio\",\n+            content=decoded,\n+        )\n+\n+    if part_type == \"file\":",
+      "id": "PRRT_kwDOSbspP86ZJEgv",
+      "opened": "2026-08-14T02:18:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-06T08:54:45Z",
+          "body": "Handled. `file_id` still becomes a `FilePart`, and an inline `file_data` data: URL is decoded through `image_from_url(..., modality=\"document\")` into a document `BlobPart` (mime type from the URL header). A `file` part carrying neither is skipped, with a test to pin that.\n\nThe multimodal cassette sends both shapes in one request; `filename` has no place in the semconv part models, so it is dropped.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3943475722"
+        }
+      ],
+      "reviewed": "39aa1076756fb628d9ec0b9011be2a81ea962878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3780532283"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "OpenAI accepts `wav` and `mp3`; `f\"audio/{format}\"` yields `audio/mp3`, which isn't a registered mime type — it should be `audio/mpeg`. Only `wav` is covered by tests.\n\n```python\n_AUDIO_MIME_TYPES = {\"wav\": \"audio/wav\", \"mp3\": \"audio/mpeg\"}\nmime_type = _AUDIO_MIME_TYPES.get(audio_format) if isinstance(audio_format, str) else None\n```",
+      "created": "2026-08-14T02:18:03Z",
+      "hunk": "@@ -185,11 +190,91 @@ def get_value(v: Any):\n     return None\n \n \n-def _is_text_part(content: Any) -> bool:\n-    return isinstance(content, str) or (\n-        isinstance(content, Iterable)\n-        and all(isinstance(part, str) for part in content)\n-    )\n+def _decode_base64(data: str) -> bytes | None:\n+    try:\n+        return base64.b64decode(data)\n+    except ValueError:\n+        # binascii.Error (invalid padding/characters) is a ValueError subclass.\n+        return None\n+\n+\n+def _convert_content_part(part: Any) -> MessagePart | None:\n+    \"\"\"Convert one OpenAI content part (TypedDict/dict or attribute object)\n+    to a semconv MessagePart. Returns None for unrecognized parts.\"\"\"\n+    if isinstance(part, str):\n+        return Text(content=part)\n+\n+    part_type = get_property_value(part, \"type\")\n+\n+    if part_type == \"text\":\n+        text = get_property_value(part, \"text\")\n+        return Text(content=str(text) if text is not None else \"\")\n+\n+    if part_type == \"image_url\":\n+        image_url = get_property_value(part, \"image_url\")\n+        url = (\n+            get_property_value(image_url, \"url\")\n+            if image_url is not None\n+            else None\n+        )\n+        if not isinstance(url, str):\n+            return None\n+        # Both remote (http/https) and inline (data:) URLs are URIs; record\n+        # them as sent rather than decoding inline payloads.\n+        return Uri(mime_type=None, modality=\"image\", uri=url)\n+\n+    if part_type == \"input_audio\":\n+        input_audio = get_property_value(part, \"input_audio\")\n+        if input_audio is None:\n+            return None\n+        data = get_property_value(input_audio, \"data\")\n+        decoded = _decode_base64(data) if isinstance(data, str) else None\n+        if decoded is None:\n+            return None\n+        audio_format = get_property_value(input_audio, \"format\")\n+        return Blob(\n+            mime_type=f\"audio/{audio_format}\"",
+      "id": "PRRT_kwDOSbspP86ZJEgy",
+      "opened": "2026-08-14T02:18:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-06T08:54:47Z",
+          "body": "Fixed with the mapping you suggested (`wav` -> `audio/wav`, `mp3` -> `audio/mpeg`); an unknown format yields `mime_type=None` rather than a made-up type. `mp3` now has its own test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3943475765"
+        }
+      ],
+      "reviewed": "39aa1076756fb628d9ec0b9011be2a81ea962878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3780532287"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "PR #540 just merged into `main` and introduced `_content_to_parts` supporting `input_image` (Responses API), `input_text`, and `output_text`. Please rebase on `main` and build on top of the existing `_content_to_parts` implementation to avoid merge conflicts and preserve `input_image` support.",
+      "created": "2026-09-10T22:04:34Z",
+      "hunk": "@@ -186,11 +190,95 @@ def get_value(v: Any):\n     return None\n \n \n-def _is_text_part(content: Any) -> bool:\n-    return isinstance(content, str) or (\n-        isinstance(content, Iterable)\n-        and all(isinstance(part, str) for part in content)\n-    )\n+# OpenAI accepts \"wav\" and \"mp3\" for input_audio; \"audio/mp3\" is not a\n+# registered media type, the payload is MPEG audio.\n+_AUDIO_MIME_TYPES = {\"wav\": \"audio/wav\", \"mp3\": \"audio/mpeg\"}\n+\n+\n+def _convert_content_part(part: Any) -> MessagePart | None:",
+      "id": "PRRT_kwDOSbspP86hQzDL",
+      "opened": "2026-09-10T22:05:53Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-11T02:15:02Z",
+          "body": "Rebased on `main` and rewritten on top of your `_content_to_parts`. The `image_url` / `input_image` branch is untouched — the new part types are handled before it, so `input_image` (including the `file_id` form) keeps working, and the text handling is now yours rather than a second implementation.\n\n#540 also means the original `{\"type\": \"text\"}` case from #357 is already fixed on `main`, so this PR is now scoped to what is still dropped:\n\n- `input_audio` → an audio `BlobPart` via `decode_base64()`, with `wav` → `audio/wav` and `mp3` → `audio/mpeg`\n- `file` (Chat Completions, descriptor nested under `file`) and `input_file` (Responses API, fields on the part) → a `FilePart` for `file_id` or a document `BlobPart` for an inline `file_data` data: URL. I covered both shapes for symmetry with how `input_image` handles both APIs — happy to drop `input_file` if you would rather keep that for a separate change.\n- `refusal` parts → `TextPart`\n- `_prepare_output_messages` now goes through `_content_to_parts` and records `choice.message.refusal`; a refused completion carries `content=None`, so that output message used to come out empty. `_is_text_part` was its last caller and is gone.\n\nTests follow the shape of the ones #540 added: `test_chat_completion_captures_audio_and_file_input` and `test_chat_completion_captures_refusal_output` against new cassettes, plus a small unit module for the mp3 mapping, the Responses `input_file` shapes, and the malformed descriptors. Seven of the nine fail against `main` as it stands. Full suite: 311 passed, 12 skipped.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3985347130"
+        }
+      ],
+      "reviewed": "bb23dfc7cbbde7d34ce8352bf46a8701faaf43ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3983906496"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Handles un-nested `file` parts defensively and removes the ternary.\n```suggestion\n            file_part = _document_to_part(\n                get_property_value(item, \"file\") or item\n            )\n```",
+      "created": "2026-09-11T22:58:36Z",
+      "hunk": "@@ -216,6 +254,34 @@ def _content_to_parts(content: Any) -> list[MessagePart]:\n             if isinstance(text, str):\n                 parts.append(TextPart(content=text))\n             continue\n+\n+        if part_type == \"input_audio\":\n+            audio_part = _audio_to_part(\n+                get_property_value(item, \"input_audio\")\n+            )\n+            if audio_part is not None:\n+                parts.append(audio_part)\n+            continue\n+\n+        if part_type in (\"file\", \"input_file\"):\n+            # Chat Completions nests the descriptor under \"file\"; the\n+            # Responses API carries the same fields on the part itself.\n+            file_part = _document_to_part(\n+                get_property_value(item, \"file\")\n+                if part_type == \"file\"\n+                else item\n+            )",
+      "id": "PRRT_kwDOSbspP86hqcWZ",
+      "opened": "2026-09-11T23:01:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-14T02:52:20Z",
+          "body": "Applied in 37ffc2c — `get_property_value(item, \"file\") or item`, so an un-nested `file` part works too and the ternary is gone.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r4001877804"
+        }
+      ],
+      "reviewed": "8d182500b8f8f74d4b3cdaddf22ddd539768a6be",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3994037942"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "In multi-turn chat history where a prior assistant turn has `content: null, refusal: \"...\"`, `_prepare_input_messages` still drops the message because `message.refusal` is not extracted there.\n\nPlease extract `refusal` on assistant messages in `_prepare_input_messages` as well:\n```python\nif role == Role.ASSISTANT.value:\n    tool_calls = get_property_value(message, \"tool_calls\")\n    if tool_calls:\n        parts += extract_tool_calls_new(tool_calls)\n    parts += _content_to_parts(content)\n    refusal = get_property_value(message, \"refusal\")\n    if isinstance(refusal, str):\n        parts.append(TextPart(content=refusal))\n```\n\nAnd cover with a test:\n```python\ndef test_prepare_input_messages_captures_assistant_refusal():\n    messages = [\n        {\"role\": \"user\", \"content\": \"disallowed request\"},\n        {\"role\": \"assistant\", \"content\": None, \"refusal\": \"I cannot help with that.\"},\n    ]\n    input_messages = _prepare_input_messages(messages)\n    assert len(input_messages) == 2\n    assert input_messages[1].parts == [TextPart(content=\"I cannot help with that.\")]\n```",
+      "created": "2026-09-11T22:58:36Z",
+      "hunk": "@@ -337,8 +403,12 @@ def _prepare_output_messages(choices) -> list[OutputMessage]:\n             if tool_calls:\n                 parts += extract_tool_calls_new(tool_calls)\n             content = get_property_value(choice.message, \"content\")\n-            if _is_text_part(content):\n-                parts.append(TextPart(content=str(content)))\n+            parts += _content_to_parts(content)\n+            # A refused completion carries content=None and puts the text\n+            # in its own `refusal` field.\n+            refusal = get_property_value(choice.message, \"refusal\")\n+            if isinstance(refusal, str):\n+                parts.append(TextPart(content=refusal))",
+      "id": "PRRT_kwDOSbspP86hqcWf",
+      "opened": "2026-09-11T23:01:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-14T02:52:22Z",
+          "body": "Good catch, that history case was still lost. Applied in 37ffc2c, with your test as `test_prepare_input_messages_captures_assistant_refusal` in `tests/test_utils.py`; it fails without the change. Full suite: 312 passed, 12 skipped.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r4001877943"
+        }
+      ],
+      "reviewed": "8d182500b8f8f74d4b3cdaddf22ddd539768a6be",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/358#discussion_r3994037952"
+    }
+  ]
+}

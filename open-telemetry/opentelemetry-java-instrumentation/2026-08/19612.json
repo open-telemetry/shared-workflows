@@ -1,0 +1,31 @@
+{
+  "head": "c0fe7e9857aa73515a0ce99b79e09fc57cd42e97",
+  "merge": "61b355d925a9d235e94efbddc364daba3daa3eed",
+  "merged": "2026-08-17T06:38:41Z",
+  "missing_roots": 0,
+  "number": 19612,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This changes published dependency metadata in a source-incompatible way: downstream code that currently compiles against the re-exported incubator artifact (or its `opentelemetry-semconv` / `opentelemetry-api-incubator` API dependencies) will stop compiling after an upgrade. `CONTRIBUTING.md:17-25` requires a breaking-change changelog entry and migration notes for this kind of compatibility break. Please document that affected consumers must declare these dependencies directly and apply the breaking-change label.",
+      "created": "2026-08-15T02:01:51Z",
+      "hunk": "@@ -4,7 +4,8 @@ plugins {\n \n dependencies {\n   api(\"io.opentelemetry.instrumentation:opentelemetry-instrumentation-api\")\n-  api(\"io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator\")\n+  // this is intentionally not api, so that it is not exposed on the compile classpath of consumers\n+  implementation(\"io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator\")",
+      "id": "PRRT_kwDODJKVX86ZdTFo",
+      "opened": "2026-08-15T02:01:52Z",
+      "path": "conventions/src/main/kotlin/io.opentelemetry.instrumentation.library-instrumentation.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-15T03:05:55Z",
+          "body": "Addressed in c0fe7e9857aa73515a0ce99b79e09fc57cd42e97.\n\nAnalysis: Moving the incubator dependency from `api` to `implementation` removes it and its API dependencies from consumers' compile classpaths. I added the required Unreleased changelog entry, migration guidance to the PR description, and the `breaking change` label.\n\nUpsides: Affected consumers receive discoverable upgrade guidance identifying every artifact they may need to declare directly.\n\nDownsides: The changelog entry adds release-note detail for a dependency metadata change, but no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19612#discussion_r3788334766"
+        }
+      ],
+      "reviewed": "7c050200909ab937dad53bf7f73736485a4dadb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19612#discussion_r3788198133"
+    }
+  ]
+}

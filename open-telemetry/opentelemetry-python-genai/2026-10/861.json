@@ -1,0 +1,52 @@
+{
+  "head": "4f38404c03c092791625f40698941c639aca8b1b",
+  "merge": "dacf4cca8506a7cfb7ee7de9f18c466d06dca83f",
+  "merged": "2026-10-11T17:38:45Z",
+  "missing_roots": 0,
+  "number": 861,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "These tests would still pass if tuple input content were silently dropped. Please assert the captured messages, including both parts, here and in the mixed-tuple and streaming cases.\n\n```suggestion\n        span = self.otel.get_span_named(\"generate_content gemini-2.0-flash\")\n        self.assertEqual(\n            span.attributes[gen_ai_attributes.GEN_AI_INPUT_MESSAGES],\n            '[{\"role\":\"user\",\"parts\":[{\"content\":\"Hello\",\"type\":\"text\"},{\"content\":\"world\",\"type\":\"text\"}],\"name\":null}]',\n        )\n```",
+      "created": "2026-10-11T04:29:36Z",
+      "hunk": "@@ -184,6 +184,40 @@ def test_instrumentation_does_not_break_core_functionality(self):\n         )\n         self.assertEqual(response.text, \"Yep, it works!\")\n \n+    def test_tuple_contents(self):\n+        self.configure_valid_response(text=\"Yep, it works!\")\n+        response = self.generate_content(\n+            model=\"gemini-2.0-flash\", contents=(\"Hello\", \"world\")\n+        )\n+        self.assertEqual(response.text, \"Yep, it works!\")\n+        self.otel.assert_has_span_named(\"generate_content gemini-2.0-flash\")",
+      "id": "PRRT_kwDOSbspP86rKURV",
+      "opened": "2026-10-11T04:30:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+      "replies": [
+        {
+          "at": "2026-10-11T06:58:15Z",
+          "body": "Updated `test_tuple_contents` and `test_mixed_tuple_contents` in both `nonstreaming_base.py` and `streaming_base.py` to assert the captured `GEN_AI_INPUT_MESSAGES` payload directly. The assertions verify that both tuple-contained parts are preserved in the serialized telemetry attribute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/861#discussion_r4240601252"
+        }
+      ],
+      "reviewed": "4ae8f8ed3678e2d6bfd7bdb32f27189e91669340",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/861#discussion_r4240258675"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The system-instruction test would still pass if the instruction were omitted from telemetry. Please assert its captured value here and in the streaming test.\n\n```suggestion\n        span = self.otel.get_span_named(\"generate_content gemini-2.0-flash\")\n        self.assertEqual(\n            span.attributes[gen_ai_attributes.GEN_AI_SYSTEM_INSTRUCTIONS],\n            '[{\"content\":\"Be polite\",\"type\":\"text\"}]',\n        )\n```",
+      "created": "2026-10-11T04:29:36Z",
+      "hunk": "@@ -184,6 +184,40 @@ def test_instrumentation_does_not_break_core_functionality(self):\n         )\n         self.assertEqual(response.text, \"Yep, it works!\")\n \n+    def test_tuple_contents(self):\n+        self.configure_valid_response(text=\"Yep, it works!\")\n+        response = self.generate_content(\n+            model=\"gemini-2.0-flash\", contents=(\"Hello\", \"world\")\n+        )\n+        self.assertEqual(response.text, \"Yep, it works!\")\n+        self.otel.assert_has_span_named(\"generate_content gemini-2.0-flash\")\n+\n+    def test_empty_tuple_contents_mimics_sdk_error(self):\n+        # Even with capture enabled, passing () should fail gracefully like [] does.\n+        with self.assertRaises(ValueError):\n+            self.generate_content(model=\"gemini-2.0-flash\", contents=())\n+\n+    def test_tuple_system_instruction(self):\n+        self.configure_valid_response(text=\"Yep, it works!\")\n+        response = self.generate_content(\n+            model=\"gemini-2.0-flash\",\n+            contents=\"Hello\",\n+            config=GenerateContentConfig(system_instruction=(\"Be polite\",)),\n+        )\n+        self.assertEqual(response.text, \"Yep, it works!\")\n+        self.otel.assert_has_span_named(\"generate_content gemini-2.0-flash\")",
+      "id": "PRRT_kwDOSbspP86rKURb",
+      "opened": "2026-10-11T04:30:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+      "replies": [
+        {
+          "at": "2026-10-11T06:58:29Z",
+          "body": "Updated `test_tuple_system_instruction` in both `nonstreaming_base.py` and `streaming_base.py` to assert the captured `GEN_AI_SYSTEM_INSTRUCTIONS` payload directly, verifying that the `\"Be polite\"` instruction is correctly serialized and recorded.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/861#discussion_r4240601886"
+        }
+      ],
+      "reviewed": "4ae8f8ed3678e2d6bfd7bdb32f27189e91669340",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/861#discussion_r4240258682"
+    }
+  ]
+}

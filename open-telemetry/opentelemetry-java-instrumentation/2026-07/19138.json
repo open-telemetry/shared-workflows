@@ -1,0 +1,40 @@
+{
+  "head": "d24efd756dda035818255df1a5f478edd6b8094b",
+  "merge": "1e1db0981c198aba9e4da0fa57ffbb949a6a4cfc",
+  "merged": "2026-07-13T21:27:26Z",
+  "missing_roots": 0,
+  "number": 19138,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new flag name/property key uses \"filed\" (typo) instead of \"field\". Since this is a user-configurable system property and a constant identifier, keeping the typo will be confusing and makes the feature harder to discover/configure correctly.",
+      "created": "2026-07-07T13:11:19Z",
+      "hunk": "@@ -23,12 +23,18 @@\n  * VirtualField#find(Class, Class)} in a static field.\n  */\n class VirtualFieldChecker {\n+  private static final boolean ENABLE_VIRTUAL_FILED_USAGE_CHECKER =\n+      Boolean.getBoolean(\"otel.javaagent.testing.check-virtual-filed-usage.enabled\");\n \n   private static final Type VIRTUAL_FIELD_TYPE = Type.getType(VirtualField.class);\n   private static final Type ADVICE_ON_METHOD_ENTER = Type.getType(Advice.OnMethodEnter.class);\n   private static final Type ADVICE_ON_METHOD_EXIT = Type.getType(Advice.OnMethodExit.class);\n \n   static void check(byte[] bytes) {\n+    if (!ENABLE_VIRTUAL_FILED_USAGE_CHECKER) {\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX86O7AYl",
+      "opened": "2026-07-07T13:11:19Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/VirtualFieldChecker.java",
+      "replies": [],
+      "reviewed": "cbd71e659cc7fb368f7c8f8f22554a6b666940d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19138#discussion_r3536699963"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The system property name includes \"check-virtual-filed-usage\" (typo). If you rename it to \"field\" in VirtualFieldChecker, this argument also needs to be updated so tests actually enable the intended flag and the property name remains consistent/guessable.",
+      "created": "2026-07-07T13:11:19Z",
+      "hunk": "@@ -104,6 +104,7 @@ class JavaagentTestArgumentsProvider(\n       \"-Dotel.javaagent.testing.fail-on-context-leak=$failOnContextLeak\",\n       // prevent sporadic gradle deadlocks, see SafeLogger for more details\n       \"-Dotel.javaagent.testing.transform-safe-logging.enabled=true\",\n+      \"-Dotel.javaagent.testing.check-virtual-filed-usage.enabled=true\",",
+      "id": "PRRT_kwDODJKVX86O7AZl",
+      "opened": "2026-07-07T13:11:19Z",
+      "path": "conventions/src/main/kotlin/io.opentelemetry.instrumentation.javaagent-testing.gradle.kts",
+      "replies": [],
+      "reviewed": "cbd71e659cc7fb368f7c8f8f22554a6b666940d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19138#discussion_r3536700042"
+    }
+  ]
+}

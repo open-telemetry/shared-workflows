@@ -1,0 +1,103 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c0f32cd0bac1b1806bafe8c16b5922dc4a5f21230d63e9dd3904691bbd732c5d",
+  "input_digest": "ba0a810b01d99efd386537c751a8dbee5f1459876c4392313bdd1f8d3bb086e0",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b5cabfc8171c712faf5df503e21c73be5cba3e3/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceEndpointInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceEndpointInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86g56FK",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b5cabfc8171c712faf5df503e21c73be5cba3e3/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceMonoDualConsumer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b5cabfc8171c712faf5df503e21c73be5cba3e3/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceMonoTerminationHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandHandler.java"
+      ],
+      "id": "PRRT_kwDODJKVX86g56Fk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c923b0c4d280e170b2e7a5bc37309fb13293afb/instrumentation/lettuce/lettuce-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandSubscriberTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c923b0c4d280e170b2e7a5bc37309fb13293afb/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandSubscriber.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandSubscriberTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandSubscriber.java"
+      ],
+      "id": "PRRT_kwDODJKVX86iVipC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c923b0c4d280e170b2e7a5bc37309fb13293afb/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86iVipP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c923b0c4d280e170b2e7a5bc37309fb13293afb/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandHandler.java"
+      ],
+      "id": "PRRT_kwDODJKVX86iVipa",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c923b0c4d280e170b2e7a5bc37309fb13293afb/instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceReactiveClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceReactiveClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86iVipm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0980b8cc68bbec913525b68500747de0cf545a0/instrumentation/lettuce/lettuce-5.0/javaagent/src/testLettuce65/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceNativeTracingReactiveTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/testLettuce65/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceNativeTracingReactiveTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86kHzVe",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7258415dde307acd60c2e2f5ed8bd7e5e102fdc0/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceClusterClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7258415dde307acd60c2e2f5ed8bd7e5e102fdc0/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/64a2d3452668a934b482ea14bf7dd48bcaa48744/instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceClusterClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/64a2d3452668a934b482ea14bf7dd48bcaa48744"
+      ],
+      "id": "PRRT_kwDODJKVX86k7Lxe",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

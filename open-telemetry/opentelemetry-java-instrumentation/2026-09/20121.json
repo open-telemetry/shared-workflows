@@ -1,0 +1,31 @@
+{
+  "head": "07b907af3e2206a3cc003803c4280a006dbae467",
+  "merge": "3c3b3a84bcfaf9c5dcc85773b58385b700bcae84",
+  "merged": "2026-09-14T19:41:22Z",
+  "missing_roots": 0,
+  "number": 20121,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This newly scoped App token does not request `workflows: write`, but the same step merges `origin/main` before pushing. When a workflow file changed after checkout, that merge makes the generated branch contain a workflow change—the case called out in the following comment—and GitHub rejects the push without workflow permission, so updates to the existing PR can still fail. Add `permission-workflows: write` to this token (as the backport workflow does) or avoid including workflow changes in this push.",
+      "created": "2026-09-12T17:17:30Z",
+      "hunk": "@@ -55,8 +52,9 @@ jobs:\n         if: steps.check-changes.outputs.changed == 'true'\n         id: otelbot-token\n         with:\n-          client-id: ${{ vars.OTELBOT_CLIENT_ID }}\n-          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}\n+          client-id: ${{ vars.OTELBOT_JAVA_INSTRUMENTATION_CLIENT_ID }}\n+          private-key: ${{ secrets.OTELBOT_JAVA_INSTRUMENTATION_PRIVATE_KEY }}\n+          permission-contents: write\n           permission-pull-requests: write",
+      "id": "PRRT_kwDODJKVX86hyAV8",
+      "opened": "2026-09-12T17:17:31Z",
+      "path": ".github/workflows/update-latest-dep-versions.yml",
+      "replies": [
+        {
+          "at": "2026-09-12T18:10:20Z",
+          "body": "Addressed in 07b907af3e2206a3cc003803c4280a006dbae467.\n\nAnalysis: The generated branch merges current main before the App token pushes it. That merge can include workflow changes, and GitHub requires workflow write permission for the push.\n\nUpsides: The automation can update an existing pull request after main changes a workflow file.\n\nDownsides: The App token receives workflow write permission for this job.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20121#discussion_r3997101718"
+        }
+      ],
+      "reviewed": "6fe9acbb926c5cb46e220581cdf66160ab2d9e8e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20121#discussion_r3996967237"
+    }
+  ]
+}

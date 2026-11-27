@@ -1,0 +1,52 @@
+{
+  "head": "c5f689b26d4ecfc1c46e8ca3cd22ec3b00195e03",
+  "merge": "001ca8b6255fe08273e606365b7f55cc804c8256",
+  "merged": "2026-06-11T12:56:30Z",
+  "missing_roots": 0,
+  "number": 18959,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test unconditionally casts `logRecordData` to `ExtendedLogRecordData`. If the test environment ever returns a non-extended implementation (e.g., due to dependency/version resolution differences), this will throw a `ClassCastException` and obscure the real failure. Add an explicit `isInstanceOf` assertion (or bind a local variable after asserting) before accessing extended-only APIs.",
+      "created": "2026-06-10T22:04:52Z",
+      "hunk": "@@ -106,24 +106,18 @@ void logRecordBuilder() {\n                           assertThat(logRecordData.getBodyValue().getType())\n                               .isEqualTo(ValueType.STRING);\n                           assertThat(logRecordData.getBodyValue().getValue()).isEqualTo(\"body\");\n-                          assertThat(logRecordData.getAttributes().get(stringKey(\"key1\")))\n-                              .isEqualTo(\"value\");\n-                          assertThat(logRecordData.getAttributes().get(stringKey(\"key2\")))\n-                              .isEqualTo(\"value\");\n-                          assertThat(logRecordData.getAttributes().get(stringKey(\"key3\")))\n-                              .isEqualTo(\"value\");\n-                          assertThat(logRecordData.getAttributes().get(stringKey(\"key4\")))\n-                              .isEqualTo(\"value\");\n-                          if (methodAvailable(\"valueKey\", String.class)) {\n-                            assertThat(logRecordData.getAttributes().asMap().entrySet())\n-                                .anySatisfy(\n-                                    entry -> {\n-                                      assertThat(entry.getKey().getKey()).isEqualTo(\"key5\");\n-                                      assertThat(entry.getValue().toString())\n-                                          .contains(\"key6\")\n-                                          .contains(\"value\");\n-                                    });\n-                          }\n+                          assertThat(\n+                                  ((ExtendedLogRecordData) logRecordData).getExtendedAttributes())\n+                              .isEqualTo(\n+                                  ExtendedAttributes.builder()\n+                                      .put(\"key1\", \"value\")\n+                                      .put(\"key2\", \"value\")\n+                                      .put(\"key3\", \"value\")\n+                                      .put(\"key4\", \"value\")\n+                                      .put(\n+                                          \"key5\",\n+                                          ExtendedAttributes.builder().put(\"key6\", \"value\").build())\n+                                      .build());",
+      "id": "PRRT_kwDODJKVX86IobYo",
+      "opened": "2026-06-10T22:04:53Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.50/javaagent/src/incubatorTest/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_50/incubator/logs/LoggerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-10T22:45:12Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/44e745687292434d93ae83ea3c19e23ba5d0eb73.\n\nAdded an explicit `ExtendedLogRecordData` type assertion and local variable before accessing extended attributes in the 1.50 incubator logger test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18959#discussion_r3392036537"
+        }
+      ],
+      "reviewed": "9e84f8e800e53e4d3cac3e5b45068b64f2c1abf5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18959#discussion_r3391822145"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion block casts `logRecordData` to `ExtendedLogRecordData` without first asserting the type. If the log bridge ever returns a plain `LogRecordData` implementation (e.g., because of dependency/version alignment changes), the test will fail with a `ClassCastException` rather than a clear assertion. Add an explicit instance check before accessing `getEventName()`.",
+      "created": "2026-06-10T22:04:53Z",
+      "hunk": "@@ -0,0 +1,149 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_47.incubator.logs;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.awaitility.Awaitility.await;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.KeyValue;\n+import io.opentelemetry.api.common.Value;\n+import io.opentelemetry.api.common.ValueType;\n+import io.opentelemetry.api.incubator.logs.ExtendedLogger;\n+import io.opentelemetry.api.logs.Logger;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.api.trace.TraceFlags;\n+import io.opentelemetry.api.trace.TraceState;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.sdk.logs.data.internal.ExtendedLogRecordData;\n+import io.opentelemetry.sdk.trace.IdGenerator;\n+import java.time.Instant;\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.TestInfo;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+class LoggerTest {\n+\n+  @RegisterExtension\n+  private static final AgentInstrumentationExtension testing =\n+      AgentInstrumentationExtension.create();\n+\n+  private String instrumentationName;\n+  private Logger logger;\n+\n+  @BeforeEach\n+  void setupLogger(TestInfo test) {\n+    instrumentationName = \"test-\" + test.getDisplayName();\n+    logger =\n+        GlobalOpenTelemetry.get()\n+            .getLogsBridge()\n+            .loggerBuilder(instrumentationName)\n+            .setInstrumentationVersion(\"1.2.3\")\n+            .setSchemaUrl(\"http://schema.org\")\n+            .build();\n+  }\n+\n+  @Test\n+  void logRecordBuilder() {\n+    assertThat(logger).isInstanceOf(ExtendedLogger.class);\n+\n+    SpanContext spanContext =\n+        SpanContext.create(\n+            IdGenerator.random().generateTraceId(),\n+            IdGenerator.random().generateSpanId(),\n+            TraceFlags.getDefault(),\n+            TraceState.getDefault());\n+\n+    ((ExtendedLogger) logger)\n+        .logRecordBuilder()\n+        .setEventName(\"eventName\")\n+        .setTimestamp(1, SECONDS)\n+        .setTimestamp(Instant.now())\n+        .setContext(Context.current().with(Span.wrap(spanContext)))\n+        .setSeverity(Severity.DEBUG)\n+        .setSeverityText(\"debug\")\n+        .setBody(\"body\")\n+        .setAttribute(stringKey(\"key\"), \"value\")\n+        .setAllAttributes(Attributes.builder().put(\"key\", \"value\").build())\n+        .emit();\n+\n+    await()\n+        .untilAsserted(\n+            () ->\n+                assertThat(testing.logRecords())\n+                    .satisfiesExactly(\n+                        logRecordData -> {\n+                          assertThat(logRecordData.getInstrumentationScopeInfo().getName())\n+                              .isEqualTo(instrumentationName);\n+                          assertThat(((ExtendedLogRecordData) logRecordData).getEventName())\n+                              .isEqualTo(\"eventName\");\n+                          assertThat(logRecordData.getInstrumentationScopeInfo().getVersion())",
+      "id": "PRRT_kwDODJKVX86IobY8",
+      "opened": "2026-06-10T22:04:53Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.47/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_47/incubator/logs/LoggerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-10T22:45:13Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5f689b26d4ecfc1c46e8ca3cd22ec3b00195e03.\n\nAdded an explicit `ExtendedLogRecordData` type assertion and local variable before accessing the event name in the 1.47 incubator logger test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18959#discussion_r3392036716"
+        }
+      ],
+      "reviewed": "9e84f8e800e53e4d3cac3e5b45068b64f2c1abf5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18959#discussion_r3391822176"
+    }
+  ]
+}

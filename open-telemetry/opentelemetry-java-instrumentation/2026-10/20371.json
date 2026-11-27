@@ -1,0 +1,25 @@
+{
+  "head": "d6b96126ba02ab50343a0d169c9aa0d85af9f238",
+  "merge": "96d18bd392186a9a2e3d52449e7501bb290863f9",
+  "merged": "2026-10-05T15:34:20Z",
+  "missing_roots": 0,
+  "number": 20371,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Change the Java agent's `telemetry.distro.name` resource attribute from\n  `opentelemetry-java-instrumentation` to `opentelemetry-javaagent`.\n```",
+      "created": "2026-10-03T23:21:45Z",
+      "hunk": "@@ -2,6 +2,12 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes\n+\n+- Change the Java agent's `telemetry.distro.name` resource attribute from\n+  `opentelemetry-java-instrumentation` to `opentelemetry-javaagent` when using flat configuration,\n+  matching declarative configuration. Update filters that match the previous value.",
+      "id": "PRRT_kwDODJKVX86os9k_",
+      "opened": "2026-10-03T23:21:45Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "808b328f89b3074c31308348946439239a95f8ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20371#discussion_r4175373753"
+    }
+  ]
+}

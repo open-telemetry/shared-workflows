@@ -1,0 +1,36 @@
+{
+  "head": "11ce4545ab5a778eedc9ae99e4b7c9971af5e6da",
+  "merge": "dae3d57cce2fbb5f01e8a08975356efa2c448ed3",
+  "merged": "2026-02-25T10:38:49Z",
+  "missing_roots": 0,
+  "number": 16248,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Elsewhere name seems to be database name but here it is an instance name, is this correct?",
+      "created": "2026-02-24T08:03:13Z",
+      "hunk": "@@ -508,7 +506,6 @@ private static Stream<Arguments> sqlServerArguments() {\n             .setHost(\"ss.host\")\n             .setPort(1444)\n             .setName(\"ssinstance\")\n-            .setDb(\"ssdb\")",
+      "id": "PRRT_kwDODJKVX85wUwh4",
+      "opened": "2026-02-24T08:03:13Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+      "replies": [
+        {
+          "at": "2026-02-24T15:58:53Z",
+          "body": "I don't think it's correct, but it's existing behavior. I've fixed it under stable semconv flag in #16277.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16248#discussion_r2848050124"
+        },
+        {
+          "at": "2026-02-25T10:38:10Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions/blob/v1.24.0/docs/database/database-spans.md says \n> In some SQL databases, the database name to be used is called \"schema name\". In case there are multiple layers that could be considered for database name (e.g. Oracle instance name and schema name), the database name to be used is the more specific layer (e.g. Oracle schema name).\n\nBased on that I think we shouldn't bother with the instance name at all.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16248#discussion_r2852222302"
+        }
+      ],
+      "reviewed": "11ce4545ab5a778eedc9ae99e4b7c9971af5e6da",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16248#discussion_r2845175530"
+    }
+  ]
+}

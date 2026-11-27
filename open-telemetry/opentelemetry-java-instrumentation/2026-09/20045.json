@@ -1,0 +1,403 @@
+{
+  "head": "3557228d99a058d23f77e62afe11179b0ef4a88e",
+  "merge": "1267e945fd8d20a6e220617d2e174867ac3392fb",
+  "merged": "2026-09-24T14:57:43Z",
+  "missing_roots": 0,
+  "number": 20045,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] For batch sends, when a per-message Create span is started (i.e., no existing creation context), the created span context is never injected back into the message properties. As a result, the later loop treats the message as having no creation context and injects the Send span context instead, which breaks the intended per-message propagation and can make the Send span kind (CLIENT) inconsistent with what is actually propagated.",
+      "created": "2026-09-09T02:04:40Z",
+      "hunk": "@@ -37,7 +67,57 @@ public void sendMessageBefore(SendMessageContext context) {\n     if (!instrumenter.shouldStart(parentContext, context)) {\n       return;\n     }\n-    CONTEXT_FIELD.set(context, instrumenter.start(parentContext, context));\n+    Message batch =\n+        emitStableMessagingSemconv() && context.getMessage() instanceof Iterable<?>\n+            ? context.getMessage()\n+            : null;\n+    if (batch != null) {\n+      List<Context> creationContexts = new ArrayList<>();\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        Context creationContext = propagator.extract(Context.root(), message, getter);\n+        if (!Span.fromContext(creationContext).getSpanContext().isValid()) {\n+          SendMessageContext request =\n+              new MessageCreateContext(message, RocketMqNamespaceUtil.getNamespace(context));\n+          if (messageCreateInstrumenter.shouldStart(parentContext, request)) {\n+            creationContext = messageCreateInstrumenter.start(parentContext, request);\n+            messageCreateInstrumenter.end(creationContext, request, null, null);\n+          }",
+      "id": "PRRT_kwDODJKVX86gejb1",
+      "opened": "2026-09-09T02:04:40Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T02:13:46Z",
+          "body": "Addressed in 3a9759463acf4975ac40d19a95fa942bb0f5f5df.\n\nAnalysis: The hook saved the new Create span context for Send span links but did not inject it into the message. The later propagation loop therefore replaced it with the Send span context. Inject the Create context immediately after ending its span so the existing-context check preserves it.\n\nUpsides: Each batch message propagates its own Create span context, and the CLIENT Send span links match the contexts that consumers receive.\n\nDownsides: The hook writes propagation headers earlier in batch processing. This is the intended message mutation and adds no extra headers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964031202"
+        }
+      ],
+      "reviewed": "41e86f8041f937b3f7583481fb1ebc7d330745e7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3963979451"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This shared config description doesn’t mention that per-message Create spans are only emitted when stable messaging semantic conventions are enabled, which is an important constraint for users configuring this flag.",
+      "created": "2026-09-09T02:04:40Z",
+      "hunk": "@@ -126,9 +126,9 @@ configurations:\n     type: list\n     default: \"\"\n \n-  messaging.batch-send.message-creation-spans.enabled:\n-    name: otel.instrumentation.messaging.batch-send.message-creation-spans.enabled\n-    declarative_name: java.common.messaging.batch_send.message_creation_spans.enabled\n-    description: \"Provides the default for whether to create a producer span for each eligible message in a batch send when stable messaging semantic conventions are enabled. An instrumentation-specific setting takes precedence.\"\n+  common.messaging.message-create-spans.enabled:\n+    name: otel.instrumentation.common.messaging.experimental.message-create-spans.enabled\n+    declarative_name: java.common.messaging.message_create_spans/development.enabled\n+    description: \"Determines whether to create a producer span for each eligible message in a batch send. An instrumentation-specific setting takes precedence.\"",
+      "id": "PRRT_kwDODJKVX86gejcD",
+      "opened": "2026-09-09T02:04:40Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [
+        {
+          "at": "2026-09-09T02:13:48Z",
+          "body": "Addressed in 7ad908b8b478a247edc42502520fa72637066343.\n\nAnalysis: The shared setting controls instrumentations whose per-message Create spans depend on stable messaging semantic conventions. State that gate in the shared description so generated configuration documentation matches the module-specific descriptions.\n\nUpsides: Users can see when the setting has an effect without consulting each instrumentation module.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964031291"
+        }
+      ],
+      "reviewed": "41e86f8041f937b3f7583481fb1ebc7d330745e7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3963979471"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] `sendMessageBefore` extracts propagation context for each message twice: once when building `creationContexts` (line 78) and again in `hasCreationContext()` during the later injection loop. For large batches this adds avoidable overhead on the hot path; consider reusing the already-computed `creationContext` validity instead of re-extracting.\n\nThis issue also appears on line 107 of the same file.",
+      "created": "2026-09-09T02:22:53Z",
+      "hunk": "@@ -37,7 +67,61 @@ public void sendMessageBefore(SendMessageContext context) {\n     if (!instrumenter.shouldStart(parentContext, context)) {\n       return;\n     }\n-    CONTEXT_FIELD.set(context, instrumenter.start(parentContext, context));\n+    Message batch =\n+        emitStableMessagingSemconv() && context.getMessage() instanceof Iterable<?>\n+            ? context.getMessage()\n+            : null;\n+    if (batch != null) {\n+      List<Context> creationContexts = new ArrayList<>();\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        Context creationContext = propagator.extract(Context.root(), message, getter);\n+        if (!Span.fromContext(creationContext).getSpanContext().isValid()) {\n+          SendMessageContext request =\n+              new MessageCreateContext(message, RocketMqNamespaceUtil.getNamespace(context));\n+          if (messageCreateInstrumenter.shouldStart(parentContext, request)) {\n+            creationContext = messageCreateInstrumenter.start(parentContext, request);\n+            messageCreateInstrumenter.end(creationContext, request, null, null);\n+            propagator.inject(\n+                creationContext,\n+                message,\n+                (carrier, key, value) -> carrier.getProperties().put(key, value));\n+          }\n+        }\n+        creationContexts.add(creationContext);\n+      }\n+      RocketMqBatchSendSpanLinksExtractor.setContexts(context, creationContexts);\n+    }\n+    Context sendContext = instrumenter.start(parentContext, context);\n+    CONTEXT_FIELD.set(context, sendContext);\n+    if (batch != null) {\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        if (!hasCreationContext(message)) {\n+          propagator.inject(\n+              sendContext,\n+              message,\n+              (carrier, key, value) -> carrier.getProperties().put(key, value));\n+        }",
+      "id": "PRRT_kwDODJKVX86geyMt",
+      "opened": "2026-09-09T02:22:53Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T02:25:40Z",
+          "body": "Addressed in 1dbaf0dacc07e8a6c7dc964a881968ab3bbcc78d.\n\nAnalysis: The first batch loop already determines whether each message has a valid existing or newly created context. Retain the messages that still lack one and inject the Send context only into that list. This removes the second propagator extraction and the `hasCreationContext()` helper.\n\nUpsides: Batch sends perform one propagation extraction per message while preserving Create-context propagation, existing contexts, and the Send-context fallback.\n\nDownsides: The hook keeps one extra message reference for each batch item that needs the Send context until batch encoding finishes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964085267"
+        }
+      ],
+      "reviewed": "7ad908b8b478a247edc42502520fa72637066343",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964073341"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing the special mapping for `java.common.messaging.batch_send.message_creation_spans.enabled` breaks backwards compatibility for the existing stable flat property `otel.instrumentation.messaging.batch-send.message-creation-spans.enabled`, because the mechanical translation would look under `otel.instrumentation.common.messaging.*` instead.\n\nIf the old property name needs to remain supported during a deprecation period, this mapping (or an equivalent replacement-first/fallback mechanism) should remain until the old key is removed.",
+      "created": "2026-09-09T02:38:33Z",
+      "hunk": "@@ -80,9 +80,6 @@ final class ConfigPropertiesBackedDeclarativeConfigProperties\n     SPECIAL_MAPPINGS.put(\n         \"java.common.messaging.capture_headers/development\",\n         \"otel.instrumentation.messaging.experimental.capture-headers\");\n-    SPECIAL_MAPPINGS.put(\n-        \"java.common.messaging.batch_send.message_creation_spans.enabled\",\n-        \"otel.instrumentation.messaging.batch-send.message-creation-spans.enabled\");\n     SPECIAL_MAPPINGS.put(",
+      "id": "PRRT_kwDODJKVX86ge85a",
+      "opened": "2026-09-09T02:38:34Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [
+        {
+          "at": "2026-09-09T02:46:12Z",
+          "body": "Addressed in 6052d76df12400729af277c89fed5cd921e4c228.\n\nAnalysis: The renamed flat and declarative settings are user-facing stable interfaces. Restore the common bridge mapping and resolve each replacement before its deprecated equivalent. Keep instrumentation-specific precedence, warn once when a deprecated setting is applied, and ignore deprecated names in v3 preview so they can be removed in 3.0.\n\nUpsides: Existing common and AWS configurations continue to work during migration, replacement settings take precedence, and users receive clear deprecation guidance.\n\nDownsides: The resolver retains migration branches and warning state until the deprecated settings are removed in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964173958"
+        }
+      ],
+      "reviewed": "1dbaf0dacc07e8a6c7dc964a881968ab3bbcc78d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964140718"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This drops support for the previously documented stable flat property `otel.instrumentation.<name>.batch-send.message-creation-spans.enabled` (no `experimental` marker). Per `.github/agents/knowledge/config-property-stability.md` (stable names), removing/renaming stable config keys should go through a deprecation + fallback period; otherwise existing users lose the ability to configure this behavior.\n\nConsider reading the deprecated property as a fallback when the new `...experimental.message-create-spans.enabled` property is unset (and ideally emitting a one-time WARN when the deprecated property is applied).\n\nThis issue also appears in the following locations of the same file:\n- line 93\n- line 101",
+      "created": "2026-09-09T02:38:33Z",
+      "hunk": "@@ -80,7 +80,7 @@ public static boolean isBatchSendMessageCreationSpansEnabled(\n           SystemProperty.getBoolean(\n               \"otel.instrumentation.\"\n                   + instrumentationName.replace('_', '-')\n-                  + \".batch-send.message-creation-spans.enabled\");\n+                  + \".experimental.message-create-spans.enabled\");\n     }",
+      "id": "PRRT_kwDODJKVX86ge85r",
+      "opened": "2026-09-09T02:38:34Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-09T02:46:13Z",
+          "body": "Addressed in 6052d76df12400729af277c89fed5cd921e4c228.\n\nAnalysis: The renamed flat and declarative settings are user-facing stable interfaces. Restore the common bridge mapping and resolve each replacement before its deprecated equivalent. Keep instrumentation-specific precedence, warn once when a deprecated setting is applied, and ignore deprecated names in v3 preview so they can be removed in 3.0.\n\nUpsides: Existing common and AWS configurations continue to work during migration, replacement settings take precedence, and users receive clear deprecation guidance.\n\nDownsides: The resolver retains migration branches and warning state until the deprecated settings are removed in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964174073"
+        }
+      ],
+      "reviewed": "1dbaf0dacc07e8a6c7dc964a881968ab3bbcc78d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964140743"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When creating per-message Create spans, `creationContext` is replaced with the context returned by `InstrumenterUtil.startAndEnd(...)` (built from `parentContext`), and that context is then injected into the message. This drops any other information that may have been extracted from the message by the configured `TextMapPropagator` (e.g., baggage) when the message had no valid SpanContext, even though the code already extracted it.",
+      "created": "2026-09-09T05:06:45Z",
+      "hunk": "@@ -37,7 +70,67 @@ public void sendMessageBefore(SendMessageContext context) {\n     if (!instrumenter.shouldStart(parentContext, context)) {\n       return;\n     }\n-    CONTEXT_FIELD.set(context, instrumenter.start(parentContext, context));\n+    Message batch =\n+        emitStableMessagingSemconv() && context.getMessage() instanceof Iterable<?>\n+            ? context.getMessage()\n+            : null;\n+    List<Message> messagesWithoutCreationContext = emptyList();\n+    if (batch != null) {\n+      List<Context> creationContexts = new ArrayList<>();\n+      messagesWithoutCreationContext = new ArrayList<>();\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        Context creationContext = propagator.extract(Context.root(), message, getter);\n+        boolean hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+        if (!hasCreationContext) {\n+          SendMessageContext request =\n+              new MessageCreateContext(message, RocketMqNamespaceUtil.getNamespace(context));\n+          if (messageCreateInstrumenter.shouldStart(parentContext, request)) {\n+            Instant timestamp = Instant.now();\n+            creationContext =\n+                InstrumenterUtil.startAndEnd(\n+                    messageCreateInstrumenter,\n+                    parentContext,\n+                    request,\n+                    null,\n+                    null,\n+                    timestamp,\n+                    timestamp);\n+            hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+            if (hasCreationContext) {\n+              propagator.inject(\n+                  creationContext,\n+                  message,\n+                  (carrier, key, value) -> carrier.getProperties().put(key, value));\n+            }\n+          }\n+        }",
+      "id": "PRRT_kwDODJKVX86ggsUq",
+      "opened": "2026-09-09T05:06:46Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T05:14:09Z",
+          "body": "Addressed in 712c4efc4d77600a35f36b18cc747ccc9fb95bdc.\n\nAnalysis: The hook now extracts from the parent context with an invalid span, so it retains ambient propagation values without mistaking the parent span for an existing message creation context. After it creates the span with the real parent, it adds that span to the extracted context before injection. This preserves values extracted from the message and values inherited from the parent when the message does not override them.\n\nUpsides: Per-message Create spans no longer replace extracted baggage or other custom context values. Messages without those values still receive the parent's propagation values, and existing creation-span detection remains unchanged.\n\nDownsides: The hook creates one extra context wrapper for each batch and one for each new per-message Create span.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964871678"
+        }
+      ],
+      "reviewed": "451558915e8acf4e4b844b070933b6f5e309b89a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3964835342"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The stable-semconv branch relies on span *index* ordering (e.g., `trace.getSpan(emitStableMessagingSemconv() ? 3 : 1)` and `trace.getSpan(i + 1)`) and then asserts with `hasSpansSatisfyingExactly(assertions)`. Since Create spans are stamped with wall-clock time while other spans use the SDK clock, span ordering within a trace can differ, making these assertions flaky. Prefer finding spans by identity (e.g., by `getName()` / `MESSAGING_MESSAGE_ID`) and using `hasSpansSatisfyingExactlyInAnyOrder(...)` for this trace.",
+      "created": "2026-09-09T18:18:45Z",
+      "hunk": "@@ -346,22 +356,53 @@ private void runBatchConsumeTest(boolean failConsumption) throws Exception {\n     }\n \n     AtomicReference<SpanContext> producerSpanContext = new AtomicReference<>();\n+    List<SpanContext> messageCreationContexts = new ArrayList<>();\n     testing()\n         .waitAndAssertTraces(\n             trace -> {\n-              SpanContext spanContext = trace.getSpan(1).getSpanContext();\n+              messageCreationContexts.clear();\n+              SpanContext spanContext =\n+                  trace.getSpan(emitStableMessagingSemconv() ? 3 : 1).getSpanContext();\n               producerSpanContext.set(\n                   SpanContext.createFromRemoteParent(",
+      "id": "PRRT_kwDODJKVX86gx7CV",
+      "opened": "2026-09-09T18:18:45Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/testing/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/AbstractRocketMqClientTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T19:37:32Z",
+          "body": "No code change.\n\nAnalysis: The current head already addresses this concern in commit 0621de8fcb. The test finds the Send span with spanNamed(...), collects Create spans with spansNamed(...), and checks the exact producer span set with hasSpansSatisfyingExactlyInAnyOrder(...). The only remaining trace.getSpan(0) references in that block select the root parent span. The trace tree always places that root first, so those references do not depend on sibling start-time ordering.\n\nUpsides: No duplicate change is needed. The current assertion already ignores the unstable order among sibling Create and Send spans while preserving exact span coverage.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972297961"
+        }
+      ],
+      "reviewed": "5f48ad7fce3bbd215b4bec6009d423b7c67c28e8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3971651551"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] The batch creation state is populated here, but `instrumenter.shouldStart(...)` runs before this loop in `sendMessageBefore`. For a stable batch whose messages all have creation contexts, `shouldStart` evaluates the dynamic span-kind predicate as PRODUCER, while the later `instrumenter.start(...)` evaluates it as CLIENT. With the supported `span_suppression_strategy=span-kind`, an active CLIENT parent is therefore not suppressed (and a PRODUCER parent can suppress the operation incorrectly), so suppression depends on this timing. Make the suppression check use the same final span kind as `start`.",
+      "created": "2026-09-09T19:59:14Z",
+      "hunk": "@@ -37,7 +70,69 @@ public void sendMessageBefore(SendMessageContext context) {\n     if (!instrumenter.shouldStart(parentContext, context)) {\n       return;\n     }\n-    CONTEXT_FIELD.set(context, instrumenter.start(parentContext, context));\n+    Message batch =\n+        emitStableMessagingSemconv() && context.getMessage() instanceof Iterable<?>\n+            ? context.getMessage()\n+            : null;\n+    List<Message> messagesWithoutCreationContext = emptyList();\n+    if (batch != null) {\n+      List<Context> creationContexts = new ArrayList<>();\n+      messagesWithoutCreationContext = new ArrayList<>();\n+      Context propagationContext = parentContext.with(Span.getInvalid());\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        Context creationContext = propagator.extract(propagationContext, message, getter);\n+        boolean hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+        if (!hasCreationContext) {\n+          SendMessageContext request =\n+              new MessageCreateContext(message, RocketMqNamespaceUtil.getNamespace(context));\n+          if (messageCreateInstrumenter.shouldStart(parentContext, request)) {\n+            Instant timestamp = Instant.now();\n+            Context createdContext =\n+                InstrumenterUtil.startAndEnd(\n+                    messageCreateInstrumenter,\n+                    parentContext,\n+                    request,\n+                    null,\n+                    null,\n+                    timestamp,\n+                    timestamp);\n+            creationContext = creationContext.with(Span.fromContext(createdContext));\n+            hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+            if (hasCreationContext) {\n+              propagator.inject(\n+                  creationContext,\n+                  message,\n+                  (carrier, key, value) -> carrier.getProperties().put(key, value));\n+            }\n+          }\n+        }\n+        if (!hasCreationContext) {\n+          messagesWithoutCreationContext.add(message);\n+        }\n+        creationContexts.add(creationContext);\n+      }\n+      RocketMqBatchSendSpanLinksExtractor.setContexts(context, creationContexts);\n+    }\n+    Context sendContext = instrumenter.start(parentContext, context);",
+      "id": "PRRT_kwDODJKVX86g0CXQ",
+      "opened": "2026-09-09T19:59:14Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:17:36Z",
+          "body": "Addressed in 7ac12cd7c271bc7b0915db4ac1ff25955da69338.\n\nAnalysis: The hook now builds the batch creation-context state before it calls shouldStart. Both shouldStart and start therefore evaluate the dynamic span-kind predicate against the same state. The hook clears that state when suppression prevents the send span from starting.\n\nUpsides: Span-kind suppression now suppresses a CLIENT batch send under a CLIENT parent and preserves it under a PRODUCER parent. The regression test covers both cases.\n\nDownsides: Per-message Create spans may be emitted before the batch send suppression decision because they determine whether the send span uses CLIENT or PRODUCER kind.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972633313"
+        }
+      ],
+      "reviewed": "0621de8fcb9992bc5eb13b5b9c3935afd6a4c5f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972486725"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the reflection-failure path, the code has already (a) injected per-message headers and (b) removed propagation fields from the batch envelope properties, but then fails to re-encode the batch body. This can leave the batch in an inconsistent state (body still contains the old serialized properties, envelope properties are now altered), potentially breaking propagation or message metadata for the actual send. Consider restructuring so that envelope-field removal + `setBody(...)` happen only after confirming encoding will succeed, or restore the original batch properties/body in the catch block (or abort the send by rethrowing) to avoid partially-applied mutations.",
+      "created": "2026-09-09T20:35:45Z",
+      "hunk": "@@ -34,10 +67,73 @@ public void sendMessageBefore(SendMessageContext context) {\n       return;\n     }\n     Context parentContext = Context.current();\n+    Message batch =\n+        emitStableMessagingSemconv() && context.getMessage() instanceof Iterable<?>\n+            ? context.getMessage()\n+            : null;\n+    List<Message> messagesWithoutCreationContext = emptyList();\n+    if (batch != null) {\n+      List<Context> creationContexts = new ArrayList<>();\n+      messagesWithoutCreationContext = new ArrayList<>();\n+      Context propagationContext = parentContext.with(Span.getInvalid());\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        Context creationContext = propagator.extract(propagationContext, message, getter);\n+        boolean hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+        if (!hasCreationContext) {\n+          SendMessageContext request =\n+              new MessageCreateContext(message, RocketMqNamespaceUtil.getNamespace(context));\n+          if (messageCreateInstrumenter.shouldStart(parentContext, request)) {\n+            Instant timestamp = Instant.now();\n+            Context createdContext =\n+                InstrumenterUtil.startAndEnd(\n+                    messageCreateInstrumenter,\n+                    parentContext,\n+                    request,\n+                    null,\n+                    null,\n+                    timestamp,\n+                    timestamp);\n+            creationContext = creationContext.with(Span.fromContext(createdContext));\n+            hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+            if (hasCreationContext) {\n+              propagator.inject(\n+                  creationContext,\n+                  message,\n+                  (carrier, key, value) -> carrier.getProperties().put(key, value));\n+            }\n+          }\n+        }\n+        if (!hasCreationContext) {\n+          messagesWithoutCreationContext.add(message);\n+        }\n+        creationContexts.add(creationContext);\n+      }\n+      RocketMqBatchSendSpanLinksExtractor.setContexts(context, creationContexts);\n+    }\n     if (!instrumenter.shouldStart(parentContext, context)) {\n+      RocketMqBatchSendSpanLinksExtractor.clearContexts(context);\n       return;\n     }\n-    CONTEXT_FIELD.set(context, instrumenter.start(parentContext, context));\n+    Context sendContext = instrumenter.start(parentContext, context);\n+    CONTEXT_FIELD.set(context, sendContext);\n+    if (batch != null) {\n+      for (Message message : messagesWithoutCreationContext) {\n+        propagator.inject(\n+            sendContext, message, (carrier, key, value) -> carrier.getProperties().put(key, value));\n+      }\n+      // The broker appends batch-level properties after per-message properties, so propagation\n+      // headers on the envelope would overwrite the individual creation contexts.\n+      propagator.fields().forEach(batch.getProperties()::remove);\n+      // DefaultMQProducer encodes batches before invoking the send hook.\n+      try {\n+        batch.setBody((byte[]) batchEncoders.get(batch.getClass()).invoke(batch));\n+      } catch (ReflectiveOperationException e) {\n+        instrumenter.end(sendContext, context, null, e);\n+        CONTEXT_FIELD.set(context, null);\n+        RocketMqBatchSendSpanLinksExtractor.clearContexts(context);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86g0xWg",
+      "opened": "2026-09-09T20:35:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:42:42Z",
+          "body": "Addressed in 82a5c3d2f0a54bc42a12f19ee7d8ae425f0ca6b2.\n\nAnalysis: The hook now computes the encoded body before it removes propagation fields from the batch envelope. A reflection failure therefore leaves both the original serialized body and the envelope properties intact.\n\nUpsides: A failed re-encode no longer leaves the batch body and envelope properties out of sync. The normal batch propagation path is unchanged.\n\nDownsides: The individual Message objects still contain headers injected before encoding fails, but the unchanged serialized body and envelope remain consistent for the pending send.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972832321"
+        }
+      ],
+      "reviewed": "7ac12cd7c271bc7b0915db4ac1ff25955da69338",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972777312"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setContexts` stores the provided mutable `List<Context>` directly in a `VirtualField`. If that list is ever modified after being set (now or in future refactors), it could change link extraction behavior unexpectedly. It would be safer to defensively copy the list (or wrap it in an unmodifiable view) when constructing `MessageCreationContexts`.",
+      "created": "2026-09-09T20:35:45Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.rocketmqclient.v4_8;\n+\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksBuilder;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksExtractor;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.List;\n+import org.apache.rocketmq.client.hook.SendMessageContext;\n+\n+final class RocketMqBatchSendSpanLinksExtractor implements SpanLinksExtractor<SendMessageContext> {\n+  private static final VirtualField<SendMessageContext, MessageCreationContexts>\n+      MESSAGE_CREATION_CONTEXTS =\n+          VirtualField.find(SendMessageContext.class, MessageCreationContexts.class);\n+\n+  static void setContexts(SendMessageContext request, List<Context> contexts) {\n+    MESSAGE_CREATION_CONTEXTS.set(request, new MessageCreationContexts(contexts));\n+  }",
+      "id": "PRRT_kwDODJKVX86g0xXM",
+      "opened": "2026-09-09T20:35:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqBatchSendSpanLinksExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:42:43Z",
+          "body": "No code change.\n\nAnalysis: sendMessageBefore creates the list locally, finishes populating it before setContexts, and never modifies or exposes it afterward. MessageCreationContexts therefore owns the list for its full stored lifetime. A defensive copy would address only a possible future refactor, not current behavior.\n\nUpsides: Keeping the owned list avoids an extra allocation and copy for every batch.\n\nDownsides: A future caller that mutates a list after setContexts would need to change this ownership contract or add a copy at that time.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972832520"
+        }
+      ],
+      "reviewed": "7ac12cd7c271bc7b0915db4ac1ff25955da69338",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972777387"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setContexts` stores the provided mutable `List<Context>` directly in a `VirtualField`. If that list is ever modified after being set (now or in future refactors), it could change link extraction behavior unexpectedly. It would be safer to defensively copy the list (or wrap it in an unmodifiable view) when constructing `MessageCreationContexts`.",
+      "created": "2026-09-09T20:35:45Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.rocketmqclient.v4_8;\n+\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksBuilder;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksExtractor;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.List;\n+import org.apache.rocketmq.client.hook.SendMessageContext;\n+\n+final class RocketMqBatchSendSpanLinksExtractor implements SpanLinksExtractor<SendMessageContext> {\n+  private static final VirtualField<SendMessageContext, MessageCreationContexts>\n+      MESSAGE_CREATION_CONTEXTS =\n+          VirtualField.find(SendMessageContext.class, MessageCreationContexts.class);\n+\n+  static void setContexts(SendMessageContext request, List<Context> contexts) {\n+    MESSAGE_CREATION_CONTEXTS.set(request, new MessageCreationContexts(contexts));\n+  }\n+\n+  static void clearContexts(SendMessageContext request) {\n+    MESSAGE_CREATION_CONTEXTS.set(request, null);\n+  }\n+\n+  static boolean allMessagesHaveCreationContext(SendMessageContext request) {\n+    MessageCreationContexts contexts = MESSAGE_CREATION_CONTEXTS.get(request);\n+    if (contexts == null || contexts.contexts.isEmpty()) {\n+      return false;\n+    }\n+    for (Context context : contexts.contexts) {\n+      if (!Span.fromContext(context).getSpanContext().isValid()) {\n+        return false;\n+      }\n+    }\n+    return true;\n+  }\n+\n+  @Override\n+  public void extract(\n+      SpanLinksBuilder spanLinks, Context parentContext, SendMessageContext request) {\n+    MessageCreationContexts contexts = MESSAGE_CREATION_CONTEXTS.get(request);\n+    if (contexts == null) {\n+      return;\n+    }\n+    for (Context context : contexts.contexts) {\n+      SpanContext spanContext = Span.fromContext(context).getSpanContext();\n+      if (spanContext.isValid()) {\n+        spanLinks.addLink(spanContext);\n+      }\n+    }\n+  }\n+\n+  static final class MessageCreationContexts {\n+    private final List<Context> contexts;\n+\n+    private MessageCreationContexts(List<Context> contexts) {\n+      this.contexts = contexts;\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86g0xXg",
+      "opened": "2026-09-09T20:35:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqBatchSendSpanLinksExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:42:45Z",
+          "body": "No code change.\n\nAnalysis: sendMessageBefore creates the list locally, finishes populating it before setContexts, and never modifies or exposes it afterward. MessageCreationContexts therefore owns the list for its full stored lifetime. A defensive copy would address only a possible future refactor, not current behavior.\n\nUpsides: Keeping the owned list avoids an extra allocation and copy for every batch.\n\nDownsides: A future caller that mutates a list after setContexts would need to change this ownership contract or add a copy at that time.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972832759"
+        }
+      ],
+      "reviewed": "7ac12cd7c271bc7b0915db4ac1ff25955da69338",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972777422"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The batch detection relies on `context.getMessage() instanceof Iterable<?>` and then unconditionally casts each element to `Message`. If any `Message` implementation happens to be `Iterable` (or the iterable contains non-`Message` items), this will throw `ClassCastException` and break sends. A safer approach is to narrow the condition to the actual batch type (e.g., `MessageBatch`) or to guard the loop with an `instanceof Message` check and skip batch logic when the structure is unexpected.",
+      "created": "2026-09-09T20:35:46Z",
+      "hunk": "@@ -34,10 +67,73 @@ public void sendMessageBefore(SendMessageContext context) {\n       return;\n     }\n     Context parentContext = Context.current();\n+    Message batch =\n+        emitStableMessagingSemconv() && context.getMessage() instanceof Iterable<?>\n+            ? context.getMessage()\n+            : null;",
+      "id": "PRRT_kwDODJKVX86g0xYA",
+      "opened": "2026-09-09T20:35:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:42:46Z",
+          "body": "Addressed in 42c53f8265e20e8a5629268370026ea61deee506.\n\nAnalysis: The hook now identifies the RocketMQ MessageBatch class by name before it enters batch-specific iteration. A direct MessageBatch reference is not used because the oldest supported RocketMQ version predates that class.\n\nUpsides: Custom Message implementations that also implement Iterable remain single-message sends and cannot fail the hook through an element cast. Real RocketMQ batches keep the existing propagation behavior.\n\nDownsides: Batch detection depends on RocketMQ retaining the MessageBatch class name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972832955"
+        }
+      ],
+      "reviewed": "7ac12cd7c271bc7b0915db4ac1ff25955da69338",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972777468"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The batch detection relies on `context.getMessage() instanceof Iterable<?>` and then unconditionally casts each element to `Message`. If any `Message` implementation happens to be `Iterable` (or the iterable contains non-`Message` items), this will throw `ClassCastException` and break sends. A safer approach is to narrow the condition to the actual batch type (e.g., `MessageBatch`) or to guard the loop with an `instanceof Message` check and skip batch logic when the structure is unexpected.",
+      "created": "2026-09-09T20:35:46Z",
+      "hunk": "@@ -34,10 +67,73 @@ public void sendMessageBefore(SendMessageContext context) {\n       return;\n     }\n     Context parentContext = Context.current();\n+    Message batch =\n+        emitStableMessagingSemconv() && context.getMessage() instanceof Iterable<?>\n+            ? context.getMessage()\n+            : null;\n+    List<Message> messagesWithoutCreationContext = emptyList();\n+    if (batch != null) {\n+      List<Context> creationContexts = new ArrayList<>();\n+      messagesWithoutCreationContext = new ArrayList<>();\n+      Context propagationContext = parentContext.with(Span.getInvalid());\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        Context creationContext = propagator.extract(propagationContext, message, getter);\n+        boolean hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+        if (!hasCreationContext) {\n+          SendMessageContext request =\n+              new MessageCreateContext(message, RocketMqNamespaceUtil.getNamespace(context));\n+          if (messageCreateInstrumenter.shouldStart(parentContext, request)) {\n+            Instant timestamp = Instant.now();\n+            Context createdContext =\n+                InstrumenterUtil.startAndEnd(\n+                    messageCreateInstrumenter,\n+                    parentContext,\n+                    request,\n+                    null,\n+                    null,\n+                    timestamp,\n+                    timestamp);\n+            creationContext = creationContext.with(Span.fromContext(createdContext));\n+            hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+            if (hasCreationContext) {\n+              propagator.inject(\n+                  creationContext,\n+                  message,\n+                  (carrier, key, value) -> carrier.getProperties().put(key, value));\n+            }\n+          }\n+        }\n+        if (!hasCreationContext) {\n+          messagesWithoutCreationContext.add(message);\n+        }\n+        creationContexts.add(creationContext);\n+      }\n+      RocketMqBatchSendSpanLinksExtractor.setContexts(context, creationContexts);",
+      "id": "PRRT_kwDODJKVX86g0xYc",
+      "opened": "2026-09-09T20:35:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:42:48Z",
+          "body": "Addressed in 42c53f8265e20e8a5629268370026ea61deee506.\n\nAnalysis: The hook now identifies the RocketMQ MessageBatch class by name before it enters batch-specific iteration. A direct MessageBatch reference is not used because the oldest supported RocketMQ version predates that class.\n\nUpsides: Custom Message implementations that also implement Iterable remain single-message sends and cannot fail the hook through an element cast. Real RocketMQ batches keep the existing propagation behavior.\n\nDownsides: Batch detection depends on RocketMQ retaining the MessageBatch class name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972833147"
+        }
+      ],
+      "reviewed": "7ac12cd7c271bc7b0915db4ac1ff25955da69338",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972777512"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This passes a `List<Consumer<SpanDataAssert>>` into `hasSpansSatisfyingExactlyInAnyOrder(...)`. If the AssertJ helper only provides a varargs overload (common for these helpers), this will not compile (or will select an unintended overload). Converting the list to a `Consumer[]` before calling the assertion avoids any overload ambiguity and is more robust across versions of the testing helpers.",
+      "created": "2026-09-09T20:35:46Z",
+      "hunk": "@@ -383,6 +426,7 @@ private void runBatchConsumeTest(boolean failConsumption) throws Exception {\n                               equalTo(\n                                   stringKey(\"messaging.rocketmq.send_result\"),\n                                   experimental(\"SEND_OK\"))));\n+              trace.hasSpansSatisfyingExactlyInAnyOrder(assertions);",
+      "id": "PRRT_kwDODJKVX86g0xZQ",
+      "opened": "2026-09-09T20:35:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/testing/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/AbstractRocketMqClientTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:42:49Z",
+          "body": "No code change.\n\nAnalysis: The current TraceAssert API accepts the typed List directly. The RocketMQ testing module compiles this exact call, and the repository uses the same list overload in other test fixtures. Converting a generic Consumer list to an array would add unchecked generic-array handling without resolving an actual overload problem.\n\nUpsides: Keeping the list preserves generic type safety and avoids an array conversion.\n\nDownsides: If the testing API removes its list overload later, compilation will require an update then.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972833346"
+        }
+      ],
+      "reviewed": "7ac12cd7c271bc7b0915db4ac1ff25955da69338",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972777591"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`batchEncoders` is a `static final` constant but doesn’t follow the naming convention used in this class (e.g., `CONTEXT_FIELD`). Renaming it to something like `BATCH_ENCODERS` / `BATCH_ENCODER_METHOD` would make it consistent and easier to spot as a constant.",
+      "created": "2026-09-09T20:35:47Z",
+      "hunk": "@@ -5,22 +5,55 @@\n \n package io.opentelemetry.instrumentation.rocketmqclient.v4_8;\n \n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.api.trace.Span;\n import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapPropagator;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil;\n import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.lang.reflect.Method;\n+import java.time.Instant;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n import org.apache.rocketmq.client.hook.SendMessageContext;\n import org.apache.rocketmq.client.hook.SendMessageHook;\n import org.apache.rocketmq.client.impl.CommunicationMode;\n+import org.apache.rocketmq.common.message.Message;\n \n final class TracingSendMessageHookImpl implements SendMessageHook {\n \n   private static final VirtualField<SendMessageContext, Context> CONTEXT_FIELD =\n       VirtualField.find(SendMessageContext.class, Context.class);\n \n+  // MessageBatch was introduced after the oldest supported RocketMQ version.\n+  private static final ClassValue<Method> batchEncoders =\n+      new ClassValue<Method>() {\n+        @Override\n+        protected Method computeValue(Class<?> type) {\n+          try {\n+            return type.getMethod(\"encode\");\n+          } catch (NoSuchMethodException e) {\n+            throw new IllegalStateException(e);\n+          }\n+        }\n+      };",
+      "id": "PRRT_kwDODJKVX86g0xZw",
+      "opened": "2026-09-09T20:35:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:42:51Z",
+          "body": "No code change.\n\nAnalysis: batchEncoders is a runtime ClassValue cache, not a constant-like value. The repository names runtime caches in lower camel case even when they are static final. CONTEXT_FIELD follows a separate rule that requires VirtualField handles to use uppercase names.\n\nUpsides: Keeping the name follows the repository distinction between runtime collaborators and semantic constants or handles.\n\nDownsides: The field does not share the visual uppercase style of the nearby VirtualField handle.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972833517"
+        }
+      ],
+      "reviewed": "7ac12cd7c271bc7b0915db4ac1ff25955da69338",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3972777639"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] This suppresses propagation for every `Message` that implements `Iterable`, not just RocketMQ's `MessageBatch`. The hook now deliberately narrows batch handling to the concrete `MessageBatch` class, so a single-message implementation such as the `IterableMessage` covered by the new test skips the `MapSetter` injection under stable conventions and no longer propagates its Send context. Restrict this guard to the same concrete batch check used by the hook so non-batch iterable messages retain the existing single-send behavior.",
+      "created": "2026-09-09T21:04:06Z",
+      "hunk": "@@ -18,7 +20,7 @@ public void set(@Nullable SendMessageContext carrier, String key, String value)\n       return;\n     }\n     Message message = carrier.getMessage();\n-    if (message == null) {\n+    if (message == null || (emitStableMessagingSemconv() && message instanceof Iterable<?>)) {\n       return;",
+      "id": "PRRT_kwDODJKVX86g1V2Z",
+      "opened": "2026-09-09T21:04:06Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/MapSetter.java",
+      "replies": [
+        {
+          "at": "2026-09-09T21:08:07Z",
+          "body": "Addressed in a1f22a94e94986335301859569cd9703f4b95ef3.\n\nAnalysis: A shared utility now identifies MessageBatch without linking the class that is absent from the oldest supported RocketMQ version. The send hook, propagation setter, and producer attribute getter all use that exact check.\n\nUpsides: Iterable single messages receive Send-context propagation and single-message attributes, while real batches keep their per-message propagation path. The test now verifies propagation and the complete single-message attribute set.\n\nDownsides: The change adds a small package-private utility and retains a dependency on RocketMQ's MessageBatch class name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3973033333"
+        }
+      ],
+      "reviewed": "42c53f8265e20e8a5629268370026ea61deee506",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3973001661"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] If the Send span is suppressed, this early return skips the batch re-encoding that follows. For example, with span-kind suppression and an active CLIENT parent, the per-message Create spans are PRODUCER and are created, but the Send span is CLIENT and `shouldStart` returns false; the injected creation headers therefore remain only on the child objects while RocketMQ sends the original serialized batch body. Re-encode the batch whenever creation contexts were injected, even when the Send span is suppressed, so those contexts reach consumers.",
+      "created": "2026-09-09T21:21:54Z",
+      "hunk": "@@ -34,10 +67,74 @@ public void sendMessageBefore(SendMessageContext context) {\n       return;\n     }\n     Context parentContext = Context.current();\n+    Message batch =\n+        emitStableMessagingSemconv() && RocketMqMessageUtil.isBatch(context.getMessage())\n+            ? context.getMessage()\n+            : null;\n+    List<Message> messagesWithoutCreationContext = emptyList();\n+    if (batch != null) {\n+      List<Context> creationContexts = new ArrayList<>();\n+      messagesWithoutCreationContext = new ArrayList<>();\n+      Context propagationContext = parentContext.with(Span.getInvalid());\n+      for (Object item : (Iterable<?>) batch) {\n+        Message message = (Message) item;\n+        Context creationContext = propagator.extract(propagationContext, message, getter);\n+        boolean hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+        if (!hasCreationContext) {\n+          SendMessageContext request =\n+              new MessageCreateContext(message, RocketMqNamespaceUtil.getNamespace(context));\n+          if (messageCreateInstrumenter.shouldStart(parentContext, request)) {\n+            Instant timestamp = Instant.now();\n+            Context createdContext =\n+                InstrumenterUtil.startAndEnd(\n+                    messageCreateInstrumenter,\n+                    parentContext,\n+                    request,\n+                    null,\n+                    null,\n+                    timestamp,\n+                    timestamp);\n+            creationContext = creationContext.with(Span.fromContext(createdContext));\n+            hasCreationContext = Span.fromContext(creationContext).getSpanContext().isValid();\n+            if (hasCreationContext) {\n+              propagator.inject(\n+                  creationContext,\n+                  message,\n+                  (carrier, key, value) -> carrier.getProperties().put(key, value));\n+            }\n+          }\n+        }\n+        if (!hasCreationContext) {\n+          messagesWithoutCreationContext.add(message);\n+        }\n+        creationContexts.add(creationContext);\n+      }\n+      RocketMqBatchSendSpanLinksExtractor.setContexts(context, creationContexts);\n+    }\n     if (!instrumenter.shouldStart(parentContext, context)) {\n+      RocketMqBatchSendSpanLinksExtractor.clearContexts(context);\n       return;",
+      "id": "PRRT_kwDODJKVX86g1rlQ",
+      "opened": "2026-09-09T21:21:54Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T21:25:52Z",
+          "body": "Addressed in aa24d1d9893fe6cc888d09ea1740a17fa3f53096.\n\nAnalysis: The hook now records when it injects newly created per-message contexts. If suppression prevents the Send span from starting, it still re-encodes that batch before returning. The shared encoder keeps envelope-property removal after successful encoding.\n\nUpsides: Consumers receive per-message creation contexts even when span-kind suppression removes the batch Send span. The regression test decodes the sent body and verifies both contexts.\n\nDownsides: The suppressed path performs the same reflective encoding work as a recorded batch send. If reflection fails, it keeps the original valid body but cannot propagate the newly created contexts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3973163285"
+        }
+      ],
+      "reviewed": "a1f22a94e94986335301859569cd9703f4b95ef3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r3973135394"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] RocketMQ 4.8's callback-based `send(Collection, SendCallback, ...)` encodes the batch synchronously but only queues the actual send, so this method exits before `SendMessageHook.sendMessageBefore` can set `claimed`. This branch therefore ends the intended batch Send span and clears `BATCH_SEND_STATE`; the worker later falls back to the ordinary hook, losing the captured parent and batch result attributes. Keep asynchronous state alive until the final hook/callback, including the queue-timeout path where no send hook runs.",
+      "created": "2026-09-14T22:29:03Z",
+      "hunk": "@@ -0,0 +1,250 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.rocketmqclient.v4_8;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapPropagator;\n+import io.opentelemetry.context.propagation.TextMapSetter;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import org.apache.rocketmq.client.hook.SendMessageContext;\n+import org.apache.rocketmq.client.hook.SendMessageHook;\n+import org.apache.rocketmq.client.impl.CommunicationMode;\n+import org.apache.rocketmq.common.message.Message;\n+\n+public final class RocketMqBatchSendHelper {\n+\n+  private static final VirtualField<Message, BatchSendState> BATCH_SEND_STATE =\n+      VirtualField.find(Message.class, BatchSendState.class);\n+  private static final ThreadLocal<BatchSendState> CURRENT_STATE = new ThreadLocal<>();\n+\n+  private final Instrumenter<SendMessageContext, Void> sendInstrumenter;\n+  private final Instrumenter<SendMessageContext, Void> createInstrumenter;\n+  private final TextMapPropagator propagator;\n+  private final MessageExtractAdapter getter = new MessageExtractAdapter();\n+\n+  public RocketMqBatchSendHelper(\n+      OpenTelemetry openTelemetry,\n+      IncludeExclude headers,\n+      boolean captureExperimentalSpanAttributes,\n+      boolean messageCreationSpansEnabled) {\n+    sendInstrumenter =\n+        RocketMqInstrumenterFactory.createBatchProducerInstrumenter(\n+            openTelemetry, headers, captureExperimentalSpanAttributes);\n+    createInstrumenter =\n+        RocketMqInstrumenterFactory.createMessageCreateInstrumenter(\n+            openTelemetry, headers, messageCreationSpansEnabled);\n+    propagator = openTelemetry.getPropagators().getTextMapPropagator();\n+  }\n+\n+  @Nullable\n+  public Object batchSendStart(Object producer) {\n+    if (!emitStableMessagingSemconv()) {\n+      return null;\n+    }\n+    BatchSendState state =\n+        new BatchSendState(\n+            Context.current(), RocketMqNamespaceUtil.getNamespace(producer), CURRENT_STATE.get());\n+    CURRENT_STATE.set(state);\n+    return state;\n+  }\n+\n+  public void beforeBatchEncode(Message batch) {\n+    BatchSendState state = CURRENT_STATE.get();\n+    if (state == null || state.prepared) {\n+      return;\n+    }\n+    state.prepare(batch);\n+  }\n+\n+  public void batchSendEnd(@Nullable Object stateObject, @Nullable Throwable error) {\n+    if (stateObject == null) {\n+      return;\n+    }\n+    BatchSendState state = (BatchSendState) stateObject;\n+    if (CURRENT_STATE.get() == state) {\n+      if (state.previous == null) {\n+        CURRENT_STATE.remove();\n+      } else {\n+        CURRENT_STATE.set(state.previous);\n+      }\n+    }\n+    if (error != null || !state.claimed || state.isSynchronous()) {\n+      state.end(error);",
+      "id": "PRRT_kwDODJKVX86iTd7o",
+      "opened": "2026-09-14T22:29:03Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/javaagent/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqBatchSendHelper.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:03:54Z",
+          "body": "Addressed in d932c0da860f150841c5e3ce20557ea9666db7f9.\n\nAnalysis: RocketMQ 4.8 encodes the batch before it submits the asynchronous worker. The outer send method can return before the worker's send hook claims the state. The callback overloads now mark the state as asynchronous and wrap the callback so the final callback ends any state that the send hook did not end. This also covers the worker's queue-timeout branch, which invokes the callback without running a send hook.\n\nUpsides: Successful asynchronous sends retain the captured parent and final hook attributes. Queue-timeout failures end the Send span with the callback error and clear the batch's virtual-field state.\n\nDownsides: Stable-semantic-convention asynchronous batch sends allocate one small callback wrapper.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r4010360493"
+        }
+      ],
+      "reviewed": "5c56556b209123f5758ece5c1c2cc56c7e80fe26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r4010168238"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess this is not a new behavior, but still a bit surprising to see an attribute set to empty string instead of omitting the attribute.",
+      "created": "2026-09-24T08:31:59Z",
+      "hunk": "@@ -97,6 +83,72 @@ public void onEnd(\n     return instrumenterBuilder.buildProducerInstrumenter(new MapSetter());\n   }\n \n+  static Instrumenter<SendMessageContext, Void> createBatchProducerInstrumenter(\n+      OpenTelemetry openTelemetry,\n+      IncludeExclude headers,\n+      boolean captureExperimentalSpanAttributes) {\n+    RocketMqProducerAttributeGetter getter = new RocketMqProducerAttributeGetter();\n+    MessagingOperationType operationType = MessagingOperationType.SEND;\n+    InstrumenterBuilder<SendMessageContext, Void> builder =\n+        Instrumenter.<SendMessageContext, Void>builder(\n+                openTelemetry,\n+                INSTRUMENTATION_NAME,\n+                MessagingSpanNameExtractor.create(getter, operationType, SEND_OPERATION_NAME))\n+            .addAttributesExtractor(\n+                buildMessagingAttributesExtractor(\n+                    getter, operationType, SEND_OPERATION_NAME, headers))\n+            .addSpanLinksExtractor(new RocketMqBatchSendSpanLinksExtractor())\n+            .addAttributesExtractor(producerAttributesExtractor())\n+            .addOperationMetrics(MessagingProducerMetrics.getForOperationType());\n+    if (captureExperimentalSpanAttributes) {\n+      builder.addAttributesExtractor(new RocketMqProducerExperimentalAttributeExtractor());\n+    }\n+    setMessagingSendExceptionEventExtractor(builder);\n+    return InstrumenterUtil.buildDownstreamInstrumenter(\n+        builder,\n+        new MapSetter(),\n+        MessagingSpanKindExtractor.create(\n+            operationType,\n+            request ->\n+                !RocketMqBatchSendSpanLinksExtractor.allMessagesHaveCreationContext(request)));\n+  }\n+\n+  static Instrumenter<SendMessageContext, Void> createMessageCreateInstrumenter(\n+      OpenTelemetry openTelemetry,\n+      IncludeExclude headers,\n+      boolean batchSendMessageCreationSpansEnabled) {\n+    RocketMqProducerAttributeGetter getter = new RocketMqProducerAttributeGetter(true);\n+    MessagingOperationType operationType = MessagingOperationType.CREATE;\n+    return Instrumenter.<SendMessageContext, Void>builder(\n+            openTelemetry,\n+            INSTRUMENTATION_NAME,\n+            MessagingSpanNameExtractor.create(getter, operationType, \"create\"))\n+        .setEnabled(batchSendMessageCreationSpansEnabled && emitStableMessagingSemconv())\n+        .addAttributesExtractor(\n+            buildMessagingAttributesExtractor(getter, operationType, \"create\", headers))\n+        .addAttributesExtractor(producerAttributesExtractor())\n+        .buildInstrumenter(MessagingSpanKindExtractor.create(operationType));\n+  }\n+\n+  private static AttributesExtractor<SendMessageContext, Void> producerAttributesExtractor() {\n+    return new AttributesExtractor<SendMessageContext, Void>() {\n+      @Override\n+      public void onStart(\n+          AttributesBuilder attributes, Context parentContext, SendMessageContext request) {\n+        String namespace = RocketMqNamespaceUtil.getNamespace(request);\n+        attributes.put(MESSAGING_ROCKETMQ_NAMESPACE, namespace == null ? \"\" : namespace);",
+      "id": "PRRT_kwDODJKVX86lgA8j",
+      "opened": "2026-09-24T08:31:59Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "3557228d99a058d23f77e62afe11179b0ef4a88e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20045#discussion_r4091522110"
+    }
+  ]
+}

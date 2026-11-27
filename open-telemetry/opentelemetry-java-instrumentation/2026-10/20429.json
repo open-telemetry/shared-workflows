@@ -1,0 +1,25 @@
+{
+  "head": "ced5a5c17be5b87fc5aa668c91ef266a92515f76",
+  "merge": "5ed96b90ed729e0ba3a070908ea248505045ba5a",
+  "merged": "2026-10-07T06:31:27Z",
+  "missing_roots": 0,
+  "number": 20429,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T04:38:22Z",
+      "hunk": "@@ -8,6 +8,11 @@\n | `otel.instrumentation.graphql.operation-name-in-span-name.enabled` | Boolean | `false` | Whether GraphQL operation name is added to the span name. <p>**WARNING**: GraphQL operation name is provided by the client and can have high cardinality. Use only when the server is not exposed to malicious clients. |\n | `otel.instrumentation.graphql.capture-query`                       | Boolean | `true`  | Whether to capture the query in `graphql.document` span attribute.                                                                                                                                                      |\n \n+The deprecated `otel.instrumentation.graphql.add-operation-name-to-span-name.enabled` and\n+`otel.instrumentation.graphql.query-sanitizer.enabled` settings are no longer supported. Use\n+`otel.instrumentation.graphql.operation-name-in-span-name.enabled` and\n+`otel.instrumentation.graphql.query-sanitization.enabled`, respectively.\n+",
+      "id": "PRRT_kwDODJKVX86pwe-j",
+      "opened": "2026-10-07T04:38:22Z",
+      "path": "instrumentation/graphql-java/README.md",
+      "replies": [],
+      "reviewed": "4e90c6163c810b4f809c79dfebbc175ade5a3e0e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20429#discussion_r4203106511"
+    }
+  ]
+}

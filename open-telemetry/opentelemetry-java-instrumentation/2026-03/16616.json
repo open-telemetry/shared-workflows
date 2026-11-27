@@ -1,0 +1,55 @@
+{
+  "head": "b5c99d1a8ee7183ee8446f955533f81cb93f42be",
+  "merge": "16b4e1beed8e18c44a25380b1145527619a58c5c",
+  "merged": "2026-03-16T21:57:48Z",
+  "missing_roots": 0,
+  "number": 16616,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-03-16T21:22:14Z",
+      "hunk": "@@ -9,6 +9,7 @@\n import com.datastax.oss.driver.api.core.cql.ExecutionInfo;\n import io.opentelemetry.api.OpenTelemetry;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import javax.annotation.Nullable;",
+      "id": "PRRT_kwDODJKVX850ssH-",
+      "opened": "2026-03-16T21:22:33Z",
+      "path": "instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraTelemetry.java",
+      "replies": [],
+      "reviewed": "0e62dd72ebcbd8cae0d333985adc96a045e56a49",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16616#discussion_r2943044497"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  public CqlSession wrap(CqlSession session) {\n```",
+      "created": "2026-03-16T21:22:27Z",
+      "hunk": "@@ -38,7 +39,8 @@ protected CassandraTelemetry(Instrumenter<CassandraRequest, ExecutionInfo> instr\n    * @param session An instance of CqlSession configured as desired.\n    * @return a {@link TracingCqlSession}.\n    */\n-  public CqlSession wrap(CqlSession session) {\n+  @Nullable\n+  public CqlSession wrap(@Nullable CqlSession session) {",
+      "id": "PRRT_kwDODJKVX850ssUb",
+      "opened": "2026-03-16T21:22:33Z",
+      "path": "instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraTelemetry.java",
+      "replies": [],
+      "reviewed": "0e62dd72ebcbd8cae0d333985adc96a045e56a49",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16616#discussion_r2943045514"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  CqlSession wrapSession(CqlSession session) {\n```",
+      "created": "2026-03-16T21:23:09Z",
+      "hunk": "@@ -35,7 +35,8 @@ final class TracingCqlSession {\n     this.instrumenter = instrumenter;\n   }\n \n-  CqlSession wrapSession(CqlSession session) {\n+  @Nullable\n+  CqlSession wrapSession(@Nullable CqlSession session) {",
+      "id": "PRRT_kwDODJKVX850sswm",
+      "opened": "2026-03-16T21:23:09Z",
+      "path": "instrumentation/cassandra/cassandra-4.4/library/src/main/java/io/opentelemetry/instrumentation/cassandra/v4_4/TracingCqlSession.java",
+      "replies": [],
+      "reviewed": "1ca913f9642f9bbdc707a506d762e40d815f08fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16616#discussion_r2943047981"
+    }
+  ]
+}

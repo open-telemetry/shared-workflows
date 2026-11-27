@@ -1,0 +1,40 @@
+{
+  "head": "52b9324f502f3cd84902edd8c4492ef250744a5a",
+  "merge": "d83930ec63a3bf35f34cfc7ce4ff93142cb39f19",
+  "merged": "2026-07-14T21:23:33Z",
+  "missing_roots": 0,
+  "number": 264,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The opening section still claims every publish creates a tag pointing at a commit on `main`, but patch releases are created from `package-release/<pkg>/v*` branches (per the “Backport patch” flow below and the release workflows’ `--target`). This description should be narrowed to “normal releases” and explicitly call out that patch-release tags target the backport branch.",
+      "created": "2026-07-13T20:37:20Z",
+      "hunk": "@@ -5,9 +5,9 @@ Every package releases independently. The default path is a coordinated\n releases.\n \n Releases are **tag-from-`main`**: each publish creates a tag\n-(`<pkg>==<version>`) pointing at the release commit on `main`. Backport\n-branches (`package-release/<pkg>/v*`) are created lazily from an old tag only\n-when patching an older minor line, not for every release.\n+(`<pkg>==<version>`) pointing at the release commit on `main`. Patch\n+branches (`package-release/<pkg>/v*`) are created lazily from a release tag\n+only when patching an already-released version, not for every release.",
+      "id": "PRRT_kwDOSbspP86QiEPE",
+      "opened": "2026-07-13T20:37:21Z",
+      "path": "RELEASING.md",
+      "replies": [],
+      "reviewed": "2cd08231d40431d53ea32976e8cb61adb9445cb0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/264#discussion_r3573978772"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Trailing whitespace at end of line can trip whitespace-cleanup hooks in CI/pre-commit.",
+      "created": "2026-07-13T20:37:20Z",
+      "hunk": "@@ -100,10 +104,10 @@ Merge the bump PR first, then follow the normal\n [single-package](#single-package-release) release flow. `Prepare release`\n picks up the new dev version verbatim.\n \n-## Backport patch (older minor line)\n+## Backport patch (older line)\n \n-Once `main` has moved past the minor line you need to patch (i.e. after a\n-minor bump), patches for the older line must come from a backport branch.\n+Patching *any* already-released version — the latest or an older one — ",
+      "id": "PRRT_kwDOSbspP86QiEPm",
+      "opened": "2026-07-13T20:37:21Z",
+      "path": "RELEASING.md",
+      "replies": [],
+      "reviewed": "2cd08231d40431d53ea32976e8cb61adb9445cb0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/264#discussion_r3573978815"
+    }
+  ]
+}

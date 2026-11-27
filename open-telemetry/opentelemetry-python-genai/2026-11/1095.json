@@ -1,0 +1,162 @@
+{
+  "head": "a3caafba4b57cfde108899ecf14294ddea110f00",
+  "merge": "a758ac36202582fb4ea9e24743095bee73dec631",
+  "merged": "2026-11-23T06:39:17Z",
+  "missing_roots": 0,
+  "number": 1095,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new async context test covers only streaming, so it does not verify that this block makes the chat span current during a non-streaming request. Add a public `AsyncClient.chat()` request-hook test asserting the exact exported span ID during the request and restoration of the caller's context afterward, as required by the [instrumentation test rules](../../instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-14T05:23:39Z",
+      "hunk": "@@ -131,7 +128,7 @@ async def traced_method(\n             kwargs, \"tools\", enabled=capture_content\n         )\n         invocation = create_chat_invocation(handler, instance, args, kwargs)\n-        try:\n+        with invocation.activate():",
+      "id": "PRRT_kwDOSbspP863ZP9o",
+      "opened": "2026-11-14T05:23:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-ollama/src/opentelemetry/instrumentation/genai/ollama/patch.py",
+      "replies": [
+        {
+          "at": "2026-11-14T05:26:40Z",
+          "body": "Added `test_async_chat_span_is_current_only_during_the_request` (78d5e46e8).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4571663009"
+        }
+      ],
+      "reviewed": "92de92e1c62e744bf82eefd55e8075fcfd1d814e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4571654708"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Embedding invocations are now unattached, but the sync and async embedding tests do not verify that the embedding span is current during the HTTP request. A regression that finalizes the span without activating it could therefore leave HTTP child spans incorrectly parented without failing those tests. Add public-client request-hook tests for both `embed()` variants that check the exact embedding span ID and caller-context restoration after success and provider failure; see the [instrumentation test rules](../../instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-14T05:23:40Z",
+      "hunk": "@@ -272,6 +273,7 @@ def create_embed_invocation(\n         request_model=str(model) if model else None,\n         server_address=address,\n         server_port=port,\n+        _attach_to_context=False,",
+      "id": "PRRT_kwDOSbspP863ZP9-",
+      "opened": "2026-11-14T05:23:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-ollama/src/opentelemetry/instrumentation/genai/ollama/utils.py",
+      "replies": [
+        {
+          "at": "2026-11-14T05:26:42Z",
+          "body": "Added `test_embed_span_is_current_only_during_the_request` and its async counterpart, covering success and provider error (78d5e46e8).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4571663069"
+        }
+      ],
+      "reviewed": "92de92e1c62e744bf82eefd55e8075fcfd1d814e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4571654743"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`activate()` excludes `StopIteration`, `StopAsyncIteration`, and `GeneratorExit` from failure handling, so these exceptions can now escape the SDK call without finalizing the chat invocation—for example, when a request hook exhausts an iterator. Preserve explicit failure finalization for these exceptions before returning a response stream; otherwise the span and completion metrics are lost. Apply the same handling to the async wrapper at line 131.",
+      "created": "2026-11-17T05:15:05Z",
+      "hunk": "@@ -91,7 +91,7 @@ def traced_method(\n             kwargs, \"tools\", enabled=capture_content\n         )\n         invocation = create_chat_invocation(handler, instance, args, kwargs)\n-        try:\n+        with invocation.activate():",
+      "id": "PRRT_kwDOSbspP864SEG-",
+      "opened": "2026-11-17T05:15:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-ollama/src/opentelemetry/instrumentation/genai/ollama/patch.py",
+      "replies": [
+        {
+          "at": "2026-11-17T05:53:17Z",
+          "body": "Restored explicit `except BaseException` failure handling around the SDK call in both chat wrappers in https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095/commits/3f7c79de4418a84d7a558044cc705612699b1d72, with tests for `StopIteration`/`StopAsyncIteration`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4595881081"
+        },
+        {
+          "at": "2026-11-23T06:02:12Z",
+          "body": "Reverted in https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095/commits/aab8b6cae742c66ea3b790ead9f87c14cdea54e4. The chat call never raises `StopIteration`/`StopAsyncIteration`/`GeneratorExit`: streamed chunks are read later in the stream wrapper, and message/tool generators are consumed by the SDK. `activate()` intentionally leaves these to the caller; documented that in its docstring.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4662312977"
+        }
+      ],
+      "reviewed": "b5aeef575373ab28d37d2914e20a6d3f7ecd65eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4595621597"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Could we adjust the stream wrappers so normal exhaustion doesn’t escape through the activate() scope, then let activate() finalize any escaping BaseException? That would let the chat wrappers drop the extra catch-and-fail() while retaining input extraction in finally, giving other instrumentations a simpler migration reference?",
+      "created": "2026-11-22T03:19:46Z",
+      "hunk": "@@ -131,19 +133,21 @@ async def traced_method(\n             kwargs, \"tools\", enabled=capture_content\n         )\n         invocation = create_chat_invocation(handler, instance, args, kwargs)\n-        try:\n+        with invocation.activate():\n             try:\n-                result = await wrapped(*args, **kwargs)\n-            finally:\n-                invocation.input_messages = (\n-                    messages_capture.extract(get_input_messages) or []\n-                )\n-                invocation.tool_definitions = tools_capture.extract(\n-                    get_tool_definitions\n-                )\n-        except BaseException as error:\n-            invocation.fail(error)\n-            raise\n+                try:\n+                    result = await wrapped(*args, **kwargs)\n+                finally:\n+                    invocation.input_messages = (\n+                        messages_capture.extract(get_input_messages) or []\n+                    )\n+                    invocation.tool_definitions = tools_capture.extract(\n+                        get_tool_definitions\n+                    )\n+            # activate() doesn't fail on StopAsyncIteration or GeneratorExit.\n+            except BaseException as error:",
+      "id": "PRRT_kwDOSbspP866frE4",
+      "opened": "2026-11-22T03:36:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-ollama/src/opentelemetry/instrumentation/genai/ollama/patch.py",
+      "replies": [
+        {
+          "at": "2026-11-23T06:02:14Z",
+          "body": "Dropped the extra catch in https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095/commits/aab8b6cae742c66ea3b790ead9f87c14cdea54e4. The chat call can't raise these, so it was guarding a case that doesn't happen. `activate()` keeps letting them through without finishing the invocation: they come from stream reads, where the wrapper finishes the invocation itself, and a caller that expects them may need to set state before stopping. Documented in the `activate()` docstring and util AGENTS.md.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4662313114"
+        }
+      ],
+      "reviewed": "3f7c79de4418a84d7a558044cc705612699b1d72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4656405820"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "suggestion(non-blocking): Could we use a public request hook instead of patching _request? This reproduces the exception through the real SDK path without depending on a private method. For example:\n\n```python\ndef _raise(_request: Any) -> None:\n    raise StopIteration\n\nwith pytest.raises(StopIteration):\n    ollama.Client(\n        host=HOST,\n        event_hooks={\"request\": [_raise]},\n    ).chat(model=CHAT_MODEL, messages=MESSAGES)\n```\n\nThe existing span assertions can stay, and the monkeypatch fixture can be removed if unused.",
+      "created": "2026-11-22T03:30:59Z",
+      "hunk": "@@ -403,6 +443,21 @@ def test_chat_error_is_recorded_and_reraised(\n     )\n \n \n+def test_chat_stop_iteration_from_sdk_is_recorded(\n+    instrument_no_content, span_exporter, monkeypatch\n+):\n+    def _raise(*_args: Any, **_kwargs: Any) -> Any:\n+        raise StopIteration\n+\n+    monkeypatch.setattr(ollama.Client, \"_request\", _raise)",
+      "id": "PRRT_kwDOSbspP866fyFV",
+      "opened": "2026-11-22T03:36:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-ollama/tests/test_chat.py",
+      "replies": [
+        {
+          "at": "2026-11-23T06:02:16Z",
+          "body": "Addressed in https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095/commits/aab8b6cae742c66ea3b790ead9f87c14cdea54e4",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4662313268"
+        }
+      ],
+      "reviewed": "3f7c79de4418a84d7a558044cc705612699b1d72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4656450386"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "nit(non-blocking): Could we move the repeated span-capture hook setup into a fixture in conftest.py? The chat and embedding tests could share the captured IDs and sync/async hooks. For example:\n\n```python\n@pytest.fixture\ndef request_span_capture():\n    seen: list[int] = []\n\n    def hook(_request: Any) -> None:\n        seen.append(\n            trace.get_current_span().get_span_context().span_id\n        )\n\n    async def async_hook(_request: Any) -> None:\n        hook(_request)\n\n    return seen, hook, async_hook\n```\n\nA sync test would then use:\n\n```\nseen, hook, _ = request_span_capture\nclient = ollama.Client(\n    host=HOST,\n    event_hooks={\"request\": [hook]},\n)\n```\n\nAsync tests would select async_hook, while each test keeps its existing assertions.",
+      "created": "2026-11-22T03:34:36Z",
+      "hunk": "@@ -143,3 +146,65 @@ def test_embed_without_input_records_no_span(\n \n     assert response.embeddings == []\n     assert span_exporter.get_finished_spans() == ()\n+\n+\n+def _embed_cases(success_cassette: str) -> list[Any]:\n+    return [\n+        pytest.param(EMBEDDING_MODEL, success_cassette, id=\"success\"),\n+        pytest.param(\n+            \"no-such-model:1b\",\n+            \"test_embed_error_is_recorded_and_reraised.yaml\",\n+            id=\"error\",\n+        ),\n+    ]\n+\n+\n+def _raises(model: str) -> Any:\n+    if model == EMBEDDING_MODEL:\n+        return nullcontext()\n+    return pytest.raises(ollama.ResponseError)\n+\n+\n+@pytest.mark.parametrize(\n+    \"model, cassette\",\n+    _embed_cases(\"test_embed_records_an_embeddings_span.yaml\"),\n+)\n+def test_embed_span_is_current_only_during_the_request(\n+    instrument_no_content, span_exporter, vcr, model, cassette\n+):\n+    seen: list[int] = []\n+\n+    def hook(_request: Any) -> None:",
+      "id": "PRRT_kwDOSbspP866f0oC",
+      "opened": "2026-11-22T03:36:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-ollama/tests/test_embed.py",
+      "replies": [
+        {
+          "at": "2026-11-23T06:02:18Z",
+          "body": "Addressed in https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095/commits/aab8b6cae742c66ea3b790ead9f87c14cdea54e4",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4662313448"
+        }
+      ],
+      "reviewed": "3f7c79de4418a84d7a558044cc705612699b1d72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4656467754"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new test covers normal stream consumption, while the existing abandonment test only deletes the stream after one chunk and checks ERROR. Please add a public-client regression where a caller exception aborts bare iteration, then verify the exported span ends as a failure with the abandonment `error.type`; that exception bypasses the wrapper and is finalized by the changed unattached-stream cleanup path.",
+      "created": "2026-11-23T06:08:54Z",
+      "hunk": "@@ -192,6 +192,37 @@ def test_chat_stream_span_is_not_current_between_reads(\n     assert len(span_exporter.get_finished_spans()) == 1\n \n \n+def test_chat_span_is_current_only_during_the_request(\n+    instrument_no_content, span_exporter, vcr, request_span_capture\n+):\n+    seen, hook, _ = request_span_capture\n+    with vcr.use_cassette(\"test_chat_records_a_chat_span.yaml\"):\n+        ollama.Client(host=HOST, event_hooks={\"request\": [hook]}).chat(\n+            model=CHAT_MODEL, messages=MESSAGES\n+        )\n+        assert not trace.get_current_span().get_span_context().is_valid\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    assert seen == [span.context.span_id]\n+\n+\n+def test_chat_stream_request_runs_under_the_chat_span(\n+    instrument_no_content, span_exporter, vcr, request_span_capture\n+):\n+    seen, hook, _ = request_span_capture\n+    with vcr.use_cassette(\n+        \"test_chat_stream_records_the_drained_response.yaml\"\n+    ):\n+        stream = ollama.Client(\n+            host=HOST, event_hooks={\"request\": [hook]}\n+        ).chat(model=CHAT_MODEL, messages=MESSAGES, stream=True)\n+        for _ in stream:",
+      "id": "PRRT_kwDOSbspP866trfv",
+      "opened": "2026-11-23T06:08:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-ollama/tests/test_chat.py",
+      "replies": [
+        {
+          "at": "2026-11-23T06:15:44Z",
+          "body": "An exception in the loop body never reaches the wrapper, so this ends up in the same GC finalization as `test_abandoned_stream_still_ends_its_span`. Added the `error.type` assertion there instead of a separate test: https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095/commits/a3caafba4b57cfde108899ecf14294ddea110f00",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4662394682"
+        }
+      ],
+      "reviewed": "aab8b6cae742c66ea3b790ead9f87c14cdea54e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1095#discussion_r4662352657"
+    }
+  ]
+}

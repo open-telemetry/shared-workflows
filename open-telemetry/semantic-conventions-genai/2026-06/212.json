@@ -1,0 +1,31 @@
+{
+  "head": "e95916b2db21f90eb5a70993136005b68e96c75a",
+  "merge": "60c5e5b50607f9c9516ae02e8b04409a031a1db0",
+  "merged": "2026-06-05T18:13:37Z",
+  "missing_roots": 0,
+  "number": 212,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@lmolkova maybe we need a weaver feature to prepend to the inherited note 😅",
+      "created": "2026-05-28T23:44:37Z",
+      "hunk": "@@ -218,6 +218,27 @@ spans:\n         # TODO: Not adding to common attributes because of https://github.com/open-telemetry/weaver/issues/479\n         requirement_level: required\n         sampling_relevant: true\n+        note: |\n+          The inference provider that handles the request.\n+\n+          The attribute SHOULD be set based on the instrumentation's best\n+          knowledge and may differ from the actual model provider.\n+\n+          Multiple providers, including Azure OpenAI, Gemini, and AI hosting platforms\n+          are accessible using the OpenAI REST API and corresponding client libraries,\n+          but may proxy or host models from different providers.\n+\n+          The `gen_ai.request.model`, `gen_ai.response.model`, and `server.address`\n+          attributes may help identify the actual system in use.\n+\n+          The `gen_ai.provider.name` attribute acts as a discriminator that\n+          identifies the GenAI telemetry format flavor specific to that provider\n+          within GenAI semantic conventions.\n+          It SHOULD be set consistently with provider-specific attributes and signals.\n+          For example, GenAI spans, metrics, and events related to AWS Bedrock\n+          should have the `gen_ai.provider.name` set to `aws.bedrock` and include\n+          applicable `aws.bedrock.*` attributes and are not expected to include\n+          `openai.*` attributes.",
+      "id": "PRRT_kwDOSUeMrM6Fi-UM",
+      "opened": "2026-05-28T23:44:36Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-29T03:09:31Z",
+          "body": "went a different route",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/212#discussion_r3321900879"
+        }
+      ],
+      "reviewed": "f95c5d62eb05df3dec8796ca4966d484ee9217d3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/212#discussion_r3321263333"
+    }
+  ]
+}

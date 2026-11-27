@@ -1,0 +1,31 @@
+{
+  "head": "b956239e4ac4426c1dd4ce477ecf2fb034525d47",
+  "merge": "be33159e0fcf4dd03b50391a3e03e60d89bd54e8",
+  "merged": "2026-06-09T09:35:27Z",
+  "missing_roots": 0,
+  "number": 18890,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] New RPC exception event extractor helpers don’t appear to have any unit tests. Since this sets user-visible log event names/severities under `otel.semconv.exception.signal.preview=logs`, it would be good to add a small test (similar to `InstrumenterTest.server_error/client_error`) that builds an instrumenter with `setRpc*ExceptionEventExtractor(...)` and asserts the emitted `LogRecordData` has the expected `eventName` (e.g., `rpc.server.call.exception`) and `Severity` when `emitExceptionAsLogs()` is true.",
+      "created": "2026-06-03T22:12:22Z",
+      "hunk": "@@ -0,0 +1,45 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.rpc;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n+import io.opentelemetry.instrumentation.api.internal.Experimental;\n+\n+/** Utilities for configuring RPC exception events. */\n+public final class RpcExceptionEventExtractors {\n+\n+  /** Configures the RPC client exception event name and severity. */\n+  @CanIgnoreReturnValue\n+  public static <REQUEST, RESPONSE>\n+      InstrumenterBuilder<REQUEST, RESPONSE> setRpcClientExceptionEventExtractor(\n+          InstrumenterBuilder<REQUEST, RESPONSE> builder) {",
+      "id": "PRRT_kwDODJKVX86G6Dz1",
+      "opened": "2026-06-03T22:12:23Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcExceptionEventExtractors.java",
+      "replies": [
+        {
+          "at": "2026-06-04T00:42:11Z",
+          "body": "Added `RpcExceptionEventExtractorsTest` in `instrumentation-api-incubator` (runs under the `testExceptionSignalLogs` task with `otel.semconv.exception.signal.preview=logs`) that builds an instrumenter with `setRpcServer/ClientExceptionEventExtractor(...)` and asserts the emitted `LogRecordData` has the expected event name (`rpc.server.call.exception` / `rpc.client.call.exception`), `Severity`, and exception attributes when `emitExceptionAsLogs()` is true (and no log when false). Also made the gRPC error tests (`AbstractGrpcTest`) mode-aware as an integration check, with a per-module `testExceptionSignalLogs` Gradle task.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18890#discussion_r3352747298"
+        }
+      ],
+      "reviewed": "e9d6546c7a50ccff335df5ca6868a50175a9ebef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18890#discussion_r3352235450"
+    }
+  ]
+}

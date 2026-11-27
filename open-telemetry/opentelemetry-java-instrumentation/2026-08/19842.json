@@ -1,0 +1,109 @@
+{
+  "head": "fc82d6efaa72083e453450bf9944e0a3f5d5a9ac",
+  "merge": "4599478eac489c3a152b818d419ac8ed33bf8c99",
+  "merged": "2026-08-31T22:23:16Z",
+  "missing_roots": 0,
+  "number": 19842,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This resolves the interface class and its `version` method reflectively for every completed HTTP request. Since constructor advice is on the client hot path, repeated `Class.forName`/`getMethod` lookups add avoidable per-request overhead; cache the resolved accessor per response class (for example with a `ClassValue<Method>` in an injected helper) and only invoke the cached method here.",
+      "created": "2026-08-26T22:36:31Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.webflux.v5_0.client;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.netty.handler.codec.http.HttpVersion;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.springframework.http.client.reactive.ClientHttpResponse;\n+\n+class ReactorClientHttpResponseInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.springframework.http.client.reactive.ReactorClientHttpResponse\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(\n+                takesArgument(\n+                    0,\n+                    namedOneOf(\n+                        \"reactor.ipc.netty.http.client.HttpClientResponse\",\n+                        \"reactor.netty.http.client.HttpClientResponse\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class)\n+    public static void onExit(\n+        @Advice.This ClientHttpResponse clientHttpResponse,\n+        @Advice.Argument(0) Object reactorClientHttpResponse)\n+        throws Exception {\n+      String responseTypeName =\n+          reactorClientHttpResponse.getClass().getName().startsWith(\"reactor.ipc.\")\n+              ? \"reactor.ipc.netty.http.client.HttpClientResponse\"\n+              : \"reactor.netty.http.client.HttpClientResponse\";\n+      Class<?> responseType =\n+          Class.forName(\n+              responseTypeName, false, reactorClientHttpResponse.getClass().getClassLoader());\n+      HttpVersion version =\n+          (HttpVersion) responseType.getMethod(\"version\").invoke(reactorClientHttpResponse);",
+      "id": "PRRT_kwDODJKVX86cozDi",
+      "opened": "2026-08-26T22:36:32Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/ReactorClientHttpResponseInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:22:49Z",
+          "body": "Addressed in c53b03cb7d4ec780b2146c094aa412f8e4fd5ece.\n\nAnalysis: The constructor advice repeated the interface and method lookup for every response. HttpProtocolVersion now uses a ClassValue keyed by the concrete response class, so each class resolves its compatible Reactor Netty interface method once and the advice only calls the helper.\n\nUpsides: Completed requests avoid repeated Class.forName and getMethod calls. ClassValue also lets response classes unload with their class loader.\n\nDownsides: The helper retains one Method value per live response class. No material runtime cost is expected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3867739535"
+        }
+      ],
+      "reviewed": "57631cf44f127d2c48912377b51fff7cd8b9b4bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3867254440"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The added test only exercises HTTP/1.1, so the new `minorVersion() == 0` normalization—the path that implements the stated HTTP/2.0-to-`2` support—is untested. Add coverage using an HTTP/2 response (or a focused protocol-formatting test) that verifies both the span and duration metric report `\"2\"`.",
+      "created": "2026-08-26T22:36:32Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.webflux.v5_0.client;\n+\n+import io.netty.handler.codec.http.HttpVersion;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import org.springframework.http.client.reactive.ClientHttpResponse;\n+\n+public class HttpProtocolVersion {\n+\n+  private static final VirtualField<ClientHttpResponse, String> PROTOCOL_VERSION =\n+      VirtualField.find(ClientHttpResponse.class, String.class);\n+\n+  public static void set(ClientHttpResponse response, HttpVersion version) {\n+    String value =\n+        version.minorVersion() == 0\n+            ? Integer.toString(version.majorVersion())\n+            : version.majorVersion() + \".\" + version.minorVersion();",
+      "id": "PRRT_kwDODJKVX86cozD6",
+      "opened": "2026-08-26T22:36:32Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/HttpProtocolVersion.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:22:51Z",
+          "body": "Addressed in 65fcb2fe9b282ee752f608d65fa373f5852cd51f.\n\nAnalysis: The span and duration metric integration coverage already exercises protocol-version propagation with HTTP/1.1. A focused formatter test now constructs an HTTP/2.0 version and verifies that the zero minor version becomes `2`, which covers the previously untested normalization branch.\n\nUpsides: The test catches regressions in HTTP/2 formatting without requiring an HTTP/2 server and client fixture. The formatter is isolated from virtual-field class-loader behavior.\n\nDownsides: The focused test does not perform an HTTP/2 network exchange. Existing integration tests continue to cover propagation into spans and duration metrics.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3867739604"
+        }
+      ],
+      "reviewed": "57631cf44f127d2c48912377b51fff7cd8b9b4bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3867254478"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This also normalizes HTTP/1.0 to `\"1\"`, but `network.protocol.version` must preserve HTTP/1.0 as `\"1.0\"` (while HTTP/2 and HTTP/3 use `\"2\"`/`\"3\"`). A server returning an HTTP/1.0 response would therefore produce an incorrect span and metric attribute. Restrict zero-minor normalization to major versions above 1, and add a focused `format(1, 0)` assertion.",
+      "created": "2026-08-27T02:34:38Z",
+      "hunk": "@@ -0,0 +1,85 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.webflux.v5_0.client;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.lang.reflect.Method;\n+import javax.annotation.Nullable;\n+import org.springframework.http.client.reactive.ClientHttpResponse;\n+\n+public class HttpProtocolVersion {\n+\n+  private static final VirtualField<ClientHttpResponse, String> PROTOCOL_VERSION =\n+      VirtualField.find(ClientHttpResponse.class, String.class);\n+\n+  // the reactor and netty types are resolved reflectively; a compile-time reference to them would\n+  // add a muzzle reference that disables this instrumentation module in applications whose\n+  // WebClient does not use reactor netty\n+  private static final ClassValue<VersionAccessor> versionAccessor =\n+      new ClassValue<VersionAccessor>() {\n+        @Nullable\n+        @Override\n+        protected VersionAccessor computeValue(Class<?> responseClass) {\n+          String responseTypeName =\n+              responseClass.getName().startsWith(\"reactor.ipc.\")\n+                  ? \"reactor.ipc.netty.http.client.HttpClientResponse\"\n+                  : \"reactor.netty.http.client.HttpClientResponse\";\n+          try {\n+            Class<?> responseType =\n+                Class.forName(responseTypeName, false, responseClass.getClassLoader());\n+            Method versionMethod = responseType.getMethod(\"version\");\n+            Class<?> versionType = versionMethod.getReturnType();\n+            return new VersionAccessor(\n+                versionMethod,\n+                versionType.getMethod(\"majorVersion\"),\n+                versionType.getMethod(\"minorVersion\"));\n+          } catch (ReflectiveOperationException ignored) {\n+            return null;\n+          }\n+        }\n+      };\n+\n+  public static void set(ClientHttpResponse response, Object reactorClientHttpResponse) {\n+    VersionAccessor accessor = versionAccessor.get(reactorClientHttpResponse.getClass());\n+    if (accessor != null) {\n+      try {\n+        PROTOCOL_VERSION.set(response, accessor.getProtocolVersion(reactorClientHttpResponse));\n+      } catch (ReflectiveOperationException ignored) {\n+        // ignored\n+      }\n+    }\n+  }\n+\n+  static String format(int majorVersion, int minorVersion) {\n+    return minorVersion == 0 ? Integer.toString(majorVersion) : majorVersion + \".\" + minorVersion;",
+      "id": "PRRT_kwDODJKVX86crWej",
+      "opened": "2026-08-27T02:34:38Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/HttpProtocolVersion.java",
+      "replies": [
+        {
+          "at": "2026-08-27T02:39:37Z",
+          "body": "Addressed in 9401380df7fcc5471e6b7011e6beafe635052c3e.\n\nAnalysis: HTTP/1.0's semantic convention version is 1.0. The formatter treated every zero minor version as major-only, so it returned 1. Restricting this normalization to major versions above 1 preserves HTTP/1.0 while keeping HTTP/2 and later output unchanged.\n\nUpsides: Spans and metrics report the correct HTTP/1.0 version, and focused coverage prevents regression.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3868296264"
+        }
+      ],
+      "reviewed": "a3225495d681ec71de7294cb0a11903321a4e836",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3868275504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this can go away after https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19865",
+      "created": "2026-08-27T14:45:46Z",
+      "hunk": "@@ -28,6 +34,16 @@ protected WebClient.Builder instrument(WebClient.Builder builder) {\n   protected void configure(HttpClientTestOptions.Builder optionsBuilder) {\n     super.configure(optionsBuilder);\n \n+    optionsBuilder.setHttpAttributes(\n+        uri -> {\n+          Set<AttributeKey<?>> attributes =\n+              new HashSet<>(HttpClientTestOptions.DEFAULT_HTTP_ATTRIBUTES);\n+          if (uri.getPort() == PortUtils.UNUSABLE_PORT || uri.getHost().equals(\"192.0.2.1\")) {\n+            attributes.remove(NETWORK_PROTOCOL_VERSION);\n+          }\n+          return attributes;\n+        });\n+",
+      "id": "PRRT_kwDODJKVX86c3CaW",
+      "opened": "2026-08-27T14:45:46Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing-webflux7/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v7_0/client/SpringWebfluxClientInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "da60959d4adb2be7a7308f1189afe4dc29fe0392",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3872843556"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `hasAttributesSatisfyingExactly(...)` and list the complete expected metric attribute set here. The non-exact assertion only checks that this one entry exists, so it would still pass if this change accidentally emitted extra or incorrect HTTP metric attributes.",
+      "created": "2026-08-31T15:19:27Z",
+      "hunk": "@@ -28,9 +38,41 @@ protected WebClient.Builder instrument(WebClient.Builder builder) {\n   protected void configure(HttpClientTestOptions.Builder optionsBuilder) {\n     super.configure(optionsBuilder);\n \n+    optionsBuilder.setHttpAttributes(\n+        uri -> {\n+          Set<AttributeKey<?>> attributes =\n+              new HashSet<>(HttpClientTestOptions.DEFAULT_HTTP_ATTRIBUTES);\n+          if (uri.getPort() == PortUtils.UNUSABLE_PORT || uri.getHost().equals(\"192.0.2.1\")) {\n+            attributes.remove(NETWORK_PROTOCOL_VERSION);\n+          }\n+          return attributes;\n+        });\n+\n     // Disable remote connection tests on Windows due to reactor-netty creating extra spans\n     if (OS.WINDOWS.isCurrentOs()) {\n       optionsBuilder.setTestRemoteConnection(false);\n     }\n   }\n+\n+  @Test\n+  void shouldAddProtocolVersionToDurationMetric() {\n+    URI uri = resolveAddress(\"/success\");\n+    int responseCode = sendRequest(buildRequest(\"GET\", uri, emptyMap()), \"GET\", uri, emptyMap());\n+\n+    assertThat(responseCode).isEqualTo(200);\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.spring-webflux-5.0\",\n+        metric ->\n+            metric\n+                .hasName(\"http.client.request.duration\")\n+                .hasHistogramSatisfying(\n+                    histogram ->\n+                        histogram.hasPointsSatisfying(\n+                            point ->\n+                                point.hasAttributesSatisfying(\n+                                    attributes ->\n+                                        assertThat(attributes.asMap())\n+                                            .containsEntry(NETWORK_PROTOCOL_VERSION, \"1.1\")))));",
+      "id": "PRRT_kwDODJKVX86dxfW6",
+      "opened": "2026-08-31T15:19:28Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/SpringWebfluxClientInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-08-31T16:34:44Z",
+          "body": "Addressed in fc82d6efaa72083e453450bf9944e0a3f5d5a9ac.\n\nAnalysis: The metric point should contain the standard HTTP client request method, response status code, server address, server port, and network protocol version attributes. The exact assertion checks each expected value and rejects any unexpected attribute.\n\nUpsides: The test now catches missing, incorrect, and extra metric attributes.\n\nDownsides: An intentional change to the metric attribute set will require this expectation to change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3896399989"
+        }
+      ],
+      "reviewed": "5995e72cabe344fe47a671c04cdcb78de3cbe396",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19842#discussion_r3895781348"
+    }
+  ]
+}

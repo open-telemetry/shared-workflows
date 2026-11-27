@@ -1,0 +1,31 @@
+{
+  "head": "349e41cf5e4fb0b1026707a62877b3643002cb54",
+  "merge": "723bbec482f2b30517862da16204ef900e0eed5f",
+  "merged": "2026-09-12T21:07:41Z",
+  "missing_roots": 0,
+  "number": 20020,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This newly routes the driver through the deprecated per-instrumentation `statement_sanitizer` fallback, but `DbConfig.getQuerySanitizationEnabled` gates that fallback with process-global `SemconvStability.v3Preview()` instead of `v3Preview(openTelemetry)`. If a custom `ExtendedOpenTelemetry` enables `common.v3_preview` while the global instance does not, the driver will now honor the removed JDBC alias and can disable sanitization unexpectedly. Pass the `OpenTelemetry` instance through to that gate and add a regression case for this mixed configuration.",
+      "created": "2026-09-08T01:40:33Z",
+      "hunk": "@@ -78,14 +78,17 @@ private static boolean captureQueryParameters(OpenTelemetry openTelemetry) {\n   }\n \n   private static boolean querySanitizationEnabled(OpenTelemetry openTelemetry) {\n-    return DbConfig.isCommonQuerySanitizationEnabled(\n+    return DbConfig.isQuerySanitizationEnabled(\n         openTelemetry,\n+        \"jdbc\",",
+      "id": "PRRT_kwDODJKVX86gEPJZ",
+      "opened": "2026-09-08T01:40:33Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/OpenTelemetryDriver.java",
+      "replies": [
+        {
+          "at": "2026-09-08T02:04:17Z",
+          "body": "Addressed in c5d09b4adccedc9e932d3aca0f3c281bc638a09f. Both the per-instrumentation deprecated setting and the driver’s deprecated common system-property fallback now use `v3Preview(openTelemetry)`.\n\nAdded H2 and DbConfig regressions for custom-instance preview on/off. Before the fix, the two preview-enabled H2 cases exported the literal instead of `SELECT ?`, and the DbConfig case returned false instead of true. All 87 focused tests now pass across default/stable database semantic conventions, along with scoped Spotless and Checkstyle. The deprecation suppression is also limited to the helper that uses `DB_STATEMENT`.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20020#discussion_r3953704292"
+        }
+      ],
+      "reviewed": "4be08e414641d9d83c7dc0a4b92bb7d7fb6a8942",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20020#discussion_r3953608172"
+    }
+  ]
+}

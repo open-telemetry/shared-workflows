@@ -1,0 +1,31 @@
+{
+  "head": "5e8ed77364d2fd22ebd8d1d73b9b09518656440d",
+  "merge": "72d5815a7823f323be3d2298fa7d4e4e1d1ca9fb",
+  "merged": "2026-06-11T17:51:12Z",
+  "missing_roots": 0,
+  "number": 285,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`generate-reference-reports` uses `uv run --frozen update-reports`, but the repo documentation and CI currently invoke this command without `--frozen` (e.g., `reference/README.md` and `.github/workflows/ci.yml`'s `reference-status-report` job). Keeping the Makefile invocation consistent avoids surprising local failures if contributors have an older `uv` that doesn’t support this flag, and it’s not needed for determinism given the committed `reference/uv.lock`.",
+      "created": "2026-06-11T15:07:05Z",
+      "hunk": "@@ -147,9 +148,13 @@ generate-docs: $(SC_UPSTREAM_STAMP)\n generate-json-schemas:\n \tcd docs/gen-ai/non-normative && uv run models.py\n \n-# Run every regeneration the repo owns (weaver-driven + pydantic-driven).\n-# CI runs this and fails if any committed output is out of sync.\n-generate-all: schema-snapshot generate-registry generate-docs generate-json-schemas\n+# Update reference reports (README.md and reports/) from data.json files.\n+generate-reference-reports:\n+\tcd reference && uv run --frozen update-reports",
+      "id": "PRRT_kwDOSUeMrM6I2x2k",
+      "opened": "2026-06-11T15:07:06Z",
+      "path": "Makefile",
+      "replies": [
+        {
+          "at": "2026-06-11T15:58:34Z",
+          "body": "I make the CI also use `--locked`",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/285#discussion_r3397354913"
+        }
+      ],
+      "reviewed": "163c8774c28480735e2893f349964fc7f19efcfa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/285#discussion_r3397014112"
+    }
+  ]
+}

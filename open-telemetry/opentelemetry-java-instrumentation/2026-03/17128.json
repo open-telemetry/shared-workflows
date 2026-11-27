@@ -1,0 +1,25 @@
+{
+  "head": "829bc5f85b4bc7d87a0ff7f1ac9c665cbc493863",
+  "merge": "85648bff3c5618c92db96a122a4f7148d3d91702",
+  "merged": "2026-03-27T08:08:06Z",
+  "missing_roots": 0,
+  "number": 17128,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-03-27T07:34:39Z",
+      "hunk": "@@ -17,7 +17,15 @@ public static boolean setEnabled(boolean enabled) {\n     return previous;\n   }\n \n-  public static boolean wrappingEnabled() {\n+  public static boolean isWrappingEnabled() {\n     return wrappingEnabled.get();\n   }\n+\n+  /**\n+   * @deprecated Use {@link #isWrappingEnabled()} instead. Will be removed in a future release.\n+   */\n+  @Deprecated\n+  public static boolean wrappingEnabled() {\n+    return isWrappingEnabled();\n+  }",
+      "id": "PRRT_kwDODJKVX853N3TW",
+      "opened": "2026-03-27T07:34:39Z",
+      "path": "instrumentation/spring/spring-scheduling-3.1/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/spring/SpringSchedulingTaskTracing.java",
+      "replies": [],
+      "reviewed": "010b0d1af54f38373d94e555a3d430f80daf8add",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17128#discussion_r2999452544"
+    }
+  ]
+}

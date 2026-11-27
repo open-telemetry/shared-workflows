@@ -1,0 +1,82 @@
+{
+  "head": "ce179d19997f0e5c0249a2a2dc78b41d8f5e2e77",
+  "merge": "dbdb84ec8fcf369fb8362008efcd046d52559091",
+  "merged": "2026-08-05T14:38:32Z",
+  "missing_roots": 0,
+  "number": 19198,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Calling this method alone only enables Reactor's restoration of values exposed through Micrometer Context Propagation; it does not register an accessor for OpenTelemetry `Context`. This module does not register a `ThreadLocalAccessor`, so users following this condition can still lose the active OTel context. Require automatic propagation to be configured specifically for OpenTelemetry context.",
+      "created": "2026-07-12T18:41:27Z",
+      "hunk": "@@ -83,6 +83,23 @@ public class WebClientConfig {\n }\n ```\n \n+### Reactor context propagation hook\n+\n+Spring WebFlux runs on Project Reactor, which can switch threads across a reactive pipeline. \n+OTel context is stored in a `ThreadLocal` and will not survive these switches without the Reactor context propagation hook.\n+\n+**When you need the hook:**\n+Use `createWebFilterAndRegisterReactorHook()` and `addFilterAndRegisterReactorHook()` which register the hook for you.\n+This is the case when using library instrumentation without the Java agent and without Reactor's own automatic context propagation.\n+\n+**When you do NOT need the hook:**\n+- You are using OpenTelemetry Java agent - it registers the hook automatically.\n+- Your application already calls `Hooks.enableAutomaticContextPropagation()`. \n+  Adding the OTel hook on top is unnecessary and can cause increased memory allocation.\n+  Use `createWebFilter()` and `addFilter()` instead.",
+      "id": "PRRT_kwDODJKVX86QOYwI",
+      "opened": "2026-07-12T18:41:28Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/README.md",
+      "replies": [],
+      "reviewed": "9e4ca5baae4eb85c6c3d8aee9016ca406364f8a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19198#discussion_r3566888804"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Library instrumentation is intended to be used without the agent. What do you mean by `Reactor's own automatic context propagation`? Would that really propagate otel context?",
+      "created": "2026-07-14T16:36:22Z",
+      "hunk": "@@ -83,6 +83,22 @@ public class WebClientConfig {\n }\n ```\n \n+### Reactor context propagation hook\n+\n+Spring WebFlux runs on Project Reactor, which can switch threads across a reactive pipeline.\n+OTel context is stored in a `ThreadLocal` and will not survive these switches without the Reactor context propagation hook.\n+\n+**When you need the hook:**\n+Use `createWebFilterAndRegisterReactorHook()` and `addFilterAndRegisterReactorHook()` which register the hook for you.\n+This is the case when using library instrumentation without the Java agent and without Reactor's own automatic context propagation.",
+      "id": "PRRT_kwDODJKVX86Q00Rk",
+      "opened": "2026-07-14T16:36:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/README.md",
+      "replies": [
+        {
+          "at": "2026-07-14T18:31:26Z",
+          "body": "@laurit, you are right, since this is a library instrumentation, mentioning the Java agent is unnecessary. \r\nI wil update the doc ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19198#discussion_r3581659578"
+        }
+      ],
+      "reviewed": "63e48cf6a7418b801200f0ecd612891882ed5806",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19198#discussion_r3580885392"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this section necessary?",
+      "created": "2026-07-14T16:37:39Z",
+      "hunk": "@@ -83,6 +83,22 @@ public class WebClientConfig {\n }\n ```\n \n+### Reactor context propagation hook\n+\n+Spring WebFlux runs on Project Reactor, which can switch threads across a reactive pipeline.\n+OTel context is stored in a `ThreadLocal` and will not survive these switches without the Reactor context propagation hook.\n+\n+**When you need the hook:**\n+Use `createWebFilterAndRegisterReactorHook()` and `addFilterAndRegisterReactorHook()` which register the hook for you.\n+This is the case when using library instrumentation without the Java agent and without Reactor's own automatic context propagation.\n+\n+**When you do NOT need the hook:**\n+\n+- You are using OpenTelemetry Java agent - it registers the hook automatically.\n+- Your application already calls `Hooks.enableAutomaticContextPropagation()`.\n+  Adding the OTel hook on top is unnecessary and can cause increased memory allocation.\n+  Use `createWebFilter()` and `addFilter()` instead.",
+      "id": "PRRT_kwDODJKVX86Q01sI",
+      "opened": "2026-07-14T16:37:39Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/README.md",
+      "replies": [
+        {
+          "at": "2026-07-14T18:31:49Z",
+          "body": "This is not necessary. will remove",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19198#discussion_r3581662101"
+        }
+      ],
+      "reviewed": "63e48cf6a7418b801200f0ecd612891882ed5806",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19198#discussion_r3580893721"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\nOpenTelemetry context is stored in a `ThreadLocal` and will not survive these switches without the Reactor context propagation hook.\n```",
+      "created": "2026-08-05T13:33:56Z",
+      "hunk": "@@ -83,6 +83,15 @@ public class WebClientConfig {\n }\n ```\n \n+### Reactor context propagation hook\n+\n+Spring WebFlux runs on Project Reactor, which can switch threads across a reactive pipeline.\n+OTel context is stored in a `ThreadLocal` and will not survive these switches without the Reactor context propagation hook.",
+      "id": "PRRT_kwDODJKVX86WqrIP",
+      "opened": "2026-08-05T13:33:56Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/README.md",
+      "replies": [],
+      "reviewed": "15c3de7fd5fb51f8e60eeb5218fb968883818bbb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19198#discussion_r3720991258"
+    }
+  ]
+}

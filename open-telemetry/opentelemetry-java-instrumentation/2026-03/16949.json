@@ -1,0 +1,31 @@
+{
+  "head": "f8efeaaa9e16d6c6af4f3a91d17d5ad842825e68",
+  "merge": "722c50fe420b53a2ccfe24f62cc10fc3f2b49a91",
+  "merged": "2026-03-24T16:20:58Z",
+  "missing_roots": 0,
+  "number": 16949,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "the type argument for `Collections.emptyList()` was already inferred in java 5",
+      "created": "2026-03-22T17:02:03Z",
+      "hunk": "@@ -255,6 +256,32 @@ Preferred:\n ByteBuffer byteBuffer = (ByteBuffer) value.getValue();\n ```\n \n+## [Style] No Unnecessary Explicit Type Parameters on Method Calls\n+\n+Since Java 8, the compiler infers generic type arguments in virtually all contexts.",
+      "id": "PRRT_kwDODJKVX851-41P",
+      "opened": "2026-03-22T17:02:03Z",
+      "path": ".github/agents/knowledge/general-rules.md",
+      "replies": [
+        {
+          "at": "2026-03-24T15:36:32Z",
+          "body": "```suggestion\nSince Java 5, the compiler infers generic type arguments in virtually all contexts.\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16949#discussion_r2982499394"
+        }
+      ],
+      "reviewed": "c4ce0e1cccc9fe46f5404e8b65fe7b9c7214492c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16949#discussion_r2971772830"
+    }
+  ]
+}

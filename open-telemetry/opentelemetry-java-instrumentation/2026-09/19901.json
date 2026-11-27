@@ -1,0 +1,73 @@
+{
+  "head": "3b1f51224a6d60af3793da85e038d137f7f5a5ab",
+  "merge": "c9fd0eb584b3448ac00e8d84caf06bd7b383638f",
+  "merged": "2026-09-09T22:12:37Z",
+  "missing_roots": 0,
+  "number": 19901,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This enables peer capture for every Elasticsearch 5 request, including the default legacy-semconv mode where both peer getters discard the captured value. That makes the Apache async instrumentation allocate/wrap its response consumer (and potentially create a context and `InetSocketAddress`) on the hot path for telemetry that cannot be emitted. Please only put `SearchPeerState` into the context when `emitStableDatabaseSemconv()` is true.",
+      "created": "2026-08-31T03:57:04Z",
+      "hunk": "@@ -66,7 +68,8 @@ public static AdviceScope start(ElasticsearchRestRequest request) {\n         if (!instrumenter().shouldStart(parentContext, request)) {\n           return null;\n         }\n-        Context context = instrumenter().start(parentContext, request);\n+        Context context =\n+            request.getPeerState().storeInContext(instrumenter().start(parentContext, request));",
+      "id": "PRRT_kwDODJKVX86dmxZX",
+      "opened": "2026-08-31T03:57:05Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v5_0/RestClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:31:20Z",
+          "body": "Addressed in 90553dbab2880aaa7d38e909309d036ca166c131.\n\nAnalysis: SearchPeerState activates extra peer capture in the Apache asynchronous client. The Elasticsearch peer getters only use the captured address under stable database semantic conventions. Each REST instrumentation now stores the state only when stable database semantic conventions are enabled.\n\nUpsides: Legacy mode avoids the context entry and Apache peer capture work. Stable and duplicate modes keep the network peer attributes.\n\nDownsides: Each started Elasticsearch span adds one semantic convention mode check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19901#discussion_r3891709400"
+        }
+      ],
+      "reviewed": "d72bec456aedbcc285a9f2dfe4c8683e361beeaa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19901#discussion_r3891600373"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This enables peer capture for every Elasticsearch 6 request, including the default legacy-semconv mode where both peer getters discard the captured value. That makes the Apache async instrumentation allocate/wrap its response consumer (and potentially create a context and `InetSocketAddress`) on the hot path for telemetry that cannot be emitted. Please only put `SearchPeerState` into the context when `emitStableDatabaseSemconv()` is true.",
+      "created": "2026-08-31T03:57:04Z",
+      "hunk": "@@ -64,7 +66,8 @@ public static AdviceScope start(ElasticsearchRestRequest request) {\n         if (!instrumenter().shouldStart(parentContext, request)) {\n           return null;\n         }\n-        Context context = instrumenter().start(parentContext, request);\n+        Context context =\n+            request.getPeerState().storeInContext(instrumenter().start(parentContext, request));",
+      "id": "PRRT_kwDODJKVX86dmxZi",
+      "opened": "2026-08-31T03:57:05Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-6.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v6_4/RestClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:31:23Z",
+          "body": "Addressed in 90553dbab2880aaa7d38e909309d036ca166c131.\n\nAnalysis: SearchPeerState activates extra peer capture in the Apache asynchronous client. The Elasticsearch peer getters only use the captured address under stable database semantic conventions. Each REST instrumentation now stores the state only when stable database semantic conventions are enabled.\n\nUpsides: Legacy mode avoids the context entry and Apache peer capture work. Stable and duplicate modes keep the network peer attributes.\n\nDownsides: Each started Elasticsearch span adds one semantic convention mode check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19901#discussion_r3891709505"
+        }
+      ],
+      "reviewed": "d72bec456aedbcc285a9f2dfe4c8683e361beeaa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19901#discussion_r3891600390"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This enables peer capture for every Elasticsearch 7+ request, including the default legacy-semconv mode where both peer getters discard the captured value. That makes the Apache async instrumentation allocate/wrap its response consumer (and potentially create a context and `InetSocketAddress`) on the hot path for telemetry that cannot be emitted. Please only put `SearchPeerState` into the context when `emitStableDatabaseSemconv()` is true.",
+      "created": "2026-08-31T03:57:05Z",
+      "hunk": "@@ -68,7 +70,8 @@ public static AdviceScope start(ElasticsearchRestRequest request) {\n       if (!instrumenter().shouldStart(parentContext, request)) {\n         return null;\n       }\n-      Context context = instrumenter().start(parentContext, request);\n+      Context context =\n+          request.getPeerState().storeInContext(instrumenter().start(parentContext, request));",
+      "id": "PRRT_kwDODJKVX86dmxZw",
+      "opened": "2026-08-31T03:57:05Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-7.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v7_0/RestClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:31:24Z",
+          "body": "Addressed in 90553dbab2880aaa7d38e909309d036ca166c131.\n\nAnalysis: SearchPeerState activates extra peer capture in the Apache asynchronous client. The Elasticsearch peer getters only use the captured address under stable database semantic conventions. Each REST instrumentation now stores the state only when stable database semantic conventions are enabled.\n\nUpsides: Legacy mode avoids the context entry and Apache peer capture work. Stable and duplicate modes keep the network peer attributes.\n\nDownsides: Each started Elasticsearch span adds one semantic convention mode check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19901#discussion_r3891709603"
+        }
+      ],
+      "reviewed": "d72bec456aedbcc285a9f2dfe4c8683e361beeaa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19901#discussion_r3891600405"
+    }
+  ]
+}

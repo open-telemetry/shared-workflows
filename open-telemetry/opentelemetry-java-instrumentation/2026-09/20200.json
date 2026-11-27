@@ -1,0 +1,220 @@
+{
+  "head": "16ed7c343338baee866ac5de6c11bf129b3770ff",
+  "merge": "fb861569386dd510a8a349abceca668cadc02696",
+  "merged": "2026-09-30T16:15:58Z",
+  "missing_roots": 0,
+  "number": 20200,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Replacing the `spring-integration-core` Muzzle pass removes compatibility coverage for the core-only instrumentation, including the new `MessageHistoryInstrumentation` and `MessageProducerSupportInstrumentation`. Keep a core pass and add separately scoped AMQP coverage for `SpringIntegrationAmqpInstrumentationModule`; a simple second pass may require distinct instrumentation identities so each pass validates only the references available in that artifact.",
+      "created": "2026-09-20T15:19:47Z",
+      "hunk": "@@ -11,7 +11,7 @@ extra[\"failOnContextLeak\"] = false\n muzzle {\n   pass {\n     group.set(\"org.springframework.integration\")\n-    module.set(\"spring-integration-core\")\n+    module.set(\"spring-integration-amqp\")",
+      "id": "PRRT_kwDODJKVX86kJ9-0",
+      "opened": "2026-09-20T15:19:48Z",
+      "path": "instrumentation/spring/spring-integration-4.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-24T07:00:04Z",
+          "body": "Addressed in c00f9717038078fc61765bcc6570fbc4fd2d80d5, 4fbb62b241b9d7ab39f41bc9745fbf1e0ff8efec.\n\nFixed in the verified source changes c00f9717038078fc61765bcc6570fbc4fd2d80d5, 4fbb62b241b9d7ab39f41bc9745fbf1e0ff8efec.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4090807070"
+        }
+      ],
+      "reviewed": "3ab22551e1df374bd4978757196d20aa5c599a5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4057279359"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These new AMQP handoff tasks are dependencies of `check`, but selected instrumentation CI runs the explicit task lists in `.github/scripts/instrumentations.sh`. None of the new tasks appears there, and the retry regression is also guarded by `testLatestDeps()`, so it never runs in that matrix. Add the new handoff variants to the regular instrumentation task list and add the required handoff task variants to `TEST_LATEST_DEPS_INSTRUMENTATIONS` so the retry path executes with latest dependencies.",
+      "created": "2026-09-20T15:19:47Z",
+      "hunk": "@@ -42,6 +43,56 @@ dependencies {\n }\n \n tasks {\n+  val testAmqpHandoffWithRabbitInstrumentation =\n+    register<Test>(\"testAmqpHandoffWithRabbitInstrumentation\") {\n+      testClassesDirs = sourceSets.test.get().output.classesDirs\n+      classpath = sourceSets.test.get().runtimeClasspath\n+      filter {\n+        includeTestsMatching(\"MessageProducerSupportInstrumentationTest\")\n+      }\n+      include(\"**/MessageProducerSupportInstrumentationTest.*\")",
+      "id": "PRRT_kwDODJKVX86kJ9-3",
+      "opened": "2026-09-20T15:19:48Z",
+      "path": "instrumentation/spring/spring-integration-4.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-24T07:00:06Z",
+          "body": "Addressed in c00f9717038078fc61765bcc6570fbc4fd2d80d5, 4fbb62b241b9d7ab39f41bc9745fbf1e0ff8efec.\n\nFixed in the verified source changes c00f9717038078fc61765bcc6570fbc4fd2d80d5, 4fbb62b241b9d7ab39f41bc9745fbf1e0ff8efec.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4090807346"
+        }
+      ],
+      "reviewed": "3ab22551e1df374bd4978757196d20aa5c599a5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4057279363"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `find(...)` treats any active invocation with the same message object and channel as a duplicate interceptor callback. A handler can legitimately call `channel.send(message)` with that same immutable message; the nested `preSend` then adds only a no-op callback, so it reuses the outer processing scope and emits no nested process span or metric. Distinguish duplicate interceptor registration from a reentrant send, and add a regression test that redispatches the same message instance.",
+      "created": "2026-09-20T15:19:48Z",
+      "hunk": "@@ -0,0 +1,281 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.integration.v4_1;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.spring.integration.v4_1.internal.SpringIntegrationHandoff;\n+import java.util.ArrayDeque;\n+import java.util.Deque;\n+import java.util.Iterator;\n+import javax.annotation.Nullable;\n+import org.springframework.messaging.Message;\n+import org.springframework.messaging.MessageChannel;\n+import org.springframework.messaging.MessageHandler;\n+\n+final class MessageInvocation {\n+\n+  // This identifies local Spring Integration work without serializing ownership into message\n+  // headers.\n+  private static final ContextKey<Identity> CURRENT_INVOCATION =\n+      ContextKey.named(\"opentelemetry-spring-integration-current-invocation\");\n+\n+  private static final ThreadLocal<Deque<MessageInvocation>> currentInvocations =\n+      new ThreadLocal<>();\n+\n+  private static final ThreadLocal<Deque<Callback>> currentCallbacks = new ThreadLocal<>();\n+\n+  private final Identity identity;\n+  private final MessageWithChannel request;\n+  @Nullable private final Context telemetryContext;\n+  @Nullable private final Instrumenter<MessageWithChannel, Void> instrumenter;\n+  private final Scope scope;\n+\n+  private MessageInvocation(\n+      Identity identity,\n+      MessageWithChannel request,\n+      Context scopedContext,\n+      @Nullable Context telemetryContext,\n+      @Nullable Instrumenter<MessageWithChannel, Void> instrumenter) {\n+    this.identity = identity;\n+    this.request = request;\n+    this.telemetryContext = telemetryContext;\n+    this.instrumenter = instrumenter;\n+    scope = scopedContext.with(CURRENT_INVOCATION, identity).makeCurrent();\n+  }\n+\n+  static void start(\n+      Message<?> inputMessage,\n+      Message<?> outputMessage,\n+      MessageChannel channel,\n+      @Nullable MessageHandler handler,\n+      MessageWithChannel request,\n+      Context scopedContext,\n+      @Nullable Context telemetryContext,\n+      @Nullable Instrumenter<MessageWithChannel, Void> instrumenter) {\n+    Identity identity =\n+        new Identity(\n+            inputMessage,\n+            outputMessage,\n+            channel,\n+            handler,\n+            SpringIntegrationHandoff.currentLowerProcessing());\n+    MessageInvocation invocation =\n+        new MessageInvocation(identity, request, scopedContext, telemetryContext, instrumenter);\n+    Deque<MessageInvocation> invocations = currentInvocations.get();\n+    if (invocations == null) {\n+      invocations = new ArrayDeque<>();\n+      currentInvocations.set(invocations);\n+    }\n+    invocations.addLast(invocation);\n+    addCallback(new Callback(channel, handler, handler != null, invocation));\n+  }\n+\n+  static boolean enterDuplicateSend(Message<?> message, MessageChannel channel) {\n+    return enterDuplicate(message, channel, null, false);\n+  }\n+\n+  static boolean enterDuplicateHandler(\n+      Message<?> message, MessageChannel channel, MessageHandler handler) {\n+    return enterDuplicate(message, channel, handler, true);\n+  }\n+\n+  static void startNoopSend(MessageChannel channel) {\n+    addCallback(new Callback(channel, null, false, null));\n+  }\n+\n+  static boolean currentIsSendFor(Context context, Message<?> message, MessageChannel channel) {\n+    Identity identity = context.get(CURRENT_INVOCATION);\n+    return identity != null && identity.matches(message, channel, null, false);\n+  }\n+\n+  static boolean currentUsesLowerProcessing(Context context, @Nullable Context lowerProcessing) {\n+    Identity identity = context.get(CURRENT_INVOCATION);\n+    return identity != null && identity.lowerProcessing == lowerProcessing;\n+  }\n+\n+  static void endSend(MessageChannel channel, @Nullable Throwable throwable) {\n+    end(channel, null, false, throwable);\n+  }\n+\n+  static void endHandler(\n+      MessageChannel channel, MessageHandler handler, @Nullable Throwable throwable) {\n+    end(channel, handler, true, throwable);\n+  }\n+\n+  private static void end(\n+      MessageChannel channel,\n+      @Nullable MessageHandler handler,\n+      boolean handlerInvocation,\n+      @Nullable Throwable throwable) {\n+    Deque<Callback> callbacks = currentCallbacks.get();\n+    if (callbacks == null) {\n+      return;\n+    }\n+    Callback callback = findCompletion(callbacks, channel, handler, handlerInvocation);\n+    if (callback == null) {\n+      return;\n+    }\n+\n+    callbacks.remove(callback);\n+    if (callbacks.isEmpty()) {\n+      currentCallbacks.remove();\n+    }\n+\n+    MessageInvocation invocation = callback.invocation;\n+    if (invocation == null) {\n+      return;\n+    }\n+\n+    Deque<MessageInvocation> invocations = currentInvocations.get();\n+    if (invocations == null) {\n+      return;\n+    }\n+    invocations.remove(invocation);\n+    if (invocations.isEmpty()) {\n+      currentInvocations.remove();\n+    }\n+    invocation.complete(throwable);\n+  }\n+\n+  private static boolean enterDuplicate(\n+      Message<?> message,\n+      MessageChannel channel,\n+      @Nullable MessageHandler handler,\n+      boolean handlerInvocation) {\n+    if (find(message, channel, handler, handlerInvocation) == null) {\n+      return false;\n+    }\n+    addCallback(new Callback(channel, handler, handlerInvocation, null));\n+    return true;",
+      "id": "PRRT_kwDODJKVX86kJ9-8",
+      "opened": "2026-09-20T15:19:48Z",
+      "path": "instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/MessageInvocation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:00:08Z",
+          "body": "Addressed in c00f9717038078fc61765bcc6570fbc4fd2d80d5, 4fbb62b241b9d7ab39f41bc9745fbf1e0ff8efec.\n\nFixed in the verified source changes c00f9717038078fc61765bcc6570fbc4fd2d80d5, 4fbb62b241b9d7ab39f41bc9745fbf1e0ff8efec.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4090807630"
+        }
+      ],
+      "reviewed": "3ab22551e1df374bd4978757196d20aa5c599a5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4057279373"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This still classifies a reentrant `DirectChannel` send of the handler's exact `Message` instance as a duplicate interceptor callback. Direct channels never invoke `beforeHandle`, so the outer send invocation remains the last callback owner; `find(...)` matches its `outputMessage`, this condition succeeds, and the nested send emits no Process span or metric. The new same-message regression only exercises `ExecutorSubscribableChannel`, whose handler callback changes the owner and therefore does not cover this path. Please distinguish callback re-entry from a handler-initiated send for synchronous channels and add the corresponding DirectChannel regression.",
+      "created": "2026-09-24T07:09:42Z",
+      "hunk": "@@ -0,0 +1,297 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.integration.v4_1;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.spring.integration.v4_1.internal.SpringIntegrationHandoff;\n+import java.util.ArrayDeque;\n+import java.util.Deque;\n+import java.util.Iterator;\n+import javax.annotation.Nullable;\n+import org.springframework.messaging.Message;\n+import org.springframework.messaging.MessageChannel;\n+import org.springframework.messaging.MessageHandler;\n+\n+final class MessageInvocation {\n+\n+  // This identifies local Spring Integration work without serializing ownership into message\n+  // headers.\n+  private static final ContextKey<Identity> CURRENT_INVOCATION =\n+      ContextKey.named(\"opentelemetry-spring-integration-current-invocation\");\n+\n+  private static final ThreadLocal<Deque<MessageInvocation>> currentInvocations =\n+      new ThreadLocal<>();\n+\n+  private static final ThreadLocal<Deque<Callback>> currentCallbacks = new ThreadLocal<>();\n+\n+  private final Identity identity;\n+  private final MessageWithChannel request;\n+  @Nullable private final Context telemetryContext;\n+  @Nullable private final Instrumenter<MessageWithChannel, Void> instrumenter;\n+  private final Scope scope;\n+\n+  private MessageInvocation(\n+      Identity identity,\n+      MessageWithChannel request,\n+      Context scopedContext,\n+      @Nullable Context telemetryContext,\n+      @Nullable Instrumenter<MessageWithChannel, Void> instrumenter) {\n+    this.identity = identity;\n+    this.request = request;\n+    this.telemetryContext = telemetryContext;\n+    this.instrumenter = instrumenter;\n+    scope = scopedContext.with(CURRENT_INVOCATION, identity).makeCurrent();\n+  }\n+\n+  static void start(\n+      Message<?> inputMessage,\n+      Message<?> outputMessage,\n+      MessageChannel channel,\n+      @Nullable MessageHandler handler,\n+      MessageWithChannel request,\n+      Context scopedContext,\n+      @Nullable Context telemetryContext,\n+      @Nullable Instrumenter<MessageWithChannel, Void> instrumenter) {\n+    Identity identity =\n+        new Identity(\n+            inputMessage,\n+            outputMessage,\n+            channel,\n+            handler,\n+            SpringIntegrationHandoff.currentLowerProcessing());\n+    MessageInvocation invocation =\n+        new MessageInvocation(identity, request, scopedContext, telemetryContext, instrumenter);\n+    Deque<MessageInvocation> invocations = currentInvocations.get();\n+    if (invocations == null) {\n+      invocations = new ArrayDeque<>();\n+      currentInvocations.set(invocations);\n+    }\n+    invocations.addLast(invocation);\n+    addCallback(new Callback(channel, handler, handler != null, invocation));\n+  }\n+\n+  static boolean enterDuplicateSend(Message<?> message, MessageChannel channel) {\n+    return enterDuplicate(message, channel, null, false);\n+  }\n+\n+  static boolean enterDuplicateHandler(\n+      Message<?> message, MessageChannel channel, MessageHandler handler) {\n+    return enterDuplicate(message, channel, handler, true);\n+  }\n+\n+  static void startNoopSend(MessageChannel channel) {\n+    addCallback(new Callback(channel, null, false, null));\n+  }\n+\n+  static boolean currentIsSendFor(Context context, Message<?> message, MessageChannel channel) {\n+    Identity identity = context.get(CURRENT_INVOCATION);\n+    return identity != null && identity.matches(message, channel, null, false);\n+  }\n+\n+  static boolean currentUsesLowerProcessing(Context context, @Nullable Context lowerProcessing) {\n+    Identity identity = context.get(CURRENT_INVOCATION);\n+    return identity != null && identity.lowerProcessing == lowerProcessing;\n+  }\n+\n+  static void endSend(MessageChannel channel, @Nullable Throwable throwable) {\n+    end(channel, null, false, throwable);\n+  }\n+\n+  static void endHandler(\n+      MessageChannel channel, MessageHandler handler, @Nullable Throwable throwable) {\n+    end(channel, handler, true, throwable);\n+  }\n+\n+  private static void end(\n+      MessageChannel channel,\n+      @Nullable MessageHandler handler,\n+      boolean handlerInvocation,\n+      @Nullable Throwable throwable) {\n+    Deque<Callback> callbacks = currentCallbacks.get();\n+    if (callbacks == null) {\n+      return;\n+    }\n+    Callback callback = findCompletion(callbacks, channel, handler, handlerInvocation);\n+    if (callback == null) {\n+      return;\n+    }\n+\n+    callbacks.remove(callback);\n+    if (callbacks.isEmpty()) {\n+      currentCallbacks.remove();\n+    }\n+\n+    MessageInvocation invocation = callback.invocation;\n+    if (invocation == null) {\n+      return;\n+    }\n+\n+    Deque<MessageInvocation> invocations = currentInvocations.get();\n+    if (invocations == null) {\n+      return;\n+    }\n+    invocations.remove(invocation);\n+    if (invocations.isEmpty()) {\n+      currentInvocations.remove();\n+    }\n+    invocation.complete(throwable);\n+  }\n+\n+  private static boolean enterDuplicate(\n+      Message<?> message,\n+      MessageChannel channel,\n+      @Nullable MessageHandler handler,\n+      boolean handlerInvocation) {\n+    MessageInvocation invocation = find(message, channel, handler, handlerInvocation);\n+    Deque<Callback> callbacks = currentCallbacks.get();\n+    if (invocation == null\n+        || callbacks == null\n+        || callbacks.isEmpty()\n+        || callbacks.peekLast().owner != invocation) {",
+      "id": "PRRT_kwDODJKVX86leboq",
+      "opened": "2026-09-24T07:09:43Z",
+      "path": "instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/MessageInvocation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:40:39Z",
+          "body": "Addressed in 6a9725a3c96e1820124791f1f6dd53d1dcdc0938, eeba6300de70d9ab3d07d1e32a9337caeac99c1b, 2699423940c07722a2856218637b99c45f734b71.\n\nFixed in the verified source changes 6a9725a3c96e1820124791f1f6dd53d1dcdc0938, eeba6300de70d9ab3d07d1e32a9337caeac99c1b, 2699423940c07722a2856218637b99c45f734b71.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4091103746"
+        }
+      ],
+      "reviewed": "4fbb62b241b9d7ab39f41bc9745fbf1e0ff8efec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4090880096"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `namedOneOf`",
+      "created": "2026-09-29T13:06:48Z",
+      "hunk": "@@ -0,0 +1,77 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.integration.v4_1;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;\n+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.none;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.springframework.amqp.core.Message;\n+import org.springframework.messaging.support.ExecutorChannelInterceptor;\n+\n+class AmqpInboundChannelAdapterInstrumentation implements TypeInstrumentation {\n+\n+  private static final String ADAPTER =\n+      \"org.springframework.integration.amqp.inbound.AmqpInboundChannelAdapter\";\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return nameStartsWith(ADAPTER + \"$\")\n+        .and(\n+            hasSuperType(\n+                named(\"org.springframework.amqp.rabbit.core.ChannelAwareMessageListener\")",
+      "id": "PRRT_kwDODJKVX86nHodp",
+      "opened": "2026-09-29T13:06:48Z",
+      "path": "instrumentation/spring/spring-integration-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/integration/v4_1/AmqpInboundChannelAdapterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-30T03:17:20Z",
+          "body": "1e890fbf14f73e273c4d9c7151d75edf063781d4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4140486402"
+        }
+      ],
+      "reviewed": "bc7a438521fd1f7a75b5d68c33b0932d4df279af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4133796344"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`hasClassesNamed` accepts multiple class names no need to and them together",
+      "created": "2026-09-29T13:12:17Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.integration.v4_1;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Collections.singletonList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+@AutoService(InstrumentationModule.class)\n+public class SpringIntegrationAmqpInstrumentationModule extends InstrumentationModule {\n+\n+  public SpringIntegrationAmqpInstrumentationModule() {\n+    super(\"spring-integration\", \"spring-integration-4.1\", \"spring-integration-amqp-4.1\");\n+  }\n+\n+  @Override\n+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    return hasClassesNamed(\"org.springframework.messaging.support.ExecutorChannelInterceptor\")",
+      "id": "PRRT_kwDODJKVX86nHw6E",
+      "opened": "2026-09-29T13:12:17Z",
+      "path": "instrumentation/spring/spring-integration-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/integration/v4_1/SpringIntegrationAmqpInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-30T03:17:20Z",
+          "body": "805c187c415e957de3fc2a46e2f329ad0b353240",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4140486394"
+        }
+      ],
+      "reviewed": "bc7a438521fd1f7a75b5d68c33b0932d4df279af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4133849107"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "isn't it enabled by default?",
+      "created": "2026-09-29T13:15:54Z",
+      "hunk": "@@ -42,6 +46,56 @@ dependencies {\n }\n \n tasks {\n+  val testAmqpHandoffWithRabbitInstrumentation =\n+    register<Test>(\"testAmqpHandoffWithRabbitInstrumentation\") {\n+      testClassesDirs = sourceSets.test.get().output.classesDirs\n+      classpath = sourceSets.test.get().runtimeClasspath\n+      filter {\n+        includeTestsMatching(\"MessageProducerSupportInstrumentationTest\")\n+      }\n+      include(\"**/MessageProducerSupportInstrumentationTest.*\")\n+      jvmArgs(\"-Dotel.instrumentation.rabbitmq.enabled=false\")\n+      jvmArgs(\"-Dotel.instrumentation.spring-rabbit.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86nH2hH",
+      "opened": "2026-09-29T13:15:54Z",
+      "path": "instrumentation/spring/spring-integration-4.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-30T03:17:20Z",
+          "body": "902f92a20f6f8e820ea0048e38a7d5078fecd1a9",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4140486400"
+        }
+      ],
+      "reviewed": "bc7a438521fd1f7a75b5d68c33b0932d4df279af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4133884167"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "just checking that these were added intentionally",
+      "created": "2026-09-29T13:16:35Z",
+      "hunk": "@@ -319,6 +319,9 @@ readonly INSTRUMENTATIONS=(\n   \"spring:spring-batch-3.0:javaagent:testExperimental\"\n   \"spring:spring-data:spring-data-1.8:javaagent:test\"\n   \"spring:spring-integration-4.1:javaagent:test\"\n+  \"spring:spring-integration-4.1:javaagent:testAmqpHandoffWithRabbitInstrumentation\"\n+  \"spring:spring-integration-4.1:javaagent:testAmqpHandoffWithRabbitInstrumentationBothSemconv\"\n+  \"spring:spring-integration-4.1:javaagent:testAmqpHandoffWithRabbitInstrumentationMessagingPreview\"",
+      "id": "PRRT_kwDODJKVX86nH3jI",
+      "opened": "2026-09-29T13:16:35Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [
+        {
+          "at": "2026-09-30T03:31:50Z",
+          "body": "e93acd6183e29e9d34f396461b1d67f32760bddc",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4140554887"
+        }
+      ],
+      "reviewed": "bc7a438521fd1f7a75b5d68c33b0932d4df279af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4133890459"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we `Class.forName` they type and use `isAssignableFrom`",
+      "created": "2026-09-29T13:19:43Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.integration.v4_1.internal;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.internal.ScopedThreadValue;\n+import javax.annotation.Nullable;\n+import org.springframework.messaging.Message;\n+\n+/**\n+ * Internal state for a message-producing endpoint's immediate channel handoff.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SpringIntegrationHandoff {\n+\n+  private static final String AMQP_INBOUND_CHANNEL_ADAPTER =\n+      \"org.springframework.integration.amqp.inbound.AmqpInboundChannelAdapter\";\n+\n+  private static final ScopedThreadValue<Context> currentLowerProcessing =\n+      new ScopedThreadValue<>();\n+  private static final ScopedThreadValue<Message<?>> currentMessage = new ScopedThreadValue<>();\n+\n+  @Nullable\n+  public static Object enter(Object endpoint, Message<?> message) {\n+    if (currentLowerProcessing.get() == null || !isAmqpInboundChannelAdapter(endpoint.getClass())) {\n+      return null;\n+    }\n+    return new MessageState(currentMessage.set(message));\n+  }\n+\n+  public static void exit(@Nullable Object state) {\n+    if (state != null) {\n+      currentMessage.restore(((MessageState) state).previous);\n+    }\n+  }\n+\n+  @Nullable\n+  public static Object enterLowerProcessing(@Nullable Context context) {\n+    return new ProcessingState(currentLowerProcessing.set(context));\n+  }\n+\n+  public static void exitLowerProcessing(@Nullable Object state) {\n+    if (state != null) {\n+      currentLowerProcessing.restore(((ProcessingState) state).previous);\n+    }\n+  }\n+\n+  public static boolean isCurrent(Message<?> message) {\n+    return currentMessage.get() == message;\n+  }\n+\n+  @Nullable\n+  public static Context currentLowerProcessing() {\n+    return currentLowerProcessing.get();\n+  }\n+\n+  public static void forward(Message<?> inputMessage, Message<?> outputMessage) {\n+    if (isCurrent(inputMessage)) {\n+      currentMessage.set(outputMessage);\n+    }\n+  }\n+\n+  private static boolean isAmqpInboundChannelAdapter(Class<?> type) {\n+    do {",
+      "id": "PRRT_kwDODJKVX86nH8Xh",
+      "opened": "2026-09-29T13:19:42Z",
+      "path": "instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/internal/SpringIntegrationHandoff.java",
+      "replies": [
+        {
+          "at": "2026-09-30T03:17:20Z",
+          "body": "e1e50adb2028b5f880a0f61ff687f4662f2f352f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4140486404"
+        }
+      ],
+      "reviewed": "bc7a438521fd1f7a75b5d68c33b0932d4df279af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4133921121"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I find this hard to follow, maybe comments would help.",
+      "created": "2026-09-30T12:40:39Z",
+      "hunk": "@@ -0,0 +1,310 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.integration.v4_1;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.spring.integration.v4_1.internal.SpringIntegrationHandoff;\n+import java.util.ArrayDeque;\n+import java.util.Deque;\n+import java.util.Iterator;\n+import javax.annotation.Nullable;\n+import org.springframework.messaging.Message;\n+import org.springframework.messaging.MessageChannel;\n+import org.springframework.messaging.MessageHandler;\n+\n+final class MessageInvocation {",
+      "id": "PRRT_kwDODJKVX86niCzI",
+      "opened": "2026-09-30T12:40:39Z",
+      "path": "instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/MessageInvocation.java",
+      "replies": [
+        {
+          "at": "2026-09-30T14:55:29Z",
+          "body": "good point: 16ed7c343338baee866ac5de6c11bf129b3770ff",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4146021412"
+        }
+      ],
+      "reviewed": "67e3750a3a4846540c985dcd2bb3113ab91d77a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20200#discussion_r4144656905"
+    }
+  ]
+}

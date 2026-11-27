@@ -1,0 +1,52 @@
+{
+  "head": "e6db9882137c7669fe63dfd5afb33aab9018e6c2",
+  "merge": "6c31458d5c71261408a543faebfb0ff593a57f76",
+  "merged": "2026-11-02T10:36:16Z",
+  "missing_roots": 0,
+  "number": 21106,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by renaming InstrumentationModuleClassLoaderRegistry to InstrumentationClassLoaderRegistry. Rename the Java source file, class declaration, and private constructor in javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/, and update every reference, including imports, calls, Javadoc links, and reflective fully qualified class-name strings in the Camel and ClickHouse tests. Keep the package, InstrumentationModuleClassLoader type, method names, existing helper-selection changes, and runtime behavior unchanged. Do not make unrelated changes. The final tree must contain no references to InstrumentationModuleClassLoaderRegistry. Run the narrowest relevant spotlessApply tasks directly before focused validation, without a preliminary spotlessCheck, and run relevant tests where feasible. Commit and push the rename to this PR's existing head branch.",
+      "created": "2026-10-31T20:20:47Z",
+      "hunk": "@@ -17,9 +17,9 @@\n import net.bytebuddy.agent.builder.AgentBuilder;\n import net.bytebuddy.utility.JavaModule;\n \n-public class IndyModuleRegistry {\n+public class InstrumentationModuleClassLoaderRegistry {",
+      "id": "PRRT_kwDODJKVX86yUSou",
+      "opened": "2026-10-31T20:20:47Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/InstrumentationModuleClassLoaderRegistry.java",
+      "replies": [
+        {
+          "at": "2026-10-31T20:30:46Z",
+          "body": "Renamed the registry class and file, updating callers and reflective test names without changing runtime behavior. Committed and pushed as `3301f25a`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21106#discussion_r4433193897"
+        }
+      ],
+      "reviewed": "7ce8ded8c2e276aab4771d7be34e5c31d400b788",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21106#discussion_r4433166798"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user-requested naming-only cleanup: \"apply all of those changes cloud\".\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java, rename installInjectingModule to installHelperInjectionModule and update its call. Keep the default installModule name and the existing useIsolatedHelperClasses selection name.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/InstrumentationClassLoaderRegistry.java, rename initializeModuleLoaderOnMatch to initializeModuleClassLoaderOnTransform and update all callers. Its callback initializes the class loader during transformation; preserve the immediate module registration and the callback's order and behavior. Keep the private initializeModuleLoaderForClassLoader method name unless it is a necessary caller reference to the requested renamed method.\n\nIn that registry, rename moduleName locals holding module.getClass().getName() to moduleClassName. Replace moduleCl with agentOrExtensionClassLoader when it denotes the module's defining agent/extension loader, or instrumentationClassLoader when it denotes an InstrumentationModuleClassLoader. Rename internalOrExtensionsClassLoaders to instrumentationClassLoaders. Preserve the cache keys, values, initialization, and loader lifetimes exactly. Keep the InstrumentationClassLoaderRegistry class name.\n\nUpdate every affected reference, import, constructor, filename, test reference, and directly related documentation or link for these renames. Keep existing packages and visibility, runtime behavior, helper-selection precedence, advice inlining annotations, module identities, configuration names, exception handling, and the JVM-facing bootstrap entry point and signature unchanged. Preserve all earlier changes on this PR. Do not apply sibling PRs' class renames, move additional classes, update other PRs, or make unrelated cleanup. Make the changes on this PR's existing head branch, not in a new PR. Run the narrowest relevant formatters and existing checks for these changes.",
+      "created": "2026-10-31T23:07:09Z",
+      "hunk": "@@ -17,9 +17,9 @@\n import net.bytebuddy.agent.builder.AgentBuilder;\n import net.bytebuddy.utility.JavaModule;\n \n-public class IndyModuleRegistry {\n+public class InstrumentationClassLoaderRegistry {",
+      "id": "PRRT_kwDODJKVX86yVaBh",
+      "opened": "2026-10-31T23:07:09Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/InstrumentationClassLoaderRegistry.java",
+      "replies": [
+        {
+          "at": "2026-10-31T23:16:39Z",
+          "body": "Applied the requested naming-only cleanup and pushed commit `dc33d50a`. `:javaagent-tooling:spotlessApply` and `:javaagent-tooling:test` passed; the old names have no remaining references.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21106#discussion_r4433654355"
+        }
+      ],
+      "reviewed": "3301f25a8663adf71ddbb10edbaea32c6bf4d4c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21106#discussion_r4433629265"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "9138858c687e913e3c89f01108ff38f51b7a9a4e",
+  "merge": "0ed88fdd5444fefa1e0eab47b880c9e71273b863",
+  "merged": "2026-09-08T03:15:01Z",
+  "missing_roots": 0,
+  "number": 187,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This pin is not actually used: `[tool.uv].override-dependencies` still forces `llama-index-llms-openai==0.7.10`, and the regenerated lock consequently resolves 0.7.10 despite recording 0.8.1 in `requires-dist`. Update the override to 0.8.1 and regenerate `uv.lock`; otherwise this scenario continues testing the old client version.",
+      "created": "2026-09-07T03:02:02Z",
+      "hunk": "@@ -4,12 +4,12 @@ version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n     \"llama-index-core==0.14.24\",\n-    \"llama-index-llms-openai==0.8.0\",\n+    \"llama-index-llms-openai==0.8.1\",",
+      "id": "PRRT_kwDOTuzK5c6fxdd0",
+      "opened": "2026-09-07T03:02:03Z",
+      "path": "scenarios/gen-ai/python/llama-index/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "e2ecee43d0e07b8fd37bbd9e9114efd6b2fe33b6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/187#discussion_r3946245271"
+    }
+  ]
+}

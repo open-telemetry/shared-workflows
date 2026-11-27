@@ -1,0 +1,85 @@
+{
+  "head": "1c77eddad919d2977ab90b79da3e961a7324134b",
+  "merge": "911f697089118e05e23f9971c1575bb2507c85c1",
+  "merged": "2026-08-28T23:10:59Z",
+  "missing_roots": 0,
+  "number": 93,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why don't we reuse shared scenarios?",
+      "created": "2026-08-25T05:53:59Z",
+      "hunk": "@@ -0,0 +1,27 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: litellm embeddings.\n+\n+A different operation, so a different span type, which is why this is its own\n+program rather than another call inside inference.py. Batched input, an\n+explicit encoding format and an explicit dimension count, since each is an\n+attribute the conventions declare for this operation.\n+\"\"\"\n+\n+import litellm\n+from litellm.litellm_core_utils.thread_pool_executor import executor\n+\n+litellm.callbacks = [\"otel\"]\n+\n+litellm.embedding(",
+      "id": "PRRT_kwDOTuzK5c6b83No",
+      "opened": "2026-08-25T05:53:59Z",
+      "path": "scenarios/gen-ai/python/litellm/native/scenarios/embeddings.py",
+      "replies": [],
+      "reviewed": "169c5db77d0feeec1223abbdea706a744b48aa7c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/93#discussion_r3849944313"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This omits `service_tier=\"default\"`, so the LiteLLM inference exchange is not shaped like the equivalent OpenAI inference scenario (`scenarios/gen-ai/python/openai/scenarios/inference.py:30`). LiteLLM's OpenAI route supports this request option, and leaving it unset makes any missing service-tier telemetry look like an instrumentation gap rather than a scenario gap. Please pass the same value here and regenerate each LiteLLM `data.json`.",
+      "created": "2026-08-28T05:59:32Z",
+      "hunk": "@@ -0,0 +1,40 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a plain litellm completion.\n+\n+Shared by every implementation under ``litellm/``, which is what makes their\n+results comparable. Nothing here turns instrumentation on, and nothing here\n+may: naming one would defeat the sharing.\n+\n+The request carries every sampling option the conventions have an attribute\n+for and the OpenAI route accepts, because an attribute missing from the\n+coverage of a request that never set it says nothing about the\n+instrumentation. OpenAI has no top-k.\n+\"\"\"\n+\n+import litellm\n+from litellm.litellm_core_utils.thread_pool_executor import executor\n+\n+\n+def run() -> None:\n+    litellm.completion(\n+        model=\"openai/gpt-4o-mini\",\n+        messages=[\n+            {\"role\": \"system\", \"content\": \"You are a helpful assistant.\"},\n+            {\"role\": \"user\", \"content\": \"Say this is a test\"},\n+        ],\n+        max_tokens=100,\n+        temperature=0.5,\n+        top_p=0.9,\n+        frequency_penalty=0.1,\n+        presence_penalty=0.2,\n+        stop=[\"\\n\\n\"],\n+        seed=42,",
+      "id": "PRRT_kwDOTuzK5c6dEs1t",
+      "opened": "2026-08-28T05:59:33Z",
+      "path": "scenarios/gen-ai/python/litellm/scenarios/inference.py",
+      "replies": [],
+      "reviewed": "4cc5ec4120ecd2d6910bab2fe408132aa16a4aec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/93#discussion_r3878266067"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The streaming sibling also needs `service_tier=\"default\"` to remain comparable with the OpenAI streaming scenario (`scenarios/gen-ai/python/openai/scenarios/streaming.py:27`). LiteLLM's OpenAI route supports this option; without the stimulus, service-tier coverage cannot distinguish a scenario omission from an instrumentation omission. Please add it and regenerate each LiteLLM `data.json`.",
+      "created": "2026-08-28T05:59:33Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a streamed litellm completion.\n+\n+Same request as inference.py, delivered as a stream. The stream is consumed to\n+the end: an instrumentation cannot report the response or its token usage\n+before the last chunk arrives, so a scenario that abandoned the iterator would\n+measure the abandonment rather than the instrumentation.\n+\"\"\"\n+\n+import litellm\n+from litellm.litellm_core_utils.thread_pool_executor import executor\n+\n+\n+def run() -> None:\n+    stream = litellm.completion(\n+        model=\"openai/gpt-4o-mini\",\n+        messages=[\n+            {\"role\": \"system\", \"content\": \"You are a helpful assistant.\"},\n+            {\"role\": \"user\", \"content\": \"Say this is a test\"},\n+        ],\n+        max_tokens=100,\n+        temperature=0.5,\n+        top_p=0.9,\n+        frequency_penalty=0.1,\n+        presence_penalty=0.2,\n+        stop=[\"\\n\\n\"],\n+        seed=42,",
+      "id": "PRRT_kwDOTuzK5c6dEs2G",
+      "opened": "2026-08-28T05:59:33Z",
+      "path": "scenarios/gen-ai/python/litellm/scenarios/streaming.py",
+      "replies": [],
+      "reviewed": "4cc5ec4120ecd2d6910bab2fe408132aa16a4aec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/93#discussion_r3878266100"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Resolve the shared-scenario path inside each entry program from `Path(__file__)`, as the existing programmatic Python scenarios do. The runner lets an ambient `PYTHONPATH` override this value, so all six entry programs can fail to import `scenarios`.",
+      "created": "2026-08-28T17:30:14Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: litellm\n+instrumentation_library: litellm\n+\n+server:\n+  run: genai-mock-server --port ${PORT}\n+\n+env:\n+  OPENAI_BASE_URL: ${MOCK_SERVER_URL}/v1\n+  OPENAI_API_KEY: test_openai_api_key\n+  # LiteLLM emits the GenAI conventions only under this opt-in; without it the\n+  # spans carry its own older attribute set.\n+  OTEL_SEMCONV_STABILITY_OPT_IN: gen_ai_latest_experimental\n+  OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: SPAN_AND_EVENT\n+  LITELLM_OTEL_INTEGRATION_ENABLE_METRICS: \"true\"\n+  LITELLM_OTEL_INTEGRATION_ENABLE_EVENTS: \"true\"\n+  # The shared programs, imported by the entry programs here the way a Java or\n+  # Node scenario imports the package holding them.\n+  PYTHONPATH: ..",
+      "id": "PRRT_kwDOTuzK5c6dP913",
+      "opened": "2026-08-28T22:03:54Z",
+      "path": "scenarios/gen-ai/python/litellm/native/conformance.yaml",
+      "replies": [],
+      "reviewed": "92e7bbe9037ff8179e2348e1bc5dd96d43be2b80",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/93#discussion_r3882662337"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The runner README still tells users to install `tools/runner[python]`. This deletion makes that extra nonexistent, so please update the documented command.",
+      "created": "2026-08-28T17:30:14Z",
+      "hunk": "@@ -17,20 +17,13 @@ dependencies = [\n pytest = [\n   \"pytest >= 8\",\n ]\n-# For `otel-conformance-python` only; the runner drives scenarios as subprocesses.\n-python = [\n-  \"opentelemetry-api ~= 1.43\",",
+      "id": "PRRT_kwDOTuzK5c6dP917",
+      "opened": "2026-08-28T22:03:54Z",
+      "path": "tools/runner/pyproject.toml",
+      "replies": [],
+      "reviewed": "92e7bbe9037ff8179e2348e1bc5dd96d43be2b80",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/93#discussion_r3882662342"
+    }
+  ]
+}

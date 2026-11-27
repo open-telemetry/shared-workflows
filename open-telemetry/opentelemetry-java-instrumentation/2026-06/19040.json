@@ -1,0 +1,52 @@
+{
+  "head": "6e337c586531acab402ff0da17c540e6d51b9d7c",
+  "merge": "8e25e07fb2bab7bd4e954d7bb744f977e9dbe785",
+  "merged": "2026-06-18T23:20:28Z",
+  "missing_roots": 0,
+  "number": 19040,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Minor: elsewhere in the changelog and across the repo's docs, \"javaagent\" is written lowercase in prose (e.g. CHANGELOG.md:232 \"Couchbase 3.1 javaagent instrumentation\", :1786, :3825, :5158). Capitalizing it mid-sentence here is inconsistent with that convention. (Optional)",
+      "created": "2026-06-18T22:57:00Z",
+      "hunk": "@@ -4,8 +4,155 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n-- Changed the return type for `JmxTelemetry.start(...)` APIs.\n+- Change the return type for `JmxTelemetry.start(...)` APIs.\n   ([#18782](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782))\n+- Experimental runtime package telemetry now emits `package.checksum_algorithm=SHA-256` and\n+  64-character `package.checksum` values instead of SHA1 checksums.\n+  ([#18846](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18846))\n+\n+### 🚫 Deprecations\n+\n+- Rename the common logging context keys to `otel.instrumentation.common.logging.trace-id-key`,\n+  `otel.instrumentation.common.logging.span-id-key`, and\n+  `otel.instrumentation.common.logging.trace-flags-key`, while keeping the old property names\n+  deprecated.\n+  ([#18851](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851))\n+- Rename the `kafka-broker` and `kafka-connect` JMX target systems to\n+  `experimental-kafka-broker` and `experimental-kafka-connect`; the old names still work for now\n+  and log a warning.\n+  ([#18971](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18971))\n+\n+### 🌟 New javaagent instrumentation\n+\n+- Add SOFARPC 5.4 instrumentation that emits RPC client and server spans and metrics.\n+  ([#15589](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15589))\n+- Add Javaagent instrumentation for HBase client 2.0.0 through 2.5.0.",
+      "id": "PRRT_kwDODJKVX86Ksl-L",
+      "opened": "2026-06-18T22:57:01Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-06-18T23:04:46Z",
+          "body": "should be \"Java agent\", but will follow-up later",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19040#discussion_r3439386114"
+        }
+      ],
+      "reviewed": "6e337c586531acab402ff0da17c540e6d51b9d7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19040#discussion_r3439357881"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Minor: same capitalization inconsistency as above — \"javaagent\" is lowercase elsewhere in the changelog prose (e.g. CHANGELOG.md:232). (Optional)",
+      "created": "2026-06-18T22:57:01Z",
+      "hunk": "@@ -4,8 +4,155 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n-- Changed the return type for `JmxTelemetry.start(...)` APIs.\n+- Change the return type for `JmxTelemetry.start(...)` APIs.\n   ([#18782](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782))\n+- Experimental runtime package telemetry now emits `package.checksum_algorithm=SHA-256` and\n+  64-character `package.checksum` values instead of SHA1 checksums.\n+  ([#18846](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18846))\n+\n+### 🚫 Deprecations\n+\n+- Rename the common logging context keys to `otel.instrumentation.common.logging.trace-id-key`,\n+  `otel.instrumentation.common.logging.span-id-key`, and\n+  `otel.instrumentation.common.logging.trace-flags-key`, while keeping the old property names\n+  deprecated.\n+  ([#18851](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851))\n+- Rename the `kafka-broker` and `kafka-connect` JMX target systems to\n+  `experimental-kafka-broker` and `experimental-kafka-connect`; the old names still work for now\n+  and log a warning.\n+  ([#18971](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18971))\n+\n+### 🌟 New javaagent instrumentation\n+\n+- Add SOFARPC 5.4 instrumentation that emits RPC client and server spans and metrics.\n+  ([#15589](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15589))\n+- Add Javaagent instrumentation for HBase client 2.0.0 through 2.5.0.\n+  ([#18253](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18253))\n+\n+### 📈 Enhancements\n+\n+- Add opt-in support for emitting HTTP request exceptions as log signals with\n+  `otel.semconv.exception.signal.preview=logs`.\n+  ([#16259](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259))\n+- Add `opentelemetry-api-1.63` Javaagent instrumentation for OpenTelemetry API 1.63 and",
+      "id": "PRRT_kwDODJKVX86Ksl-j",
+      "opened": "2026-06-18T22:57:01Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-06-18T23:04:53Z",
+          "body": "should be \"Java agent\", but will follow-up later",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19040#discussion_r3439386448"
+        }
+      ],
+      "reviewed": "6e337c586531acab402ff0da17c540e6d51b9d7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19040#discussion_r3439357914"
+    }
+  ]
+}

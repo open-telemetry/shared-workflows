@@ -1,0 +1,106 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "96ba052bf032157bb21f41f7cf92d4bc24c5dc81ecb5d93fde89f5f7dd5af77c",
+  "input_digest": "d42798ca8791a958ddd485ab62ce32c2fd367c79c83d3b8dcd3a9210c6028306",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df56163dfc5a3082bce2ba0c5223070dedfdff6d/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bbdfad8e57a7346367979abcd4e49c1476780369"
+      ],
+      "id": "PRRT_kwDODJKVX86NmQ8P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df56163dfc5a3082bce2ba0c5223070dedfdff6d/instrumentation/alibaba-druid-1.0/library/src/main/java/io/opentelemetry/instrumentation/alibabadruid/v1_0/ConnectionPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/library/src/main/java/io/opentelemetry/instrumentation/alibabadruid/v1_0/ConnectionPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/testing/src/main/java/io/opentelemetry/instrumentation/alibabadruid/AbstractDruidInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b2d0a90d1c33bcba8bc836c628c196a8476388f9"
+      ],
+      "id": "PRRT_kwDODJKVX86Nmvkn",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df56163dfc5a3082bce2ba0c5223070dedfdff6d/instrumentation/alibaba-druid-1.0/library/src/main/java/io/opentelemetry/instrumentation/alibabadruid/v1_0/ConnectionPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/library/src/main/java/io/opentelemetry/instrumentation/alibabadruid/v1_0/ConnectionPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/testing/src/main/java/io/opentelemetry/instrumentation/alibabadruid/AbstractDruidInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b2d0a90d1c33bcba8bc836c628c196a8476388f9"
+      ],
+      "id": "PRRT_kwDODJKVX86QixiF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/33be9c369a5860e9bb00ab13be14ced00d9b4b7f/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6"
+      ],
+      "id": "PRRT_kwDODJKVX86VuB0-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/33be9c369a5860e9bb00ab13be14ced00d9b4b7f/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6"
+      ],
+      "id": "PRRT_kwDODJKVX86VuB1H",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6/instrumentation/alibaba-druid-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidDataSourceInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86VwcUQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7681e5f9ca43e8d3517be547c785b27d8a3bdcfa/instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/01eb1cfdfb0b71854d5811faddd9b4004b9c0d1a"
+      ],
+      "id": "PRRT_kwDODJKVX86Vzw8e",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Vz94Y",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86QixiF",
+      "status": "duplicate"
+    }
+  ]
+}

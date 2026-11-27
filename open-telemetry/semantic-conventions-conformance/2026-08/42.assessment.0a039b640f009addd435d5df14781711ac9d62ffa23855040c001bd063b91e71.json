@@ -1,0 +1,249 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5dac05b652007e2771fed3593fae74f1b5461ee4d90b27b8528ba6da6a7200b3",
+  "input_digest": "0a039b640f009addd435d5df14781711ac9d62ffa23855040c001bd063b91e71",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/eb61b1489314f6dfc9d24eaaaed0ce1ead4b601f/tools/dotnet/OpenTelemetry.Conformance.Scenario/ScenarioLifecycle.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/dotnet/OpenTelemetry.Conformance.Scenario/ScenarioLifecycle.cs"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zk1hi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/eb61b1489314f6dfc9d24eaaaed0ce1ead4b601f/scenarios/http/dotnet/httpclient/scenarios/HttpClientScenario.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/httpclient/scenarios/HttpClientScenario.cs"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zk1ho",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/eb61b1489314f6dfc9d24eaaaed0ce1ead4b601f/tools/http/test-client/dotnet/OpenTelemetry.Conformance.Http/HttpServerWorkload.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/http/test-client/dotnet/OpenTelemetry.Conformance.Http/HttpServerWorkload.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/http/test-client/dotnet/OpenTelemetry.Conformance.Http.Tests/HttpServerWorkloadTests.cs"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zk1hr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6Zos6C",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/cf35f876131703af34566873577b28c3be53e199/scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/server/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/server/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/cf35f876131703af34566873577b28c3be53e199/scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/Program.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/Program.cs"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zot3P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/cf35f876131703af34566873577b28c3be53e199/scenarios/http/dotnet/httpclient/opentelemetry-http/client/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/httpclient/opentelemetry-http/client/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/httpclient/opentelemetry-http/client/data.json"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zouyp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/23a213aa75382f0e503a4d74e40cb45a6c533451/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/ad85f95ea36533b373691b819576b2ca9a3c9b7c"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zrki2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/23a213aa75382f0e503a4d74e40cb45a6c533451/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/ad85f95ea36533b373691b819576b2ca9a3c9b7c"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zrkin",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/scenarios/http/dotnet/global.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/global.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/a036babd2bb38da6b58175207da3eb3b3fead2b9"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aDM35",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/.gitignore",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/scenarios/http/dotnet/Directory.Build.props",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/tools/dotnet/src/otel_conformance_dotnet/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/tools/dotnet/Directory.Build.props",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/.gitignore",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/Directory.Build.props",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/dotnet/src/otel_conformance_dotnet/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/dotnet/Directory.Build.props",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/ad3c61a791e23dc13d65fc3e46e4f02b93c9415d"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aDN3R",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/scenarios/http/dotnet/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/6ea60a6ba7518662b3b07659fc2484ea293b7a70"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aDR1O",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6aDVBl",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6aDVWm",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/tools/dotnet/Directory.Build.props",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/dotnet/Directory.Build.props",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/tools/dotnet/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/dotnet/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/5ec4e1c823160445e5d084fe224790f81eda3f31"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aDemI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6aEXy2",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/tools/http/test-client/dotnet/Directory.Packages.props",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/http/test-client/dotnet/Directory.Packages.props"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aEZvc",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ca38c265713bc400892cbfbd466eb8e0022271ee/tools/http/test-client/dotnet/OpenTelemetry.Conformance.Http/HttpClientWorkload.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/http/test-client/dotnet/OpenTelemetry.Conformance.Http/HttpClientWorkload.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/edc0556fc0bb3b2db35d5d4d9571780238595869"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aEb1Y",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d1131e6aab16425fbf8d0dd1001e1a3e738cfa81/tools/dotnet/OpenTelemetry.Conformance.Scenario.Sdk/ScenarioSdk.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d1131e6aab16425fbf8d0dd1001e1a3e738cfa81/tools/http/test-client/python/src/otel_http_test_client/__main__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/dotnet/OpenTelemetry.Conformance.Scenario.Sdk/ScenarioSdk.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/http/test-client/python/src/otel_http_test_client/__main__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/4bea9603404ec75cf996caa623d9bc710ff75191"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aWCDp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2f160285387bebc4474dda4c7d826725db2fa831/scenarios/http/dotnet/global.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/global.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/81a7deca5887d14ed0d1a4fdcd3c9a61bc55d4fb"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aYjqG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f156f6959ec283a59e54ad588b0b481e1498e6d6/tools/dotnet/OpenTelemetry.Conformance.Scenario/ScenarioLifecycle.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/tools/dotnet/OpenTelemetry.Conformance.Scenario/ScenarioLifecycle.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/239e44cc43e48dafe68f3506ecb065a14bb60dcf"
+      ],
+      "id": "PRRT_kwDOTuzK5c6bziFA",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/0d08f1074b44d3a867b85361ec94d5ecdbc97ce6/scenarios/http/dotnet/httpclient/scenarios/HttpClientScenario.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dfd20d85e458e2ee37522c0658c3e686802a9053/scenarios/http/dotnet/httpclient/scenarios/HttpClientScenario.cs",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/2e336200155d93f56db9e8a0ab1d210b7059ad3f"
+      ],
+      "id": "PRRT_kwDOTuzK5c6bz-nh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6b0ajj",
+      "kind": null,
+      "original": "PRRT_kwDOTuzK5c6bz-nh",
+      "status": "duplicate"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "a1221f205aa6d3632eebcbb89836c9388e9a0c37",
+  "merge": "53fccece654c4f279525355811974993a743aa08",
+  "merged": "2026-08-28T01:14:39Z",
+  "missing_roots": 0,
+  "number": 89,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`opentelemetry-botocore/conformance.yaml` declares `botocore` for the same three scenario programs, so one scenario suite now reports under two different instrumented libraries. Either match the sibling with `botocore`, or change all three to `bedrock` and accept that it names the service rather than a package. (Same line in `openllmetry/conformance.yaml`.)",
+      "created": "2026-08-25T14:56:34Z",
+      "hunk": "@@ -0,0 +1,28 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: bedrock",
+      "id": "PRRT_kwDOTuzK5c6cH4PM",
+      "opened": "2026-08-25T16:30:47Z",
+      "path": "scenarios/gen-ai/python/bedrock/openinference/conformance.yaml",
+      "replies": [],
+      "reviewed": "a71c46c207d3e48776e5d3a23fd8629be9a7e4f2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/89#discussion_r3854273911"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "e6068baa30d9a24c5afc2590d9ad2a99539bc0ea",
+  "merge": "4092f5a5a08e5eef12eb2502ef31c88d5dd7e485",
+  "merged": "2026-03-26T10:00:38Z",
+  "missing_roots": 0,
+  "number": 17064,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this module does not have tests\n```suggestion\n```",
+      "created": "2026-03-26T09:36:46Z",
+      "hunk": "@@ -17,4 +17,7 @@ dependencies {\n   bootstrap(project(\":instrumentation:servlet:servlet-common:bootstrap\"))\n \n   compileOnly(\"jakarta.servlet:jakarta.servlet-api:5.0.0\")\n+\n+  testInstrumentation(project(\":instrumentation:servlet:servlet-2.2:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:servlet:servlet-3.0:javaagent\"))",
+      "id": "PRRT_kwDODJKVX8529LMT",
+      "opened": "2026-03-26T09:36:46Z",
+      "path": "instrumentation/servlet/servlet-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1d1cfc233dc6c2a6cab5ccd435cfc889b1b658e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17064#discussion_r2993567900"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "head": "c3b295e54ae92ac0a7b9ad1a21f013acdc0322b7",
+  "merge": "56a4853524ada261ab52c4b18318786d42112d32",
+  "merged": "2026-02-27T02:55:51Z",
+  "missing_roots": 0,
+  "number": 16298,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "@trask In [#15932 you commented](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15932#discussion_r2006685270) that under `rpc/dup`, stable semconv should take priority and there's no need for this extra context key.\n\nThe reason it exists: in dup mode, both old and stable metrics use the same `rpc.method` attribute key but with different values — old uses just the method name (`\"exampleMethod\"`), stable uses `\"service/method\"` format (`\"myservice.EchoService/exampleMethod\"`). Since both values live in the same `Attributes` object, stable wins and overwrites old.\n\nWithout this context key, the old `rpc.server.duration` / `rpc.client.duration` histograms would report `rpc.method = \"myservice.EchoService/exampleMethod\"` instead of `\"exampleMethod\"` — a breaking change for anyone querying old metrics during migration (which is the whole point of dup mode).\n\nThe context key is never emitted — it just passes the old method value through `Context` so the metrics classes can swap it back when recording to old histograms.\n\nHappy to drop this if you think letting the values clash in dup mode is acceptable. Just wanted to make sure the trade-off is clear.",
+      "created": "2026-02-26T11:30:05Z",
+      "hunk": "@@ -12,14 +12,33 @@\n import io.opentelemetry.api.common.AttributeKey;\n import io.opentelemetry.api.common.AttributesBuilder;\n import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.ContextCustomizer;\n import javax.annotation.Nullable;\n \n-abstract class RpcCommonAttributesExtractor<REQUEST, RESPONSE>\n+public abstract class RpcCommonAttributesExtractor<REQUEST, RESPONSE>\n     implements AttributesExtractor<REQUEST, RESPONSE> {\n \n   static final AttributeKey<String> RPC_METHOD = AttributeKey.stringKey(\"rpc.method\");\n \n+  static final ContextKey<String> OLD_RPC_METHOD_CONTEXT_KEY =",
+      "id": "PRRT_kwDODJKVX85w61Ed",
+      "opened": "2026-02-26T11:30:04Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-26T22:34:42Z",
+          "body": "thanks, it makes sense to me",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16298#discussion_r2861609539"
+        }
+      ],
+      "reviewed": "9af44cf7e84a30ecff44efd46654b8fb5ed1c66b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16298#discussion_r2858506303"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I'd prefer not to make this public, are there other options?",
+      "created": "2026-02-26T21:54:53Z",
+      "hunk": "@@ -12,14 +12,33 @@\n import io.opentelemetry.api.common.AttributeKey;\n import io.opentelemetry.api.common.AttributesBuilder;\n import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.ContextCustomizer;\n import javax.annotation.Nullable;\n \n-abstract class RpcCommonAttributesExtractor<REQUEST, RESPONSE>\n+public abstract class RpcCommonAttributesExtractor<REQUEST, RESPONSE>",
+      "id": "PRRT_kwDODJKVX85xDW8S",
+      "opened": "2026-02-26T21:55:36Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-26T22:34:18Z",
+          "body": "pushed https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16298/commits/01fbee6c00ccfe9c140fa979bc2eed984374e606",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16298#discussion_r2861608207"
+        }
+      ],
+      "reviewed": "15fc7411a74772970a8f595c681fa2324cd5af4a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16298#discussion_r2861472993"
+    }
+  ]
+}

@@ -1,0 +1,215 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "de221497dcf37e3fa3999704eb220c3e129c92d7ab974705eb4acd74ca38264e",
+  "input_digest": "b9b8db96350623cb700243423ae0e925b0d3103e579378296aba66ab19a0485c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/969a4531fdcf0b794f1bb3edf570a97ffa7e47ae/.fossa.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/969a4531fdcf0b794f1bb3edf570a97ffa7e47ae/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/.fossa.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/320c1cc1220e53f2535860d5c84fa45c515e07f9"
+      ],
+      "id": "PRRT_kwDODJKVX86MzUYI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86M_lZ8",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/516fcafb5076cdf786ac2c8e2dac4105dc013ea7/instrumentation/apache-commons-pool2-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool2/v2_0/BaseGenericObjectPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/516fcafb5076cdf786ac2c8e2dac4105dc013ea7/instrumentation/apache-commons-pool2-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool2/v2_0/CommonsPool2InstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool2-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool2/v2_0/BaseGenericObjectPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool2-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool2/v2_0/CommonsPool2InstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7d22fb4b96a249be1b43a137ed056251dea6e4e2"
+      ],
+      "id": "PRRT_kwDODJKVX86NBz_5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c56578c5562982d07cd2f61430ad51fae43a621b/instrumentation/apache-commons-pool2-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool2/v2_0/BaseGenericObjectPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool2-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool2/v2_0/BaseGenericObjectPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool/v2_0/BaseGenericObjectPoolInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86NPJGU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c56578c5562982d07cd2f61430ad51fae43a621b/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/ObjectPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c56578c5562982d07cd2f61430ad51fae43a621b/instrumentation/apache-commons-pool-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool/v2_0/CommonsPoolInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/ObjectPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool/v2_0/CommonsPoolInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86NQlac",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c56578c5562982d07cd2f61430ad51fae43a621b/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9a8c8d8233849610248140fa18589b4ca2c588d8"
+      ],
+      "id": "PRRT_kwDODJKVX86NQoDt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c56578c5562982d07cd2f61430ad51fae43a621b/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9a8c8d8233849610248140fa18589b4ca2c588d8"
+      ],
+      "id": "PRRT_kwDODJKVX86Nndv9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86OHhoG",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86NQlac",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9a8c8d8233849610248140fa18589b4ca2c588d8/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/ObjectPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/ObjectPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9ab8cb80ec74a0a801f5d324fc88c1f6994e63ba"
+      ],
+      "id": "PRRT_kwDODJKVX86OHtF2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9a8c8d8233849610248140fa18589b4ca2c588d8/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9ab8cb80ec74a0a801f5d324fc88c1f6994e63ba"
+      ],
+      "id": "PRRT_kwDODJKVX86OH2si",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1825232b76302d077134e9f1b33ab81c73e7272b/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1825232b76302d077134e9f1b33ab81c73e7272b/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f1b6a1abb5fad724a4d602d8d3dff7f68d620c1c"
+      ],
+      "id": "PRRT_kwDODJKVX86VtjT0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1825232b76302d077134e9f1b33ab81c73e7272b/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f1b6a1abb5fad724a4d602d8d3dff7f68d620c1c"
+      ],
+      "id": "PRRT_kwDODJKVX86VtjT3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1825232b76302d077134e9f1b33ab81c73e7272b/instrumentation/apache-commons-pool-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool/v2_0/BaseGenericObjectPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1825232b76302d077134e9f1b33ab81c73e7272b/instrumentation/apache-commons-pool-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool/v2_0/CommonsPoolInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool/v2_0/CommonsPoolInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecommonspool/v2_0/GenericObjectPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f1b6a1abb5fad724a4d602d8d3dff7f68d620c1c"
+      ],
+      "id": "PRRT_kwDODJKVX86VtjT7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1825232b76302d077134e9f1b33ab81c73e7272b/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f1b6a1abb5fad724a4d602d8d3dff7f68d620c1c"
+      ],
+      "id": "PRRT_kwDODJKVX86VzwMc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1b6a1abb5fad724a4d602d8d3dff7f68d620c1c/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/ObjectPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/ObjectPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1b6a1abb5fad724a4d602d8d3dff7f68d620c1c/instrumentation/apache-commons-pool-2.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1b6a1abb5fad724a4d602d8d3dff7f68d620c1c/instrumentation/apache-commons-pool-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/AbstractCommonsPoolInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/AbstractCommonsPoolInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1ec0ea3411d36eeb2fc141ef7958a3c6e436c08c"
+      ],
+      "id": "PRRT_kwDODJKVX86WG1sx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ec0ea3411d36eeb2fc141ef7958a3c6e436c08c/instrumentation/apache-commons-pool-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/AbstractCommonsPoolInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/AbstractCommonsPoolInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e9bf68218472a216d15320f1d5d3eec25bfdc7be"
+      ],
+      "id": "PRRT_kwDODJKVX86WLy2F",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/731f1f3b8193f7d86773b5776f38af88f35e8990/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3c6014d11fef3a9d9c45d6d6ad9ba4fcab8b890/instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ec6b1c10781eb21dbac10f8dce5cb609a766916"
+      ],
+      "id": "PRRT_kwDODJKVX86aS0BG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

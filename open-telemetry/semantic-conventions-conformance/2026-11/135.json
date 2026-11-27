@@ -1,0 +1,204 @@
+{
+  "head": "b80b7c70da4f4251387368cc2dccb21e93d0ada9",
+  "merge": "2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d",
+  "merged": "2026-11-04T00:42:12Z",
+  "missing_roots": 0,
+  "number": 135,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Every scenario in this package omits `metrics`, so the runner skips metric checks entirely (`tools/runner/src/opentelemetry/conformance/_spec.py:141-144` and `_checks.py:104-112`). Because the committed coverage records `db.client.operation.duration`, a regression that removes that Cassandra metric would still pass. Add `metrics: [db.client.operation.duration]` to each scenario, as the existing Java database packages do.",
+      "created": "2026-08-29T19:20:17Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+instrumented_library: cassandra-driver-4.3\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+\n+env:\n+  CASSANDRA_HOST: ${DATABASE_HOST}\n+  CASSANDRA_PORT: ${DATABASE_PORT}\n+  CASSANDRA_LOCAL_DATACENTER: ${DATABASE_LOCAL_DATACENTER}\n+  OTEL_SEMCONV_STABILITY_OPT_IN: database\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"\n+\n+weaver:\n+  config: ../../../weaver.toml\n+\n+setup: otel-conformance-java prepare shared:cassandra4:opentelemetry-javaagent\n+\n+scenarios:",
+      "id": "PRRT_kwDOTuzK5c6dcFN0",
+      "opened": "2026-08-29T19:20:18Z",
+      "path": "scenarios/database/java/cassandra/java-driver/opentelemetry-javaagent/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-29T20:54:04Z",
+          "body": "No code change.\n\nAnalysis: The pinned head already declares `db.client.operation.duration` under `metrics` in all 16 scenarios across the four Cassandra conformance files. The block-list YAML form is equivalent to the inline form in the comment, so the runner performs the metric checks.\n\nUpsides: Keeping the current files avoids a no-op YAML rewrite while preserving explicit duration metric coverage for every Cassandra scenario.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887656550"
+        }
+      ],
+      "reviewed": "66259d0d693a55697a283ad13e94dfa49317aa21",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887446206"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Every scenario in this package omits `metrics`, so the runner skips metric checks entirely (`tools/runner/src/opentelemetry/conformance/_spec.py:141-144` and `_checks.py:104-112`). Because the committed coverage records `db.client.operation.duration`, a regression that removes that Cassandra metric would still pass. Add `metrics: [db.client.operation.duration]` to each scenario, as the existing Java database packages do.",
+      "created": "2026-08-29T19:20:17Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+instrumented_library: cassandra-driver-4.19\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+\n+env:\n+  CASSANDRA_HOST: ${DATABASE_HOST}\n+  CASSANDRA_PORT: ${DATABASE_PORT}\n+  CASSANDRA_LOCAL_DATACENTER: ${DATABASE_LOCAL_DATACENTER}\n+  OTEL_SEMCONV_STABILITY_OPT_IN: database\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"\n+\n+weaver:\n+  config: ../../../weaver.toml\n+\n+setup: otel-conformance-java prepare shared:cassandra44:opentelemetry-javaagent\n+\n+scenarios:",
+      "id": "PRRT_kwDOTuzK5c6dcFN7",
+      "opened": "2026-08-29T19:20:18Z",
+      "path": "scenarios/database/java/cassandra/cassandra-driver-4.19/opentelemetry-javaagent/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-29T20:54:06Z",
+          "body": "No code change.\n\nAnalysis: The pinned head already declares `db.client.operation.duration` under `metrics` in all 16 scenarios across the four Cassandra conformance files. The block-list YAML form is equivalent to the inline form in the comment, so the runner performs the metric checks.\n\nUpsides: Keeping the current files avoids a no-op YAML rewrite while preserving explicit duration metric coverage for every Cassandra scenario.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887656578"
+        }
+      ],
+      "reviewed": "66259d0d693a55697a283ad13e94dfa49317aa21",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887446218"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Every scenario in this package omits `metrics`, so the runner skips metric checks entirely (`tools/runner/src/opentelemetry/conformance/_spec.py:141-144` and `_checks.py:104-112`). Because the committed coverage records `db.client.operation.duration`, a regression that removes that Cassandra metric would still pass. Add `metrics: [db.client.operation.duration]` to each scenario, as the existing Java database packages do.",
+      "created": "2026-08-29T19:20:17Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+instrumented_library: cassandra-driver-3\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+\n+env:\n+  CASSANDRA_HOST: ${DATABASE_HOST}\n+  CASSANDRA_PORT: ${DATABASE_PORT}\n+  CASSANDRA_LOCAL_DATACENTER: ${DATABASE_LOCAL_DATACENTER}\n+  OTEL_SEMCONV_STABILITY_OPT_IN: database\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"\n+\n+weaver:\n+  config: ../../../weaver.toml\n+\n+setup: otel-conformance-java prepare shared:cassandra3:opentelemetry-javaagent\n+\n+scenarios:",
+      "id": "PRRT_kwDOTuzK5c6dcFNo",
+      "opened": "2026-08-29T19:20:18Z",
+      "path": "scenarios/database/java/cassandra/cassandra-driver-3/opentelemetry-javaagent/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-29T20:54:03Z",
+          "body": "No code change.\n\nAnalysis: The pinned head already declares `db.client.operation.duration` under `metrics` in all 16 scenarios across the four Cassandra conformance files. The block-list YAML form is equivalent to the inline form in the comment, so the runner performs the metric checks.\n\nUpsides: Keeping the current files avoids a no-op YAML rewrite while preserving explicit duration metric coverage for every Cassandra scenario.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887656505"
+        }
+      ],
+      "reviewed": "66259d0d693a55697a283ad13e94dfa49317aa21",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887446189"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Every scenario in this package omits `metrics`, so the runner skips metric checks entirely (`tools/runner/src/opentelemetry/conformance/_spec.py:141-144` and `_checks.py:104-112`). Because the committed coverage records `db.client.operation.duration`, a regression that removes that Cassandra metric would still pass. Add `metrics: [db.client.operation.duration]` to each scenario, as the existing Java database packages do.",
+      "created": "2026-08-29T19:20:18Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+instrumented_library: cassandra-driver-4.19\n+instrumentation_library: io.opentelemetry.instrumentation:opentelemetry-cassandra-4.4\n+\n+env:\n+  CASSANDRA_HOST: ${DATABASE_HOST}\n+  CASSANDRA_PORT: ${DATABASE_PORT}\n+  CASSANDRA_LOCAL_DATACENTER: ${DATABASE_LOCAL_DATACENTER}\n+  OTEL_SEMCONV_STABILITY_OPT_IN: database\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"\n+\n+weaver:\n+  config: ../../../weaver.toml\n+\n+setup: otel-conformance-java prepare shared:cassandra44:opentelemetry-library\n+\n+scenarios:",
+      "id": "PRRT_kwDOTuzK5c6dcFOE",
+      "opened": "2026-08-29T19:20:18Z",
+      "path": "scenarios/database/java/cassandra/java-driver/opentelemetry-library/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-29T20:54:07Z",
+          "body": "No code change.\n\nAnalysis: The pinned head already declares `db.client.operation.duration` under `metrics` in all 16 scenarios across the four Cassandra conformance files. The block-list YAML form is equivalent to the inline form in the comment, so the runner performs the metric checks.\n\nUpsides: Keeping the current files avoids a no-op YAML rewrite while preserving explicit duration metric coverage for every Cassandra scenario.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887656611"
+        }
+      ],
+      "reviewed": "66259d0d693a55697a283ad13e94dfa49317aa21",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r3887446233"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This pin is meant to retain the driver 4.0–4.3 instrumentation path, but the Gradle update rule in `.github/renovate.json5:45–49` allows minor upgrades and there is no Cassandra-specific version bound. A normal Renovate update to 4.4+ would silently turn this package into another run of the newer instrumentation line, losing the early-driver coverage. Add a file/package-scoped Renovate rule restricting `com.datastax.oss:java-driver-core` to versions below 4.4.",
+      "created": "2026-10-26T01:04:38Z",
+      "hunk": "@@ -2,6 +2,9 @@\n # SPDX-License-Identifier: Apache-2.0\n \n [versions]\n+cassandra-driver3 = \"3.11.5\"\n+cassandra-driver43 = \"4.3.1\"",
+      "id": "PRRT_kwDOTuzK5c6wG6-j",
+      "opened": "2026-10-26T01:04:38Z",
+      "path": "scenarios/database/java/gradle/libs.versions.toml",
+      "replies": [
+        {
+          "at": "2026-10-26T01:30:25Z",
+          "body": "Addressed in a0a82a77ee792e3cd46336c9a1ec34dcaa5a052b.\n\nThe frozen catalog assigns com.datastax.oss:java-driver-core version 4.3.1 to the early-driver launcher, and scenarios/database/README.md:7-9 explicitly preserves distinct 4.0-4.3 and 4.4+ instrumentation coverage. The new file/package-scoped Renovate rule caps only that coordinate in the database catalog at <4.4. Native Renovate matching and Maven release filtering confirm 4.3 patch updates remain allowed, 4.4+ is rejected, and Apache driver updates and other catalogs are unchanged.\n\n<!-- copilot-loop:21f184f6994d8d48c44418b6365beb8900cabb490017e8f305ad1cf6714a7d2d:4373220784:6d35e031915743e69b25d06eec7c66d4 -->",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4373297926"
+        }
+      ],
+      "reviewed": "6f2812a704be6b8337e73aa8a5abc2382de0a7c5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4373220784"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`{present: true}` lets any error pass. The Redis contracts pin the value, and Cassandra semconv makes `db.response.status_code` conditionally required on failure (Invalid = `0x2200`), which `data.json` shows is not emitted today. Worth pinning both so the gap shows up:\n\n```suggestion\n            error.type: com.datastax.oss.driver.api.core.servererrors.InvalidQueryException\n            db.response.status_code: \"8704\"\n```",
+      "created": "2026-11-03T06:18:15Z",
+      "hunk": "@@ -0,0 +1,77 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  query:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: cassandra\n+        expect:\n+          count: 1\n+          attributes:\n+            db.operation.name: SELECT\n+            db.collection.name: conformance.items\n+            db.query.summary: SELECT conformance.items\n+            db.query.text: SELECT name FROM conformance.items WHERE id = ?\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  prepared:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: cassandra\n+        expect:\n+          count: 1\n+          attributes:\n+            db.operation.name: SELECT\n+            db.collection.name: conformance.items\n+            db.query.summary: SELECT conformance.items\n+            db.query.text: SELECT name FROM conformance.items WHERE id = ?\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  batch:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: cassandra\n+        expect:\n+          count: 1\n+          attributes:\n+            db.operation.name: BATCH INSERT\n+            db.operation.batch.size: 2\n+            db.collection.name: conformance.items\n+            db.query.summary: BATCH INSERT conformance.items\n+            db.query.text: INSERT INTO conformance.items (id, name) VALUES (?, ?)\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  error:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: cassandra\n+        expect:\n+          count: 1\n+          attributes:\n+            db.operation.name: SELECT\n+            db.collection.name: conformance.missing_table\n+            db.query.summary: SELECT conformance.missing_table\n+            db.query.text: SELECT * FROM conformance.missing_table\n+            error.type: {present: true}",
+      "id": "PRRT_kwDOTuzK5c6zADhg",
+      "opened": "2026-11-03T06:26:19Z",
+      "path": "scenarios/database/contracts/cassandra.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:22:21Z",
+          "body": "7348d12a2bb6b468f7491696199f9b0cea2d2e58 + baf641f637cde82b7b269e4d56bdfcde2cdd8532 + https://github.com/open-telemetry/semantic-conventions-conformance/issues/384#issuecomment-6615293330",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4458149129"
+        }
+      ],
+      "reviewed": "261c96b0146bbd71510013852bad8933c86c72b2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4451495676"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The session has no keyspace, so `db.namespace` (conditionally required, the session keyspace for Cassandra) is never exercised. SQL contracts assert `db.namespace: conformance`; binding the keyspace here would let the contract do the same:\n\n```suggestion\n            .withLocalDatacenter(ScenarioEnvironment.require(\"CASSANDRA_LOCAL_DATACENTER\"))\n            .withKeyspace(\"conformance\")\n```",
+      "created": "2026-11-03T06:18:15Z",
+      "hunk": "@@ -0,0 +1,91 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.database.cassandra;\n+\n+import com.datastax.oss.driver.api.core.CqlSession;\n+import com.datastax.oss.driver.api.core.cql.BatchStatement;\n+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;\n+import com.datastax.oss.driver.api.core.cql.PreparedStatement;\n+import com.datastax.oss.driver.api.core.cql.ResultSet;\n+import com.datastax.oss.driver.api.core.cql.SimpleStatement;\n+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import java.util.function.BiFunction;\n+\n+/** Exercises Cassandra execution paths without choosing instrumentation. */\n+public final class CassandraScenario {\n+  private CassandraScenario() {}\n+\n+  public static void run(\n+      String operation,\n+      BiFunction<CqlSession, List<InetSocketAddress>, CqlSession> instrumentSession) {\n+    List<InetSocketAddress> contactPoints =\n+        List.of(\n+            new InetSocketAddress(\n+                ScenarioEnvironment.require(\"CASSANDRA_HOST\"),\n+                Integer.parseInt(ScenarioEnvironment.require(\"CASSANDRA_PORT\"))));\n+    CqlSession session =\n+        CqlSession.builder()\n+            .addContactPoints(contactPoints)\n+            .withLocalDatacenter(ScenarioEnvironment.require(\"CASSANDRA_LOCAL_DATACENTER\"))",
+      "id": "PRRT_kwDOTuzK5c6zADhr",
+      "opened": "2026-11-03T06:26:19Z",
+      "path": "scenarios/database/java/shared/cassandra/java-driver/scenarios/src/main/java/io/opentelemetry/conformance/database/cassandra/CassandraScenario.java",
+      "replies": [
+        {
+          "at": "2026-11-03T17:29:04Z",
+          "body": "a726f73b9a5cb158ce63a05bcfabd1df69a6ac53",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4458224280"
+        }
+      ],
+      "reviewed": "261c96b0146bbd71510013852bad8933c86c72b2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4451495695"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "These re-assert the package YAML and pin the exact set of Cassandra packages (same for the exact `:shared:cassandra*` set in `test_java_project_discovery.py`). No other backend has tests like this, and adding any new Cassandra package or client will break them. CI already runs the packages, so I'd drop them.",
+      "created": "2026-11-03T06:18:15Z",
+      "hunk": "@@ -158,6 +158,116 @@ def stub_session(\n     assert closed\n \n \n+def test_database_session_dispatches_and_closes_cassandra(\n+    monkeypatch: pytest.MonkeyPatch,\n+    tmp_path: Path,\n+) -> None:\n+    events: list[str] = []\n+\n+    class StubBackend:\n+        variables = {\"DATABASE_LOCAL_DATACENTER\": \"datacenter1\"}\n+\n+        def __enter__(self) -> StubBackend:\n+            events.append(\"cassandra-enter\")\n+            return self\n+\n+        def __exit__(self, *args: object) -> None:\n+            events.append(\"cassandra-exit\")\n+\n+    @contextmanager\n+    def stub_session(\n+        directory: Path | str, **kwargs: Any\n+    ) -> Generator[object, None, None]:\n+        del directory\n+        assert kwargs[\"variables\"] == {\n+            \"DATABASE_LOCAL_DATACENTER\": \"datacenter1\"\n+        }\n+        events.append(\"session-enter\")\n+        try:\n+            yield object()\n+        finally:\n+            events.append(\"session-exit\")\n+\n+    monkeypatch.setitem(\n+        database_conformance._BACKEND_REGISTRY,\n+        \"cassandra\",\n+        replace(\n+            database_conformance._BACKEND_REGISTRY[\"cassandra\"],\n+            factory=StubBackend,\n+        ),\n+    )\n+    monkeypatch.setattr(\n+        database_conformance,\n+        \"DOMAIN\",\n+        SimpleNamespace(session=stub_session),\n+    )\n+    spec = _write_spec(tmp_path, \"  backend: cassandra\")\n+\n+    with pytest.raises(RuntimeError, match=\"scenario failed\"):\n+        with database_conformance.database_session(tmp_path, spec=spec):\n+            raise RuntimeError(\"scenario failed\")\n+\n+    assert events == [\n+        \"cassandra-enter\",\n+        \"session-enter\",\n+        \"session-exit\",\n+        \"cassandra-exit\",\n+    ]\n+\n+\n+@pytest.mark.parametrize(\n+    \"instrumentation\", [\"opentelemetry-javaagent\", \"opentelemetry-library\"],\n+)\n+def test_cassandra_packages_share_contract_and_connection_variables(\n+    instrumentation: str\n+) -> None:\n+    directory = (\n+        Path(__file__).resolve().parents[4]\n+        / \"scenarios\"\n+        / \"database\"\n+        / \"java\"\n+        / \"cassandra\"\n+        / \"java-driver\"\n+        / instrumentation\n+    )\n+    spec = load_spec(directory)\n+\n+    assert spec.instrumented_library == \"java-driver\"\n+    assert spec.runner_config == {\"backend\": \"cassandra\"}\n+    assert spec.env[\"CASSANDRA_HOST\"] == \"${DATABASE_HOST}\"\n+    assert spec.env[\"CASSANDRA_PORT\"] == \"${DATABASE_PORT}\"\n+    assert (\n+        spec.env[\"CASSANDRA_LOCAL_DATACENTER\"]\n+        == \"${DATABASE_LOCAL_DATACENTER}\"\n+    )\n+    assert list(spec.scenarios) == [\"query\", \"prepared\", \"batch\", \"error\"]\n+    for scenario in spec.scenarios.values():\n+        assert scenario.metrics == (\"db.client.operation.duration\",)\n+        assert scenario.events == ()\n+        assert scenario.spans is not None\n+        assert len(scenario.spans) == 1\n+        assert scenario.spans[0].match.attributes == {\n+            \"db.system.name\": \"cassandra\"\n+        }\n+\n+\n+def test_cassandra_has_only_current_client_packages() -> None:\n+    root = (\n+        Path(__file__).resolve().parents[4]\n+        / \"scenarios\"\n+        / \"database\"\n+        / \"java\"\n+        / \"cassandra\"\n+    )\n+    assert {\n+        path.relative_to(root).as_posix()\n+        for path in root.rglob(\"conformance.yaml\")\n+    } == {\n+        \"java-driver/opentelemetry-javaagent/conformance.yaml\",\n+        \"java-driver/opentelemetry-library/conformance.yaml\",\n+    }",
+      "id": "PRRT_kwDOTuzK5c6zADht",
+      "opened": "2026-11-03T06:26:19Z",
+      "path": "tools/database/runner/tests/test_database_session.py",
+      "replies": [
+        {
+          "at": "2026-11-03T17:13:57Z",
+          "body": "a40dfe12f289d3094cdb2ade2a3802370f8f24bd",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4458054597"
+        }
+      ],
+      "reviewed": "261c96b0146bbd71510013852bad8933c86c72b2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4451495700"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: Redis keeps the client level in shared (`shared:redis:lettuce:opentelemetry-javaagent`), and the package path here has `java-driver` too. `shared/cassandra/java-driver/...` would keep the layout consistent and leave room for other clients.",
+      "created": "2026-11-03T06:18:16Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+runner_config:\n+  backend: cassandra\n+instrumented_library: java-driver\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+scenario_contract: ../../../../contracts/cassandra.yaml\n+\n+env:\n+  CASSANDRA_HOST: ${DATABASE_HOST}\n+  CASSANDRA_PORT: ${DATABASE_PORT}\n+  CASSANDRA_LOCAL_DATACENTER: ${DATABASE_LOCAL_DATACENTER}\n+  OTEL_SEMCONV_STABILITY_OPT_IN: database\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"\n+\n+weaver:\n+  config: ../../../../../../tools/java/weaver.toml\n+\n+setup: otel-conformance-java prepare shared:cassandra:opentelemetry-javaagent",
+      "id": "PRRT_kwDOTuzK5c6zADhv",
+      "opened": "2026-11-03T06:26:19Z",
+      "path": "scenarios/database/java/cassandra/java-driver/opentelemetry-javaagent/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:36:03Z",
+          "body": "783ad47933eeda305522201ccb41cfc0d465224c",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4458298564"
+        },
+        {
+          "at": "2026-11-03T20:45:08Z",
+          "body": "want to think about this more\r\n- https://github.com/open-telemetry/semantic-conventions-conformance/issues/449",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4460230156"
+        }
+      ],
+      "reviewed": "261c96b0146bbd71510013852bad8933c86c72b2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/135#discussion_r4451495703"
+    }
+  ]
+}

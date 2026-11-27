@@ -1,0 +1,121 @@
+{
+  "head": "5ab4bc7f92e4fa85e2ccb7655a643be1252bce9a",
+  "merge": "5ad660b024f5507a47dca06a71a52c781a116de8",
+  "merged": "2026-10-15T22:04:35Z",
+  "missing_roots": 0,
+  "number": 839,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could we type this as the two shapes it actually handles instead of `object`? `ResponseReasoningItemParam` can be imported under the existing `TYPE_CHECKING` block (`from openai.types.responses.response_reasoning_item_param import ResponseReasoningItemParam`).\n\n```suggestion\ndef _extract_reasoning_parts(\n    item: ResponseReasoningItem | ResponseReasoningItemParam,\n) -> list[ReasoningPart]:\n```",
+      "created": "2026-10-02T22:15:22Z",
+      "hunk": "@@ -264,6 +264,23 @@ def _get_call_id(item: object) -> str | None:\n     )\n \n \n+def _extract_reasoning_parts(item: object) -> list[ReasoningPart]:",
+      "id": "PRRT_kwDOSbspP86oggmP",
+      "opened": "2026-10-02T22:16:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "4ab0911a0ff2cfb4be8b9e363373d2875f472cd1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4170265868"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A replayed turn usually has reasoning *before* the calls (`reasoning, function_call, function_call`), not between them. Could we cover that order too, to make sure parallel calls after a reasoning item still merge into one turn?\n\n```python\ndef test_extract_input_messages_reasoning_before_parallel_tool_calls(\n    loaded_module,\n):\n    messages = loaded_module.get_input_messages(\n        [\n            {\n                \"id\": \"rs_1\",\n                \"type\": \"reasoning\",\n                \"summary\": [{\"type\": \"summary_text\", \"text\": \"Planning...\"}],\n            },\n            {\"type\": \"function_call\", \"call_id\": \"call_1\", \"name\": \"f1\", \"arguments\": \"{}\"},\n            {\"type\": \"function_call\", \"call_id\": \"call_2\", \"name\": \"f2\", \"arguments\": \"{}\"},\n        ]\n    )\n\n    assert [m.role for m in messages] == [\"assistant\", \"assistant\"]\n    assert [p.type for p in messages[0].parts] == [\"reasoning\"]\n    assert [p.id for p in messages[1].parts] == [\"call_1\", \"call_2\"]\n```",
+      "created": "2026-10-02T22:15:23Z",
+      "hunk": "@@ -629,6 +630,143 @@ def test_extract_input_messages_without_tool_part_types(loaded_module):\n         assert loaded_module.get_input_messages(tool_items) == []\n \n \n+def test_extract_input_messages_maps_reasoning_dict_with_summary(\n+    loaded_module,\n+):\n+    messages = loaded_module.get_input_messages(\n+        [\n+            {\n+                \"id\": \"rs_1\",\n+                \"type\": \"reasoning\",\n+                \"summary\": [{\"type\": \"summary_text\", \"text\": \"Thought step\"}],\n+                \"content\": None,\n+            }\n+        ]\n+    )\n+\n+    assert len(messages) == 1\n+    assert messages[0].role == \"assistant\"\n+    assert len(messages[0].parts) == 1\n+    part = messages[0].parts[0]\n+    assert isinstance(part, ReasoningPart)\n+    assert part.type == \"reasoning\"\n+    assert part.content == \"Thought step\"\n+\n+\n+def test_extract_input_messages_maps_reasoning_dict_with_content(\n+    loaded_module,\n+):\n+    messages = loaded_module.get_input_messages(\n+        [\n+            {\n+                \"id\": \"rs_1\",\n+                \"type\": \"reasoning\",\n+                \"summary\": [],\n+                \"content\": [\n+                    {\"type\": \"reasoning_text\", \"text\": \"Deep thought\"}\n+                ],\n+            }\n+        ]\n+    )\n+\n+    assert len(messages) == 1\n+    assert messages[0].role == \"assistant\"\n+    assert len(messages[0].parts) == 1\n+    part = messages[0].parts[0]\n+    assert isinstance(part, ReasoningPart)\n+    assert part.type == \"reasoning\"\n+    assert part.content == \"Deep thought\"\n+\n+\n+def test_extract_input_messages_skips_empty_reasoning(loaded_module):\n+    messages = loaded_module.get_input_messages(\n+        [\n+            {\n+                \"id\": \"rs_1\",\n+                \"type\": \"reasoning\",\n+                \"summary\": [],\n+                \"content\": [],\n+                \"encrypted_content\": \"gAAAAABqnmzMN9RqmH9jGxjmoJdoO3La\",\n+            }\n+        ]\n+    )\n+\n+    assert messages == []\n+\n+\n+def test_extract_input_messages_maps_reasoning_sdk_model(loaded_module):\n+    if loaded_module.ResponseReasoningItem is None:\n+        pytest.skip(\"openai SDK too old to support ResponseReasoningItem\")\n+\n+    item = loaded_module.ResponseReasoningItem.model_validate(\n+        {\n+            \"id\": \"rs_1\",\n+            \"type\": \"reasoning\",\n+            \"summary\": [{\"type\": \"summary_text\", \"text\": \"SDK thought\"}],\n+            \"content\": [\n+                {\"type\": \"reasoning_text\", \"text\": \"SDK deep thought\"}\n+            ],\n+            \"status\": \"completed\",\n+        }\n+    )\n+    messages = loaded_module.get_input_messages([item])\n+\n+    assert len(messages) == 1\n+    assert messages[0].role == \"assistant\"\n+    assert len(messages[0].parts) == 2\n+    assert isinstance(messages[0].parts[0], ReasoningPart)\n+    assert messages[0].parts[0].content == \"SDK thought\"\n+    assert isinstance(messages[0].parts[1], ReasoningPart)\n+    assert messages[0].parts[1].content == \"SDK deep thought\"\n+\n+\n+def test_extract_input_messages_reasoning_not_merged_with_tool_calls(",
+      "id": "PRRT_kwDOSbspP86oggmd",
+      "opened": "2026-10-02T22:16:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_response_extractors.py",
+      "replies": [],
+      "reviewed": "4ab0911a0ff2cfb4be8b9e363373d2875f472cd1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4170265887"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the original comment is still accurate, could we keep it to minimize the diff?\n\n```suggestion\n    # The replayed `reasoning` item is not recorded: it carries no readable\n    # text, and the response path drops such items too.\n```",
+      "created": "2026-10-02T22:15:23Z",
+      "hunk": "@@ -1347,8 +1347,9 @@ def test_responses_create_captures_custom_tool_history(\n     )\n \n     (span,) = span_exporter.get_finished_spans()\n-    # The replayed `reasoning` item is not recorded: it carries no readable\n-    # text, and the response path drops such items too.\n+    # The replayed `reasoning` item has no readable text (encrypted only),\n+    # so it is still dropped — only reasoning items with summary/content\n+    # text are recorded.",
+      "id": "PRRT_kwDOSbspP86oggmj",
+      "opened": "2026-10-02T22:16:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [],
+      "reviewed": "4ab0911a0ff2cfb4be8b9e363373d2875f472cd1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4170265895"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `ResponseReasoningItem.type` is always `\"reasoning\"`, so the `isinstance` branch is already covered by the type check.\n\n```suggestion\n    if item_type == \"reasoning\":\n```",
+      "created": "2026-10-06T00:46:21Z",
+      "hunk": "@@ -313,6 +338,18 @@ def _get_input_message(item: object) -> InputMessage | None:\n             ],\n         )\n \n+    if item_type == \"reasoning\" or (\n+        ResponseReasoningItem is not None\n+        and isinstance(item, ResponseReasoningItem)\n+    ):",
+      "id": "PRRT_kwDOSbspP86pRoO1",
+      "opened": "2026-10-06T00:58:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "81b1e22f69371f3bf6c8e40850531f34015980e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4190386391"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this file was added with mode `100755` - could we drop the executable bit (`chmod -x`)?",
+      "created": "2026-10-06T00:46:21Z",
+      "hunk": "@@ -0,0 +1 @@\n+Map `type: \"reasoning\"` input items to assistant messages with `ReasoningPart` on Responses API calls.",
+      "id": "PRRT_kwDOSbspP86pRoO_",
+      "opened": "2026-10-06T00:58:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/839.fixed",
+      "replies": [],
+      "reviewed": "81b1e22f69371f3bf6c8e40850531f34015980e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4190386406"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it's never the case\r\n\r\n```suggestion\r\n```",
+      "created": "2026-10-06T00:55:15Z",
+      "hunk": "@@ -313,6 +338,18 @@ def _get_input_message(item: object) -> InputMessage | None:\n             ],\n         )\n \n+    if item_type == \"reasoning\" or (\n+        ResponseReasoningItem is not None\n+        and isinstance(item, ResponseReasoningItem)\n+    ):\n+        parts = _extract_reasoning_parts(item)\n+        if not parts:\n+            return None",
+      "id": "PRRT_kwDOSbspP86pRx9o",
+      "opened": "2026-10-06T00:58:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-12T18:54:11Z",
+          "body": "I believe parts can actually be empty when reasoning items are replayed in multi-turn conversations as given in the test case `get_responses_custom_tool_loop_input().`\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4251362981"
+        }
+      ],
+      "reviewed": "81b1e22f69371f3bf6c8e40850531f34015980e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4190445660"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nit's not possible, please simplify the import for this part and other otel genai util types",
+      "created": "2026-10-06T00:56:41Z",
+      "hunk": "@@ -264,6 +270,25 @@ def _get_call_id(item: object) -> str | None:\n     )\n \n \n+def _extract_reasoning_parts(\n+    item: ResponseReasoningItem | ResponseReasoningItemParam,\n+) -> list[ReasoningPart]:\n+    if ReasoningPart is None:\n+        return []\n+",
+      "id": "PRRT_kwDOSbspP86pRzmR",
+      "opened": "2026-10-06T00:58:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "81b1e22f69371f3bf6c8e40850531f34015980e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/839#discussion_r4190455509"
+    }
+  ]
+}

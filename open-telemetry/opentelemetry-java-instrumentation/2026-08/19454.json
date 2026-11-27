@@ -1,0 +1,52 @@
+{
+  "head": "681e744c546d0484050265a84dc6db8fe78526e2",
+  "merge": "c77fb9840b4291508d968bb4c07791929411d601",
+  "merged": "2026-08-11T01:21:59Z",
+  "missing_roots": 0,
+  "number": 19454,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Classes in `.internal` packages must not be declared `final` under the repository Java style rules; remove `final` here.",
+      "created": "2026-08-09T15:35:59Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class GrpcConfig {",
+      "id": "PRRT_kwDODJKVX86Xotul",
+      "opened": "2026-08-09T15:36:00Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcConfig.java",
+      "replies": [
+        {
+          "at": "2026-08-09T15:50:49Z",
+          "body": "Fixed in b90ef3a618e6bfe61ddf61999e82ce01ce60a1aa by removing `final` from `GrpcConfig`; no behavior changed.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19454#discussion_r3744350394"
+        }
+      ],
+      "reviewed": "5cfa26d833547440392a7daf2e7508f855819391",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19454#discussion_r3744305622"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] An explicitly empty deprecated declarative list (for example, `request: []`) reaches this return as an empty list. An `IncludeExclude` with no included patterns matches every key, so this changes the legacy capture-none behavior into capture-all and can expose request metadata. Preserve the include-only alias behavior by mapping an empty deprecated list to an inactive selector, and add an empty-list regression case.",
+      "created": "2026-08-09T21:05:31Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class GrpcConfig {\n+\n+  private static final Logger logger = Logger.getLogger(GrpcConfig.class.getName());\n+  private static final Set<String> warnedDeprecatedProperties = ConcurrentHashMap.newKeySet();\n+\n+  private static final String DEPRECATED_CLIENT_REQUEST_METADATA =\n+      \"otel.instrumentation.grpc.capture-metadata.client.request\";\n+  private static final String DEPRECATED_SERVER_REQUEST_METADATA =\n+      \"otel.instrumentation.grpc.capture-metadata.server.request\";\n+  private static final String CLIENT_REQUEST_METADATA_INCLUDED =\n+      \"otel.instrumentation.grpc.client.request-metadata.included\";\n+  private static final String SERVER_REQUEST_METADATA_INCLUDED =\n+      \"otel.instrumentation.grpc.server.request-metadata.included\";\n+\n+  @Nullable private final IncludeExclude clientRequestMetadata;\n+  @Nullable private final IncludeExclude serverRequestMetadata;\n+\n+  public static GrpcConfig create(OpenTelemetry openTelemetry) {\n+    return new GrpcConfig(\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"grpc\"),\n+        SemconvStability.v3Preview());\n+  }\n+\n+  GrpcConfig(DeclarativeConfigProperties config, boolean v3Preview) {\n+    clientRequestMetadata =\n+        getRequestMetadata(\n+            config,\n+            \"client\",\n+            DEPRECATED_CLIENT_REQUEST_METADATA,\n+            CLIENT_REQUEST_METADATA_INCLUDED,\n+            v3Preview);\n+    serverRequestMetadata =\n+        getRequestMetadata(\n+            config,\n+            \"server\",\n+            DEPRECATED_SERVER_REQUEST_METADATA,\n+            SERVER_REQUEST_METADATA_INCLUDED,\n+            v3Preview);\n+  }\n+\n+  @Nullable\n+  public IncludeExclude getClientRequestMetadata() {\n+    return clientRequestMetadata;\n+  }\n+\n+  @Nullable\n+  public IncludeExclude getServerRequestMetadata() {\n+    return serverRequestMetadata;\n+  }\n+\n+  @Nullable\n+  private static IncludeExclude getRequestMetadata(\n+      DeclarativeConfigProperties config,\n+      String side,\n+      String deprecatedProperty,\n+      String replacementProperty,\n+      boolean v3Preview) {\n+    DeclarativeConfigProperties requestMetadata = config.get(side).get(\"request_metadata\");\n+    List<String> included = requestMetadata.getScalarList(\"included\", String.class);\n+    List<String> excluded = requestMetadata.getScalarList(\"excluded\", String.class);\n+    if (included != null || excluded != null) {\n+      return IncludeExclude.builder()\n+          .setIncluded(included == null ? emptyList() : included)\n+          .setExcluded(excluded == null ? emptyList() : excluded)\n+          .build();\n+    }\n+\n+    if (v3Preview) {\n+      return null;\n+    }\n+\n+    List<String> deprecatedIncluded =\n+        config.get(\"capture_metadata\").get(side).getScalarList(\"request\", String.class);\n+    if (deprecatedIncluded == null) {\n+      return null;\n+    }\n+\n+    if (warnedDeprecatedProperties.add(deprecatedProperty)) {\n+      logger.warning(\n+          \"The \"\n+              + deprecatedProperty\n+              + \" setting and the equivalent declarative configuration property\"\n+              + \" are deprecated and will be removed in 3.0. Use \"\n+              + replacementProperty\n+              + \" or equivalent declarative configuration instead.\");\n+    }\n+    return IncludeExclude.builder().setIncluded(deprecatedIncluded).build();",
+      "id": "PRRT_kwDODJKVX86XrkDs",
+      "opened": "2026-08-09T21:05:31Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcConfig.java",
+      "replies": [
+        {
+          "at": "2026-08-09T21:11:39Z",
+          "body": "Addressed in e3e734a66a8928278e51331786b1fe94706acf95.\n\nAnalysis: The deprecated configuration is an include-only alias, where an empty list historically captured nothing. Building an IncludeExclude with no included or excluded patterns instead matches every metadata key. Mapping the empty deprecated list to null preserves the inactive legacy behavior while retaining the deprecation warning, and the regression test covers the explicit empty-list path.\n\nUpsides: Prevents an empty deprecated setting from unexpectedly capturing all request metadata and potentially exposing sensitive values; preserves backward compatibility.\n\nDownsides: The deprecated empty-list representation remains distinct from an explicitly empty new selector, as required by the legacy contract.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19454#discussion_r3745291691"
+        }
+      ],
+      "reviewed": "ae114e0ced9f19dc66b12d4faf4c919dacf9e15c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19454#discussion_r3745265783"
+    }
+  ]
+}

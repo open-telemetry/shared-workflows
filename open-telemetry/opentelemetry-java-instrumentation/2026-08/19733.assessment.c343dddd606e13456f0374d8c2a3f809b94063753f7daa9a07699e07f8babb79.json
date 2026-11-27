@@ -1,0 +1,90 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f6444a8d3fe141f283c3fb0e2b1072437d398d85da4d53ed1321acc210197205",
+  "input_digest": "c343dddd606e13456f0374d8c2a3f809b94063753f7daa9a07699e07f8babb79",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeLogsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeLogsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeLogsCollectorServiceHttp.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeLogsCollectorServiceHttp.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeMetricsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeMetricsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/71334b4a494a072364a3e8109ebf06037d323f27"
+      ],
+      "id": "PRRT_kwDODJKVX86bAPSB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeBackendMain.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeLogsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeMetricsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2890812f122ac8dc19d56b83196525762a4d938b/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeTraceCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeBackendMain.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeLogsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeMetricsCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeTraceCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ee16476a4e75e469b7d56c8cafbccedc539ad332"
+      ],
+      "id": "PRRT_kwDODJKVX86bAPSG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86bMvTl",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/71334b4a494a072364a3e8109ebf06037d323f27/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeBackendMain.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeBackendMain.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fe0dd121db3ed7b32f4a3866a47f1b224b2ce119"
+      ],
+      "id": "PRRT_kwDODJKVX86bOQ3D",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/71334b4a494a072364a3e8109ebf06037d323f27/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/961b3c8223cbf4aeb38c77725e9f879d4dc26b8a"
+      ],
+      "id": "PRRT_kwDODJKVX86bOQ3Y",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/134aafa79ad190752917babded2a91412de91bc9/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/134aafa79ad190752917babded2a91412de91bc9/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeTraceCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/134aafa79ad190752917babded2a91412de91bc9/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeTraceCollectorServiceHttp.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeTraceCollectorServiceGrpc.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc/smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeTraceCollectorServiceHttp.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5245f978fce3be5bbc3de437ea645af3137a39cd"
+      ],
+      "id": "PRRT_kwDODJKVX86bO8rt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

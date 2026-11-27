@@ -1,0 +1,52 @@
+{
+  "head": "c0ee217e8565739df5bb15b81f996f9c6c962577",
+  "merge": "6407215060e6eac4f0f25e1484016086ed46a59d",
+  "merged": "2026-06-04T14:23:38Z",
+  "missing_roots": 0,
+  "number": 216,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The phrase “as if it was observed by the caller” is awkward and slightly changes the meaning. This entry should match the doc wording (“as observed by the caller”).",
+      "created": "2026-05-29T04:50:30Z",
+      "hunk": "@@ -31,3 +31,7 @@\n   ([#136](https://github.com/open-telemetry/semantic-conventions-genai/pull/136))\n \n ### 📚 Clarifications 📚\n+\n+- Clarify that a GenAI span SHOULD cover the duration of the corresponding call\n+  as if it was observed by the caller, including any retries.",
+      "id": "PRRT_kwDOSUeMrM6Flib2",
+      "opened": "2026-05-29T04:50:31Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-05-29T05:02:15Z",
+          "body": "Addressed in c0ee217 — matched the CHANGELOG wording to the doc.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/216#discussion_r3322229423"
+        }
+      ],
+      "reviewed": "3af735e92f8dae48976f1200cd3e79887c77e482",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/216#discussion_r3322194573"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Wording is a bit ungrammatical/unclear: the issue doesn’t get retried; the operation/request does. Rephrasing improves readability and avoids ambiguity about what is being retried.",
+      "created": "2026-05-29T04:50:30Z",
+      "hunk": "@@ -24,6 +24,15 @@ linkTitle: Spans\n \n ## Spans\n \n+GenAI spans represent logical operations as observed by the caller.\n+They SHOULD cover the duration of the operation, starting when it is\n+initiated and ending when the response is fully received or the operation\n+is terminated due to an error or cancellation.\n+\n+If a transient issue happened and was retried within the operation, the\n+corresponding span SHOULD cover the duration of the logical operation with\n+all retries.",
+      "id": "PRRT_kwDOSUeMrM6Flibs",
+      "opened": "2026-05-29T04:50:31Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-05-29T05:02:09Z",
+          "body": "Addressed in 6204aec — reworded to \"If a transient issue happened and the request was retried automatically, the corresponding span SHOULD cover the duration of the logical operation with all retries.\"",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/216#discussion_r3322229193"
+        }
+      ],
+      "reviewed": "3af735e92f8dae48976f1200cd3e79887c77e482",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/216#discussion_r3322194559"
+    }
+  ]
+}

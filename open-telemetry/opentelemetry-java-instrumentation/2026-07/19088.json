@@ -1,0 +1,88 @@
+{
+  "head": "56410f5e5d35714480a6bd53a9b190e73b5d5d01",
+  "merge": "157552496b4f26792b5fa7f6d4f4ee6e829cb159",
+  "merged": "2026-07-13T20:36:37Z",
+  "missing_roots": 0,
+  "number": 19088,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new same-class suppression depends on `actualFactoryClass`, but it is assigned (line 47) only *after* `installed.compareAndSet(false, true)` (line 34) opens the install gate. A second install of the same factory class that loses the CAS during the brief window before line 47 runs will read `actualFactoryClass == null`, so `incomingClass.equals(actualFactoryClass)` is false and the \"Multiple application logger implementations were provided\" warning is still emitted — the exact symptom this PR aims to remove. In a Spring Boot app both install paths can fire (the SLF4J `LoggerFactory` exit path and the `LoggingApplicationListener` exit path), potentially from different threads, so this race is reachable. Consider publishing the winning factory class atomically with claiming the gate — e.g., replace the `installed` AtomicBoolean with an `AtomicReference<Class<? extends InternalLogger.Factory>>` and CAS `null` → `incomingClass`; losers then compare against its always-non-null value — so the recorded class is visible to any thread that loses the race.",
+      "created": "2026-06-26T18:50:08Z",
+      "hunk": "@@ -39,6 +44,7 @@ protected void install(InternalLogger.Factory applicationLoggerFactory) {\n               null);\n       return;\n     }\n+    actualFactoryClass = incomingClass;",
+      "id": "PRRT_kwDODJKVX86Mm31Q",
+      "opened": "2026-06-26T18:50:08Z",
+      "path": "javaagent-internal-logging-application/src/main/java/io/opentelemetry/javaagent/logging/application/ApplicationLoggerFactory.java",
+      "replies": [
+        {
+          "at": "2026-06-27T08:54:57Z",
+          "body": "Good catch. Fixed by replacing the separate AtomicBoolean + volatile field approach with a single AtomicReference<Class<?>>. The CAS is now null to incomingClass, so the winning class is stored atomically as part of claiming the gate. Any thread that loses the race immediately reads a non-null value from installedFactoryClass.get() — the window is gone entirely.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088#discussion_r3485712063"
+        }
+      ],
+      "reviewed": "a4cdb388d0159d634164ae8540c7a489e8e427e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088#discussion_r3483470563"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    // just use the first bridge that gets discovered and ignore the rest\n```",
+      "created": "2026-06-30T13:00:20Z",
+      "hunk": "@@ -28,8 +29,13 @@ final class ApplicationLoggerFactory extends ApplicationLoggerBridge\n \n   @Override\n   protected void install(InternalLogger.Factory applicationLoggerFactory) {\n-    // just use the first bridge that gets discovered and ignore the rest\n-    if (!installed.compareAndSet(false, true)) {\n+    Class<? extends InternalLogger.Factory> incomingClass = applicationLoggerFactory.getClass();\n+    // just use the first bridge that gets discovered and ignore the rest;\n+    // CAS null → incomingClass so the winning class is visible to any thread that loses the race",
+      "id": "PRRT_kwDODJKVX86NR4Th",
+      "opened": "2026-06-30T13:00:20Z",
+      "path": "javaagent-internal-logging-application/src/main/java/io/opentelemetry/javaagent/logging/application/ApplicationLoggerFactory.java",
+      "replies": [],
+      "reviewed": "f1cba107783e5903d294d7db93fad39328525cfb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088#discussion_r3498896747"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "if we implement it here, it feels like it should be checking the instance and not the class?\n\ndid you consider implementing the dedup in the caller instead?",
+      "created": "2026-07-08T17:44:35Z",
+      "hunk": "@@ -28,8 +29,12 @@ final class ApplicationLoggerFactory extends ApplicationLoggerBridge\n \n   @Override\n   protected void install(InternalLogger.Factory applicationLoggerFactory) {\n+    Class<? extends InternalLogger.Factory> incomingClass = applicationLoggerFactory.getClass();\n     // just use the first bridge that gets discovered and ignore the rest\n-    if (!installed.compareAndSet(false, true)) {\n+    if (!installedFactoryClass.compareAndSet(null, incomingClass)) {\n+      if (incomingClass.equals(installedFactoryClass.get())) {\n+        return;\n+      }\n       applicationLoggerFactory",
+      "id": "PRRT_kwDODJKVX86PVHGd",
+      "opened": "2026-07-08T17:44:35Z",
+      "path": "javaagent-internal-logging-application/src/main/java/io/opentelemetry/javaagent/logging/application/ApplicationLoggerFactory.java",
+      "replies": [
+        {
+          "at": "2026-07-09T03:28:44Z",
+          "body": "Good catch, you're right — comparing classes was the wrong layer here, especially since the bridge builds a new instance every call anyway.\n\nMoved the dedup up into Slf4jApplicationLoggerBridge#install() with a static AtomicBoolean, so it only ever hands off the first instance regardless of how many times slf4j/Spring Boot's logging listener fires. ApplicationLoggerFactory is back to the original plain AtomicBoolean check, since a second install() there now really does mean a different implementation was provided.\n\nAlso added an assertion in the fork-based ApplicationLoggerInstrumentationTest that the warning never shows up in the TestSpringApp output.\n\n@trask could you take another look?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088#discussion_r3548701235"
+        }
+      ],
+      "reviewed": "b8b13f8eb81fc5d7c82425613fcb4bbaa9f3fad4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088#discussion_r3546112161"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description and the actual code changes describe two different implementations. The description says the fix replaces an `AtomicBoolean installed` gate and a `volatile actualFactoryClass` field with a single `AtomicReference<Class<? extends InternalLogger.Factory>>` in `ApplicationLoggerFactory.java`, and adds a `shouldIgnoreSubsequentInstallationsOfSameClass` test plus `FirstFactory`/`SecondFactory` classes in `ApplicationLoggerFactoryTest.java`. However, this diff instead *adds* an `AtomicBoolean installed` gate in `Slf4jApplicationLoggerBridge.install()` (so `installApplicationLogger` runs at most once) and adds an assertion to `ApplicationLoggerInstrumentationTest.java`; `ApplicationLoggerFactory.java` and `ApplicationLoggerFactoryTest.java` are not modified at all. The implemented approach looks correct, but the description is stale and should be updated to match the actual changes to avoid confusing reviewers and future maintainers.",
+      "created": "2026-07-09T19:18:58Z",
+      "hunk": "@@ -7,14 +7,23 @@\n \n import io.opentelemetry.javaagent.bootstrap.InternalLogger;\n import io.opentelemetry.javaagent.bootstrap.logging.ApplicationLoggerBridge;\n+import java.util.concurrent.atomic.AtomicBoolean;\n import javax.annotation.Nullable;\n import org.slf4j.Logger;\n import org.slf4j.LoggerFactory;\n \n public class Slf4jApplicationLoggerBridge implements InternalLogger.Factory {\n \n+  // slf4j's LoggerFactory and Spring Boot's LoggingApplicationListener instrumentation points can\n+  // each call install() independently, and LoggingApplicationListener#initialize() can itself run\n+  // more than once during startup - guard here so we only ever hand off a single instance to\n+  // ApplicationLoggerBridge instead of relying on it to recognize repeat installs of us.\n+  private static final AtomicBoolean installed = new AtomicBoolean();\n+\n   public static void install() {\n-    ApplicationLoggerBridge.installApplicationLogger(new Slf4jApplicationLoggerBridge());\n+    if (installed.compareAndSet(false, true)) {\n+      ApplicationLoggerBridge.installApplicationLogger(new Slf4jApplicationLoggerBridge());\n+    }",
+      "id": "PRRT_kwDODJKVX86Pridz",
+      "opened": "2026-07-09T19:18:58Z",
+      "path": "instrumentation/internal/internal-application-logger/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/application/logger/Slf4jApplicationLoggerBridge.java",
+      "replies": [
+        {
+          "at": "2026-07-09T19:26:54Z",
+          "body": "Good catch — the description was left over from an earlier iteration of this fix. Updated it to match the current implementation (dedup in `Slf4jApplicationLoggerBridge#install()` via a static `AtomicBoolean`).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088#discussion_r3554263589"
+        }
+      ],
+      "reviewed": "b50a4867e14157acf09336d2a32bc42580bfa9b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088#discussion_r3554219822"
+    }
+  ]
+}

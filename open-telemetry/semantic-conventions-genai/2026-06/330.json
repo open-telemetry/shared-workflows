@@ -1,0 +1,55 @@
+{
+  "head": "b281e1f8f01b14db0550cd91fbbe5e41878e2583",
+  "merge": "791c341968d4d14cdc4d26f5c59fe690a7fcba5b",
+  "merged": "2026-06-25T19:21:21Z",
+  "missing_roots": 0,
+  "number": 330,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`schema_note()` always injects the full structured-vs-JSON-string guidance. For attributes whose existing `attribute.note` already contains the span guidance (e.g., tool call arguments/results), the rendered notes end up repeating that sentence. Consider making the schema note omit the span clause when the base note already covers it, while still adding the events clause and schema link.",
+      "created": "2026-06-19T20:53:05Z",
+      "hunk": "@@ -37,3 +37,30 @@\n {% macro humanize(text) %}{{- text.replace('_', ' ') -}}{% endmacro %}\n \n {% macro sentence_case(text) %}{{- text[:1].upper() + text[1:].lower() -}}{% endmacro %}\n+\n+{% macro schema_note(attribute) -%}\n+{%- set schema_path = '' -%}\n+{%- set annotations = attribute.annotations | default({}, true) -%}\n+{%- if annotations is mapping and 'type' in annotations and annotations['type'] is mapping and 'json_schema' in annotations['type'] -%}\n+{%- set schema_path = annotations['type']['json_schema'] | trim | trim('/') -%}\n+{%- endif -%}\n+{%- if schema_path -%}\n+Instrumentations MUST follow [JSON schema](/{{ schema_path }}).\n+\n+When the attribute is recorded on events, it MUST be recorded in structured form. When recorded on spans, it MAY be recorded as a JSON string if structured format is not supported and SHOULD be recorded in structured form otherwise.\n+{%- endif -%}\n+{%- endmacro %}\n+\n+{% macro note(attribute) -%}\n+{%- set base_note = attribute.note | default('', true) | trim -%}\n+{%- set generated_schema_note = schema_note(attribute) | trim -%}\n+{%- if base_note and generated_schema_note -%}\n+{{ base_note }}\n+\n+{{ generated_schema_note }}\n+{%- elif base_note -%}\n+{{ base_note }}\n+{%- elif generated_schema_note -%}\n+{{ generated_schema_note }}\n+{%- endif -%}\n+{%- endmacro %}",
+      "id": "PRRT_kwDOSUeMrM6K7F7F",
+      "opened": "2026-06-19T20:53:06Z",
+      "path": "templates/registry/markdown/attribute_macros.j2",
+      "replies": [],
+      "reviewed": "8a3a4e16c25d649579dd68cd76a46178e07a6b76",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/330#discussion_r3444525999"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "🙌",
+      "created": "2026-06-19T21:04:46Z",
+      "hunk": "@@ -756,18 +742,15 @@ attributes:\n   - key: gen_ai.output.messages\n     type: any\n     brief: Messages returned by the model where each message represents a specific model response (choice, candidate).\n+    annotations:\n+      type:\n+        json_schema: model/gen-ai/gen-ai-output-messages.json",
+      "id": "PRRT_kwDOSUeMrM6K7L7y",
+      "opened": "2026-06-19T21:05:40Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "c30342ca4dcbe14857879974b897596b00711417",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/330#discussion_r3444558326"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO: \n\n> the instrumentation SHOULD do the best effort to  deserialize it to an object\n\nis lost, bring it back",
+      "created": "2026-06-21T05:12:08Z",
+      "hunk": "@@ -335,31 +335,28 @@ attributes:\n   - key: gen_ai.tool.call.arguments\n     type: any\n     brief: Parameters passed to the tool call.\n+    annotations:\n+      type:\n+        json_schema: model/gen-ai/gen-ai-tool-call-arguments.json\n     note: |\n       > [!WARNING]\n       > This attribute may contain sensitive information.\n-\n-      It's expected to be an object - in case a serialized string is available\n-      to the instrumentation, the instrumentation SHOULD do the best effort to\n-      deserialize it to an object. When recorded on spans, it MAY be recorded as a JSON string if structured format is not supported and SHOULD be recorded in structured form otherwise.",
+      "id": "PRRT_kwDOSUeMrM6LEQpQ",
+      "opened": "2026-06-21T05:12:08Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "c30342ca4dcbe14857879974b897596b00711417",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/330#discussion_r3447939879"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "e702b2da2a91fd95095107daf13d9f0379bef63b",
+  "merge": "10f354d3c7dbefd8c198b1feb78d4501e42a0c5d",
+  "merged": "2026-09-09T03:05:54Z",
+  "missing_roots": 0,
+  "number": 641,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS / GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS from a non-underscore module is a potentially breaking change for any downstream code importing them, even though the instrumentation no longer needs them internally. Consider keeping them as backward-compatible aliases to the semconv constants (optionally with a short deprecation note) so external imports don’t break.",
+      "created": "2026-09-06T23:39:03Z",
+      "hunk": "@@ -65,12 +65,6 @@ class MessageRequestParams:\n     system: str | Iterable[TextBlockParam] | None = None\n \n \n-GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS = (\n-    \"gen_ai.usage.cache_creation.input_tokens\"\n-)\n-GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS = \"gen_ai.usage.cache_read.input_tokens\"\n-\n-\n @dataclass",
+      "id": "PRRT_kwDOSbspP86fv_RK",
+      "opened": "2026-09-06T23:39:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [],
+      "reviewed": "441736acabc56d490c2ca1ea6731387b542f33fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/641#discussion_r3945654891"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "no need for the changelog - the is no use facing change here",
+      "created": "2026-09-08T20:39:37Z",
+      "hunk": "@@ -0,0 +1 @@\n+record cache token usage through the shared invocation fields instead of locally defined attribute name constants",
+      "id": "PRRT_kwDOSbspP86gZy4c",
+      "opened": "2026-09-08T20:39:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/641.fixed",
+      "replies": [],
+      "reviewed": "441736acabc56d490c2ca1ea6731387b542f33fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/641#discussion_r3962054718"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "head": "da969936668f938b3b9155bbec40069aa6f4c843",
+  "merge": "16f71c1661165aba6ea4bb19b3ea18d5a67fa9a9",
+  "merged": "2026-11-02T09:28:55Z",
+  "missing_roots": 0,
+  "number": 21107,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one scoped documentation correction.\n\nIn the newly added returned-value assignment paragraph of .github/agents/knowledge/javaagent-advice-patterns.md, remove the parenthetical \"(the indy transformer)\" after the TypeTransformerImpl link. The agreed naming rule gives the default path the plain name; this newly added mode label reintroduces the shorthand being removed. Also drop the redundant \"(the injected-helper transformer)\" label after InjectingTypeTransformerImpl, leaving both useful source links and a simple \"Both ... and ... install\" sentence.\n\nKeep all class names, packages, code, advice behavior, and other documentation unchanged. Use the repository's Markdown formatting/linting runner for this changed file if applicable. This is documentation-only; do not run unrelated builds or tests, create another PR, or change PR metadata.",
+      "created": "2026-10-31T19:09:22Z",
+      "hunk": "@@ -76,7 +76,10 @@ method, even when the helper is nested in an advice class.\n \n ## Returned-value assignment typing\n \n-Both `TypeTransformerImpl` and `IndyTypeTransformerImpl` install\n+Both [TypeTransformerImpl](../../../javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/TypeTransformerImpl.java)\n+(the indy transformer) and",
+      "id": "PRRT_kwDODJKVX86yTzP_",
+      "opened": "2026-10-31T19:09:22Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [
+        {
+          "at": "2026-10-31T19:12:10Z",
+          "body": "Removed both redundant labels while preserving the source links in commit `bbf536c3`. `mise` is unavailable in this environment, so I couldn't run Flint.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4432970537"
+        }
+      ],
+      "reviewed": "15a17a62330eb1dbd0adfe38eb89236bf961d9c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4432963012"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following scoped transformer placement cleanup. Preserve its existing transformer renames and runtime behavior.\n\nMove the renamed default TypeTransformerImpl from io.opentelemetry.javaagent.tooling.instrumentation.indy into io.opentelemetry.javaagent.tooling.instrumentation, alongside InjectingTypeTransformerImpl. The injecting implementation's rename frees the original TypeTransformerImpl pathname. Update every affected import, reference, and source link, including InstrumentationModuleInstaller, internal-reflection ClassInstrumentation, and the returned-value assignment paragraph in .github/agents/knowledge/javaagent-advice-patterns.md. Keep the useful links and plain unqualified names, without reintroducing indy or ordinary mode labels.\n\nHandle the package-private dependencies with minimal changes: move VirtualFieldChecker into the same parent package, retaining package-private class/check visibility, and make the bootstrap getAdviceBootstrapArguments method accessible across packages. On this PR the bootstrap class is still IndyBootstrap; do not import the separate bootstrap-renaming PR. Keep ForceDynamicallyTypedAssignReturnedFactory and all other indy-package machinery in their current packages unless an actual dependency requires otherwise. Preserve TypeTransformerImpl's visibility required by internal-reflection, advice mappings, dispatch, virtual-field checking, and pre-Java-7 forwarding behavior.\n\nKeep this confined to PR #21107 and its existing head branch. Do not update other PRs, create another PR, change its base, rename the entire indy package, or introduce a new abstraction. Run the narrowest applicable spotlessApply directly before targeted compilation/tests covering the moved transformer and internal-reflection integration. Use the repository's Markdown runner for the changed source-link documentation when available. Acceptance is that the two transformer implementations live together in the parent package, the checker stays package-private, all references resolve, and behavior is unchanged.",
+      "created": "2026-10-31T20:31:13Z",
+      "hunk": "@@ -19,13 +19,13 @@\n import net.bytebuddy.dynamic.ClassFileLocator.Resolution;\n import net.bytebuddy.matcher.ElementMatcher;\n \n-public final class IndyTypeTransformerImpl implements TypeTransformer {\n+public final class TypeTransformerImpl implements TypeTransformer {",
+      "id": "PRRT_kwDODJKVX86yUW6t",
+      "opened": "2026-10-31T20:31:13Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java",
+      "replies": [
+        {
+          "at": "2026-10-31T20:39:08Z",
+          "body": "Moved `TypeTransformerImpl` and package-private `VirtualFieldChecker` into the parent package, updated the installer/reflection references and source link, and made the bootstrap-argument helper public. Targeted compiles and both `ReflectionTest` cases pass. Commit: `6f9ddb61`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433215811"
+        }
+      ],
+      "reviewed": "bbf536c32cf2df14c28b553a72a11522c5c44e0e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433195004"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to apply both preferred names requested by the user: \"Apply both of your preferences cloud\".\n\nRename javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InjectingTypeTransformerImpl.java and its class/constructor to HelperInjectionTypeTransformerImpl. This names the helper-injection strategy, not advice inlining; do not change its Byte Buddy advice mapping or add any forced inline setting.\n\nRename javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/AdviceForwardingTransformer.java and its class/constructor to AdviceCallForwardingTransformer. It forwards advice calls for pre-Java-7 class files through an injected forwarding class containing the original invokedynamic instruction. Preserve its bytecode-version check, bootstrap matching, generated Java-8 helper bytecode, helper injection, and forwarding behavior exactly.\n\nUpdate every affected reference, import, constructor call, filename, test reference, and documentation link, including InstrumentationModuleInstaller and .github/agents/knowledge/javaagent-advice-patterns.md. Keep both classes in their current packages with their existing visibility. Keep the default TypeTransformerImpl name and the existing TypeTransformerImpl/VirtualFieldChecker moves and bootstrap visibility change intact.\n\nMake this a behavior-preserving rename only, with no unrelated cleanup, additional class moves, compatibility aliases, or changelog entries. Do not change any other PR. Run the narrowest relevant formatters and existing checks covering the renamed tooling classes and directly affected documentation.",
+      "created": "2026-10-31T22:37:23Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.instrumentation;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.tooling.Utils;\n+import io.opentelemetry.javaagent.tooling.bytebuddy.ExceptionHandlers;\n+import io.opentelemetry.javaagent.tooling.instrumentation.indy.ForceDynamicallyTypedAssignReturnedFactory;\n+import java.util.function.Function;\n+import net.bytebuddy.agent.builder.AgentBuilder;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.method.MethodDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class InjectingTypeTransformerImpl implements TypeTransformer {",
+      "id": "PRRT_kwDODJKVX86yVO53",
+      "opened": "2026-10-31T22:37:23Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InjectingTypeTransformerImpl.java",
+      "replies": [
+        {
+          "at": "2026-10-31T22:44:10Z",
+          "body": "Applied both requested renames and updated the installer references and documentation link in `c2654e04`. The implementation behavior and packages are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433572889"
+        }
+      ],
+      "reviewed": "6f9ddb6147bb14e74442b4ff9853768650ceb2c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433556665"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user-requested naming-only cleanup: \"apply all of those changes cloud\".\n\nIn InstrumentationModuleInstaller.java, rename installInjectingModule to installHelperInjectionModule and update its call, matching the existing HelperInjectionTypeTransformerImpl name. Do not pull the sibling PR's installIndyModule-to-installModule or registry rename into this branch.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyBootstrap.java, rename getAdviceBootstrapArguments to createBootstrapArgumentResolverFactory. Preserve the public visibility introduced by this PR and its Advice.BootstrapArgumentResolver.Factory return type and behavior. Update all callers, including the default TypeTransformerImpl, and directly related comments.\n\nRename javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/VirtualFieldChecker.java and its class/constructor to AdviceVirtualFieldUsageChecker. Update all references and the existing reference in .github/agents/knowledge/javaagent-virtual-fields.md. Keep it package-private in tooling.instrumentation. Preserve its bytecode checks and otel.javaagent.testing.check-virtual-field-usage.enabled setting exactly.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/AdviceCallForwardingTransformer.java, rename every forwardClassSlasName local/parameter/reference to forwardClassInternalName. Preserve its bootstrap matching, pre-Java-7 gate, Java-8 forwarder bytecode, and injection behavior. Keep TypeTransformerImpl, HelperInjectionTypeTransformerImpl, and AdviceCallForwardingTransformer names and the earlier class moves intact.\n\nUpdate every affected reference, import, constructor, filename, test reference, and directly related documentation or link for these renames. Keep existing packages and visibility, runtime behavior, helper-selection precedence, advice inlining annotations, module identities, configuration names, exception handling, and the JVM-facing bootstrap entry point and signature unchanged. Preserve all earlier changes on this PR. Do not apply sibling PRs' class renames, move additional classes, update other PRs, or make unrelated cleanup. Make the changes on this PR's existing head branch, not in a new PR. Run the narrowest relevant formatters and existing checks for these changes.",
+      "created": "2026-10-31T23:07:09Z",
+      "hunk": "@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.tooling.instrumentation.indy;\n+package io.opentelemetry.javaagent.tooling.instrumentation;",
+      "id": "PRRT_kwDODJKVX86yVaBa",
+      "opened": "2026-10-31T23:07:09Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/AdviceVirtualFieldUsageChecker.java",
+      "replies": [],
+      "reviewed": "c2654e044fffd586a554905da90f723b58fc164b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433629257"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Implement, commit, and push these remaining naming-only changes directly to this PR's existing head branch. The previous coding attempt f1fdaaa3-e54c-440d-86b3-9e638f2ff12b ended at 2026-10-31T23:10:00Z without updating the original head c2654e044fffd586a554905da90f723b58fc164b; the live baseline-to-head comparison is identical and the requested old names remain present. This is an explicit implementation request, not a request for analysis or a plan. Verify that the pushed PR head contains the requested changes.\n\nIn InstrumentationModuleInstaller.java, rename installInjectingModule to installHelperInjectionModule and update its call, matching the existing HelperInjectionTypeTransformerImpl name. Do not pull the sibling PR's installIndyModule-to-installModule or registry rename into this branch.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyBootstrap.java, rename getAdviceBootstrapArguments to createBootstrapArgumentResolverFactory. Preserve the public visibility introduced by this PR and its Advice.BootstrapArgumentResolver.Factory return type and behavior. Update all callers, including the default TypeTransformerImpl, and directly related comments.\n\nRename javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/VirtualFieldChecker.java and its class/constructor to AdviceVirtualFieldUsageChecker. Update all references and the existing reference in .github/agents/knowledge/javaagent-virtual-fields.md. Keep it package-private in tooling.instrumentation. Preserve its bytecode checks and otel.javaagent.testing.check-virtual-field-usage.enabled setting exactly.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/AdviceCallForwardingTransformer.java, rename every forwardClassSlasName local/parameter/reference to forwardClassInternalName. Preserve its bootstrap matching, pre-Java-7 gate, Java-8 forwarder bytecode, and injection behavior. Keep TypeTransformerImpl, HelperInjectionTypeTransformerImpl, and AdviceCallForwardingTransformer names and the earlier class moves intact.\n\nUpdate every affected reference, import, constructor, filename, test reference, and directly related documentation or link for these renames. Keep existing packages and visibility, runtime behavior, helper-selection precedence, advice inlining annotations, module identities, configuration names, exception handling, and the JVM-facing bootstrap entry point and signature unchanged. Preserve all earlier changes on this PR. Do not apply sibling PRs' class renames, move additional classes, update other PRs, or make unrelated cleanup. Make the changes on this PR's existing head branch, not in a new PR. Run the narrowest relevant formatters and existing checks for these changes.",
+      "created": "2026-10-31T23:20:42Z",
+      "hunk": "@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.tooling.instrumentation.indy;\n+package io.opentelemetry.javaagent.tooling.instrumentation;",
+      "id": "PRRT_kwDODJKVX86yVfr0",
+      "opened": "2026-10-31T23:20:41Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/AdviceVirtualFieldUsageChecker.java",
+      "replies": [
+        {
+          "at": "2026-10-31T23:28:37Z",
+          "body": "Implemented and pushed as `93c82822`. The PR head now includes the requested renames and references; targeted compilation and tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433684977"
+        }
+      ],
+      "reviewed": "c2654e044fffd586a554905da90f723b58fc164b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433665023"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Renamed from `javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyTypeTransformerImpl.java`.\n\nGitHub compares this pathname with the old helper-injection implementation. This diff follows the actual source file instead:\n\n````diff\n--- a/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyTypeTransformerImpl.java\n+++ b/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java\n@@ -3,11 +3,13 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.tooling.instrumentation.indy;\n+package io.opentelemetry.javaagent.tooling.instrumentation;\n \n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n import io.opentelemetry.javaagent.tooling.bytebuddy.ExceptionHandlers;\n+import io.opentelemetry.javaagent.tooling.instrumentation.indy.ForceDynamicallyTypedAssignReturnedFactory;\n+import io.opentelemetry.javaagent.tooling.instrumentation.indy.IndyBootstrap;\n import java.io.IOException;\n import java.util.function.BiFunction;\n import java.util.function.Function;\n@@ -19,13 +21,13 @@ import net.bytebuddy.dynamic.ClassFileLocator;\n import net.bytebuddy.dynamic.ClassFileLocator.Resolution;\n import net.bytebuddy.matcher.ElementMatcher;\n \n-public final class IndyTypeTransformerImpl implements TypeTransformer {\n+public final class TypeTransformerImpl implements TypeTransformer {\n \n   private final Advice.WithCustomMapping adviceMapping;\n   private AgentBuilder.Identified.Extendable agentBuilder;\n   private final InstrumentationModule instrumentationModule;\n \n-  public IndyTypeTransformerImpl(\n+  public TypeTransformerImpl(\n       AgentBuilder.Identified.Extendable agentBuilder, InstrumentationModule module) {\n     this.agentBuilder = agentBuilder;\n     this.instrumentationModule = module;\n@@ -63,7 +65,7 @@ public final class IndyTypeTransformerImpl implements TypeTransformer {\n           // verify that advice does not call VirtualField.find\n           // NOTE: this check is here to help converting the advice for the indy instrumentation,\n           // it can be removed once the conversion is completed\n-          VirtualFieldChecker.check(bytes);\n+          AdviceVirtualFieldUsageChecker.check(bytes);\n           return bytes;\n         });\n   }\n````",
+      "created": "2026-10-31T23:59:40Z",
+      "hunk": "@@ -5,27 +5,41 @@\n \n package io.opentelemetry.javaagent.tooling.instrumentation;\n \n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n-import io.opentelemetry.javaagent.tooling.Utils;\n import io.opentelemetry.javaagent.tooling.bytebuddy.ExceptionHandlers;\n import io.opentelemetry.javaagent.tooling.instrumentation.indy.ForceDynamicallyTypedAssignReturnedFactory;\n+import io.opentelemetry.javaagent.tooling.instrumentation.indy.IndyBootstrap;\n+import java.io.IOException;\n+import java.util.function.BiFunction;\n import java.util.function.Function;\n import net.bytebuddy.agent.builder.AgentBuilder;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.method.MethodDescription;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.dynamic.ClassFileLocator;\n+import net.bytebuddy.dynamic.ClassFileLocator.Resolution;\n import net.bytebuddy.matcher.ElementMatcher;\n \n-final class TypeTransformerImpl implements TypeTransformer {\n-  private AgentBuilder.Identified.Extendable agentBuilder;\n+public final class TypeTransformerImpl implements TypeTransformer {",
+      "id": "PRRT_kwDODJKVX86yVuAG",
+      "opened": "2026-11-01T00:02:20Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java",
+      "replies": [],
+      "reviewed": "93c82822b4f4640b308c0f041bacd292277b35eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433759230"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Renamed from `javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java`.\n\n````diff\n--- a/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java\n+++ b/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/HelperInjectionTypeTransformerImpl.java\n@@ -15,11 +15,11 @@ import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.method.MethodDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n \n-final class TypeTransformerImpl implements TypeTransformer {\n+final class HelperInjectionTypeTransformerImpl implements TypeTransformer {\n   private AgentBuilder.Identified.Extendable agentBuilder;\n   private final Advice.WithCustomMapping adviceMapping;\n \n-  TypeTransformerImpl(AgentBuilder.Identified.Extendable agentBuilder) {\n+  HelperInjectionTypeTransformerImpl(AgentBuilder.Identified.Extendable agentBuilder) {\n     this.agentBuilder = agentBuilder;\n     adviceMapping =\n         Advice.withCustomMapping()\n````",
+      "created": "2026-10-31T23:59:40Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.instrumentation;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.tooling.Utils;\n+import io.opentelemetry.javaagent.tooling.bytebuddy.ExceptionHandlers;\n+import io.opentelemetry.javaagent.tooling.instrumentation.indy.ForceDynamicallyTypedAssignReturnedFactory;\n+import java.util.function.Function;\n+import net.bytebuddy.agent.builder.AgentBuilder;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.method.MethodDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class HelperInjectionTypeTransformerImpl implements TypeTransformer {",
+      "id": "PRRT_kwDODJKVX86yVuAI",
+      "opened": "2026-11-01T00:02:20Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/HelperInjectionTypeTransformerImpl.java",
+      "replies": [],
+      "reviewed": "93c82822b4f4640b308c0f041bacd292277b35eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433759234"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the user-approved small deduplication pass to this PR directly, without restacking the PRs.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java, restore installInjectingModule as the private helper-injection install method name and its caller. Only undo the installInjectingModule-to-installHelperInjectionModule rename. The selected installHelperInjectionModule name is owned by PR #21106; do not change that other PR.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyBootstrap.java, restore getAdviceBootstrapArguments as the resolver factory method name and update its caller in tooling/instrumentation/TypeTransformerImpl.java and the directly related comment in IndyBootstrap. Only undo createBootstrapArgumentResolverFactory naming in this PR. KEEP the method public: its visibility change is required by this PR's transformer move. Keep its return type and implementation unchanged. The selected createBootstrapArgumentResolverFactory name is owned by PR #21108.\n\nPreserve TypeTransformerImpl, HelperInjectionTypeTransformerImpl, AdviceCallForwardingTransformer, AdviceVirtualFieldUsageChecker, forwardClassInternalName, all existing class moves and imports, and the prior documentation links and checker reference. Do not revert the earlier transformer naming cleanup or change any other code or documentation beyond these two duplicate method renames and their references.\n\nThis is an explicit implementation request to deduplicate ownership across the four existing PRs, not to undo the selected names in their owning PRs. Implement, commit, and push only the requested removals directly to this PR's existing head branch. Keep runtime behavior, public/package-private visibility except as explicitly preserved above, helper-selection precedence, advice annotations, configuration and telemetry names, bootstrap entry-point names/signatures, and bytecode generation unchanged. Preserve the PR's existing base and draft/ready state. Do not merge, rebase, restack, update main, create another PR, modify another PR, or edit or submit existing review comments. Run the narrowest relevant formatters and existing checks covering the change and verify the pushed diff contains only the requested deduplication.",
+      "created": "2026-11-01T00:09:28Z",
+      "hunk": "@@ -212,7 +212,7 @@ private static CallSite bootstrapAdvice(\n     }\n   }\n \n-  static Advice.BootstrapArgumentResolver.Factory getAdviceBootstrapArguments(\n+  public static Advice.BootstrapArgumentResolver.Factory createBootstrapArgumentResolverFactory(",
+      "id": "PRRT_kwDODJKVX86yVxn3",
+      "opened": "2026-11-01T00:09:28Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyBootstrap.java",
+      "replies": [
+        {
+          "at": "2026-11-01T00:16:31Z",
+          "body": "Restored `getAdviceBootstrapArguments`, its caller, and the directly related comment while keeping the method public and leaving its implementation unchanged. Commit: `da969936`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433801248"
+        }
+      ],
+      "reviewed": "93c82822b4f4640b308c0f041bacd292277b35eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21107#discussion_r4433782569"
+    }
+  ]
+}

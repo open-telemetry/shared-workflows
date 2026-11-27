@@ -1,0 +1,25 @@
+{
+  "head": "b57d01264dc8ba205140812cc7b2a1092964281f",
+  "merge": "b50f75dcec8bb600a2e81c47f48cbb6591991f3c",
+  "merged": "2026-11-05T18:34:27Z",
+  "missing_roots": 0,
+  "number": 469,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion still passes if `--retry 5` is removed, even though `--retry-all-errors` does not enable retries by itself. Please also assert the retry count so this test catches a regression to a single attempt per mirror.",
+      "created": "2026-11-05T07:01:29Z",
+      "hunk": "@@ -1186,3 +1186,21 @@ def test_hbase_fixture_uses_pinned_upstream_inputs() -> None:\n     assert f\"ARG HBASE_VERSION={_hbase.HBASE_VERSION}\" in dockerfile\n     assert f\"ARG HBASE_SHA512={_hbase._HBASE_SHA512}\" in dockerfile\n     assert \"sha512sum --check --strict\" in dockerfile\n+\n+\n+def test_hbase_fixture_falls_back_across_apache_mirrors() -> None:\n+    dockerfile = (\n+        resources.files(\"database_conformance\")\n+        .joinpath(\"hbase-image\", \"Dockerfile\")\n+        .read_text(encoding=\"utf-8\")\n+    )\n+\n+    mirrors = [\n+        \"https://dlcdn.apache.org/${path}\",\n+        \"https://downloads.apache.org/${path}\",\n+        \"https://archive.apache.org/dist/${path}\",\n+    ]\n+    positions = [dockerfile.index(mirror) for mirror in mirrors]\n+    assert positions == sorted(positions)\n+    assert \"--retry-all-errors\" in dockerfile",
+      "id": "PRRT_kwDOTuzK5c6z9PSr",
+      "opened": "2026-11-05T07:01:30Z",
+      "path": "tools/database/runner/tests/test_database_backends.py",
+      "replies": [],
+      "reviewed": "f7834e2c05c09be246deca69e00883fd5f3f1f5f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/469#discussion_r4477514329"
+    }
+  ]
+}

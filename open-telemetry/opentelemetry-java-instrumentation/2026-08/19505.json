@@ -1,0 +1,31 @@
+{
+  "head": "0217d145f4f2d3b60d15b0e8c069dc68442ae7a9",
+  "merge": "e49528badb5d9b38da98f3a1452a09eed16b6ecf",
+  "merged": "2026-08-14T16:20:24Z",
+  "missing_roots": 0,
+  "number": 19505,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this necessary?",
+      "created": "2026-08-14T11:51:33Z",
+      "hunk": "@@ -0,0 +1,289 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.rocketmqclient.v4_8;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_CONSUMER_GROUP_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+import static java.util.Collections.singletonMap;\n+import static java.util.Objects.requireNonNull;\n+import static org.junit.jupiter.api.Assumptions.assumeFalse;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+import static org.junit.jupiter.params.provider.Arguments.argumentSet;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import java.util.List;\n+import java.util.stream.Stream;\n+import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;\n+import org.apache.rocketmq.client.hook.ConsumeMessageContext;\n+import org.apache.rocketmq.client.hook.SendMessageContext;\n+import org.apache.rocketmq.common.MixAll;\n+import org.apache.rocketmq.common.message.Message;\n+import org.apache.rocketmq.common.message.MessageBatch;\n+import org.apache.rocketmq.common.message.MessageExt;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv constants in metric assertions\n+class RocketMqMetricsTest {\n+\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.rocketmq-client-4.8\";\n+\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @BeforeEach\n+  void clearData() {\n+    testing.clearData();\n+  }",
+      "id": "PRRT_kwDODJKVX86ZQk5D",
+      "opened": "2026-08-14T11:51:33Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T15:16:31Z",
+          "body": "Will bundle this into a follow-up where I check this across all the code",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19505#discussion_r3784989089"
+        }
+      ],
+      "reviewed": "9c497c08f999a8d28306a5ba67e800e6fc9f8c07",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19505#discussion_r3783405152"
+    }
+  ]
+}

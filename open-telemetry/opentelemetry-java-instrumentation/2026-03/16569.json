@@ -1,0 +1,31 @@
+{
+  "head": "f8b96f19843ad1c01f355031fcde55b61b009124",
+  "merge": "3bf898d8d08347d61302ff07bb88f2ba509f20a6",
+  "merged": "2026-03-16T16:11:15Z",
+  "missing_roots": 0,
+  "number": 16569,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this was unnecessary since only a single test task",
+      "created": "2026-03-16T01:53:03Z",
+      "hunk": "@@ -21,7 +21,7 @@ otelJava {\n }\n \n tasks {\n-  test {\n+  withType<Test>().configureEach {",
+      "id": "PRRT_kwDODJKVX850dcrY",
+      "opened": "2026-03-16T01:53:03Z",
+      "path": "instrumentation/activej-http-6.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-16T10:08:36Z",
+          "body": "might be easier to just merge this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16569#discussion_r2939362587"
+        }
+      ],
+      "reviewed": "f8b96f19843ad1c01f355031fcde55b61b009124",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16569#discussion_r2937777816"
+    }
+  ]
+}

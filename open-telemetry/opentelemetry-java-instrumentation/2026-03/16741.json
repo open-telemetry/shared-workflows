@@ -1,0 +1,25 @@
+{
+  "head": "cd76d3bf8f920a558546b1727c510109162e7055",
+  "merge": "cfc2eba4dcac03a3012334ae7512da743083092d",
+  "merged": "2026-03-20T00:31:40Z",
+  "missing_roots": 0,
+  "number": 16741,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this can't be null because of https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8671b5a69676c8f3748b7a6e1ce6a55ebef51fea/instrumentation/jaxws/jaxws-cxf-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cxf/CxfRequest.java#L29 but the `spanName` field could be null https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8671b5a69676c8f3748b7a6e1ce6a55ebef51fea/instrumentation/jaxws/jaxws-cxf-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cxf/CxfRequest.java#L37-L47\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8671b5a69676c8f3748b7a6e1ce6a55ebef51fea/instrumentation/jaxws/jaxws-cxf-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cxf/CxfRequest.java#L24-L26 is called before `spanName()`",
+      "created": "2026-03-19T12:02:42Z",
+      "hunk": "@@ -27,9 +27,6 @@ private static Class<?> loadClass(String className) {\n \n   public static void updateServerSpanName(Context context, CxfRequest cxfRequest) {\n     String spanName = cxfRequest.spanName();\n-    if (spanName == null) {",
+      "id": "PRRT_kwDODJKVX851cBQl",
+      "opened": "2026-03-19T12:02:41Z",
+      "path": "instrumentation/jaxws/jaxws-cxf-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cxf/CxfServerSpanNaming.java",
+      "replies": [],
+      "reviewed": "cd76d3bf8f920a558546b1727c510109162e7055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16741#discussion_r2959595941"
+    }
+  ]
+}

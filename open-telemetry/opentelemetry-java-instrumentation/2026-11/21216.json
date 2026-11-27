@@ -1,0 +1,109 @@
+{
+  "head": "99a8935db8c08ba960ce8e045b6040c98327cd5e",
+  "merge": "df0416ec9b20ca354a4868edcc5d1c0266f1ae03",
+  "merged": "2026-11-06T05:51:38Z",
+  "missing_roots": 0,
+  "number": 21216,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to finish the original messaging Gradle rollout's RabbitMQ lifecycle requirement. Keep the existing cloud-managed head branch, do not rename or switch branches, and do not create another PR.\n\nThe layout migration is delivered, and its initial Copilot review 5792455030 has no findings. One originally requested acceptance criterion remains: reliably realize and include every ordinary RabbitMQ verification suite and its variants in check. The current RabbitMQ script still has no check dependency on testing.suites. Both named executions selectors use lazy named(...).configure in TestSuiteExecutions.kt, and the shared testing conventions configure suites lazily rather than establishing independent custom-suite check membership. Registering these selectors is not itself a lifecycle guarantee.\n\nIn instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts, add ordinary suite-collection check wiring using the existing pattern tasks.check { dependsOn(testing.suites) }. Keep all existing execution selectors, flags, filters, task names, source/dependency graphs, Mockito agent setup/providers, metadata profiles, and Testcontainers scheduling unchanged. Baseline-only ReceiveSpansDisabled must stay off reactorTest/recoveryTest, and the experimental variants must retain their intended suites.\n\nVerify the check graph in baseline and testLatestDeps modes from a fresh configuration without first explicitly realizing every suite; both reactorTest/recoveryTest defaults and their experimental variants must be included. Separately verify explicit suite realization still preserves the same flags and agent inputs. Run the narrowest applicable spotlessApply directly before focused existing verification, and record exact results and any environment blockers in the completion evidence. Do not wait for hosted CI, clean, disable caches, run a whole-repository build, redesign shared conventions, or change the helper-suite consolidation explicitly excluded from this batch.\n\nLimit this correction to the RabbitMQ lifecycle wiring and necessary focused validation. Publish the correction to this original PR's current head; a local-only commit is not delivery.",
+      "created": "2026-11-05T21:38:33Z",
+      "hunk": "@@ -45,19 +45,26 @@ testing.suites {\n     dependencies {\n       implementation(\"org.testcontainers:testcontainers\")\n     }\n-    val baseline = name == \"test\"\n-    executions {\n-      configureEach {\n-        telemetryConfig(\"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\", \"true\")\n-      }\n-      register(\"Experimental\") {\n-        telemetryConfig(\"otel.instrumentation.rabbitmq.experimental-span-attributes\", \"true\")\n-      }\n-      if (baseline) {\n-        register(\"ReceiveSpansDisabled\") {\n-          telemetryConfig(\"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\", \"false\")\n-        }\n-      }\n+  }\n+\n+  executions(\"test\") {",
+      "id": "PRRT_kwDODJKVX860SFHh",
+      "opened": "2026-11-05T21:38:32Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-05T21:46:56Z",
+          "body": "Added `tasks.check { dependsOn(testing.suites) }` and pushed as `678ffc86`. Fresh baseline and `testLatestDeps` check dry runs include both custom suites and their experimental variants; explicit task inspection confirmed flags and Mockito agent inputs are unchanged. The focused suite DSL test and RabbitMQ Spotless check passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4486459370"
+        }
+      ],
+      "reviewed": "cb5d7541dbbbcc8c0c10dc6cb7259ed01ef5f411",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4486381713"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify only instrumentation/spring/spring-pulsar-1.0/javaagent/build.gradle.kts by using the existing telemetryConfig helper for production property/profile pairs in its two execution blocks. Add the telemetryConfig import.\n\nIn executions(\"testReceiveSpansDisabled\"), replace the experimental-span-attributes true JVM argument and its manually repeated metadataConfig property with telemetryConfig(\"otel.instrumentation.pulsar.experimental-span-attributes\", \"true\"). Keep the explicit receive-telemetry.enabled=false JVM argument separate. In executions(\"test\") configureDefault, replace the receive-telemetry.enabled=true JVM argument and manually repeated metadataConfig property with telemetryConfig(\"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\", \"true\"). Keep experimental-span-attributes=false as a separate explicit JVM argument.\n\nThe runtime property values and exact metadataConfig strings must remain unchanged for both tasks; do not label the default-valued false properties. Keep the distinct test suites and dependency graphs. Do not modify RabbitMQ, JMS, Spring Integration, Vert.x, or any other module.\n\nUpdate this existing PR directly on its existing head branch, not a new PR. Keep the PR's current draft/ready state. Preserve behavior, test discovery, dependency graphs, test task names, configuration flags, metadata profiles, JDK/denyUnsafe gates, agent inputs/providers, and check membership except for the explicitly requested removal of redundant wiring or duplicate compilation. Do not edit PR titles or descriptions.\n\nRead applicable repository guidance. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify relevant check graphs and task configuration in baseline and testLatestDeps modes without first manually realizing all suites. Run focused existing tests where relevant and feasible, and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build, wait for hosted CI, or expand the change into unrelated cleanup. Commit and push the intended changes to this PR's existing head.",
+      "created": "2026-11-06T00:46:12Z",
+      "hunk": "@@ -30,49 +32,47 @@ dependencies {\n   }\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"testReceiveSpansDisabled\") {\n-      dependencies {\n-        implementation(project(\":instrumentation:spring:spring-pulsar-1.0:testing\"))\n+testing.suites {\n+  register<JvmTestSuite>(\"testReceiveSpansDisabled\") {\n+    dependencies {\n+      implementation(project(\":instrumentation:spring:spring-pulsar-1.0:testing\"))\n \n-        val springBootVersion = baseVersion(\"3.2.4\").orLatest()\n-        val springPulsarVersion = baseVersion(\"1.0.0\").orLatest()\n-        implementation(\"org.springframework.boot:spring-boot-starter-test:$springBootVersion\")\n-        implementation(\"org.springframework.boot:spring-boot-starter:$springBootVersion\")\n-        if (otelProps.testLatestDeps) {\n-          implementation(\"org.springframework.boot:spring-boot-starter-pulsar:$springPulsarVersion\")\n-        } else {\n-          implementation(\"org.springframework.pulsar:spring-pulsar:$springPulsarVersion\")\n-        }\n+      val springBootVersion = baseVersion(\"3.2.4\").orLatest()\n+      val springPulsarVersion = baseVersion(\"1.0.0\").orLatest()\n+      implementation(\"org.springframework.boot:spring-boot-starter-test:$springBootVersion\")\n+      implementation(\"org.springframework.boot:spring-boot-starter:$springBootVersion\")\n+      if (otelProps.testLatestDeps) {\n+        implementation(\"org.springframework.boot:spring-boot-starter-pulsar:$springPulsarVersion\")\n+      } else {\n+        implementation(\"org.springframework.pulsar:spring-pulsar:$springPulsarVersion\")\n       }\n+    }\n+  }\n \n-      targets {\n-        all {\n-          testTask.configure {\n-            jvmArgs(\"-Dotel.instrumentation.pulsar.experimental-span-attributes=true\")\n-            jvmArgs(\"-Dotel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=false\")\n-            systemProperty(\n-              \"metadataConfig\",\n-              \"otel.instrumentation.pulsar.experimental-span-attributes=true\",\n-            )\n-          }\n-        }\n-      }\n+  executions(\"testReceiveSpansDisabled\") {",
+      "id": "PRRT_kwDODJKVX860VXCL",
+      "opened": "2026-11-06T00:46:12Z",
+      "path": "instrumentation/spring/spring-pulsar-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T00:52:58Z",
+          "body": "Updated and pushed as `e0f842f1`. The requested production properties now use `telemetryConfig`, preserving both runtime key/value pairs and exact metadata profiles; the distinct suites and dependency graphs are unchanged. Focused DSL tests, Spotless, and baseline/latest check-graph dry runs passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4487840217"
+        }
+      ],
+      "reviewed": "678ffc8620f299e3690880a3c32438825cf32c37",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4487797722"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove redundant no-receive experimental-attribute execution variants from all three Vert.x Kafka testing projects in this existing PR. Update only these build.gradle.kts files under instrumentation/vertx/vertx-kafka-client-3.6/: vertx-kafka-client-3.6-testing/build.gradle.kts, vertx-kafka-client-4-testing/build.gradle.kts, and vertx-kafka-client-5-testing/build.gradle.kts.\n\nIn each project's executions(\"testNoReceiveTelemetry\") block, remove register(\"Experimental\") and its experimental-span-attributes=true setting. This intentionally removes testNoReceiveTelemetryExperimental in each of the three projects. Keep the testNoReceiveTelemetry suite, its sources and dependencies, and its ordinary no-receive execution unchanged. In the 3.6 project remove the executions selector if it becomes empty. In 4 and 5 retain no-receive JVM configuration and explicit experimental-span-attributes=false. Remove imports only if they become unused.\n\nKeep test and testExperimental in all three projects, including their receive-telemetry-enabled configuration and experimental-attribute assertions. The tests use the same processing instrumenter and experimental attribute extractor regardless of receive mode. The receive-enabled experimental variant already covers kafka.bootstrap.servers and kafka.record.queue_time_ms; the no-receive baseline still covers the distinct trace topology and metrics. We do not need the additional cross-product run. Do not remove assertions, consolidate source suites, change production instrumentation or shared conventions, or modify other messaging modules.\n\nPreserve check wiring, JDK/denyUnsafe gates, Testcontainers scheduling, agent inputs/providers, baseline/latest dependency matrices and existing metadata collection. Check for task-name references and remove only references that would otherwise point at these intentionally deleted variants.\n\nUpdate this PR directly on its existing head branch, not a new PR. Preserve its current draft/ready state. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify baseline and testLatestDeps check graphs include the retained baseline/experimental and no-receive tasks but no removed variants. Run focused existing verification where feasible and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build or wait for hosted CI. Commit and push this scoped change to the original PR's current head.",
+      "created": "2026-11-06T01:16:20Z",
+      "hunk": "@@ -29,11 +29,11 @@ testing.suites {\n       implementation(\"io.vertx:vertx-kafka-client:$version\")\n       implementation(\"io.vertx:vertx-codegen:$version\")\n     }\n+  }\n \n-    executions {\n-      register(\"Experimental\") {\n-        telemetryConfig(\"otel.instrumentation.kafka.experimental-span-attributes\", \"true\")\n-      }\n+  executions(\"testNoReceiveTelemetry\") {",
+      "id": "PRRT_kwDODJKVX860Vx8q",
+      "opened": "2026-11-06T01:16:20Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-3.6-testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T01:23:39Z",
+          "body": "Removed the three no-receive experimental variants while retaining the no-receive suites and receive-enabled experimental variants. Baseline/latest check graphs and the focused suite DSL test passed. Pushed as `5eb5f01c`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4488021782"
+        }
+      ],
+      "reviewed": "e0f842f16a4b43426f21050291cc8d1348f90708",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4487980573"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "seems unnecessary",
+      "created": "2026-11-06T01:38:04Z",
+      "hunk": "@@ -29,12 +29,6 @@ testing.suites {\n       implementation(\"io.vertx:vertx-kafka-client:$version\")\n       implementation(\"io.vertx:vertx-codegen:$version\")\n     }\n-\n-    executions {\n-      register(\"Experimental\") {\n-        telemetryConfig(\"otel.instrumentation.kafka.experimental-span-attributes\", \"true\")\n-      }\n-    }",
+      "id": "PRRT_kwDODJKVX860WFlI",
+      "opened": "2026-11-06T01:38:04Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-3.6-testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "5eb5f01c4e6eacbfbf5168a9644b154ff1b2a2df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4488114593"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove redundant default-only configuration from the two remaining no-receive Vert.x Kafka execution blocks in this existing PR. Update only instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-4-testing/build.gradle.kts and instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-5-testing/build.gradle.kts.\n\nIn each file remove the entire executions(\"testNoReceiveTelemetry\") block, including its configureEach receive-telemetry.enabled=false JVM argument and configureDefault kafka.experimental-span-attributes=false JVM argument. Do not merely merge configureDefault into configureEach. Both production settings default to false, as documented in the Vert.x Kafka metadata and read by the instrumenter configuration. The true values are scoped to the separate test suite and its Experimental variant; they do not carry over to testNoReceiveTelemetry. The 3.6 testing project already relies on these defaults.\n\nThe user explicitly requested this follow-up after the previous attempt removed testNoReceiveTelemetryExperimental from all three projects. This supersedes the previous instruction to retain explicit false settings in Vert.x 4 and 5. Keep all three testNoReceiveTelemetry suite registrations, their distinct sources and dependencies, check membership, and ordinary test coverage. Keep test and testExperimental and their enabled receive/experimental configuration unchanged. Do not restore the removed variants or change the 3.6 project, tests/assertions, production code, metadata, shared conventions, JDK/denyUnsafe gates, or other messaging modules.\n\nUpdate this PR directly on its existing head branch, not a new PR. Preserve its current draft/ready state. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify baseline and testLatestDeps check graphs and effective no-receive configuration remain equivalent, with retained baseline and experimental receive-enabled tasks and no restored no-receive experimental tasks. Run focused existing verification where feasible and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build or wait for hosted CI. Commit and push only this scoped change to the original PR's current head.",
+      "created": "2026-11-06T01:41:17Z",
+      "hunk": "@@ -28,19 +28,15 @@ testing.suites {\n       implementation(\"io.vertx:vertx-kafka-client:$version\")\n       implementation(\"io.vertx:vertx-codegen:$version\")\n     }\n+  }\n \n-    executions {\n-      configureEach {\n-        jvmArgs(\"-Dotel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=false\")\n-      }\n-\n-      configureDefault {\n-        jvmArgs(\"-Dotel.instrumentation.kafka.experimental-span-attributes=false\")\n-      }\n+  executions(\"testNoReceiveTelemetry\") {",
+      "id": "PRRT_kwDODJKVX860WILI",
+      "opened": "2026-11-06T01:41:17Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-4-testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T01:53:08Z",
+          "body": "Removed the no-receive execution blocks from Vert.x Kafka 4 and 5 only. Baseline and `testLatestDeps` check graphs and effective task properties are verified. Commit: `99a8935d`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4488198968"
+        }
+      ],
+      "reviewed": "5eb5f01c4e6eacbfbf5168a9644b154ff1b2a2df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21216#discussion_r4488132340"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "head": "23673a5d92d5575d5c0dcf7e7327b6acf75aa558",
+  "merge": "e0f6bfb9283d21aa0872df386d3b3220645be431",
+  "merged": "2026-10-21T07:27:48Z",
+  "missing_roots": 0,
+  "number": 20750,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following test-only cleanup. Keep all production schema changes intact and preserve the PR's existing base branch and draft/ready state. Do not create a follow-up PR as a workaround.\n\n1. In instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts, remove the two Bedrock executions added by this PR, PreviewRpcSemconv and PreviewRpcSemconvDup. Keep the schema assertions added to the existing Bedrock test. Extractor-based schema inference will be removed in the final PR in this stack, so these RPC preview variants are not needed. That removal is context only; do not implement it in this PR.\n2. In instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts, remove the ExceptionSignalLogs execution added by this PR. Remove the dedicated exceptionSchema test added to ChatModelTest.java and any imports made unused by its removal. Keep the schema assertions added to existing Spring AI tests and keep all production changes. Exception-log schema propagation is shared InstrumenterBuilder behavior and does not need this extra integration-test execution here.\n3. Remove the reflective, 14-case spanSchemaMatchesDecorator test added to instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelProcessMetricsTest.java, including imports made unused. Instead, add concise schema assertions to the existing RestCamelTest coverage: Camel HTTP spans must use https://opentelemetry.io/schemas/1.41.0, and Camel's generic internal operations must remain without a schema. Target the Camel spans, not nested spans emitted by other instrumentations. Reuse the existing integration test rather than adding another test or JVM execution.\n4. Remove the fallback process-metric schema assertion added by this PR to CamelProcessMetricsTest.recordsOnlyAbsentMetric, preserving its original metric and error-attribute assertions. That assertion checks behavior unchanged by this PR.\n\nAcceptance criteria: both added AWS RPC preview executions and the added Spring AI exception-log execution/test are gone; the existing Bedrock and Spring AI schema assertions remain; the new Camel reflective matrix is replaced by assertions in existing RestCamelTest coverage; the added fallback-metric schema assertion is gone; all production schema changes and other existing coverage remain intact. Validate the affected tests following repository instructions. Keep the change scoped to this cleanup and do not alter the rest of the stack, post replies, or resolve review threads.",
+      "created": "2026-10-20T18:29:18Z",
+      "hunk": "@@ -137,6 +137,20 @@ testing {\n         val version = baseVersion(\"2.25.63\").orLatest()\n         runtimeOnly(\"software.amazon.awssdk:bedrockruntime:$version\")\n       }\n+      executions {\n+        register(\"PreviewRpcSemconv\") {",
+      "id": "PRRT_kwDODJKVX86ud1Ei",
+      "opened": "2026-10-20T18:29:17Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "730abc83e9ee2e45023afa9a2197137944495c71",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20750#discussion_r4328703710"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to use the existing InstrumentationScopeAssertions.hasScopeSchemaUrl shortcut for all 24 schema-only assertions introduced by this PR. Do not create a follow-up PR as a workaround.\n\nReplace the hand-written satisfies lambdas that read getInstrumentationScopeInfo().getSchemaUrl() with satisfies(hasScopeSchemaUrl(expectedSchemaUrl)), using a static import of io.opentelemetry.instrumentation.testing.util.InstrumentationScopeAssertions.hasScopeSchemaUrl. The helper supports spans, metrics, logs, and null expectations. Preserve every expected schema URL and null expectation, all other assertions, and the existing telemetry coverage.\n\nThe 24 replacements are in these files: instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2BedrockRuntimeTest.java (5); instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java (4); instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractChatTest.java (5); instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractEmbeddingsTest.java (3); instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractOpenAiTest.java (1); instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java (1); instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/AbstractOpenAiChatModelTest.java (5).\n\nAcceptance criteria: all 24 assertions use the shared helper instead of manual schema-getter lambdas, with unchanged expected values and coverage. Adjust imports as needed. Keep this test-only cleanup scoped to this PR, preserve all production changes and the existing base branch and draft/ready state, and do not update other PR branches, restack, merge, post replies, or resolve threads. Follow repository formatting and targeted validation instructions.",
+      "created": "2026-10-20T20:34:58Z",
+      "hunk": "@@ -149,6 +150,11 @@ void testConverseBasic() {\n                 trace.hasSpansSatisfyingExactly(\n                     span ->\n                         span.hasName(\"chat amazon.titan-text-lite-v1\")\n+                            .satisfies(\n+                                spanData ->\n+                                    assertThat(\n+                                            spanData.getInstrumentationScopeInfo().getSchemaUrl())",
+      "id": "PRRT_kwDODJKVX86ug4my",
+      "opened": "2026-10-20T20:34:58Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2BedrockRuntimeTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T20:49:23Z",
+          "body": "Applied the helper substitutions across all 24 assertions in commit `49380c50`; expected URLs and null expectations are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20750#discussion_r4330151226"
+        }
+      ],
+      "reviewed": "9a3a3d23df760bfa7d43ca14922d962530ba19b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20750#discussion_r4330011440"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a test-only schema-constant consistency cleanup. Do not create a follow-up PR as a workaround.\n\nIn instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java, replace the two hasScopeSchemaUrl(\"https://opentelemetry.io/schemas/1.41.0\") expectations with hasScopeSchemaUrl(SchemaUrls.V1_41_0). Leave both hasScopeSchemaUrl(null) expectations unchanged. In instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java, replace the one hasScopeSchemaUrl(\"https://opentelemetry.io/schemas/1.43.0\") expectation with hasScopeSchemaUrl(SchemaUrls.V1_43_0). Import io.opentelemetry.semconv.SchemaUrls in these files as needed.\n\nUse version-specific semconv constants for test expectations, not production aliases such as HttpSchemaUrls.SCHEMA_URL or MessagingSchemaUrls.SCHEMA_URL, so expectations remain independently pinned to the adopted versions. Keep all existing shared-helper calls, expected values, null assertions, other coverage, and production behavior unchanged.\n\nAcceptance criteria: exactly these three fixed-version string expectations use the matching SchemaUrls constants. Keep the change scoped to these two test files, preserve the existing base branch and draft/ready state, and do not update other PR branches, restack, merge, post replies, or resolve threads. Follow repository formatting and targeted validation instructions.",
+      "created": "2026-10-20T20:57:46Z",
+      "hunk": "@@ -113,7 +115,8 @@ void restComponentServerAndClientCallWithJettyBackend() {\n                               stringKey(\"camel.uri\"),\n                               experimental(\"rest://get:api/%7Bmodule%7D/unit/%7BunitId%7D\")),\n                           equalTo(HTTP_REQUEST_METHOD, \"GET\"),\n-                          equalTo(HTTP_RESPONSE_STATUS_CODE, 200L)));\n+                          equalTo(HTTP_RESPONSE_STATUS_CODE, 200L))\n+                      .satisfies(hasScopeSchemaUrl(\"https://opentelemetry.io/schemas/1.41.0\")));",
+      "id": "PRRT_kwDODJKVX86uhZU7",
+      "opened": "2026-10-20T20:57:46Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+      "replies": [],
+      "reviewed": "49380c5067cf929ad8f7d8f9d166fde6010b5ce5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20750#discussion_r4330230882"
+    }
+  ]
+}

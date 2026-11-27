@@ -1,0 +1,52 @@
+{
+  "head": "ebb74dfd2e1a8ddba031eb0799153ef2c86eb7f9",
+  "merge": "b70398865dc3c95945c16b8aab0a92f94bcd316b",
+  "merged": "2026-08-29T22:41:10Z",
+  "missing_roots": 0,
+  "number": 485,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Construct `Error` from `opentelemetry.util.genai.types` using `ErrorTypeValues.OTHER.value` and `str(span_error)`:\r\n\r\n```suggestion\r\n        span_error = getattr(span, \"error\", None)\r\n        if span_error is not None:\r\n            invocation.fail(\r\n                Error(\r\n                    type=ErrorTypeValues.OTHER.value,\r\n                    message=str(span_error),\r\n                )\r\n            )\r\n            return\r\n```\r\n\r\nSee commit [fed2c6a](https://github.com/lmolkova/opentelemetry-python-genai/commit/fed2c6a6f1d2c695ca4086659779df3f52aa3178) fas a sample.\r\n\r\nRationale: we don't need to invent exception types when there was no exception, we report what openai agents provide.\r\n\r\nIdeally we'd want something useful and descriptive as error.type (actual exception type name, etc), but all OpenAI gives is SpanError dict with message and arbitrary context. `SpanError` us not quite useful, so let's use fallback OTHER type. If there is some heuristic allowing to have more granular errors in the error type - let's use them.",
+      "created": "2026-08-26T21:38:18Z",
+      "hunk": "@@ -130,6 +131,12 @@ def on_span_end(self, span: Span[Any]) -> None:\n                 invocation.tool_result = (\n                     output if isinstance(output, str) else str(output)\n                 )\n+        # SpanError is a mapping, not a raised exception, so it never\n+        # reaches util-genai's exception path on its own.\n+        span_error = getattr(span, \"error\", None)\n+        if span_error is not None:",
+      "id": "PRRT_kwDOSbspP86cn_Co",
+      "opened": "2026-08-26T22:14:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+      "replies": [
+        {
+          "at": "2026-08-28T15:27:29Z",
+          "body": "Applied — I took your patch from fed2c6a directly, so this is your code (37a8abb).\n\nAgreed on not inventing a type. One note in case it's useful: `str(span_error)` turns out to be load-bearing. With `span_error[\"message\"]` alone the status description came out as `Error running tool (non-fatal)` — the actual failure text lives in `data`, so serializing the whole mapping is what preserves it.\n\nOn a more granular `error.type`: the only thing to key off is the SDK's ~29 hardcoded `SpanError(...)` message literals, and those carry no stability guarantee — a mapping would quietly degrade to `_OTHER` whenever one is reworded, which is the failure mode hardest to notice. `_OTHER` looks like the right call here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/485#discussion_r3881827019"
+        }
+      ],
+      "reviewed": "fdd3d25018eb215deadb59e899320855517105bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/485#discussion_r3866932376"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please add an integration test exercising `Runner.run` with a failing tool and a VCR cassette:\n\n```python\n@agents.function_tool\ndef _failing_tool() -> str:\n    raise ValueError(\"database connection failed\")\n\n\n@pytest.mark.vcr\n@pytest.mark.asyncio\nasync def test_runner_failing_tool_records_span_error(\n    tracer_provider: TracerProvider,\n    logger_provider: Any,\n    meter_provider: Any,\n    span_exporter: InMemorySpanExporter,\n) -> None:\n    with instrument(\n        OpenAIAgentsInstrumentor(),\n        tracer_provider=tracer_provider,\n        logger_provider=logger_provider,\n        meter_provider=meter_provider,\n    ):\n        agent = agents.Agent(\n            name=\"test_agent\",\n            model=\"gpt-4o-mini\",\n            tools=[_failing_tool],\n        )\n        await agents.Runner.run(agent, \"run tool\")\n\n    spans = {s.name: s for s in span_exporter.get_finished_spans()}\n    assert \"execute_tool _failing_tool\" in spans\n    tool_span = spans[\"execute_tool _failing_tool\"]\n    assert tool_span.status.status_code is StatusCode.ERROR\n    assert \"database connection failed\" in (tool_span.status.description or \"\")\n    assert tool_span.attributes is not None\n    assert tool_span.attributes[\"error.type\"] == \"_OTHER\"\n```\n\nSee commit [fed2c6a](https://github.com/lmolkova/opentelemetry-python-genai/commit/fed2c6a6f1d2c695ca4086659779df3f52aa3178) for the full change including the VCR cassette.",
+      "created": "2026-08-26T21:38:18Z",
+      "hunk": "@@ -219,6 +220,60 @@ def test_no_content_captured_when_capture_env_unset(\n     assert tool_span.attributes[\"gen_ai.tool.name\"] == \"get_weather\"\n \n \n+def test_tool_span_error_sets_error_status_and_type(",
+      "id": "PRRT_kwDOSbspP86cn_Cq",
+      "opened": "2026-08-26T22:14:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_processor.py",
+      "replies": [
+        {
+          "at": "2026-08-28T15:27:40Z",
+          "body": "Added in 37a8abb — I took fed2c6a wholesale: your cassette, your test in `test_instrumentor.py`, and the instrumentor change that builds its own `TelemetryHandler` instead of taking the `get_telemetry_handler` singleton. That last one turned out to be the root cause of a test-isolation problem I had worked around in conftest, so thanks — the workaround is gone.\n\nTwo small things:\n\n- The reordering in that patch moved `pytest_plugins` above the vcr import, which left `pytest.register_assert_rewrite` running after the module was already imported and raised `PytestAssertRewriteWarning` on every run. I restored the original order.\n- The link in your comment points at `fed2c6a6f1d2c695...`, which doesn't resolve; the short `fed2c6a` does. Looks like an amend after you posted it, noting in case anyone else goes looking.\n\nCI on this branch is still pending workflow approval, if you're able to kick it off.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/485#discussion_r3881828218"
+        }
+      ],
+      "reviewed": "fdd3d25018eb215deadb59e899320855517105bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/485#discussion_r3866932378"
+    }
+  ]
+}

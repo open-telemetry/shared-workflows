@@ -1,0 +1,133 @@
+{
+  "head": "612a0d3b9db53f936330517efa7a8cefef4bf2b0",
+  "merge": "ae231cf8a540e0ca4db0bd6adab65b045476a19a",
+  "merged": "2026-08-31T18:25:56Z",
+  "missing_roots": 0,
+  "number": 486,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The leading space before `!.gitignore` makes this pattern match a filename starting with a space rather than acting as a negation rule. Remove the leading space so the `.gitignore` file is correctly un-ignored.",
+      "created": "2026-08-26T14:37:43Z",
+      "hunk": "@@ -0,0 +1 @@\n+ !.gitignore",
+      "id": "PRRT_kwDOSbspP86cgNMU",
+      "opened": "2026-08-26T14:37:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/.changelog/.gitignore",
+      "replies": [],
+      "reviewed": "60ddbedfac8dc6db0742c7bcf8704ac52c974a72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3863873528"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This pins the example to `~=1.0b0`, but the package version introduced in this PR is `1.2b0.dev` (see `src/.../version.py`) and the repo root table also lists `1.2b0.dev`. To avoid examples installing a different (or potentially unavailable) version than the code in this repo, either (a) remove the version pin, or (b) switch the example to an editable install from the repo (or pin to the repo’s released version once published).",
+      "created": "2026-08-26T14:37:43Z",
+      "hunk": "@@ -0,0 +1,5 @@\n+boto3>=1.40.46\n+opentelemetry-sdk~=1.43.0\n+opentelemetry-distro~=0.64b0\n+opentelemetry-instrumentation-genai-bedrock~=1.0b0",
+      "id": "PRRT_kwDOSbspP86cgNNl",
+      "opened": "2026-08-26T14:37:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "60ddbedfac8dc6db0742c7bcf8704ac52c974a72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3863873626"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A `TelemetryHandler` is constructed but not retained, and `_uninstrument` has no corresponding cleanup. If `TelemetryHandler` registers processors/hooks (now or in future changes), repeated `instrument()` calls may accumulate duplicate global state and `uninstrument()` won’t be able to reverse it. Consider storing the handler on `self` (e.g., `self._handler = ...`) and clearing/detaching it in `_uninstrument` so lifecycle semantics remain correct as patching is added.",
+      "created": "2026-08-26T14:37:44Z",
+      "hunk": "@@ -0,0 +1,40 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"OpenTelemetry Amazon Bedrock instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+from collections.abc import Collection\n+from typing import Any\n+\n+from opentelemetry.instrumentation.genai.bedrock.package import _instruments\n+from opentelemetry.instrumentation.instrumentor import BaseInstrumentor\n+from opentelemetry.util.genai.completion_hook import load_completion_hook\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+\n+__all__ = [\"BedrockInstrumentor\"]\n+\n+\n+class BedrockInstrumentor(BaseInstrumentor):\n+    \"\"\"An instrumentor for Amazon Bedrock.\"\"\"\n+\n+    def instrumentation_dependencies(self) -> Collection[str]:\n+        return _instruments\n+\n+    def _instrument(self, **kwargs: Any) -> None:\n+        \"\"\"Enable Amazon Bedrock instrumentation.\"\"\"\n+        completion_hook = (\n+            kwargs.get(\"completion_hook\") or load_completion_hook()\n+        )\n+        TelemetryHandler(\n+            tracer_provider=kwargs.get(\"tracer_provider\"),\n+            meter_provider=kwargs.get(\"meter_provider\"),\n+            logger_provider=kwargs.get(\"logger_provider\"),\n+            completion_hook=completion_hook,\n+        )\n+        # Amazon Bedrock patching will be added in a follow-up change.\n+\n+    def _uninstrument(self, **kwargs: Any) -> None:\n+        \"\"\"Disable Amazon Bedrock instrumentation.\"\"\"\n+        # Amazon Bedrock unpatching will be added in a follow-up change.",
+      "id": "PRRT_kwDOSbspP86cgNO3",
+      "opened": "2026-08-26T14:37:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/__init__.py",
+      "replies": [],
+      "reviewed": "60ddbedfac8dc6db0742c7bcf8704ac52c974a72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3863873750"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using the generic entry point name `bedrock` is likely to collide with other Bedrock instrumentations using the same `opentelemetry_instrumentor` group (e.g., existing contrib packages). If both are installed, entry point resolution can become ambiguous/non-deterministic. Consider using a more specific name (e.g., `genai-bedrock`) and, if compatibility is needed, document a migration path or add an explicit alias strategy.",
+      "created": "2026-08-26T14:37:44Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+[build-system]\n+requires = [\"hatchling\"]\n+build-backend = \"hatchling.build\"\n+\n+[project]\n+name = \"opentelemetry-instrumentation-genai-bedrock\"\n+dynamic = [\"version\"]\n+description = \"OpenTelemetry Amazon Bedrock instrumentation\"\n+readme = \"README.rst\"\n+license = \"Apache-2.0\"\n+requires-python = \">=3.10\"\n+authors = [\n+  { name = \"OpenTelemetry Authors\", email = \"cncf-opentelemetry-contributors@lists.cncf.io\" },\n+]\n+classifiers = [\n+  \"Development Status :: 4 - Beta\",\n+  \"Intended Audience :: Developers\",\n+  \"License :: OSI Approved :: Apache Software License\",\n+  \"Programming Language :: Python\",\n+  \"Programming Language :: Python :: 3\",\n+  \"Programming Language :: Python :: 3.10\",\n+  \"Programming Language :: Python :: 3.11\",\n+  \"Programming Language :: Python :: 3.12\",\n+  \"Programming Language :: Python :: 3.13\",\n+  \"Programming Language :: Python :: 3.14\",\n+]\n+dependencies = [\n+  \"opentelemetry-api ~= 1.43\",\n+  \"opentelemetry-instrumentation >= 0.64b0, <1\",\n+  \"opentelemetry-semantic-conventions >= 0.64b0, <1\",\n+  \"opentelemetry-util-genai >= 1.0b0, <2\",\n+]\n+\n+[project.optional-dependencies]\n+instruments = [\n+  \"boto3 >= 1.40.46, < 2\",\n+]\n+\n+[project.entry-points.opentelemetry_instrumentor]\n+bedrock = \"opentelemetry.instrumentation.genai.bedrock:BedrockInstrumentor\"",
+      "id": "PRRT_kwDOSbspP86cgNON",
+      "opened": "2026-08-26T14:37:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/pyproject.toml",
+      "replies": [],
+      "reviewed": "60ddbedfac8dc6db0742c7bcf8704ac52c974a72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3863873692"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`scripts/tox_matrix.py` only emits `-test-` envs into the CI matrix, and misc.yml has no lint job. Lint for every package comes from the `precommit` job in misc.yml. Please drop it (and line 284)",
+      "created": "2026-08-28T06:18:31Z",
+      "hunk": "@@ -38,6 +38,11 @@ envlist =\n     py310-test-instrumentation-genai-anthropic-oldest\n     py314-test-instrumentation-genai-anthropic-conformance\n \n+    ; instrumentation-genai-bedrock\n+    py3{10,11,12,13,14}-test-instrumentation-genai-bedrock-latest\n+    py310-test-instrumentation-genai-bedrock-oldest\n+    lint-instrumentation-genai-bedrock",
+      "id": "PRRT_kwDOSbspP86dE6iC",
+      "opened": "2026-08-28T06:21:02Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-08-31T15:59:28Z",
+          "body": "Ack removed that ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3896146521"
+        }
+      ],
+      "reviewed": "8d4ee0163a040f05dcd9112aa568c2ace2833502",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3878349543"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: every other package uses `py3{10,14}` to minimize number of jobs without really reducing coverage",
+      "created": "2026-08-28T06:18:31Z",
+      "hunk": "@@ -38,6 +38,11 @@ envlist =\n     py310-test-instrumentation-genai-anthropic-oldest\n     py314-test-instrumentation-genai-anthropic-conformance\n \n+    ; instrumentation-genai-bedrock\n+    py3{10,11,12,13,14}-test-instrumentation-genai-bedrock-latest",
+      "id": "PRRT_kwDOSbspP86dE6iF",
+      "opened": "2026-08-28T06:21:02Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-08-31T15:59:15Z",
+          "body": "Ack done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3896144691"
+        }
+      ],
+      "reviewed": "8d4ee0163a040f05dcd9112aa568c2ace2833502",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3878349546"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`~=1.43.0` caps at `<1.44`, and renovate's `rangeStrategy: bump` won't cross that bound, so the \"latest\" env will silently freeze on the 1.43 line. boto3 ships a new minor most weeks.\n\nExact pin, so a breaking boto3 release lands as a renovate PR rather than a red build on someone else's change (what langchain does):\n\n```suggestion\nboto3==1.43.81\n```\n\nOr keep it a range, but one renovate can bump past the minor:\n\n```suggestion\nboto3 ~= 1.43\n```",
+      "created": "2026-08-28T06:18:32Z",
+      "hunk": "@@ -0,0 +1,8 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+# Exercise the latest supported Amazon Bedrock (boto3) release with workspace instrumentation.\n+boto3~=1.43.0",
+      "id": "PRRT_kwDOSbspP86dE6iL",
+      "opened": "2026-08-28T06:21:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/requirements.latest.txt",
+      "replies": [
+        {
+          "at": "2026-08-31T15:59:06Z",
+          "body": "Ack switched to boto3 ~= 1.43",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3896143339"
+        }
+      ],
+      "reviewed": "8d4ee0163a040f05dcd9112aa568c2ace2833502",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/486#discussion_r3878349553"
+    }
+  ]
+}

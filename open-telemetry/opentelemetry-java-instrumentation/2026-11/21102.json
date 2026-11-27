@@ -1,0 +1,172 @@
+{
+  "head": "bc7a48a5f169e31c7dbecef5172ea783f9952ada",
+  "merge": "4c072291bbb0a725c47d09508a480e430f952696",
+  "merged": "2026-11-02T08:44:50Z",
+  "missing_roots": 0,
+  "number": 21102,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to implement the user's request: \"replace with takesArgumentsNamed\". Replace the unreleased names(String...) iterable matcher with a method-level AgentElementMatchers.takesArgumentsNamed(String... names) helper. Preserve the existing draft state and base branch. Do not create another PR as a workaround or migrate additional instrumentations.\n\nThe replacement must match exact ordered erased parameter type names, including primitives such as \"int\" and empty signatures. Return a chainable ElementMatcher.Junction for MethodDescription, following the existing generic matcher factory conventions. Clone the supplied names array at construction. Remove the now-unused names(...) factory and NamesMatcher implementation introduced in this PR; these additions are unreleased, so this is not a published API deprecation.\n\nCheck method.getParameters().size() against the expected name count before accessing any parameter types. After the arity check, use the parameter list's asTypeList() view and indexed access to compare each erased type's getName(), returning false immediately at the first mismatch. Do not compose this through Byte Buddy's takesArguments(iterableMatcher) or collect the erased types into an intermediate list. A small dedicated method matcher is appropriate. The intended call site is named(\"query\").and(takesArgumentsNamed(\"org.influxdb.dto.Query\", \"int\", \"java.util.function.Consumer\")).\n\nThe reason for this change is verified against Byte Buddy 1.18.15: takesArguments(iterableMatcher) wraps the iterable matcher in CollectionErasureMatcher, which eagerly collects every actual erased parameter type in an ArrayList before invoking names(...). This loses the old arity-first rejection. Conversely, the old positional CollectionElementMatcher restarts an iterator for every index. The method-level helper should retain cheap arity rejection while avoiding repeated prefix traversal and the eager erased-type collection.\n\nChange the same six complete async/chunked query signature matchers in instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbImplInstrumentation.java to use takesArgumentsNamed(...). Keep all expected parameter names, advice bindings, telemetry, lifecycle behavior, synchronous overload predicates, intentional partial signatures, enum checks, and other overload alternatives unchanged.\n\nUpdate or rename the shared matcher tests in javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/bytebuddy/matcher/NamesMatcherTest.java for the new method-level API. Retain exact success, wrong type, ordering, too few and too many parameters, primitives, empty parameter lists, and generic erasure coverage. Add focused coverage proving wrong arity rejects before accessing parameter types and a type mismatch stops subsequent type extraction. Follow existing test conventions and use suitable lazy descriptions or mocks to verify those contracts without timing assertions or a benchmark suite. Update the public helper Javadoc to describe its current method-signature contract.\n\nRead CONTRIBUTING.md and the applicable repository instructions. Run the narrowest relevant formatter and shared matcher tests plus applicable existing InfluxDB instrumentation tests and supported dependency variants where feasible. Record actual commands and outcomes in coding evidence, but do not wait for unrelated CI. Keep this change bounded to the helper, its tests, and the existing InfluxDB example migration; do not change the intended behavior merely to satisfy tests.",
+      "created": "2026-10-31T18:51:28Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.matcher;\n+\n+import java.util.Iterator;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class NamesMatcher\n+    extends ElementMatcher.Junction.AbstractBase<Iterable<? extends TypeDescription>> {\n+\n+  private final String[] names;\n+\n+  NamesMatcher(String... names) {\n+    this.names = names.clone();\n+  }\n+\n+  @Override\n+  public boolean matches(Iterable<? extends TypeDescription> target) {",
+      "id": "PRRT_kwDODJKVX86yTost",
+      "opened": "2026-10-31T18:51:28Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/NamesMatcher.java",
+      "replies": [
+        {
+          "at": "2026-10-31T19:06:32Z",
+          "body": "Implemented and committed as `dc686acf`. The replacement matcher checks arity first, then compares erased parameter names by index and stops on the first mismatch. Only the six requested InfluxDB predicates were migrated; targeted tests and formatting passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4432955409"
+        }
+      ],
+      "reviewed": "edacb1ce3b822b4cb7441548fa716f67f5c4ceeb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4432893745"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a test-only simplification of javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/bytebuddy/matcher/TakesArgumentsNamedMatcherTest.java. The user asked \"Any simplification or reduction that's worth doing?\" and authorized the following proposed cleanup with /cloud. Preserve the existing draft state and base branch. Do not create another PR as a workaround.\n\nParameterize the basic signature-matching cases with a small @MethodSource table and individually named cases using Arguments.argumentSet(...), following repository conventions. Keep coverage for exact success, wrong type, parameter ordering, too few and too many actual parameters, primitive names, empty expected names matching an empty signature and rejecting a nonempty signature, and generic erasure. These cases all need the same matcher construction and assertion; avoid a custom test-case wrapper or a larger abstraction.\n\nReplace the reflection-based matches(...) overloads and repeated Class<?>[] arguments with a small method-description lookup using new TypeDescription.ForLoadedType(TakesArgumentsNamedMatcherTest.class).getDeclaredMethods().filter(named(methodName)).getOnly(). Fixture methods have unique names. Apply takesArgumentsNamed(...).matches(method(...)) directly in assertions. Remove the now-unnecessary reflection import and checked exceptions, reuse fixtures with the same parameter signatures where possible, and delete fixtures made redundant by that reuse.\n\nRetain expectedNamesAreCopiedOnConstruction as a separate defensive-copy test. Retain wrongArityRejectsBeforeAccessingParameterTypes and typeMismatchStopsFurtherTypeExtraction as separate focused performance-contract tests. Preserve their assertions and interaction verification proving wrong arity rejects before accessing parameter types and a mismatch prevents later indexed type access. In the mismatch test, replace the mocked firstType and erasedFirstType chain with a real new TypeDescription.ForLoadedType(Long.class).asGenericType() returned by parameterTypes.get(0), removing the two unnecessary mocks and their stubbing.\n\nKeep all production matcher code, its public API, and all six InfluxDB call sites unchanged. This is a reduction in test repetition and fixture/mocking boilerplate, not a behavior change or a request to remove coverage. The current test file is 175 lines; aim for a clear, materially shorter file, without treating the earlier rough 120-135-line estimate as a hard target or sacrificing readability.\n\nRead CONTRIBUTING.md and applicable repository instructions, including the general testing knowledge article. Run the narrowest relevant Spotless apply task directly before the targeted TakesArgumentsNamedMatcherTest test selection. Record actual commands and outcomes in coding evidence. Do not add dependencies, build infrastructure, benchmarks, unrelated fixes, or extra documentation.",
+      "created": "2026-10-31T19:43:18Z",
+      "hunk": "@@ -0,0 +1,175 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.bytebuddy.matcher;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.takesArgumentsNamed;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.verify;\n+import static org.mockito.Mockito.verifyNoMoreInteractions;\n+import static org.mockito.Mockito.when;\n+\n+import java.lang.reflect.Method;\n+import java.util.List;\n+import net.bytebuddy.description.method.MethodDescription;\n+import net.bytebuddy.description.method.ParameterList;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.description.type.TypeList;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.junit.jupiter.api.Test;\n+\n+@SuppressWarnings({\"UnusedMethod\", \"UnusedVariable\"})\n+class TakesArgumentsNamedMatcherTest {\n+\n+  @Test\n+  void exactNamesMatch() throws NoSuchMethodException {\n+    assertThat(",
+      "id": "PRRT_kwDODJKVX86yUCS2",
+      "opened": "2026-10-31T19:43:17Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/bytebuddy/matcher/TakesArgumentsNamedMatcherTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T19:49:39Z",
+          "body": "Applied and pushed the test-only simplification in commit `2b0f2565`. The targeted matcher test and scoped Spotless apply passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433076857"
+        }
+      ],
+      "reviewed": "dc686acf43bb2ecd2290bff3ea3ce26c81f3344e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433059542"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this pull request directly to rename the newly introduced, unreleased complete parameter-signature helper from AgentElementMatchers.takesArgumentsNamed(String... names) to AgentElementMatchers.takesArgumentsExactly(String... names). The user explicitly chose takesArgumentsExactly and asked to coordinate the rename across foundation PR #21102 and adoption PR #21112. This assignment is only the foundation PR #21102; the coordinating session will update the dependent adoption PR separately after the renamed foundation is verified pushed.\n\nRename the package-private implementation class/file to TakesArgumentsExactlyMatcher and the shared test class/file to TakesArgumentsExactlyMatcherTest. Update the factory construction, all related imports, references, test class lookups, and the six existing InfluxDB example calls on this branch. Update the guidance and examples in .github/instructions/javaagent.instructions.md and .github/agents/knowledge/javaagent-module-patterns.md, and any other references introduced by this PR. Keep documentation accurate for a helper that takes the complete ordered list of erased parameter type names.\n\nThis is a naming-only change. Preserve the String... API, exact arity and ordered erased-name comparisons, defensive cloning, indexed lazy type access, short-circuiting, existing fixture/test behavior, supported library versions, surrounding instrumentation predicates, advice, configuration, and telemetry. Do not add overloads or change array-name conventions. Keep takesArguments(0) as the documented choice for zero-parameter signatures, while retaining the helper's existing empty-list behavior and tests. Since the helper has not been released and is introduced by this PR, replace the old name without retaining an alias or adding a deprecation or CHANGELOG entry.\n\nPreserve this PR's current head branch, base, and ready-for-review state. Do not modify PR #21112 or its branch, create another PR, merge anything, rebase or force-push, or change native stack metadata. Work from this PR's existing head and commit the rename directly here.\n\nFollow CONTRIBUTING.md, the knowledge index, and applicable path-specific instructions. Apply the narrowest relevant code formatters and the repository Markdown linter for the changed guidance. Run the targeted shared matcher test under its new class name and relevant InfluxDB tests where feasible. Report the actual validation commands, outcomes, and any limitations. Do not run unrelated validation or make unrelated code changes.",
+      "created": "2026-10-31T21:54:35Z",
+      "hunk": "@@ -80,6 +80,20 @@ public static <T extends MethodDescription> ElementMatcher.Junction<T> hasSuperM\n     return new HasSuperMethodMatcher<>(matcher);\n   }\n \n+  /**\n+   * Matches a method with exactly the provided ordered parameter type names.\n+   *\n+   * <p>Parameter type names are compared after erasure. Primitive types use their Java names, such\n+   * as {@code int}. Passing no names matches only methods with no parameters.\n+   *\n+   * @param names the exact ordered parameter type names to match.\n+   * @return a matcher for methods with the specified parameter types.\n+   */\n+  public static <T extends MethodDescription> ElementMatcher.Junction<T> takesArgumentsNamed(",
+      "id": "PRRT_kwDODJKVX86yU8EA",
+      "opened": "2026-10-31T21:54:34Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/AgentElementMatchers.java",
+      "replies": [
+        {
+          "at": "2026-10-31T22:03:46Z",
+          "body": "Renamed the helper and all requested implementation, test, InfluxDB, and guidance references to `takesArgumentsExactly` in commit `$(git rev-parse --short HEAD)`. Scoped Spotless, the targeted matcher test, and InfluxDB tests across the configured versions passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433460658"
+        }
+      ],
+      "reviewed": "2f6b6385718e12ccf6e2a519ab61142fb156fc6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433435145"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this pull request directly with the user's settled string-only takesArguments API and matcher-selection rule. This assignment is only foundation PR #21102. The coordinator will update dependent adoption PR #21112 separately after this foundation is verified delivered and reviewed.\n\nRename the newly introduced, unreleased AgentElementMatchers.takesArgumentsExactly(String... names) factory to AgentElementMatchers.takesArguments(String... names). Rename its package-private implementation class/file to TakesArgumentsMatcher and its shared test class/file to TakesArgumentsMatcherTest. Update factory construction, test class lookups, related imports and references, and the six InfluxDB example calls on this branch. Preserve every existing test case and fixture. Do not leave old takesArgumentsExactly/TakesArgumentsExactly or takesArgumentsNamed/TakesArgumentsNamed references.\n\nKeep the factory strictly String... only. Do not add Object..., mixed String/Class support, Class overloads, forwarding overloads for Byte Buddy methods, an old-name alias, deprecation, or CHANGELOG entry. The helper is unreleased and introduced by this PR. Preserve defensive cloning, exact arity, ordered erased-name comparisons, arity-first rejection, indexed lazy access on the agent's pooled descriptions, first-mismatch short-circuiting, binary array-name conventions, and its existing empty-name-list behavior.\n\nRevise .github/instructions/javaagent.instructions.md and .github/agents/knowledge/javaagent-module-patterns.md to prefer Byte Buddy's ElementMatchers.takesArguments(Class<?>...) for complete exact signatures when EVERY parameter is a primitive or a public, safely accessible java.base type available at the module's minimum supported Java version. Use our string-only AgentElementMatchers.takesArguments(String...) when ANY parameter requires a library or otherwise unsafe/unavailable type name. Do not infer safety just from a java.* package prefix or the current build JDK. Keep takesArguments(0) for zero parameters, and keep intentionally partial or non-exact predicates positional without adding matching constraints. Align directly related nearby guidance if necessary so the selection rules do not contradict one another. Do not expand this into unrelated matcher or advice cleanup.\n\nOur String... factory and Byte Buddy's existing takesArguments overloads may have the same simple name and be imported with two explicit single-static-import declarations. This works with Java 8 source through ordinary overload resolution: strings select our helper, Class arguments select Byte Buddy, and an int count selects Byte Buddy. Keep both explicit imports wherever needed, especially InfluxDB's existing count-based partial signatures. Avoid ambiguous bare takesArguments() calls. All InfluxDB complete signatures here contain library types and must remain string-based. Do not introduce library class literals or change surrounding predicates, alternatives, advice, telemetry, configuration, or supported versions.\n\nWork from this PR's existing head 4e85ebb678bbd0e1a96b6135777c7c07958ace22 on copilot/add-shared-tests-influxdb-migration. Commit and push directly to that existing head branch. Preserve base main and ready-for-review state. Do not modify #21112 or its branch, create another PR/task, merge either PR, rebase, force-push, or mutate native stack 21113.\n\nFollow CONTRIBUTING.md, the knowledge index, and applicable path-specific instructions. Apply the narrowest relevant formatters directly before validation. Run the renamed targeted shared matcher test and relevant InfluxDB production compilation/tests where feasible, checking that the production modules retain their Java 8-compatible source/bytecode settings and the two same-named static imports compile. Use the existing build configuration rather than changing the Java target or adding language-feature-only test scaffolding. Record exact validation commands, results, and limitations. Do not wait for CI or perform unrelated validation.",
+      "created": "2026-11-01T00:10:46Z",
+      "hunk": "@@ -80,6 +80,20 @@ public static <T extends MethodDescription> ElementMatcher.Junction<T> hasSuperM\n     return new HasSuperMethodMatcher<>(matcher);\n   }\n \n+  /**\n+   * Matches a method with exactly the provided ordered parameter type names.\n+   *\n+   * <p>Parameter type names are compared after erasure. Primitive types use their Java names, such\n+   * as {@code int}. Passing no names matches only methods with no parameters.\n+   *\n+   * @param names the exact ordered parameter type names to match.\n+   * @return a matcher for methods with the specified parameter types.\n+   */\n+  public static <T extends MethodDescription> ElementMatcher.Junction<T> takesArgumentsExactly(",
+      "id": "PRRT_kwDODJKVX86yVyJW",
+      "opened": "2026-11-01T00:10:46Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/AgentElementMatchers.java",
+      "replies": [
+        {
+          "at": "2026-11-01T00:21:58Z",
+          "body": "Updated on this branch in commit `529d1087`. Renamed the string helper, implementation, and test; updated the six InfluxDB call sites and both guidance files. Matcher and InfluxDB validation passed, and the change preserves the matcher behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433815044"
+        }
+      ],
+      "reviewed": "4e85ebb678bbd0e1a96b6135777c7c07958ace22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433785845"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR title, description, and usage example advertise `takesArgumentsExactly(...)`, but the exported API and all migrated callers use `takesArguments(...)`. Please update the PR metadata and example to the implemented name; otherwise the usage example references an API this PR does not provide.",
+      "created": "2026-11-01T00:27:00Z",
+      "hunk": "@@ -80,6 +80,20 @@ public static <T extends MethodDescription> ElementMatcher.Junction<T> hasSuperM\n     return new HasSuperMethodMatcher<>(matcher);\n   }\n \n+  /**\n+   * Matches a method with exactly the provided ordered parameter type names.\n+   *\n+   * <p>Parameter type names are compared after erasure. Primitive types use their Java names, such\n+   * as {@code int}. Passing no names matches only methods with no parameters.\n+   *\n+   * @param names the exact ordered parameter type names to match.\n+   * @return a matcher for methods with the specified parameter types.\n+   */\n+  public static <T extends MethodDescription> ElementMatcher.Junction<T> takesArguments(\n+      String... names) {",
+      "id": "PRRT_kwDODJKVX86yV5Os",
+      "opened": "2026-11-01T00:27:00Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/AgentElementMatchers.java",
+      "replies": [
+        {
+          "at": "2026-11-01T00:30:57Z",
+          "body": "Updated the title, description, and usage example to `takesArguments`. The description now identifies the String-only helper and explains when to use Byte Buddy's class-based overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433851630"
+        }
+      ],
+      "reviewed": "529d108712f042afcb804137a54db8c49a8dddc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4433830199"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this pull request directly so the new String-only takesArguments helper accepts readable array names consistently with Byte Buddy's named matcher. This assignment is only foundation PR #21102. The coordinator will update dependent adoption PR #21112 separately after the foundation is verified delivered and reviewed.\n\nIn javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/TakesArgumentsMatcher.java, compare each erased parameter type's getActualName() instead of getName(). Byte Buddy 1.18.15's NameMatcher already compares getActualName(); its array names are byte[], java.lang.Object[], and byte[][] rather than [B, [Ljava.lang.Object;, and [[B. Use that existing API directly, without a custom name parser, normalization helper, descriptor alias, or extra overload.\n\nKeep AgentElementMatchers.takesArguments(String... names) strictly String-only. Preserve defensive cloning, exact arity, parameter order, generic erasure, arity-first rejection before parameter-type access, indexed access, first-mismatch short-circuiting, and the typed empty-name-list contract. Keep non-array and primitive matching unchanged. Retain the settled selection rule preferring Byte Buddy's Class overload for safe, minimum-Java-compatible primitive/java.base signatures and the existing zero-count and partial-signature rules.\n\nUpdate the factory's existing Javadoc in AgentElementMatchers.java to state the readable array-name convention, with a small useful example. Describe the API as it is now, not its history. No CHANGELOG or deprecation is needed for this newly introduced, unreleased helper. Do not add redundant README or contributor prose.\n\nExtend the existing TakesArgumentsMatcherTest in javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/bytebuddy/matcher/ with focused readable-name coverage for primitive, reference, and multidimensional arrays, including wrong component type and wrong dimension. Preserve the nine existing parameterized cases and three contract tests. Reuse the existing parameterized structure and small fixture methods; avoid duplicated positive cases or tests whose sole purpose is proving unsupported descriptor spellings are rejected.\n\nStart from this PR's existing head 529d108712f042afcb804137a54db8c49a8dddc6 on copilot/add-shared-tests-influxdb-migration. Commit and push directly to that existing branch. Preserve base main and ready-for-review state. Do not modify #21112 or its branch, create another PR/task, merge either PR, rebase, force-push, or mutate native stack 21113. Do not change InfluxDB's six non-array signatures, other predicates, advice, telemetry, configuration, Java targets, or supported versions.\n\nFollow CONTRIBUTING.md, the knowledge index, and applicable path-specific instructions. Apply the narrowest relevant formatting tasks directly before validation. Run the targeted shared matcher test and the relevant extension/tooling compilation using the existing build configuration. Record exact commands, results, and limitations. Do not wait for CI or run unrelated validation.",
+      "created": "2026-11-01T03:07:38Z",
+      "hunk": "@@ -0,0 +1,37 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.matcher;\n+\n+import net.bytebuddy.description.method.MethodDescription;\n+import net.bytebuddy.description.method.ParameterList;\n+import net.bytebuddy.description.type.TypeList;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class TakesArgumentsMatcher<T extends MethodDescription>\n+    extends ElementMatcher.Junction.AbstractBase<T> {\n+\n+  private final String[] names;\n+\n+  TakesArgumentsMatcher(String... names) {\n+    this.names = names.clone();\n+  }\n+\n+  @Override\n+  public boolean matches(T target) {\n+    ParameterList<?> parameters = target.getParameters();\n+    if (parameters.size() != names.length) {\n+      return false;\n+    }\n+\n+    TypeList.Generic parameterTypes = parameters.asTypeList();\n+    for (int index = 0; index < names.length; index++) {\n+      if (!names[index].equals(parameterTypes.get(index).asErasure().getName())) {",
+      "id": "PRRT_kwDODJKVX86yW2BI",
+      "opened": "2026-11-01T03:07:38Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/TakesArgumentsMatcher.java",
+      "replies": [
+        {
+          "at": "2026-11-01T03:17:09Z",
+          "body": "Updated and pushed in `6801a019`. The matcher now compares `getActualName()`, with Javadoc and tests for readable primitive, reference, and multidimensional array names, including component and dimension mismatches.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4434236063"
+        }
+      ],
+      "reviewed": "529d108712f042afcb804137a54db8c49a8dddc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4434216343"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Adding “public” changes the phrase to “an public, accessible type.” Please use “a public, accessible type.”",
+      "created": "2026-11-01T03:26:39Z",
+      "hunk": "@@ -567,14 +567,25 @@ supported signatures or concrete-type assumption when the choice is not obvious.\n   `extendsClass(...)` and `implementsInterface(...)` are appropriate when the instrumentation\n   targets subclasses or implementors of a type.\n - `transform()` wires method matchers to advice classes via `applyAdviceToMethod()`.\n-- Direct argument and return-type matchers inside `transform()` use `Type.class` only when the type\n+- For complete, nonempty exact signatures, prefer Byte Buddy's `takesArguments(Class<?>...)` when\n+  every parameter is a primitive or a public `java.base` type that is safely accessible and\n+  available at the module's minimum supported Java version. If any parameter is a library type or\n+  otherwise unsafe or unavailable, use the string-only\n+  `AgentElementMatchers.takesArguments(String...)`, for example\n+  `takesArguments(\"org.influxdb.dto.Query\", \"int\", \"java.util.function.Consumer\")`. Do not infer\n+  safety from a `java.*` package prefix or the current build JDK. When both overload families are\n+  needed, explicitly import both `takesArguments` methods; avoid a bare `takesArguments()` call.\n+  Use `takesArguments(0)` for zero-parameter signatures. Keep positional matchers for partial\n+  signatures and non-exact type predicates.\n+- Positional argument and return-type matchers inside `transform()` use `Type.class` only when the type\n   is loadable from the agent class loader. For JDK types, use class literals only for primitives and\n   primitive arrays, or types from these exact package names: `java.io`, `java.lang`,\n   `java.lang.reflect`, `java.net`, `java.nio`, `java.time`, `java.util`, `java.util.concurrent`, and\n   `java.util.function`. These exact packages belong to the mandatory `java.base` module, so an",
+      "id": "PRRT_kwDODJKVX86yW8LV",
+      "opened": "2026-11-01T03:26:40Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-11-01T03:30:17Z",
+          "body": "This is a minor grammar typo, but the paragraph still states the class-literal eligibility rule unambiguously. It does not affect matching behavior or the requested readable array names, so I'm treating it as a nonessential wording suggestion rather than changing the guidance in this update.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4434263231"
+        }
+      ],
+      "reviewed": "6801a01909e5be09a84ee737abae8875f617f996",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4434256094"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `Consumer.class.getName()`",
+      "created": "2026-11-02T08:43:43Z",
+      "hunk": "@@ -49,49 +50,47 @@ public void transform(TypeTransformer transformer) {\n         getClass().getName() + \"$InfluxDbQueryAdvice\");\n     transformer.applyAdviceToMethod(\n         named(\"query\")\n-            .and(takesArguments(3))\n-            .and(takesArgument(0, named(\"org.influxdb.dto.Query\")))\n-            .and(takesArgument(1, Consumer.class))\n-            .and(takesArgument(2, Consumer.class)),\n+            .and(\n+                takesArguments(\n+                    \"org.influxdb.dto.Query\",\n+                    \"java.util.function.Consumer\",",
+      "id": "PRRT_kwDODJKVX86ylrYf",
+      "opened": "2026-11-02T08:43:43Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbImplInstrumentation.java",
+      "replies": [],
+      "reviewed": "bc7a48a5f169e31c7dbecef5172ea783f9952ada",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21102#discussion_r4440353226"
+    }
+  ]
+}

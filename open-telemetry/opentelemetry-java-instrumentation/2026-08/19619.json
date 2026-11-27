@@ -1,0 +1,73 @@
+{
+  "head": "6d50080012ef3d43b57835a2a6c90585c2ebefb6",
+  "merge": "1bae8194d90dd261043e51eb02ae2586ac5a394f",
+  "merged": "2026-08-18T23:08:32Z",
+  "missing_roots": 0,
+  "number": 19619,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Please cover this explicit `prepare(...).query().execute(...)` path with `JDBCPool` as well, asserting that only JDBC instrumentation emits the database span. The new prepare/query advices also run for JDBC-backed connections, while the existing `VertxJdbcClientTest` only exercises `pool.query(...)`; without this case, the PR's stated suppression guarantee can regress unnoticed.",
+      "created": "2026-08-15T02:47:43Z",
+      "hunk": "@@ -288,6 +293,107 @@ private static void assertPreparedSelect() {\n                             equalTo(SERVER_PORT, port))));\n   }\n \n+  @Test\n+  void testExplicitPreparedSelect() throws Exception {",
+      "id": "PRRT_kwDODJKVX86ZdkUW",
+      "opened": "2026-08-15T02:47:44Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/VertxSqlClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:09:17Z",
+          "body": "Addressed in 28d85c5b4724706866e4fc4b4f9617c5f0b28fbc.\n\nAnalysis: Both Vert.x version modules install the new prepare and prepared-query advice for JDBC-backed connections. Exercising JDBCPool.withConnection().prepare().query().execute() in each module and asserting exactly the parent plus one JDBC-shaped client span verifies that Vert.x instrumentation remains suppressed across the complete explicit prepare path.\n\nUpsides: Adds regression coverage for both supported Vert.x major versions, detects duplicate Vert.x spans, and reuses one exact JDBC span assertion for simple and explicit queries.\n\nDownsides: Adds one database operation to each JDBC test class; no material production downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19619#discussion_r3788450322"
+        }
+      ],
+      "reviewed": "b5b4d2e4cbd946f8c0f43a350260f9096c5aa5d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19619#discussion_r3788298168"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Please cover this explicit `prepare(...).query().execute(...)` path with `JDBCPool` as well, asserting that only JDBC instrumentation emits the database span. The new prepare/query advices also run for JDBC-backed connections, while the existing `VertxJdbcClientTest` only exercises `pool.query(...)`; without this case, the PR's stated suppression guarantee can regress unnoticed.",
+      "created": "2026-08-15T02:47:44Z",
+      "hunk": "@@ -289,6 +294,107 @@ private static void assertPreparedSelect() {\n                             equalTo(SERVER_PORT, port))));\n   }\n \n+  @Test\n+  void testExplicitPreparedSelect() throws Exception {",
+      "id": "PRRT_kwDODJKVX86ZdkUZ",
+      "opened": "2026-08-15T02:47:44Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:09:18Z",
+          "body": "Addressed in 28d85c5b4724706866e4fc4b4f9617c5f0b28fbc.\n\nAnalysis: Both Vert.x version modules install the new prepare and prepared-query advice for JDBC-backed connections. Exercising JDBCPool.withConnection().prepare().query().execute() in each module and asserting exactly the parent plus one JDBC-shaped client span verifies that Vert.x instrumentation remains suppressed across the complete explicit prepare path.\n\nUpsides: Adds regression coverage for both supported Vert.x major versions, detects duplicate Vert.x spans, and reuses one exact JDBC span assertion for simple and explicit queries.\n\nDownsides: Adds one database operation to each JDBC test class; no material production downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19619#discussion_r3788450380"
+        }
+      ],
+      "reviewed": "b5b4d2e4cbd946f8c0f43a350260f9096c5aa5d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19619#discussion_r3788298175"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think this is similar to jdbc prepared statements, there we skip sanitization. As far as I recall the idea was that when someone is already using a prepared statement then they are expected to embed sensitive values in the sql.",
+      "created": "2026-08-18T06:31:58Z",
+      "hunk": "@@ -238,15 +243,15 @@ void testInvalidQuery() throws Exception {\n \n   @Test\n   void testPreparedSelect() throws Exception {\n+    String query = \"select * from test where id = $1 and name = 'Hello'\";\n     testing\n-        .runWithSpan(\n-            \"parent\",\n-            () -> pool.preparedQuery(\"select * from test where id = $1\").execute(Tuple.of(1)))\n+        .runWithSpan(\"parent\", () -> pool.preparedQuery(query).execute(Tuple.of(1)))\n         .toCompletionStage()\n         .toCompletableFuture()\n         .get(30, SECONDS);\n \n-    assertPreparedSelect();\n+    // SqlClient.preparedQuery() does not guarantee that the query has no embedded literals.",
+      "id": "PRRT_kwDODJKVX86aAUjD",
+      "opened": "2026-08-18T06:31:58Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/VertxSqlClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T22:51:17Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19619/commits/6d50080012ef3d43b57835a2a6c90585c2ebefb6",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19619#discussion_r3808668094"
+        }
+      ],
+      "reviewed": "bd578b9d7948687d2e916b09a268b67c6ee1c5a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19619#discussion_r3801580440"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "2a4eb3347ac9e71caa89fbbad497a0f0165a601a",
+  "merge": "7bc119ee3806b36e970cbe2de7639892b5a692b1",
+  "merged": "2026-08-18T13:06:33Z",
+  "missing_roots": 0,
+  "number": 19608,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The `HttpClient` created on every `record` call is never closed, leaving its engine and coroutine resources alive after each test. Scope it with `use` so cleanup also occurs when the request or assertions fail.",
+      "created": "2026-08-15T00:48:49Z",
+      "hunk": "@@ -0,0 +1,97 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.ktor.common.v2_0\n+\n+import io.ktor.client.*\n+import io.ktor.client.engine.mock.*\n+import io.ktor.client.request.*\n+import io.ktor.client.statement.*\n+import io.ktor.http.*\n+import io.opentelemetry.api.common.AttributeKey\n+import io.opentelemetry.context.Context\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension\n+import io.opentelemetry.sdk.trace.data.SpanData\n+import kotlinx.coroutines.runBlocking\n+import org.assertj.core.api.Assertions.assertThat\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+\n+class KtorClientHeadersTest {\n+\n+  companion object {\n+    @JvmStatic\n+    @RegisterExtension\n+    private val testing = LibraryInstrumentationExtension.create()\n+\n+    private val REQUEST_HEADER = AttributeKey.stringArrayKey(\"http.request.header.x-test-request\")\n+    private val RESPONSE_HEADER = AttributeKey.stringArrayKey(\"http.response.header.x-test-response\")\n+    private val SECRET_REQUEST_HEADER = AttributeKey.stringArrayKey(\"http.request.header.x-test-secret\")\n+  }\n+\n+  @Test\n+  fun `selector patterns capture headers that are not listed by name`() {\n+    val span = record { telemetryBuilder ->\n+      telemetryBuilder.requestHeaders(\n+        IncludeExclude.builder().setIncluded(\"X-Test-*\").setExcluded(\"*-secret\").build()\n+      )\n+      telemetryBuilder.responseHeaders(IncludeExclude.builder().setExcluded(\"Content-*\").build())\n+    }\n+\n+    assertThat(span.attributes.get(REQUEST_HEADER)).containsExactly(\"request-value\")\n+    assertThat(span.attributes.get(RESPONSE_HEADER)).containsExactly(\"response-value\")\n+    // excluded patterns take precedence over included patterns, and header matching is\n+    // case-insensitive\n+    assertThat(span.attributes.get(SECRET_REQUEST_HEADER)).isNull()\n+  }\n+\n+  @Test\n+  fun `deprecated captured headers capture headers listed by name`() {\n+    val span = record { telemetryBuilder ->\n+      @Suppress(\"DEPRECATION\") // testing the deprecated API\n+      telemetryBuilder.capturedRequestHeaders(\"X-Test-Request\")\n+      @Suppress(\"DEPRECATION\") // testing the deprecated API\n+      telemetryBuilder.capturedResponseHeaders(\"X-Test-Response\")\n+    }\n+\n+    assertThat(span.attributes.get(REQUEST_HEADER)).containsExactly(\"request-value\")\n+    assertThat(span.attributes.get(RESPONSE_HEADER)).containsExactly(\"response-value\")\n+  }\n+\n+  private fun record(configure: (TestKtorClientTelemetryBuilder) -> Unit): SpanData {\n+    val telemetryBuilder = TestKtorClientTelemetryBuilder()\n+    telemetryBuilder.setOpenTelemetry(testing.openTelemetry)\n+    configure(telemetryBuilder)\n+    val instrumenter = telemetryBuilder.buildInstrumenter()\n+\n+    lateinit var request: HttpRequestData\n+    val client = HttpClient(MockEngine) {\n+      engine {\n+        addHandler { requestData ->\n+          request = requestData\n+          respond(\"\", HttpStatusCode.OK, headersOf(\"X-Test-Response\", \"response-value\"))\n+        }\n+      }\n+    }\n+    val response = runBlocking {\n+      client.get(\"http://localhost/test\") {\n+        header(\"X-Test-Request\", \"request-value\")\n+        header(\"X-Test-Secret\", \"secret-value\")\n+      }\n+    }\n+\n+    val context = instrumenter.start(Context.root(), request)\n+    instrumenter.end(context, request, response, null)\n+\n+    return testing.spans().single()",
+      "id": "PRRT_kwDODJKVX86Zc02V",
+      "opened": "2026-08-15T00:48:49Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/test/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/KtorClientHeadersTest.kt",
+      "replies": [
+        {
+          "at": "2026-08-15T04:16:45Z",
+          "body": "Good catch — fixed in d9974a3. `record` now builds the client as `HttpClient(MockEngine) { ... }.use { client -> ... }`, with the request and the `instrumenter.start`/`instrumenter.end` calls moved inside the block so the engine and its coroutine scope are closed even when the request or the assertions throw.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788465640"
+        }
+      ],
+      "reviewed": "6b7ba85f183cbfb889cd0fe4070e32c283d029aa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788017164"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` converts this collection into an `IncludeExclude` selector, so `*` and `?` are treated as globs rather than literal names (the shared API test at `instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpHeadersTest.java:169` explicitly verifies that behavior). Consequently these deprecated Ktor compatibility methods can capture unintended headers and contradict their new documentation. They need an exact-name capture path; the response and `Iterable` overloads have the same issue.",
+      "created": "2026-08-15T04:24:17Z",
+      "hunk": "@@ -42,14 +43,94 @@ abstract class AbstractKtorClientTelemetryBuilder(\n \n   protected fun getOpenTelemetry(): OpenTelemetry = openTelemetry\n \n-  fun capturedRequestHeaders(vararg headers: String) = capturedRequestHeaders(headers.asIterable())\n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * Header values are captured under the `http.request.header.<key>` attribute key, where the\n+   * `<key>` part is the lowercase header name.\n+   *\n+   * Header names are matched case-insensitively, since HTTP header names are case-insensitive. `?`\n+   * matches one character and `*` matches any number of characters, including none. Excluded\n+   * patterns take precedence over included patterns. A selector with no included patterns captures\n+   * every header that is not excluded, and an empty selector captures no headers. No request\n+   * headers are captured when this is not configured.\n+   */\n+  fun requestHeaders(requestHeaders: IncludeExclude) {\n+    builder.setRequestHeaders(requestHeaders)\n+  }\n+\n+  /**\n+   * Configures which HTTP request headers are captured as span attributes, by exact header name.\n+   *\n+   * The header names are matched literally. Unlike [requestHeaders], `*` and `?` are not\n+   * treated as glob patterns, since this setting never documented them as wildcards.\n+   */\n+  // may be removed in the next minor release\n+  @Deprecated(\n+    \"Use requestHeaders(IncludeExclude) instead, which matches glob patterns rather than \" +\n+      \"literal header names. May be removed in the next minor release.\"\n+  )\n+  fun capturedRequestHeaders(vararg headers: String) {\n+    builder.setCapturedRequestHeaders(headers.toList())",
+      "id": "PRRT_kwDODJKVX86ZeDFM",
+      "opened": "2026-08-15T04:24:17Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/AbstractKtorClientTelemetryBuilder.kt",
+      "replies": [
+        {
+          "at": "2026-08-15T04:38:53Z",
+          "body": "This is reading a stale copy of the base branch, and I verified that rather than assuming it.\n\n`DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` no longer builds an `IncludeExclude`. On the base branch `trask/http-header-selectors-api` it routes through `CapturedHttpHeaders.createExact`, which stores the names in a literal set and never constructs a selector. The `HttpHeadersTest` case you cite was renamed and inverted at the same time: `deprecatedCapturedHeadersSettersTreatStarAsEveryHeader` is gone, and `deprecatedCapturedHeadersSettersMatchHeaderNamesLiterally` now sits at that line asserting the opposite. Copilot reviews the head branch in isolation, so it doesn't see base-branch commits; CI builds `refs/pull/N/merge` and does.\n\nThe evidence, from `refs/pull/19608/merge` (`f572922c8c`, merging `d9974a3483` into base `1572a0077b` — exactly what CI compiles):\n\n```\nio.opentelemetry.instrumentation.ktor.common.v2_0.KtorClientHeadersTest: tests=3 failures=0\n   - deprecated captured headers match names literally()\n```\n\nThat test calls `capturedRequestHeaders(\"*\")` and `capturedResponseHeaders(\"*\")` and asserts that `http.request.header.x-test-request`, `http.request.header.x-test-secret` and `http.response.header.x-test-response` are all absent — i.e. `\"*\"` looks for a header literally named `*` and finds nothing, even though the getters enumerate every header name. Run against the head branch alone it fails with `expected: null but was: [\"request-value\"]`, which is precisely the widening you describe; it passes on the merge ref. The `Iterable` overloads share the same one-line delegation, and `AbstractKtorServerTelemetryBuilder` is covered by `KtorServerCapturedHeadersTest` in ktor-2.0.\n\nSo the documented literal-matching promise is implemented, and there is a regression test that fails loudly if the globbing path is ever reintroduced.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788502066"
+        }
+      ],
+      "reviewed": "d9974a34838a4e5520117acb54f88ec19d85f122",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788479270"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` now builds a glob-matching `IncludeExclude`, so a legacy value such as `*` captures every enumerated Ktor header instead of a header literally named `*`. This violates the compatibility behavior documented here and can expose additional headers. Add/use an exact-name capture path for all request/response and `Iterable` compatibility overloads in this class.",
+      "created": "2026-08-15T04:24:17Z",
+      "hunk": "@@ -123,14 +124,94 @@ abstract class AbstractKtorServerTelemetryBuilder(private val instrumentationNam\n     val error: Throwable?\n   )\n \n-  fun capturedRequestHeaders(vararg headers: String) = capturedRequestHeaders(headers.asIterable())\n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * Header values are captured under the `http.request.header.<key>` attribute key, where the\n+   * `<key>` part is the lowercase header name.\n+   *\n+   * Header names are matched case-insensitively, since HTTP header names are case-insensitive. `?`\n+   * matches one character and `*` matches any number of characters, including none. Excluded\n+   * patterns take precedence over included patterns. A selector with no included patterns captures\n+   * every header that is not excluded, and an empty selector captures no headers. No request\n+   * headers are captured when this is not configured.\n+   */\n+  fun requestHeaders(requestHeaders: IncludeExclude) {\n+    builder.setRequestHeaders(requestHeaders)\n+  }\n+\n+  /**\n+   * Configures which HTTP request headers are captured as span attributes, by exact header name.\n+   *\n+   * The header names are matched literally. Unlike [requestHeaders], `*` and `?` are not\n+   * treated as glob patterns, since this setting never documented them as wildcards.\n+   */\n+  // may be removed in the next minor release\n+  @Deprecated(\n+    \"Use requestHeaders(IncludeExclude) instead, which matches glob patterns rather than \" +\n+      \"literal header names. May be removed in the next minor release.\"\n+  )\n+  fun capturedRequestHeaders(vararg headers: String) {\n+    builder.setCapturedRequestHeaders(headers.toList())",
+      "id": "PRRT_kwDODJKVX86ZeDFP",
+      "opened": "2026-08-15T04:24:17Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/AbstractKtorServerTelemetryBuilder.kt",
+      "replies": [
+        {
+          "at": "2026-08-15T04:39:04Z",
+          "body": "Same stale-base reading as the client builder thread, and I verified it against the merge ref rather than assuming.\n\n`DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` does not build a glob-matching `IncludeExclude` on the base branch this PR targets; it routes through `CapturedHttpHeaders.createExact`, which keeps the names as a literal set. Copilot reviews the head branch in isolation and so doesn't see that commit; CI builds `refs/pull/N/merge` and does.\n\nServer-side proof, from `refs/pull/19608/merge` (`f572922c8c`):\n\n```\nio.opentelemetry.instrumentation.ktor.v2_0.KtorServerCapturedHeadersTest: tests=1 failures=0\n```\n\nThat test configures the plugin with `capturedRequestHeaders(\"X-Test-Request\", \"*\")`, sends both `X-Test-Request` and `X-Test-Secret` against a real Netty-backed Ktor server, and asserts that `http.request.header.x-test-request` is captured while `http.request.header.x-test-secret` is absent. If `\"*\"` were globbing, the secret header would be on the span, since `KtorHttpServerAttributesGetter` enumerates every request header name. All four request/response and `Iterable` overloads here are one-line delegations to the same two exact-name setters, so they share that behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788502770"
+        }
+      ],
+      "reviewed": "d9974a34838a4e5520117acb54f88ec19d85f122",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788479277"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The replacement text promises that this deprecated API keeps literal matching, but `builder.setCapturedRequestHeaders` converts the list to an `IncludeExclude` and therefore interprets `*`/`?` as globs once Ktor enumerates header names. Existing configurations can begin capturing unintended headers. The request and response compatibility setters need to use an exact-name capture path.",
+      "created": "2026-08-15T04:24:17Z",
+      "hunk": "@@ -73,10 +74,64 @@ class KtorServerTelemetry private constructor(\n       builder.addAttributesExtractor(extractor)\n     }\n \n+    /**\n+     * Configures which HTTP request headers are captured as span attributes.\n+     *\n+     * Header values are captured under the `http.request.header.<key>` attribute key, where the\n+     * `<key>` part is the lowercase header name.\n+     *\n+     * Header names are matched case-insensitively, since HTTP header names are case-insensitive.\n+     * `?` matches one character and `*` matches any number of characters, including none. Excluded\n+     * patterns take precedence over included patterns. A selector with no included patterns\n+     * captures every header that is not excluded, and an empty selector captures no headers. No\n+     * request headers are captured when this is not configured.\n+     */\n+    fun setRequestHeaders(requestHeaders: IncludeExclude) {\n+      builder.setRequestHeaders(requestHeaders)\n+    }\n+\n+    /**\n+     * Configures which HTTP request headers are captured as span attributes, by exact header name.\n+     *\n+     * The header names are matched literally. Unlike [setRequestHeaders], `*` and `?` are not\n+     * treated as glob patterns, since this setting never documented them as wildcards.\n+     */\n+    // may be removed in the next minor release\n+    @Deprecated(\n+      \"Use setRequestHeaders(IncludeExclude) instead, which matches glob patterns rather than \" +\n+        \"literal header names. May be removed in the next minor release.\"\n+    )",
+      "id": "PRRT_kwDODJKVX86ZeDFS",
+      "opened": "2026-08-15T04:24:17Z",
+      "path": "instrumentation/ktor/ktor-1.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/v1_0/KtorServerTelemetry.kt",
+      "replies": [
+        {
+          "at": "2026-08-15T04:39:15Z",
+          "body": "Same stale-base reading as the two `ktor-common-2.0` threads. `builder.setCapturedRequestHeaders` no longer converts the list to an `IncludeExclude`; on the base branch this PR targets it routes through `CapturedHttpHeaders.createExact`, which stores the names literally and never builds a selector. Copilot reviews the head branch in isolation, so base-branch commits are invisible to it; CI builds `refs/pull/N/merge` and picks them up.\n\nI verified rather than assuming: `KtorClientHeadersTest.deprecated captured headers match names literally` and `KtorServerCapturedHeadersTest.testDeprecatedCapturedHeaders` both pass on `refs/pull/19608/merge` (`f572922c8c`), and the former fails with `expected: null but was: [\"request-value\"]` against the head branch alone — the widening you describe, present only when the base fix is missing.\n\nThe ktor-1.0 setters here are the same one-line delegation to the same exact-name path, and `KtorServerCapturedHeadersTest` in this module covers the deprecated route end to end through a real Netty-backed server. I deliberately dropped the `ReplaceWith` on these deprecations for a related reason: it would be an automated IDE rewrite that silently migrates a user's literal `\"*\"` into a globbing selector with no diff to inspect.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788503189"
+        }
+      ],
+      "reviewed": "d9974a34838a4e5520117acb54f88ec19d85f122",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19608#discussion_r3788479284"
+    }
+  ]
+}

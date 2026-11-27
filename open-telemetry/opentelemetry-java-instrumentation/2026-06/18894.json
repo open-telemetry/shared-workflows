@@ -1,0 +1,52 @@
+{
+  "head": "fee0b32334673ce24d9ec4f6cfd778ec0e7de7b4",
+  "merge": "b30602fd7a2435ec980314a12d219143b8de659d",
+  "merged": "2026-06-10T06:27:35Z",
+  "missing_roots": 0,
+  "number": 18894,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This wiring is what enables AWS SDK spans to emit exceptions as log records under `otel.semconv.exception.signal.preview=logs`, but there doesn’t appear to be an integration test in the AWS SDK test suites that exercises this mode and asserts the emitted log record event name/severity. Without such a test, it’s easy to regress by removing/misplacing this customizer call (or missing a specific instrumenter). Consider adding a test that forces `otel.semconv.exception.signal.preview=logs` and triggers a failed request, then asserts a single exception log record with the expected `rpc.client.call.exception` event name.",
+      "created": "2026-06-09T17:52:40Z",
+      "hunk": "@@ -103,7 +108,7 @@ public Instrumenter<ExecutionAttributes, Response> requestInstrumenter() {\n         AwsSdkInstrumenterFactory::spanName,\n         SpanKindExtractor.alwaysClient(),\n         attributesExtractors(),\n-        emptyList(),\n+        builder -> setRpcClientExceptionEventExtractor(builder),",
+      "id": "PRRT_kwDODJKVX86IPcEU",
+      "opened": "2026-06-09T17:52:41Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-06-09T18:19:22Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6fc3a9b1cf4438842db9f09e565680d24157aee1.\n\nAdded full-suite AWS SDK v2 preview-log test coverage and assertions for the RPC client exception log record.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18894#discussion_r3382905862"
+        }
+      ],
+      "reviewed": "b8aad6ce4c4e4581a90af2bfb5c6dba1a37c7496",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18894#discussion_r3382759913"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Similar to the v2 factory, this change is intended to make AWS SDK v1 emit exceptions as log records under `otel.semconv.exception.signal.preview=logs`, but the AWS SDK v1 tests don’t appear to validate the log-emission path. Please consider adding an integration test that enables the preview flag, triggers a failing request, and asserts an exception log record with event name `rpc.client.call.exception` (and that span exception events are not emitted in this mode).",
+      "created": "2026-06-09T17:52:41Z",
+      "hunk": "@@ -81,7 +85,7 @@ public Instrumenter<Request<?>, Response<?>> requestInstrumenter() {\n         new AwsSdkSpanNameExtractor(),\n         SpanKindExtractor.alwaysClient(),\n         attributesExtractors(),\n-        emptyList(),\n+        builder -> setRpcClientExceptionEventExtractor(builder),",
+      "id": "PRRT_kwDODJKVX86IPcE5",
+      "opened": "2026-06-09T17:52:41Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-06-09T18:19:24Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fee0b32334673ce24d9ec4f6cfd778ec0e7de7b4.\n\nAdded full-suite AWS SDK v1 preview-log test coverage and assertions for the RPC client exception log records.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18894#discussion_r3382906022"
+        }
+      ],
+      "reviewed": "b8aad6ce4c4e4581a90af2bfb5c6dba1a37c7496",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18894#discussion_r3382759959"
+    }
+  ]
+}

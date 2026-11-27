@@ -1,0 +1,264 @@
+{
+  "head": "0544dee61014254f0cf399813c2db89c95ffcfa2",
+  "merge": "18f13c26d593b5bda8779074c317ccfb3b924ad6",
+  "merged": "2026-07-15T16:14:43Z",
+  "missing_roots": 0,
+  "number": 18812,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test mutates the global JVM system property `os.name`. In environments where JUnit runs tests in parallel, this can introduce cross-test interference and flakiness. Consider adding a JUnit resource lock (e.g., `@ResourceLock(Resources.SYSTEM_PROPERTIES)` or a lock for `os.name`) or forcing same-thread execution for this test/class so it cannot run concurrently with other tests that read/write system properties.",
+      "created": "2026-05-20T16:28:00Z",
+      "hunk": "@@ -39,102 +43,42 @@ void linux() {\n     assertThat(resource.getAttribute(OS_VERSION)).isEqualTo(\"5.10\");\n   }\n \n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"MacOS X 11\")\n-  void macos() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(DARWIN);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n-  }\n-\n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"Windows 10\")\n-  void windows() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(WINDOWS);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n-  }\n-\n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"FreeBSD 10\")\n-  void freebsd() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(FREEBSD);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n-  }\n-\n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"NetBSD 10\")\n-  void netbsd() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(NETBSD);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n-  }\n-\n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"OpenBSD 10\")\n-  void openbsd() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(OPENBSD);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n-  }\n-\n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"DragonFlyBSD 10\")\n-  void dragonflybsd() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(DRAGONFLYBSD);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n-  }\n-\n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"HP-UX 10\")\n-  void hpux() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(HPUX);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n-  }\n-\n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"AIX 10\")\n-  void aix() {\n-    Resource resource = OsResource.buildResource();\n-    assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n-    assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(AIX);\n-    assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"osTypeTestCases\")\n+  void osType(String name, String osName, String expectedOsType) {\n+    String originalOsName = System.getProperty(\"os.name\");\n+    try {\n+      System.setProperty(\"os.name\", osName);\n+\n+      Resource resource = OsResource.buildResource();\n+      assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_24_0);\n+      assertThat(resource.getAttribute(OS_TYPE)).isEqualTo(expectedOsType);\n+      assertThat(resource.getAttribute(OS_DESCRIPTION)).isNotEmpty();\n+    } finally {\n+      restoreSystemProperty(\"os.name\", originalOsName);\n+    }\n   }",
+      "id": "PRRT_kwDODJKVX86DjNX8",
+      "opened": "2026-05-20T16:28:01Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/OsResourceTest.java",
+      "replies": [
+        {
+          "at": "2026-06-02T09:38:08Z",
+          "body": "Fixed in a0eb2930: added `@ResourceLock(Resources.SYSTEM_PROPERTIES)` to the parameterized `osType` test so it does not run concurrently with other system-property tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3340177398"
+        }
+      ],
+      "reviewed": "83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3275532259"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`find_matching_brace` accounts for strings but not for comments. Braces inside `// ...` or `/* ... */` can change `depth` and cause mis-identification of method boundaries, leading to missed/incorrect candidates. A concrete fix is to skip over comment regions during scanning (or pre-strip comments for the purpose of brace matching while still preserving indices in a controlled way).",
+      "created": "2026-05-20T16:28:00Z",
+      "hunk": "@@ -0,0 +1,291 @@\n+#!/usr/bin/env python3\n+#\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Find repeated non-parameterized test bodies that are candidates for @ParameterizedTest.\n+\n+This is a heuristic scanner. It groups non-parameterized JUnit test methods inside the same file\n+by a normalized method-body shape and reports repeated groups.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import hashlib\n+import json\n+import re\n+import sys\n+from collections import Counter, defaultdict\n+from dataclasses import dataclass\n+from pathlib import Path\n+\n+\n+TEST_PATH_MARKERS = (\"/src/test/\", \"/testing/src/main/\")\n+TEST_EXTENSIONS = {\".java\", \".scala\"}\n+METHOD_RE = re.compile(\n+    r\"^(\\s*@(?:[^\\n]+)\\n)+\\s*(?:public|protected|private)?\\s*(?:static\\s+)?\"\n+    r\"(?:final\\s+)?[\\w\\[\\]<>?, @]+\\s+(\\w+)\\s*\\([^;{)]*\\)\\s*(?:throws [^{]+)?\\{\",\n+    re.M,\n+)\n+COMMENT_RE = re.compile(r\"/\\*.*?\\*/\", re.S)\n+LINE_COMMENT_RE = re.compile(r\"//.*\")\n+STRING_RE = re.compile(r'\"(?:\\\\.|[^\"\\\\])*\"')\n+CHAR_RE = re.compile(r\"'(?:\\\\.|[^'\\\\])'\")\n+NUMBER_RE = re.compile(r\"\\b\\d+(?:\\.\\d+)?(?:[dDfFlL])?\\b\")\n+IDENTIFIER_RE = re.compile(r\"\\b[A-Za-z_][A-Za-z0-9_]*\\b\")\n+\n+KEYWORDS = {\n+    \"if\",\n+    \"else\",\n+    \"for\",\n+    \"while\",\n+    \"switch\",\n+    \"case\",\n+    \"return\",\n+    \"new\",\n+    \"throw\",\n+    \"try\",\n+    \"catch\",\n+    \"finally\",\n+    \"true\",\n+    \"false\",\n+    \"null\",\n+    \"this\",\n+    \"super\",\n+    \"class\",\n+    \"instanceof\",\n+    \"do\",\n+    \"break\",\n+    \"continue\",\n+}\n+\n+\n+@dataclass\n+class MethodRecord:\n+  path: str\n+  line: int\n+  name: str\n+  lines: int\n+  normalized_length: int\n+  normalized_hash: str\n+\n+\n+def parse_args() -> argparse.Namespace:\n+  parser = argparse.ArgumentParser(description=__doc__)\n+  parser.add_argument(\n+      \"--root\",\n+      default=\".\",\n+      help=\"Repository root to scan. Defaults to the current directory.\",\n+  )\n+  parser.add_argument(\n+      \"--format\",\n+      choices=(\"text\", \"json\"),\n+      default=\"text\",\n+      help=\"Output format.\",\n+  )\n+  parser.add_argument(\n+      \"--top\",\n+      type=int,\n+      default=25,\n+      help=\"Maximum number of groups to include in text output.\",\n+  )\n+  parser.add_argument(\n+      \"--min-normalized-length\",\n+      type=int,\n+      default=80,\n+      help=\"Discard tiny test bodies after normalization.\",\n+  )\n+  parser.add_argument(\n+      \"--likely-max-lines\",\n+      type=float,\n+      default=25.0,\n+      help=\"Maximum average test-body line count for a group to be labeled likely-actionable.\",\n+  )\n+  parser.add_argument(\n+      \"--likely-min-group-size\",\n+      type=int,\n+      default=2,\n+      help=\"Minimum repeated methods in a group for likely-actionable classification.\",\n+  )\n+  return parser.parse_args()\n+\n+\n+def iter_test_files(root: Path) -> list[Path]:\n+  return sorted(\n+      path\n+      for path in root.rglob(\"*\")\n+      if path.suffix in TEST_EXTENSIONS\n+      and any(marker in path.as_posix() for marker in TEST_PATH_MARKERS)\n+  )\n+\n+\n+def find_matching_brace(text: str, open_idx: int) -> int:\n+  depth = 0\n+  in_string: str | None = None\n+  escaping = False\n+  i = open_idx\n+  while i < len(text):\n+    char = text[i]\n+    if in_string:\n+      if escaping:\n+        escaping = False\n+      elif char == \"\\\\\":\n+        escaping = True\n+      elif char == in_string:\n+        in_string = None\n+    else:\n+      if char in ('\"', \"'\"):\n+        in_string = char\n+      elif char == \"{\":\n+        depth += 1\n+      elif char == \"}\":\n+        depth -= 1\n+        if depth == 0:\n+          return i\n+    i += 1\n+  return -1",
+      "id": "PRRT_kwDODJKVX86DjNYx",
+      "opened": "2026-05-20T16:28:01Z",
+      "path": ".github/scripts/code-review/find-parameterized-test-candidates.py",
+      "replies": [
+        {
+          "at": "2026-06-02T09:38:20Z",
+          "body": "Fixed in a0eb2930: `find_matching_brace` now skips both line and block comments while scanning, so braces inside comments no longer affect method-boundary detection.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3340178576"
+        }
+      ],
+      "reviewed": "83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3275532318"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In `longAttributeInfo`, the `expectedValue` parameter is unused (it’s only needed to satisfy the current argument provider shape). To reduce noise and improve readability, consider using a provider that supplies only the attribute name for the `*Info` tests (or split providers for info vs value assertions).",
+      "created": "2026-05-20T16:28:00Z",
+      "hunk": "@@ -128,100 +131,53 @@ void testSetup() {\n     assertThat(set).isNotNull().hasSize(1).contains(objectName);\n   }\n \n-  @Test\n-  void testByteAttribute() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ByteAttribute\");\n-    AttributeInfo info = extractor.getAttributeInfo(theServer, objectName);\n-    assertThat(info).isNotNull();\n-    assertThat(info.usesDoubleValues()).isFalse();\n-  }\n-\n-  @Test\n-  void testByteAttributeValue() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ByteAttribute\");\n-    Number number = extractor.extractNumericalAttribute(theServer, objectName);\n-    assertThat(number).isNotNull();\n-    assertThat(number.longValue()).isEqualTo(10);\n-  }\n-\n-  @Test\n-  void testShortAttribute() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ShortAttribute\");\n-    AttributeInfo info = extractor.getAttributeInfo(theServer, objectName);\n-    assertThat(info).isNotNull();\n-    assertThat(info.usesDoubleValues()).isFalse();\n-  }\n-\n-  @Test\n-  void testShortAttributeValue() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ShortAttribute\");\n-    Number number = extractor.extractNumericalAttribute(theServer, objectName);\n-    assertThat(number).isNotNull();\n-    assertThat(number.longValue()).isEqualTo(11);\n-  }\n-\n-  @Test\n-  void testIntAttribute() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"IntAttribute\");\n-    AttributeInfo info = extractor.getAttributeInfo(theServer, objectName);\n-    assertThat(info).isNotNull();\n-    assertThat(info.usesDoubleValues()).isFalse();\n+  private static Stream<Arguments> longAttributes() {\n+    return Stream.of(\n+        arguments(\"ByteAttribute\", 10L),\n+        arguments(\"ShortAttribute\", 11L),\n+        arguments(\"IntAttribute\", 12L),\n+        arguments(\"LongAttribute\", 13L));\n   }\n \n-  @Test\n-  void testIntAttributeValue() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"IntAttribute\");\n-    Number number = extractor.extractNumericalAttribute(theServer, objectName);\n-    assertThat(number).isNotNull();\n-    assertThat(number.longValue()).isEqualTo(12);\n+  private static Stream<Arguments> doubleAttributes() {\n+    // accurate representation\n+    return Stream.of(arguments(\"FloatAttribute\", 14.0), arguments(\"DoubleAttribute\", 15.0));\n   }\n \n-  @Test\n-  void testLongAttribute() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"LongAttribute\");\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"longAttributes\")\n+  void longAttributeInfo(String attributeName, long expectedValue) {\n+    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(attributeName);\n     AttributeInfo info = extractor.getAttributeInfo(theServer, objectName);\n     assertThat(info).isNotNull();\n     assertThat(info.usesDoubleValues()).isFalse();\n   }",
+      "id": "PRRT_kwDODJKVX86DjNZO",
+      "opened": "2026-05-20T16:28:01Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-06-02T09:38:22Z",
+          "body": "Fixed in a0eb2930: split the info-only cases back to name-only providers, so the `*Info` parameterized tests no longer carry an unused expected-value argument.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3340178766"
+        }
+      ],
+      "reviewed": "83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3275532357"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description focuses on parameterizing `KubernetesRequestUtilsTest`, but this PR also parameterizes several other test classes and introduces a new GitHub review script. Please update the PR description to reflect the broader scope (or split the script/other test refactors into separate PRs) so reviewers and release notes accurately capture the change.",
+      "created": "2026-05-20T16:28:01Z",
+      "hunk": "@@ -0,0 +1,291 @@\n+#!/usr/bin/env python3\n+#\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Find repeated non-parameterized test bodies that are candidates for @ParameterizedTest.\n+\n+This is a heuristic scanner. It groups non-parameterized JUnit test methods inside the same file\n+by a normalized method-body shape and reports repeated groups.\n+\"\"\"",
+      "id": "PRRT_kwDODJKVX86DjNZn",
+      "opened": "2026-05-20T16:28:01Z",
+      "path": ".github/scripts/code-review/find-parameterized-test-candidates.py",
+      "replies": [
+        {
+          "at": "2026-06-02T09:38:25Z",
+          "body": "Updated in a0eb2930: the PR summary now reflects the broader scope, including the additional test refactors and the helper script.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3340179069"
+        }
+      ],
+      "reviewed": "83ac5ce2b3c214198caa7aa64c23c24c04cd3c4b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3275532388"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "do we need both `longAttributeNames` and `longAttributes`?",
+      "created": "2026-07-09T00:24:15Z",
+      "hunk": "@@ -128,100 +131,61 @@ void testSetup() {\n     assertThat(set).isNotNull().hasSize(1).contains(objectName);\n   }\n \n-  @Test\n-  void testByteAttribute() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ByteAttribute\");\n-    AttributeInfo info = extractor.getAttributeInfo(theServer, objectName);\n-    assertThat(info).isNotNull();\n-    assertThat(info.usesDoubleValues()).isFalse();\n-  }\n-\n-  @Test\n-  void testByteAttributeValue() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ByteAttribute\");\n-    Number number = extractor.extractNumericalAttribute(theServer, objectName);\n-    assertThat(number).isNotNull();\n-    assertThat(number.longValue()).isEqualTo(10);\n-  }\n-\n-  @Test\n-  void testShortAttribute() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ShortAttribute\");\n-    AttributeInfo info = extractor.getAttributeInfo(theServer, objectName);\n-    assertThat(info).isNotNull();\n-    assertThat(info.usesDoubleValues()).isFalse();\n+  private static Stream<Arguments> longAttributes() {\n+    return Stream.of(\n+        arguments(\"ByteAttribute\", 10L),\n+        arguments(\"ShortAttribute\", 11L),\n+        arguments(\"IntAttribute\", 12L),\n+        arguments(\"LongAttribute\", 13L));\n   }\n \n-  @Test\n-  void testShortAttributeValue() {\n-    BeanAttributeExtractor extractor = BeanAttributeExtractor.fromName(\"ShortAttribute\");\n-    Number number = extractor.extractNumericalAttribute(theServer, objectName);\n-    assertThat(number).isNotNull();\n-    assertThat(number.longValue()).isEqualTo(11);\n+  private static Stream<String> longAttributeNames() {",
+      "id": "PRRT_kwDODJKVX86PaeuD",
+      "opened": "2026-07-09T00:27:24Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+      "replies": [],
+      "reviewed": "a0eb2930f201649c75d3fe15169fc227e27f4f85",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3548049524"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I like the parameterized structure, but not sure about losing `@SetSystemProperty` since it's a nice way to search and understand tests that are mucking around with system properties",
+      "created": "2026-07-09T00:25:32Z",
+      "hunk": "@@ -39,102 +45,43 @@ void linux() {\n     assertThat(resource.getAttribute(OS_VERSION)).isEqualTo(\"5.10\");\n   }\n \n-  @Test\n-  @SetSystemProperty(key = \"os.name\", value = \"MacOS X 11\")",
+      "id": "PRRT_kwDODJKVX86PafWI",
+      "opened": "2026-07-09T00:27:24Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/OsResourceTest.java",
+      "replies": [],
+      "reviewed": "a0eb2930f201649c75d3fe15169fc227e27f4f85",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3548053054"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this one feels borderline",
+      "created": "2026-07-09T00:26:57Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86PagNu",
+      "opened": "2026-07-09T00:27:24Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LoggingExporterAutoConfigurationTest.java",
+      "replies": [],
+      "reviewed": "a0eb2930f201649c75d3fe15169fc227e27f4f85",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3548057810"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "remove this?",
+      "created": "2026-07-09T00:27:16Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86Pagdn",
+      "opened": "2026-07-09T00:27:24Z",
+      "path": ".github/scripts/code-review/find-parameterized-test-candidates.py",
+      "replies": [],
+      "reviewed": "a0eb2930f201649c75d3fe15169fc227e27f4f85",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3548059132"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The repository's parameterized-test pattern explicitly prefers `Arguments.argumentSet(...)` and no display-name parameter over `@ParameterizedTest(name = \"{0}\")` plus an unused `String name` (`.github/agents/knowledge/testing-general-patterns.md:22-24`). Please convert these rows to argument sets and remove `name` from the test signature.",
+      "created": "2026-07-14T15:51:18Z",
+      "hunk": "@@ -6,92 +6,51 @@\n package io.opentelemetry.instrumentation.docs.utils;\n \n import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.params.provider.Arguments.arguments;\n \n import io.opentelemetry.instrumentation.docs.internal.InstrumentationModule;\n import java.util.List;\n import java.util.stream.Stream;\n-import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n \n class InstrumentationNameComparatorTest {\n \n-  @Test\n-  void testComparesLibrariesDifferentName() {\n-    InstrumentationModule moduleB = new InstrumentationModule.Builder(\"b-module\").build();\n-    InstrumentationModule moduleC = new InstrumentationModule.Builder(\"c-module\").build();\n-    InstrumentationModule moduleA = new InstrumentationModule.Builder(\"a-module\").build();\n-\n-    List<String> modules =\n-        Stream.of(moduleB, moduleC, moduleA)\n-            .sorted(InstrumentationNameComparator.BY_NAME_AND_VERSION)\n-            .map(InstrumentationModule::getInstrumentationName)\n-            .toList();\n-    assertThat(modules).containsExactly(\"a-module\", \"b-module\", \"c-module\");\n-  }\n-\n-  @Test\n-  void testComparesLibrariesDifferentVersions() {\n-    InstrumentationModule moduleB = new InstrumentationModule.Builder(\"b-module\").build();\n-    InstrumentationModule moduleB2 = new InstrumentationModule.Builder(\"b-module-2.0\").build();\n-    InstrumentationModule moduleB4 = new InstrumentationModule.Builder(\"b-module-4.2\").build();\n-\n-    InstrumentationModule moduleB25 = new InstrumentationModule.Builder(\"b-module-2.5\").build();\n-\n-    List<String> modules =\n-        Stream.of(moduleB4, moduleB25, moduleB, moduleB2)\n-            .sorted(InstrumentationNameComparator.BY_NAME_AND_VERSION)\n-            .map(InstrumentationModule::getInstrumentationName)\n-            .toList();\n-\n-    assertThat(modules).containsExactly(\"b-module\", \"b-module-2.0\", \"b-module-2.5\", \"b-module-4.2\");\n-  }\n-\n-  @Test\n-  void testComparesMultiDigitMinorVersions() {\n-    InstrumentationModule module19 = new InstrumentationModule.Builder(\"lib-1.9\").build();\n-    InstrumentationModule module110 = new InstrumentationModule.Builder(\"lib-1.10\").build();\n-    InstrumentationModule module156 = new InstrumentationModule.Builder(\"lib-1.56\").build();\n-    InstrumentationModule module157 = new InstrumentationModule.Builder(\"lib-1.57\").build();\n-    InstrumentationModule module20 = new InstrumentationModule.Builder(\"lib-2.0\").build();\n-\n-    List<String> modules =\n-        Stream.of(module157, module110, module156, module19, module20)\n-            .sorted(InstrumentationNameComparator.BY_NAME_AND_VERSION)\n-            .map(InstrumentationModule::getInstrumentationName)\n-            .toList();\n-\n-    assertThat(modules).containsExactly(\"lib-1.9\", \"lib-1.10\", \"lib-1.56\", \"lib-1.57\", \"lib-2.0\");\n-  }\n-\n-  @Test\n-  void testComparesPatchVersions() {\n-    // Test that 3.1 comes before 3.1.6, which comes before 3.2\n-    InstrumentationModule module31 = new InstrumentationModule.Builder(\"couchbase-3.1\").build();\n-    InstrumentationModule module316 = new InstrumentationModule.Builder(\"couchbase-3.1.6\").build();\n-    InstrumentationModule module32 = new InstrumentationModule.Builder(\"couchbase-3.2\").build();\n-    InstrumentationModule module34 = new InstrumentationModule.Builder(\"couchbase-3.4\").build();\n-\n-    List<String> modules =\n-        Stream.of(module34, module316, module32, module31)\n-            .sorted(InstrumentationNameComparator.BY_NAME_AND_VERSION)\n-            .map(InstrumentationModule::getInstrumentationName)\n-            .toList();\n-\n-    assertThat(modules)\n-        .containsExactly(\"couchbase-3.1\", \"couchbase-3.1.6\", \"couchbase-3.2\", \"couchbase-3.4\");\n+  private static Stream<Arguments> sortCases() {\n+    return Stream.of(\n+        arguments(\n+            \"different names\",\n+            List.of(\"b-module\", \"c-module\", \"a-module\"),\n+            List.of(\"a-module\", \"b-module\", \"c-module\")),\n+        arguments(\n+            \"different versions\",\n+            List.of(\"b-module-4.2\", \"b-module-2.5\", \"b-module\", \"b-module-2.0\"),\n+            List.of(\"b-module\", \"b-module-2.0\", \"b-module-2.5\", \"b-module-4.2\")),\n+        arguments(\n+            \"multi-digit minor versions\",\n+            List.of(\"lib-1.57\", \"lib-1.10\", \"lib-1.56\", \"lib-1.9\", \"lib-2.0\"),\n+            List.of(\"lib-1.9\", \"lib-1.10\", \"lib-1.56\", \"lib-1.57\", \"lib-2.0\")),\n+        arguments(\n+            // 3.1 comes before 3.1.6, which comes before 3.2\n+            \"patch versions\",\n+            List.of(\"couchbase-3.4\", \"couchbase-3.1.6\", \"couchbase-3.2\", \"couchbase-3.1\"),\n+            List.of(\"couchbase-3.1\", \"couchbase-3.1.6\", \"couchbase-3.2\", \"couchbase-3.4\")),\n+        arguments(\n+            \"versioned and unversioned\",\n+            List.of(\"lib-2.0\", \"lib-1.0\", \"lib\"),\n+            List.of(\"lib\", \"lib-1.0\", \"lib-2.0\")));\n   }\n \n-  @Test\n-  void testComparesVersionedAndUnversioned() {\n-    InstrumentationModule moduleUnversioned = new InstrumentationModule.Builder(\"lib\").build();\n-    InstrumentationModule module10 = new InstrumentationModule.Builder(\"lib-1.0\").build();\n-    InstrumentationModule module20 = new InstrumentationModule.Builder(\"lib-2.0\").build();\n-\n-    List<String> modules =\n-        Stream.of(module20, module10, moduleUnversioned)\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"sortCases\")\n+  void sortsModuleNames(String name, List<String> input, List<String> expected) {",
+      "id": "PRRT_kwDODJKVX86Qz3H5",
+      "opened": "2026-07-14T15:51:19Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/InstrumentationNameComparatorTest.java",
+      "replies": [
+        {
+          "at": "2026-07-15T09:21:00Z",
+          "body": "Converted these named parameterized cases to `Arguments.argumentSet(...)` and dropped the unused display-name parameter.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3586016275"
+        }
+      ],
+      "reviewed": "54c55617949a90c64b64971d47e0ff4388bf72b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3580532449"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says this change adds `.github/scripts/code-review/find-parameterized-test-candidates.py`, but that helper is absent from the current change set. Either restore the script or remove that claim so the documented scope matches what reviewers are approving.",
+      "created": "2026-07-14T15:51:19Z",
+      "hunk": "@@ -9,34 +9,35 @@\n import static org.junit.jupiter.params.provider.Arguments.argumentSet;\n \n import java.util.stream.Stream;\n-import org.junit.jupiter.api.Test;\n import org.junit.jupiter.params.ParameterizedTest;\n import org.junit.jupiter.params.provider.Arguments;\n import org.junit.jupiter.params.provider.MethodSource;\n \n class KubernetesRequestUtilsTest {\n \n-  @Test\n-  void isResourceRequest() {\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/api\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/apis\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/apis/v1\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/healthz\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/swagger.json\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/api/v1\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/api/v1/\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/apis/apps/v1\")).isFalse();\n-    assertThat(KubernetesRequestDigest.isResourceRequest(\"/apis/apps/v1/\")).isFalse();\n+  @ParameterizedTest",
+      "id": "PRRT_kwDODJKVX86Qz3I_",
+      "opened": "2026-07-14T15:51:19Z",
+      "path": "instrumentation/kubernetes-client-7.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/kubernetesclient/v7_0/KubernetesRequestUtilsTest.java",
+      "replies": [
+        {
+          "at": "2026-07-15T09:21:03Z",
+          "body": "Updated the PR description to remove the stale helper-script claim so the documented scope matches the current change set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3586016529"
+        }
+      ],
+      "reviewed": "54c55617949a90c64b64971d47e0ff4388bf72b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3580532539"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This repeats the legacy display-name workaround instead of the pattern linked by the PR: `.github/agents/knowledge/testing-general-patterns.md:22-24` requires `Arguments.argumentSet(...)`, which names each invocation without adding an unused `String name` parameter. Please update all provider rows and simplify this annotation/signature accordingly.",
+      "created": "2026-07-14T15:51:19Z",
+      "hunk": "@@ -30,158 +36,87 @@ class AttributeBindingFactoryTest {\n \n   @Mock AttributesBuilder setter;\n \n-  @Test\n-  void createAttributeBindingForString() {\n-    AttributeBindingFactory.createBinding(\"key\", String.class).apply(setter, \"value\");\n-    verify(setter).put(stringKey(\"key\"), \"value\");\n-  }\n-\n-  @Test\n-  void createAttributeBindingForIntPrimitive() {\n-    AttributeBindingFactory.createBinding(\"key\", int.class).apply(setter, 1234);\n-    verify(setter).put(longKey(\"key\"), 1234L);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForInteger() {\n-    AttributeBindingFactory.createBinding(\"key\", Integer.class).apply(setter, 1234);\n-    verify(setter).put(longKey(\"key\"), 1234L);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForLongPrimitive() {\n-    AttributeBindingFactory.createBinding(\"key\", long.class).apply(setter, 1234L);\n-    verify(setter).put(longKey(\"key\"), 1234L);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForLong() {\n-    AttributeBindingFactory.createBinding(\"key\", Long.class).apply(setter, 1234L);\n-    verify(setter).put(longKey(\"key\"), 1234L);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForFloatPrimitive() {\n-    AttributeBindingFactory.createBinding(\"key\", float.class).apply(setter, 1234.0F);\n-    verify(setter).put(doubleKey(\"key\"), 1234.0);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForFloat() {\n-    AttributeBindingFactory.createBinding(\"key\", Float.class).apply(setter, 1234.0F);\n-    verify(setter).put(doubleKey(\"key\"), 1234.0);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForDoublePrimitive() {\n-    AttributeBindingFactory.createBinding(\"key\", double.class).apply(setter, 1234.0);\n-    verify(setter).put(doubleKey(\"key\"), 1234.0);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForDouble() {\n-    AttributeBindingFactory.createBinding(\"key\", Double.class).apply(setter, 1234.0);\n-    verify(setter).put(doubleKey(\"key\"), 1234.0);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForBooleanPrimitive() {\n-    AttributeBindingFactory.createBinding(\"key\", boolean.class).apply(setter, true);\n-    verify(setter).put(booleanKey(\"key\"), true);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForBoolean() {\n-    AttributeBindingFactory.createBinding(\"key\", Boolean.class).apply(setter, true);\n-    verify(setter).put(booleanKey(\"key\"), true);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForStringArray() {\n-    String[] value = {\"x\", \"y\", \"z\", null};\n-    List<String> expected = asList(value);\n-    AttributeBindingFactory.createBinding(\"key\", String[].class).apply(setter, value);\n-    verify(setter).put(stringArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForPrimitiveIntArray() {\n-    int[] value = {1, 2, 3};\n-    List<Long> expected = asList(1L, 2L, 3L);\n-    AttributeBindingFactory.createBinding(\"key\", int[].class).apply(setter, value);\n-    verify(setter).put(longArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForIntegerArray() {\n-    Integer[] value = {1, 2, 3};\n-    List<Long> expected = asList(1L, 2L, 3L);\n-    AttributeBindingFactory.createBinding(\"key\", Integer[].class).apply(setter, value);\n-    verify(setter).put(longArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForPrimitiveLongArray() {\n-    long[] value = {1, 2, 3};\n-    List<Long> expected = asList(1L, 2L, 3L);\n-    AttributeBindingFactory.createBinding(\"key\", long[].class).apply(setter, value);\n-    verify(setter).put(longArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForLongArray() {\n-    Long[] value = {1L, 2L, 3L};\n-    List<Long> expected = asList(1L, 2L, 3L);\n-    AttributeBindingFactory.createBinding(\"key\", Long[].class).apply(setter, value);\n-    verify(setter).put(longArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForPrimitiveFloatArray() {\n-    float[] value = {1f, 2f, 3f};\n-    List<Double> expected = asList(1.0, 2.0, 3.0);\n-    AttributeBindingFactory.createBinding(\"key\", float[].class).apply(setter, value);\n-    verify(setter).put(doubleArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForFloatArray() {\n-    Float[] value = {1f, 2f, 3f};\n-    List<Double> expected = asList(1.0, 2.0, 3.0);\n-    AttributeBindingFactory.createBinding(\"key\", Float[].class).apply(setter, value);\n-    verify(setter).put(doubleArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForPrimitiveDoubleArray() {\n-    double[] value = {1f, 2f, 3f};\n-    List<Double> expected = asList(1.0, 2.0, 3.0);\n-    AttributeBindingFactory.createBinding(\"key\", double[].class).apply(setter, value);\n-    verify(setter).put(doubleArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForDoubleArray() {\n-    Double[] value = {1.0, 2.0, 3.0};\n-    List<Double> expected = asList(1.0, 2.0, 3.0);\n-    AttributeBindingFactory.createBinding(\"key\", Double[].class).apply(setter, value);\n-    verify(setter).put(doubleArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForPrimitiveBooleanArray() {\n-    boolean[] value = {true, false};\n-    List<Boolean> expected = asList(true, false);\n-    AttributeBindingFactory.createBinding(\"key\", boolean[].class).apply(setter, value);\n-    verify(setter).put(booleanArrayKey(\"key\"), expected);\n-  }\n-\n-  @Test\n-  void createAttributeBindingForBooleanArray() {\n-    Boolean[] value = {true, false};\n-    List<Boolean> expected = asList(true, false);\n-    AttributeBindingFactory.createBinding(\"key\", Boolean[].class).apply(setter, value);\n-    verify(setter).put(booleanArrayKey(\"key\"), expected);\n+  private static Stream<Arguments> bindingCases() {\n+    return Stream.of(\n+        // scalar types\n+        arguments(\"String\", String.class, \"value\", stringKey(\"key\"), \"value\"),\n+        arguments(\"int primitive\", int.class, 1234, longKey(\"key\"), 1234L),\n+        arguments(\"Integer\", Integer.class, 1234, longKey(\"key\"), 1234L),\n+        arguments(\"long primitive\", long.class, 1234L, longKey(\"key\"), 1234L),\n+        arguments(\"Long\", Long.class, 1234L, longKey(\"key\"), 1234L),\n+        arguments(\"float primitive\", float.class, 1234.0F, doubleKey(\"key\"), 1234.0),\n+        arguments(\"Float\", Float.class, 1234.0F, doubleKey(\"key\"), 1234.0),\n+        arguments(\"double primitive\", double.class, 1234.0, doubleKey(\"key\"), 1234.0),\n+        arguments(\"Double\", Double.class, 1234.0, doubleKey(\"key\"), 1234.0),\n+        arguments(\"boolean primitive\", boolean.class, true, booleanKey(\"key\"), true),\n+        arguments(\"Boolean\", Boolean.class, true, booleanKey(\"key\"), true),\n+        // array types\n+        arguments(\n+            \"String[]\",\n+            String[].class,\n+            new String[] {\"x\", \"y\", \"z\", null},\n+            stringArrayKey(\"key\"),\n+            asList(\"x\", \"y\", \"z\", null)),\n+        arguments(\n+            \"int[]\", int[].class, new int[] {1, 2, 3}, longArrayKey(\"key\"), asList(1L, 2L, 3L)),\n+        arguments(\n+            \"Integer[]\",\n+            Integer[].class,\n+            new Integer[] {1, 2, 3},\n+            longArrayKey(\"key\"),\n+            asList(1L, 2L, 3L)),\n+        arguments(\n+            \"long[]\", long[].class, new long[] {1, 2, 3}, longArrayKey(\"key\"), asList(1L, 2L, 3L)),\n+        arguments(\n+            \"Long[]\",\n+            Long[].class,\n+            new Long[] {1L, 2L, 3L},\n+            longArrayKey(\"key\"),\n+            asList(1L, 2L, 3L)),\n+        arguments(\n+            \"float[]\",\n+            float[].class,\n+            new float[] {1f, 2f, 3f},\n+            doubleArrayKey(\"key\"),\n+            asList(1.0, 2.0, 3.0)),\n+        arguments(\n+            \"Float[]\",\n+            Float[].class,\n+            new Float[] {1f, 2f, 3f},\n+            doubleArrayKey(\"key\"),\n+            asList(1.0, 2.0, 3.0)),\n+        arguments(\n+            \"double[]\",\n+            double[].class,\n+            new double[] {1, 2, 3},\n+            doubleArrayKey(\"key\"),\n+            asList(1.0, 2.0, 3.0)),\n+        arguments(\n+            \"Double[]\",\n+            Double[].class,\n+            new Double[] {1.0, 2.0, 3.0},\n+            doubleArrayKey(\"key\"),\n+            asList(1.0, 2.0, 3.0)),\n+        arguments(\n+            \"boolean[]\",\n+            boolean[].class,\n+            new boolean[] {true, false},\n+            booleanArrayKey(\"key\"),\n+            asList(true, false)),\n+        arguments(\n+            \"Boolean[]\",\n+            Boolean[].class,\n+            new Boolean[] {true, false},\n+            booleanArrayKey(\"key\"),\n+            asList(true, false)));\n+  }\n+\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"bindingCases\")\n+  <T> void createAttributeBinding(\n+      String name, Type type, Object value, AttributeKey<T> expectedKey, T expectedValue) {",
+      "id": "PRRT_kwDODJKVX86Qz3Ic",
+      "opened": "2026-07-14T15:51:19Z",
+      "path": "instrumentation-annotations-support/src/test/java/io/opentelemetry/instrumentation/api/annotation/support/AttributeBindingFactoryTest.java",
+      "replies": [
+        {
+          "at": "2026-07-15T09:21:01Z",
+          "body": "Updated this provider to use `Arguments.argumentSet(...)` throughout and removed the unused `name` parameter from the test signature.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3586016383"
+        }
+      ],
+      "reviewed": "54c55617949a90c64b64971d47e0ff4388bf72b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3580532498"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The linked parameterized-test pattern requires named cases to use `Arguments.argumentSet(...)` instead of passing an unused `String name` parameter with `@ParameterizedTest(name = \"{0}\")` (`.github/agents/knowledge/testing-general-patterns.md:22-24`). Please use argument sets here so this refactor follows the pattern it is intended to apply.",
+      "created": "2026-07-14T15:51:19Z",
+      "hunk": "@@ -18,35 +19,35 @@\n import java.nio.charset.Charset;\n import java.util.Arrays;\n import java.util.function.Supplier;\n+import java.util.stream.Stream;\n import javax.servlet.ServletOutputStream;\n import javax.servlet.http.HttpServletResponse;\n import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n \n class SnippetServletOutputStreamTest {\n \n-  @Test\n-  void testInjectionForStringContainHeadTag() throws IOException {\n-    String snippet = \"\\n  <script type=\\\"text/javascript\\\"> Test </script>\";\n-    byte[] html = readFileAsBytes(\"beforeSnippetInjection.html\");\n-\n-    InjectionState obj = createInjectionStateForTesting(snippet, UTF_8);\n-    InMemoryServletOutputStream out = new InMemoryServletOutputStream();\n-\n-    Supplier<String> stringSupplier = () -> snippet;\n-    OutputStreamSnippetInjectionHelper helper =\n-        new OutputStreamSnippetInjectionHelper(stringSupplier);\n-    boolean injected = helper.handleWrite(obj, out, html, 0, html.length);\n-    assertThat(obj.getHeadTagBytesSeen()).isEqualTo(-1);\n-    assertThat(injected).isTrue();\n-\n-    byte[] expectedHtml = readFileAsBytes(\"afterSnippetInjection.html\");\n-    assertThat(out.getBytes()).isEqualTo(expectedHtml);\n+  private static Stream<Arguments> wholeBufferInjectionCases() {\n+    return Stream.of(\n+        arguments(\"ascii head tag\", \"beforeSnippetInjection.html\", \"afterSnippetInjection.html\"),\n+        arguments(\n+            \"non-ascii (chinese) body content\",\n+            \"beforeSnippetInjectionChinese.html\",\n+            \"afterSnippetInjectionChinese.html\"),\n+        arguments(\n+            \"alternative <head> attribute style\",\n+            \"beforeSnippetInjectionWithOtherHeadStyle.html\",\n+            \"afterSnippetInjectionWithOtherHeadStyle.html\"));\n   }\n \n-  @Test\n-  void testInjectionForChinese() throws IOException {\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"wholeBufferInjectionCases\")\n+  void injectsSnippetForSingleWrite(String name, String beforeResource, String afterResource)",
+      "id": "PRRT_kwDODJKVX86Qz3Je",
+      "opened": "2026-07-14T15:51:19Z",
+      "path": "instrumentation/servlet/servlet-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/servlet/v3_0/snippet/SnippetServletOutputStreamTest.java",
+      "replies": [
+        {
+          "at": "2026-07-15T09:21:04Z",
+          "body": "Switched these named cases to `Arguments.argumentSet(...)` and removed the unused `name` parameter.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3586016645"
+        }
+      ],
+      "reviewed": "54c55617949a90c64b64971d47e0ff4388bf72b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3580532579"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `@BeforeAll` setup only throws JMX-related checked exceptions (ObjectName construction + MBean registration). Using a broad `throws Exception` makes failures less specific and can hide accidental new checked exceptions in this method; consider narrowing it back to `JMException` (or another precise type).",
+      "created": "2026-07-15T14:54:13Z",
+      "hunk": "@@ -105,7 +108,7 @@ private enum DummyEnum {\n   private static MBeanServer theServer;\n \n   @BeforeAll\n-  static void setUp() throws JMException {\n+  static void setUp() throws Exception {",
+      "id": "PRRT_kwDODJKVX86RI_8j",
+      "opened": "2026-07-15T14:54:14Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/engine/AttributeExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-07-15T14:54:58Z",
+          "body": "i'll push this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3588327993"
+        },
+        {
+          "at": "2026-07-15T15:24:31Z",
+          "body": "Fixed in 0544dee610: narrowed the JMX setup signature from Exception to JMException.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3588562495"
+        }
+      ],
+      "reviewed": "dd543945afcaaef601aeda9d43b4b87f223ff1cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812#discussion_r3588321925"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "head": "9fee6f788451bbb61b1301637669ea25a07daf8d",
+  "merge": "1a1a84a550cda226ed0b2a02badb2a744a0f1798",
+  "merged": "2026-06-23T02:28:30Z",
+  "missing_roots": 0,
+  "number": 153,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There are extra blank lines after the `from __future__ import annotations` import. This will trip lint/formatting checks (e.g., ruff E303) and should be reduced to a single blank line before the next import block.",
+      "created": "2026-06-19T07:03:32Z",
+      "hunk": "@@ -3,7 +3,7 @@\n \n from __future__ import annotations\n \n-from typing import Any\n+\n \n from opentelemetry._logs import Logger",
+      "id": "PRRT_kwDOSbspP86Kwldr",
+      "opened": "2026-06-19T07:03:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "32d75dc48fbc8dd4a52be9faedb747eab60b0f69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/153#discussion_r3440810270"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There are extra blank lines after the `from __future__ import annotations` import. This will trip lint/formatting checks (e.g., ruff E303) and should be reduced to a single blank line before the next import block.",
+      "created": "2026-06-19T07:03:33Z",
+      "hunk": "@@ -3,7 +3,7 @@\n \n from __future__ import annotations\n \n-from typing import Any\n+\n \n from opentelemetry._logs import Logger",
+      "id": "PRRT_kwDOSbspP86KwleB",
+      "opened": "2026-06-19T07:03:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_embedding_invocation.py",
+      "replies": [],
+      "reviewed": "32d75dc48fbc8dd4a52be9faedb747eab60b0f69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/153#discussion_r3440810315"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Import grouping: the newly added third-party import should be separated from stdlib imports with a blank line to satisfy the project's formatting/linting (ruff/isort).",
+      "created": "2026-06-19T07:03:33Z",
+      "hunk": "@@ -10,6 +10,7 @@\n from dataclasses import asdict\n from types import TracebackType\n from typing import TYPE_CHECKING, Any, Sequence, TypeAlias\n+from opentelemetry.util.types import AttributeValue",
+      "id": "PRRT_kwDOSbspP86KwleT",
+      "opened": "2026-06-19T07:03:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "32d75dc48fbc8dd4a52be9faedb747eab60b0f69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/153#discussion_r3440810339"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`get_content_attributes` is now annotated as returning `dict[str, AttributeValue]`, but when `for_span` is False it returns structured values (lists/dicts) for log event attributes (see `serialize(...): return ... else dicts`). This makes the type signature incorrect and also reintroduces `Any` via the `serialize` helper. Consider either (a) using overloads keyed on `Literal[True/False]` and a dedicated structured-value type for the event case, or (b) keeping this function typed as `dict[str, Any]` until log/event attribute types are fully audited (per #41 scope note).",
+      "created": "2026-06-19T07:03:33Z",
+      "hunk": "@@ -186,7 +187,7 @@ def get_content_attributes(\n     system_instruction: Sequence[MessagePart],\n     tool_definitions: Sequence[ToolDefinition] | None,\n     for_span: bool,\n-) -> dict[str, Any]:\n+) -> dict[str, AttributeValue]:",
+      "id": "PRRT_kwDOSbspP86Kwleh",
+      "opened": "2026-06-19T07:03:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "32d75dc48fbc8dd4a52be9faedb747eab60b0f69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/153#discussion_r3440810363"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PEP 8 formatting: there should be a space after the return-type arrow (`->`). As written, `->dict[...]` will fail formatter/lint checks.",
+      "created": "2026-06-19T07:03:33Z",
+      "hunk": "@@ -176,14 +176,14 @@ def _get_content_attributes_for_span(self) -> dict[str, Any]:\n             for_span=True,\n         )\n \n-    def _get_metric_attributes(self) -> dict[str, Any]:\n+    def _get_metric_attributes(self) ->dict[str, AttributeValue]:",
+      "id": "PRRT_kwDOSbspP86Kwles",
+      "opened": "2026-06-19T07:03:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "32d75dc48fbc8dd4a52be9faedb747eab60b0f69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/153#discussion_r3440810386"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This dict literal is missing a trailing comma and is not formatted consistently with the rest of the file; it will be rewritten by the formatter and may fail formatting checks as-is.",
+      "created": "2026-06-19T07:03:34Z",
+      "hunk": "@@ -86,7 +86,7 @@ def _get_messages_for_span(self) -> dict[str, Any]:\n         }\n \n     def _apply_finish(self, error: Error | None = None) -> None:\n-        attributes: dict[str, Any] = {\n+        attributes: dict[str, AttributeValue] = {\n             GenAI.GEN_AI_OPERATION_NAME: self._operation_name\n         }",
+      "id": "PRRT_kwDOSbspP86Kwle-",
+      "opened": "2026-06-19T07:03:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "32d75dc48fbc8dd4a52be9faedb747eab60b0f69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/153#discussion_r3440810412"
+    }
+  ]
+}

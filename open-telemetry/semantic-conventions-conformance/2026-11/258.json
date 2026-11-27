@@ -1,0 +1,235 @@
+{
+  "head": "ebfe8f62a3110baa702f6cd9ecfeb369f8d1b2ee",
+  "merge": "137c0e1c491069ec1d5b6c5551ccf893b994e1d9",
+  "merged": "2026-11-07T10:34:53Z",
+  "missing_roots": 0,
+  "number": 258,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The transformer and other v3 packages beneath the hoisted trace exporter require `@opentelemetry/api >=1.10.0 <1.11.0`, but resolve to the root `1.9.1`; the `1.10.0` copy beneath `browser-runner` is not accessible to them. This leaves the new workspace with incompatible peer dependencies. Regenerate the lockfile with a compatible API accessible to the exporter subtree, while retaining API 1.9.1 for the older browser instrumentation stack.",
+      "created": "2026-11-04T23:01:51Z",
+      "hunk": "@@ -0,0 +1,1067 @@\n+{\n+  \"name\": \"@otel-conformance/browser-js\",\n+  \"version\": \"0.1.0\",\n+  \"lockfileVersion\": 3,\n+  \"requires\": true,\n+  \"packages\": {\n+    \"\": {\n+      \"name\": \"@otel-conformance/browser-js\",\n+      \"version\": \"0.1.0\",\n+      \"license\": \"Apache-2.0\",\n+      \"workspaces\": [\n+        \"chromium/*\"\n+      ],\n+      \"devDependencies\": {\n+        \"prettier\": \"3.9.9\"\n+      }\n+    },\n+    \"chromium/opentelemetry-browser-instrumentation\": {\n+      \"name\": \"@otel-conformance/chromium-opentelemetry-browser-instrumentation\",\n+      \"version\": \"0.1.0\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/api\": \"1.9.1\",\n+        \"@opentelemetry/browser-instrumentation\": \"0.8.1\",\n+        \"@opentelemetry/exporter-logs-otlp-proto\": \"0.222.0\",\n+        \"@opentelemetry/instrumentation\": \"0.222.0\",\n+        \"@opentelemetry/sdk-logs\": \"0.222.0\",\n+        \"@otel-conformance/browser-runner\": \"file:../../../../../tools/js/browser-runner\",\n+        \"@otel-conformance/chromium-scenarios\": \"*\"\n+      }\n+    },\n+    \"chromium/scenarios\": {\n+      \"name\": \"@otel-conformance/chromium-scenarios\",\n+      \"version\": \"0.1.0\",\n+      \"license\": \"Apache-2.0\"\n+    },\n+    \"node_modules/@esbuild/aix-ppc64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==\",\n+      \"cpu\": [\n+        \"ppc64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"aix\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/android-arm\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.2.tgz\",\n+      \"integrity\": \"sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==\",\n+      \"cpu\": [\n+        \"arm\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"android\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/android-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"android\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/android-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"android\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/darwin-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"darwin\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/darwin-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"darwin\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/freebsd-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"freebsd\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/freebsd-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"freebsd\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-arm\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz\",\n+      \"integrity\": \"sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==\",\n+      \"cpu\": [\n+        \"arm\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-ia32\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz\",\n+      \"integrity\": \"sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==\",\n+      \"cpu\": [\n+        \"ia32\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-loong64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==\",\n+      \"cpu\": [\n+        \"loong64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-mips64el\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz\",\n+      \"integrity\": \"sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==\",\n+      \"cpu\": [\n+        \"mips64el\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-ppc64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==\",\n+      \"cpu\": [\n+        \"ppc64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-riscv64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==\",\n+      \"cpu\": [\n+        \"riscv64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-s390x\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz\",\n+      \"integrity\": \"sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==\",\n+      \"cpu\": [\n+        \"s390x\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/linux-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"linux\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/netbsd-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"netbsd\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/netbsd-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"netbsd\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/openbsd-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"openbsd\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/openbsd-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"openbsd\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/openharmony-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"openharmony\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/sunos-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"sunos\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/win32-arm64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==\",\n+      \"cpu\": [\n+        \"arm64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"win32\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/win32-ia32\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz\",\n+      \"integrity\": \"sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==\",\n+      \"cpu\": [\n+        \"ia32\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"win32\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@esbuild/win32-x64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.2.tgz\",\n+      \"integrity\": \"sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==\",\n+      \"cpu\": [\n+        \"x64\"\n+      ],\n+      \"license\": \"MIT\",\n+      \"optional\": true,\n+      \"os\": [\n+        \"win32\"\n+      ],\n+      \"engines\": {\n+        \"node\": \">=18\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/api\": {\n+      \"version\": \"1.9.1\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/api/-/api-1.9.1.tgz\",\n+      \"integrity\": \"sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==\",\n+      \"license\": \"Apache-2.0\",\n+      \"engines\": {\n+        \"node\": \">=8.0.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/api-logs\": {\n+      \"version\": \"0.222.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/api-logs/-/api-logs-0.222.0.tgz\",\n+      \"integrity\": \"sha512-9mb1If+IF6u0ZVXkHQ6ogEae5HwA6ajIVUgpSDQyRASxft6BSXHvBvPooRle3yFN/fKnCdSOnuu0OC3PLcF6+g==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/api\": \"^1.3.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \">=8.0.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/browser-instrumentation\": {\n+      \"version\": \"0.8.1\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/browser-instrumentation/-/browser-instrumentation-0.8.1.tgz\",\n+      \"integrity\": \"sha512-2NY7s+O6cFxz9kvxD9IiyVRTSODmTvlzGFJCNLWkTPDR/jopY/WFf3QE6/nnTKFiDSzMjdOL8f1VdcRWvuIfAA==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/api-logs\": \"^0.222.0\",\n+        \"@opentelemetry/instrumentation\": \"^0.222.0\",\n+        \"@opentelemetry/semantic-conventions\": \"^1.43.0\",\n+        \"web-vitals\": \"^6.2.1\"\n+      },\n+      \"peerDependencies\": {\n+        \"@opentelemetry/api\": \"^1.9.1\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/core\": {\n+      \"version\": \"2.11.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/core/-/core-2.11.0.tgz\",\n+      \"integrity\": \"sha512-7YP44XH0tV6+Mb54x2YGf84i7yi+31MBZlE8JwvozkxyTvXbSp10X7cI7YE49ChJ3shMJoBmCJF3+1QFBJctGA==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/semantic-conventions\": \"^1.29.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \"^18.19.0 || >=20.6.0\"\n+      },\n+      \"peerDependencies\": {\n+        \"@opentelemetry/api\": \">=1.0.0 <1.10.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/exporter-logs-otlp-proto\": {\n+      \"version\": \"0.222.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/exporter-logs-otlp-proto/-/exporter-logs-otlp-proto-0.222.0.tgz\",\n+      \"integrity\": \"sha512-LlCDJuaznfFPzjHoKXjN/r9T5pgCZpmVheZ/EmwMUhMvpxI7RXDmsdLXoYpl5suYQNkwyXAUZhVEXKe3lev8Hg==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/otlp-exporter-base\": \"0.222.0\",\n+        \"@opentelemetry/otlp-transformer\": \"0.222.0\",\n+        \"@opentelemetry/sdk-logs\": \"0.222.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \"^18.19.0 || >=20.6.0\"\n+      },\n+      \"peerDependencies\": {\n+        \"@opentelemetry/api\": \"^1.3.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/exporter-trace-otlp-proto\": {\n+      \"version\": \"0.300.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/exporter-trace-otlp-proto/-/exporter-trace-otlp-proto-0.300.0.tgz\",\n+      \"integrity\": \"sha512-ZCWrexCUsfp5o5Eti91uvTlXMfszknzrPt3VM+jAk/Q5T53S/ix6mF07ndSHAhreQ5bKmBg3r1Ar4wkqQ1XlPQ==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/otlp-exporter-base\": \"0.300.0\",\n+        \"@opentelemetry/otlp-transformer\": \"0.300.0\",\n+        \"@opentelemetry/sdk-trace\": \"3.0.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \">=22.15.0\"\n+      },\n+      \"peerDependencies\": {\n+        \"@opentelemetry/api\": \"^1.3.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/exporter-trace-otlp-proto/node_modules/@opentelemetry/otlp-exporter-base\": {\n+      \"version\": \"0.300.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/otlp-exporter-base/-/otlp-exporter-base-0.300.0.tgz\",\n+      \"integrity\": \"sha512-D+PhzYURtv6p7Kk1rUrilLtV+ZvS218tI0jiKTV5z1agOeELw78C+cFd3o9UUshUx1j+EIpFM62yGk8BuydQvg==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/core\": \"3.0.0\",\n+        \"@opentelemetry/otlp-transformer\": \"0.300.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \">=22.15.0\"\n+      },\n+      \"peerDependencies\": {\n+        \"@opentelemetry/api\": \"^1.3.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/exporter-trace-otlp-proto/node_modules/@opentelemetry/otlp-exporter-base/node_modules/@opentelemetry/core\": {\n+      \"version\": \"3.0.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/core/-/core-3.0.0.tgz\",\n+      \"integrity\": \"sha512-whOLlww0R/RLtCWGBXhK1fdvL9t2/TL0fqdjZvcaoUUuNilRPjXecqQdzyVwV68s6XEDA5oYbm7/bZT62GXF4A==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/semantic-conventions\": \"^1.29.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \">=22.15.0\"\n+      },\n+      \"peerDependencies\": {\n+        \"@opentelemetry/api\": \">=1.10.0 <1.11.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/exporter-trace-otlp-proto/node_modules/@opentelemetry/otlp-transformer\": {\n+      \"version\": \"0.300.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/otlp-transformer/-/otlp-transformer-0.300.0.tgz\",\n+      \"integrity\": \"sha512-T55lRmjRwvXWyTFdy/BbJ3T5RRsq3bAwQgxxA7qHFxgRd4+pZzRk02ZwOFsYK5072OXGYjYFNJcp68eQV4i0Ig==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/core\": \"3.0.0\",\n+        \"@opentelemetry/resources\": \"3.0.0\",\n+        \"@opentelemetry/sdk-logs\": \"3.0.0\",\n+        \"@opentelemetry/sdk-metrics\": \"3.0.0\",\n+        \"@opentelemetry/sdk-trace\": \"3.0.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \">=22.15.0\"\n+      },\n+      \"peerDependencies\": {\n+        \"@opentelemetry/api\": \">=1.10.0 <1.11.0\"",
+      "id": "PRRT_kwDOTuzK5c6z1_mq",
+      "opened": "2026-11-04T23:01:52Z",
+      "path": "scenarios/browser/js/package-lock.json",
+      "replies": [
+        {
+          "at": "2026-11-05T00:33:22Z",
+          "body": "The override in 57497d11 resolves this, but I think the fix belongs in `tools/js/browser-runner`, which never declares the `@opentelemetry/api` its tracing dependencies peer on. See my comment on `scenarios/browser/js/package.json`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475101102"
+        },
+        {
+          "at": "2026-11-05T16:52:18Z",
+          "body": "Fixed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4483354703"
+        }
+      ],
+      "reviewed": "59b141f9888a2b2e4b6ec897e1cd0b2e82fb5560",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4474433961"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "This works, but it fixes the symptom in the consuming workspace. `tools/js/browser-runner` uses packages that peer on `@opentelemetry/api` 1.10 without depending on the API itself, so every workspace that installs it has to supply a compatible copy. The override also ties this file to the runner's internal dependency graph: when the runner next moves (to packages that peer on 1.11, say), this breaks here with nothing pointing at the cause.\n\nCould you try declaring `@opentelemetry/api` in `tools/js/browser-runner/package.json` instead and dropping the override? I'd expect npm to nest the runner's own 1.10 copy under it, as the lock does now, but I haven't verified the resulting lock. If that's out of scope here, a follow-up issue is fine.",
+      "created": "2026-11-05T00:28:12Z",
+      "hunk": "@@ -0,0 +1,22 @@\n+{\n+  \"name\": \"@otel-conformance/browser-js\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"description\": \"The JavaScript build root for the browser conformance scenarios.\",\n+  \"license\": \"Apache-2.0\",\n+  \"workspaces\": [\n+    \"chromium/*\"\n+  ],\n+  \"scripts\": {\n+    \"format\": \"prettier --write .\",\n+    \"format:check\": \"prettier --check .\"\n+  },\n+  \"devDependencies\": {\n+    \"prettier\": \"3.9.9\"\n+  },\n+  \"overrides\": {\n+    \"@opentelemetry/exporter-trace-otlp-proto\": {\n+      \"@opentelemetry/api\": \"1.10.0\"\n+    }\n+  }",
+      "id": "PRRT_kwDOTuzK5c6z3iVE",
+      "opened": "2026-11-05T00:33:22Z",
+      "path": "scenarios/browser/js/package.json",
+      "replies": [
+        {
+          "at": "2026-11-05T02:24:46Z",
+          "body": "Yes, this works without the override. The runner's dependencies use its own API 1.10 copy.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475869243"
+        }
+      ],
+      "reviewed": "57497d11e5bdc19d8b710b0afe968d9dad449756",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475099964"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "These pins keep this package on the older OTel JS line (API 1.9.1, SDK 0.222, core 2.11), because `@opentelemetry/browser-instrumentation` 0.8.1 requires `^0.222`. The rest of the repo, `browser-runner` included, is on API 1.10 and SDK 0.300. Renovate is likely to propose bumps to these on their own, or inside `javascript-minor`, that npm can't resolve until browser-instrumentation moves.\n\nCould you add a `packageRule` scoped to `scenarios/browser/js/**`, like the google-adk one in `.github/renovate.json5`, that holds these back or groups them with `@opentelemetry/browser-instrumentation`?",
+      "created": "2026-11-05T00:28:12Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+{\n+  \"name\": \"@otel-conformance/chromium-opentelemetry-browser-instrumentation\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"description\": \"A page's own events measured through @opentelemetry/browser-instrumentation.\",\n+  \"license\": \"Apache-2.0\",\n+  \"dependencies\": {\n+    \"@opentelemetry/api\": \"1.9.1\",\n+    \"@opentelemetry/browser-instrumentation\": \"0.8.1\",\n+    \"@opentelemetry/exporter-logs-otlp-proto\": \"0.222.0\",\n+    \"@opentelemetry/instrumentation\": \"0.222.0\",\n+    \"@opentelemetry/sdk-logs\": \"0.222.0\",",
+      "id": "PRRT_kwDOTuzK5c6z3iVL",
+      "opened": "2026-11-05T00:33:22Z",
+      "path": "scenarios/browser/js/chrome/opentelemetry-browser-instrumentation/package.json",
+      "replies": [
+        {
+          "at": "2026-11-05T09:03:48Z",
+          "body": "Added the scoped rule in `.github/renovate.json5`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4478477793"
+        }
+      ],
+      "reviewed": "57497d11e5bdc19d8b710b0afe968d9dad449756",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475099974"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Fine for a proof of concept, and the README explains why. The coupling it creates: bumping HTTP's `SEMCONV_REF` regenerates this `data.json`, and the report stores `exception` and `browser.web_vital` under the `http-conformance` registry. I'd take you up on the small browser runner package you offered. It should be about the size of `tools/http/runner/src/http_conformance/__init__.py`, and a follow-up PR is fine.",
+      "created": "2026-11-05T00:28:12Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance",
+      "id": "PRRT_kwDOTuzK5c6z3iVQ",
+      "opened": "2026-11-05T00:33:22Z",
+      "path": "scenarios/browser/js/chrome/opentelemetry-browser-instrumentation/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-05T02:24:48Z",
+          "body": "I've prepared the browser runner as a separate follow-up.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475869444"
+        },
+        {
+          "at": "2026-11-05T21:46:23Z",
+          "body": "Could you link the follow-up PR or a tracking issue here?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4486395022"
+        },
+        {
+          "at": "2026-11-05T22:01:54Z",
+          "body": "I'm tracking the browser runner follow-up in [this issue](https://github.com/open-telemetry/semantic-conventions-conformance/issues/470).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4486594600"
+        }
+      ],
+      "reviewed": "57497d11e5bdc19d8b710b0afe968d9dad449756",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475099978"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "On your question about the name: CI drives Google Chrome stable, and `OTEL_CONFORMANCE_BROWSER_CHANNEL` can switch to Edge, so `chromium` names the engine rather than what actually ran. `chrome` would be more literal. I don't feel strongly.",
+      "created": "2026-11-05T00:28:12Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: chromium",
+      "id": "PRRT_kwDOTuzK5c6z3iVT",
+      "opened": "2026-11-05T00:33:22Z",
+      "path": "scenarios/browser/js/chromium/opentelemetry-browser-instrumentation/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-05T16:52:22Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4483355468"
+        }
+      ],
+      "reviewed": "57497d11e5bdc19d8b710b0afe968d9dad449756",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475099982"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "`exception: 2` would also pass if the task path fired twice and the unhandled-rejection path never fired. `raiseErrors` raises a `TypeError` and an `Error`, so having the counter key exception records by `exception.type` (something like `exception:TypeError: 1` and `exception:Error: 1`) would check that each path emitted. The README already mentions the limitation, but this is a small change.",
+      "created": "2026-11-05T00:28:13Z",
+      "hunk": "@@ -0,0 +1,15 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const {\n+  ErrorsInstrumentation,\n+} = require(\"@opentelemetry/browser-instrumentation/experimental/errors\");\n+const { exposeEvents } = require(\"../events\");\n+const { raiseErrors } = require(\"@otel-conformance/chromium-scenarios/errors\");\n+\n+exposeEvents(\n+  { instrumentations: [new ErrorsInstrumentation()], events: { exception: 2 } },",
+      "id": "PRRT_kwDOTuzK5c6z3iVV",
+      "opened": "2026-11-05T00:33:22Z",
+      "path": "scenarios/browser/js/chromium/opentelemetry-browser-instrumentation/pages/errors.js",
+      "replies": [
+        {
+          "at": "2026-11-05T16:53:03Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4483363213"
+        }
+      ],
+      "reviewed": "57497d11e5bdc19d8b710b0afe968d9dad449756",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475099988"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "`counting` and the wait in `exposeEvents` are new logic without tests, and CI only runs `ci` and `format:check` for this workspace. A small `node --test` for `counting` would cover it: it resolves once the counts are met, it stays pending while they aren't, and it resolves when the events arrived before `emitted()` was called. Add a `test` script and call it from `runner.yml`.",
+      "created": "2026-11-05T00:28:13Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * What every page here shares: the logs SDK, exporting through the shared\n+ * browser runner, and a wait for the events the page expects.\n+ *\n+ * Bundled into the page, never loaded by Node.\n+ */\n+\n+const {\n+  BatchLogRecordProcessor,\n+  LoggerProvider,\n+} = require(\"@opentelemetry/sdk-logs\");\n+const { OTLPLogExporter } = require(\"@opentelemetry/exporter-logs-otlp-proto\");\n+const { registerInstrumentations } = require(\"@opentelemetry/instrumentation\");\n+const {\n+  exportUrl,\n+  exposeScenario,\n+  within,\n+} = require(\"@otel-conformance/browser-runner/page\");\n+\n+const EVENTS_TIMEOUT_MILLIS = 20_000;\n+\n+/**\n+ * Counts records by event name. `emitted()` resolves once each event in\n+ * `expected` has been seen at least as often as it says, since a browser\n+ * event arrives from a listener or an observer after the workload returned.\n+ */\n+function counting(expected) {",
+      "id": "PRRT_kwDOTuzK5c6z3iVZ",
+      "opened": "2026-11-05T00:33:22Z",
+      "path": "scenarios/browser/js/chrome/opentelemetry-browser-instrumentation/events.js",
+      "replies": [
+        {
+          "at": "2026-11-05T09:04:46Z",
+          "body": "Added the counter tests and wired them into `runner.yml`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4478486126"
+        }
+      ],
+      "reviewed": "57497d11e5bdc19d8b710b0afe968d9dad449756",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475099994"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: the other JS workspaces are on prettier 3.9.10.",
+      "created": "2026-11-05T00:28:13Z",
+      "hunk": "@@ -0,0 +1,22 @@\n+{\n+  \"name\": \"@otel-conformance/browser-js\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"description\": \"The JavaScript build root for the browser conformance scenarios.\",\n+  \"license\": \"Apache-2.0\",\n+  \"workspaces\": [\n+    \"chromium/*\"\n+  ],\n+  \"scripts\": {\n+    \"format\": \"prettier --write .\",\n+    \"format:check\": \"prettier --check .\"\n+  },\n+  \"devDependencies\": {\n+    \"prettier\": \"3.9.9\"",
+      "id": "PRRT_kwDOTuzK5c6z3iVe",
+      "opened": "2026-11-05T00:33:22Z",
+      "path": "scenarios/browser/js/package.json",
+      "replies": [
+        {
+          "at": "2026-11-05T16:53:07Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4483363980"
+        }
+      ],
+      "reviewed": "57497d11e5bdc19d8b710b0afe968d9dad449756",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4475100000"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Optional: say when this rule can go.\n\n```suggestion\n      // browser-instrumentation 0.8.1 requires the 0.222 SDK line. Delete\n      // this rule once it moves to 0.300, and bump these four packages with it.\n```\n",
+      "created": "2026-11-05T21:39:58Z",
+      "hunk": "@@ -154,6 +154,17 @@\n         \"opentelemetry-distro\"\n       ],\n       \"enabled\": false\n+    },\n+    {\n+      // browser-instrumentation 0.8.1 requires the 0.222 SDK line.",
+      "id": "PRRT_kwDOTuzK5c60SG9l",
+      "opened": "2026-11-05T21:46:23Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-05T22:01:57Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4486595051"
+        }
+      ],
+      "reviewed": "6a1e3552ce40a9c9e7872e872edf18b1784dd58e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4486394683"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: rewrap to 80 columns.\n\n```suggestion\n * Counts records by event name and exception type. `emitted()` resolves once\n * each event in `expected` has been seen at least as often as it says, since\n * a browser event arrives from a listener or an observer after the workload\n * returned.\n```\n",
+      "created": "2026-11-05T21:39:58Z",
+      "hunk": "@@ -0,0 +1,91 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * What every page here shares: the logs SDK, exporting through the shared\n+ * browser runner, and a wait for the events the page expects.\n+ *\n+ * Bundled into the page; the counter is also tested in Node.\n+ */\n+\n+const {\n+  BatchLogRecordProcessor,\n+  LoggerProvider,\n+} = require(\"@opentelemetry/sdk-logs\");\n+const { OTLPLogExporter } = require(\"@opentelemetry/exporter-logs-otlp-proto\");\n+const { registerInstrumentations } = require(\"@opentelemetry/instrumentation\");\n+const {\n+  exportUrl,\n+  exposeScenario,\n+  within,\n+} = require(\"@otel-conformance/browser-runner/page\");\n+\n+const EVENTS_TIMEOUT_MILLIS = 20_000;\n+\n+/**\n+ * Counts records by event name and exception type. `emitted()` resolves once each event in\n+ * `expected` has been seen at least as often as it says, since a browser\n+ * event arrives from a listener or an observer after the workload returned.",
+      "id": "PRRT_kwDOTuzK5c60SG9y",
+      "opened": "2026-11-05T21:46:23Z",
+      "path": "scenarios/browser/js/chrome/opentelemetry-browser-instrumentation/events.js",
+      "replies": [
+        {
+          "at": "2026-11-05T22:02:00Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4486595507"
+        }
+      ],
+      "reviewed": "6a1e3552ce40a9c9e7872e872edf18b1784dd58e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/258#discussion_r4486394708"
+    }
+  ]
+}

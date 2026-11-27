@@ -1,0 +1,192 @@
+{
+  "head": "29355bd4e1d132fa4b4d5136865e442f98c71f51",
+  "merge": "92c733d5492caed70c4db88b557a57a2fe778ac5",
+  "merged": "2026-06-30T14:24:25Z",
+  "missing_roots": 0,
+  "number": 176,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`unittest` is imported but not used; this will fail linting (unused import).",
+      "created": "2026-06-26T14:12:14Z",
+      "hunk": "@@ -0,0 +1,133 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import asyncio\n+import unittest\n+from unittest.mock import AsyncMock, MagicMock",
+      "id": "PRRT_kwDOSbspP86MinUE",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/embeddings/test_embeddings.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932606"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`test_embed_content_multiple_inputs` currently has no assertions and leaves an unused local (`attrs`), which makes the test a no-op and likely triggers ruff F841.",
+      "created": "2026-06-26T14:12:14Z",
+      "hunk": "@@ -0,0 +1,133 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import asyncio\n+import unittest\n+from unittest.mock import AsyncMock, MagicMock\n+\n+from google.genai.models import AsyncModels, Models\n+from google.genai.types import (\n+    ContentEmbedding,\n+    ContentEmbeddingStatistics,\n+    EmbedContentResponse,\n+)\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.trace import StatusCode\n+\n+from ..common.base import TestCase\n+\n+\n+class TestEmbeddings(TestCase):\n+    def setUp(self):\n+        super().setUp()\n+        self._original_embed_content = Models.embed_content\n+        self._original_async_embed_content = AsyncModels.embed_content\n+\n+        self.mock_response = EmbedContentResponse(\n+            embeddings=[\n+                ContentEmbedding(\n+                    values=[0.1, 0.2, 0.3],\n+                    statistics=ContentEmbeddingStatistics(\n+                        token_count=5,\n+                        truncated=False,\n+                    ),\n+                )\n+            ]\n+        )\n+\n+        self.embed_content_mock = MagicMock(return_value=self.mock_response)\n+        self.async_embed_content_mock = AsyncMock(return_value=self.mock_response)\n+\n+        Models.embed_content = self.embed_content_mock\n+        AsyncModels.embed_content = self.async_embed_content_mock\n+\n+    def tearDown(self):\n+        super().tearDown()\n+        Models.embed_content = self._original_embed_content\n+        AsyncModels.embed_content = self._original_async_embed_content\n+\n+    def test_sync_embed_content(self):\n+        response = self.client.models.embed_content(\n+            model=\"text-embedding-004\",\n+            contents=\"hello world\",\n+        )\n+\n+        self.assertEqual(response, self.mock_response)\n+        self.embed_content_mock.assert_called_once_with(\n+            model=\"text-embedding-004\",\n+            contents=\"hello world\",\n+        )\n+\n+        spans = self.otel.get_finished_spans()\n+        self.assertEqual(len(spans), 1)\n+        span = spans[0]\n+\n+        self.assertEqual(span.name, \"embeddings text-embedding-004\")\n+        self.assertEqual(span.status.status_code, StatusCode.UNSET)\n+\n+        attrs = span.attributes\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_OPERATION_NAME], \"embeddings\")\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_PROVIDER_NAME], \"gemini\")\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_REQUEST_MODEL], \"text-embedding-004\")\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT], 3)\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS], 5)\n+\n+    def test_async_embed_content(self):\n+        async def run_test():\n+            response = await self.client.aio.models.embed_content(\n+                model=\"text-embedding-004\",\n+                contents=\"hello world\",\n+            )\n+            self.assertEqual(response, self.mock_response)\n+            self.async_embed_content_mock.assert_called_once_with(\n+                model=\"text-embedding-004\",\n+                contents=\"hello world\",\n+            )\n+\n+        asyncio.run(run_test())\n+\n+        spans = self.otel.get_finished_spans()\n+        self.assertEqual(len(spans), 1)\n+        span = spans[0]\n+\n+        self.assertEqual(span.name, \"embeddings text-embedding-004\")\n+        self.assertEqual(span.status.status_code, StatusCode.UNSET)\n+\n+        attrs = span.attributes\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_OPERATION_NAME], \"embeddings\")\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_PROVIDER_NAME], \"gemini\")\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_REQUEST_MODEL], \"text-embedding-004\")\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT], 3)\n+        self.assertEqual(attrs[GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS], 5)\n+\n+    def test_embed_content_multiple_inputs(self):\n+        _ = self.client.models.embed_content(\n+            model=\"text-embedding-004\",\n+            contents=[\"hello\", \"world\"],\n+        )\n+\n+        spans = self.otel.get_finished_spans()\n+        self.assertEqual(len(spans), 1)\n+        span = spans[0]\n+\n+        attrs = span.attributes\n+",
+      "id": "PRRT_kwDOSbspP86MinUw",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/embeddings/test_embeddings.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932660"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`FakeCredentials` is imported but never used; this will fail linting (unused import).",
+      "created": "2026-06-26T14:12:14Z",
+      "hunk": "@@ -0,0 +1,115 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import os\n+import pytest\n+import yaml\n+import google.genai\n+from google.genai import types\n+from opentelemetry.instrumentation.google_genai import GoogleGenAiSdkInstrumentor\n+from opentelemetry.semconv._incubating.attributes import gen_ai_attributes as GenAIAttributes\n+from opentelemetry.trace import StatusCode\n+\n+# Disable mTLS client certificates to prevent workstation-specific OpenSSL/cryptography dependencies\n+os.environ[\"GOOGLE_API_USE_CLIENT_CERTIFICATE\"] = \"false\"\n+\n+from ..common.auth import FakeCredentials\n+from ..common.otel_mocker import OTelMocker",
+      "id": "PRRT_kwDOSbspP86MinVP",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/embeddings/test_embeddings_e2e.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932697"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The embeddings API response includes `usageMetadata.promptTokenCount` (see VCR cassette), but the instrumentation only looks for per-embedding `statistics.token_count`. This will likely miss `gen_ai.usage.input_tokens` in real responses when `statistics` is absent.",
+      "created": "2026-06-26T14:12:15Z",
+      "hunk": "@@ -0,0 +1,164 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from collections.abc import Callable\n+from typing import Any\n+\n+from google.genai.models import AsyncModels, Models\n+from google.genai.types import EmbedContentResponse\n+from wrapt import wrap_function_wrapper\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import (\n+    EmbeddingInvocation,\n+)\n+\n+\n+class _EmbeddingMethodsSnapshot:\n+    def __init__(self) -> None:\n+        self._original_embed_content = Models.embed_content\n+        self._original_async_embed_content = AsyncModels.embed_content\n+\n+    def restore(self) -> None:\n+        Models.embed_content = self._original_embed_content\n+        AsyncModels.embed_content = self._original_async_embed_content\n+\n+\n+def _apply_embedding_response_attributes(\n+    response: EmbedContentResponse,\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    if response.embeddings:\n+        first_embedding = response.embeddings[0]\n+        if first_embedding.values:\n+            invocation.dimension_count = len(first_embedding.values)\n+            invocation.metric_attributes[\n+                GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT\n+            ] = invocation.dimension_count\n+\n+    total_input_tokens = 0\n+    for emb in (response.embeddings or []):\n+        stats = getattr(emb, \"statistics\", None)\n+        if stats and getattr(stats, \"token_count\", None) is not None:\n+            total_input_tokens += stats.token_count\n+    if total_input_tokens:\n+        invocation.input_tokens = total_input_tokens",
+      "id": "PRRT_kwDOSbspP86MinV5",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/embeddings.py",
+      "replies": [
+        {
+          "at": "2026-06-26T17:00:00Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3482904209"
+        }
+      ],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932758"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `yaml.load(..., Loader=yaml.Loader)` allows arbitrary object construction; `yaml.safe_load` is safer and sufficient for VCR cassette parsing.",
+      "created": "2026-06-26T14:12:15Z",
+      "hunk": "@@ -0,0 +1,115 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import os\n+import pytest\n+import yaml\n+import google.genai\n+from google.genai import types\n+from opentelemetry.instrumentation.google_genai import GoogleGenAiSdkInstrumentor\n+from opentelemetry.semconv._incubating.attributes import gen_ai_attributes as GenAIAttributes\n+from opentelemetry.trace import StatusCode\n+\n+# Disable mTLS client certificates to prevent workstation-specific OpenSSL/cryptography dependencies\n+os.environ[\"GOOGLE_API_USE_CLIENT_CERTIFICATE\"] = \"false\"\n+\n+from ..common.auth import FakeCredentials\n+from ..common.otel_mocker import OTelMocker\n+\n+# Real key needed to re-record VCR against real gemini API.\n+_FAKE_API_KEY = \"FAKE_KEY\"\n+\n+\n+class _PrettyPrintJSONBody:\n+    \"\"\"Makes request and response body recordings more readable in cassettes.\"\"\"\n+\n+    @staticmethod\n+    def serialize(cassette_dict):\n+        return yaml.dump(\n+            cassette_dict, default_flow_style=False, allow_unicode=True\n+        )\n+\n+    @staticmethod\n+    def deserialize(cassette_string):\n+        return yaml.load(cassette_string, Loader=yaml.Loader)\n+",
+      "id": "PRRT_kwDOSbspP86MinVZ",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/embeddings/test_embeddings_e2e.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932714"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`OTelProviderSnapshot.restore()` currently sets the global providers to `None` instead of restoring the saved providers, which can leak global state across tests and makes the snapshot values unused.",
+      "created": "2026-06-26T14:12:15Z",
+      "hunk": "@@ -51,9 +51,9 @@ def __init__(self):\n \n     def restore(self):\n         _bypass_otel_once()\n-        set_tracer_provider(self._tracer_provider)\n-        set_logger_provider(self._logger_provider)\n-        set_meter_provider(self._meter_provider)\n+        opentelemetry.trace._TRACER_PROVIDER = None\n+        opentelemetry._logs._internal._LOGGER_PROVIDER = None\n+        opentelemetry.metrics._internal._METER_PROVIDER = None",
+      "id": "PRRT_kwDOSbspP86MinVo",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/common/otel_mocker.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932738"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`request_model` is taken only from `kwargs`, so positional calls like `embed_content(\"model\", ...)` won't include the model name in the span name/attributes.",
+      "created": "2026-06-26T14:12:15Z",
+      "hunk": "@@ -0,0 +1,164 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from collections.abc import Callable\n+from typing import Any\n+\n+from google.genai.models import AsyncModels, Models\n+from google.genai.types import EmbedContentResponse\n+from wrapt import wrap_function_wrapper\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import (\n+    EmbeddingInvocation,\n+)\n+\n+\n+class _EmbeddingMethodsSnapshot:\n+    def __init__(self) -> None:\n+        self._original_embed_content = Models.embed_content\n+        self._original_async_embed_content = AsyncModels.embed_content\n+\n+    def restore(self) -> None:\n+        Models.embed_content = self._original_embed_content\n+        AsyncModels.embed_content = self._original_async_embed_content\n+\n+\n+def _apply_embedding_response_attributes(\n+    response: EmbedContentResponse,\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    if response.embeddings:\n+        first_embedding = response.embeddings[0]\n+        if first_embedding.values:\n+            invocation.dimension_count = len(first_embedding.values)\n+            invocation.metric_attributes[\n+                GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT\n+            ] = invocation.dimension_count\n+\n+    total_input_tokens = 0\n+    for emb in (response.embeddings or []):\n+        stats = getattr(emb, \"statistics\", None)\n+        if stats and getattr(stats, \"token_count\", None) is not None:\n+            total_input_tokens += stats.token_count\n+    if total_input_tokens:\n+        invocation.input_tokens = total_input_tokens\n+\n+\n+def _get_client_info(instance: Any) -> tuple[bool, str | None]:\n+    is_vertex = False\n+    server_address = None\n+    if hasattr(instance, \"_api_client\"):\n+        api_client = instance._api_client\n+        is_vertex = getattr(api_client, \"vertexai\", False)\n+        if hasattr(api_client, \"_http_options\"):\n+            server_address = getattr(api_client._http_options, \"base_url\", None)\n+    elif hasattr(instance, \"_client\"):\n+        client = instance._client\n+        is_vertex = getattr(client, \"_is_vertex\", False)\n+        server_address = getattr(client, \"server\", None)\n+    elif hasattr(instance, \"sdk_configuration\"):\n+        config = instance.sdk_configuration\n+        server_url = getattr(config, \"server_url\", \"\")\n+        if server_url:\n+            server_address = server_url\n+            if \"aiplatform.googleapis.com\" in server_url:\n+                is_vertex = True\n+\n+    return is_vertex, server_address\n+\n+\n+def _create_instrumented_embed_content(\n+    telemetry_handler: TelemetryHandler,\n+) -> Callable[\n+    [\n+        Callable[..., EmbedContentResponse],\n+        Models,\n+        tuple[Any, ...],\n+        dict[str, Any],\n+    ],\n+    EmbedContentResponse,\n+]:\n+    def instrumented_embed_content(\n+        wrapped: Callable[..., EmbedContentResponse],\n+        instance: Models,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> EmbedContentResponse:\n+        is_vertex, server_address = _get_client_info(instance)\n+        with telemetry_handler.embedding(\n+            provider=(\n+                GenAIAttributes.GenAiSystemValues.VERTEX_AI.value\n+                if is_vertex\n+                else GenAIAttributes.GenAiSystemValues.GEMINI.value\n+            ),\n+            request_model=kwargs.get(\"model\"),\n+            server_address=server_address,",
+      "id": "PRRT_kwDOSbspP86MinWO",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/embeddings.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932784"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as the sync variant: `request_model` is read only from `kwargs`, so positional calls won't capture the model name.",
+      "created": "2026-06-26T14:12:16Z",
+      "hunk": "@@ -0,0 +1,164 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from collections.abc import Callable\n+from typing import Any\n+\n+from google.genai.models import AsyncModels, Models\n+from google.genai.types import EmbedContentResponse\n+from wrapt import wrap_function_wrapper\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import (\n+    EmbeddingInvocation,\n+)\n+\n+\n+class _EmbeddingMethodsSnapshot:\n+    def __init__(self) -> None:\n+        self._original_embed_content = Models.embed_content\n+        self._original_async_embed_content = AsyncModels.embed_content\n+\n+    def restore(self) -> None:\n+        Models.embed_content = self._original_embed_content\n+        AsyncModels.embed_content = self._original_async_embed_content\n+\n+\n+def _apply_embedding_response_attributes(\n+    response: EmbedContentResponse,\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    if response.embeddings:\n+        first_embedding = response.embeddings[0]\n+        if first_embedding.values:\n+            invocation.dimension_count = len(first_embedding.values)\n+            invocation.metric_attributes[\n+                GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT\n+            ] = invocation.dimension_count\n+\n+    total_input_tokens = 0\n+    for emb in (response.embeddings or []):\n+        stats = getattr(emb, \"statistics\", None)\n+        if stats and getattr(stats, \"token_count\", None) is not None:\n+            total_input_tokens += stats.token_count\n+    if total_input_tokens:\n+        invocation.input_tokens = total_input_tokens\n+\n+\n+def _get_client_info(instance: Any) -> tuple[bool, str | None]:\n+    is_vertex = False\n+    server_address = None\n+    if hasattr(instance, \"_api_client\"):\n+        api_client = instance._api_client\n+        is_vertex = getattr(api_client, \"vertexai\", False)\n+        if hasattr(api_client, \"_http_options\"):\n+            server_address = getattr(api_client._http_options, \"base_url\", None)\n+    elif hasattr(instance, \"_client\"):\n+        client = instance._client\n+        is_vertex = getattr(client, \"_is_vertex\", False)\n+        server_address = getattr(client, \"server\", None)\n+    elif hasattr(instance, \"sdk_configuration\"):\n+        config = instance.sdk_configuration\n+        server_url = getattr(config, \"server_url\", \"\")\n+        if server_url:\n+            server_address = server_url\n+            if \"aiplatform.googleapis.com\" in server_url:\n+                is_vertex = True\n+\n+    return is_vertex, server_address\n+\n+\n+def _create_instrumented_embed_content(\n+    telemetry_handler: TelemetryHandler,\n+) -> Callable[\n+    [\n+        Callable[..., EmbedContentResponse],\n+        Models,\n+        tuple[Any, ...],\n+        dict[str, Any],\n+    ],\n+    EmbedContentResponse,\n+]:\n+    def instrumented_embed_content(\n+        wrapped: Callable[..., EmbedContentResponse],\n+        instance: Models,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> EmbedContentResponse:\n+        is_vertex, server_address = _get_client_info(instance)\n+        with telemetry_handler.embedding(\n+            provider=(\n+                GenAIAttributes.GenAiSystemValues.VERTEX_AI.value\n+                if is_vertex\n+                else GenAIAttributes.GenAiSystemValues.GEMINI.value\n+            ),\n+            request_model=kwargs.get(\"model\"),\n+            server_address=server_address,\n+        ) as invocation:\n+            response = wrapped(*args, **kwargs)\n+            _apply_embedding_response_attributes(response, invocation)\n+            return response\n+\n+    return instrumented_embed_content\n+\n+\n+def _create_instrumented_async_embed_content(\n+    telemetry_handler: TelemetryHandler,\n+) -> Callable[\n+    [\n+        Callable[..., Any],\n+        AsyncModels,\n+        tuple[Any, ...],\n+        dict[str, Any],\n+    ],\n+    Any,\n+]:\n+    async def instrumented_embed_content(\n+        wrapped: Callable[..., Any],\n+        instance: AsyncModels,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> EmbedContentResponse:\n+        is_vertex, server_address = _get_client_info(instance)\n+        with telemetry_handler.embedding(\n+            provider=(\n+                GenAIAttributes.GenAiSystemValues.VERTEX_AI.value\n+                if is_vertex\n+                else GenAIAttributes.GenAiSystemValues.GEMINI.value\n+            ),\n+            request_model=kwargs.get(\"model\"),\n+            server_address=server_address,\n+        ) as invocation:",
+      "id": "PRRT_kwDOSbspP86MinWo",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/embeddings.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932813"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment `# False for the embedding call` contradicts the actual client configuration (`vertexai=True`) and makes the example confusing; it should be removed or corrected.",
+      "created": "2026-06-26T14:12:16Z",
+      "hunk": "@@ -62,6 +62,7 @@ def add(a: int, b: int) -> int:\n \n def main():\n     GoogleGenAiSdkInstrumentor().instrument()\n+    # False for the embedding call",
+      "id": "PRRT_kwDOSbspP86MinXS",
+      "opened": "2026-06-26T14:12:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/dev/call_instrumentation_lib_and_save_telemetry.py",
+      "replies": [],
+      "reviewed": "73f08161f739450d370d5cf338c05200f2361be2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3481932862"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it seems we don't have conformance tests for google-genai and they could replace e2e ones. conformance tests validate against whatever semconv version that's pinned in this repo and would catch updates, missing things, etc. It's not blocking this PR, but it would be great to add them",
+      "created": "2026-06-26T14:53:19Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import os\n+\n+import google.genai\n+import pytest\n+import yaml\n+from google.genai import types\n+\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.trace import StatusCode\n+\n+# Disable mTLS client certificates to prevent workstation-specific OpenSSL/cryptography dependencies\n+os.environ[\"GOOGLE_API_USE_CLIENT_CERTIFICATE\"] = \"false\"\n+\n+from ..common.otel_mocker import OTelMocker\n+\n+# Real key needed to re-record VCR against real gemini API.\n+_FAKE_API_KEY = \"FAKE_KEY\"\n+\n+\n+class _PrettyPrintJSONBody:\n+    \"\"\"Makes request and response body recordings more readable in cassettes.\"\"\"\n+\n+    @staticmethod\n+    def serialize(cassette_dict):\n+        return yaml.dump(\n+            cassette_dict, default_flow_style=False, allow_unicode=True\n+        )\n+\n+    @staticmethod\n+    def deserialize(cassette_string):\n+        return yaml.load(cassette_string, Loader=yaml.Loader)\n+\n+\n+@pytest.fixture(name=\"fully_initialized_vcr\", scope=\"module\", autouse=True)\n+def setup_vcr(vcr):\n+    vcr.register_serializer(\"yaml\", _PrettyPrintJSONBody)\n+    vcr.serializer = \"yaml\"\n+    return vcr\n+\n+\n+@pytest.fixture(name=\"setup_instrumentation\", scope=\"module\", autouse=True)\n+def fixture_setup_instrumentation():\n+    instrumentor = GoogleGenAiSdkInstrumentor()\n+    instrumentor.instrument()\n+    yield\n+    instrumentor.uninstrument()\n+\n+\n+@pytest.fixture(name=\"otel_mocker\", autouse=True)\n+def fixture_otel_mocker():\n+    result = OTelMocker()\n+    result.install()\n+    yield result\n+    result.uninstall()\n+\n+\n+def _before_record_request(request):\n+    if request.method:\n+        request.method = request.method.upper()\n+    return request\n+\n+\n+@pytest.fixture(name=\"vcr_config\", scope=\"module\")\n+def fixture_vcr_config():\n+    return {\n+        \"filter_query_parameters\": [\"key\", \"apiKey\"],\n+        \"filter_headers\": [\"x-goog-api-key\", \"authorization\"],\n+        \"before_record_request\": _before_record_request,\n+    }\n+\n+\n+@pytest.fixture(name=\"client\")\n+def fixture_client():\n+    client = google.genai.Client(\n+        vertexai=False,\n+        api_key=_FAKE_API_KEY,\n+        http_options=types.HttpOptions(\n+            timeout=10.0,\n+            headers={\n+                \"accept-encoding\": \"identity\",\n+                \"connection\": \"close\",\n+            },\n+        ),\n+    )\n+    yield client\n+    try:\n+        client.close()\n+    except Exception:\n+        pass\n+\n+\n+@pytest.mark.vcr\n+def test_embeddings_e2e(client, otel_mocker: OTelMocker):",
+      "id": "PRRT_kwDOSbspP86MjU2b",
+      "opened": "2026-06-26T14:53:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/embeddings/test_embeddings_e2e.py",
+      "replies": [
+        {
+          "at": "2026-06-26T17:03:31Z",
+          "body": "Ack i'll look into it. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3482921396"
+        },
+        {
+          "at": "2026-06-26T21:03:25Z",
+          "body": "I have a change adding the conformance tests ready to go.. but going to wait til my other PRs are merged to raise it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3484121919"
+        }
+      ],
+      "reviewed": "4c0efb3b9b8237f972bd3e16669bea273495b91d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3482186319"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): should we create an issue to track this?",
+      "created": "2026-06-29T11:21:43Z",
+      "hunk": "@@ -0,0 +1,210 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Callable\n+from contextvars import ContextVar\n+from typing import Any\n+\n+from google.genai._api_client import BaseApiClient\n+from google.genai.models import AsyncModels, Models\n+from google.genai.types import EmbedContentResponse\n+from wrapt import wrap_function_wrapper\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import (\n+    EmbeddingInvocation,\n+)\n+\n+_RAW_RESPONSE_BODY: ContextVar[str | None] = ContextVar(\n+    \"raw_response_body\", default=None\n+)\n+\n+\n+class _EmbeddingMethodsSnapshot:\n+    def __init__(self) -> None:\n+        self._original_embed_content = Models.embed_content\n+        self._original_async_embed_content = AsyncModels.embed_content\n+        self._original_client_request = BaseApiClient.request\n+        self._original_client_async_request = BaseApiClient.async_request\n+\n+    def restore(self) -> None:\n+        Models.embed_content = self._original_embed_content\n+        AsyncModels.embed_content = self._original_async_embed_content\n+        BaseApiClient.request = self._original_client_request\n+        BaseApiClient.async_request = self._original_client_async_request\n+\n+\n+def _apply_embedding_response_attributes(\n+    response: EmbedContentResponse,\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    if response.embeddings:\n+        first_embedding = response.embeddings[0]\n+        if first_embedding.values:\n+            invocation.dimension_count = len(first_embedding.values)\n+            invocation.metric_attributes[\n+                GenAIAttributes.GEN_AI_EMBEDDINGS_DIMENSION_COUNT\n+            ] = invocation.dimension_count\n+\n+    # In the future we can get rid of this and the monkey patching of the\n+    # requests, and use the parsed SDK response instead. See:\n+    # https://github.com/googleapis/python-genai/issues/2658",
+      "id": "PRRT_kwDOSbspP86M8wtt",
+      "opened": "2026-06-30T02:55:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/embeddings.py",
+      "replies": [],
+      "reviewed": "29355bd4e1d132fa4b4d5136865e442f98c71f51",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/176#discussion_r3491289713"
+    }
+  ]
+}

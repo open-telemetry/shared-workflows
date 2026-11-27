@@ -1,0 +1,103 @@
+{
+  "head": "1b9c7af95a55e4adc486780780b1da690386865c",
+  "merge": "56b8f42e7e4ed0ccffb471e84a0e752265c66b71",
+  "merged": "2026-10-30T15:46:44Z",
+  "missing_roots": 0,
+  "number": 21049,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user explicitly requested: \"i don't Want to add a new test if there wasn't a test before\".\n\nRemove the newly added instrumentation/restlet/restlet-2.0/library/src/test/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessorTest.java from this PR. Do not replace it with a different new test file or add test coverage elsewhere. Leave all pre-existing tests and the restored exact-signature production lookup changes unchanged. This is a user-directed scope reduction, not a request to revert the production fix. Keep the existing draft state and use the relevant existing tests for validation where needed.",
+      "created": "2026-10-28T18:59:07Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.restlet.v2_0.internal;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import org.junit.jupiter.api.Test;\n+import org.restlet.Response;\n+import org.restlet.util.Series;\n+\n+class MessageAttributesAccessorTest {",
+      "id": "PRRT_kwDODJKVX86xRpP9",
+      "opened": "2026-10-28T18:59:07Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/test/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessorTest.java",
+      "replies": [],
+      "reviewed": "7dba71c3d8666336dadfdd0e745cd49b1310ca25",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4404837438"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user requested: \"Okay, I want to align with the original code and only apply the guidance to the original code, nothing more\".\n\nHere \"original code\" means the code BEFORE PR #21031, available at commit e8417286f55c5eb0a4597b970710c3d6cda1b6d7. Restore the original implementations of the compatibility lookups in the four Java files changed by this PR, then apply ONLY the class-loading guidance from PR #21032. Preserve unrelated current code. Do not retain the additional loop refactorings, flattened fallback blocks, comment rewrites, variable renames, or broader fallback behavior currently in this PR.\n\nThe only intended differences from those original lookup implementations are: in RedissonRequest.findGetPromiseMethod, load org.redisson.misc.RPromise with Class.forName(name, false, commandClass.getClassLoader()) instead of the helper's loader; in MessageAttributesAccessor.findSetValue, load BOTH org.restlet.util.NamedValue and org.restlet.data.Parameter with Class.forName(name, false, Series.class.getClassLoader()); in SpringWebHttpAttributesGetter's static initializer, load BOTH org.springframework.http.HttpStatusCode and org.springframework.http.HttpStatus with Class.forName(name, false, ClientHttpResponse.class.getClassLoader()). Keep exact findVirtual lookups, original signatures, original comments, nested try/catch structure, and original fallback conditions. In particular, do not add fallback to an older signature when the newer type exists but method lookup or access fails.\n\nRestore findGetAttributes in BOTH MessageAttributesAccessor and RestletHeadersGetter exactly to its original nested Map/ConcurrentMap implementation; no guidance-related change is needed there because these are JDK signature types. Do not modify findHeaderClass or other unrelated reflection. Scope is the four existing changed production files under instrumentation/redisson/redisson-common-3.0/javaagent, instrumentation/restlet/restlet-2.0/library, and instrumentation/spring/spring-web/spring-web-3.1/library. Do not add or modify tests or other files. Preserve the existing draft state. Use relevant existing tests for validation where feasible.\n\nAcceptance criterion: comparing the affected lookup code against the pre-#21031 commit must show only the loader-aware, non-initializing Class.forName changes listed above, plus formatting strictly required for those changed calls. Commit and push the update to this PR's existing branch.",
+      "created": "2026-10-28T20:59:45Z",
+      "hunk": "@@ -51,8 +53,19 @@ public abstract class RedissonRequest {\n \n   @Nullable\n   private static MethodHandle findGetPromiseMethod(Class<?> commandClass) {\n+    MethodHandles.Lookup lookup = MethodHandles.publicLookup();\n     try {\n-      return MethodHandles.publicLookup().unreflect(commandClass.getMethod(\"getPromise\"));\n+      Class<?> promiseClass =",
+      "id": "PRRT_kwDODJKVX86xUaZO",
+      "opened": "2026-10-28T20:59:44Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-28T21:11:02Z",
+          "body": "Updated and pushed in `c6d26f03de`. The four lookup implementations now match the pre-#21031 structure, with only the requested loader-aware, non-initializing class loads changed. Existing module tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4406124759"
+        }
+      ],
+      "reviewed": "5763d55df391a5a70bf638d2d08795480d853d28",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4406025760"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user requested: \"Flatten Redisson's nested fallback\" and \"make this change cloud\".\n\nIn instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java, flatten only findGetPromiseMethod's nested fallback: move the CompletableFuture-signature lookup out of the first catch into a subsequent try/catch. Preserve the existing loader-aware, non-initializing RPromise load, exact findVirtual signatures, and failure semantics: try CompletableFuture only after ClassNotFoundException or NoSuchMethodException from the RPromise attempt, return null immediately on IllegalAccessException from that attempt, and return null if the CompletableFuture attempt fails. Preserve the compatibility comments except positioning needed for the flattened structure.\n\nThis is a behavior-preserving readability change in this one method only. Leave Restlet, Spring, all other production code, existing tests, and draft state unchanged. Do not add tests or other files. The broader reflection audit is separate and is not authorized for implementation in this request. Use relevant existing tests for validation where feasible, then commit and push the update to this PR's existing branch.",
+      "created": "2026-10-28T21:25:03Z",
+      "hunk": "@@ -51,9 +53,22 @@ public abstract class RedissonRequest {\n \n   @Nullable\n   private static MethodHandle findGetPromiseMethod(Class<?> commandClass) {\n+    MethodHandles.Lookup lookup = MethodHandles.publicLookup();\n     try {\n-      return MethodHandles.publicLookup().unreflect(commandClass.getMethod(\"getPromise\"));\n-    } catch (NoSuchMethodException | IllegalAccessException ignored) {\n+      Class<?> promiseClass =\n+          Class.forName(\"org.redisson.misc.RPromise\", false, commandClass.getClassLoader());\n+      // try versions older than 3.16.8\n+      return lookup.findVirtual(commandClass, \"getPromise\", MethodType.methodType(promiseClass));\n+    } catch (NoSuchMethodException | ClassNotFoundException ignored) {\n+      // in 3.16.8 CommandsData#getPromise() and CommandData#getPromise() return type was changed in\n+      // a backwards-incompatible way from RPromise to CompletableFuture\n+      try {",
+      "id": "PRRT_kwDODJKVX86xU6Ri",
+      "opened": "2026-10-28T21:25:03Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-28T21:34:43Z",
+          "body": "Flattened and pushed in `5d0926d3`. The CompletableFuture lookup now follows the RPromise try/catch, with fallback only for missing class/method and immediate `null` on access failure. Existing Redisson 3.0 tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4406321456"
+        }
+      ],
+      "reviewed": "c6d26f03de0f5c10a05939990784024314eae803",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4406243832"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user has reversed the earlier readability change and explicitly requested: \"revert that\".\n\nUndo only the fallback flattening introduced by commit 5d0926d30ebd15cca94b504116c659ab71b9eb67. Restore RedissonRequest.findGetPromiseMethod in instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java to its exact contents at c6d26f03de0f5c10a05939990784024314eae803. The CompletableFuture lookup must again be nested inside the catch for NoSuchMethodException or ClassNotFoundException from the RPromise attempt, with its original inner catch variable and comments. Keep the loader-aware, non-initializing RPromise load, exact findVirtual signatures, and all existing failure semantics.\n\nThis request supersedes the earlier instruction to flatten this method. Do not revert the broader PR or any class-loading fixes. Leave Restlet, Spring, all other files, tests, and draft state unchanged. Do not add tests or make other cleanup changes. Commit and push a new reversal commit to this PR's existing branch without rewriting history or creating another PR. Acceptance: the delta from the current head changes only this method and reverses the patch from 5d0926d30ebd15cca94b504116c659ab71b9eb67.",
+      "created": "2026-10-28T21:41:11Z",
+      "hunk": "@@ -51,8 +53,21 @@ public abstract class RedissonRequest {\n \n   @Nullable\n   private static MethodHandle findGetPromiseMethod(Class<?> commandClass) {\n+    MethodHandles.Lookup lookup = MethodHandles.publicLookup();\n     try {\n-      return MethodHandles.publicLookup().unreflect(commandClass.getMethod(\"getPromise\"));\n+      Class<?> promiseClass =\n+          Class.forName(\"org.redisson.misc.RPromise\", false, commandClass.getClassLoader());\n+      // try versions older than 3.16.8\n+      return lookup.findVirtual(commandClass, \"getPromise\", MethodType.methodType(promiseClass));\n+    } catch (NoSuchMethodException | ClassNotFoundException ignored) {\n+      // in 3.16.8 CommandsData#getPromise() and CommandData#getPromise() return type was changed in\n+      // a backwards-incompatible way from RPromise to CompletableFuture\n+    } catch (IllegalAccessException ignored) {\n+      return null;\n+    }\n+    try {\n+      return lookup.findVirtual(",
+      "id": "PRRT_kwDODJKVX86xVNTH",
+      "opened": "2026-10-28T21:41:11Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-28T21:49:18Z",
+          "body": "Reverted the flattening in `1b9c7af9`. The method now matches `c6d26f03` exactly; no other files changed. Existing Redisson 3.0 tests and Spotless check pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4406434879"
+        }
+      ],
+      "reviewed": "5d0926d30ebd15cca94b504116c659ab71b9eb67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4406372342"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I liked how short the `unreflect` path was compared to handling the return types separately. It was also nice that you didn't need to deal with the return type at all. Almost always reflection would work just fine and there isn't a need to look up the methods like this. I get that we can't write the instructions for the ai to do one thing and then be like well here you could have done it the other way. ",
+      "created": "2026-10-30T13:28:25Z",
+      "hunk": "@@ -51,9 +53,22 @@ public abstract class RedissonRequest {\n \n   @Nullable\n   private static MethodHandle findGetPromiseMethod(Class<?> commandClass) {\n+    MethodHandles.Lookup lookup = MethodHandles.publicLookup();",
+      "id": "PRRT_kwDODJKVX86x-4rl",
+      "opened": "2026-10-30T13:28:24Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+      "replies": [],
+      "reviewed": "1b9c7af95a55e4adc486780780b1da690386865c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21049#discussion_r4424117269"
+    }
+  ]
+}

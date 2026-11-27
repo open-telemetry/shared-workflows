@@ -1,0 +1,25 @@
+{
+  "head": "6ba7c3863a3ef1277124f57e4606beed827924cb",
+  "merge": "163a7e72570b7686eec279db13b9245975b434f3",
+  "merged": "2026-04-03T16:11:53Z",
+  "missing_roots": 0,
+  "number": 17424,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Not really needed, but I guess doesn't hurt either.\ntesting common is automatically added to javaagent and library modules, but not to modules that just use `otel.java-conventions` because testing commons itself uses that.",
+      "created": "2026-04-02T13:42:37Z",
+      "hunk": "@@ -22,5 +22,5 @@ dependencies {\n   api(\"org.eclipse.jetty:jetty-webapp:11.0.17\")\n   api(\"org.springframework.ws:spring-ws-core:4.0.0\")\n \n-  implementation(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n+  api(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")",
+      "id": "PRRT_kwDODJKVX854gdQn",
+      "opened": "2026-04-02T13:42:37Z",
+      "path": "instrumentation/jaxws/jaxws-3.0-common-testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "6ba7c3863a3ef1277124f57e4606beed827924cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17424#discussion_r3028135196"
+    }
+  ]
+}

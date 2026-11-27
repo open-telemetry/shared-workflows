@@ -1,0 +1,40 @@
+{
+  "head": "39ec86695e77be2ee82316f81c1c8c612f80f3ba",
+  "merge": "b22786214c98afb79c5ec7bff0660248baedd2cb",
+  "merged": "2026-09-05T06:50:19Z",
+  "missing_roots": 0,
+  "number": 19977,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This newly generated `common.v3-preview` entry is missing the four `metric_refs` declared for the exact same condition in `instrumentation/camel-2.20/metadata.yaml:143-202` (`messaging.client.consumed.messages`, `messaging.client.operation.duration`, `messaging.client.sent.messages`, and `messaging.process.duration`). The catalog therefore incorrectly reports that Camel emits only spans in v3-preview mode. Please resolve why the manual telemetry was omitted and regenerate this file.",
+      "created": "2026-09-04T02:58:23Z",
+      "hunk": "@@ -7601,14 +7605,24 @@ libraries:\n         type: LONG\n       - name: url.full\n         type: STRING\n-  - when: otel.semconv-stability.opt-in=database\n+  - when: otel.instrumentation.common.v3-preview=true",
+      "id": "PRRT_kwDODJKVX86fJlV2",
+      "opened": "2026-09-04T02:58:23Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "d2b1a6921f999e6db5a3b8716c4178b7deb6c652",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19977#discussion_r3930498962"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `68138657` definition omits `messaging.consumer.group.name`, but RocketMQ 5 still emits that attribute on receive points for this metric (`AbstractRocketMqClientTest.java:1113-1119` and `RocketMqSimpleConsumerTest.java:203-222`). Because the metrics parser unions attributes across captured points, this change makes the generated catalog incomplete, likely due to a receive point not being captured during this metadata run. Please stabilize/update the telemetry capture and regenerate this file rather than editing the generated YAML directly.",
+      "created": "2026-09-04T02:58:23Z",
+      "hunk": "@@ -16449,7 +16531,7 @@ libraries:\n   - when: otel.semconv-stability.preview=messaging\n     metric_refs:\n     - messaging.client.consumed.messages-73097de6\n-    - messaging.client.operation.duration-f4822aab\n+    - messaging.client.operation.duration-68138657",
+      "id": "PRRT_kwDODJKVX86fJlWF",
+      "opened": "2026-09-04T02:58:23Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "d2b1a6921f999e6db5a3b8716c4178b7deb6c652",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19977#discussion_r3930498985"
+    }
+  ]
+}

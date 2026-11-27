@@ -1,0 +1,88 @@
+{
+  "head": "3a1a11a1f6644a72027943bcbc13413d6e1f710f",
+  "merge": "a0d20e5cd7a1836260a3b8f56c0c408b32a5e7ba",
+  "merged": "2026-11-02T15:45:17Z",
+  "missing_roots": 0,
+  "number": 21130,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested syntax cleanup. Use exactly one top-level testing.suites { ... } block per changed build file, containing all existing suite registrations and all executions(...) blocks. Replace repeated testing.suites.executions(...) calls with executions(...) inside that shared container. Merge existing testing { suites { ... } } declarations into the same testing.suites block, and declare custom suites before selecting them by name.\n\nApply this to all seven build.gradle.kts files in this PR: instrumentation/aws-sdk/aws-sdk-2.2/javaagent/build.gradle.kts; instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts; instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts; instrumentation/external-annotations/javaagent/build.gradle.kts; instrumentation/spring/spring-integration-4.1/javaagent/build.gradle.kts; instrumentation/influxdb-2.4/javaagent/build.gradle.kts; instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts.\n\nThis is grouping only. Keep the existing execution selectors and one executions block per selected suite, all 29 exact variant task names, source ownership, classpaths, filters, JVM/system properties, telemetry settings and metadata order, dependencies, check coverage, enabled states, gates, and existing native target configuration unchanged. In particular preserve AWS's separate default/Bedrock/RDS bindings, Hibernate's disabled-test exception and Java gates, InfluxDB's forced-version classpaths, and Reactor Kafka's explicit inherited settings. Keep unrelated tasks/configurations outside the suite container and arrange statements so their existing dependencies remain available.\n\nDo not change the execution helper, add or rename variants/suites, change behavior, convert unrelated target configuration, touch parent branches or other files, or create a follow-up PR. Preserve this PR's current head branch, base and draft state. Run the narrow relevant spotlessApply tasks directly before focused validation. Verify exactly one testing.suites { block per file with no remaining testing.suites.executions calls or duplicate testing/suites containers, and verify the same 29 tasks and check wiring in normal and testLatestDeps modes. Report any validation blockers accurately.",
+      "created": "2026-11-02T03:55:34Z",
+      "hunk": "@@ -159,99 +161,62 @@ testing {\n   }\n }\n \n-tasks {\n-  val testExperimentalSqs = register<Test>(\"testExperimentalSqs\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n+testing.suites.executions(\"test\") {",
+      "id": "PRRT_kwDODJKVX86yh2XE",
+      "opened": "2026-11-02T03:55:34Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-02T04:06:19Z",
+          "body": "Done in `cf7af26f`. All seven files now have one `testing.suites { ... }` container with existing suites declared before their execution selectors. Spotless passed, and both normal and `testLatestDeps` dry-run check graphs include all 29 variants.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21130#discussion_r4438823295"
+        }
+      ],
+      "reviewed": "d63422e083332957992e47e3d64f634e0e58c32d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21130#discussion_r4438782436"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to replace the remaining per-suite targets.all { testTask.configure { ... } } blocks, including the equivalent targets { all { ... } } form, with named executions(...) { configureDefault { ... } } blocks inside each file's existing shared testing.suites container.\n\nThere are five native target blocks across four of this PR's changed files: version5Test in instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts; hibernate6Test and hibernate7Test in instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts; version41Test in instrumentation/spring/spring-integration-4.1/javaagent/build.gradle.kts; and unitTests in instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts. Remove those nested target blocks from suite registrations and select the suites after they have been registered. Combine the two identical Hibernate 6/7 configurations with executions(\"hibernate6Test\", \"hibernate7Test\").\n\nFor Hibernate, use configureDefault with telemetryConfig(\"otel.instrumentation.hibernate.experimental-span-attributes\", \"true\") instead of the repeated JVM argument and matching metadataConfig property. Preserve the effective true flag and the exact existing metadata profile. For Spring Integration's version41Test, move its existing three JVM arguments and relevant rationale comment unchanged into configureDefault. For Reactor Kafka's unitTests, move the existing receive-telemetry JVM argument unchanged into configureDefault; it is a JVM-only setting here, so do not use telemetryConfig or add metadata.\n\nThis is a behavior-preserving syntax cleanup. Use configureDefault rather than configureEach so these settings stay on existing suite target tasks and do not spread to variants. Keep exactly one testing.suites block per file and one executions block per selected suite. Preserve all 29 existing variant task names, source ownership, classpaths, filters, JVM/system properties, telemetry settings and metadata order, dependencies, check coverage, enabled states, and Java gates. Do not add variants, change the execution helper, convert unrelated task configuration, touch the other three build files or parent branches, or create a follow-up PR. Preserve this PR's current head branch, base and draft state.\n\nRun the narrow relevant spotlessApply tasks directly before focused validation. Verify no remaining native targets/testTask nesting in these four files, unchanged default-task settings, all 29 variants, and check wiring in normal and testLatestDeps modes. Report any validation blockers accurately.",
+      "created": "2026-11-02T04:22:37Z",
+      "hunk": "@@ -36,36 +39,48 @@ otelJava {\n   minJavaVersionSupported.set(JavaVersion.VERSION_11)\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"hibernate6Test\") {\n-      targets.all {\n-        testTask.configure {\n-          jvmArgs(\"-Dotel.instrumentation.hibernate.experimental-span-attributes=true\")\n-          systemProperty(\"metadataConfig\", \"otel.instrumentation.hibernate.experimental-span-attributes=true\")\n-        }\n-      }\n-      dependencies {\n-        implementation(\"com.h2database:h2:1.4.197\")\n-        implementation(\"org.hsqldb:hsqldb:2.0.0\")\n-        implementation(project(\":instrumentation:hibernate:testing\"))\n-        implementation(\"org.hibernate.orm:hibernate-core:${baseVersion(\"6.0.0.Final\").orLatest(\"6.+\")}\")\n+testing.suites {\n+  register<JvmTestSuite>(\"hibernate6Test\") {\n+    targets.all {",
+      "id": "PRRT_kwDODJKVX86yiGhe",
+      "opened": "2026-11-02T04:22:37Z",
+      "path": "instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-02T04:31:00Z",
+          "body": "Updated and pushed as `c6ee92be`. The five target configurations now use `configureDefault` in suite-scoped execution blocks, preserving the requested settings and metadata behavior. Both dry-run check graphs include all 29 variants.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21130#discussion_r4438920702"
+        }
+      ],
+      "reviewed": "cf7af26f8743174896b8d492b5de59d5124c64ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21130#discussion_r4438887865"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n      val hibernateVersion = baseVersion(\"5.0.0.Final\").orLatest(\"5.+\")\n```",
+      "created": "2026-11-02T07:41:09Z",
+      "hunk": "@@ -38,38 +41,50 @@ dependencies {\n   testImplementation(\"org.javassist:javassist:3.28.0-GA\")\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"version5Test\") {\n-      targets.all {\n-        testTask.configure {\n-          jvmArgs(\"-Dotel.instrumentation.hibernate.experimental-span-attributes=true\")\n-          systemProperty(\"metadataConfig\", \"otel.instrumentation.hibernate.experimental-span-attributes=true\")\n+testing.suites {\n+  register<JvmTestSuite>(\"version5Test\") {\n+    dependencies {\n+      sources {\n+        java {\n+          setSrcDirs(listOf(\"src/test/java\"))\n         }\n-      }\n-      dependencies {\n-        sources {\n-          java {\n-            setSrcDirs(listOf(\"src/test/java\"))\n-          }\n-          resources {\n-            setSrcDirs(listOf(\"src/test/resources\"))\n-          }\n+        resources {\n+          setSrcDirs(listOf(\"src/test/resources\"))\n         }\n+      }\n+\n+      implementation(\"com.h2database:h2:1.4.197\")\n+      implementation(\"javax.xml.bind:jaxb-api:2.2.11\")\n+      implementation(\"com.sun.xml.bind:jaxb-core:2.2.11\")\n+      implementation(\"com.sun.xml.bind:jaxb-impl:2.2.11\")\n+      implementation(\"javax.activation:activation:1.1.1\")\n+      implementation(\"org.hsqldb:hsqldb:2.0.0\")\n+      implementation(project(\":instrumentation:hibernate:testing\"))\n+\n+      val hibernateVersion = baseVersion(\"5.+\").orLatest(\"5.0.0.Final\")",
+      "id": "PRRT_kwDODJKVX86ykkPl",
+      "opened": "2026-11-02T07:41:09Z",
+      "path": "instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-02T07:50:02Z",
+          "body": "codex didn't find more occurrences of swapped base and latest besides these 2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21130#discussion_r4439959601"
+        }
+      ],
+      "reviewed": "c6ee92be4869d7e224257d693f1fb72150279a6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21130#discussion_r4439899261"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n      implementation(\"org.springframework.data:spring-data-jpa:${baseVersion(\"2.3.0.RELEASE\").orLatest(\"(2.4.0,3)\")}\")\n```",
+      "created": "2026-11-02T07:41:35Z",
+      "hunk": "@@ -38,38 +41,50 @@ dependencies {\n   testImplementation(\"org.javassist:javassist:3.28.0-GA\")\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"version5Test\") {\n-      targets.all {\n-        testTask.configure {\n-          jvmArgs(\"-Dotel.instrumentation.hibernate.experimental-span-attributes=true\")\n-          systemProperty(\"metadataConfig\", \"otel.instrumentation.hibernate.experimental-span-attributes=true\")\n+testing.suites {\n+  register<JvmTestSuite>(\"version5Test\") {\n+    dependencies {\n+      sources {\n+        java {\n+          setSrcDirs(listOf(\"src/test/java\"))\n         }\n-      }\n-      dependencies {\n-        sources {\n-          java {\n-            setSrcDirs(listOf(\"src/test/java\"))\n-          }\n-          resources {\n-            setSrcDirs(listOf(\"src/test/resources\"))\n-          }\n+        resources {\n+          setSrcDirs(listOf(\"src/test/resources\"))\n         }\n+      }\n+\n+      implementation(\"com.h2database:h2:1.4.197\")\n+      implementation(\"javax.xml.bind:jaxb-api:2.2.11\")\n+      implementation(\"com.sun.xml.bind:jaxb-core:2.2.11\")\n+      implementation(\"com.sun.xml.bind:jaxb-impl:2.2.11\")\n+      implementation(\"javax.activation:activation:1.1.1\")\n+      implementation(\"org.hsqldb:hsqldb:2.0.0\")\n+      implementation(project(\":instrumentation:hibernate:testing\"))\n+\n+      val hibernateVersion = baseVersion(\"5.+\").orLatest(\"5.0.0.Final\")\n+      implementation(\"org.hibernate:hibernate-core:$hibernateVersion\")\n+      implementation(\"org.hibernate:hibernate-entitymanager:$hibernateVersion\")\n+      implementation(\"org.springframework.data:spring-data-jpa:${baseVersion(\"(2.4.0,3)\").orLatest(\"2.3.0.RELEASE\")}\")",
+      "id": "PRRT_kwDODJKVX86ykkpk",
+      "opened": "2026-11-02T07:41:35Z",
+      "path": "instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c6ee92be4869d7e224257d693f1fb72150279a6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21130#discussion_r4439901820"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "bd2fdcb6c6cc49bdd6dab2d865fa329e5bae67c58cdc35f3963393d22b4cfdfc",
+  "input_digest": "feb0d07344de6c42fdaed286cbe3d335d2ae992776a6dc88c52807033e42f9d3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5390113281e23da7560cdce9296306a76445a69d/examples/distro/smoke-tests/src/test/java/com/example/javaagent/smoketest/SmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb59701f9ba2a25cd65415c9394db6442722c4f9/examples/distro/smoke-tests/src/test/java/com/example/javaagent/smoketest/SmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5390113281e23da7560cdce9296306a76445a69d/instrumentation/camel-2.20/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelPropagationUtilTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb59701f9ba2a25cd65415c9394db6442722c4f9/instrumentation/camel-2.20/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelPropagationUtilTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86zPX_o",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c397bdd356fc372d6e4cc2be4cd16945424b7ea0/examples/distro/instrumentation/servlet-3/src/test/java/com/example/javaagent/instrumentation/DemoServlet3InstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb59701f9ba2a25cd65415c9394db6442722c4f9/examples/distro/instrumentation/servlet-3/src/test/java/com/example/javaagent/instrumentation/DemoServlet3InstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86zRB79",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e544018332eeb2f37dd538451c1875b8db8c2c37/conventions/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb59701f9ba2a25cd65415c9394db6442722c4f9/conventions/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86zSQbj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860qaBn",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86zSQbj",
+      "status": "duplicate"
+    }
+  ]
+}

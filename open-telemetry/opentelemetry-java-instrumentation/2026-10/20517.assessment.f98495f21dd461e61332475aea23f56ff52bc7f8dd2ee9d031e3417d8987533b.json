@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "67dbc363132c1637040247e267631b0d2f5c1e77cdd084db73e8b305a8ce7819",
+  "input_digest": "f98495f21dd461e61332475aea23f56ff52bc7f8dd2ee9d031e3417d8987533b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39f5a710b54b56f2ad7d6e5993f221d1d245de11/javaagent-internal-logging-application/src/main/java/io/opentelemetry/javaagent/logging/application/InMemoryLogStore.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39f5a710b54b56f2ad7d6e5993f221d1d245de11/javaagent-internal-logging-application/src/test/java/io/opentelemetry/javaagent/logging/application/InMemoryLogStoreTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e021e389f182c2a1954cc0b40a149a0b372261a2/javaagent-internal-logging-application/src/main/java/io/opentelemetry/javaagent/logging/application/InMemoryLogStore.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e021e389f182c2a1954cc0b40a149a0b372261a2/javaagent-internal-logging-application/src/test/java/io/opentelemetry/javaagent/logging/application/InMemoryLogStoreTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86rS18S",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

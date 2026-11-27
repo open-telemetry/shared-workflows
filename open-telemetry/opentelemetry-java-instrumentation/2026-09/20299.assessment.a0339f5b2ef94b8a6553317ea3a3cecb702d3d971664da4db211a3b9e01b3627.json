@@ -1,0 +1,61 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "be570fcad2a311c1fc108e417323542eba4bae0cb190c3b0ee6e982225d26dfc",
+  "input_digest": "a0339f5b2ef94b8a6553317ea3a3cecb702d3d971664da4db211a3b9e01b3627",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc/instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGenerator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b18eec147afe3738515ea233b3ec112b1b683133/instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b18eec147afe3738515ea233b3ec112b1b683133/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGenerator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b18eec147afe3738515ea233b3ec112b1b683133",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e9b2031e204611e8b7ae011d397ec9158a404514",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5e777f843032c1cdc8cf2a66aa0be480ff624034"
+      ],
+      "id": "PRRT_kwDODJKVX86m5WYS",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGenerator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b18eec147afe3738515ea233b3ec112b1b683133/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGenerator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5e777f843032c1cdc8cf2a66aa0be480ff624034"
+      ],
+      "id": "PRRT_kwDODJKVX86m5WYy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/YamlHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b18eec147afe3738515ea233b3ec112b1b683133/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/YamlHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5e777f843032c1cdc8cf2a66aa0be480ff624034"
+      ],
+      "id": "PRRT_kwDODJKVX86m5WZN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1f8aad1f301a0fab726bfc5a317cb9cdc3b73bc/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/DeclarativeConfigValidationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b18eec147afe3738515ea233b3ec112b1b683133/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/DeclarativeConfigValidationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5e777f843032c1cdc8cf2a66aa0be480ff624034"
+      ],
+      "id": "PRRT_kwDODJKVX86m5WZw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

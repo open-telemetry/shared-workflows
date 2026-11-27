@@ -1,0 +1,85 @@
+{
+  "head": "4e035472fc752a31cec494eb9d36513811191ed1",
+  "merge": "d60d5f012df75041a8e5461e14eadca3cc565d4c",
+  "merged": "2026-03-02T00:04:02Z",
+  "missing_roots": 0,
+  "number": 16325,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "since this instrumentation doesn't emit any telemetry, we don't need to do any of the collectMetadata stuff in this gradle file (and remove from instrumentations.sh)",
+      "created": "2026-03-01T11:35:55Z",
+      "hunk": "@@ -39,9 +39,14 @@ otelJava {\n }\n \n tasks {\n+  withType<Test>().configureEach {\n+    systemProperty(\"collectMetadata\", findProperty(\"collectMetadata\")?.toString() ?: \"false\")\n+  }\n+\n   test {\n     systemProperty(\"otel.instrumentation.common.enduser.id.enabled\", \"true\")\n     systemProperty(\"otel.instrumentation.common.enduser.role.enabled\", \"true\")\n     systemProperty(\"otel.instrumentation.common.enduser.scope.enabled\", \"true\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.enduser.id.enabled=true,otel.instrumentation.common.enduser.role.enabled=true,otel.instrumentation.common.enduser.scope.enabled=true\")",
+      "id": "PRRT_kwDODJKVX85xY4TI",
+      "opened": "2026-03-01T12:06:05Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e9db9892db310537d0cce162e48a5e6516bfdc9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16325#discussion_r2868874983"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "since these don't emit any telemetry, we can also remove them from here (the existing one was a mistake)\r\n\r\n```suggestion\r\n```\r\n\r\n",
+      "created": "2026-03-01T11:49:37Z",
+      "hunk": "@@ -242,15 +242,19 @@ readonly INSTRUMENTATIONS=(\n   \"spring:spring-rmi-4.0:javaagent:test\"\n   \"spring:spring-scheduling-3.1:javaagent:test\"\n   \"spring:spring-scheduling-3.1:javaagent:testExperimental\"\n+  \"spring:spring-security-config-6.0:javaagent:test\"\n   \"spring:spring-web:spring-web-3.1:library:test\"\n   \"spring:spring-web:spring-web-6.0:javaagent:test\"\n+  \"spring:spring-web:spring-web-6.0:javaagent:testExperimental\"",
+      "id": "PRRT_kwDODJKVX85xY84V",
+      "opened": "2026-03-01T12:06:05Z",
+      "path": "instrumentation-docs/instrumentations.sh",
+      "replies": [],
+      "reviewed": "e9db9892db310537d0cce162e48a5e6516bfdc9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16325#discussion_r2868899813"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "since this doesn't emit telemetry we don't need the collectMetadata configs. I'm also not sure if theres much benefit to splitting out this particular test suite because it doesn't change the emitted attributes, but I don't think it hurts anything to keep it",
+      "created": "2026-03-01T11:50:37Z",
+      "hunk": "@@ -27,7 +27,14 @@ otelJava {\n \n tasks {\n   withType<Test>().configureEach {\n+    systemProperty(\"collectMetadata\", findProperty(\"collectMetadata\")?.toString() ?: \"false\")\n+  }\n+\n+  val testExperimental by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n     jvmArgs(\"-Dotel.instrumentation.http.client.emit-experimental-telemetry=true\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.http.client.emit-experimental-telemetry=true\")",
+      "id": "PRRT_kwDODJKVX85xY9Da",
+      "opened": "2026-03-01T12:06:05Z",
+      "path": "instrumentation/spring/spring-web/spring-web-6.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e9db9892db310537d0cce162e48a5e6516bfdc9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16325#discussion_r2868900680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "you don't need to change this, i'm just making note / thinking out loud - elsewhere we've documented this config, we usually use this description:\r\n```\r\n    description: >\r\n      Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size`\r\n      and `http.response.body.size` attributes to spans, and records `http.client.request.size` and\r\n      `http.client.response.size` metrics.\r\n```\r\n\r\nbut i think it _is_ different for this instrumentation, where your description is accurate for what it does in this case (which is to only update the template info). \r\n\r\nI will need to think of how to handle this type of thing if we move to a single description for these common config options",
+      "created": "2026-03-01T11:59:24Z",
+      "hunk": "@@ -1,4 +1,14 @@\n+display_name: Spring Web\n description: >\n-  This instrumentation provides a library integration that enables capturing HTTP client spans and\n-  metrics for Spring's RestTemplate.\n+  This instrumentation enriches HTTP client spans with URL template information for Spring's\n+  RestTemplate 6.0+.\n+features:\n+  - HTTP_ROUTE\n library_link: https://github.com/spring-projects/spring-framework\n+configurations:\n+  - name: otel.instrumentation.http.client.emit-experimental-telemetry\n+    description: >\n+      Enables the capture of experimental HTTP client telemetry, including URL template\n+      as the span name.",
+      "id": "PRRT_kwDODJKVX85xY-3J",
+      "opened": "2026-03-01T12:06:05Z",
+      "path": "instrumentation/spring/spring-web/spring-web-6.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "e9db9892db310537d0cce162e48a5e6516bfdc9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16325#discussion_r2868910290"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "nice catch!",
+      "created": "2026-03-01T12:03:27Z",
+      "hunk": "@@ -1,12 +1,19 @@\n+display_name: Spring WebMVC\n description: >\n-  This instrumentation enables optional Controller and View spans for Spring WebMVC 3.1+.\n+  This instrumentation enriches HTTP server spans with route information for Spring WebMVC 3.1+.\n+  It also enables controller spans (controller spans are disabled by default) and view spans\n+  (view spans are disabled by default).\n+features:\n+  - HTTP_ROUTE\n+  - CONTROLLER_SPANS\n+  - VIEW_SPANS\n library_link: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/package-summary.html\n configurations:\n   - name: otel.instrumentation.spring-webmvc.experimental-span-attributes\n     type: boolean\n     default: false\n     description: > \n-      Enables the capture of experimental span attributes `spring-webmvc-view-name` and\n+      Enables the capture of experimental span attributes `spring-webmvc.view.name` and",
+      "id": "PRRT_kwDODJKVX85xY__R",
+      "opened": "2026-03-01T12:06:05Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-3.1/metadata.yaml",
+      "replies": [],
+      "reviewed": "e9db9892db310537d0cce162e48a5e6516bfdc9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16325#discussion_r2868918112"
+    }
+  ]
+}

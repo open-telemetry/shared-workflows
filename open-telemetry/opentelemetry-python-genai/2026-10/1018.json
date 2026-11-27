@@ -1,0 +1,25 @@
+{
+  "head": "d9765665e2652c3f9744af62bc1175bceb8fefc6",
+  "merge": "3747f16c86668e6dba990ceea30fced9298b8851",
+  "merged": "2026-10-31T21:57:13Z",
+  "missing_roots": 0,
+  "number": 1018,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "These values now go through arithmetic, and this runs outside any try/except after a successful call, so an unexpected non-int would raise into the user's code. Running them through `_safe_int` like the stream path does would avoid that:\n\n```suggestion\n        invocation.output_tokens = _safe_int(usage.get(\"outputTokens\"))\n        invocation.cache_read_input_tokens = _safe_int(\n            usage.get(\"cacheReadInputTokens\")\n        )\n        invocation.cache_creation_input_tokens = _safe_int(\n            usage.get(\"cacheWriteInputTokens\")\n        )\n        invocation.input_tokens = _total_input_tokens(\n            _safe_int(usage.get(\"inputTokens\")),\n            invocation.cache_read_input_tokens,\n            invocation.cache_creation_input_tokens,\n        )\n```",
+      "created": "2026-10-31T20:18:09Z",
+      "hunk": "@@ -419,12 +439,16 @@ def extract_converse_response(\n \n     usage = response.get(\"usage\")\n     if _is_dict(usage):\n-        invocation.input_tokens = usage.get(\"inputTokens\")\n         invocation.output_tokens = usage.get(\"outputTokens\")\n         invocation.cache_read_input_tokens = usage.get(\"cacheReadInputTokens\")\n         invocation.cache_creation_input_tokens = usage.get(\n             \"cacheWriteInputTokens\"\n         )\n+        invocation.input_tokens = _total_input_tokens(\n+            usage.get(\"inputTokens\"),\n+            invocation.cache_read_input_tokens,\n+            invocation.cache_creation_input_tokens,\n+        )",
+      "id": "PRRT_kwDOSbspP86yURqe",
+      "opened": "2026-10-31T20:19:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "2f2b41ea7993da0b433285d350094f1f45440e09",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1018#discussion_r4433160092"
+    }
+  ]
+}

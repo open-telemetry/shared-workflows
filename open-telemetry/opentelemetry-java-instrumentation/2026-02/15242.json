@@ -1,0 +1,224 @@
+{
+  "head": "91524360577782ab4d54fbed0dc41bf89881559c",
+  "merge": "c86e14b832b3651cf849b529ec7a4be1b20adb2b",
+  "merged": "2026-02-17T19:07:21Z",
+  "missing_roots": 0,
+  "number": 15242,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`server.address` should reflect the server where the request was sent to. Here you are picking the first node from a list, could you explain why this is correct.",
+      "created": "2025-11-07T08:09:32Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached;\n+\n+import io.opentelemetry.instrumentation.api.semconv.network.ServerAttributesGetter;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.Collection;\n+import javax.annotation.Nullable;\n+import net.spy.memcached.MemcachedConnection;\n+import net.spy.memcached.MemcachedNode;\n+\n+final class SpymemcachedNetworkAttributesGetter\n+    implements ServerAttributesGetter<SpymemcachedRequest> {\n+\n+  @Nullable\n+  @Override\n+  public String getServerAddress(SpymemcachedRequest request) {\n+    MemcachedConnection connection = request.getConnection();\n+    if (connection != null) {\n+      Collection<MemcachedNode> nodes = connection.getLocator().getAll();\n+      if (!nodes.isEmpty()) {\n+        SocketAddress socketAddress = nodes.iterator().next().getSocketAddress();",
+      "id": "PRRT_kwDODJKVX85g-pIv",
+      "opened": "2025-11-07T08:09:32Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/SpymemcachedNetworkAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2025-11-07T13:58:30Z",
+          "body": "> server.address should reflect the server where the request was sent to.\r\n\r\nhttps://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md\r\n<img width=\"2058\" height=\"188\" alt=\"image\" src=\"https://github.com/user-attachments/assets/dfd3fdb6-6732-4d73-bd9e-0771f47163cc\" />\r\nThe SemConv of this serverAddress isn't as explicit as you described. My initial understanding of its meaning was ambiguous, but I now understand it.\r\n\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2503692160"
+        }
+      ],
+      "reviewed": "866ba338fb4cfe7667b5d6d8d1104b7385a3cdb2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2502057207"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "steverao"
+      },
+      "body": "For bulk operations like `asyncGetBulk()` https://github.com/couchbase/spymemcached/blob/eb5d6eeaf5b3b6f74eda3e3cf709e70f7bb4c4ad/src/main/java/net/spy/memcached/MemcachedClient.java#L1274-L1316, spymemcached distributes keys across multiple Memcached nodes based on consistent hashing. Each key may be handled by a different MemcachedNode, meaning a single bulk operation can involve multiple servers.\r\nCurrently, the implementation uses a representative node approach - it iterates through connection.getLocator().getAll() and select the last active node to populate server.address and server.port attributes.\r\nAccording to the [SenConv](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md), I couldn't find specific guidance on how to handle network attributes when a single database operation involves multiple servers/nodes. I am not sure it is correct. Do we have any guidance to help deal with this case?",
+      "created": "2025-11-09T11:44:16Z",
+      "hunk": "@@ -24,13 +26,42 @@ private BulkGetCompletionListener(Context parentContext, SpymemcachedRequest req\n   @Nullable\n   public static BulkGetCompletionListener create(\n       Context parentContext, MemcachedConnection connection, String methodName) {\n-    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName);\n+    MemcachedNode handlingNode = getRepresentativeNodeFromConnection(connection);\n+    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName, handlingNode);\n     if (!instrumenter().shouldStart(parentContext, request)) {\n       return null;\n     }\n     return new BulkGetCompletionListener(parentContext, request);\n   }\n \n+  @Nullable\n+  private static MemcachedNode getRepresentativeNodeFromConnection(MemcachedConnection connection) {\n+    try {\n+      // Strategy: Get the \"most representative\" node for bulk operations\n+      // We choose the last active node in the list, which often represents\n+      // the most recently added or most stable node in the cluster\n+      Collection<MemcachedNode> allNodes = connection.getLocator().getAll();\n+\n+      MemcachedNode lastActiveNode = null;\n+      MemcachedNode fallbackNode = null;\n+\n+      for (MemcachedNode node : allNodes) {\n+        if (fallbackNode == null) {\n+          fallbackNode = node;\n+        }\n+\n+        if (node.isActive()) {\n+          lastActiveNode = node;\n+        }\n+      }\n+\n+      // Return the last active node, or fallback to the first node\n+      return lastActiveNode != null ? lastActiveNode : fallbackNode;\n+    } catch (RuntimeException e) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX85hN9Eb",
+      "opened": "2025-11-09T11:44:22Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/BulkGetCompletionListener.java",
+      "replies": [
+        {
+          "at": "2025-11-10T12:22:59Z",
+          "body": "@trask do you have any guidance on how to handle the situation where a database clients connects to multiple servers for a single operation.\r\nI believe that this will require clarification in the semconv. Our current stance in this project is that if we can not fill an attribute with the correct value then we don't fill it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2510337616"
+        },
+        {
+          "at": "2025-11-16T21:04:54Z",
+          "body": "I don't have a good answer here, I'd suggest starting by capturing it if there's only one address. This would only affect \"bulk\" operations?\r\n\r\ncc @lmolkova",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2532231421"
+        },
+        {
+          "at": "2025-11-19T08:52:57Z",
+          "body": "> I'd suggest starting by capturing it if there's only one address.\r\n\r\nDo you mean we only collect it when there's only one address, ignoring the case with multiple addresses?\r\n\r\n> This would only affect \"bulk\" operations?\r\n\r\nYes, I saw description of `network.peer.address` in [SemConv](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md):\r\n\r\n> Network peer address and port are useful when the application interacts with individual database nodes directly. If a database operation involved multiple network calls (for example retries), the address of the last contacted node SHOULD be used. \r\n\r\nIs it possible for us to add similar guidance for `server.address` to solve this problem?\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2541098092"
+        }
+      ],
+      "reviewed": "3464645be598afa35b4a3f27c3bbc7dab3bfb891",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2507928628"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why do you need to catch `RuntimeException` here?",
+      "created": "2025-12-12T12:55:40Z",
+      "hunk": "@@ -24,13 +26,29 @@ private BulkGetCompletionListener(Context parentContext, SpymemcachedRequest req\n   @Nullable\n   public static BulkGetCompletionListener create(\n       Context parentContext, MemcachedConnection connection, String methodName) {\n-    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName);\n+    MemcachedNode handlingNode = getNodeFromConnection(connection);\n+    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName, handlingNode);\n     if (!instrumenter().shouldStart(parentContext, request)) {\n       return null;\n     }\n     return new BulkGetCompletionListener(parentContext, request);\n   }\n \n+  @Nullable\n+  private static MemcachedNode getNodeFromConnection(MemcachedConnection connection) {\n+    try {\n+      Collection<MemcachedNode> allNodes = connection.getLocator().getAll();\n+      if (allNodes.size() == 1) {\n+        return allNodes.iterator().next();\n+      }\n+      // For multiple nodes, return null - bulk operations span multiple servers\n+      // and we cannot accurately attribute to a single server\n+      return null;\n+    } catch (RuntimeException e) {",
+      "id": "PRRT_kwDODJKVX85l11hi",
+      "opened": "2025-12-12T12:55:40Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/BulkGetCompletionListener.java",
+      "replies": [],
+      "reviewed": "5252005a513275906853a71f194550fc1f3d6267",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2614122593"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2025-12-12T12:57:35Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached;\n+\n+import static io.opentelemetry.javaagent.instrumentation.spymemcached.SpymemcachedSingletons.FUTURE_OPERATION;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.concurrent.Future;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import net.spy.memcached.internal.GetFuture;\n+import net.spy.memcached.internal.OperationFuture;\n+import net.spy.memcached.ops.Operation;\n+\n+public class SetOperationInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"net.spy.memcached.internal.OperationFuture\", \"net.spy.memcached.internal.GetFuture\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isMethod().and(named(\"setOperation\")).and(takesArguments(1)),\n+        this.getClass().getName() + \"$SetOperationAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SetOperationAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class)\n+    public static void onExit(@Advice.This Object future, @Advice.Argument(0) Operation operation) {\n+",
+      "id": "PRRT_kwDODJKVX85l12jF",
+      "opened": "2025-12-12T12:57:35Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/SetOperationInstrumentation.java",
+      "replies": [],
+      "reviewed": "5252005a513275906853a71f194550fc1f3d6267",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2614127961"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why do you need to catch `RuntimeException` here?",
+      "created": "2025-12-12T13:01:14Z",
+      "hunk": "@@ -23,14 +24,26 @@ private SyncCompletionListener(Context parentContext, SpymemcachedRequest reques\n \n   @Nullable\n   public static SyncCompletionListener create(\n-      Context parentContext, MemcachedConnection connection, String methodName) {\n-    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName);\n+      Context parentContext, MemcachedConnection connection, String methodName, String key) {\n+    // For sync operations, determine the handling node based on the key\n+    MemcachedNode handlingNode = getHandlingNodeForKey(connection, key);\n+    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName, handlingNode);\n     if (!instrumenter().shouldStart(parentContext, request)) {\n       return null;\n     }\n     return new SyncCompletionListener(parentContext, request);\n   }\n \n+  @Nullable\n+  private static MemcachedNode getHandlingNodeForKey(MemcachedConnection connection, String key) {\n+    try {\n+      // Use the connection's locator to find the primary node for this key\n+      return connection.getLocator().getPrimary(key);\n+    } catch (RuntimeException e) {",
+      "id": "PRRT_kwDODJKVX85l14at",
+      "opened": "2025-12-12T13:01:14Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/SyncCompletionListener.java",
+      "replies": [],
+      "reviewed": "5252005a513275906853a71f194550fc1f3d6267",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2614137860"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "looking at https://github.com/couchbase/spymemcached/blob/eb5d6eeaf5b3b6f74eda3e3cf709e70f7bb4c4ad/src/main/java/net/spy/memcached/MemcachedConnection.java#L1217 I get the impression that this could return the wrong node when the primary node is not available.\nInstead of trying to deduce the node from the key you could probably instrument https://github.com/couchbase/spymemcached/blob/eb5d6eeaf5b3b6f74eda3e3cf709e70f7bb4c4ad/src/main/java/net/spy/memcached/MemcachedConnection.java#L1274 or some other location where you can get access to the handling node and use a thread local or context to expose the chosen node to the caller",
+      "created": "2025-12-12T13:15:01Z",
+      "hunk": "@@ -23,14 +24,26 @@ private SyncCompletionListener(Context parentContext, SpymemcachedRequest reques\n \n   @Nullable\n   public static SyncCompletionListener create(\n-      Context parentContext, MemcachedConnection connection, String methodName) {\n-    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName);\n+      Context parentContext, MemcachedConnection connection, String methodName, String key) {\n+    // For sync operations, determine the handling node based on the key\n+    MemcachedNode handlingNode = getHandlingNodeForKey(connection, key);\n+    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName, handlingNode);\n     if (!instrumenter().shouldStart(parentContext, request)) {\n       return null;\n     }\n     return new SyncCompletionListener(parentContext, request);\n   }\n \n+  @Nullable\n+  private static MemcachedNode getHandlingNodeForKey(MemcachedConnection connection, String key) {\n+    try {\n+      // Use the connection's locator to find the primary node for this key\n+      return connection.getLocator().getPrimary(key);",
+      "id": "PRRT_kwDODJKVX85l1_3t",
+      "opened": "2025-12-12T13:15:01Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/SyncCompletionListener.java",
+      "replies": [
+        {
+          "at": "2025-12-18T06:56:56Z",
+          "body": "Good point, I have optimized it and please take a look again.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2629821196"
+        }
+      ],
+      "reviewed": "5252005a513275906853a71f194550fc1f3d6267",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2614177143"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'd try to replace this with `memcachedAddress.getPort()`",
+      "created": "2025-12-12T13:16:37Z",
+      "hunk": "@@ -152,6 +154,8 @@ void getHit() {\n                                 maybeStable(DB_SYSTEM),\n                                 DbIncubatingAttributes.DbSystemIncubatingValues.MEMCACHED),\n                             equalTo(maybeStable(DB_OPERATION), \"get\"),\n+                            equalTo(SERVER_ADDRESS, memcachedContainer.getHost()),\n+                            equalTo(SERVER_PORT, memcachedContainer.getMappedPort(11211)),",
+      "id": "PRRT_kwDODJKVX85l2ApA",
+      "opened": "2025-12-12T13:16:36Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/SpymemcachedTest.java",
+      "replies": [],
+      "reviewed": "5252005a513275906853a71f194550fc1f3d6267",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2614181198"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually our instrumentations start the span at the start of the method and end it when the operation completes (method ends or an async callback is called). This instrumentation appears to start the span at the end of the method and end it in a callback. It is unusual to see the result future being available when the span is created.\nWondering whether the approach used in the sync case also applies here and whether this could allow us to remove some code.",
+      "created": "2026-02-12T14:09:15Z",
+      "hunk": "@@ -23,14 +26,27 @@ private GetCompletionListener(Context parentContext, SpymemcachedRequest request\n \n   @Nullable\n   public static GetCompletionListener create(\n-      Context parentContext, MemcachedConnection connection, String methodName) {\n-    SpymemcachedRequest request = SpymemcachedRequest.create(connection, methodName);\n+      Context parentContext,\n+      MemcachedConnection connection,\n+      String methodName,\n+      GetFuture<?> future) {\n+    MemcachedNode handlingNode = extractHandlingNodeFromFuture(future);",
+      "id": "PRRT_kwDODJKVX85uPz-I",
+      "opened": "2026-02-12T14:09:15Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/GetCompletionListener.java",
+      "replies": [],
+      "reviewed": "bb00926676b491466d2f4e8ecaa05e27754ac787",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2799106211"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    implements ServerAttributesGetter<SpymemcachedRequest> {\n```",
+      "created": "2026-02-17T16:37:05Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached;\n+\n+import io.opentelemetry.instrumentation.api.semconv.network.NetworkAttributesGetter;\n+import io.opentelemetry.instrumentation.api.semconv.network.ServerAttributesGetter;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+final class SpymemcachedNetworkAttributesGetter\n+    implements ServerAttributesGetter<SpymemcachedRequest>,\n+        NetworkAttributesGetter<SpymemcachedRequest, Object> {",
+      "id": "PRRT_kwDODJKVX85vGUXV",
+      "opened": "2026-02-17T17:09:51Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/SpymemcachedNetworkAttributesGetter.java",
+      "replies": [],
+      "reviewed": "32114461503d3159dbd29de5ab491629920b8548",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2817966658"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe simpler to understand\n```suggestion\n      if (future == null) {\n        listener.done(throwable);\n      } else {\n        handler.addListener(future, listener);\n      }\n```",
+      "created": "2026-02-17T16:41:32Z",
+      "hunk": "@@ -57,135 +58,174 @@ public void transform(TypeTransformer transformer) {\n   public static class AsyncOperationAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class)\n-    public static CallDepth trackCallDepth() {\n-      CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n-      callDepth.getAndIncrement();\n-      return callDepth;\n+    public static AdviceScope<OperationFuture<?>, OperationCompletionListener> methodEnter(\n+        @Advice.This MemcachedClient client, @Advice.Origin(\"#m\") String methodName) {\n+      return AdviceScope.start(AsyncOperationHandler.INSTANCE, client, methodName);\n     }\n \n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n     public static void methodExit(\n-        @Advice.This MemcachedClient client,\n-        @Advice.Origin(\"#m\") String methodName,\n-        @Advice.Return OperationFuture<?> future,\n-        @Advice.Enter CallDepth callDepth) {\n-      if (callDepth.decrementAndGet() > 0) {\n-        return;\n-      }\n-\n-      if (future != null) {\n-        OperationCompletionListener listener =\n-            OperationCompletionListener.create(\n-                currentContext(), client.getConnection(), methodName);\n-        if (listener != null) {\n-          future.addListener(listener);\n-        }\n-      }\n+        @Advice.Return @Nullable OperationFuture<?> future,\n+        @Advice.Thrown @Nullable Throwable thrown,\n+        @Advice.Enter AdviceScope<OperationFuture<?>, OperationCompletionListener> adviceScope) {\n+      adviceScope.end(future, thrown);\n     }\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class AsyncGetAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class)\n-    public static CallDepth trackCallDepth() {\n-      CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n-      callDepth.getAndIncrement();\n-      return callDepth;\n+    public static AdviceScope<GetFuture<?>, GetCompletionListener> methodEnter(\n+        @Advice.This MemcachedClient client, @Advice.Origin(\"#m\") String methodName) {\n+      return AdviceScope.start(AsyncGetHandler.INSTANCE, client, methodName);\n     }\n \n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n     public static void methodExit(\n-        @Advice.This MemcachedClient client,\n-        @Advice.Origin(\"#m\") String methodName,\n-        @Advice.Return GetFuture<?> future,\n-        @Advice.Enter CallDepth callDepth) {\n-      if (callDepth.decrementAndGet() > 0) {\n-        return;\n-      }\n-\n-      if (future != null) {\n-        GetCompletionListener listener =\n-            GetCompletionListener.create(currentContext(), client.getConnection(), methodName);\n-        if (listener != null) {\n-          future.addListener(listener);\n-        }\n-      }\n+        @Advice.Return @Nullable GetFuture<?> future,\n+        @Advice.Thrown @Nullable Throwable thrown,\n+        @Advice.Enter AdviceScope<GetFuture<?>, GetCompletionListener> adviceScope) {\n+      adviceScope.end(future, thrown);\n     }\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class AsyncBulkAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class)\n-    public static CallDepth trackCallDepth() {\n-      CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n-      callDepth.getAndIncrement();\n-      return callDepth;\n+    public static AdviceScope<BulkFuture<?>, BulkGetCompletionListener> methodEnter(\n+        @Advice.This MemcachedClient client, @Advice.Origin(\"#m\") String methodName) {\n+      return AdviceScope.start(AsyncBulkHandler.INSTANCE, client, methodName);\n     }\n \n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n     public static void methodExit(\n-        @Advice.This MemcachedClient client,\n-        @Advice.Origin(\"#m\") String methodName,\n-        @Advice.Return BulkFuture<?> future,\n-        @Advice.Enter CallDepth callDepth) {\n-      if (callDepth.decrementAndGet() > 0) {\n-        return;\n-      }\n-\n-      if (future != null) {\n-        BulkGetCompletionListener listener =\n-            BulkGetCompletionListener.create(currentContext(), client.getConnection(), methodName);\n-        if (listener != null) {\n-          future.addListener(listener);\n-        }\n-      }\n+        @Advice.Return @Nullable BulkFuture<?> future,\n+        @Advice.Thrown @Nullable Throwable thrown,\n+        @Advice.Enter AdviceScope<BulkFuture<?>, BulkGetCompletionListener> adviceScope) {\n+      adviceScope.end(future, thrown);\n     }\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class SyncOperationAdvice {\n \n-    public static class AdviceScope {\n-      private final CallDepth callDepth;\n-      @Nullable private final SyncCompletionListener listener;\n+    @Advice.OnMethodEnter(suppress = Throwable.class)\n+    public static AdviceScope<Void, SyncCompletionListener> methodEnter(\n+        @Advice.This MemcachedClient client, @Advice.Origin(\"#m\") String methodName) {\n+      return AdviceScope.start(SyncHandler.INSTANCE, client, methodName);\n+    }\n \n-      private AdviceScope(CallDepth callDepth, @Nullable SyncCompletionListener listener) {\n-        this.callDepth = callDepth;\n-        this.listener = listener;\n-      }\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n+    public static void methodExit(\n+        @Advice.Thrown @Nullable Throwable thrown,\n+        @Advice.Enter AdviceScope<Void, SyncCompletionListener> adviceScope) {\n+      adviceScope.end(null, thrown);\n+    }\n+  }\n \n-      public static AdviceScope start(MemcachedClient client, String methodName) {\n-        CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n-        if (callDepth.getAndIncrement() > 0) {\n-          return new AdviceScope(callDepth, null);\n-        }\n+  public static class AdviceScope<F, T extends CompletionListener<?>> {\n+    private final CallDepth callDepth;\n+    private final Handler<F, T> handler;\n+    @Nullable private final T listener;\n+    @Nullable private final Scope scope;\n+\n+    private AdviceScope(Handler<F, T> handler, CallDepth callDepth, @Nullable T listener) {\n+      this.handler = handler;\n+      this.callDepth = callDepth;\n+      this.listener = listener;\n+      this.scope = listener != null ? listener.getContext().makeCurrent() : null;\n+    }\n \n-        return new AdviceScope(\n-            callDepth,\n-            SyncCompletionListener.create(Context.current(), client.getConnection(), methodName));\n+    public static <F, T extends CompletionListener<?>> AdviceScope<F, T> start(\n+        Handler<F, T> handler, MemcachedClient client, String methodName) {\n+      CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n+      if (callDepth.getAndIncrement() > 0) {\n+        return new AdviceScope<>(handler, callDepth, null);\n       }\n \n-      public void end(@Nullable Throwable throwable) {\n-        if (callDepth.decrementAndGet() > 0 || listener == null) {\n-          return;\n-        }\n+      return new AdviceScope<>(\n+          handler,\n+          callDepth,\n+          handler.create(Context.current(), client.getConnection(), methodName));\n+    }\n \n+    public void end(@Nullable F future, @Nullable Throwable throwable) {\n+      if (callDepth.decrementAndGet() > 0 || listener == null || scope == null) {\n+        return;\n+      }\n+      scope.close();\n+\n+      if (future == null || throwable != null) {\n         listener.done(throwable);\n       }\n+\n+      if (future != null) {\n+        handler.addListener(future, listener);\n+      }",
+      "id": "PRRT_kwDODJKVX85vGXP8",
+      "opened": "2026-02-17T17:09:51Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/MemcachedClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "32114461503d3159dbd29de5ab491629920b8548",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2817982960"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "looks also handled in SpymemcachedRequest.setHandlingNode(), is needed here too? or just optimization?\n```suggestion\n```",
+      "created": "2026-02-17T16:46:54Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached;\n+\n+import static io.opentelemetry.context.ContextKey.named;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.ImplicitContextKeyed;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import net.spy.memcached.MemcachedNode;\n+\n+public final class SpymemcachedRequestHolder implements ImplicitContextKeyed {\n+\n+  private static final ContextKey<SpymemcachedRequestHolder> KEY =\n+      named(\"opentelemetry-spymemcached-request-holder\");\n+\n+  private final SpymemcachedRequest request;\n+\n+  private SpymemcachedRequestHolder(SpymemcachedRequest request) {\n+    this.request = request;\n+  }\n+\n+  public static Context init(Context context, SpymemcachedRequest request) {\n+    if (context.get(KEY) != null) {\n+      return context;\n+    }\n+    return context.with(new SpymemcachedRequestHolder(request));\n+  }\n+\n+  public static void setHandlingNode(Context context, MemcachedNode node) {\n+    if (node == null) {\n+      return;\n+    }\n+\n+    SocketAddress socketAddress = node.getSocketAddress();\n+    if (!(socketAddress instanceof InetSocketAddress)) {\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX85vGa4O",
+      "opened": "2026-02-17T17:09:51Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/SpymemcachedRequestHolder.java",
+      "replies": [],
+      "reviewed": "32114461503d3159dbd29de5ab491629920b8548",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2818003227"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think(?) can be simplified\n```suggestion\n    public static void onExit(@Advice.Argument(0) MemcachedNode node) {\n      SpymemcachedRequestHolder.setHandlingNode(\n          Java8BytecodeBridge.currentContext(), node);\n```",
+      "created": "2026-02-17T17:07:25Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import net.spy.memcached.ops.Operation;\n+\n+public class MemcachedConnectionInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"net.spy.memcached.MemcachedConnection\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isMethod()\n+            .and(named(\"addOperation\"))\n+            .and(takesArguments(2))\n+            .and(takesArgument(0, named(\"net.spy.memcached.MemcachedNode\")))\n+            .and(takesArgument(1, named(\"net.spy.memcached.ops.Operation\"))),\n+        this.getClass().getName() + \"$AddOperationAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class AddOperationAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class)\n+    public static void onExit(@Advice.Argument(1) Operation operation) {\n+      SpymemcachedRequestHolder.setHandlingNode(\n+          Java8BytecodeBridge.currentContext(), operation.getHandlingNode());",
+      "id": "PRRT_kwDODJKVX85vGsM1",
+      "opened": "2026-02-17T17:09:51Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/MemcachedConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-02-17T18:24:05Z",
+          "body": "Instrumented method doesn't set the node on the operation when the node isn't authenticated (not connected?) and is retried. Reading the node from operation lets us ignore these nodes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2818458131"
+        }
+      ],
+      "reviewed": "32114461503d3159dbd29de5ab491629920b8548",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15242#discussion_r2818094999"
+    }
+  ]
+}

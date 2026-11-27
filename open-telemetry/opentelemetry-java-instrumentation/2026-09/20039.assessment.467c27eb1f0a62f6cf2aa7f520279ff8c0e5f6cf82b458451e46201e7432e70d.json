@@ -1,0 +1,50 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b065228c6be67e450b8960cc1857670e0b4d0a3410ce88982a11125e87f21daf",
+  "input_digest": "467c27eb1f0a62f6cf2aa7f520279ff8c0e5f6cf82b458451e46201e7432e70d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1868fc973e8fc4f082254779e6af012d630181ab/smoke-tests/src/test/java/io/opentelemetry/smoketest/SmokeTestOptions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c1fb42838267ecbd620fe64f29fa02e47ea719/smoke-tests/src/test/java/io/opentelemetry/smoketest/SmokeTestOptions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c1fb42838267ecbd620fe64f29fa02e47ea719/smoke-tests/images/spring-boot/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4675d2bf2fc6554e7e4dee6a99ea2b832db06424"
+      ],
+      "id": "PRRT_kwDODJKVX86gYK36",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1868fc973e8fc4f082254779e6af012d630181ab/smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1868fc973e8fc4f082254779e6af012d630181ab/smoke-tests/src/test/java/io/opentelemetry/smoketest/SmokeTestOptions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c1fb42838267ecbd620fe64f29fa02e47ea719/smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c1fb42838267ecbd620fe64f29fa02e47ea719/smoke-tests/src/test/java/io/opentelemetry/smoketest/SmokeTestOptions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c1fb42838267ecbd620fe64f29fa02e47ea719/smoke-tests/images/spring-boot/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4675d2bf2fc6554e7e4dee6a99ea2b832db06424"
+      ],
+      "id": "PRRT_kwDODJKVX86gYK5V",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/189f07f6c7ff5bee479f66468fe983bc2838530c/smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/189f07f6c7ff5bee479f66468fe983bc2838530c/smoke-tests/src/test/java/io/opentelemetry/smoketest/PrometheusSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c1fb42838267ecbd620fe64f29fa02e47ea719/smoke-tests/src/test/java/io/opentelemetry/smoketest/PrometheusSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/061991410d88b864c7862b0552dda83a3ac11a92"
+      ],
+      "id": "PRRT_kwDODJKVX86gcHQF",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

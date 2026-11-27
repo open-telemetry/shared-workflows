@@ -1,0 +1,121 @@
+{
+  "head": "d556bb9a860c25b23d95e1661ca278d512923e99",
+  "merge": "265b5ea49b8d422b21dc4d3959bed26479c6200f",
+  "merged": "2026-03-13T15:42:41Z",
+  "missing_roots": 0,
+  "number": 16220,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "MDC taking priority over explicit evenName could easily result in setting names on arbitrary logs under the context. \n\nWould it make sense to avoid using otel.event.name from MDC at all (given it's not targeted)?",
+      "created": "2026-02-18T06:59:38Z",
+      "hunk": "@@ -105,15 +106,24 @@ private void captureMdcAttributes(LogRecordBuilder builder) {\n     if (captureAllMdcAttributes) {\n       if (context != null) {\n         for (Map.Entry<String, String> entry : context.entrySet()) {\n-          setAttributeOrEventName(builder, getMdcAttributeKey(entry.getKey()), entry.getValue());\n+          if (!entry.getKey().equals(\"otel.event.name\")) { // handled below\n+            setAttributeOrEventName(builder, getMdcAttributeKey(entry.getKey()), entry.getValue());\n+          }\n         }\n       }\n-      return;\n+    } else {\n+      for (String key : captureMdcAttributes) {\n+        Object value = context.get(key);\n+        setAttributeOrEventName(builder, getMdcAttributeKey(key), value);\n+      }\n     }\n \n-    for (String key : captureMdcAttributes) {\n-      Object value = context.get(key);\n-      setAttributeOrEventName(builder, getMdcAttributeKey(key), value);\n+    // Always capture otel.event.name as event name, taking precedence over event.name\n+    if (context != null) {\n+      String otelEventName = context.get(\"otel.event.name\");",
+      "id": "PRRT_kwDODJKVX85vOGKk",
+      "opened": "2026-02-18T06:59:38Z",
+      "path": "instrumentation/jboss-logmanager/jboss-logmanager-appender-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jbosslogmanager/appender/v1_1/LoggingEventMapper.java",
+      "replies": [],
+      "reviewed": "2c0f440d2b99fa0167905bec705569c3d6eb086d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2820684580"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hilmarf"
+      },
+      "body": "```suggestion\n          \"The capture-event-name setting is deprecated and will be removed in a future version.\");\n```",
+      "created": "2026-02-25T09:20:34Z",
+      "hunk": "@@ -93,6 +99,10 @@ public LogEventMapper(\n     }\n     this.captureContextDataAttributes = captureContextDataAttributes;\n     this.captureEventName = captureEventName;\n+    if (captureEventName) {\n+      logger.warning(\n+          \"The captureEventName setting is deprecated and will be removed in a future version.\");",
+      "id": "PRRT_kwDODJKVX85wnoXN",
+      "opened": "2026-02-25T09:20:34Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/internal/LogEventMapper.java",
+      "replies": [],
+      "reviewed": "12fda96d5180d67fd2bb39660c843174ed797238",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2851805487"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hilmarf"
+      },
+      "body": "```suggestion\n          \"The capture-event-name setting is deprecated and will be removed in a future version.\");\n```",
+      "created": "2026-02-25T09:21:44Z",
+      "hunk": "@@ -106,6 +111,10 @@ private LoggingEventMapper(Builder builder) {\n     this.captureAllMdcAttributes =\n         builder.captureMdcAttributes.size() == 1 && builder.captureMdcAttributes.get(0).equals(\"*\");\n     this.captureEventName = builder.captureEventName;\n+    if (captureEventName) {\n+      logger.warning(\n+          \"The captureEventName setting is deprecated and will be removed in a future version.\");",
+      "id": "PRRT_kwDODJKVX85wnpb4",
+      "opened": "2026-02-25T09:21:44Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/internal/LoggingEventMapper.java",
+      "replies": [],
+      "reviewed": "12fda96d5180d67fd2bb39660c843174ed797238",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2851811227"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Besides key-value pairs and mdc we previously also captured event name from logstash.",
+      "created": "2026-03-10T15:43:25Z",
+      "hunk": "@@ -1,17 +1,19 @@\n # Settings for the Logback Appender instrumentation\n \n-| System property                                                                            | Type    | Default | Description                                                                                                                                                                             |\n-|--------------------------------------------------------------------------------------------|---------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n-| `otel.instrumentation.logback-appender.experimental-log-attributes`                        | Boolean | `false` | Enable the capture of experimental log attributes `thread.name` and `thread.id`.                                                                                                        |\n-| `otel.instrumentation.logback-appender.experimental.capture-code-attributes`               | Boolean | `false` | Enable the capture of [source code attributes]. Note that capturing source code attributes at logging sites might add a performance overhead.                                           |\n-| `otel.instrumentation.logback-appender.experimental.capture-marker-attribute`              | Boolean | `false` | Enable the capture of Logback markers as attributes.                                                                                                                                    |\n-| `otel.instrumentation.logback-appender.experimental.capture-key-value-pair-attributes`     | Boolean | `false` | Enable the capture of Logback key value pairs as attributes.                                                                                                                            |\n-| `otel.instrumentation.logback-appender.experimental.capture-logger-context-attributes`     | Boolean | `false` | Enable the capture of Logback logger context properties as attributes.                                                                                                                  |\n-| `otel.instrumentation.logback-appender.experimental.capture-template`                      | Boolean | `false` | Enable the capture of Logback log event message template (if arguments are provided).                                                                                                   |\n-| `otel.instrumentation.logback-appender.experimental.capture-arguments`                     | Boolean | `false` | Enable the capture of Logback log event arguments.                                                                                                                                      |\n-| `otel.instrumentation.logback-appender.experimental.capture-logstash-marker-attributes`    | Boolean | `false` | Enable the capture of Logstash markers, supported are those added to logs via `Markers.append()`, `Markers.appendEntries()`, `Markers.appendArray()` and `Markers.appendRaw()` methods. |\n-| `otel.instrumentation.logback-appender.experimental.capture-logstash-structured-arguments` | Boolean | `false` | Enable the capture of Logstash StructuredArguments as attributes (e.g., `StructuredArguments.v()` and `StructuredArguments.keyValue()`).                                                |\n-| `otel.instrumentation.logback-appender.experimental.capture-mdc-attributes`                | String  |         | Comma separated list of MDC attributes to capture. Use the wildcard character `*` to capture all attributes.                                                                            |\n-| `otel.instrumentation.logback-appender.experimental.capture-event-name`                    | Boolean | `false` | Enable moving the `event.name` attribute (captured by one of the other mechanisms of capturing attributes) to the log event name.                                                       |\n+| System property                                                                            | Type    | Default | Description                                                                                                                                                                                             |\n+|--------------------------------------------------------------------------------------------|---------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n+| `otel.instrumentation.logback-appender.experimental-log-attributes`                        | Boolean | `false` | Enable the capture of experimental log attributes `thread.name` and `thread.id`.                                                                                                                        |\n+| `otel.instrumentation.logback-appender.experimental.capture-code-attributes`               | Boolean | `false` | Enable the capture of [source code attributes]. Note that capturing source code attributes at logging sites might add a performance overhead.                                                           |\n+| `otel.instrumentation.logback-appender.experimental.capture-marker-attribute`              | Boolean | `false` | Enable the capture of Logback markers as attributes.                                                                                                                                                    |\n+| `otel.instrumentation.logback-appender.experimental.capture-key-value-pair-attributes`     | Boolean | `false` | Enable the capture of Logback key value pairs as attributes.                                                                                                                                            |\n+| `otel.instrumentation.logback-appender.experimental.capture-logger-context-attributes`     | Boolean | `false` | Enable the capture of Logback logger context properties as attributes.                                                                                                                                  |\n+| `otel.instrumentation.logback-appender.experimental.capture-template`                      | Boolean | `false` | Enable the capture of Logback log event message template (if arguments are provided).                                                                                                                   |\n+| `otel.instrumentation.logback-appender.experimental.capture-arguments`                     | Boolean | `false` | Enable the capture of Logback log event arguments.                                                                                                                                                      |\n+| `otel.instrumentation.logback-appender.experimental.capture-logstash-marker-attributes`    | Boolean | `false` | Enable the capture of Logstash markers, supported are those added to logs via `Markers.append()`, `Markers.appendEntries()`, `Markers.appendArray()` and `Markers.appendRaw()` methods.                 |\n+| `otel.instrumentation.logback-appender.experimental.capture-logstash-structured-arguments` | Boolean | `false` | Enable the capture of Logstash StructuredArguments as attributes (e.g., `StructuredArguments.v()` and `StructuredArguments.keyValue()`).                                                                |\n+| `otel.instrumentation.logback-appender.experimental.capture-mdc-attributes`                | String  |         | Comma separated list of MDC attributes to capture. Use the wildcard character `*` to capture all attributes.                                                                                            |\n+| `otel.instrumentation.logback-appender.experimental.capture-event-name`                    | Boolean | `false` | **Deprecated.** Enable moving the `event.name` attribute (captured by one of the other mechanisms of capturing attributes) to the log event name.                                                       |\n+\n+The `otel.event.name` key is supported in key-value pairs (SLF4J 2.x fluent API). When present, its value is used as the log event name and is not emitted as an attribute.",
+      "id": "PRRT_kwDODJKVX85zWErO",
+      "opened": "2026-03-10T15:43:25Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/README.md",
+      "replies": [
+        {
+          "at": "2026-03-10T22:27:58Z",
+          "body": "oh, thanks! added logstash support",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2914838731"
+        }
+      ],
+      "reviewed": "367fffab9463fb7b61939b0353da39a052f4bbe0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2912691735"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "sorry for the reordering in this method, this is why",
+      "created": "2026-03-12T03:47:59Z",
+      "hunk": "@@ -199,35 +199,42 @@ private void mapLoggingEvent(\n       captureMarkerAttribute(builder, loggingEvent, skipLogstashMarkers);\n     }\n \n-    if (supportsKeyValuePairs && captureKeyValuePairAttributes) {\n-      captureKeyValuePairAttributes(builder, loggingEvent);\n+    if (captureTemplate\n+        && loggingEvent.getArgumentArray() != null\n+        && loggingEvent.getArgumentArray().length > 0) {\n+      captureTemplate(builder, loggingEvent);\n     }\n \n-    if (supportsLogstashStructuredArguments\n-        && captureLogstashStructuredArguments\n+    if (captureArguments\n         && loggingEvent.getArgumentArray() != null\n         && loggingEvent.getArgumentArray().length > 0) {\n-      captureLogstashStructuredArguments(builder, loggingEvent.getArgumentArray());\n+      captureArguments(builder, loggingEvent.getArgumentArray());\n     }\n \n+    // Event name priority (last writer wins): KVP > MDC > structured args > logstash markers\n+    // > logger context. Sources are called in ascending priority order.",
+      "id": "PRRT_kwDODJKVX85zwxic",
+      "opened": "2026-03-12T03:47:59Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/internal/LoggingEventMapper.java",
+      "replies": [],
+      "reviewed": "876c9ced45be51056e655a887acf7d9d2a65f17d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2922105045"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider\n`@ValueSource(strings = {\"event.name\", \"otel.event.name\"})`",
+      "created": "2026-03-12T14:27:40Z",
+      "hunk": "@@ -193,17 +192,22 @@ private static void performLogging(\n     }\n   }\n \n-  @Test\n-  void testMdc() {\n+  private static Stream<Arguments> eventNameProperties() {\n+    return Stream.of(Arguments.of(\"event.name\"), Arguments.of(\"otel.event.name\"));\n+  }\n+\n+  @ParameterizedTest\n+  @MethodSource(\"eventNameProperties\")",
+      "id": "PRRT_kwDODJKVX85z5KXc",
+      "opened": "2026-03-12T14:27:39Z",
+      "path": "instrumentation/jboss-logmanager/jboss-logmanager-appender-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jbosslogmanager/appender/v1_1/JbossLogmanagerTest.java",
+      "replies": [],
+      "reviewed": "876c9ced45be51056e655a887acf7d9d2a65f17d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2925054239"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether there is also going to be a semconv constant for this? If so could consider typing it to `AttributeKey<String>`",
+      "created": "2026-03-12T14:42:50Z",
+      "hunk": "@@ -44,6 +43,7 @@ public final class LogEventMapper<T> {\n   // copied from EventIncubatingAttributes\n   private static final AttributeKey<String> EVENT_NAME = AttributeKey.stringKey(\"event.name\");\n \n+  private static final String OTEL_EVENT_NAME_KEY = \"otel.event.name\";",
+      "id": "PRRT_kwDODJKVX85z5ccg",
+      "opened": "2026-03-12T14:42:50Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/internal/LogEventMapper.java",
+      "replies": [],
+      "reviewed": "876c9ced45be51056e655a887acf7d9d2a65f17d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16220#discussion_r2925151757"
+    }
+  ]
+}

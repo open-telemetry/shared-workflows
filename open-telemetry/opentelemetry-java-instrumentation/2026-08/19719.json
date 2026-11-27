@@ -1,0 +1,25 @@
+{
+  "head": "abd21c9fbd946668d47391a56c5ec60b50c422ab",
+  "merge": "1035b5ba36cd6fc1e81d6688c0f4306e708d9435",
+  "merged": "2026-08-20T20:04:46Z",
+  "missing_roots": 0,
+  "number": 19719,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This treats every removed line as irrelevant, so a PR that only deletes an entry from `## Unreleased` gets `changes_unreleased=False` and is classified again from its runtime changes. That can reintroduce a release note the contributor deliberately removed. Please detect deletions against the parent version's Unreleased bounds as well (and add a deletion-only regression case).",
+      "created": "2026-08-20T03:48:41Z",
+      "hunk": "@@ -261,6 +262,56 @@ def count_deprecated_deltas(commit_hash: str) -> tuple[int, int]:\n     return added_count, removed_count\n \n \n+def patch_adds_lines_in_range(patch: str, start_line: int, end_line: int) -> bool:\n+    new_line: int | None = None\n+    for line in patch.splitlines():\n+        hunk = re.match(r\"^@@ -\\d+(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@\", line)\n+        if hunk is not None:\n+            new_line = int(hunk.group(1))\n+            continue\n+        if new_line is None:\n+            continue\n+        if line.startswith(\"+\") and not line.startswith(\"+++\"):\n+            if start_line <= new_line < end_line:\n+                return True\n+            new_line += 1\n+        elif line.startswith(\"-\") and not line.startswith(\"---\"):\n+            continue",
+      "id": "PRRT_kwDODJKVX86arss0",
+      "opened": "2026-08-20T03:48:42Z",
+      "path": ".github/scripts/draft-release-notes/fetch.py",
+      "replies": [],
+      "reviewed": "bff049804e03b7d127ac51ff06e0a79f8f6a1029",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19719#discussion_r3818467652"
+    }
+  ]
+}

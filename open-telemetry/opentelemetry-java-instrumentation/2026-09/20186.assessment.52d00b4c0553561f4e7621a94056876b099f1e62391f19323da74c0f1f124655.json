@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e653280559f0fbf8cad9a5e90fc09e3ff3a32906d97996da32adb9695f4a831c",
+  "input_digest": "52d00b4c0553561f4e7621a94056876b099f1e62391f19323da74c0f1f124655",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b078523bf6e8ece8178933492376e39ec8161e37/instrumentation/helidon-4.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/585b2718e295c7ff5ae7b459d20c45a5f69c357e/instrumentation/helidon-4.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/585b2718e295c7ff5ae7b459d20c45a5f69c357e/.github/workflows/reusable-test-latest-deps.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/54327af3f1402eb3c21a024af9030624465b2cd6"
+      ],
+      "id": "PRRT_kwDODJKVX86lcKcP",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b078523bf6e8ece8178933492376e39ec8161e37/instrumentation/helidon-4.3/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/585b2718e295c7ff5ae7b459d20c45a5f69c357e/instrumentation/helidon-4.3/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/54327af3f1402eb3c21a024af9030624465b2cd6"
+      ],
+      "id": "PRRT_kwDODJKVX86lcKcY",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

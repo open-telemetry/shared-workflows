@@ -1,0 +1,46 @@
+{
+  "head": "17d63fc29a2040f63efef92eddca4eca57698b20",
+  "merge": "8060510c61be78d88bfc1d4811072462cd2e37a9",
+  "merged": "2026-07-17T15:45:05Z",
+  "missing_roots": 0,
+  "number": 19236,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "these are from #19192 where we stopped running the connection-telemetry tests by default, and these peer.service attributes only exist on the connect span.\n\n I am working on a PR to add connect specific suites to collection",
+      "created": "2026-07-17T10:21:04Z",
+      "hunk": "@@ -10716,8 +10799,6 @@ libraries:\n         type: STRING\n       - name: db.system\n         type: STRING\n-      - name: peer.service\n-        type: STRING",
+      "id": "PRRT_kwDODJKVX86Ru0YA",
+      "opened": "2026-07-17T10:21:03Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-07-17T10:41:01Z",
+          "body": "#19261",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19236#discussion_r3602467666"
+        }
+      ],
+      "reviewed": "21b98b9eefbe11e94f4656e4cc7e0a48dd59fb3f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19236#discussion_r3602343681"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "created #19262 to investigate and address this churn",
+      "created": "2026-07-17T10:35:55Z",
+      "hunk": "@@ -16081,16 +16176,6 @@ libraries:\n       data_type: DOUBLE_SUM\n       unit: s\n       attributes: []\n-    - name: jvm.gc.duration",
+      "id": "PRRT_kwDODJKVX86RvEwp",
+      "opened": "2026-07-17T10:35:55Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "21b98b9eefbe11e94f4656e4cc7e0a48dd59fb3f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19236#discussion_r3602438088"
+    }
+  ]
+}

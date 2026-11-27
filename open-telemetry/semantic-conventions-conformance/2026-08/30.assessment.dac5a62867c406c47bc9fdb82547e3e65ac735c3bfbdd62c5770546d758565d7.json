@@ -1,0 +1,105 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1c2b9d7dc664ffa1a2ee0b01e1976361ea862e10e3a93bd845ec8d68a00f74ce",
+  "input_digest": "dac5a62867c406c47bc9fdb82547e3e65ac735c3bfbdd62c5770546d758565d7",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/095ef2f57745df276bf0acc43af12b56956bef7b/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/65ebaeaee280352810b02f6b73bc8517d84bde86"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YGXkG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/095ef2f57745df276bf0acc43af12b56956bef7b/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YGYlQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_at_or_before_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/095ef2f57745df276bf0acc43af12b56956bef7b/tools/runner/src/opentelemetry/conformance/_report.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/runner/src/opentelemetry/conformance/_report.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/65ebaeaee280352810b02f6b73bc8517d84bde86"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YGdSr",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/095ef2f57745df276bf0acc43af12b56956bef7b/tools/runner/src/opentelemetry/conformance/_spec.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/runner/src/opentelemetry/conformance/_spec.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/6e483e35df6640bf98070201eb008a4e4deffbcc"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YGdS0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/095ef2f57745df276bf0acc43af12b56956bef7b/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YGdTD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6e483e35df6640bf98070201eb008a4e4deffbcc/tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/16b3e29fb89781b649b977f3d52ddb36c42f4ce2"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YRCSM",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6e483e35df6640bf98070201eb008a4e4deffbcc/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/16b3e29fb89781b649b977f3d52ddb36c42f4ce2"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YRCSZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6e483e35df6640bf98070201eb008a4e4deffbcc/tools/gen-ai/runner/src/genai_conformance/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6e483e35df6640bf98070201eb008a4e4deffbcc/tools/runner/src/opentelemetry/conformance/_domain.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/gen-ai/runner/src/genai_conformance/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fd064106289c7fcf16b25dea2f889be1fd9150bf/tools/runner/src/opentelemetry/conformance/_domain.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/16b3e29fb89781b649b977f3d52ddb36c42f4ce2"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YRCSh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

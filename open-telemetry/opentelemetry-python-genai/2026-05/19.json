@@ -1,0 +1,72 @@
+{
+  "head": "00cb2bd7bf6bf61202fa149c92d2835ef1393b68",
+  "merge": "7018efcf8075b333922549287b183abce0f0eb93",
+  "merged": "2026-05-18T22:29:32Z",
+  "missing_roots": 0,
+  "number": 19,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "should this file be config.yaml ??",
+      "created": "2026-05-15T15:16:15Z",
+      "hunk": "@@ -0,0 +1,4 @@\n+contact_links:",
+      "id": "PRRT_kwDOSbspP86CZjSD",
+      "opened": "2026-05-15T15:16:15Z",
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "replies": [
+        {
+          "at": "2026-05-18T14:37:41Z",
+          "body": "Issue and PR templates can be yml or yaml, either is fine 👍🏻 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/19#discussion_r3259745155"
+        }
+      ],
+      "reviewed": "dee67715c01fc10f93f10f8ebb66c3f600a0e5d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/19#discussion_r3249160677"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "Can we make this label something anyone can apply ? I remember in the other repo I couldn't apply it which was annoying..",
+      "created": "2026-05-15T15:17:21Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+# Description\n+\n+Please include a summary of the change and which issue, if any, is fixed.\n+Include the motivation and context for the change.\n+\n+Fixes # (issue)\n+\n+## Type of change\n+\n+Please delete options that are not relevant.\n+\n+- [ ] Bug fix (non-breaking change which fixes an issue)\n+- [ ] New feature (non-breaking change which adds functionality)\n+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)\n+- [ ] This change requires a documentation update\n+\n+# How has this been tested?\n+\n+Please describe the tests that you ran to verify your changes. Provide\n+instructions so we can reproduce. List any relevant details for your test\n+configuration.\n+\n+- [ ] Test A\n+\n+# Checklist\n+\n+See [CONTRIBUTING.md](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md)\n+for the style guide, changelog guidance, and more.\n+\n+- [ ] Followed the style guidelines of this project\n+- [ ] Changelog updated (or `Skip Changelog` label applied if no entry is needed)",
+      "id": "PRRT_kwDOSbspP86CZkn8",
+      "opened": "2026-05-15T15:17:21Z",
+      "path": ".github/pull_request_template.md",
+      "replies": [
+        {
+          "at": "2026-05-18T13:49:26Z",
+          "body": "You need elevated permissions to apply labels to issues / PRs. We could look at adding a workflow that can add them on behalf of users. Other OTel repos do that based on a comment like \"/label {label_name} -{label_name}\".",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/19#discussion_r3259408461"
+        },
+        {
+          "at": "2026-05-18T14:19:23Z",
+          "body": "to avoid confusion for contributors trying to add the label?\n\n```suggestion\n- [ ] Changelog updated if the change requires an entry\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/19#discussion_r3259609812"
+        }
+      ],
+      "reviewed": "dee67715c01fc10f93f10f8ebb66c3f600a0e5d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/19#discussion_r3249168168"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      label: Would you like to implement it?\n```",
+      "created": "2026-05-18T14:15:34Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+---\n+name: Feature Request\n+description: Suggest an idea for this project\n+labels: [enhancement]\n+body:\n+  - type: markdown\n+    attributes:\n+      value: |\n+        Before opening a feature request against this repo, consider whether the feature should/could be implemented in the [OpenTelemetry specification](https://github.com/open-telemetry/opentelemetry-specification) or [GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions/tree/main/docs/gen-ai). If so, please open an issue there first.\n+  - type: textarea\n+    id: related-problem\n+    attributes:\n+      label: What problem do you want to solve?\n+      description: Is your feature request related to a problem? If so, provide a concise description of the problem.\n+      placeholder: Describe the problem and include relevant issue IDs\n+    validations:\n+      required: true\n+  - type: textarea\n+    id: solution\n+    attributes:\n+      label: Describe the solution you'd like\n+      description: What do you want to happen instead? What is the expected behavior?\n+      placeholder: I'd like to ...\n+    validations:\n+      required: true\n+  - type: textarea\n+    id: alternatives\n+    attributes:\n+      label: Describe alternatives you've considered\n+      description: Which alternative solutions or features have you considered?\n+      placeholder: Some potential solutions\n+    validations:\n+      required: false\n+  - type: textarea\n+    id: additional-context\n+    attributes:\n+      label: Additional Context\n+      description: Add any other context about the feature request here.\n+      placeholder: Some related requests in other projects or upstream spec proposals.\n+    validations:\n+      required: false\n+  - type: dropdown\n+    id: contribute\n+    attributes:\n+      label: Would you like to implement a fix?",
+      "id": "PRRT_kwDOSbspP86C3Hyd",
+      "opened": "2026-05-18T14:19:23Z",
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yaml",
+      "replies": [],
+      "reviewed": "dee67715c01fc10f93f10f8ebb66c3f600a0e5d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/19#discussion_r3259585378"
+    }
+  ]
+}

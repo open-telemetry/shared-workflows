@@ -1,0 +1,40 @@
+{
+  "head": "967c9f8c665f19d0518e663beb69be2074f95d80",
+  "merge": "992e8fa2f593d3a94a05a3267de46b68dd8907a2",
+  "merged": "2026-05-11T14:53:08Z",
+  "missing_roots": 0,
+  "number": 18665,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The InputStream argument is never closed. Since `openClasspathResource(...)` returns a live stream, each test invocation can leak a resource/handle. Prefer passing the resource name (String) via the MethodSource and opening it inside the test (or closing `input` with try-with-resources inside the manifest supplier) so the stream is always closed.",
+      "created": "2026-05-09T18:32:20Z",
+      "hunk": "@@ -7,71 +7,54 @@\n \n import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;\n import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_VERSION;\n-import static java.util.stream.Collectors.toList;\n import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.params.provider.Arguments.arguments;\n \n import io.opentelemetry.sdk.resources.Resource;\n import java.io.IOException;\n import java.io.InputStream;\n-import java.util.Collection;\n import java.util.Optional;\n import java.util.jar.Manifest;\n import java.util.stream.Stream;\n-import org.junit.jupiter.api.DynamicTest;\n-import org.junit.jupiter.api.TestFactory;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n \n class ManifestResourceExtractorTest {\n \n-  private static class TestCase {\n-    private final String name;\n-    private final String expectedName;\n-    private final String expectedVersion;\n-    private final InputStream input;\n-\n-    TestCase(String name, String expectedName, String expectedVersion, InputStream input) {\n-      this.name = name;\n-      this.expectedName = expectedName;\n-      this.expectedVersion = expectedVersion;\n-      this.input = input;\n-    }\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"extractResourceCases\")\n+  void extractResource(\n+      String name, String expectedName, String expectedVersion, InputStream input) {\n+    Resource resource =\n+        new ManifestResourceExtractor(\n+                new MainJarPathFinder(\n+                    () -> JarServiceNameResourceExtractorTest.getArgs(\"app.jar\"),\n+                    prop -> null,\n+                    JarServiceNameResourceExtractorTest::failPath),\n+                p -> {\n+                  if (input == null) {\n+                    return Optional.empty();\n+                  }\n+                  try {\n+                    Manifest manifest = new Manifest();\n+                    manifest.read(input);\n+                    return Optional.of(manifest);\n+                  } catch (IOException ignored) {\n+                    return Optional.empty();\n+                  }\n+                })",
+      "id": "PRRT_kwDODJKVX86A2A6M",
+      "opened": "2026-05-09T18:32:20Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/internal/ManifestResourceExtractorTest.java",
+      "replies": [],
+      "reviewed": "1de97ac3f9713cbdf64b1516c17cbd6f9e3710b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18665#discussion_r3213685727"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`PROVIDER_CLASS_NAME` is hard-coded as a binary class name string (including `$Provider`). This is brittle on refactors/relocations and can silently get out of sync with the nested `Provider` class. Prefer deriving it from the class (e.g., `Provider.class.getName()`) where it’s used in the argument rows.\n",
+      "created": "2026-05-09T20:13:48Z",
+      "hunk": "@@ -22,99 +23,70 @@\n import java.util.stream.Stream;\n import javax.annotation.Nullable;\n import org.assertj.core.util.Strings;\n-import org.junit.jupiter.api.DynamicTest;\n-import org.junit.jupiter.api.TestFactory;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n \n class ResourceProviderPropertiesCustomizerTest {\n \n+  private static final String PROVIDER_CLASS_NAME =\n+      \"io.opentelemetry.instrumentation.resources.internal.ResourceProviderPropertiesCustomizerTest$Provider\";",
+      "id": "PRRT_kwDODJKVX86A2bzT",
+      "opened": "2026-05-09T20:13:48Z",
+      "path": "sdk-autoconfigure-support/src/test/java/io/opentelemetry/instrumentation/resources/internal/ResourceProviderPropertiesCustomizerTest.java",
+      "replies": [],
+      "reviewed": "aa904fb3e9ab9f81ca16f47f1edb50cdf990f7be",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18665#discussion_r3213830196"
+    }
+  ]
+}

@@ -1,0 +1,342 @@
+{
+  "head": "06c9712871de3518b2f2f7025a89029586d62513",
+  "merge": "8a4225b59a854e6d0b414297d8c4e91cf28fe856",
+  "merged": "2026-05-04T02:24:58Z",
+  "missing_roots": 0,
+  "number": 17867,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] Method name / annotation mismatch: this method is annotated `@Advice.OnMethodExit` but named `onEnter`. Looks like a copy-paste from the other advices; rename to `onExit` to match the annotation (the repo style explicitly flags this as a copy-paste bug pattern).\n\n```suggestion\n    public static PartialFunction<Throwable, BoxedUnit> onExit(\n```",
+      "created": "2026-04-25T21:17:29Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import scala.PartialFunction;\n+import scala.runtime.BoxedUnit;\n+\n+/**\n+ * Inspired by Kamon's approach, instruments the interruptible such that it has access to the\n+ * Context active on the Promise.\n+ */\n+class PromiseInterruptibleInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.twitter.util.Promise$Interruptible\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$ConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    @Advice.AssignReturned.ToArguments(@ToArgument(1))\n+    public static PartialFunction<Throwable, BoxedUnit> onEnter(",
+      "id": "PRRT_kwDODJKVX859nTc-",
+      "opened": "2026-04-25T21:21:03Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/PromiseInterruptibleInstrumentation.java",
+      "replies": [],
+      "reviewed": "b578a13c13e41b7e63eaa28376e7d8977725e1fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3142581922"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] This `throw` is inside a netty `ChannelInboundHandlerAdapter.channelRead(...)` that we install ourselves into the user's pipeline. Unlike the throws inside advice methods, this is not wrapped by ByteBuddy `suppress = Throwable.class` — it propagates straight back through netty and into the application. Per the javaagent rule \"never throw exceptions in javaagent code\", drop the throw (the comments above already note this branch shouldn't be reachable). Either log at FINE and continue, or just fall through to `super.channelRead(ctx, msg)`.",
+      "created": "2026-04-25T21:17:29Z",
+      "hunk": "@@ -99,12 +119,76 @@ protected void initChannel(C channel) throws Exception {\n                 .pipeline()\n                 .addAfter(codecCtx.name(), ourHandler.getClass().getName(), ourHandler);\n             // attach this in this way to match up with how netty instrumentation expects things\n-            CHANNEL_HANDLER.set(codecCtx.handler(), ourHandler);\n+            VirtualFieldHelper.CHANNEL_HANDLER.set(codecCtx.handler(), ourHandler);\n           }\n         }\n       }\n     };\n   }\n \n-  private Helpers() {}\n+  /*\n+  Part 1/3 of bridging the otel Context from netty to finagle (for h2).\n+   */\n+  public static void mutateHandlerPipeline(Channel ch) {\n+    ChannelHandler h1Handler = ch.pipeline().get(Netty4HttpPackageHelpers.getHttpCodecName());\n+    Http2StreamMessageHandler h2Handler = ch.pipeline().get(Http2StreamMessageHandler.class);\n+\n+    // h1 server handler || h2 server handler;\n+    // private class on a semi-private type -- not bothering to extract that any other way\n+    if (h1Handler instanceof HttpServerCodec\n+        || (h2Handler != null\n+            && h2Handler\n+                .getClass()\n+                .getName()\n+                .equals(\n+                    \"com.twitter.finagle.http2.transport.common.Http2StreamMessageHandler$ServerHttp2StreamMessageHandler\"))) {\n+      // ensure we capture the server context and assign it to the outgoing request before offering\n+      // to the AsyncQueue;\n+      // not applicable to clients\n+      ch.pipeline()\n+          .addBefore(\n+              ChannelTransportHelpers.getHandlerName(),\n+              OTEL_NETTY_HANDLER,\n+              new ChannelInboundHandlerAdapter() {\n+                /*\n+                Assign the context to the request.\n+\n+                Part 1/3 for chaining the context from netty to finagle.\n+                 */\n+                @Override\n+                public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {\n+                  // type switch courtesy of\n+                  // com.twitter.finagle.netty4.http.Netty4ServerStreamTransport.read()\n+                  if (msg instanceof FullHttpRequest) {\n+                    FULL_HTTP_REQUEST_CONTEXT.set((FullHttpRequest) msg, Context.current());\n+                  } else if (msg instanceof HttpRequest) {\n+                    HTTP_REQUEST_CONTEXT.set((HttpRequest) msg, Context.current());\n+                  } else {\n+                    throw new IllegalArgumentException(\"unexpected request type: \" + msg);\n+                  }",
+      "id": "PRRT_kwDODJKVX859nTdC",
+      "opened": "2026-04-25T21:21:03Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/Helpers.java",
+      "replies": [],
+      "reviewed": "b578a13c13e41b7e63eaa28376e7d8977725e1fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3142581927"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] Same pattern: a helper called from advice should not throw. The advice that calls this method has `suppress = Throwable.class`, so the IAE is swallowed at runtime, but it still corrupts the request flow silently for any future caller that doesn't suppress. The comment above already says \"shouldn't practically reach here\" — prefer returning without setting the context (and optionally logging at FINE) instead of throwing.",
+      "created": "2026-04-25T21:17:29Z",
+      "hunk": "@@ -99,12 +119,76 @@ protected void initChannel(C channel) throws Exception {\n                 .pipeline()\n                 .addAfter(codecCtx.name(), ourHandler.getClass().getName(), ourHandler);\n             // attach this in this way to match up with how netty instrumentation expects things\n-            CHANNEL_HANDLER.set(codecCtx.handler(), ourHandler);\n+            VirtualFieldHelper.CHANNEL_HANDLER.set(codecCtx.handler(), ourHandler);\n           }\n         }\n       }\n     };\n   }\n \n-  private Helpers() {}\n+  /*\n+  Part 1/3 of bridging the otel Context from netty to finagle (for h2).\n+   */\n+  public static void mutateHandlerPipeline(Channel ch) {\n+    ChannelHandler h1Handler = ch.pipeline().get(Netty4HttpPackageHelpers.getHttpCodecName());\n+    Http2StreamMessageHandler h2Handler = ch.pipeline().get(Http2StreamMessageHandler.class);\n+\n+    // h1 server handler || h2 server handler;\n+    // private class on a semi-private type -- not bothering to extract that any other way\n+    if (h1Handler instanceof HttpServerCodec\n+        || (h2Handler != null\n+            && h2Handler\n+                .getClass()\n+                .getName()\n+                .equals(\n+                    \"com.twitter.finagle.http2.transport.common.Http2StreamMessageHandler$ServerHttp2StreamMessageHandler\"))) {\n+      // ensure we capture the server context and assign it to the outgoing request before offering\n+      // to the AsyncQueue;\n+      // not applicable to clients\n+      ch.pipeline()\n+          .addBefore(\n+              ChannelTransportHelpers.getHandlerName(),\n+              OTEL_NETTY_HANDLER,\n+              new ChannelInboundHandlerAdapter() {\n+                /*\n+                Assign the context to the request.\n+\n+                Part 1/3 for chaining the context from netty to finagle.\n+                 */\n+                @Override\n+                public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {\n+                  // type switch courtesy of\n+                  // com.twitter.finagle.netty4.http.Netty4ServerStreamTransport.read()\n+                  if (msg instanceof FullHttpRequest) {\n+                    FULL_HTTP_REQUEST_CONTEXT.set((FullHttpRequest) msg, Context.current());\n+                  } else if (msg instanceof HttpRequest) {\n+                    HTTP_REQUEST_CONTEXT.set((HttpRequest) msg, Context.current());\n+                  } else {\n+                    throw new IllegalArgumentException(\"unexpected request type: \" + msg);\n+                  }\n+\n+                  super.channelRead(ctx, msg);\n+                }\n+              });\n+    }\n+  }\n+\n+  /*\n+  Part 2/3 of bridging the otel Context from netty to finagle.\n+   */\n+  public static void chainContextToFinagle(Object msg, Request request) {\n+    Context context;\n+    // type switch courtesy of com.twitter.finagle.netty4.http.Netty4ServerStreamTransport.read()\n+    if (msg instanceof FullHttpRequest) {\n+      context = FULL_HTTP_REQUEST_CONTEXT.get((FullHttpRequest) msg);\n+    } else if (msg instanceof HttpRequest) {\n+      context = HTTP_REQUEST_CONTEXT.get((HttpRequest) msg);\n+    } else {\n+      // shouldn't practically reach here\n+      throw new IllegalArgumentException(\"unexpected request type: \" + msg);\n+    }",
+      "id": "PRRT_kwDODJKVX859nTdD",
+      "opened": "2026-04-25T21:21:03Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/Helpers.java",
+      "replies": [],
+      "reviewed": "b578a13c13e41b7e63eaa28376e7d8977725e1fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3142581928"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] `ApplyAdvice` will NPE if `PROMISE_K_CONTEXT_FIELD.get(thiz)` returns `null` (e.g. because `Promise$Transformer` was constructed via a constructor not matched by `TrapContextAdvice`, or the virtual field is not set yet during early class loading). The throw is suppressed by `suppress = Throwable.class`, but it disables instrumentation on that promise and produces noise. Two small fixes:\n- mark `onApplyEnter`'s return and the `@Advice.Enter Scope` parameter on `onApplyExit` as `@Nullable`, return `null` when `savedContext == null`, and null-guard `scope.close()` in `onApplyExit`.\n- this also matches the pattern already used in `GenStreamingServerDispatcherInstrumentation.DispatchAdvice`.",
+      "created": "2026-04-25T21:17:29Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import com.twitter.util.Promise;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the Promise state machine so that all chains in the Futures/Fibers are\n+ * otel-Context-coherent.\n+ */\n+class PromiseKInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    // includes Transformer's two lone derivatives\n+    return named(\"com.twitter.util.Promise$Transformer\")\n+        .or(named(\"com.twitter.util.Promise$Monitored\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(0, named(\"com.twitter.util.Local$Context\"))),\n+        getClass().getName() + \"$TrapContextAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isMethod().and(named(\"apply\").and(takesArgument(0, named(\"com.twitter.util.Try\")))),\n+        getClass().getName() + \"$ApplyAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class TrapContextAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.This Promise.K thiz) {\n+      Context current = Context.current();\n+      TwitterUtilCoreHelpers.PROMISE_K_CONTEXT_FIELD.set(thiz, current);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ApplyAdvice {\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Scope onApplyEnter(@Advice.This Promise.K thiz) {\n+      // if this is null, there's a bug in the instrumentation\n+      Context savedContext = TwitterUtilCoreHelpers.PROMISE_K_CONTEXT_FIELD.get(thiz);\n+      return savedContext.makeCurrent();\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void onApplyExit(@Advice.Enter Scope scope) {\n+      scope.close();\n+    }",
+      "id": "PRRT_kwDODJKVX859nTdG",
+      "opened": "2026-04-25T21:21:03Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/PromiseKInstrumentation.java",
+      "replies": [],
+      "reviewed": "b578a13c13e41b7e63eaa28376e7d8977725e1fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3142581931"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] `methodEnter` can return `null` (the `req instanceof Request` branch is taken or `request.ctx().apply(...)` returns `null` when the bridging instrumentation hasn't run for this request). The exit advice already handles a `null` `Scope`, so just add `@Nullable` (and the corresponding import) on the return type here and on the `@Advice.Enter Scope scope` parameter in `methodExit` for accuracy and consistency with the rest of this PR. Also worth null-guarding `context.makeCurrent()` defensively (`return context == null ? null : context.makeCurrent();`) — the comment says it shouldn't be null, but if it ever is, the suppressed NPE silently breaks request propagation.",
+      "created": "2026-04-25T21:17:29Z",
+      "hunk": "@@ -29,28 +37,29 @@ public ElementMatcher<ClassLoader> classLoaderOptimization() {\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(named(\"loop\"), getClass().getName() + \"$LoopAdvice\");\n+    transformer.applyAdviceToMethod(named(\"dispatch\"), getClass().getName() + \"$DispatchAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class LoopAdvice {\n+  public static class DispatchAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void methodEnter() {\n-      // this works bc at this point in the server evaluation, the netty\n-      // instrumentation has already gone to work and assigned the context to the\n-      // local thread;\n-      //\n-      // this works specifically in finagle's netty stack bc at this point the loop()\n-      // method is running on a netty thread with the necessary access to the\n-      // java-native ThreadLocal where the Context is stored\n-      Helpers.contextLocal().update(Context.current());\n+    public static Scope methodEnter(@Advice.Argument(0) Object req) {\n+      if (req instanceof Request) {\n+        // practically this will always be a Request, from HttpServerDispatcher\n+        Request request = (Request) req;\n+        // if this is null, there's a bug in the instrumentation\n+        Context context = request.ctx().apply(Helpers.OTEL_CONTEXT_KEY);\n+        return context.makeCurrent();\n+      }\n+      return null;\n     }",
+      "id": "PRRT_kwDODJKVX859nTdI",
+      "opened": "2026-04-25T21:21:03Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/GenStreamingServerDispatcherInstrumentation.java",
+      "replies": [],
+      "reviewed": "b578a13c13e41b7e63eaa28376e7d8977725e1fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3142581933"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `OTEL_NETTY_HANDLER` is only referenced inside this class (used as the handler name in `mutateHandlerPipeline`). Prefer `private` over `public` for visibility — minimal-necessary-visibility per the style guide.\n\n```suggestion\n  private static final String OTEL_NETTY_HANDLER = \"otelFinagleNettyHandler\";\n```",
+      "created": "2026-04-25T21:17:30Z",
+      "hunk": "@@ -8,31 +8,48 @@\n import static io.opentelemetry.instrumentation.netty.v4_1.internal.client.HttpClientRequestTracingHandler.HTTP_CLIENT_REQUEST;\n import static io.opentelemetry.javaagent.instrumentation.netty.v4_1.NettyClientSingletons.clientHandlerFactory;\n \n-import com.twitter.util.Local;\n+import com.twitter.finagle.ChannelTransportHelpers;\n+import com.twitter.finagle.Netty4HttpPackageHelpers;\n+import com.twitter.finagle.http.Request;\n+import com.twitter.finagle.http.Request$;\n+import com.twitter.finagle.http.collection.RecordSchema;\n+import com.twitter.finagle.http2.transport.common.Http2StreamMessageHandler;\n import io.netty.channel.Channel;\n import io.netty.channel.ChannelHandler;\n import io.netty.channel.ChannelHandlerContext;\n+import io.netty.channel.ChannelInboundHandlerAdapter;\n import io.netty.channel.ChannelInitializer;\n import io.netty.channel.OpenTelemetryChannelInitializerDelegate;\n+import io.netty.handler.codec.http.FullHttpRequest;\n+import io.netty.handler.codec.http.HttpRequest;\n+import io.netty.handler.codec.http.HttpServerCodec;\n import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec;\n import io.opentelemetry.context.Context;\n import io.opentelemetry.instrumentation.api.util.VirtualField;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.AttributeKeys;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.ServerContexts;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.client.HttpClientTracingHandler;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.server.HttpServerTracingHandler;\n+import io.opentelemetry.javaagent.instrumentation.netty.common.v4_0.VirtualFieldHelper;\n import io.opentelemetry.javaagent.instrumentation.netty.v4_1.NettyServerSingletons;\n \n public class Helpers {\n \n-  private static final VirtualField<ChannelHandler, ChannelHandler> CHANNEL_HANDLER =\n-      VirtualField.find(ChannelHandler.class, ChannelHandler.class);\n-  private static final Local<Context> contextLocal = new Local<>();\n+  private static final VirtualField<FullHttpRequest, Context> FULL_HTTP_REQUEST_CONTEXT =\n+      VirtualField.find(FullHttpRequest.class, Context.class);\n+  private static final VirtualField<HttpRequest, Context> HTTP_REQUEST_CONTEXT =\n+      VirtualField.find(HttpRequest.class, Context.class);\n \n-  public static Local<Context> contextLocal() {\n-    return contextLocal;\n-  }\n+  public static final RecordSchema.Field<Context> OTEL_CONTEXT_KEY =\n+      Request$.MODULE$.Schema().newField();\n+\n+  public static final String OTEL_NETTY_HANDLER = \"otelFinagleNettyHandler\";",
+      "id": "PRRT_kwDODJKVX859nTdK",
+      "opened": "2026-04-25T21:21:03Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/Helpers.java",
+      "replies": [],
+      "reviewed": "b578a13c13e41b7e63eaa28376e7d8977725e1fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3142581935"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "check out the `compile-stub` pattern for cases like this — see [writing-instrumentation.md](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/contributing/writing-instrumentation.md#instrumenting-code-that-is-not-available-as-a-maven-dependency) (the doc focuses on missing Maven artifacts, but the same mechanism should handle inaccessible/package-private types like `Promise.K`). Existing examples: [`liberty/compile-stub`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/liberty/compile-stub), [`internal-class-loader/compile-stub`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/internal/internal-class-loader/compile-stub).\n\nSuggested:\n\n- Move `Promise.java` into a new sibling module `instrumentation/finagle-http-23.11/compile-stub/` at `src/main/java/com/twitter/util/Promise.java`.\n- In `javaagent/build.gradle.kts`, replace the `tasks.withType<Jar>().configureEach { exclude(...) }` block with:\n  ```kotlin\n  compileOnly(project(\":instrumentation:finagle-http-23.11:compile-stub\"))",
+      "created": "2026-04-29T20:37:19Z",
+      "hunk": "@@ -32,14 +32,23 @@ dependencies {\n \n   library(\"${scalified(\"com.twitter:finagle-http\")}:$finagleVersion\")\n \n-  // should wire netty contexts\n   testInstrumentation(project(\":instrumentation:netty:netty-4.1:javaagent\"))\n \n   implementation(project(\":instrumentation:netty:netty-4.1:javaagent\"))\n   implementation(project(\":instrumentation:netty:netty-4.1:library\"))\n+  implementation(project(\":instrumentation:netty:netty-common-4.0:javaagent\"))\n   implementation(project(\":instrumentation:netty:netty-common-4.0:library\"))\n }\n \n+tasks.withType<Jar>().configureEach {\n+  // Exclude the Promise stub and its nested classes;\n+  // this allows us to compile against these types in the instrumentation\n+  // despite them being private in their original inner class;\n+  // this is required for VirtualField to have a concrete type to find/get/set on.\n+  exclude(\"com/twitter/util/Promise.class\")\n+  exclude(\"com/twitter/util/Promise$*.class\")\n+}",
+      "id": "PRRT_kwDODJKVX85-j_Dd",
+      "opened": "2026-04-29T20:50:38Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-04-30T15:58:40Z",
+          "body": "This is much cleaner. I hadn't seen the pattern before.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3169225384"
+        }
+      ],
+      "reviewed": "6911464b9957e47cb940ca9df8659792d17760a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3164012780"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        // Return true only for inputs this function handles\n```",
+      "created": "2026-04-29T20:38:08Z",
+      "hunk": "@@ -0,0 +1,68 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import com.twitter.util.Promise;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import scala.Function0;\n+import scala.Function1;\n+import scala.PartialFunction;\n+import scala.runtime.AbstractPartialFunction;\n+import scala.runtime.BoxedUnit;\n+\n+public class TwitterUtilCoreHelpers {\n+  public static final VirtualField<Promise.K, Context> PROMISE_K_CONTEXT_FIELD =\n+      VirtualField.find(Promise.K.class, Context.class);\n+\n+  private TwitterUtilCoreHelpers() {}\n+\n+  public static class InterruptibleWithContext\n+      extends AbstractPartialFunction<Throwable, BoxedUnit> {\n+    private final Context context;\n+    private final PartialFunction<Throwable, BoxedUnit> delegate;\n+\n+    public InterruptibleWithContext(\n+        Context context, PartialFunction<Throwable, BoxedUnit> delegate) {\n+      this.context = context;\n+      this.delegate = delegate;\n+    }\n+\n+    @Override\n+    public boolean isDefinedAt(Throwable x) {\n+      try (Scope ignored = context.makeCurrent()) {\n+        // Return true only for inputs this function handles`",
+      "id": "PRRT_kwDODJKVX85-j_6G",
+      "opened": "2026-04-29T20:50:38Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/TwitterUtilCoreHelpers.java",
+      "replies": [],
+      "reviewed": "6911464b9957e47cb940ca9df8659792d17760a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3164017295"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    return t -> {\n```",
+      "created": "2026-04-29T20:44:58Z",
+      "hunk": "@@ -0,0 +1,68 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import com.twitter.util.Promise;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import scala.Function0;\n+import scala.Function1;\n+import scala.PartialFunction;\n+import scala.runtime.AbstractPartialFunction;\n+import scala.runtime.BoxedUnit;\n+\n+public class TwitterUtilCoreHelpers {\n+  public static final VirtualField<Promise.K, Context> PROMISE_K_CONTEXT_FIELD =\n+      VirtualField.find(Promise.K.class, Context.class);\n+\n+  private TwitterUtilCoreHelpers() {}\n+\n+  public static class InterruptibleWithContext\n+      extends AbstractPartialFunction<Throwable, BoxedUnit> {\n+    private final Context context;\n+    private final PartialFunction<Throwable, BoxedUnit> delegate;\n+\n+    public InterruptibleWithContext(\n+        Context context, PartialFunction<Throwable, BoxedUnit> delegate) {\n+      this.context = context;\n+      this.delegate = delegate;\n+    }\n+\n+    @Override\n+    public boolean isDefinedAt(Throwable x) {\n+      try (Scope ignored = context.makeCurrent()) {\n+        // Return true only for inputs this function handles`\n+        return delegate.isDefinedAt(x);\n+      }\n+    }\n+\n+    @Override\n+    public BoxedUnit apply(Throwable x) {\n+      try (Scope ignored = context.makeCurrent()) {\n+        return delegate.apply(x);\n+      }\n+    }\n+  }\n+\n+  public static <T, O> Function1<T, O> wrap(Context context, Function1<T, O> fn) {\n+    return (t) -> {",
+      "id": "PRRT_kwDODJKVX85-kG1r",
+      "opened": "2026-04-29T20:50:38Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/TwitterUtilCoreHelpers.java",
+      "replies": [],
+      "reviewed": "6911464b9957e47cb940ca9df8659792d17760a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3164056300"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(or, if you think we should keep it let us know why)\n```suggestion\n          System.err.println();\n```",
+      "created": "2026-04-29T20:46:06Z",
+      "hunk": "@@ -60,7 +60,10 @@ boolean runWithRestore(AutoCloseable target) {\n       } catch (Throwable t) {\n         restore();\n         if (t instanceof AssertionError) {\n-          System.err.println();\n+          System.err.println(\"AssertionError \" + t);\n+          for (StackTraceElement stackTraceElement : t.getStackTrace()) {\n+            System.err.println(\"\\t\" + stackTraceElement);\n+          }",
+      "id": "PRRT_kwDODJKVX85-kIBC",
+      "opened": "2026-04-29T20:50:38Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/util/ContextStorageCloser.java",
+      "replies": [
+        {
+          "at": "2026-04-30T15:36:40Z",
+          "body": "The problem I encountered with this was that the AssertionError was getting swallowed and so it wasn't especially clear what was being thrown, from where, or why. This just made it apparent what was being thrown so I could trace it back. Seemed more like it was missing/incomplete without it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3169096998"
+        },
+        {
+          "at": "2026-04-30T17:14:18Z",
+          "body": "Thanks, let's keep it then",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3169644232"
+        }
+      ],
+      "reviewed": "6911464b9957e47cb940ca9df8659792d17760a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3164062481"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n * the underlying {@link EventLoopGroup} for the duration of the test class. Clients and services\n * are created lazily on first use and torn down once in {@code afterAll}.\n```",
+      "created": "2026-04-29T20:47:31Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.http.AbstractHttpClientTest.CONNECTION_TIMEOUT;\n+import static io.opentelemetry.instrumentation.testing.junit.http.AbstractHttpClientTest.READ_TIMEOUT;\n+\n+import com.twitter.finagle.Http;\n+import com.twitter.finagle.Service;\n+import com.twitter.finagle.http.Request;\n+import com.twitter.finagle.http.Response;\n+import com.twitter.finagle.service.RetryBudget;\n+import com.twitter.util.Await;\n+import com.twitter.util.Duration;\n+import com.twitter.util.Time;\n+import io.netty.channel.EventLoopGroup;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11.Utils.ClientType;\n+import java.net.URI;\n+import java.util.Map;\n+import java.util.Objects;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.function.UnaryOperator;\n+import org.junit.jupiter.api.extension.AfterAllCallback;\n+import org.junit.jupiter.api.extension.ExtensionContext;\n+\n+/**\n+ * Class-scoped JUnit extension that owns a Finagle {@link Http.Client} per {@link ClientType} and\n+ * the underlying {@link EventLoopGroup} for the duration of the test class. Modeled on {@code\n+ * Netty41ClientExtension}: build once in {@code beforeAll}, tear down once in {@code afterAll}.",
+      "id": "PRRT_kwDODJKVX85-kJPu",
+      "opened": "2026-04-29T20:50:38Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/FinagleClientExtension.java",
+      "replies": [],
+      "reviewed": "6911464b9957e47cb940ca9df8659792d17760a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3164069370"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    assertThat(Await.result(f, AWAIT)).isEqualTo(1);\n```",
+      "created": "2026-04-29T20:49:02Z",
+      "hunk": "@@ -0,0 +1,409 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.twitter.util.Await;\n+import com.twitter.util.Duration;\n+import com.twitter.util.Future;\n+import com.twitter.util.FuturePool;\n+import com.twitter.util.FuturePool$;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.testing.assertj.TraceAssert;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.ExecutorService;\n+import java.util.concurrent.Executors;\n+import java.util.concurrent.ThreadFactory;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.function.Consumer;\n+import java.util.function.Function;\n+import java.util.function.Supplier;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import scala.Function0;\n+import scala.Function1;\n+import scala.runtime.AbstractFunction0;\n+import scala.runtime.AbstractFunction1;\n+import scala.runtime.BoxedUnit;\n+\n+class TwitterUtilCoreInstrumentationTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static final Duration AWAIT = Duration.fromSeconds(10);\n+\n+  @Test\n+  void constFutureRespondPropagatesContext() {\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          Future.value(\"v\")\n+              .respond(\n+                  fn1(\n+                      t -> {\n+                        testing.runWithSpan(\"respond-child\", () -> {});\n+                        return BoxedUnit.UNIT;\n+                      }));\n+        });\n+    assertParentAndChild(\"parent\", \"respond-child\");\n+  }\n+\n+  @Test\n+  void constFutureTransformPropagatesContext() throws Exception {\n+    Future<String> result =\n+        testing.runWithSpan(\n+            \"parent\",\n+            () ->\n+                Future.value(\"v\")\n+                    .transform(\n+                        fn1(\n+                            t -> {\n+                              testing.runWithSpan(\"transform-child\", () -> {});\n+                              return Future.value(\"transformed\");\n+                            })));\n+    assertThat(Await.result(result, AWAIT)).isEqualTo(\"transformed\");\n+    assertParentAndChild(\"parent\", \"transform-child\");\n+  }\n+\n+  @Test\n+  void constFutureExceptionRespondPropagatesContext() {\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          Future.exception(new RuntimeException(\"boom\"))\n+              .respond(\n+                  fn1(\n+                      t -> {\n+                        testing.runWithSpan(\"respond-child\", () -> {});\n+                        return BoxedUnit.UNIT;\n+                      }));\n+        });\n+    assertParentAndChild(\"parent\", \"respond-child\");\n+  }\n+\n+  @Test\n+  void futurePoolSingleApplyPropagatesContext() throws Exception {\n+    ExecutorService exec = Executors.newSingleThreadExecutor(named(\"single-pool\"));\n+    cleanup.deferCleanup(() -> shutdown(exec));\n+    FuturePool pool = FuturePool$.MODULE$.apply(exec);\n+\n+    Future<Integer> f =\n+        testing.runWithSpan(\n+            \"parent\",\n+            () ->\n+                pool.apply(\n+                    fn0(\n+                        () -> {\n+                          testing.runWithSpan(\"pool-child\", () -> {});\n+                          return 1;\n+                        })));\n+\n+    assertThat((int) Await.result(f, AWAIT)).isEqualTo(1);",
+      "id": "PRRT_kwDODJKVX85-kKuT",
+      "opened": "2026-04-29T20:50:38Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/TwitterUtilCoreInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "6911464b9957e47cb940ca9df8659792d17760a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3164077344"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] Per the advice-patterns convention, advice references in `transform()` should use `getClass().getName() + \"$InnerAdvice\"` rather than a `.class` literal — the class literal triggers unwanted class loading in `transform()`.\n\n```suggestion\n        isConstructor(), getClass().getName() + \"$ConstructorAdvice\");\n```",
+      "created": "2026-04-30T20:11:12Z",
+      "hunk": "@@ -25,27 +24,16 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(named(\"write\"), getClass().getName() + \"$WriteAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor(), ChannelTransportInstrumentation.class.getName() + \"$ConstructorAdvice\");",
+      "id": "PRRT_kwDODJKVX85-2ewB",
+      "opened": "2026-04-30T20:19:55Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/ChannelTransportInstrumentation.java",
+      "replies": [],
+      "reviewed": "4021baef742cb7ff936636601b9b230f7558ab67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3170591355"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Throwaway forwarding local — `context` is only used once. Inline `Context.current()` directly into the constructor call.\n\n```suggestion\n      return new TwitterUtilCoreHelpers.InterruptibleWithContext(Context.current(), handler);\n```",
+      "created": "2026-04-30T20:11:12Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import scala.PartialFunction;\n+import scala.runtime.BoxedUnit;\n+\n+/**\n+ * Inspired by Kamon's approach, instruments the interruptible such that it has access to the\n+ * Context active on the Promise.\n+ */\n+class PromiseInterruptibleInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.twitter.util.Promise$Interruptible\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$ConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    @Advice.AssignReturned.ToArguments(@ToArgument(1))\n+    public static PartialFunction<Throwable, BoxedUnit> onExit(\n+        @Advice.Argument(1) PartialFunction<Throwable, BoxedUnit> handler) {\n+      if (handler instanceof TwitterUtilCoreHelpers.InterruptibleWithContext) {\n+        return handler;\n+      }\n+      Context context = Context.current();\n+      return new TwitterUtilCoreHelpers.InterruptibleWithContext(context, handler);",
+      "id": "PRRT_kwDODJKVX85-2ewd",
+      "opened": "2026-04-30T20:19:55Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/PromiseInterruptibleInstrumentation.java",
+      "replies": [],
+      "reviewed": "4021baef742cb7ff936636601b9b230f7558ab67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3170591392"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Throwaway forwarding local — `current` is only used once. Inline `Context.current()` directly into the `set(...)` call.\n\n```suggestion\n      TwitterUtilCoreHelpers.PROMISE_K_CONTEXT_FIELD.set(thiz, Context.current());\n```",
+      "created": "2026-04-30T20:11:12Z",
+      "hunk": "@@ -0,0 +1,79 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import com.twitter.util.Promise;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the Promise state machine so that all chains in the Futures/Fibers are\n+ * otel-Context-coherent.\n+ */\n+class PromiseKInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    // includes Transformer's two lone derivatives\n+    return named(\"com.twitter.util.Promise$Transformer\")\n+        .or(named(\"com.twitter.util.Promise$Monitored\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(0, named(\"com.twitter.util.Local$Context\"))),\n+        getClass().getName() + \"$TrapContextAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isMethod().and(named(\"apply\").and(takesArgument(0, named(\"com.twitter.util.Try\")))),\n+        getClass().getName() + \"$ApplyAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class TrapContextAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This\n+            @SuppressWarnings(\"rawtypes\") // type is from compile-stub and masks private type\n+            Promise.K thiz) {\n+      Context current = Context.current();\n+      TwitterUtilCoreHelpers.PROMISE_K_CONTEXT_FIELD.set(thiz, current);",
+      "id": "PRRT_kwDODJKVX85-2ewo",
+      "opened": "2026-04-30T20:19:55Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/PromiseKInstrumentation.java",
+      "replies": [],
+      "reviewed": "4021baef742cb7ff936636601b9b230f7558ab67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3170591410"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Comment is incorrect/misleading. The stub module is consumed via `compileOnly(project(\":instrumentation:finagle-http-23.11:compile-stub\"))` in the javaagent build, so these classes are never on the runtime classpath and never end up in the agent jar — there is no \"strip at jar construction\" step in `build.gradle.kts`. Suggest rewording to reflect the actual mechanism (compile-only dependency).",
+      "created": "2026-04-30T20:11:13Z",
+      "hunk": "@@ -0,0 +1,17 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package com.twitter.util;\n+\n+// public accessible stubs of mirrored types in com.twitter.util to ensure compilation;\n+// these must be stripped out at jar construction -- see build.gradle.kts",
+      "id": "PRRT_kwDODJKVX85-2ewv",
+      "opened": "2026-04-30T20:19:55Z",
+      "path": "instrumentation/finagle-http-23.11/compile-stub/src/main/java/com/twitter/util/Promise.java",
+      "replies": [],
+      "reviewed": "4021baef742cb7ff936636601b9b230f7558ab67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3170591421"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "only telemetry changing options are needed here\n\n```suggestion\n        \"otel.semconv-stability.opt-in=service.peer\"\n```",
+      "created": "2026-05-01T01:12:37Z",
+      "hunk": "@@ -48,22 +54,44 @@ tasks {\n   }\n \n   test {\n+    jvmArgs(\"-Dotel.instrumentation.http.client.emit-experimental-telemetry=true\")\n+    jvmArgs(\"-Dotel.instrumentation.http.server.emit-experimental-telemetry=true\")\n+    jvmArgs(\"-Dio.opentelemetry.context.enableStrictContext=true\")\n+\n+    // force the netty event loop into constrained territory\n+    systemProperty(\"io.netty.eventLoopThreads\", \"2\")\n+    // ensure concurrent tests are competing for netty workers\n+    systemProperty(\"com.twitter.finagle.netty4.numWorkers\", \"2\")\n+    // ensure concurrent tests are competing for offload pool workers\n+    systemProperty(\"com.twitter.finagle.offload.numWorkers\", \"2\")\n+\n     systemProperty(\n       \"metadataConfig\",\n       \"otel.instrumentation.http.client.emit-experimental-telemetry=true,\" +\n-        \"otel.instrumentation.http.server.emit-experimental-telemetry=true\"\n+        \"otel.instrumentation.http.server.emit-experimental-telemetry=true,\" +\n+        \"io.opentelemetry.context.enableStrictContext=true\"\n     )\n   }\n \n   val testStableSemconv by registering(Test::class) {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n     jvmArgs(\"-Dotel.semconv-stability.opt-in=service.peer\")\n+    jvmArgs(\"-Dio.opentelemetry.context.enableStrictContext=true\")\n+\n+    // force the netty event loop into constrained territory\n+    systemProperty(\"io.netty.eventLoopThreads\", \"2\")\n+    // ensure concurrent tests are competing for netty workers\n+    systemProperty(\"com.twitter.finagle.netty4.numWorkers\", \"2\")\n+    // ensure concurrent tests are competing for offload pool workers\n+    systemProperty(\"com.twitter.finagle.offload.numWorkers\", \"2\")\n+\n     systemProperty(\n       \"metadataConfig\",\n       \"otel.instrumentation.http.client.emit-experimental-telemetry=true,\" +\n         \"otel.instrumentation.http.server.emit-experimental-telemetry=true,\" +\n-        \"otel.semconv-stability.opt-in=service.peer\"\n+        \"otel.semconv-stability.opt-in=service.peer,\" +\n+        \"io.opentelemetry.context.enableStrictContext=true\"",
+      "id": "PRRT_kwDODJKVX85-5aQ-",
+      "opened": "2026-05-01T01:52:22Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "7118b00060a8d083c81bc5e4996f18ae48430bbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3171635080"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        \"otel.instrumentation.http.server.emit-experimental-telemetry=true\"\n```",
+      "created": "2026-05-01T01:12:59Z",
+      "hunk": "@@ -48,22 +54,44 @@ tasks {\n   }\n \n   test {\n+    jvmArgs(\"-Dotel.instrumentation.http.client.emit-experimental-telemetry=true\")\n+    jvmArgs(\"-Dotel.instrumentation.http.server.emit-experimental-telemetry=true\")\n+    jvmArgs(\"-Dio.opentelemetry.context.enableStrictContext=true\")\n+\n+    // force the netty event loop into constrained territory\n+    systemProperty(\"io.netty.eventLoopThreads\", \"2\")\n+    // ensure concurrent tests are competing for netty workers\n+    systemProperty(\"com.twitter.finagle.netty4.numWorkers\", \"2\")\n+    // ensure concurrent tests are competing for offload pool workers\n+    systemProperty(\"com.twitter.finagle.offload.numWorkers\", \"2\")\n+\n     systemProperty(\n       \"metadataConfig\",\n       \"otel.instrumentation.http.client.emit-experimental-telemetry=true,\" +\n-        \"otel.instrumentation.http.server.emit-experimental-telemetry=true\"\n+        \"otel.instrumentation.http.server.emit-experimental-telemetry=true,\" +\n+        \"io.opentelemetry.context.enableStrictContext=true\"",
+      "id": "PRRT_kwDODJKVX85-5aZX",
+      "opened": "2026-05-01T01:52:22Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "7118b00060a8d083c81bc5e4996f18ae48430bbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3171635778"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n * Instruments {@link com.twitter.util.ExecutorServiceFuturePool#apply} to wrap the submitted\n * {@link Function0} so it executes under the caller's otel {@link Context}.\n```",
+      "created": "2026-05-01T01:15:43Z",
+      "hunk": "@@ -5,43 +5,41 @@\n \n package io.opentelemetry.javaagent.instrumentation.finaglehttp.v23_11;\n \n-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n \n+import io.opentelemetry.context.Context;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n-import scala.Function1;\n+import scala.Function0;\n \n-class PromiseMonitoredInstrumentation implements TypeInstrumentation {\n+/**\n+ * Instruments the Promise state machine so that all chains in the Futures/Fibers are\n+ * otel-Context-coherent.",
+      "id": "PRRT_kwDODJKVX85-5bST",
+      "opened": "2026-05-01T01:52:22Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/FuturePoolInstrumentation.java",
+      "replies": [],
+      "reviewed": "7118b00060a8d083c81bc5e4996f18ae48430bbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3171640620"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "and the comments below also\n\n```suggestion\n  /** Bridges the netty instrumentation to the finagle-netty integration. */\n```",
+      "created": "2026-05-01T01:17:00Z",
+      "hunk": "@@ -8,31 +8,48 @@\n import static io.opentelemetry.instrumentation.netty.v4_1.internal.client.HttpClientRequestTracingHandler.HTTP_CLIENT_REQUEST;\n import static io.opentelemetry.javaagent.instrumentation.netty.v4_1.NettyClientSingletons.clientHandlerFactory;\n \n-import com.twitter.util.Local;\n+import com.twitter.finagle.ChannelTransportHelpers;\n+import com.twitter.finagle.Netty4HttpPackageHelpers;\n+import com.twitter.finagle.http.Request;\n+import com.twitter.finagle.http.Request$;\n+import com.twitter.finagle.http.collection.RecordSchema;\n+import com.twitter.finagle.http2.transport.common.Http2StreamMessageHandler;\n import io.netty.channel.Channel;\n import io.netty.channel.ChannelHandler;\n import io.netty.channel.ChannelHandlerContext;\n+import io.netty.channel.ChannelInboundHandlerAdapter;\n import io.netty.channel.ChannelInitializer;\n import io.netty.channel.OpenTelemetryChannelInitializerDelegate;\n+import io.netty.handler.codec.http.FullHttpRequest;\n+import io.netty.handler.codec.http.HttpRequest;\n+import io.netty.handler.codec.http.HttpServerCodec;\n import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec;\n import io.opentelemetry.context.Context;\n import io.opentelemetry.instrumentation.api.util.VirtualField;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.AttributeKeys;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.ServerContexts;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.client.HttpClientTracingHandler;\n import io.opentelemetry.instrumentation.netty.v4_1.internal.server.HttpServerTracingHandler;\n+import io.opentelemetry.javaagent.instrumentation.netty.common.v4_0.VirtualFieldHelper;\n import io.opentelemetry.javaagent.instrumentation.netty.v4_1.NettyServerSingletons;\n \n public class Helpers {\n \n-  private static final VirtualField<ChannelHandler, ChannelHandler> CHANNEL_HANDLER =\n-      VirtualField.find(ChannelHandler.class, ChannelHandler.class);\n-  private static final Local<Context> contextLocal = new Local<>();\n+  private static final VirtualField<FullHttpRequest, Context> FULL_HTTP_REQUEST_CONTEXT =\n+      VirtualField.find(FullHttpRequest.class, Context.class);\n+  private static final VirtualField<HttpRequest, Context> HTTP_REQUEST_CONTEXT =\n+      VirtualField.find(HttpRequest.class, Context.class);\n \n-  public static Local<Context> contextLocal() {\n-    return contextLocal;\n-  }\n+  public static final RecordSchema.Field<Context> OTEL_CONTEXT_KEY =\n+      Request$.MODULE$.Schema().newField();\n+\n+  private static final String OTEL_NETTY_HANDLER = \"otelFinagleNettyHandler\";\n+\n+  private Helpers() {}\n \n+  /*\n+  Bridges the netty instrumentation to the finagle-netty integration.\n+   */",
+      "id": "PRRT_kwDODJKVX85-5buG",
+      "opened": "2026-05-01T01:52:22Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/Helpers.java",
+      "replies": [],
+      "reviewed": "7118b00060a8d083c81bc5e4996f18ae48430bbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3171643036"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  /* Bonus is that this implicitly tests both the server & client h2 upgrades. */\n```",
+      "created": "2026-05-01T01:49:33Z",
+      "hunk": "@@ -57,6 +56,9 @@ private static void assertSwitchingProtocolsEvent(EventDataAssert eventDataAsser\n             equalTo(ProtocolSpecificEvent.SWITCHING_PROTOCOLS_TO_KEY, singletonList(\"h2c\")));\n   }\n \n+  /*\n+  Bonus is that this implicitly tests both the server & client h2 upgrades.\n+   */",
+      "id": "PRRT_kwDODJKVX85-5nd9",
+      "opened": "2026-05-01T01:52:22Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/ServerH2Test.java",
+      "replies": [],
+      "reviewed": "7118b00060a8d083c81bc5e4996f18ae48430bbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17867#discussion_r3171708680"
+    }
+  ]
+}

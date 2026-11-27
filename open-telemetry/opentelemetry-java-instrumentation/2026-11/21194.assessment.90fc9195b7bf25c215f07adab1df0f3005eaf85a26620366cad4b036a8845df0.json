@@ -1,0 +1,65 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8469e1c0d9df43abd378aead7f32e07121f3f168c91046aeae2c8ed739dfe095",
+  "input_digest": "90fc9195b7bf25c215f07adab1df0f3005eaf85a26620366cad4b036a8845df0",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3b7b67949121733461abf70219200f2e0591176/instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3b7b67949121733461abf70219200f2e0591176/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3b7b67949121733461abf70219200f2e0591176/instrumentation/vertx/vertx-kafka-client-3.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/vertx/vertx-kafka-client-3.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/283d303c1af7710816598b4dea92bd64787f8fb3"
+      ],
+      "id": "PRRT_kwDODJKVX86zZrY4",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/283d303c1af7710816598b4dea92bd64787f8fb3/instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/931d449f913d46fc8f4bc45461604a519b73e2d3"
+      ],
+      "id": "PRRT_kwDODJKVX86zaNQ7",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/893b6a63ef5b49771e5671ce8a3d7f03dd5d9e31/instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/893b6a63ef5b49771e5671ce8a3d7f03dd5d9e31/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/893b6a63ef5b49771e5671ce8a3d7f03dd5d9e31/instrumentation/vertx/vertx-kafka-client-3.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/vertx/vertx-kafka-client-3.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3bffe71bfcaa6e06df48d629ee3e5774c7d33008"
+      ],
+      "id": "PRRT_kwDODJKVX86zbNfd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bffe71bfcaa6e06df48d629ee3e5774c7d33008/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/688f6bc44f3fa9b84ba1ced0b0c3828202099813/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f1b080adfb0d17032080b3c2cfb0c1001bce4352"
+      ],
+      "id": "PRRT_kwDODJKVX86zbeb3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

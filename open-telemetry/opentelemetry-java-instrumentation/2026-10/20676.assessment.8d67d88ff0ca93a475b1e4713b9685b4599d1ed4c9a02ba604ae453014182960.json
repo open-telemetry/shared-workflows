@@ -1,0 +1,40 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0afc2b41fcd9987583c96944efeb564b2315fcd45f2f598011d481ae38b5c3eb",
+  "input_digest": "8d67d88ff0ca93a475b1e4713b9685b4599d1ed4c9a02ba604ae453014182960",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/332133486a3c7933bfc9ec15026cc90e44725773/instrumentation/jetty-httpclient/jetty-httpclient-12.0/testing/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/AbstractJettyClient12Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f4d76b39c1dd91cd5093942b522e17841cac08/instrumentation/jetty-httpclient/jetty-httpclient-12.0/testing/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/AbstractJettyClient12Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/332133486a3c7933bfc9ec15026cc90e44725773/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f4d76b39c1dd91cd5093942b522e17841cac08/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/332133486a3c7933bfc9ec15026cc90e44725773/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f4d76b39c1dd91cd5093942b522e17841cac08/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/332133486a3c7933bfc9ec15026cc90e44725773/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f4d76b39c1dd91cd5093942b522e17841cac08/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/408cd8746db26dfae028fcd01cf784880a57297e"
+      ],
+      "id": "PRRT_kwDODJKVX86txkba",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/408cd8746db26dfae028fcd01cf784880a57297e/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f4d76b39c1dd91cd5093942b522e17841cac08/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/408cd8746db26dfae028fcd01cf784880a57297e/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f4d76b39c1dd91cd5093942b522e17841cac08/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86txv1j",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

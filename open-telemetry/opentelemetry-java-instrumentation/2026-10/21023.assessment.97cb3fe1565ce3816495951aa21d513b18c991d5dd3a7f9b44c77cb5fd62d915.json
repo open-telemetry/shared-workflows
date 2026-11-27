@@ -1,0 +1,100 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1e8ee2b07f17a259bfb0b3f558950b2370fbec29e79f6fb0bcd495b2d860a2c1",
+  "input_digest": "97cb3fe1565ce3816495951aa21d513b18c991d5dd3a7f9b44c77cb5fd62d915",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c670be5e3ea7eafc576955b1e2e115c467df6498/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f4377165945cc2182aa53466b95dcec8ddbd9744"
+      ],
+      "id": "PRRT_kwDODJKVX86w01in",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c670be5e3ea7eafc576955b1e2e115c467df6498/instrumentation/vaadin-14.2/javaagent/src/vaadin16Test/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/Vaadin16Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c670be5e3ea7eafc576955b1e2e115c467df6498/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/javaagent/src/vaadin16Test/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/Vaadin16Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f02c8edfafab1252ec946f89f7d2b50e835dc603"
+      ],
+      "id": "PRRT_kwDODJKVX86w04-0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07632d65bc94012bc876995f1242fc9a9722c012/instrumentation/vaadin-14.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86w15Hz",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07632d65bc94012bc876995f1242fc9a9722c012/instrumentation/vaadin-14.2/javaagent/src/vaadin16Test/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/Vaadin16Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07632d65bc94012bc876995f1242fc9a9722c012/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/javaagent/src/vaadin16Test/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/Vaadin16Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6c0afa301daf9278e7ad54dd1cb916e48400c2a0"
+      ],
+      "id": "PRRT_kwDODJKVX86w2WBV",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86w2Yv1",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86w2WBV",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6c0afa301daf9278e7ad54dd1cb916e48400c2a0/instrumentation/vaadin-14.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a5c7aa0abd1c84fcf8e70eabfcb9c04c736e8854"
+      ],
+      "id": "PRRT_kwDODJKVX86w3opY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6a15ebe92c10f4363f0cd71b9efefb20f0627b1/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadin14Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6a15ebe92c10f4363f0cd71b9efefb20f0627b1/instrumentation/vaadin-14.2/javaagent/src/vaadin16Test/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/Vaadin16Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/606bb31b494cb2b8d3e909c07b266a22c14a94b1/instrumentation/vaadin-14.2/javaagent/src/vaadin16Test/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/Vaadin16Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6a15ebe92c10f4363f0cd71b9efefb20f0627b1/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/606bb31b494cb2b8d3e909c07b266a22c14a94b1",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f02c8edfafab1252ec946f89f7d2b50e835dc603"
+      ],
+      "id": "PRRT_kwDODJKVX86xL7DM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86xNDZn",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

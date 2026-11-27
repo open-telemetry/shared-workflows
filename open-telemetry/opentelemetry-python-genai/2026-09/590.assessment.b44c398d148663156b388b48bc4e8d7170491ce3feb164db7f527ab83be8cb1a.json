@@ -1,0 +1,69 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4a15941233d81cfaeb1b621381d74f845cd7692383c11b5dfec5e65701551d71",
+  "input_digest": "b44c398d148663156b388b48bc4e8d7170491ce3feb164db7f527ab83be8cb1a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/46227305859836bb7b126bd72b7a1e32b65642b0/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/utils.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a2f5eee57b57c5211583976d7ab97bf96f6c422e/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/utils.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/06d2494c949fcd196269daa08b83c11506351793"
+      ],
+      "id": "PRRT_kwDOSbspP86fA2J4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/780d06cfa44d7221bfac395d153d9222ab05331b/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a2f5eee57b57c5211583976d7ab97bf96f6c422e/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/5404db533587cdeae68405fc6a24cd88c5ef207a"
+      ],
+      "id": "PRRT_kwDOSbspP86fGgda",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/780d06cfa44d7221bfac395d153d9222ab05331b/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/stream.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a2f5eee57b57c5211583976d7ab97bf96f6c422e/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/stream.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/5404db533587cdeae68405fc6a24cd88c5ef207a"
+      ],
+      "id": "PRRT_kwDOSbspP86fGgdg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/780d06cfa44d7221bfac395d153d9222ab05331b/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/stream.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a2f5eee57b57c5211583976d7ab97bf96f6c422e/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/stream.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/5404db533587cdeae68405fc6a24cd88c5ef207a"
+      ],
+      "id": "PRRT_kwDOSbspP86fGgdm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5404db533587cdeae68405fc6a24cd88c5ef207a/instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_conformance.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a2f5eee57b57c5211583976d7ab97bf96f6c422e/instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_conformance.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/ac4b1bc37dc26a2637f53af4509700697b38be39"
+      ],
+      "id": "PRRT_kwDOSbspP86gZwD6",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

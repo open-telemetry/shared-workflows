@@ -1,0 +1,53 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1b87d012956fc51ea13c4d371a2e2b4a74692cb725baa0bddd17d1fa69dbf219",
+  "input_digest": "686c1ce5c26987c27ae8193ac2c5512af9da002b583da0877082def6bf58b5bf",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/5946508120dc4b8f7cf5eec13a5d8e92cff27f13/tools/http/runner/src/http_conformance/policies/http_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bf0f986532d01f2cd41459fa38568cfc48b0a5f3/tools/http/runner/src/http_conformance/policies/http_span_validation.rego"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Xg9r9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/5946508120dc4b8f7cf5eec13a5d8e92cff27f13/tools/http/test-client/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bf0f986532d01f2cd41459fa38568cfc48b0a5f3/tools/http/test-client/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Xg9sB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/5946508120dc4b8f7cf5eec13a5d8e92cff27f13/tools/http/mock-server/src/http_mock_server/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bf0f986532d01f2cd41459fa38568cfc48b0a5f3/tools/http/mock-server/src/http_mock_server/__init__.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Xg9sF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/5946508120dc4b8f7cf5eec13a5d8e92cff27f13/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bf0f986532d01f2cd41459fa38568cfc48b0a5f3/.github/workflows/runner.yml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Xg9sI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

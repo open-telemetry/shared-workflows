@@ -1,0 +1,40 @@
+{
+  "head": "d4c3c2cf0c15cafc3357672e19dcd5e0b6424174",
+  "merge": "70198c7edafa4dabb3135e0c680bc362eca2b5c8",
+  "merged": "2026-11-18T15:55:18Z",
+  "missing_roots": 0,
+  "number": 21288,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  [Javaagent] Preserve the unconditional mailbox task exclusion**\n\nOn Pekko 1.x with `otel.instrumentation.pekko-actor.enabled=false` but executor instrumentation enabled, this mailbox reset is skipped, whereas the removed `PekkoIgnoredTypesConfigurer` previously excluded mailbox tasks unconditionally through `AgentInstaller.configureIgnoredTypes`. Generic executor instrumentation can now capture the context that schedules `Dispatcher$$anon$1` and keep it current for the entire shared mailbox run. Since per-envelope actor advice is also disabled, unrelated messages drained in that batch can inherit the scheduling request's parent. Retain the mailbox task exclusion independently of actor-module enablement.\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-11T14:17:18Z",
+      "hunk": "@@ -30,6 +30,7 @@ public List<TypeInstrumentation> typeInstrumentations() {\n         new PekkoBatchingExecutorInstrumentation(),\n         new PekkoActorCellInstrumentation(),\n         new PekkoDefaultSystemMessageQueueInstrumentation(),\n-        new PekkoScheduleInstrumentation());\n+        new PekkoScheduleInstrumentation(),\n+        new PekkoMailboxInstrumentation());",
+      "id": "PRRT_kwDODJKVX862NSJ4",
+      "opened": "2026-11-11T14:17:17Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoActorInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "9579e3eaade1fe4618ba18cdc064dd613a2de6d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21288#discussion_r4538978714"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  [Testing] Wire the Scala server tests into testNewServerAt**\n\nOnly the Java source directory is configured for `testNewServerAt`, and this suite is omitted from the later Scala-source and 1.x-shim lists. Consequently, it reruns only `PekkoHttpServerJavaRouteTest`, which already hardcodes `newServerAt`; the flag is read only by `PekkoHttpTestBinding` in the uncompiled Scala shim. The task therefore passes without exercising the existing sync, async, and connection-source server tests through the alternate 1.x binding paths. Include the shared Scala sources, resources, and `pekko1TestShim` in this suite so the intended variant actually runs.\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-11T14:17:18Z",
+      "hunk": "@@ -65,41 +65,82 @@ dependencies {\n   testInstrumentation(project(\":instrumentation:pekko:pekko-actor-1.0:javaagent\"))\n   testInstrumentation(project(\":instrumentation:executors:javaagent\"))\n \n-  // pekko 2 support has not been backported yet\n+  // later versions are tested in pekko2Test suite\n   latestDepTestLibrary(\"org.apache.pekko:pekko-http_2.13:1.+\") // documented limitation\n   latestDepTestLibrary(\"org.apache.pekko:pekko-stream_2.13:1.+\") // documented limitation\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"pekko11Test\") {\n-      dependencies {\n-        implementation(\"org.apache.pekko:pekko-http_2.13:1.1.0\")\n-        implementation(\"org.apache.pekko:pekko-stream_2.13:1.1.0\")\n+testing.suites {\n+  register<JvmTestSuite>(\"testNewServerAt\") {\n+    sources {\n+      java {\n+        setSrcDirs(listOf(\"src/test/java\"))",
+      "id": "PRRT_kwDODJKVX862NSKC",
+      "opened": "2026-11-11T14:17:17Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "9579e3eaade1fe4618ba18cdc064dd613a2de6d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21288#discussion_r4538978728"
+    }
+  ]
+}

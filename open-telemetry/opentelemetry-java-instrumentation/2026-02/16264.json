@@ -1,0 +1,40 @@
+{
+  "head": "babf93db1c087957775c6b2a1a991fd3be12295f",
+  "merge": "05a4303b7df4e057aba129e3835276f14f86c400",
+  "merged": "2026-02-26T15:08:55Z",
+  "missing_roots": 0,
+  "number": 16264,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "didn't expect this, but we get better span names!",
+      "created": "2026-02-23T03:26:13Z",
+      "hunk": "@@ -415,7 +415,8 @@ void testWriteWithUdp() {\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n-                    span.hasName(\"WRITE\")\n+                    span.hasName(\n+                            emitStableDatabaseSemconv() ? \"WRITE \" + host + \":\" + port : \"WRITE\")",
+      "id": "PRRT_kwDODJKVX85wCui-",
+      "opened": "2026-02-23T03:26:13Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClientTest.java",
+      "replies": [],
+      "reviewed": "5f12ec3843121acc6a76a554f42cd75ddd0f658d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16264#discussion_r2838935602"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "these already existed in VertxSqlClientAttributesGetter",
+      "created": "2026-02-23T03:28:27Z",
+      "hunk": "@@ -1,25 +0,0 @@\n-/*\n- * Copyright The OpenTelemetry Authors\n- * SPDX-License-Identifier: Apache-2.0\n- */\n-\n-package io.opentelemetry.javaagent.instrumentation.vertx.sql;\n-\n-import io.opentelemetry.instrumentation.api.semconv.network.ServerAttributesGetter;\n-import javax.annotation.Nullable;\n-\n-enum VertxSqlClientNetAttributesGetter implements ServerAttributesGetter<VertxSqlClientRequest> {\n-  INSTANCE;\n-\n-  @Nullable\n-  @Override\n-  public String getServerAddress(VertxSqlClientRequest request) {\n-    return request.getHost();\n-  }\n-\n-  @Nullable\n-  @Override\n-  public Integer getServerPort(VertxSqlClientRequest request) {\n-    return request.getPort();\n-  }",
+      "id": "PRRT_kwDODJKVX85wCvTp",
+      "opened": "2026-02-23T03:28:27Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sql/VertxSqlClientNetAttributesGetter.java",
+      "replies": [],
+      "reviewed": "5f12ec3843121acc6a76a554f42cd75ddd0f658d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16264#discussion_r2838939538"
+    }
+  ]
+}

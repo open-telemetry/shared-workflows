@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1b5d952720ba2a3954d3969dfea00983c1f40c8171b8a493c95ec6e6f188b6c5",
+  "input_digest": "409f4aff6647ba41920042dd89986f0127b40316e6aae3dd66f78fbea5aceb4d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/99da7b6af421115e9c5777938cd1f9c672966af1/util/opentelemetry-util-genai/.changelog/274.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/99da7b6af421115e9c5777938cd1f9c672966af1/util/opentelemetry-util-genai/.changelog/%2Btool-span-internal-kind.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dc2ee00a1173ee7db9800489b9dff7e8a4db1518/util/opentelemetry-util-genai/.changelog/274.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dc2ee00a1173ee7db9800489b9dff7e8a4db1518/util/opentelemetry-util-genai/.changelog/%2Btool-span-internal-kind.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/7533c3cb6d5a3f1bc294daeeb17a1d2dada586f1"
+      ],
+      "id": "PRRT_kwDOSbspP86RTY_4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/99da7b6af421115e9c5777938cd1f9c672966af1/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dc2ee00a1173ee7db9800489b9dff7e8a4db1518/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/e84328dd6caa94b8624654c2b3a9d240eb068e40"
+      ],
+      "id": "PRRT_kwDOSbspP86RTZAE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

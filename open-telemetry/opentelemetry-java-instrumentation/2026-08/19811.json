@@ -1,0 +1,78 @@
+{
+  "head": "7ce15d479a985b08391c06636e9e6f58203d2050",
+  "merge": "2ad3d80e5ce2597b416b01851f4433ae02cd780c",
+  "merged": "2026-08-26T14:52:48Z",
+  "missing_roots": 0,
+  "number": 19811,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Had to rename this package as otherwise this class gets detected as helper class by muzzle (previously muzzle was skipped due to the non-standard instrumentation application). Since the references to this class gets shaded to `java.lang.ClassLoader` we ended up with `java.lang.ClassLoader` registered as helper class.",
+      "created": "2026-08-26T08:18:49Z",
+      "hunk": "@@ -3,12 +3,16 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.internal.classloader.stub;\n+package io.opentelemetry.javaagent.bootstrap.internal.classloader.stub;",
+      "id": "PRRT_kwDODJKVX86cYhXM",
+      "opened": "2026-08-26T08:18:49Z",
+      "path": "instrumentation/internal/internal-class-loader/compile-stub/src/main/java/io/opentelemetry/javaagent/bootstrap/internal/classloader/stub/ClassLoader.java",
+      "replies": [
+        {
+          "at": "2026-08-26T08:26:27Z",
+          "body": "Would probably be worth adding this detail as a comment here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19811#discussion_r3860934308"
+        },
+        {
+          "at": "2026-08-26T11:31:57Z",
+          "body": "comment added",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19811#discussion_r3862287173"
+        }
+      ],
+      "reviewed": "f4d632f4627c42df33173572dd66df7be32fd9f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19811#discussion_r3860879646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "do you remember why did we returned the `Class<?>` return value until this ? From what I understand we just invoke `DefineClassHelper.afterDefineClass(context);` in the advice that does not need to access it.\n\nWhat prevents us from removing the `@Advice.Return Class<?> returned` argument from advice too ?",
+      "created": "2026-08-26T08:24:29Z",
+      "hunk": "@@ -55,15 +52,10 @@ public static DefineClassContext onEnter(\n           classLoader, className, classBytes, offset, length);\n     }\n \n-    // TODO: the ToReturned does nothing except for signaling the AdviceTransformer that it must\n-    // not touch this advice\n-    // this is done because we do not want the return values to be wrapped in array types\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n-    @Advice.AssignReturned.ToReturned\n-    public static Class<?> onExit(\n+    public static void onExit(",
+      "id": "PRRT_kwDODJKVX86cYn_i",
+      "opened": "2026-08-26T08:25:00Z",
+      "path": "instrumentation/internal/internal-class-loader/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/classloader/DefineClassInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-26T11:33:27Z",
+          "body": "I think it was probably added to make automatic advice rewriting ignore it. Using `@Advice.AssignReturned.ToReturned` made it look like indy ready.\n\n> What prevents us from removing the @Advice.Return Class<?> returned argument from advice too ?\n\nremoved",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19811#discussion_r3862300139"
+        }
+      ],
+      "reviewed": "f4d632f4627c42df33173572dd66df7be32fd9f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19811#discussion_r3860920332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "same as above, can we remove the unused argument ?",
+      "created": "2026-08-26T08:24:52Z",
+      "hunk": "@@ -77,15 +69,10 @@ public static DefineClassContext onEnter(\n       return DefineClassHelper.beforeDefineClass(classLoader, className, classBytes);\n     }\n \n-    // TODO: the ToReturned does nothing except for signaling the AdviceTransformer that it must\n-    // not touch this advice\n-    // this is done because we do not want the return values to be wrapped in array types\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n-    @Advice.AssignReturned.ToReturned\n-    public static Class<?> onExit(\n+    public static void onExit(\n         @Advice.Enter DefineClassContext context, @Advice.Return Class<?> returned) {",
+      "id": "PRRT_kwDODJKVX86cYodF",
+      "opened": "2026-08-26T08:25:00Z",
+      "path": "instrumentation/internal/internal-class-loader/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/classloader/DefineClassInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-26T11:33:38Z",
+          "body": "removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19811#discussion_r3862301584"
+        }
+      ],
+      "reviewed": "f4d632f4627c42df33173572dd66df7be32fd9f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19811#discussion_r3860923231"
+    }
+  ]
+}

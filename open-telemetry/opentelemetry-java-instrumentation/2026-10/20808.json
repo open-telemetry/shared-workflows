@@ -1,0 +1,73 @@
+{
+  "head": "9e458b4cde0d3ab74b5ae20ca6c49f518a7bc65d",
+  "merge": "36cef7e1832ab4d315309f31970d91325f415eef",
+  "merged": "2026-10-22T06:26:20Z",
+  "missing_roots": 0,
+  "number": 20808,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the remaining catalog and knowledge-table cleanup in this PR directly. The user explicitly requested: \"send follow-up work to complete using cloud\". The span-suppression implementation is already present; do not repeat or expand that work.\n\nUpdate docs/instrumentation-list.yaml to remove the obsolete global configuration definitions for span-suppression-strategy.deprecated and common.v3-preview, including the removed flat/declarative names, and remove both corresponding global_configuration_refs entries. Remove any other active references to these removed settings in this catalog, without changing unrelated telemetry, configuration, or independent semantic-convention preview controls. PR #20774 already removed the common-preview runtime switch and source definition; this is its generated-catalog residue.\n\nThe previous task stopped because full catalog regeneration lacked collected .telemetry inputs. Try the documented generation tooling when applicable. If full regeneration still requires unavailable unrelated telemetry, make a minimal, verified structural edit limited to the obsolete configuration definitions and references rather than regenerating or replacing unrelated telemetry. Preserve all other catalog data and YAML structure. Do not fabricate telemetry inputs or leave these known entries pending solely because full regeneration is unavailable. Confirm the targeted catalog removals agree with the current shared-config-definitions.yaml source.\n\nRemove the obsolete special-mapping table row for otel.instrumentation.experimental.span-suppression-strategy / java.common.span_suppression_strategy/development from .github/agents/knowledge/metadata-yaml-format.md. Check narrowly for other directly related current documentation or configuration references left by this removal and correct them; historical changelog entries may retain the old names.\n\nAcceptance: the generated catalog no longer advertises either removed suppression setting or common.v3-preview, both obsolete global references are gone, and the metadata knowledge table no longer describes the removed mapping. Demonstrate that unrelated catalog telemetry is preserved and run the narrowest applicable YAML/documentation validation. Preserve all existing runtime changes, supported suppression modes, defaults and precedence, programmatic APIs, otel.semconv-stability.preview and independent RPC/service-peer selection. No unrelated code changes or new changelog entry are needed for this documentation completion. Update this PR directly; do not create another PR as a workaround, dispatch tasks, close issue #18903, or reply to user comments.",
+      "created": "2026-10-21T16:46:53Z",
+      "hunk": "@@ -209,14 +209,6 @@ global_configurations:\n     type: string\n     default: semconv\n \n-  span-suppression-strategy.deprecated:\n-    name: otel.instrumentation.experimental.span-suppression-strategy",
+      "id": "PRRT_kwDODJKVX86u3Juz",
+      "opened": "2026-10-21T16:46:53Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [
+        {
+          "at": "2026-10-21T16:53:30Z",
+          "body": "Completed in 776f9a8b. Removed both stale catalog definitions and global refs, removed the obsolete mapping row, and verified unrelated catalog data is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20808#discussion_r4339529644"
+        }
+      ],
+      "reviewed": "1f26f8906f3ffab3d27601dc787fe29e632f3c4e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20808#discussion_r4339460542"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot revert changes to this file",
+      "created": "2026-10-21T18:17:08Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86u5Pep",
+      "opened": "2026-10-21T18:17:08Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-21T18:19:59Z",
+          "body": "Reverted `docs/instrumentation-list.yaml` to its pre-776f9a8 state in commit b479278d. YAML validation passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20808#discussion_r4340379967"
+        }
+      ],
+      "reviewed": "776f9a8b70aa9aa287b6c40f074a73393aef4c61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20808#discussion_r4340353680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot move this to section: Breaking changes to non-stable APIs",
+      "created": "2026-10-21T18:18:35Z",
+      "hunk": "@@ -4,6 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove `otel.instrumentation.experimental.span-suppression-strategy` and\n+  `java.common.span_suppression_strategy/development` in favor of\n+  `otel.instrumentation.common.span-suppression-strategy` and\n+  `java.common.span_suppression_strategy`.",
+      "id": "PRRT_kwDODJKVX86u5Rdl",
+      "opened": "2026-10-21T18:18:35Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-21T18:23:04Z",
+          "body": "Moved the entry into “Breaking changes to non-stable APIs” in commit 9e458b4c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20808#discussion_r4340410196"
+        }
+      ],
+      "reviewed": "776f9a8b70aa9aa287b6c40f074a73393aef4c61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20808#discussion_r4340367081"
+    }
+  ]
+}

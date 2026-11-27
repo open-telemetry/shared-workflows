@@ -1,0 +1,31 @@
+{
+  "head": "4667008c68152ce2d6d412aebbba345b885c7b70",
+  "merge": "6bc2c99e6321f592e3d1d696ba71ea3c4e352ac4",
+  "merged": "2026-11-06T05:26:30Z",
+  "missing_roots": 0,
+  "number": 21217,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify only instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/javaagent/build.gradle.kts. Convert the testDisableThreadLocals JvmTestSuite into a DisableThreadLocals execution variant of the existing test suite. It already compiles the baseline src/test/java sources and uses the same runtime dependencies; only JVM configuration differs. Remove its redundant suite registration, source/dependency block, and separate executions selector. Preserve the task name testDisableThreadLocals by using register(\"DisableThreadLocals\") inside the existing executions(\"test\") block.\n\nShare the resource-attributes JVM property between the baseline and this variant within that executions block. Keep log4j2.enable.threadlocals=true in configureDefault, not configureEach, and set it false in the variant. Preserve the regression rationale, test coverage and library versions, the shared log4j2.is.webapp=false setup, testAddBaggage and testLoggingKeys suites and their current flags, and existing check wiring. The result should reuse the baseline compiled test outputs/classpath instead of recompiling the same Java tests in a separate source set. Verify both tasks discover and execute the same baseline tests with their respective threadlocals settings.\n\nUpdate this existing PR directly on its existing head branch, not a new PR. Keep the PR's current draft/ready state. Preserve behavior, test discovery, dependency graphs, test task names, configuration flags, metadata profiles, JDK/denyUnsafe gates, agent inputs/providers, and check membership except for the explicitly requested removal of redundant wiring or duplicate compilation. Do not edit PR titles or descriptions.\n\nRead applicable repository guidance. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify relevant check graphs and task configuration in baseline and testLatestDeps modes without first manually realizing all suites. Run focused existing tests where relevant and feasible, and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build, wait for hosted CI, or expand the change into unrelated cleanup. Commit and push the intended changes to this PR's existing head.",
+      "created": "2026-11-06T00:46:12Z",
+      "hunk": "@@ -22,60 +24,61 @@ dependencies {\n   testImplementation(project(\":instrumentation:log4j:log4j-context-data:log4j-context-data-common:testing\"))\n }\n \n-testing {\n-  suites {\n-    // Very different codepaths when threadlocals are enabled or not so we check both.\n-    // Regression test for https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/2403\n-    register<JvmTestSuite>(\"testDisableThreadLocals\") {\n-      sources {\n-        java {\n-          setSrcDirs(listOf(\"src/test/java\"))\n-        }\n-      }\n-      dependencies {\n-        implementation(project(\":instrumentation:log4j:log4j-context-data:log4j-context-data-common:testing\"))\n+testing.suites {\n+  // Very different codepaths when threadlocals are enabled or not so we check both.\n+  // Regression test for https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/2403\n+  register<JvmTestSuite>(\"testDisableThreadLocals\") {",
+      "id": "PRRT_kwDODJKVX860VXBs",
+      "opened": "2026-11-06T00:46:12Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T00:55:27Z",
+          "body": "Implemented and pushed as `4667008c`. The variant now reuses the baseline suite’s compiled tests and classpath; both tasks passed the same four tests with the requested flags. Baseline and `testLatestDeps` check graphs also succeeded.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21217#discussion_r4487857512"
+        }
+      ],
+      "reviewed": "d6b418e85908a44807281379d40235d17fd77f77",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21217#discussion_r4487797665"
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b65cd038df39bd09a59f5f5f57ad134e06c9e4b359736efba238ec393365df71",
+  "input_digest": "5bdb9a9e81cc51fac1a634391d9dea9f03a39f002812a9f605e91da348b62040",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4d469cefab73ae0891fd2d5073c62bbcb1f9a3fe/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2bf3b8bf850ecf70bb286584a5b48c2a07e2f06a"
+      ],
+      "id": "PRRT_kwDODJKVX86wGntp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4d469cefab73ae0891fd2d5073c62bbcb1f9a3fe/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f3796854ecddb0c24a7daab7779e0bf13764ca2c"
+      ],
+      "id": "PRRT_kwDODJKVX86wGs0d",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wGvZ6",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wGs0d",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03c46209a48d119c3303500064e14c10f190aa9d/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03c46209a48d119c3303500064e14c10f190aa9d/benchmark-overhead/results/agent-startup/40232071103/identities.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03c46209a48d119c3303500064e14c10f190aa9d/benchmark-overhead/results/agent-startup/40232071103/samples.csv",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/results/agent-startup/40232071103/identities.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/results/agent-startup/40232071103/samples.csv",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/356caec8f208b16955586de3d3b5d041dcc3b0b7"
+      ],
+      "id": "PRRT_kwDODJKVX86wHMFx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/356caec8f208b16955586de3d3b5d041dcc3b0b7/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/356caec8f208b16955586de3d3b5d041dcc3b0b7/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/356caec8f208b16955586de3d3b5d041dcc3b0b7/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2bf3b8bf850ecf70bb286584a5b48c2a07e2f06a"
+      ],
+      "id": "PRRT_kwDODJKVX86wIGtX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bf3b8bf850ecf70bb286584a5b48c2a07e2f06a/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bf3b8bf850ecf70bb286584a5b48c2a07e2f06a/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupVolumeReaperTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupVolumeReaperTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/556ced5b6c6b07e9af3e640de2f8f8eea6119e57"
+      ],
+      "id": "PRRT_kwDODJKVX86wIYYC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bf3b8bf850ecf70bb286584a5b48c2a07e2f06a/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bf3b8bf850ecf70bb286584a5b48c2a07e2f06a/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupReport.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupReport.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wIYYW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wIcCs",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wIYYC",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/556ced5b6c6b07e9af3e640de2f8f8eea6119e57/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/556ced5b6c6b07e9af3e640de2f8f8eea6119e57/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupReport.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupReport.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f3796854ecddb0c24a7daab7779e0bf13764ca2c"
+      ],
+      "id": "PRRT_kwDODJKVX86wI1bT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f3796854ecddb0c24a7daab7779e0bf13764ca2c/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/352495c45a1d73c1fcf07ef8b75b50559f43c0a5"
+      ],
+      "id": "PRRT_kwDODJKVX86wJJah",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wJN0C",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wJJah",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/352495c45a1d73c1fcf07ef8b75b50559f43c0a5/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/.github/workflows/agent-startup-benchmark.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/352495c45a1d73c1fcf07ef8b75b50559f43c0a5/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/352495c45a1d73c1fcf07ef8b75b50559f43c0a5/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/059810b3a0c159c128d40692afefef5470a1f56e"
+      ],
+      "id": "PRRT_kwDODJKVX86wQrE_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/059810b3a0c159c128d40692afefef5470a1f56e/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/059810b3a0c159c128d40692afefef5470a1f56e/benchmark-overhead/src/test/java/io/opentelemetry/startup/AotStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/AotStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3c1b21445a00febec0d7ca6cde09722e72610c3/benchmark-overhead/src/test/java/io/opentelemetry/startup/StartupFixture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5d9d3a46b19a96e1878865e3c55247f487efe464"
+      ],
+      "id": "PRRT_kwDODJKVX86wRBf5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

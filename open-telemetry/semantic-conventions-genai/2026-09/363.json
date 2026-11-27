@@ -1,0 +1,261 @@
+{
+  "head": "eb4414ed403eb0a780d4ff1abe32ec44ec2dee84",
+  "merge": "5ca9052bc796ef1e497200b1d558fd87a201f335",
+  "merged": "2026-09-01T00:15:07Z",
+  "missing_roots": 0,
+  "number": 363,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Towncrier fragment filename `+.deprecation.md` doesn’t follow the repository’s existing naming convention (`<number>.<type>.md`, e.g., `330.enhancement.md`). This may prevent release note tooling from picking up the entry or make it hard to trace back to an issue/PR. Please rename this file to something like `362.deprecation.md` (or the PR number), keeping the single-line fragment content unchanged.",
+      "created": "2026-07-03T13:20:13Z",
+      "hunk": "@@ -0,0 +1 @@\n+Deprecate `gen_ai.output.messages[].finish_reason` in favor of the authoritative `gen_ai.response.finish_reasons` attribute.",
+      "id": "PRRT_kwDOSUeMrM6OM0yl",
+      "opened": "2026-07-03T13:20:13Z",
+      "path": "changelog.d/363.deprecation.md",
+      "replies": [
+        {
+          "at": "2026-07-04T08:30:17Z",
+          "body": "Fixed in 50e62a2 by renaming the Towncrier fragment to `363.deprecation.md`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3522859660"
+        }
+      ],
+      "reviewed": "86ab7b7234002fc0a4fada26a0232cf6881be3bf",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3520102226"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nis this necessary? ",
+      "created": "2026-07-21T00:33:32Z",
+      "hunk": "@@ -192,6 +192,9 @@ attributes:\n   - key: gen_ai.response.finish_reasons\n     type: string[]\n     brief: Array of reasons the model stopped generating tokens, corresponding to each generation received.\n+    note: |\n+      This is the authoritative attribute for finish reasons. Values correspond\n+      to generations in the same order as the returned choices/candidates.",
+      "id": "PRRT_kwDOSUeMrM6SbC6g",
+      "opened": "2026-07-21T00:44:00Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-27T10:18:29Z",
+          "body": "Accepted and updated in 63c02da. I removed the unnecessary \"authoritative\" wording and replaced it with concrete ordering and missing-finish-reason guidance on `gen_ai.response.finish_reasons`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3656241192"
+        }
+      ],
+      "reviewed": "9ed696d6c7be2a2cbd17a8ada740ff15b1c32754",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3618537406"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nthis seems to be unnecessary if finish reason is removed from the model",
+      "created": "2026-07-21T00:34:35Z",
+      "hunk": "@@ -759,6 +762,12 @@ attributes:\n       (choice/candidate) and vice versa - one choice cannot be split across\n       multiple messages or one message cannot contain parts from multiple choices.\n \n+      This attribute SHOULD describe replayable output message content and\n+      SHOULD NOT duplicate response envelope metadata, including finish\n+      reasons, response identifiers, response model, token usage, cost, or\n+      timing metadata. Finish reasons SHOULD be recorded in\n+      `gen_ai.response.finish_reasons`.",
+      "id": "PRRT_kwDOSUeMrM6SbD06",
+      "opened": "2026-07-21T00:44:00Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-08-13T12:20:38Z",
+          "body": "Accepted in 63c02da. I removed this output-message note and kept the guidance focused on the `gen_ai.response.finish_reasons` attribute itself.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3656241312"
+        }
+      ],
+      "reviewed": "9ed696d6c7be2a2cbd17a8ada740ff15b1c32754",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3618542959"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this means that we need a better story for finish_reasons to be guaranteed and be in the same order as candidates, see https://github.com/open-telemetry/semantic-conventions-genai/issues/56 for some context.\n\nE.g. user asked for 3 choices / candidates, first one finished with \"stop\", second one got truncated with \"length\", third never finished streaming and failed. \n\nToday we don't really prescribe what finish reason should be in case of failure. In practice, you'd see it not being populated, set to None or error. I.e. with 3 output assistant messages, users would sometimes see [\"stop\", \"max_length\"]. \n\nIt's not awesome even today, but will get even worse if we make attribute a single source of this information. \n\nSo please update the finish_reasons attribute to provide definitive guidance on what to do in case of failures / response being cancelled before stream has ended and any other case when finish reason is not available. My preference is to use \"error\" whenever we expected but never received finish reason.\n",
+      "created": "2026-07-21T00:43:47Z",
+      "hunk": "@@ -290,16 +290,20 @@\n                         },\n                         {\n                             \"type\": \"string\"\n+                        },\n+                        {\n+                            \"type\": \"null\"\n                         }\n                     ],\n-                    \"description\": \"Reason for finishing the generation.\",\n+                    \"default\": null,\n+                    \"deprecated\": true,\n+                    \"description\": \"Deprecated. Use `gen_ai.response.finish_reasons` as the authoritative source for finish reasons.\",",
+      "id": "PRRT_kwDOSUeMrM6SbLIQ",
+      "opened": "2026-07-21T00:44:00Z",
+      "path": "model/gen-ai/gen-ai-output-messages.json",
+      "replies": [
+        {
+          "at": "2026-07-27T10:18:30Z",
+          "body": "Accepted in 63c02da. `gen_ai.response.finish_reasons` now says values correspond to returned choices/candidates in order, and that if a finish reason was expected but not received because generation failed, was cancelled, or the stream ended before the final event, instrumentation SHOULD report `error` for that position instead of omitting it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3656241278"
+        }
+      ],
+      "reviewed": "9ed696d6c7be2a2cbd17a8ada740ff15b1c32754",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3618588504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this should not be necessary, fixed in https://github.com/open-telemetry/semantic-conventions-genai/pull/405 ",
+      "created": "2026-07-30T04:03:28Z",
+      "hunk": "@@ -23,13 +23,12 @@\n {{ group_id | split_id | join(\" \") | title_case | acronym }} Attributes\n {%- endmacro %}\n \n-{# v2 link rendering: attribute.provenance is set for locally-defined attributes\n-   (their YAML file lives under ./model/) and is null for attributes imported\n-   from a dependency. Local attributes link to /docs/registry/attributes/<ns>.md;\n-   imported attributes link to the pinned upstream registry page. #}\n+{# v2 link rendering: this repo only generates attribute pages for namespaces\n+   owned in this repository. Attributes imported from the pinned upstream\n+   registry must link to the pinned upstream docs page. #}\n {% macro name_with_link(attribute, attribute_registry_base_url, upstream_docs_base) -%}\n {%- set ns_id = name(attribute) | trim | split_id | first -%}\n-[`{{ name(attribute) | trim }}`]({% if attribute.provenance %}{{ attribute_registry_base_url }}/{{ ns_id | kebab_case }}.md{% else %}{{ upstream_docs_base }}/docs/registry/attributes/{{ ns_id | kebab_case }}.md{% endif %})\n+[`{{ name(attribute) | trim }}`]({% if ns_id in [\"aws\", \"gen_ai\", \"mcp\", \"openai\"] %}{{ attribute_registry_base_url }}/{{ ns_id | kebab_case }}.md{% else %}{{ upstream_docs_base }}/docs/registry/attributes/{{ ns_id | kebab_case }}.md{% endif %})",
+      "id": "PRRT_kwDOSUeMrM6U-0UI",
+      "opened": "2026-07-30T04:03:57Z",
+      "path": "templates/registry/markdown/attribute_macros.j2",
+      "replies": [],
+      "reviewed": "1a2d0c34d24903dd8a5fb2780def93c6a8d0772a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3679866920"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Parking my PR-level notes here since there's no better anchor.\n\n**Terminology is now inconsistent across the PR.** After the review round removed the \"authoritative\" framing from `model/gen-ai/registry.yaml`, that word survives in three places the reader still sees: this fragment, the `finish_reason` description in `docs/gen-ai/non-normative/models.py`, and the generated `model/gen-ai/gen-ai-output-messages.json`. The registry itself now only describes ordering and missing-position handling. Worth making these agree — and the description's Prototype bullet (\"Clarifies in `model/gen-ai/registry.yaml` that `gen_ai.response.finish_reasons` is authoritative and that output messages should avoid duplicating response-envelope metadata\") no longer describes the diff and should be updated.\n\n**A second fragment is needed.** This one covers the deprecation, but the PR also adds new normative guidance to `gen_ai.response.finish_reasons` — positional correspondence, and reporting `error` for a position the provider didn't report. `changelog.d/README.md` asks for one fragment per consumer-visible change, and #217 set the precedent of a `breaking` + `clarification` pair in one PR:\n\n`changelog.d/363.clarification.md`\n\n```\nClarify that `gen_ai.response.finish_reasons` values correspond positionally to the returned choices/candidates, and that instrumentations report `error` for a position where the provider did not report a finish reason.\n```\n\n**One note on validation, since it affects what CI can tell you here.** CI does run all 15 scenarios and diffs each `data.json`, so scenario breakage is covered. But `data.json` records a *union of attribute names per span type per library* — `reference/scenarios/openai/data.json` lists `gen_ai.response.finish_reasons` once under `spans.inference` for the whole library. So a single inference span losing that attribute is invisible to CI as long as any other inference span in the same library still sets it. That's the blind spot behind the two comments I left on `reference/scenarios/openai/scenario.py` and `reference/scenarios/litellm/scenario.py`; both need a human read rather than a green check.",
+      "created": "2026-07-31T04:22:53Z",
+      "hunk": "@@ -0,0 +1 @@\n+Deprecate `gen_ai.output.messages[].finish_reason` in favor of the authoritative `gen_ai.response.finish_reasons` attribute.",
+      "id": "PRRT_kwDOSUeMrM6VUPEL",
+      "opened": "2026-07-31T04:24:58Z",
+      "path": "changelog.d/363.deprecation.md",
+      "replies": [
+        {
+          "at": "2026-08-13T12:20:54Z",
+          "body": "Good catches. Added the clarification fragment, removed the remaining `authoritative` wording, updated the PR description, regenerated docs/schema, and fixed the per-span capture gaps below.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775258341"
+        }
+      ],
+      "reviewed": "2b8c2ed4287f8d06bbcc6824058b63a79b950b5a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3688029000"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This paragraph introduces normative behavior that nothing in the repo demonstrates, and that a good deal of existing reference code contradicts.\n\n**No reference coverage.** Per AGENTS.md (\"No convention without a reference scenario\"), the `error`-for-missing-position rule needs a scenario that emits it. I checked every finish-reason emission across `reference/scenarios/` and none produces an array containing `error`, and none exercises a response where one candidate reports a finish reason and another doesn't. The rule ships unexercised.\n\n**Five scenarios currently do the opposite.** These all filter out missing positions, which shifts every later value left — precisely what the new SHOULD forbids:\n\n- `reference/scenarios/mistralai/scenario.py:63,91,151` — `[c.finish_reason for c in resp.choices if c.finish_reason]` (touched by this PR)\n- `reference/scenarios/azure-ai-inference/scenario.py:43,144` (touched by this PR)\n- `reference/scenarios/dspy/scenario.py:67,115,205` (touched by this PR)\n- `reference/scenarios/autogen/scenario.py:207`\n- `reference/scenarios/openai-agents/scenario.py:142`\n\nNone of them violates the rule *observably* today, since the mocks always return a non-null finish reason — but they encode the shifting behavior, and three are already open in this PR. Worth aligning at least those three, or noting why the pattern is acceptable.\n\n(`reference/scenarios/autogen/scenario.py:323` is the one place that already does the right thing — `[c.finish_reason for c in resp.choices]`, no filter.)",
+      "created": "2026-07-31T04:22:54Z",
+      "hunk": "@@ -201,9 +201,20 @@ attributes:\n   - key: gen_ai.response.finish_reasons\n     type: string[]\n     brief: Array of reasons the model stopped generating tokens, corresponding to each generation received.\n+    note: |\n+      Values correspond to generations in the same order as the returned\n+      choices/candidates.\n+\n+      When a request is expected to produce multiple choices/candidates, each\n+      position SHOULD contain the finish reason for the corresponding\n+      choice/candidate. If a finish reason was expected but not received, for\n+      example because generation failed, was cancelled, or a stream ended before\n+      the final event, instrumentations SHOULD report `error` for that\n+      position instead of omitting it.",
+      "id": "PRRT_kwDOSUeMrM6VUPEO",
+      "opened": "2026-07-31T04:24:58Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-08-13T12:20:56Z",
+          "body": "Agreed. Added an OpenAI `n=2` reference path where the mock returns one indexed choice, so the instrumentation derives `[\"stop\", \"error\"]` from the request/response boundary. I also replaced the filtering patterns in the current Mistral, Azure AI Inference, AutoGen, OpenAI Agents, and CrewAI scenarios, and made streaming accumulation positional.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775258562"
+        }
+      ],
+      "reviewed": "2b8c2ed4287f8d06bbcc6824058b63a79b950b5a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3688029003"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Adding `error` to the examples surfaces a collision that's reproducible in this repo: **`error` is already a value providers return.**\r\n\r\n- **Mistral** — `ChatCompletionChoiceFinishReason` is `stop | length | model_length | error | tool_calls`. Lowercase `error`, byte-identical to the value proposed here. ([SDK docs](https://github.com/mistralai/client-python/blob/main/docs/models/chatcompletionchoicefinishreason.md))\r\n- **Cohere** — `ERROR` in v2 Chat, plus `ERROR_TOXIC` and `ERROR_LIMIT` in v1. Different casing, so this one only collides after case-folding — but `reference/scenarios/dspy/scenario.py:65,113,203` already lowercases finish reasons (`str(choice.finish_reason).lower()`), so that's not hypothetical either.\r\n\r\nBoth libraries have scenarios here, and both pass the provider value straight through:\r\n\r\n- `reference/scenarios/mistralai/scenario.py:63,91,151` — `[c.finish_reason for c in resp.choices if c.finish_reason]`\r\n- `reference/scenarios/cohere/scenario.py:46,73,127` — `[resp.finish_reason]`\r\n\r\nSo a Mistral generation that fails server-side emits `[\"error\"]` today, and that is indistinguishable from what this note asks instrumentations to synthesize for a position the provider *didn't* report. A consumer can't tell \"Mistral reported an error for this choice\" from \"the instrumentation found no finish reason at this position\" — and those mean quite different things. OpenAI, Anthropic, Gemini/Vertex and Bedrock have no error-like value, so they're unaffected.\r\n\r\nTo be clear about what is *not* changing: `gen_ai.response.finish_reasons` is a bare `string[]` with no defined members, and the deprecated per-message field never constrained values either — its schema is `anyOf: [FinishReason, string]`, so that enum was always advisory. This PR doesn't remove a normalization guarantee. The narrower problem is that it's the first time a synthetic value is written into an array that otherwise holds raw provider strings, and the value chosen already exists in two providers' vocabularies.\r\n\r\nThis also looks like the concrete form of a question left open upstream. In #56 lmolkova wrote \"I'm fine aligning on null/None, but I want to better understand concerns with `error` too\", after @aabmass raised that `error` feels wrong as a finish reason. lmolkova's follow-up scoped it (\"If inference wasn't even started we would not set attribute at all\"), which this note's wording matches — but the null-vs-`error` choice itself doesn't appear to have been closed out, and this PR makes `error` normative. Worth confirming that's a settled decision rather than one resolved by side effect here.\r\n\r\nTwo ways out, depending on how settled you consider it:\r\n\r\n- If `error` is settled, a sentence in the note saying the value is instrumentation-supplied rather than provider-reported at least documents the ambiguity — though given Mistral it doesn't let a consumer actually resolve it at query time.\r\n- If it isn't, `null` sidesteps the collision entirely: a null at position *i* unambiguously means \"not reported\" and can't be confused with anything a provider returns. That does require the attribute to permit nulls in the array.\r\n\r\nDefining a full normalized value set would also resolve it, but that needs explicit provider mappings and reference updates, and is probably its own PR.",
+      "created": "2026-07-31T04:22:54Z",
+      "hunk": "@@ -201,9 +201,20 @@ attributes:\n   - key: gen_ai.response.finish_reasons\n     type: string[]\n     brief: Array of reasons the model stopped generating tokens, corresponding to each generation received.\n+    note: |\n+      Values correspond to generations in the same order as the returned\n+      choices/candidates.\n+\n+      When a request is expected to produce multiple choices/candidates, each\n+      position SHOULD contain the finish reason for the corresponding\n+      choice/candidate. If a finish reason was expected but not received, for\n+      example because generation failed, was cancelled, or a stream ended before\n+      the final event, instrumentations SHOULD report `error` for that\n+      position instead of omitting it.\n     examples:\n       - [stop]\n       - [stop, length]\n+      - [stop, length, error]",
+      "id": "PRRT_kwDOSUeMrM6VUPEQ",
+      "opened": "2026-07-31T04:24:58Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-08-13T12:20:58Z",
+          "body": "I’m keeping `error` intentionally. This attribute represents the normalized termination outcome, not its provenance: provider-reported and instrumentation-inferred `error` both mean that generation ended abnormally. I added that sentence explicitly. The inference is only made once a generation/position exists or is expected; if inference never starts, the attribute remains unset.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775258802"
+        }
+      ],
+      "reviewed": "2b8c2ed4287f8d06bbcc6824058b63a79b950b5a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3688029006"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Now that `finish_reason` is gone from the message objects, position is the only thing linking `gen_ai.output.messages` to `gen_ai.response.finish_reasons`. But the note just above says instrumentations MAY filter or truncate output messages, and a filter that drops a message from the middle breaks that alignment — with no per-message field left to re-associate the two.\n\nIs that OK? It may well be intentional, since finish reasons are response-level and arguably aren't meant to line up with a user-filtered message list. If so, it might be worth saying so explicitly, because the 1:1 message-to-choice rule stated just above invites the assumption.",
+      "created": "2026-07-31T04:22:54Z",
+      "hunk": "@@ -786,8 +797,7 @@ attributes:\n                 \"type\": \"text\",\n                 \"content\": \"The weather in Paris is currently rainy with a temperature of 57°F.\"\n               }\n-            ],\n-            \"finish_reason\": \"stop\"\n+            ]\n           }\n         ]",
+      "id": "PRRT_kwDOSUeMrM6VUPEV",
+      "opened": "2026-07-31T04:24:58Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-08-13T12:21:01Z",
+          "body": "Agreed. Clarified that `gen_ai.response.finish_reasons` remains aligned with provider generations, not with a filtered or truncated `gen_ai.output.messages` value.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775259039"
+        }
+      ],
+      "reviewed": "2b8c2ed4287f8d06bbcc6824058b63a79b950b5a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3688029011"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The new description replaces the field's meaning with a pointer, so the property no longer says what it holds. Instrumentations MUST follow this schema, and it's also how previously-emitted telemetry gets interpreted. Keep both:\n\n```suggestion\n    finish_reason: Optional[Union[FinishReason, str]] = Field(\n        default=None,\n        description=(\n            \"Deprecated: report finish reasons in `gen_ai.response.finish_reasons` instead. \"\n            \"Reason for finishing the generation.\"\n        ),\n        deprecated=True,\n    )\n```\n\nI applied this and ran `make generate-json-schemas`: `model/gen-ai/gen-ai-output-messages.json` regenerates with exactly one line changed (the `description`), so that file needs regenerating and committing alongside. Also confirmed the schema as committed in this PR already regenerates byte-for-byte from the current `models.py`, so nothing else is out of sync.\n\n(This also drops the last \"authoritative\" wording from the model, which no longer matches `registry.yaml`.)",
+      "created": "2026-07-31T04:22:54Z",
+      "hunk": "@@ -348,8 +348,10 @@ class OutputMessage(ChatMessage):\n     specific response (choice, candidate).\n     \"\"\"\n \n-    finish_reason: Union[FinishReason, str] = Field(\n-        description=\"Reason for finishing the generation.\"\n+    finish_reason: Optional[Union[FinishReason, str]] = Field(\n+        default=None,\n+        description=\"Deprecated. Use `gen_ai.response.finish_reasons` as the authoritative source for finish reasons.\",\n+        deprecated=True,\n     )",
+      "id": "PRRT_kwDOSUeMrM6VUPEZ",
+      "opened": "2026-07-31T04:24:58Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-08-13T12:21:03Z",
+          "body": "Agreed. Kept both the deprecation pointer and the field meaning, then regenerated the JSON schema.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775259333"
+        }
+      ],
+      "reviewed": "2b8c2ed4287f8d06bbcc6824058b63a79b950b5a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3688029015"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This helper feeds two functions that set no finish reason anywhere else:\n\n- `run_responses_compaction_reference` (line 174)\n- `run_responses_continuation_reference` (line 251)\n\nNeither sets `gen_ai.response.finish_reasons` on its span or its event, so after this change both emit no finish reason at all, where previously the value rode inside the output message. #362's own scope says \"Keep `gen_ai.response.finish_reasons` populated wherever known\", so this looks unintended. CI won't flag it — `openai/data.json` aggregates attribute names across all inference spans in the library, and the chat-completions spans still set it.\n\nThe fix I'd suggest is *not* to copy the `[\"stop\"]` literal from `run_responses_with_prompt_template_reference` (line 647). `.github/instructions/reference-scenarios.instructions.md` is explicit that \"response ids, finish reasons, and token counts should come from the current response or streamed result object\" — that existing literal is weak by the repo's own rule, and propagating it would make things worse.\n\nThe Responses API exposes this properly via `response.status` (`completed` / `incomplete`) and `response.incomplete_details.reason`. `RESPONSES_RESPONSE` in `reference/src/semconv_genai/mock_server/openai.py` doesn't currently set `status`, so this needs a small mock addition first, after which both functions can derive the value from the response object.\n\nIf you'd rather keep the mock as-is, the honest alternative is to leave these two spans without a finish reason and call it a capture gap — but then it's worth saying so, since it reads as an accidental drop right now.\n\nOne thing you can safely ignore: the `\"finish_reason\": \"compaction\"` you removed from the `pending_parts` branch was unreachable with the current mock. The compaction item is appended *after* the message item, so it always merges into the existing assistant message and that branch never runs. `compaction` remains demonstrated end-to-end by `reference/scenarios/anthropic/scenario.py`, which reads `resp.stop_reason` into `gen_ai.response.finish_reasons`.",
+      "created": "2026-07-31T04:22:54Z",
+      "hunk": "@@ -55,9 +55,9 @@ def responses_output_messages(response):\n             if text:\n                 parts.append({\"type\": \"text\", \"content\": text})\n         if parts:\n-            output_messages.append({\"role\": role or \"assistant\", \"parts\": parts, \"finish_reason\": \"stop\"})\n+            output_messages.append({\"role\": role or \"assistant\", \"parts\": parts})\n     if pending_parts:\n-        output_messages.append({\"role\": \"assistant\", \"parts\": pending_parts, \"finish_reason\": \"compaction\"})\n+        output_messages.append({\"role\": \"assistant\", \"parts\": pending_parts})",
+      "id": "PRRT_kwDOSUeMrM6VUPEh",
+      "opened": "2026-07-31T04:24:58Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-08-13T12:21:05Z",
+          "body": "Agreed. Current main’s Responses mock now exposes `response.status`. Added a shared status-to-finish-reason mapping and used it for the compaction, continuation, prompt-template, and fetch spans/events, so the value comes from the current response rather than a literal.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775259552"
+        },
+        {
+          "at": "2026-08-13T12:27:00Z",
+          "body": "Follow-up: the Anthropic reference currently uses opentelemetry-util-genai 1.0b0, whose OutputMessage constructor still requires finish_reason. I kept that compatibility-only value in the Anthropic scenario (while the response attribute remains populated) and called it out in code; the preferred dict/schema examples remain de-duplicated.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775298803"
+        }
+      ],
+      "reviewed": "2b8c2ed4287f8d06bbcc6824058b63a79b950b5a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3688029025"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Straight loss here: `run_chat_streaming` used to accumulate the streaming finish reason, and now it's discarded without being moved anywhere — nothing else in this function sets `gen_ai.response.finish_reasons`, so the span ends up with no finish reason at all.\n\nCompare `run_chat_streaming_reference` in `reference/scenarios/openai/scenario.py` and `run_chat_streaming` in `reference/scenarios/mistralai/scenario.py`: both keep the accumulator and promote it to the response attribute. The mock's final chunk carries `finish_reason: \"stop\"` (`reference/src/semconv_genai/mock_server/openai.py`), and the deleted code already read `chunk.choices[0].finish_reason`, so this is capturable from the stream rather than hardcoded:\n\n```suggestion\n        text = \"\"\n        finish_reasons = []\n        for chunk in resp:\n            if chunk.choices[0].delta.content:\n                text += chunk.choices[0].delta.content\n            if chunk.choices[0].finish_reason is not None:\n                finish_reasons.append(chunk.choices[0].finish_reason)\n        if finish_reasons:\n            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n```",
+      "created": "2026-07-31T04:22:54Z",
+      "hunk": "@@ -138,20 +136,16 @@ def run_chat_streaming():\n             stream=True,\n         )\n         text = \"\"\n-        finish_reason = None\n         for chunk in resp:\n             if chunk.choices[0].delta.content:\n                 text += chunk.choices[0].delta.content",
+      "id": "PRRT_kwDOSUeMrM6VUPEj",
+      "opened": "2026-07-31T04:24:58Z",
+      "path": "reference/scenarios/litellm/scenario.py",
+      "replies": [
+        {
+          "at": "2026-08-13T12:21:08Z",
+          "body": "Agreed. Restored streaming finish-reason capture. It now tracks choice indexes and emits `error` for any started position that never receives a terminal finish reason.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3775259782"
+        }
+      ],
+      "reviewed": "2b8c2ed4287f8d06bbcc6824058b63a79b950b5a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/363#discussion_r3688029027"
+    }
+  ]
+}

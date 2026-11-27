@@ -1,0 +1,56 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6ae3d9c90892642cbb732dde5ad4e115dc4bd79d59dab84968738d7daa0c7708",
+  "input_digest": "656465a4d0b3ea019c19221f2c3fc74cbfb6c7ca1fd403ad164c4f48cc745f2e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dbc067cf6968e408b3b73ed863cfb50bc5480476/scenarios/http/python/urllib3/scenarios/client.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f74bca5ce9f44064eb5b95fdbdbe4d64e2e4536b/scenarios/http/python/urllib3/scenarios/client.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/d7c42fb3a9f88d4c142f2957df63d44d9e45860c"
+      ],
+      "id": "PRRT_kwDOTuzK5c6bgi_i",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/10af73a86066117f8a7da999293d903a20ea35ce/scenarios/http/python/shared/asgi_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f74bca5ce9f44064eb5b95fdbdbe4d64e2e4536b/scenarios/http/python/shared/asgi_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/b57466559c2c7622c25ae56cf2d20f19b29438f3"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b7fDQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/10af73a86066117f8a7da999293d903a20ea35ce/scenarios/http/python/aiohttp/scenarios/client.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f74bca5ce9f44064eb5b95fdbdbe4d64e2e4536b/scenarios/http/python/aiohttp/scenarios/client.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b7fDT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/10af73a86066117f8a7da999293d903a20ea35ce/scenarios/http/python/wsgi/scenarios/server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f74bca5ce9f44064eb5b95fdbdbe4d64e2e4536b/scenarios/http/python/wsgi/scenarios/server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/e9848e8c22bac6cafb2b320e925762f231997373"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b7fDW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

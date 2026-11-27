@@ -1,0 +1,20 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5069edd5fc4b78589d06275830161384e757b9b9ee53ee71b26612761a983e09",
+  "input_digest": "98d16013dbf1c7b5b2f268ccb7b443eaec68a2029ad5b93ef8a44c2f65d430f4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7f0f14685d249fc19792ec960620f97732da28e4/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_openai_gpt_3_5_turbo_model_llm_call_with_error.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/906c3eabfa69ba9dfc4560535bcbd57b426c86be/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_openai_gpt_3_5_turbo_model_llm_call_with_error.yaml"
+      ],
+      "id": "PRRT_kwDOSbspP86ERhE-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

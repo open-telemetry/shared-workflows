@@ -1,0 +1,25 @@
+{
+  "head": "140921fbf6d718d8f0c14b89fc7c3cde2612b2e8",
+  "merge": "b2dbc1d865df79dae2456e6c400806ef3d37c977",
+  "merged": "2026-01-28T15:01:43Z",
+  "missing_roots": 0,
+  "number": 16002,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should `evaluateBooleanProperty` be on a separate line?",
+      "created": "2026-01-26T13:13:46Z",
+      "hunk": "@@ -87,9 +87,13 @@ private static void initializeOpenTelemetryAppenderFromProperties(\n       ApplicationEnvironmentPreparedEvent applicationEnvironmentPreparedEvent,\n       OpenTelemetryAppender openTelemetryAppender) {\n \n-    // Implemented in the same way as the\n-    // org.springframework.boot.context.logging.LoggingApplicationListener, config properties not\n-    // available\n+    // Reading configuration directly from Spring Environment instead of using declarative\n+    // configuration because this code runs during ApplicationEnvironmentPreparedEvent, which occurs\n+    // before the full Spring application context is available. This is the same approach used by\n+    // org.springframework.boot.context.logging.LoggingApplicationListener. The\n+    // evaluateBooleanProperty",
+      "id": "PRRT_kwDODJKVX85rB4Bw",
+      "opened": "2026-01-26T13:13:46Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [],
+      "reviewed": "b9566e3ff3d208514bd0e3c6fe8845ec4244a24c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16002#discussion_r2727560367"
+    }
+  ]
+}

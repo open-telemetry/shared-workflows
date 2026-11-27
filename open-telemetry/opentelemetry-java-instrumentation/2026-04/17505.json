@@ -1,0 +1,25 @@
+{
+  "head": "fd7c6445a03645324ddb9132c553195d00a276ba",
+  "merge": "4c1a050cd3bebb862112ea2872bd0eeb445c3191",
+  "merged": "2026-04-06T18:48:59Z",
+  "missing_roots": 0,
+  "number": 17505,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "the removals of these `minimum_java_version` entries for a handful of instrumentations is a side effect of #17463 and I am working on a fix for the regex we use to parse it. I think we can merge this as is ",
+      "created": "2026-04-06T18:43:33Z",
+      "hunk": "@@ -4632,7 +4632,6 @@ libraries:\n     - GRAPHQL_SERVER_SPANS\n     library_link: https://www.graphql-java.com/\n     source_path: instrumentation/graphql-java/graphql-java-20.0\n-    minimum_java_version: 11",
+      "id": "PRRT_kwDODJKVX855GP_I",
+      "opened": "2026-04-06T18:43:36Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "fd7c6445a03645324ddb9132c553195d00a276ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17505#discussion_r3041070289"
+    }
+  ]
+}

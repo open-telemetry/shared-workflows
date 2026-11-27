@@ -1,0 +1,74 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ececa96c2ae3fe9aecc26c2eca6d55517dac18f8a87dd85a8ddb35dae0f81021",
+  "input_digest": "bd8b29073331e84baf42cc3eb59af2fc1482eacd1e2ad2c6859c97aa116e7927",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/57631cf44f127d2c48912377b51fff7cd8b9b4bd/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/ReactorClientHttpResponseInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/ReactorClientHttpResponseInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/HttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c53b03cb7d4ec780b2146c094aa412f8e4fd5ece"
+      ],
+      "id": "PRRT_kwDODJKVX86cozDi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/57631cf44f127d2c48912377b51fff7cd8b9b4bd/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/HttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/57631cf44f127d2c48912377b51fff7cd8b9b4bd/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/SpringWebfluxClientInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/HttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/SpringWebfluxClientInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/HttpProtocolUtilTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86cozD6",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a3225495d681ec71de7294cb0a11903321a4e836/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/HttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/HttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpProtocolUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/HttpProtocolUtilTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9401380df7fcc5471e6b7011e6beafe635052c3e"
+      ],
+      "id": "PRRT_kwDODJKVX86crWej",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/da60959d4adb2be7a7308f1189afe4dc29fe0392/instrumentation/spring/spring-webflux/spring-webflux-5.0/testing-webflux7/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v7_0/client/SpringWebfluxClientInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation/spring/spring-webflux/spring-webflux-5.0/testing-webflux7/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v7_0/client/SpringWebfluxClientInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5995e72cabe344fe47a671c04cdcb78de3cbe396"
+      ],
+      "id": "PRRT_kwDODJKVX86c3CaW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5995e72cabe344fe47a671c04cdcb78de3cbe396/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/SpringWebfluxClientInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4599478eac489c3a152b818d419ac8ed33bf8c99/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/client/SpringWebfluxClientInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fc82d6efaa72083e453450bf9944e0a3f5d5a9ac"
+      ],
+      "id": "PRRT_kwDODJKVX86dxfW6",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

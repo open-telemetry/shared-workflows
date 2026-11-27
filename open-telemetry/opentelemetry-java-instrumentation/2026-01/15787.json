@@ -1,0 +1,25 @@
+{
+  "head": "e76a91780daadc096232a3661a864c6d04186b00",
+  "merge": "04b73e5b13c878a0b3013e1fb732db0a38e6bebc",
+  "merged": "2026-01-09T15:56:05Z",
+  "missing_roots": 0,
+  "number": 15787,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  public String getLogging() {\r\n```",
+      "created": "2026-01-08T16:56:45Z",
+      "hunk": "@@ -26,22 +29,48 @@ private EarlyInitAgentConfig(Map<String, String> configFileContents) {\n   }\n \n   @Nullable\n-  public String getString(String propertyName) {\n+  public String getOtelJavaagentLogging() {",
+      "id": "PRRT_kwDODJKVX85okGHt",
+      "opened": "2026-01-08T16:57:25Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/EarlyInitAgentConfig.java",
+      "replies": [],
+      "reviewed": "2e0cb676c6158a3a94f5e9385a73f5576c1a3bfe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15787#discussion_r2673136687"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "head": "fc9bd67333dfd845d75223a3795369b7be12a78c",
+  "merge": "fe5608e249d64bc5961329a82f8915fe95ced51a",
+  "merged": "2026-08-03T18:40:57Z",
+  "missing_roots": 0,
+  "number": 424,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Bedrock invoke_agent span name is still the generic \"invoke_agent\" even though other agent scenarios in this PR switched to the \"<operation> <agent identifier>\" pattern (e.g., azure-ai-foundry/scenario.py:110-112, openai-assistants/scenario.py:105-107). For consistency with the updated convention and to make traces easier to scan, include the invoked agent identifier in the span name here as well.",
+      "created": "2026-08-03T04:59:50Z",
+      "hunk": "@@ -40,14 +81,14 @@ def run_invoke_agent(client):\n         \"server.port\": _SERVER_PORT,\n     }\n     with tracer.start_as_current_span(\"invoke_agent\", kind=SpanKind.CLIENT, attributes=span_attributes) as span:",
+      "id": "PRRT_kwDOSUeMrM6V3Y5v",
+      "opened": "2026-08-03T04:59:51Z",
+      "path": "reference/scenarios/aws-bedrock-agent/scenario.py",
+      "replies": [],
+      "reviewed": "ca52c54da4fdd3099cf424b191c91746eaaf2359",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/424#discussion_r3701421569"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This route is declared with a trailing slash (\"/agents/\"). If the boto3 client sends a request to \"/agents\" (no trailing slash), Flask will respond with a redirect that botocore may not follow for a PUT request, causing the scenario to fail. Declaring the route without a trailing slash (or setting strict_slashes=False) avoids redirect behavior and makes the mock more robust.",
+      "created": "2026-08-03T04:59:51Z",
+      "hunk": "@@ -9,6 +14,44 @@\n \n bp = Blueprint(\"bedrock_agent\", __name__)\n \n+_AGENT_COUNTER = 0\n+\n+\n+# Control plane -------------------------------------------------------------\n+\n+\n+@bp.route(\"/agents/\", methods=[\"PUT\"])",
+      "id": "PRRT_kwDOSUeMrM6V3Y6A",
+      "opened": "2026-08-03T04:59:51Z",
+      "path": "reference/src/semconv_genai/mock_server/bedrock_agent.py",
+      "replies": [],
+      "reviewed": "ca52c54da4fdd3099cf424b191c91746eaaf2359",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/424#discussion_r3701421601"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n| invoke_workflow | Yes — hosted Workflows API | ❌ Not implemented |\r\n```",
+      "created": "2026-08-03T16:26:31Z",
+      "hunk": "@@ -2,11 +2,18 @@\n \n The `mistralai` client is a **model-call boundary**: it calls the model\n directly, so it owns inference and embeddings. Tool calling is supported, with\n-the tool itself running in application code. (The hosted Agents API is a\n-separate, remote service.)\n+the tool itself running in application code.\n+\n+The same client also drives Mistral's hosted **Agents** and **Workflows**\n+services, which run server-side. The client owns the create-agent and\n+invoke-agent client operations; the agent's reasoning, model calls, and tool\n+execution happen across a process boundary it cannot observe.\n \n | Operation | Should be instrumented here | Status |\n | --- | --- | --- |\n | inference (`chat`) | Yes — calls the model directly | ✅ Implemented |\n | embeddings | Yes — calls the model directly | ✅ Implemented |\n | execute_tool | No — the client returns tool calls but doesn't execute them; the tool runs in app code | ➖ Not instrumentable |\n+| create_agent (client) | Yes — hosted Agents API `beta.agents.create` | ✅ Implemented |\n+| invoke_agent (client) | Yes — `beta.conversations.start` runs the remote agent | ❌ Not implemented |\n+| invoke_workflow (client) | Yes — hosted Workflows API | ❌ Not implemented |",
+      "id": "PRRT_kwDOSUeMrM6WDA91",
+      "opened": "2026-08-03T16:30:21Z",
+      "path": "reference/scenarios/mistralai/README.md",
+      "replies": [],
+      "reviewed": "ca52c54da4fdd3099cf424b191c91746eaaf2359",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/424#discussion_r3705822945"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Not sure about this AI claim, but passing it along:\r\n\r\nAgent Engine isn't part of the deprecation, so \"SDK deprecated\" is the wrong reason here. The banner right above lists the deprecated modules and `vertexai.agent_engines` isn't one of them — `google-cloud-aiplatform` 2.0.0, which this scenario already pins, still documents `client.agent_engines.create(...)` as a supported surface. Since this PR is a survey of where `create_agent` applies, I'd rather this row said it's simply not implemented, otherwise a real remaining gap gets written off.\r\n\r\n```suggestion\r\n| create_agent / invoke_agent (client) | Yes — Agent Engine (`vertexai.agent_engines`, not deprecated) hosts agents remotely | ❌ Not implemented |\r\n```",
+      "created": "2026-08-03T16:26:31Z",
+      "hunk": "@@ -1,12 +1,26 @@\n # vertexai\n \n+> [!WARNING]\n+> **Deprecated.** The generative AI modules of the Vertex AI SDK\n+> (`vertexai.generative_models`, `vertexai.language_models`,\n+> `vertexai.vision_models`, `vertexai.caching`, `vertexai.tuning`) were\n+> deprecated by Google and are no longer available after June 24, 2026 — see the\n+> [Vertex AI SDK migration guide](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/deprecations/genai-vertexai-sdk).\n+> The successor is the Google Gen AI SDK (`google-genai`), covered by the\n+> [google-genai](../google-genai/) scenario.\n+>\n+> This scenario is kept only as existing evidence for already-proven\n+> conventions. No new operations will be added to it, and it will be removed\n+> from the reference in a future change.\n+\n The Vertex AI generative-models client is a **model-call boundary**: it calls\n-the model directly, so it owns inference. Vertex AI also has a text-embeddings\n-API. It supports **automatic function calling** — when tools are Python\n-callables, the SDK executes them — so tool execution is instrumentable here.\n+the model directly, so it owns inference. It supports **automatic function\n+calling** — when tools are Python callables, the SDK executes them — so tool\n+execution is instrumentable here.\n \n | Operation | Should be instrumented here | Status |\n | --- | --- | --- |\n | inference (`chat`) | Yes — calls the model directly | ✅ Implemented |\n-| embeddings | Yes — Vertex AI text-embeddings API | ❌ Not implemented |\n | execute_tool | Yes — automatic function calling executes the tool (`preview` surface in google-cloud-aiplatform 2.x) | ✅ Implemented |\n+| embeddings | Yes — text-embeddings API | ➖ Won't add — SDK deprecated |\n+| create_agent / invoke_agent (client) | Yes — Agent Engine hosts agents remotely | ➖ Won't add — SDK deprecated |",
+      "id": "PRRT_kwDOSUeMrM6WDA9j",
+      "opened": "2026-08-03T16:30:21Z",
+      "path": "reference/scenarios/vertexai/README.md",
+      "replies": [
+        {
+          "at": "2026-08-03T18:39:14Z",
+          "body": "I'd prefer to keep it. This is SDK-specific reference, so SDK deprecated as a whole is a good motivation to drop it (at least not add new scenarios to it), but I realized I missed google-genai that now supports remote agents. \r\n\r\nAdded in \r\nhttps://github.com/open-telemetry/semantic-conventions-genai/pull/424/changes/4e651f2eff31a0eb4b4329a5e4edaac67db575f0..fc9bd67333dfd845d75223a3795369b7be12a78c#diff-78028656416f796f6bbf01cc50d6d72edb268fe256a92eade53bb348e8f7eab4",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/424#discussion_r3706780743"
+        }
+      ],
+      "reviewed": "ca52c54da4fdd3099cf424b191c91746eaaf2359",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/424#discussion_r3705822928"
+    }
+  ]
+}

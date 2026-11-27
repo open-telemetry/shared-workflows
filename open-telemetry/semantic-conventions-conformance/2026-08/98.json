@@ -1,0 +1,40 @@
+{
+  "head": "69a1d48073c0563c948901351f34246d47ea89f8",
+  "merge": "427e7af7e1dc021ff6f445d5494dda85a561e844",
+  "merged": "2026-08-28T23:22:57Z",
+  "missing_roots": 0,
+  "number": 98,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This bypasses the required implementation-local entry-program layer for programmatically configured telemetry. The scenario contract requires each such scenario to have an entry program beside `conformance.yaml` that imports the shared scenario; run that wrapper here (and expose the shared package through `PYTHONPATH`) while keeping the span processor registration on the launcher.\n\nThis issue also appears on line 28 of the same file.",
+      "created": "2026-08-28T06:40:34Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: agent-framework\n+instrumentation_library: openinference-instrumentation-agent-framework\n+\n+server:\n+  run: genai-mock-server --port ${PORT}\n+\n+env:\n+  OPENAI_BASE_URL: ${MOCK_SERVER_URL}/v1\n+  OPENAI_API_KEY: test_openai_api_key\n+  # Agent Framework's own switch: instrumentation is on by default, message\n+  # content is not.\n+  ENABLE_SENSITIVE_DATA: \"true\"\n+  # OpenInference records its own `llm.*` attributes by default;\n+  # this is the switch that adds the GenAI conventions beside them.\n+  OPENINFERENCE_ENABLE_GENAI_SEMCONV: \"true\"\n+\n+scenarios:\n+  invoke_agent:\n+    run: uv run --frozen --project . otel-conformance-python\n+      --span-processor openinference.instrumentation.agent_framework:AgentFrameworkToOpenInferenceProcessor\n+      ../scenarios/invoke_agent.py",
+      "id": "PRRT_kwDOTuzK5c6dFNAB",
+      "opened": "2026-08-28T06:40:35Z",
+      "path": "scenarios/gen-ai/python/agent-framework/openinference/conformance.yaml",
+      "replies": [],
+      "reviewed": "5afdbc258644895e824c89df74a607336ddec3cc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/98#discussion_r3878461384"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "agent framework native instrumentation should be disabled here, otherwise we're not measuring coverage",
+      "created": "2026-08-28T06:56:44Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: agent-framework\n+instrumentation_library: openinference-instrumentation-agent-framework\n+\n+server:\n+  run: genai-mock-server --port ${PORT}\n+\n+env:\n+  OPENAI_BASE_URL: ${MOCK_SERVER_URL}/v1\n+  OPENAI_API_KEY: test_openai_api_key\n+  # Agent Framework's own switch: instrumentation is on by default, message\n+  # content is not.\n+  ENABLE_SENSITIVE_DATA: \"true\"",
+      "id": "PRRT_kwDOTuzK5c6dFa2o",
+      "opened": "2026-08-28T06:56:44Z",
+      "path": "scenarios/gen-ai/python/agent-framework/openinference/conformance.yaml",
+      "replies": [],
+      "reviewed": "5afdbc258644895e824c89df74a607336ddec3cc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/98#discussion_r3878544753"
+    }
+  ]
+}

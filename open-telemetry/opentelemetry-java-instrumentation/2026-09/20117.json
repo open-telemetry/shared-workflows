@@ -1,0 +1,94 @@
+{
+  "head": "725e6dc810a8ef8c4bbe9ac24a367b592e7017e9",
+  "merge": "b9743869efa9a734d212c99f18325ec6fef61845",
+  "merged": "2026-09-21T06:45:33Z",
+  "missing_roots": 0,
+  "number": 20117,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This setting is only read when v3 preview is enabled; outside preview the implementation selects `experimental_span_attributes/development` instead (CouchbaseSpan.java:44-49). Please make the generated configuration description explicit so users do not expect this property to enable telemetry in the legacy mode.",
+      "created": "2026-09-12T20:12:51Z",
+      "hunk": "@@ -4,3 +4,9 @@ description: >\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n+configurations:\n+  - name: otel.instrumentation.couchbase.emit-experimental-telemetry\n+    declarative_name: java.couchbase.emit_experimental_telemetry/development\n+    description: Enables experimental spans and span attributes emitted from the underlying Couchbase library.",
+      "id": "PRRT_kwDODJKVX86hzJ2p",
+      "opened": "2026-09-12T20:12:52Z",
+      "path": "instrumentation/couchbase/couchbase-3.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-12T20:17:32Z",
+          "body": "Addressed in 701a986d2343e510a2fcd8769ab91a322b7d989d.\n\nAnalysis: CouchbaseSpan reads emit_experimental_telemetry/development only in v3 preview mode. The metadata descriptions now state that condition and explain that the setting has no effect outside v3 preview.\n\nUpsides: Generated configuration documentation now matches runtime behavior for all three Couchbase 3.x modules.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r3997429521"
+        }
+      ],
+      "reviewed": "5da0e605ed8a6c1852ced1acebecc66f2ae5a6ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r3997415492"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This setting is only read when v3 preview is enabled; outside preview the implementation selects `experimental_span_attributes/development` instead (CouchbaseSpan.java:44-49). Please make the generated configuration description explicit so users do not expect this property to enable telemetry in the legacy mode.",
+      "created": "2026-09-12T20:12:52Z",
+      "hunk": "@@ -6,6 +6,11 @@ semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n configurations:\n+  - name: otel.instrumentation.couchbase.emit-experimental-telemetry\n+    declarative_name: java.couchbase.emit_experimental_telemetry/development\n+    description: Enables experimental spans and span attributes emitted from the underlying Couchbase library.",
+      "id": "PRRT_kwDODJKVX86hzJ2t",
+      "opened": "2026-09-12T20:12:52Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-12T20:17:34Z",
+          "body": "Addressed in 701a986d2343e510a2fcd8769ab91a322b7d989d.\n\nAnalysis: CouchbaseSpan reads emit_experimental_telemetry/development only in v3 preview mode. The metadata descriptions now state that condition and explain that the setting has no effect outside v3 preview.\n\nUpsides: Generated configuration documentation now matches runtime behavior for all three Couchbase 3.x modules.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r3997429666"
+        }
+      ],
+      "reviewed": "5da0e605ed8a6c1852ced1acebecc66f2ae5a6ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r3997415500"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This setting is only read when v3 preview is enabled; outside preview the implementation selects `experimental_span_attributes/development` instead (CouchbaseSpan.java:44-49). Please make the generated configuration description explicit so users do not expect this property to enable telemetry in the legacy mode.",
+      "created": "2026-09-12T20:12:52Z",
+      "hunk": "@@ -6,6 +6,11 @@ semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n configurations:\n+  - name: otel.instrumentation.couchbase.emit-experimental-telemetry\n+    declarative_name: java.couchbase.emit_experimental_telemetry/development\n+    description: Enables experimental spans and span attributes emitted from the underlying Couchbase library.",
+      "id": "PRRT_kwDODJKVX86hzJ2z",
+      "opened": "2026-09-12T20:12:52Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-12T20:17:35Z",
+          "body": "Addressed in 701a986d2343e510a2fcd8769ab91a322b7d989d.\n\nAnalysis: CouchbaseSpan reads emit_experimental_telemetry/development only in v3 preview mode. The metadata descriptions now state that condition and explain that the setting has no effect outside v3 preview.\n\nUpsides: Generated configuration documentation now matches runtime behavior for all three Couchbase 3.x modules.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r3997429809"
+        }
+      ],
+      "reviewed": "5da0e605ed8a6c1852ced1acebecc66f2ae5a6ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r3997415507"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Under `otel.instrumentation.common.v3-preview=true`, the deprecated Couchbase setting must be ignored without a warning so preview matches the planned 3.0 behavior. This fallback is unconditional, so `experimental-span-attributes=true` still enables experimental attributes/SDK-detail spans and logs the deprecation warning in preview; guard the legacy lookup and warning with the preview check and return `false` instead.",
+      "created": "2026-09-14T22:28:23Z",
+      "hunk": "@@ -155,6 +180,32 @@ private String stableKey(String key) {\n   }\n \n   private static boolean captureExperimentalAttribute(String key) {\n-    return captureExperimentalAttributes && key.startsWith(\"db.couchbase.\");\n+    return captureExperimentalTelemetry && key.startsWith(\"db.couchbase.\");\n+  }\n+\n+  static boolean emitExperimentalTelemetry() {\n+    return captureExperimentalTelemetry;\n+  }\n+\n+  // visible for testing\n+  static boolean captureExperimentalTelemetry(DeclarativeConfigProperties config) {\n+    Boolean configured = config.getBoolean(\"emit_experimental_telemetry/development\");\n+    if (configured != null) {\n+      return configured;\n+    }\n+\n+    // Deprecated for Couchbase 3.x; remains active until the next minor release.\n+    Boolean deprecated = config.getBoolean(\"experimental_span_attributes/development\");\n+    if (deprecated == null) {\n+      return false;\n+    }",
+      "id": "PRRT_kwDODJKVX86iTdV0",
+      "opened": "2026-09-14T22:28:23Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_0/CouchbaseSpan.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:31:40Z",
+          "body": "No code change.\n\nAnalysis: The deprecated property is explicitly experimental. Repository policy says experimental or preview properties use a one-minor-release deprecation cycle and must not be gated by v3 preview. The pull request description also states that this fallback remains active across Couchbase 2.x and 3.x for one deprecation release. Ignoring it only in preview would contradict that contract and the existing all-mode unit test.\n\nUpsides: Keeping the current code preserves the documented migration window and applies the same replacement-first fallback across Couchbase versions and modes.\n\nDownsides: Preview users who still depend on the deprecated property receive the warning until the next minor release removes the fallback.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r4010183028"
+        }
+      ],
+      "reviewed": "725e6dc810a8ef8c4bbe9ac24a367b592e7017e9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20117#discussion_r4010164454"
+    }
+  ]
+}

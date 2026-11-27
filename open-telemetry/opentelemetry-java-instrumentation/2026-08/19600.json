@@ -1,0 +1,52 @@
+{
+  "head": "f7a0057cea3c94d24e261003427c5852dbb0127f",
+  "merge": "e3cffbc7f76351c6b02174c4f7508f482e0f6919",
+  "merged": "2026-08-18T07:10:25Z",
+  "missing_roots": 0,
+  "number": 19600,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The previous capture-all path passed this pair to `captureAttribute`, which explicitly skips a null key. The new glob selector invokes `IncludeExclude.matches` first, and that method rejects null, so a Logback key-value pair with a null key now aborts log mapping instead of being ignored. Check the key before evaluating the selector to preserve the prior behavior.",
+      "created": "2026-08-15T00:07:12Z",
+      "hunk": "@@ -312,11 +312,14 @@ private static void captureOtelEventName(LogRecordBuilder builder, ILoggingEvent\n \n   @NoMuzzle\n   private static void captureKeyValuePairAttributes(\n-      LogRecordBuilder builder, ILoggingEvent loggingEvent) {\n+      LogRecordBuilder builder,\n+      ILoggingEvent loggingEvent,\n+      Predicate<String> keyValuePairAttributes) {\n     List<KeyValuePair> keyValuePairs = loggingEvent.getKeyValuePairs();\n     if (keyValuePairs != null) {\n       for (KeyValuePair keyValuePair : keyValuePairs) {\n-        if (!OTEL_EVENT_NAME.getKey().equals(keyValuePair.key)) {\n+        if (!OTEL_EVENT_NAME.getKey().equals(keyValuePair.key)\n+            && keyValuePairAttributes.test(keyValuePair.key)) {\n           captureAttribute(builder, keyValuePair.key, keyValuePair.value);",
+      "id": "PRRT_kwDODJKVX86ZcgMC",
+      "opened": "2026-08-15T00:07:12Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/internal/LoggingEventMapper.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:41:01Z",
+          "body": "Good catch, and it's worse than a skipped attribute. `IncludeExclude.matches` opens with `requireNonNull(value, \"value\")`, and both predicate sources (`AttributeSelectors.create` and `SelectorConfig.resolveLegacyBoolean`) hand back `selector::matches`, so a null key threw out of `mapLoggingEvent` → `append`, where `UnsynchronizedAppenderBase.doAppend` converts the exception into an ERROR status and drops the event. The old `captureAttribute` call guarded `key != null && value != null`, so the regression turned \"skip one attribute\" into \"silently drop the entire log record\".\n\nFixed by hoisting the key and guarding `key != null` before the selector test. I put the guard at the `LoggingEventMapper` call site rather than inside `AttributeSelectors.create` because the javaagent builds its predicate in `SelectorConfig`, which is shared with the Log4j instrumentation and is being changed concurrently; the call-site guard covers both paths.\n\nAdded `nullKeyIsIgnored()`, and confirmed it is a real regression test rather than a passing no-op — with the guard removed it fails `expected: 1 but was: 0`, which is exactly the swallowed-exception signature described above.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19600#discussion_r3788506318"
+        }
+      ],
+      "reviewed": "d855fb60e750f08417d0bb3b8e4b07964e7cadf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19600#discussion_r3787894653"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This leaves an existing `<captureKeyValuePairAttributes>true</...>` value on the appender when Spring supplies an explicitly empty replacement property. `getLoggingListProperty` returns an empty (non-null) list, the installer clears the XML include/exclude strings but does not clear this deprecated Boolean, and `resolveKeyValuePairAttributes()` then falls through to the stale `true`, capturing every pair and warning. This contradicts the installer’s property-over-XML precedence and the documented empty-selector behavior; provide a nullable/reset path for the deprecated appender state and clear it when the deprecated property is absent.",
+      "created": "2026-08-15T00:07:12Z",
+      "hunk": "@@ -214,6 +214,35 @@ static void initializeMdcAttributesFromProperties(\n         deprecated == null ? null : String.join(\",\", deprecated));\n   }\n \n+  // the appender resolves the precedence between these settings, ignoring the deprecated one when\n+  // a non-empty selector is configured\n+  @SuppressWarnings(\"deprecation\") // the deprecated setter preserves the deprecated semantics\n+  static void initializeKeyValuePairAttributesFromProperties(\n+      ConfigurableEnvironment environment, OpenTelemetryAppender openTelemetryAppender) {\n+    List<String> included = getLoggingListProperty(environment, KEY_VALUE_PAIR_ATTRIBUTES_INCLUDED);\n+    List<String> excluded = getLoggingListProperty(environment, KEY_VALUE_PAIR_ATTRIBUTES_EXCLUDED);\n+    Boolean deprecated = evaluateBooleanProperty(environment, DEPRECATED_KEY_VALUE_PAIR_ATTRIBUTES);\n+    if (included == null && excluded == null && deprecated == null) {\n+      return;\n+    }\n+\n+    // configuration properties replace the key value pair settings of an appender declared in\n+    // logback.xml, so every source the appender resolves is set, including the ones that are not\n+    // configured\n+    openTelemetryAppender.setKeyValuePairAttributes(\n+        included == null && excluded == null\n+            ? null\n+            : IncludeExclude.builder()\n+                .setIncluded(included == null ? emptyList() : included)\n+                .setExcluded(excluded == null ? emptyList() : excluded)\n+                .build());\n+    openTelemetryAppender.setKeyValuePairAttributesIncluded(null);\n+    openTelemetryAppender.setKeyValuePairAttributesExcluded(null);\n+    if (deprecated != null) {\n+      openTelemetryAppender.setCaptureKeyValuePairAttributes(deprecated);\n+    }",
+      "id": "PRRT_kwDODJKVX86ZcgMI",
+      "opened": "2026-08-15T00:07:12Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:41:17Z",
+          "body": "You're right that the code contradicted the comment directly above it, and I reproduced the path: `getLoggingListProperty` returns a non-null empty list for an explicitly empty property, so the early return did not fire, the selector normalized back to absent, and `if (deprecated != null)` then skipped the reset — leaving a `<captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>` from `logback.xml` to win.\n\nI first fixed it the way you suggested, by giving the deprecated setter a nullable reset path so the installer could clear it. That turned out to be wrong, and the reason is worth recording. Widening `setCaptureKeyValuePairAttributes` from `boolean` to `Boolean` is a binary break that japicmp would not catch here (no `docs/apidiffs` exists for this module), and more importantly it silently breaks `logback.xml` configuration: Joran resolves the element through `PropertySetter`, and under logback 1.5.x neither a lone `Boolean` setter nor a `boolean`/`Boolean` overload pair is applied at all, so the setting is quietly ignored. I verified this with a `JoranConfigurator` test on both the pinned baseline and `-PtestLatestDeps=true`, including a control run proving the primitive setter passes the same test. That fix would have broken the surface the deprecated setter exists to serve.\n\nSo the fix is on the installer side instead, and it makes the behavior consistent with the already-merged model rather than inventing a new one. `SelectorConfig.getSelector` documents that \"an empty selector is equivalent to no selector at all, matching flat configuration where empty property values cannot be distinguished from unset ones\", which is how the identical flat property is read on the javaagent path. The installer now applies that same rule: an all-empty selector with no deprecated property returns early, so an empty value cannot half-replace the `logback.xml` settings. Past that point an empty selector implies the deprecated property is configured, so the stale fallback you describe can no longer occur.\n\nTwo tests cover it: `emptyKeyValuePairSelectorPropertyDoesNotReplaceAppenderSettings` pins the empty-is-unset semantics, and `keyValuePairSelectorPropertyTakesPrecedenceOverDeprecatedAppenderSetting` pins that a real selector property beats the deprecated appender setting. I also kept the `JoranConfigurator` test, since nothing previously covered XML configurability of these settings and it is what caught the break above.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19600#discussion_r3788506788"
+        }
+      ],
+      "reviewed": "d855fb60e750f08417d0bb3b8e4b07964e7cadf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19600#discussion_r3787894664"
+    }
+  ]
+}

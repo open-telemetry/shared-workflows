@@ -1,0 +1,27 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "56f62262ef5114664c9454f9c0381c0c244d43d50184d00ec92cc244fdc8d7d0",
+  "input_digest": "a89f713a1136a63e164e8fd9e248bbc415ce46b107c4600957545c476fd51fee",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a365143279d1129bffe6177e131231782041c593/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a365143279d1129bffe6177e131231782041c593/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a365143279d1129bffe6177e131231782041c593/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcMetricsAdvice.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a365143279d1129bffe6177e131231782041c593/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcServerMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de7c3fcb7e565b6876e817b755fbc42688e49d93/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de7c3fcb7e565b6876e817b755fbc42688e49d93/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de7c3fcb7e565b6876e817b755fbc42688e49d93/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcMetricsAdvice.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de7c3fcb7e565b6876e817b755fbc42688e49d93/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcServerMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2290421df8e8f37d68ffe815db94b9ed268ad462"
+      ],
+      "id": "PRRT_kwDODJKVX86veCTx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

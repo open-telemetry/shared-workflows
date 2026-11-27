@@ -1,0 +1,25 @@
+{
+  "head": "c84c72ee4ff3a3e0bd4f273d415524b0896e4a93",
+  "merge": "c6b63bde508b85a19ff86dd4f1c0e054eac6dffc",
+  "merged": "2026-09-14T17:29:54Z",
+  "missing_roots": 0,
+  "number": 704,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds public `GenAIInvocation.context` and `TelemetryHandler.tool(..., context=...)` APIs to `opentelemetry-util-genai`, but the PR only includes a changelog fragment for the LlamaIndex package. Repository policy requires user-visible changes to be recorded in the affected package; please add `util/opentelemetry-util-genai/.changelog/704.added` describing these APIs (the existing LlamaIndex fragment can remain for its behavior change).",
+      "created": "2026-09-13T21:24:33Z",
+      "hunk": "@@ -125,18 +125,27 @@ def _should_capture_content_on_span(self) -> bool:\n             ContentCapturingMode.SPAN_AND_EVENT,\n         )\n \n+    @property\n+    def context(self) -> Context:\n+        \"\"\"The OpenTelemetry Context containing this invocation's span.\"\"\"\n+        return self._span_context",
+      "id": "PRRT_kwDOSbspP86h8JiE",
+      "opened": "2026-09-13T21:24:34Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "ef26058d3cafc996bbcbe265d71ab8a9373ac2c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/704#discussion_r4000944025"
+    }
+  ]
+}

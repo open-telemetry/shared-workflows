@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "fe1c8e44e20084351cc2ec7ef8e414390642e98d20e10b32def00a5e6fc5a1d3",
+  "input_digest": "5ecef801aa80c8ad569d159a0aeacaa27ff6104564014cd7fb56378dbec37a8f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/14ecc37d670e8e35abee48b0fc9afcdb49245109/scenarios/gen-ai/python/anthropic/scenarios/automatic_tool_calling.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/14ecc37d670e8e35abee48b0fc9afcdb49245109/scenarios/gen-ai/python/anthropic/openinference/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/0a85292afc02c614c0f3ab0211bb63680abbe8d9/scenarios/gen-ai/python/anthropic/scenarios/automatic_tool_calling.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/0a85292afc02c614c0f3ab0211bb63680abbe8d9/scenarios/gen-ai/python/anthropic/openinference/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/0203289f72d57b0714336e9e19022dfe39283379"
+      ],
+      "id": "PRRT_kwDOTuzK5c6cH3JP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

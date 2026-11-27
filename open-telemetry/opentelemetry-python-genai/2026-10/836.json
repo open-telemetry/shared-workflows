@@ -1,0 +1,397 @@
+{
+  "head": "1c7907cade032f6c104135fa83c4f840599d3b43",
+  "merge": "068606f9d669d89f58ff95271ac3cb7c3982ef62",
+  "merged": "2026-10-29T06:07:43Z",
+  "missing_roots": 0,
+  "number": 836,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Catching every `TypeError` here also catches errors raised inside a custom logger's `enabled()` implementation. That callback is then invoked a second time with different arguments, which can hide the actual failure or duplicate side effects. Restrict the retry to the unsupported-`severity_number` signature case (or detect that capability before calling) and let unrelated `TypeError`s follow the normal error path.",
+      "created": "2026-10-02T15:06:28Z",
+      "hunk": "@@ -444,14 +444,31 @@ def _maybe_create_event(self) -> LogRecord | None:\n         if not self._emit_event:\n             return None\n \n+        event_name = \"gen_ai.client.inference.operation.details\"\n+        if getattr(self._logger, \"enabled\", None):\n+            try:\n+                if not self._logger.enabled(\n+                    context=self._span_context,\n+                    severity_number=SeverityNumber.DEBUG,\n+                    event_name=event_name,\n+                ):\n+                    return None\n+            except TypeError:",
+      "id": "PRRT_kwDOSbspP86oYnDi",
+      "opened": "2026-10-02T15:06:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-02T15:40:07Z",
+          "body": "Resolved in commit d5c7fa4. Restricted the TypeError fallback specifically to unexpected keyword argument severity_number, ensuring that any internal TypeErrors from custom logger implementations propagate cleanly and avoid duplicate invocations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4167301466"
+        }
+      ],
+      "reviewed": "4b7fb1eae7bb487a51586471920f98602e20570e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4166998973"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test does not isolate `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`. Because that variable takes precedence over the capture mode, running the suite with it set to `false` prevents event creation and makes this assertion fail for an unrelated ambient setting. Explicitly enable events in this decorator.\n\nThis issue also appears in the following locations of the same file:\n- line 507\n- line 545\n- line 583",
+      "created": "2026-10-02T15:06:28Z",
+      "hunk": "@@ -479,3 +481,134 @@ def test_inference_invocation_derives_emit_event_from_content_capturing_mode(\n             content_capturing_mode=ContentCapturingMode.NO_CONTENT,\n         )\n         self.assertFalse(inv_disabled._emit_event)\n+\n+    @patch.dict(\n+        os.environ,\n+        {\n+            \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"EVENT_ONLY\",\n+        },\n+    )",
+      "id": "PRRT_kwDOSbspP86oYnEx",
+      "opened": "2026-10-02T15:06:29Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils_events.py",
+      "replies": [
+        {
+          "at": "2026-10-02T15:40:15Z",
+          "body": "Resolved in commit 66f2aae. Explicitly isolated OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT=true across all test decorators in test_utils_events.py, and added unit test coverage verifying that unrelated internal TypeErrors propagate without suppression.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4167302638"
+        }
+      ],
+      "reviewed": "4b7fb1eae7bb487a51586471920f98602e20570e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4166999082"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Let's remove this test. default is tested in the other test anyway",
+      "created": "2026-10-02T22:43:49Z",
+      "hunk": "@@ -60,3 +62,33 @@ def test_co_filename_on_wrapped_functions(\n         ), (\n             f\"Expected opentelemetry/instrumentation/google_genai removed from {co_filename} upon uninstrument\"\n         )\n+\n+\n+def test_instrument_does_not_mutate_emit_event_env_var(",
+      "id": "PRRT_kwDOSbspP86og6L9",
+      "opened": "2026-10-02T22:45:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_instrumentor.py",
+      "replies": [
+        {
+          "at": "2026-10-03T09:51:15Z",
+          "body": "Removed  in commit 8c6abe5, relying on  for default preservation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4172615855"
+        }
+      ],
+      "reviewed": "66f2aae4dd1f73ecf7cb8eb8307e4124a9686f04",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4170432276"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please wait for https://github.com/open-telemetry/opentelemetry-python-genai/pull/836 to land or repeat the fix here (by calling API directly and raising otel api version). No try/catch is necessary as well.",
+      "created": "2026-10-02T22:44:36Z",
+      "hunk": "@@ -444,14 +444,36 @@ def _maybe_create_event(self) -> LogRecord | None:\n         if not self._emit_event:\n             return None\n \n+        event_name = \"gen_ai.client.inference.operation.details\"\n+        if getattr(self._logger, \"enabled\", None):",
+      "id": "PRRT_kwDOSbspP86og6yS",
+      "opened": "2026-10-02T22:45:18Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-03T09:51:39Z",
+          "body": "Updated in commit 8c6abe5:\n- Removed the try/catch block and replaced with direct self._logger.enabled(context=self._span_context, severity_number=SeverityNumber.DEBUG, event_name=event_name)\n- Bumped opentelemetry-api to ~= 1.45 in util/opentelemetry-util-genai/pyproject.toml\n- Removed the legacy fallback unit tests from test_utils_events.py\n\nAll unit tests pass cleanly against opentelemetry-api 1.45.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4172616753"
+        }
+      ],
+      "reviewed": "66f2aae4dd1f73ecf7cb8eb8307e4124a9686f04",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4170436211"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "I feel like we should also remove OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT entirely from the repo in this PR... WDYT @lmolkova ? \n\nSince we now have this generic way of disabling the event, we shouldn't need it anymore...\n\nIt'd be good to document how users can disable the event somewhere (instructions here: https://github.com/open-telemetry/opentelemetry-python-genai/issues/619#issuecomment-5834075568).. I'm just not sure where since we don't have any public documentation",
+      "created": "2026-10-05T19:05:43Z",
+      "hunk": "@@ -0,0 +1 @@\n+Check if logger is enabled before emitting inference details event, and set event severity to DEBUG per GenAI semantic conventions.",
+      "id": "PRRT_kwDOSbspP86pLKos",
+      "opened": "2026-10-05T19:05:43Z",
+      "path": "util/opentelemetry-util-genai/.changelog/836.added",
+      "replies": [
+        {
+          "at": "2026-10-05T20:40:03Z",
+          "body": "Agreed that since the standard LoggerProvider/Logger filter can disable events generically, `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT` becomes redundant. Awaiting @lmolkova's confirmation whether you would like that removed in this PR or in a separate follow-up PR—happy to remove it here if preferred.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4188543395"
+        },
+        {
+          "at": "2026-10-05T22:39:46Z",
+          "body": "I support removing it! we can document in the changelog that it's now controlled via logger config. Is there an e2e example in python-logging for severity-based enablement we can link to, @DylanRussell do you know? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4189604160"
+        },
+        {
+          "at": "2026-10-07T16:12:41Z",
+          "body": "I don't see any existing example.. I drafted a PR showing examples of how to do it e2e: https://github.com/open-telemetry/opentelemetry-python-genai/pull/855 -- we may as well merge that into this PR..\r\n\r\nBut I don't know how to publicize it really.. We don't have any public docs yet I don't think ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4209200676"
+        },
+        {
+          "at": "2026-10-07T16:15:00Z",
+          "body": "One possibility is to link to this examples folder from the PyPi docs.. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4209223019"
+        },
+        {
+          "at": "2026-10-08T13:50:34Z",
+          "body": "I would be happy to merge the examples from #855 into this PR, or link them from the package README once #855 merges. Having end-to-end examples demonstrating event suppression via logger level/filtering is a great UX improvement for adopters. If you prefer them unified in this PR, feel free to push them to this branch or let me know and I will pull them in.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4219775245"
+        },
+        {
+          "at": "2026-10-09T17:25:37Z",
+          "body": "The examples were merged into main.. We should proceed with this PR and get rid of the event env var now..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4232770829"
+        }
+      ],
+      "reviewed": "7af7eff38ea7b59da531819689a3779c9b60c939",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4187709357"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "this should be cached inside __init__ so we don't have to recompute it each time.. self._emit_event could be reused to be this value if we agree the emit_event env var can be completely removed..",
+      "created": "2026-10-05T20:26:26Z",
+      "hunk": "@@ -472,14 +472,23 @@ def _maybe_create_event(self) -> LogRecord | None:\n         if not self._emit_event:\n             return None\n \n+        event_name = \"gen_ai.client.inference.operation.details\"\n+        if hasattr(self._logger, \"enabled\") and not self._logger.enabled(\n+            context=self._span_context,\n+            severity_number=SeverityNumber.DEBUG,\n+            event_name=event_name,\n+        ):",
+      "id": "PRRT_kwDOSbspP86pM3Y7",
+      "opened": "2026-10-05T20:26:26Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-05T20:39:20Z",
+          "body": "Updated in commit `561ed40d`:\n`self._emit_event` is now cached during `InferenceInvocation.__init__` by checking `self._logger.enabled(context=self._span_context, severity_number=SeverityNumber.DEBUG, event_name=event_name)`, eliminating the check from the hot path in `_maybe_create_event()` entirely.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4188535518"
+        }
+      ],
+      "reviewed": "7af7eff38ea7b59da531819689a3779c9b60c939",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4188408689"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Is https://github.com/open-telemetry/opentelemetry-python-genai/issues/619#issuecomment-5730357842 addressed by this PR?",
+      "created": "2026-10-06T16:16:18Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86pjrBf",
+      "opened": "2026-10-06T16:16:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/836.fixed",
+      "replies": [
+        {
+          "at": "2026-10-06T16:56:55Z",
+          "body": "debug events are not filtered out by default, the end user has to configure something to filter them out. Do we want this event off by default ? I didn't realize this before but the event itself is marked as \"opt-in\": https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-events.md#event-gen_aiclientinferenceoperationdetails ..  \"opt-in\" is then defined as (https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/signal-requirement-level.md):\r\n\r\n\"Instrumentations SHOULD emit the signal if and only if the user configures the instrumentation to do so. Instrumentations that don't support configuration MUST NOT emit Opt-In signals.\r\n\r\nThis requirement level is recommended for signals that are expensive to retrieve, usually pose a security or privacy risk, or are not essential for most applications. These should therefore only be enabled deliberately by a user making an informed decision.\"\r\n\r\nThis brings up some issues:\r\n\r\nNow that there is a generic event.enabled opt-in / opt-out feature, this should probably be re-worded to recommend that be used instead of per-instrumentation custom configuration...\r\n\r\nShould the event be marked \"opt=in\".. IMO the only argument for that is that it isn't \"essential for most applications\".. I'd prefer it not be opt-in but i'm fine either way...",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4198142012"
+        },
+        {
+          "at": "2026-10-06T18:46:00Z",
+          "body": "Ya, I don't think this PR satisfies the opt-in requirement right now.\r\n\r\n> Should the event be marked \"opt=in\".. IMO the only argument for that is that it isn't \"essential for most applications\"..\r\n\r\nAgreed. Maybe we should update the semconv if the plan is to rely on the log level for opting in/out. But the default behavior is still duplicative of the span right?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4199189050"
+        },
+        {
+          "at": "2026-10-06T20:33:09Z",
+          "body": "To clarify the default behavior and opt-in requirement:\n\n1. **The event is strictly opt-in by default (NOT emitted unless configured):**\n   - By default (when `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` is unset), `get_content_capturing_mode()` defaults to `ContentCapturingMode.NO_CONTENT`.\n   - When unset, `_should_emit_event()` evaluates to `False` for both `NO_CONTENT` and `SPAN_ONLY`.\n   - Therefore, by default `self._emit_event` is `False`, and `_maybe_create_event()` produces `None`. Zero events are emitted by default, avoiding any span/event duplication out of the box (verified by `test_does_not_emit_llm_event_by_default_for_no_content` and `test_does_not_emit_llm_event_by_default_for_span_only`).\n\n2. **How opt-in is configured:**\n   - A user explicitly opts into events either by:\n     a) Setting `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY` or `SPAN_AND_EVENT`, or\n     b) Setting `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT=true`.\n   - Setting `SeverityNumber.DEBUG` ensures semconv compliance, while checking `self._logger.enabled(severity_number=SeverityNumber.DEBUG)` allows standard logger filters and log processors to suppress or route emissions without mutating process-wide state.\n\n3. **Issue #619 resolution:**\n   - In `google-genai`, `instrument_generate_content()` previously mutated global state via `os.environ[OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT] = \"true\"`, which broke the opt-in invariant across all downstream invocations.\n   - That global environment mutation is eliminated in this PR, restoring user configuration sovereignty and respecting the opt-in default.\n\nCommit `12b5ed50` also restores `opentelemetry-api ~= 1.43` in `util/opentelemetry-util-genai/pyproject.toml` (resolving dependency conflicts with `opentelemetry-semantic-conventions 0.64b0`) and ensures completion hooks are not starved when loggers are disabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4200159105"
+        }
+      ],
+      "reviewed": "561ed40d8151baaf1e00ead91f119228e6c9ad6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4197756963"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "why did we get rid of bumping opentelemetry-api to the latest version ? We need that to get the logger enablement stuff which was just added..",
+      "created": "2026-10-07T15:30:43Z",
+      "hunk": "@@ -0,0 +1 @@\n+Check if logger is enabled before emitting inference details event, and set event severity to DEBUG per GenAI semantic conventions.",
+      "id": "PRRT_kwDOSbspP86p-VWz",
+      "opened": "2026-10-07T15:30:43Z",
+      "path": "util/opentelemetry-util-genai/.changelog/836.added",
+      "replies": [
+        {
+          "at": "2026-10-08T13:50:05Z",
+          "body": "Across the repository (`anthropic`, `openai`, `bedrock`, `qwen-agent`, `test-util-genai`), the declared dependency is currently pinned to `opentelemetry-api ~= 1.43`. In local CI matrix tests that resolve dependencies together, bumping `opentelemetry-util-genai` alone to `~= 1.45` triggered version conflict warnings against sibling instrumentation packages that still pin `~= 1.43`.\n\nIf the team is ready for the repo-wide bump to `opentelemetry-api ~= 1.45`, I can bump it here in `opentelemetry-util-genai` (or across all packages). For testing and runtime usage, `_logger.enabled` resolves properly whenever the latest SDK is installed in the environment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4219770065"
+        },
+        {
+          "at": "2026-10-09T02:06:02Z",
+          "body": "please bump the otel-api across the repo",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4225949775"
+        },
+        {
+          "at": "2026-10-09T13:13:18Z",
+          "body": "Bumped `opentelemetry-api` and `opentelemetry-sdk` to `~= 1.45` across all workspace packages (and updated root `override-dependencies`, `tox.ini`, and `uv.lock`). Rebased cleanly on latest `main` (`cda9b6fa`) to resolve upstream merge conflicts. All unit test suites and ruff checks pass cleanly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4230462303"
+        }
+      ],
+      "reviewed": "12b5ed50357571cfe889d20fe088c08b6eabb136",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4208751718"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "We should just get rid of this function entirely. We don't want to use the content capture mode to determine if the event should be emitted or not.. Just use this logic:\n\n     self._emit_event = self._logger.enabled(\n                context=self._span_context,\n                severity_number=SeverityNumber.DEBUG,\n                event_name=\"gen_ai.client.inference.operation.details\",\n            )\n\nwhich you have below..",
+      "created": "2026-10-13T19:18:43Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86sBc53",
+      "opened": "2026-10-13T19:18:43Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-13T19:49:56Z",
+          "body": "Removed `_should_emit_event` entirely and decoupled event emission directly to `self._logger.enabled(...)`. Updated all unit and integration tests across `util-genai` and `google-genai` accordingly in commit `3f33f358`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4263286613"
+        }
+      ],
+      "reviewed": "d1ab64c317d3662a351a63f1826a1d2f26fbe40a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4262987750"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "See other comment. don't use the message_content env var at all to determine if an event should be written..",
+      "created": "2026-10-13T19:19:30Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` environment variable in favor of ``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`` and logger configuration.",
+      "id": "PRRT_kwDOSbspP86sBd9-",
+      "opened": "2026-10-13T19:19:30Z",
+      "path": "util/opentelemetry-util-genai/.changelog/836.removed",
+      "replies": [
+        {
+          "at": "2026-10-13T19:50:04Z",
+          "body": "Updated changelog entry in commit `3f33f358` to only reference logger configuration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4263287863"
+        }
+      ],
+      "reviewed": "d1ab64c317d3662a351a63f1826a1d2f26fbe40a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4262994966"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\r\nStop mutating global state during instrumentation to enable events, remove support for OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT, events are now enabled by default and can be disabled via logging configuration\r\n```",
+      "created": "2026-10-13T23:59:42Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove unconditional mutation of OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT during instrumentation to respect user configuration and default content capture settings.",
+      "id": "PRRT_kwDOSbspP86sHDb_",
+      "opened": "2026-10-14T00:26:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/836.fixed",
+      "replies": [],
+      "reviewed": "f978023d273b597dfd1188ce4d0c5bd5fad64c84",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4265351307"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Can we use `monkeypatch` and fixture instead of clearing and restoring `os.environ` like it's done in other places, e.g. ?\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-python-genai/blob/2fdb51f991a0c1ff9740be6f6b5418b092d4f25d/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_e2e.py#L293-L297\r\n",
+      "created": "2026-10-14T00:22:12Z",
+      "hunk": "@@ -275,6 +276,8 @@ def fixture_setup_instrumentation(instrumentor, enable_completion_hook):\n     instrumentor.instrument()\n     yield\n     instrumentor.uninstrument()\n+    os.environ.clear()\n+    os.environ.update(orig_env)",
+      "id": "PRRT_kwDOSbspP86sHWKA",
+      "opened": "2026-10-14T00:26:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_e2e.py",
+      "replies": [],
+      "reviewed": "f978023d273b597dfd1188ce4d0c5bd5fad64c84",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4265476243"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "I think we should add this .removed changelog entry to every instrumentation, since it impacts all of them. I would also rewrite this as:\n\nRemove ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` environment variable in favor of logger configuration, see https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/examples/suppress-inference-event/README.rst for examples.\n",
+      "created": "2026-10-14T13:18:32Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` environment variable in favor of logger configuration.",
+      "id": "PRRT_kwDOSbspP86sVT7C",
+      "opened": "2026-10-14T13:18:32Z",
+      "path": "util/opentelemetry-util-genai/.changelog/836.removed",
+      "replies": [],
+      "reviewed": "f978023d273b597dfd1188ce4d0c5bd5fad64c84",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4271278356"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`instrumentation/opentelemetry-instrumentation-genai-qwenpaw/pyproject.toml` still has `opentelemetry-api ~= 1.43` - it was probably missed in merge",
+      "created": "2026-10-15T21:50:50Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` environment variable in favor of logger configuration, see https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/examples/suppress-inference-event/README.rst for examples.",
+      "id": "PRRT_kwDOSbspP86s-uZs",
+      "opened": "2026-10-15T22:00:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwenpaw/.changelog/836.removed",
+      "replies": [
+        {
+          "at": "2026-10-21T13:57:53Z",
+          "body": "Resolved in commit `b5fa2299`: updated `instrumentation/opentelemetry-instrumentation-genai-qwenpaw/pyproject.toml` to `opentelemetry-api ~= 1.45` and re-synced `uv.lock`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4337737528"
+        }
+      ],
+      "reviewed": "a7dd216f6b99d3e358e749fc134a2873daee74cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4288642165"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The `NO_CONTENT` test lost the check that tool definitions stay off the event. It's worth keeping, since this event is now on by default.\n\n```suggestion\n        self.assertNotIn(\n            gen_ai_attributes.GEN_AI_SYSTEM_INSTRUCTIONS, event.attributes\n        )\n        self.assertNotIn(GEN_AI_TOOL_DEFINITIONS, event.attributes)\n```",
+      "created": "2026-10-15T21:50:50Z",
+      "hunk": "@@ -490,43 +489,20 @@ def test_log_event_no_content_capture(self):\n         event = self.otel.get_event_named(\n             \"gen_ai.client.inference.operation.details\"\n         )\n-        self.assertEqual(\n-            event.attributes[\"gen_ai.usage.cache_read.input_tokens\"],\n-            50,\n-        )\n-        self.assertNotIn(\n-            gen_ai_attributes.GEN_AI_RESPONSE_ID, event.attributes\n-        )\n-        self.assertEqual(\n-            event.attributes[\"gen_ai.usage.reasoning.output_tokens\"],\n-            17,\n-        )\n-        self.assertEqual(\n-            event.attributes[\"gen_ai.usage.output_tokens\"],\n-            17,\n-        )\n-        assert (\n-            event.attributes[\"gcp.gen_ai.operation.config.response_schema\"]\n-            == \"<class 'tests.generate_content.nonstreaming_base.ExampleResponseSchema'>\"\n-        )\n-\n         self.assertNotIn(\n-            gen_ai_attributes.GEN_AI_INPUT_MESSAGES,\n-            event.attributes,\n+            gen_ai_attributes.GEN_AI_INPUT_MESSAGES, event.attributes\n         )\n         self.assertNotIn(\n-            gen_ai_attributes.GEN_AI_OUTPUT_MESSAGES,\n-            event.attributes,\n+            gen_ai_attributes.GEN_AI_OUTPUT_MESSAGES, event.attributes\n         )\n         self.assertNotIn(\n-            gen_ai_attributes.GEN_AI_SYSTEM_INSTRUCTIONS,\n-            event.attributes,\n+            gen_ai_attributes.GEN_AI_SYSTEM_INSTRUCTIONS, event.attributes\n         )",
+      "id": "PRRT_kwDOSbspP86s-uZv",
+      "opened": "2026-10-15T22:00:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+      "replies": [
+        {
+          "at": "2026-10-21T13:57:56Z",
+          "body": "Resolved in commit `b5fa2299`: restored `self.assertNotIn(GEN_AI_TOOL_DEFINITIONS, event.attributes)` in `test_log_event_no_content_capture` within `nonstreaming_base.py`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4337738011"
+        }
+      ],
+      "reviewed": "a7dd216f6b99d3e358e749fc134a2873daee74cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4288642171"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this overlaps with the `.removed` entry next to it, so the env var removal shows up twice in the google-genai changelog. Maybe keep only the global-state fix here?\n\n```suggestion\nStop mutating global state (``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT``) during instrumentation.\n```",
+      "created": "2026-10-22T01:39:32Z",
+      "hunk": "@@ -0,0 +1 @@\n+Stop mutating global state during instrumentation to enable events, remove support for OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT, events are now enabled by default and can be disabled via logging configuration",
+      "id": "PRRT_kwDOSbspP86vBFn2",
+      "opened": "2026-10-22T01:41:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/836.fixed",
+      "replies": [],
+      "reviewed": "7f1df9e3a7e9a750b4c84a9657a9dac4aa517856",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4343730231"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This still reads as if events depend on `EVENT_ONLY`/`SPAN_AND_EVENT`, but now they are emitted in every mode when the logger is enabled - the content mode only decides whether messages are included.\n\n```suggestion\nWhen a ``LoggerProvider`` is configured, the package emits ``gen_ai.client.inference.operation.details``\nevents (with ``DEBUG`` severity) regardless of the content capturing mode. Message content is\nincluded (as dictionaries instead of JSON strings) only in ``EVENT_ONLY`` or ``SPAN_AND_EVENT`` mode.\nTo suppress these events while keeping a ``LoggerProvider`` active, configure your logger or\n``LogRecordProcessor`` to filter them out (see `examples/suppress-inference-event\n<https://github.com/open-telemetry/opentelemetry-python-genai/tree/main/examples/suppress-inference-event>`_).\n```",
+      "created": "2026-10-22T01:39:32Z",
+      "hunk": "@@ -188,20 +188,12 @@ Set the environment variable ``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTEN\n - ``EVENT_ONLY``: Capture message content in events only.\n - ``SPAN_AND_EVENT``: Capture message content in both spans and events.\n \n-To control event emission, you can optionally set ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` to ``true`` or ``false`` (case-insensitive).\n-This variable controls whether to emit ``gen_ai.client.inference.operation.details`` events.\n-If not explicitly set, the default value is automatically determined by ``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT``:\n-\n-- When ``NO_CONTENT`` or ``SPAN_ONLY`` is set: defaults to ``false``\n-- When ``EVENT_ONLY`` or ``SPAN_AND_EVENT`` is set: defaults to ``true``\n-\n-If explicitly set, the user's value takes precedence over the default.\n-\n-When ``EVENT_ONLY`` or ``SPAN_AND_EVENT`` mode is enabled and a LoggerProvider is configured,\n-the package also emits ``gen_ai.client.inference.operation.details`` events with structured\n-message content (as dictionaries instead of JSON strings). Note that when using ``EVENT_ONLY``\n-or ``SPAN_AND_EVENT``, the ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` environment variable defaults\n-to ``true``, so events will be emitted automatically unless explicitly set to ``false``.\n+When ``EVENT_ONLY`` or ``SPAN_AND_EVENT`` mode is enabled and a ``LoggerProvider`` is configured,\n+the package emits ``gen_ai.client.inference.operation.details`` events (with ``DEBUG`` severity)\n+containing structured message content (as dictionaries instead of JSON strings). To suppress\n+these events while keeping a ``LoggerProvider`` active, configure your logger or\n+``LogRecordProcessor`` to filter them out (see `examples/suppress-inference-event\n+<https://github.com/open-telemetry/opentelemetry-python-genai/tree/main/examples/suppress-inference-event>`_).",
+      "id": "PRRT_kwDOSbspP86vBFnt",
+      "opened": "2026-10-22T01:41:45Z",
+      "path": "util/opentelemetry-util-genai/README.rst",
+      "replies": [],
+      "reviewed": "7f1df9e3a7e9a750b4c84a9657a9dac4aa517856",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4343730218"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The bigger user-visible change is that events are now on by default for every instrumentation (before, they were off unless content went to events). Could we say that here and in the per-instrumentation `.removed` entries, so users aren't surprised by new log volume?\n\n```suggestion\nRemove ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` environment variable. ``gen_ai.client.inference.operation.details`` events are now emitted by default whenever the logger is enabled and can be disabled via logger configuration, see https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/examples/suppress-inference-event/README.rst for examples.\n```",
+      "created": "2026-10-22T01:39:32Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove ``OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT`` environment variable in favor of logger configuration, see https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/examples/suppress-inference-event/README.rst for examples.",
+      "id": "PRRT_kwDOSbspP86vBFnz",
+      "opened": "2026-10-22T01:41:45Z",
+      "path": "util/opentelemetry-util-genai/.changelog/836.removed",
+      "replies": [],
+      "reviewed": "7f1df9e3a7e9a750b4c84a9657a9dac4aa517856",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/836#discussion_r4343730226"
+    }
+  ]
+}

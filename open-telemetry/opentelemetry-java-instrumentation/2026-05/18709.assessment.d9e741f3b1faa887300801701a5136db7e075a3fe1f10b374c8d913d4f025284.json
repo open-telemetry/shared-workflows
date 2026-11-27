@@ -1,0 +1,57 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "38c0767c474ff216ee1716a5e18c73ee3f6cafbb0b4a43910736986da11b80cd",
+  "input_digest": "d9e741f3b1faa887300801701a5136db7e075a3fe1f10b374c8d913d4f025284",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7e358e6a4748be148cffdb775d5c7cbe5b979ba/instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8761069d49f2071f109d48f22624c8d999b649f/instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fb571be0c7d21d40ef91a00d9e691cce071b9f00"
+      ],
+      "id": "PRRT_kwDODJKVX86BcaCH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7e358e6a4748be148cffdb775d5c7cbe5b979ba/instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8761069d49f2071f109d48f22624c8d999b649f/instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/46dd37e68840b5ab84a45d1c35ff70027c2179f8"
+      ],
+      "id": "PRRT_kwDODJKVX86BcaD-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7e358e6a4748be148cffdb775d5c7cbe5b979ba/instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8761069d49f2071f109d48f22624c8d999b649f/instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86BcaDY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7e358e6a4748be148cffdb775d5c7cbe5b979ba/instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7e358e6a4748be148cffdb775d5c7cbe5b979ba/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/VertxTaskQueueTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8761069d49f2071f109d48f22624c8d999b649f/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/VertxTaskQueueTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e2eccfcc2c6900da0bf5998c10a0c069f6c3c8cc"
+      ],
+      "id": "PRRT_kwDODJKVX86BcaEk",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

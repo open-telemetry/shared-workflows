@@ -1,0 +1,52 @@
+{
+  "head": "bebc776be4d5676489f7b57ee683960b5e6a18f6",
+  "merge": "9d57868bd076ac4cdddac149391e57019554fd3a",
+  "merged": "2026-09-12T15:16:50Z",
+  "missing_roots": 0,
+  "number": 20108,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This link does not contain any logging guidance; the logging rule is in `general-rules.md:97-105`. Pointing agents only to the advice article leaves the prescribed failure handling undiscoverable.",
+      "created": "2026-09-11T15:43:05Z",
+      "hunk": "@@ -0,0 +1,102 @@\n+# Java reflection and method handles\n+\n+## Quick reference\n+\n+- Load for changes involving `Method`, `MethodHandle`, `Constructor`, `Field`, reflective\n+  compatibility helpers, or lookups tied to a target package, module, or class loader.\n+- Prefer a direct Java call when the member is available across the supported library versions and\n+  ordinary Java access is sufficient.\n+- Resolve reflective members once per relevant runtime class and cache them when invocation repeats.\n+  Do not perform member lookup on an instrumentation hot path.\n+- Choose the invocation mechanism for its signature, access, class-loader, and failure semantics.\n+  Do not choose one only because a sibling helper uses it.\n+\n+## Choose direct calls first\n+\n+A direct call gives the compiler and muzzle the clearest view of the dependency. Use it when every\n+supported version has the member with a compatible signature and the code can access it normally.\n+Do not add reflection to avoid a compile-time dependency that the module already requires.\n+\n+When compatibility or access requires runtime lookup, separate resolution from invocation. A\n+`static final` member works for one stable declaring class. Use a per-class cache such as\n+`ClassValue` when the runtime type can differ by library version or application class loader. Avoid\n+caching application classes or their members in a global agent-class-loader map that can retain the\n+application class loader.\n+\n+One-time startup or configuration access does not need a more elaborate invocation layer. Repeated\n+invocation does need cached resolution, even when reflection is the clearer API.\n+\n+## Choose the mechanism for the job\n+\n+| Situation | Preferred approach |\n+| --- | --- |\n+| The member exists across supported versions and normal Java access works | Direct Java call |\n+| The exact runtime signature is known and typed invocation or `MethodType` adaptation is useful | Cached `MethodHandle` |\n+| Access requires a `MethodHandles.Lookup` associated with the target package, module, or class loader | `MethodHandle` resolved with that lookup |\n+| `CallSite` linking is part of the design | `MethodHandle` |\n+| Methods, constructors, getters, and setters benefit from one invocation abstraction | Cached `MethodHandle` |\n+| Startup, configuration, or another one-time operation needs a straightforward call, construction, or field access | `Method`, `Constructor`, or `Field` |\n+| Compatibility code discovers changing names, return types, or member shapes at runtime | `Method`, `Constructor`, or `Field` |\n+| An API already supplies reflection objects, or the code inspects annotations, modifiers, or generic metadata | Reflection object supplied by that API |\n+| The caller deliberately handles `InvocationTargetException` as a boundary around target failures | `Method` or `Constructor` |\n+\n+These are reasons, not rankings. In particular, do not state or imply that `MethodHandle` is always\n+faster. Performance depends on lookup lifetime, handle shape, adaptation, JVM optimization, and the\n+call site. Require a concrete design reason or a measurement before making a performance claim.\n+\n+## Keep access separate from invocation\n+\n+First decide which code is legally allowed to access the member. Then decide how to invoke it. Use\n+the least-privileged lookup that works:\n+\n+- `MethodHandles.publicLookup()` for public members exposed through public types.\n+- `MethodHandles.lookup()` when the helper's own package and module access are sufficient.\n+- A target-associated lookup, such as a lookup supplied through `@Advice.Origin`, when\n+  instrumentation must access a package-local or private target member.\n+- An existing class-loader-specific lookup when the target type lives in an instrumentation or\n+  application class loader that the agent lookup cannot see.\n+\n+Do not call `setAccessible(true)` solely to convert a `Method`, `Constructor`, or `Field` into a\n+`MethodHandle`. That broadens access before conversion and can fail under module boundaries. Find\n+the member with an appropriate lookup, or keep the reflection object when it already expresses the\n+required access.\n+\n+## Preserve failure behavior\n+\n+`Method.invoke` wraps an exception thrown by the target method in\n+`InvocationTargetException`. `MethodHandle.invoke` and `invokeExact` propagate the target throwable\n+directly. They also report invocation-shape errors differently. Choose intentionally, and place\n+catching, unwrapping, logging, and fallback behavior around the failure form the caller should see.\n+\n+In javaagent advice and helpers called by advice, lookup and invocation failures must not escape\n+into application code. Follow [Javaagent advice patterns](javaagent-advice-patterns.md) for\n+suppression and logging. Keep optional-member lookup failures distinct from failures thrown by a",
+      "id": "PRRT_kwDODJKVX86hiRst",
+      "opened": "2026-09-11T15:43:05Z",
+      "path": ".github/agents/knowledge/java-reflection.md",
+      "replies": [
+        {
+          "at": "2026-09-11T16:19:22Z",
+          "body": "Addressed in bbbb7b55f5069e0b3d0a768ec563a69ffc58f34f.\n\nAnalysis: The reflection guidance names both suppression and logging, but its only link covers suppression. Linking the logging phrase to the best-effort failure rule makes the required behavior directly discoverable.\n\nUpsides: Review agents can find the repository's required logging behavior from the reflection guidance.\n\nDownsides: Adds one cross-reference to the always-loaded general rules.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20108#discussion_r3991172582"
+        }
+      ],
+      "reviewed": "9ccbfb2d8724e7fc2d2250b0d05160f069aa8dec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20108#discussion_r3990842891"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This omits the JPMS constraint: matching package name and defining class loader is still insufficient when the library class is in a named module, because normally injected helpers belong to that loader's unnamed module (as reflected by `ExposeAgentBootstrapListener.java:50-52`). In that case they are not in the same runtime package and package-private access fails. Please include the same-module requirement so this guidance does not recommend a direct call that will throw `IllegalAccessError`.",
+      "created": "2026-09-11T16:28:20Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+# Java reflection and method handles\n+\n+## Prefer direct access\n+\n+Prefer a direct Java call when supported library versions expose a compatible member and ordinary\n+Java access works. This gives the compiler and muzzle a clear view of the dependency. Use reflection\n+only when compatibility, access, or runtime discovery requires it.\n+\n+In javaagent instrumentation, a helper injected into the instrumented library's classloader under\n+the library's package can directly access stable package-private members, so prefer that access over\n+reflection when practical. The package name alone is not enough: the instrumentation must recognize\n+the class as a helper and inject it into the target classloader. This does not grant access to\n+private members.",
+      "id": "PRRT_kwDODJKVX86hjV0A",
+      "opened": "2026-09-11T16:28:20Z",
+      "path": ".github/agents/knowledge/java-reflection.md",
+      "replies": [
+        {
+          "at": "2026-09-11T16:30:30Z",
+          "body": "Addressed in 289412f234ed7d0f8c1da7e3dc624857981af124.\n\nAnalysis: Java Platform Module System runtime-package identity includes the module. The agent exposes helpers from the application classloader's unnamed module, so matching the target package and classloader does not permit package-private access to a class in a named module.\n\nUpsides: The guidance now prevents agents from recommending an injected helper that would fail with `IllegalAccessError` for named-module libraries.\n\nDownsides: The direct-access guidance is longer because it states the named-module exception explicitly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20108#discussion_r3991285448"
+        }
+      ],
+      "reviewed": "bbbb7b55f5069e0b3d0a768ec563a69ffc58f34f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20108#discussion_r3991263424"
+    }
+  ]
+}

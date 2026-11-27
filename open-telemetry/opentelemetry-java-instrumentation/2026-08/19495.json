@@ -1,0 +1,52 @@
+{
+  "head": "4d743b63a20f494028e694c28b9412c2d6fbea2b",
+  "merge": "d68fa5f70966867c12d701b1ac304be15fcea10c",
+  "merged": "2026-08-12T21:17:22Z",
+  "missing_roots": 0,
+  "number": 19495,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog attributes this deprecation to #19459, but the PR description says #19459 was the accidentally merged predecessor that this pull request replaces. Update this link to the current pull request so release notes do not point readers to the superseded change.",
+      "created": "2026-08-11T01:47:39Z",
+      "hunk": "@@ -8,6 +8,13 @@\n   configuration properties and `GrpcTelemetryBuilder` captured request metadata methods in favor of\n   include/exclude request metadata selectors. The deprecated properties and methods will be removed\n   in 3.0.\n+- Deprecate `otel.instrumentation.runtime-telemetry.experimental.prefer-jfr` and\n+  `io.opentelemetry.instrumentation.runtimetelemetry.internal.Experimental#setPreferJfrMetrics(RuntimeTelemetryBuilder, boolean)`\n+  in favor of `otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.included` and\n+  `Experimental#setJfrMetrics(RuntimeTelemetryBuilder, IncludeExclude)`, which select JFR metrics by\n+  metric name instead of by an all-or-nothing toggle. The deprecated property and method still\n+  select the same metrics and will be removed in the next release.\n+  ([#19459](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19459))",
+      "id": "PRRT_kwDODJKVX86YFzwt",
+      "opened": "2026-08-11T01:47:40Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-08-11T02:32:34Z",
+          "body": "Addressed in d3a19d76e3a7e2c8e76068a9e38b1fa0d5c65358.\n\nAnalysis: PR #19495 replaces the accidentally merged predecessor, so its changelog entry should attribute the deprecation to the current pull request rather than #19459.\n\nUpsides: Release-note readers are directed to the authoritative pull request and its final implementation context.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19495#discussion_r3754856946"
+        }
+      ],
+      "reviewed": "dbae2fd2459dcdfd08cd743882a30b1c54e0a119",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19495#discussion_r3754712832"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "The `selector == null` part is confusing for me. If the code reaches here I'd expect it to have something in the included list as otherwise we might add stuff to empty includes. Since empty includes mean include all adding items there would actually be restricting what is included. Doesn't `selector == null` mean no jfr metrics? If that is the case wouldn't it be better to return `null` straight away?",
+      "created": "2026-08-11T15:59:15Z",
+      "hunk": "@@ -103,17 +98,53 @@ public RuntimeTelemetry build() {\n     String jfrName =\n         jfrInstrumentationName != null ? jfrInstrumentationName : DEFAULT_INSTRUMENTATION_NAME;\n \n-    Meter jmxMeter = getMeter(openTelemetry, jmxName);\n-    Meter jfrMeter = getMeter(openTelemetry, jfrName);\n-    boolean effectivePreferJfrMetrics = preferJfrMetrics && jfrConfig.isJfrAvailable();\n+    IncludeExclude effectiveJfrMetrics = getEffectiveJfrMetrics();\n+    JfrConfig.JfrTelemetry jfrTelemetry =\n+        effectiveJfrMetrics == null\n+            ? new JfrConfig.JfrTelemetry(null, emptySet())\n+            : jfrConfig.buildJfrTelemetry(\n+                effectiveJfrMetrics::matches,\n+                getMeter(openTelemetry, jfrName),\n+                suppressOverlappingJmxMetrics && !disableJmx,\n+                emitExperimentalMetrics);\n+    Set<String> jfrMetricNames = jfrTelemetry.getMetricNames();\n \n+    Meter jmxMeter = getMeter(openTelemetry, jmxName);\n     List<AutoCloseable> observables =\n         disableJmx\n             ? emptyList()\n             : JmxRuntimeMetricsFactory.buildObservables(\n-                emitExperimentalMetrics, captureGcCause, effectivePreferJfrMetrics, jmxMeter);\n-    AutoCloseable jfrTelemetry = jfrConfig.buildJfrTelemetry(effectivePreferJfrMetrics, jfrMeter);\n-    return new RuntimeTelemetry(observables, jfrTelemetry);\n+                emitExperimentalMetrics,\n+                captureGcCause,\n+                metricName ->\n+                    !suppressOverlappingJmxMetrics || !jfrMetricNames.contains(metricName),\n+                jmxMeter);\n+    return new RuntimeTelemetry(observables, jfrTelemetry.getTelemetry());\n+  }\n+\n+  @Nullable\n+  private IncludeExclude getEffectiveJfrMetrics() {\n+    // an empty selector is equivalent to no selector at all\n+    IncludeExclude selector = jfrMetrics == null || jfrMetrics.isEmpty() ? null : jfrMetrics;\n+    if (selector == null && !preferJfrMetrics && !emitExperimentalJfrMetrics) {\n+      return null;\n+    }\n+    if (selector != null && selector.getIncluded().isEmpty()) {\n+      return selector;\n+    }\n+\n+    List<String> included =\n+        selector == null ? new ArrayList<>() : new ArrayList<>(selector.getIncluded());",
+      "id": "PRRT_kwDODJKVX86YSnjl",
+      "opened": "2026-08-11T15:59:14Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-11T22:00:20Z",
+          "body": "see if this looks better https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19495/changes/a385ff5ea9932e47bc959f0a0ac31ad475dee88a",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19495#discussion_r3762026225"
+        }
+      ],
+      "reviewed": "78de6c10e2e9c763ba9b7194765d36f63599fd9e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19495#discussion_r3759586838"
+    }
+  ]
+}

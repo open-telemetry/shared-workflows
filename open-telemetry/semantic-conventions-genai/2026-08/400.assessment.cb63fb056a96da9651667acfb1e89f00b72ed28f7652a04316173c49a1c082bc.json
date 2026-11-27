@@ -1,0 +1,68 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a995768514b27c20bda1d0c04f2c7dd498ecb3f4c9bee68d57854392061492ff",
+  "input_digest": "cb63fb056a96da9651667acfb1e89f00b72ed28f7652a04316173c49a1c082bc",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/5e3a6a85d60a08a2c96281c563f80efebf2176a2/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8484f22ff8069267f37cb1be54bcebbf1972b682/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/5e3a6a85d60a08a2c96281c563f80efebf2176a2/docs/gen-ai/openai.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8484f22ff8069267f37cb1be54bcebbf1972b682/docs/gen-ai/openai.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/511e9580481ed0c0bd4e410ecc55b45df4b89316"
+      ],
+      "id": "PRRT_kwDOSUeMrM6TqvEN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c7cbe29887db78b4050595b5df2e7fff6a058864/Makefile",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8484f22ff8069267f37cb1be54bcebbf1972b682/Makefile"
+      ],
+      "id": "PRRT_kwDOSUeMrM6VTDE1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c7cbe29887db78b4050595b5df2e7fff6a058864/.github/workflows/ci.yml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8484f22ff8069267f37cb1be54bcebbf1972b682/.github/workflows/ci.yml"
+      ],
+      "id": "PRRT_kwDOSUeMrM6VTDEq",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6VTDEt",
+      "kind": null,
+      "original": "PRRT_kwDOSUeMrM6TqvEN",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6VTDEv",
+      "kind": null,
+      "original": "PRRT_kwDOSUeMrM6TqvEN",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c7cbe29887db78b4050595b5df2e7fff6a058864/templates/registry/markdown/span_macros.j2",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8484f22ff8069267f37cb1be54bcebbf1972b682/templates/registry/markdown/span_macros.j2"
+      ],
+      "id": "PRRT_kwDOSUeMrM6VTDEx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

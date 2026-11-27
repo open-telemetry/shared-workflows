@@ -1,0 +1,25 @@
+{
+  "head": "c3a4ea92b8a9f2fd82149a8aa35294b15c27e18f",
+  "merge": "4b9df4f42d03783d7f4135f5931310bdd1974613",
+  "merged": "2026-11-04T07:24:04Z",
+  "missing_roots": 0,
+  "number": 21197,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing `server.port` from the experimental-attributes inventory makes it incomplete: `ElasticsearchTransportInstrumenterFactory` installs the same database extractor in both modes, so non-default transport ports still emit this attribute with the flag enabled. The same issue affects the Elasticsearch Transport 5.3 entry near line 9419. Exercise a non-default transport port during metadata collection for both variants and regenerate the catalog so `server.port` remains documented in both modes.",
+      "created": "2026-11-04T02:21:12Z",
+      "hunk": "@@ -9307,6 +9286,8 @@ libraries:\n         type: LONG\n       - name: server.address\n         type: STRING\n+      - name: server.port\n+        type: LONG",
+      "id": "PRRT_kwDODJKVX86zayQf",
+      "opened": "2026-11-04T02:21:13Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "c3a4ea92b8a9f2fd82149a8aa35294b15c27e18f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21197#discussion_r4462838254"
+    }
+  ]
+}

@@ -1,0 +1,384 @@
+{
+  "head": "356e136ba6dd710db9771e36eeb50f3ab9b6765d",
+  "merge": "dc8533e7a6c0b58ccbc0899ae1b4e3610fb20ce7",
+  "merged": "2026-08-12T16:50:26Z",
+  "missing_roots": 0,
+  "number": 19203,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "the bottom part of this list has been taken as-is from https://github.com/elastic/apm-agent-java/blob/416416c00eafc3af58226daf63dfd66577d9347d/elastic-apm-agent-premain/src/test/java/co/elastic/apm/agent/premain/JvmToolBootstrapCheckTest.java#L29",
+      "created": "2026-07-13T15:49:16Z",
+      "hunk": "@@ -24,4 +27,99 @@ void agentArgsSystemProperties() {\n     assertThat(System.getProperty(\"foo\")).isEqualTo(\"bar=baz\");\n     assertThat(System.getProperty(\"bar\")).isEqualTo(\"b,c\");\n   }\n+\n+  // This list of values have been compiled by invoking every binary in ${JAVA_HOME}/bin\n+  @ParameterizedTest\n+  @ValueSource(\n+      strings = {\n+        // sample from JDK 25+\n+        \"com.sun.tools.javac.Main Foo.java\",\n+        \"jdk.compiler/com.sun.tools.javac.Main Foo.java\",\n+        \"jdk.jartool/sun.tools.jar.Main --version\",\n+        \"jdk.jshell/jdk.internal.jshell.tool.JShellToolProvider --version\",\n+        \"jdk.jlink/jdk.tools.jlink.internal.Main --version\",\n+        \"java.base/sun.security.tools.keytool.Main -help\",\n+        \"jdk.javadoc/jdk.javadoc.internal.tool.Main --version\",\n+        \"jdk.jdeps/com.sun.tools.jdeps.Main --version\",\n+        \"jdk.jdeps/com.sun.tools.javap.Main --version\",\n+        \"jdk.jartool/sun.security.tools.jarsigner.Main\",\n+        \"jdk.jcmd/sun.tools.jcmd.JCmd --version\",\n+        \"jdk.jcmd/sun.tools.jps.Jps --version\",\n+        // JDK 11+",
+      "id": "PRRT_kwDODJKVX86Qc2Wh",
+      "opened": "2026-07-13T15:49:16Z",
+      "path": "javaagent-bootstrap/src/test/java/io/opentelemetry/javaagent/bootstrap/AgentInitializerTest.java",
+      "replies": [],
+      "reviewed": "3e84a8c0de4a4ba1542e38b8dcf003dd0ae4c5cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572068202"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The override property key is currently `otel.javaagent.enable`, which is easy to confuse with the existing `otel.javaagent.enabled` config (used elsewhere) and doesn’t match the PR description. If the intent is to let users override the JDK-tool auto-disable with the standard `otel.javaagent.enabled=true`, the current implementation won’t work. Consider reading `otel.javaagent.enabled` *only when explicitly set* (non-null) to preserve the default behavior of skipping JDK tools unless the user opts in.",
+      "created": "2026-07-13T15:57:42Z",
+      "hunk": "@@ -53,6 +53,29 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enable=true in system properties or\n+    // java agent arguments\n+    Boolean skipJdkTool =\n+        doPrivileged(\n+            new PrivilegedAction<Boolean>() {\n+              @Override\n+              public Boolean run() {\n+                String enable = System.getProperty(\"otel.javaagent.enable\");\n+                if (Boolean.parseBoolean(enable)) {\n+                  return false;\n+                }\n+                String cmd = System.getProperty(\"sun.java.command\");\n+                return isJdkToolMainClass(cmd);",
+      "id": "PRRT_kwDODJKVX86QdA_l",
+      "opened": "2026-07-13T15:57:43Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [],
+      "reviewed": "3e84a8c0de4a4ba1542e38b8dcf003dd0ae4c5cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572128541"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The stderr message says to use `otel.javaagent.enable=true`, but the agent already exposes `otel.javaagent.enabled` elsewhere. Aligning the user-facing message with the actual supported property reduces misconfiguration risk (and matches the PR description).",
+      "created": "2026-07-13T15:57:42Z",
+      "hunk": "@@ -53,6 +53,29 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enable=true in system properties or\n+    // java agent arguments\n+    Boolean skipJdkTool =\n+        doPrivileged(\n+            new PrivilegedAction<Boolean>() {\n+              @Override\n+              public Boolean run() {\n+                String enable = System.getProperty(\"otel.javaagent.enable\");\n+                if (Boolean.parseBoolean(enable)) {\n+                  return false;\n+                }\n+                String cmd = System.getProperty(\"sun.java.command\");\n+                return isJdkToolMainClass(cmd);\n+              }\n+            });\n+    if (skipJdkTool) {\n+      System.err.println(\n+          \"JDK tool detected, agent will not be started. To override this behavior, set the 'otel.javaagent.enable=true' agent argument or system property\");\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX86QdBAF",
+      "opened": "2026-07-13T15:57:43Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [],
+      "reviewed": "3e84a8c0de4a4ba1542e38b8dcf003dd0ae4c5cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572128580"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`isJdkToolMainClass` is only used within this package (the initializer itself and its test). Making it `public` unnecessarily expands the API surface of the bootstrap package; package-private visibility is sufficient here.",
+      "created": "2026-07-13T15:57:42Z",
+      "hunk": "@@ -241,4 +264,22 @@ static void setSystemProperties(@Nullable String agentArgs) {\n       }\n     }\n   }\n+\n+  public static boolean isJdkToolMainClass(@Nullable String cmd) {",
+      "id": "PRRT_kwDODJKVX86QdBAe",
+      "opened": "2026-07-13T15:57:43Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [],
+      "reviewed": "3e84a8c0de4a4ba1542e38b8dcf003dd0ae4c5cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572128614"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grammar: \"list of values have been\" should be \"list of values has been\".",
+      "created": "2026-07-13T15:57:43Z",
+      "hunk": "@@ -24,4 +27,99 @@ void agentArgsSystemProperties() {\n     assertThat(System.getProperty(\"foo\")).isEqualTo(\"bar=baz\");\n     assertThat(System.getProperty(\"bar\")).isEqualTo(\"b,c\");\n   }\n+\n+  // This list of values have been compiled by invoking every binary in ${JAVA_HOME}/bin",
+      "id": "PRRT_kwDODJKVX86QdBA8",
+      "opened": "2026-07-13T15:57:43Z",
+      "path": "javaagent-bootstrap/src/test/java/io/opentelemetry/javaagent/bootstrap/AgentInitializerTest.java",
+      "replies": [],
+      "reviewed": "3e84a8c0de4a4ba1542e38b8dcf003dd0ae4c5cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572128652"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inline comment refers to `otel.javaagent.enable=true`, but elsewhere the agent uses `otel.javaagent.enabled`. Keeping the comment consistent with the supported override property reduces confusion for future maintainers.",
+      "created": "2026-07-13T15:57:43Z",
+      "hunk": "@@ -53,6 +53,29 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enable=true in system properties or\n+    // java agent arguments",
+      "id": "PRRT_kwDODJKVX86QdBBY",
+      "opened": "2026-07-13T15:57:43Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [],
+      "reviewed": "3e84a8c0de4a4ba1542e38b8dcf003dd0ae4c5cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572128686"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] These prefixes do not establish that the JVM was started by a `${JAVA_HOME}/bin` tool: `sun.java.command` contains the application's entry point for ordinary `java`/`java -jar` launches too. For example, a GlassFish entry point such as `com.sun.enterprise.glassfish.bootstrap.ASMain`, an application under `sun.*`/`jdk.*`, or a relative executable JAR named `com.sun.example.jar` will be classified as a JDK tool and the agent will return early, dropping all instrumentation by default. Please match the known tool entry points (including module/main-class pairs) rather than package or module prefixes.",
+      "created": "2026-07-13T16:12:48Z",
+      "hunk": "@@ -241,4 +264,22 @@ static void setSystemProperties(@Nullable String agentArgs) {\n       }\n     }\n   }\n+\n+  static boolean isJdkToolMainClass(@Nullable String cmd) {\n+    if (cmd == null || cmd.isEmpty()) {\n+      return false;\n+    }\n+    int spaceIndex = cmd.indexOf(' ');\n+    String first = spaceIndex == -1 ? cmd : cmd.substring(0, spaceIndex);\n+\n+    // sun.java.command may be of the form \"<module>/<mainClass>\" when the main class belongs to a\n+    // named module, e.g. \"jdk.compiler/com.sun.tools.javac.Main\"\n+    int slashIndex = first.indexOf('/');\n+    if (slashIndex < 0) {\n+      return first.startsWith(\"com.sun.\") || first.startsWith(\"sun.\") || first.startsWith(\"jdk.\");\n+    } else {\n+      String moduleName = first.substring(0, slashIndex);\n+      return moduleName.startsWith(\"jdk.\") || moduleName.startsWith(\"java.\");",
+      "id": "PRRT_kwDODJKVX86QdT9O",
+      "opened": "2026-07-13T16:12:48Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [
+        {
+          "at": "2026-07-13T16:18:55Z",
+          "body": "For glassfish, the JMX metrics integration test should run and validate this hypothesis, if those fail then it means the agent wrongly self-disabled and we need to implement a work-around.\r\n\r\nMaintaining an exhaustive list of all binaries for all JDK versions seems quite tedious from maintenance perspective, but maybe we have no choice here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572291816"
+        },
+        {
+          "at": "2026-07-13T22:15:46Z",
+          "body": "wondering if enough to just cover a few specific common things? (e.g. jstack and friends)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3574544698"
+        },
+        {
+          "at": "2026-07-14T13:21:21Z",
+          "body": "Have you considered that perhaps this is more a documentation issue. If people didn't use `JAVA_TOOL_OPTIONS` they wouldn't run into this. Imo it is better to not use `JAVA_TOOL_OPTIONS` if other options are available.\r\n\r\n> For glassfish, the JMX metrics integration test should run and validate this hypothesis,\r\n\r\nFunnily as far as I recall `JAVA_TOOL_OPTIONS` is not suitable for glasfish because on windows the server startup hangs when `JAVA_TOOL_OPTIONS` is used, on linux it will probably also hang if the agent debug flag is used. This happens because glassfish startup runs an external command, I believe it was to detect the jvm version, if that command produces a lot of output the process can hang because the output is consumed only after the process has completed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3579304593"
+        },
+        {
+          "at": "2026-07-14T17:42:58Z",
+          "body": "I think `JAVA_TOOL_OPTIONS` has fairly heavy usage via the OpenTelemetry Operator:\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-operator/blob/543148991f8feb169f47bbb0e37e85fbd7cb02f5/internal/instrumentation/javaagent.go#L15-L16",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3581332193"
+        },
+        {
+          "at": "2026-07-15T10:34:03Z",
+          "body": "Glassfish/Payara does requires a specific handling, I've added this in dc88988.\r\n\r\nI agree on the documentation side, we should probably mention that `JAVA_TOOL_OPTIONS` or any other equivalent should be used with a limited scope and only if no other application-server or application equivalent is available.\r\n\r\nThe problem with that is that it often requires to document every application server specific way to configure, for example with Tomcat the `CATALINA_OPTS` should be the preferred option, otherwise with `JAVA_TOOL_OPTIONS` the CLI command to start/stop the server is also instrumented.\r\n\r\nAlso, when a user mistakenly trigger this kind of issue, and even if it's properly documented and we redirect users to documentation, we can't expect all users to be aware of this when doing their setup. In case there is a dev/ops split and the person asking for it to be setup and the one doing the setup are distinct, it will be a source of silent issues and frustration.\r\n\r\nIn addition, there might be some setups where there is no alternative, for example when we can't modify a vendor-provided startup script (or they just want to do it). I think we can assume this is rare but it definitely exists.\r\n\r\nThis is why I think in a case where we know it will create issues we should err on the side of safety by default and avoid those issues.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3586488511"
+        },
+        {
+          "at": "2026-07-16T16:39:04Z",
+          "body": "The [injector project](https://github.com/open-telemetry/opentelemetry-injector) goal is to have things work nicely in the default deployment (instrument everything), it would probably be helpful for that project if these Java tools were automatically not instrumented",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3597279097"
+        },
+        {
+          "at": "2026-07-27T13:06:05Z",
+          "body": "The initial issue reported by copilot has been fixed as invoking `java -jar app.jar` is now always excluded, same for glassfish exception, so I'll resolve this conversation.\r\n\r\nFrom the following comments we can assume that usages of `JAVA_TOOL_OPTIONS` is quite widely used, so can't just document to avoid using it:\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3597279097\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3581332193\r\n\r\nWe can however follow-up with documentation improvements if needed to avoid having to rely on this PR feature.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3657332583"
+        }
+      ],
+      "reviewed": "14b9336b7440f1f362732835506b0105bfd8fcf0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3572236601"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is useful, thanks! can you include a bit more in the comment about how to capture the values from those invocations?",
+      "created": "2026-07-16T17:06:33Z",
+      "hunk": "@@ -24,4 +27,101 @@ void agentArgsSystemProperties() {\n     assertThat(System.getProperty(\"foo\")).isEqualTo(\"bar=baz\");\n     assertThat(System.getProperty(\"bar\")).isEqualTo(\"b,c\");\n   }\n+\n+  // This list of values has been compiled by invoking every binary in ${JAVA_HOME}/bin",
+      "id": "PRRT_kwDODJKVX86Rhx67",
+      "opened": "2026-07-16T17:06:33Z",
+      "path": "javaagent-bootstrap/src/test/java/io/opentelemetry/javaagent/bootstrap/AgentInitializerTest.java",
+      "replies": [
+        {
+          "at": "2026-07-27T12:58:23Z",
+          "body": "I've added few sample instructions how to do that in 6619ffb, let me know if that's clear enough.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3657264531"
+        }
+      ],
+      "reviewed": "4decbdf65f2e1d21d67d17b68e79d03b456b1bce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3597454884"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Follow-up to the env var fallback above — the message should mention the env var as well, otherwise a user who only has env-var-based config is told to do something that doesn't apply to them.\n\n```suggestion\n      System.err.println(\n          \"JDK tool detected, agent will not be started. To override this behavior, set\"\n              + \" otel.javaagent.enabled=true as an agent argument or system property, or\"\n              + \" OTEL_JAVAAGENT_ENABLED=true as an environment variable\");\n```\n",
+      "created": "2026-07-29T20:15:10Z",
+      "hunk": "@@ -53,6 +54,29 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enabled=true in system properties or\n+    // java agent arguments\n+    Boolean skipJdkTool =\n+        doPrivileged(\n+            new PrivilegedAction<Boolean>() {\n+              @Override\n+              public Boolean run() {\n+                String enable = System.getProperty(\"otel.javaagent.enabled\");\n+                if (Boolean.parseBoolean(enable)) {\n+                  return false;\n+                }\n+                String cmd = System.getProperty(\"sun.java.command\");\n+                return isJdkToolMainClass(cmd);\n+              }\n+            });\n+    if (skipJdkTool) {\n+      System.err.println(\n+          \"JDK tool detected, agent will not be started. To override this behavior, set the 'otel.javaagent.enabled=true' agent argument or system property\");",
+      "id": "PRRT_kwDODJKVX86U5Ry3",
+      "opened": "2026-07-29T20:25:19Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [],
+      "reviewed": "baf2dbcbd3e4ee2387ab8052986adfe1c7601805",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3677750477"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The opt-in escape hatch only reads the system property, so `OTEL_JAVAAGENT_ENABLED=true` is silently ignored.\n\nEverywhere else `otel.javaagent.enabled` resolves through `EarlyInitAgentConfig.getString()`, which falls back to the env var. `isSecurityManagerSupportEnabled()` a few lines below in this same class does exactly that fallback for its own flag, so the pattern is already established here.\n\nThis matters for the deployment referenced above: the OpenTelemetry Operator injects `JAVA_TOOL_OPTIONS` *and* the rest of the config as env vars, so a user hitting a false positive would naturally reach for `OTEL_JAVAAGENT_ENABLED=true` and it wouldn't take effect.\n\n```suggestion\n    // opt-in is still possible with an explicit otel.javaagent.enabled=true in system properties,\n    // java agent arguments or the OTEL_JAVAAGENT_ENABLED environment variable\n    Boolean skipJdkTool =\n        doPrivileged(\n            new PrivilegedAction<Boolean>() {\n              @Override\n              public Boolean run() {\n                String enable = System.getProperty(\"otel.javaagent.enabled\");\n                if (enable == null) {\n                  enable = System.getenv(\"OTEL_JAVAAGENT_ENABLED\");\n                }\n                if (Boolean.parseBoolean(enable)) {\n                  return false;\n                }\n                String cmd = System.getProperty(\"sun.java.command\");\n                return isJdkToolMainClass(cmd);\n```\n",
+      "created": "2026-07-29T20:15:10Z",
+      "hunk": "@@ -53,6 +54,29 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enabled=true in system properties or\n+    // java agent arguments\n+    Boolean skipJdkTool =\n+        doPrivileged(\n+            new PrivilegedAction<Boolean>() {\n+              @Override\n+              public Boolean run() {\n+                String enable = System.getProperty(\"otel.javaagent.enabled\");\n+                if (Boolean.parseBoolean(enable)) {\n+                  return false;\n+                }\n+                String cmd = System.getProperty(\"sun.java.command\");\n+                return isJdkToolMainClass(cmd);",
+      "id": "PRRT_kwDODJKVX86U5Ryr",
+      "opened": "2026-07-29T20:25:19Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [],
+      "reviewed": "baf2dbcbd3e4ee2387ab8052986adfe1c7601805",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3677750462"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Should this be limited to `fromPremain`?\n\n`JAVA_TOOL_OPTIONS` / `_JAVA_OPTIONS` only affect JVM launch, so the accidental-instrumentation scenario this guards against can only happen through `premain`. A dynamic attach (`agentmain`) is always a deliberate action against a chosen pid, so self-disabling there just makes attach fail in a surprising way.\n\n`fromPremain` is already a parameter of this method, so it's a one-word change:\n\n```suggestion\n    if (fromPremain && skipJdkTool) {\n```\n\nNote this also keeps the two paths independent: if `premain` skipped, `agentClassLoader` is still `null`, so a later attach will re-enter `initialize` and start normally.\n",
+      "created": "2026-07-29T20:15:10Z",
+      "hunk": "@@ -53,6 +54,29 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enabled=true in system properties or\n+    // java agent arguments\n+    Boolean skipJdkTool =\n+        doPrivileged(\n+            new PrivilegedAction<Boolean>() {\n+              @Override\n+              public Boolean run() {\n+                String enable = System.getProperty(\"otel.javaagent.enabled\");\n+                if (Boolean.parseBoolean(enable)) {\n+                  return false;\n+                }\n+                String cmd = System.getProperty(\"sun.java.command\");\n+                return isJdkToolMainClass(cmd);\n+              }\n+            });\n+    if (skipJdkTool) {",
+      "id": "PRRT_kwDODJKVX86U5Ryy",
+      "opened": "2026-07-29T20:25:19Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [
+        {
+          "at": "2026-07-30T08:53:22Z",
+          "body": "Yes, you are right, this check is only relevant when using `-javaagent`, thus we can leave runtime attach as-is as it's use is intentional by choosing the PID.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3681334499"
+        }
+      ],
+      "reviewed": "baf2dbcbd3e4ee2387ab8052986adfe1c7601805",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3677750470"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] The privileged block runs unconditionally but the result is only used when `fromPremain`, so dynamic attach (`agentmain`) pays for it and reads `sun.java.command`/env for nothing. Extracting this into a `private static boolean isJdkTool()` right next to `isSecurityManagerSupportEnabled()` — which has exactly this shape already — lets you write `if (fromPremain && isJdkTool())` and short-circuit.\r\n\r\n[General] Also consider including the detected `sun.java.command` in the message. The main risk of this change is a false positive on an application whose main class happens to start with `com.sun.`/`sun.`/`jdk.` (glassfish already needed an exception), and \"JDK tool detected\" alone gives the user nothing to correlate.",
+      "created": "2026-07-30T12:52:55Z",
+      "hunk": "@@ -53,6 +54,34 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enabled=true in system properties,\n+    // java agent arguments or the OTEL_JAVAAGENT_ENABLED environment variable\n+    Boolean skipJdkTool =\n+        doPrivileged(\n+            new PrivilegedAction<Boolean>() {\n+              @Override\n+              public Boolean run() {\n+                String enable = System.getProperty(\"otel.javaagent.enabled\");\n+                if (enable == null) {\n+                  enable = System.getenv(\"OTEL_JAVAAGENT_ENABLED\");\n+                }\n+                if (Boolean.parseBoolean(enable)) {\n+                  return false;\n+                }\n+                String cmd = System.getProperty(\"sun.java.command\");\n+                return isJdkToolMainClass(cmd);\n+              }\n+            });\n+    if (fromPremain && skipJdkTool) {\n+      System.err.println(\n+          \"JDK tool detected, agent will not be started. To override this behavior, set\"\n+              + \" otel.javaagent.enabled=true as an agent argument or system property, or\"\n+              + \" OTEL_JAVAAGENT_ENABLED=true as an environment variable\");\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX86VGoMR",
+      "opened": "2026-07-30T13:16:48Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [
+        {
+          "at": "2026-07-30T13:51:51Z",
+          "body": "fixed in 2067bfd",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3683234421"
+        }
+      ],
+      "reviewed": "954987cb43b3c9b3359dd0ef633353d73d8da631",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3682812502"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Handling the module form first and returning lets the rest read as straight-line code, and drops the stray blank line after `{` and the `else` after a `return`.\n\n```suggestion\n    // sun.java.command may be of the form \"<module>/<mainClass>\" when the main class belongs to a\n    // named module, e.g. \"jdk.compiler/com.sun.tools.javac.Main\"\n    int slashIndex = first.indexOf('/');\n    if (slashIndex >= 0) {\n      String moduleName = first.substring(0, slashIndex);\n      return moduleName.startsWith(\"jdk.\") || moduleName.startsWith(\"java.\");\n    }\n\n    // known exception for glassfish/payara application server\n    if (first.startsWith(\"com.sun.enterprise.glassfish.\")) {\n      return false;\n    }\n\n    return first.startsWith(\"com.sun.\") || first.startsWith(\"sun.\") || first.startsWith(\"jdk.\");\n```",
+      "created": "2026-07-30T12:52:55Z",
+      "hunk": "@@ -241,4 +270,33 @@ static void setSystemProperties(@Nullable String agentArgs) {\n       }\n     }\n   }\n+\n+  static boolean isJdkToolMainClass(@Nullable String cmd) {\n+    if (cmd == null || cmd.isEmpty()) {\n+      return false;\n+    }\n+    int spaceIndex = cmd.indexOf(' ');\n+    String first = spaceIndex == -1 ? cmd : cmd.substring(0, spaceIndex);\n+\n+    if (first.endsWith(\".jar\")) {\n+      // java -jar /path/to/app.jar\n+      return false;\n+    }\n+\n+    // sun.java.command may be of the form \"<module>/<mainClass>\" when the main class belongs to a\n+    // named module, e.g. \"jdk.compiler/com.sun.tools.javac.Main\"\n+    int slashIndex = first.indexOf('/');\n+    if (slashIndex < 0) {\n+\n+      // known exception for glassfish/payara application server\n+      if (first.startsWith(\"com.sun.enterprise.glassfish.\")) {\n+        return false;\n+      }\n+\n+      return first.startsWith(\"com.sun.\") || first.startsWith(\"sun.\") || first.startsWith(\"jdk.\");\n+    } else {\n+      String moduleName = first.substring(0, slashIndex);\n+      return moduleName.startsWith(\"jdk.\") || moduleName.startsWith(\"java.\");\n+    }",
+      "id": "PRRT_kwDODJKVX86VGoMT",
+      "opened": "2026-07-30T13:16:48Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [
+        {
+          "at": "2026-07-30T13:52:42Z",
+          "body": "fixed in b164521",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3683241052"
+        }
+      ],
+      "reviewed": "954987cb43b3c9b3359dd0ef633353d73d8da631",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3682812506"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Exact duplicate of the JDK 25+ entry on line 50.\n\n```suggestion\n```",
+      "created": "2026-07-30T12:52:55Z",
+      "hunk": "@@ -24,4 +27,106 @@ void agentArgsSystemProperties() {\n     assertThat(System.getProperty(\"foo\")).isEqualTo(\"bar=baz\");\n     assertThat(System.getProperty(\"bar\")).isEqualTo(\"b,c\");\n   }\n+\n+  // This list of values has been compiled by invoking every binary in ${JAVA_HOME}/bin by\n+  // - adding the following code snippet into the agent 'premain' method:\n+  //   PrintStream err = System.err;\n+  //   err.println(System.getProperty(\"sun.java.command\"));\n+  // - setting JAVA_TOOL_OPTIONS to include -javaagent:/path/to/agent.jar\n+  // - invoke all binaries in ${JAVA_HOME}/bin and collect the values from standard output\n+  @ParameterizedTest\n+  @ValueSource(\n+      strings = {\n+        // sample from JDK 25+\n+        \"com.sun.tools.javac.Main Foo.java\",\n+        \"jdk.compiler/com.sun.tools.javac.Main Foo.java\",\n+        \"jdk.jartool/sun.tools.jar.Main --version\",\n+        \"jdk.jshell/jdk.internal.jshell.tool.JShellToolProvider --version\",\n+        \"jdk.jlink/jdk.tools.jlink.internal.Main --version\",\n+        \"java.base/sun.security.tools.keytool.Main -help\",\n+        \"jdk.javadoc/jdk.javadoc.internal.tool.Main --version\",\n+        \"jdk.jdeps/com.sun.tools.jdeps.Main --version\",\n+        \"jdk.jdeps/com.sun.tools.javap.Main --version\",\n+        \"jdk.jartool/sun.security.tools.jarsigner.Main\",\n+        \"jdk.jcmd/sun.tools.jcmd.JCmd --version\",\n+        \"jdk.jcmd/sun.tools.jps.Jps --version\",\n+        // JDK 11+\n+        \"java.base/com.sun.java.util.jar.pack.Driver\",\n+        \"java.base/sun.security.tools.keytool.Main\",\n+        \"java.rmi/sun.rmi.registry.RegistryImpl\",\n+        \"java.rmi/sun.rmi.server.Activation\",\n+        \"jdk.aot/jdk.tools.jaotc.Main\",\n+        \"jdk.hotspot.agent/sun.jvm.hotspot.SALauncher\",\n+        \"jdk.jartool/sun.security.tools.jarsigner.Main\",",
+      "id": "PRRT_kwDODJKVX86VGoMb",
+      "opened": "2026-07-30T13:16:48Z",
+      "path": "javaagent-bootstrap/src/test/java/io/opentelemetry/javaagent/bootstrap/AgentInitializerTest.java",
+      "replies": [
+        {
+          "at": "2026-07-30T13:52:07Z",
+          "body": "fixed in b164521",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3683236521"
+        }
+      ],
+      "reviewed": "954987cb43b3c9b3359dd0ef633353d73d8da631",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3682812519"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The message doesn't say what was detected. Since the whole risk of this change is a false positive on a main class that happens to live under `com.sun.`/`sun.`/`jdk.`, \"JDK tool detected\" gives a user hitting one nothing to correlate against, and it's the only output they get before the agent goes quiet.\n\nReturning the detected command instead of a boolean keeps it to two small edits — here:\n\n```java\n    String jdkToolCommand = fromPremain ? jdkToolCommand() : null;\n    if (jdkToolCommand != null) {\n      System.err.println(\n          \"JDK tool detected (\"\n              + jdkToolCommand\n              + \"), agent will not be started. To override this behavior, set\"\n              + \" otel.javaagent.enabled=true as an agent argument or system property, or\"\n              + \" OTEL_JAVAAGENT_ENABLED=true as an environment variable\");\n      return;\n    }\n```\n\nand in the helper:\n\n```java\n  @Nullable\n  private static String jdkToolCommand() {\n    // ... unchanged comment ...\n    return doPrivileged(\n        new PrivilegedAction<String>() {\n          @Override\n          @Nullable\n          public String run() {\n            String enable = System.getProperty(\"otel.javaagent.enabled\");\n            if (enable == null) {\n              enable = System.getenv(\"OTEL_JAVAAGENT_ENABLED\");\n            }\n            if (Boolean.parseBoolean(enable)) {\n              return null;\n            }\n            String cmd = System.getProperty(\"sun.java.command\");\n            return isJdkToolMainClass(cmd) ? cmd : null;\n          }\n        });\n  }\n```",
+      "created": "2026-07-30T16:03:54Z",
+      "hunk": "@@ -53,6 +54,14 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    if (fromPremain && skipJdkTool()) {\n+      System.err.println(\n+          \"JDK tool detected, agent will not be started. To override this behavior, set\"\n+              + \" otel.javaagent.enabled=true as an agent argument or system property, or\"\n+              + \" OTEL_JAVAAGENT_ENABLED=true as an environment variable\");",
+      "id": "PRRT_kwDODJKVX86VKhc9",
+      "opened": "2026-07-30T17:13:28Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [
+        {
+          "at": "2026-07-31T14:40:42Z",
+          "body": "Good point, also we don't need to call `isKdjToolMainClass` within the privileged block, thus I've moved it outside and fix this in f86a109",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3691194027"
+        }
+      ],
+      "reviewed": "b164521e96c9ff46a4f3f30b87ddc04dabb4f874",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3684293641"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Blanket `com.sun.`/`sun.`/`jdk.` prefixes also match real non-JDK entry points, and every hit means the agent silently self-disables. GlassFish already needed one exception, and it isn't the only one: Open Message Queue (the JMS broker shipped with GlassFish/Payara, started by `imqbrokerd`) launches [`com.sun.messaging.jmq.jmsserver.Broker`](https://github.com/eclipse-ee4j/openmq/blob/master/mq/main/mq-broker/mqbroker-core/src/main/java/com/sun/messaging/jmq/jmsserver/Broker.java), and its admin CLI is `com.sun.messaging.jmq.admin.apps.broker.BrokerCmd`. That's a long-running server losing all telemetry by default, with one stderr line as the only clue.\n\nThe module branch above is fine because `java.*`/`jdk.*` module names are the JDK's own reserved namespace, but the `com.sun.*`/`sun.*`/`jdk.*` *package* namespaces are not. And this branch is only reachable for pre-JPMS tools anyway — the JDK 9+ launchers pass `-m <module>/<class>`, which is exactly what the JDK 11+ and JDK 25+ entries in the test data show. So the set of class names it has to cover is closed and small; matching it directly keeps every existing true-case passing and makes the glassfish exception unnecessary:\n\n```suggestion\n    return first.startsWith(\"com.sun.tools.\")\n        || first.startsWith(\"com.sun.corba.se.\")\n        || first.startsWith(\"com.sun.javafx.tools.\")\n        || first.startsWith(\"com.sun.java.util.jar.pack.\")\n        || first.startsWith(\"sun.applet.\")\n        || first.startsWith(\"sun.jvm.hotspot.\")\n        || first.startsWith(\"sun.rmi.\")\n        || first.startsWith(\"sun.security.tools.\")\n        || first.startsWith(\"sun.tools.\")\n        || first.startsWith(\"jdk.jfr.internal.tool.\")\n        || first.startsWith(\"jdk.nashorn.tools.\");\n```",
+      "created": "2026-07-30T16:03:54Z",
+      "hunk": "@@ -241,4 +272,32 @@ static void setSystemProperties(@Nullable String agentArgs) {\n       }\n     }\n   }\n+\n+  static boolean isJdkToolMainClass(@Nullable String cmd) {\n+    if (cmd == null || cmd.isEmpty()) {\n+      return false;\n+    }\n+    int spaceIndex = cmd.indexOf(' ');\n+    String first = spaceIndex == -1 ? cmd : cmd.substring(0, spaceIndex);\n+\n+    if (first.endsWith(\".jar\")) {\n+      // java -jar /path/to/app.jar\n+      return false;\n+    }\n+\n+    // sun.java.command may be of the form \"<module>/<mainClass>\" when the main class belongs to a\n+    // named module, e.g. \"jdk.compiler/com.sun.tools.javac.Main\"\n+    int slashIndex = first.indexOf('/');\n+    if (slashIndex >= 0) {\n+      String moduleName = first.substring(0, slashIndex);\n+      return moduleName.startsWith(\"jdk.\") || moduleName.startsWith(\"java.\");\n+    }\n+\n+    // known exception for glassfish/payara application server\n+    if (first.startsWith(\"com.sun.enterprise.glassfish.\")) {\n+      return false;\n+    }\n+\n+    return first.startsWith(\"com.sun.\") || first.startsWith(\"sun.\") || first.startsWith(\"jdk.\");",
+      "id": "PRRT_kwDODJKVX86VKhcX",
+      "opened": "2026-07-30T17:13:28Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [],
+      "reviewed": "b164521e96c9ff46a4f3f30b87ddc04dabb4f874",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3684293601"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Worth a case for the other `com.sun.` server that isn't a JDK tool — it fails against the current prefix matching and passes with the narrowed list suggested in `AgentInitializer`:\n\n```suggestion\n        // glassfish/payara application server\n        \"com.sun.enterprise.glassfish.bootstrap.ASMain\",\n        // openmq broker (imqbrokerd), shipped with glassfish/payara\n        \"com.sun.messaging.jmq.jmsserver.Broker\"\n      })\n```",
+      "created": "2026-07-30T16:03:54Z",
+      "hunk": "@@ -24,4 +27,105 @@ void agentArgsSystemProperties() {\n     assertThat(System.getProperty(\"foo\")).isEqualTo(\"bar=baz\");\n     assertThat(System.getProperty(\"bar\")).isEqualTo(\"b,c\");\n   }\n+\n+  // This list of values has been compiled by invoking every binary in ${JAVA_HOME}/bin by\n+  // - adding the following code snippet into the agent 'premain' method:\n+  //   PrintStream err = System.err;\n+  //   err.println(System.getProperty(\"sun.java.command\"));\n+  // - setting JAVA_TOOL_OPTIONS to include -javaagent:/path/to/agent.jar\n+  // - invoke all binaries in ${JAVA_HOME}/bin and collect the values from standard output\n+  @ParameterizedTest\n+  @ValueSource(\n+      strings = {\n+        // sample from JDK 25+\n+        \"com.sun.tools.javac.Main Foo.java\",\n+        \"jdk.compiler/com.sun.tools.javac.Main Foo.java\",\n+        \"jdk.jartool/sun.tools.jar.Main --version\",\n+        \"jdk.jshell/jdk.internal.jshell.tool.JShellToolProvider --version\",\n+        \"jdk.jlink/jdk.tools.jlink.internal.Main --version\",\n+        \"java.base/sun.security.tools.keytool.Main -help\",\n+        \"jdk.javadoc/jdk.javadoc.internal.tool.Main --version\",\n+        \"jdk.jdeps/com.sun.tools.jdeps.Main --version\",\n+        \"jdk.jdeps/com.sun.tools.javap.Main --version\",\n+        \"jdk.jartool/sun.security.tools.jarsigner.Main\",\n+        \"jdk.jcmd/sun.tools.jcmd.JCmd --version\",\n+        \"jdk.jcmd/sun.tools.jps.Jps --version\",\n+        // JDK 11+\n+        \"java.base/com.sun.java.util.jar.pack.Driver\",\n+        \"java.base/sun.security.tools.keytool.Main\",\n+        \"java.rmi/sun.rmi.registry.RegistryImpl\",\n+        \"java.rmi/sun.rmi.server.Activation\",\n+        \"jdk.aot/jdk.tools.jaotc.Main\",\n+        \"jdk.hotspot.agent/sun.jvm.hotspot.SALauncher\",\n+        \"jdk.javadoc/jdk.javadoc.internal.tool.Main\",\n+        \"jdk.jcmd/sun.tools.jcmd.JCmd\",\n+        \"jdk.jcmd/sun.tools.jps.Jps\",\n+        \"jdk.jfr/jdk.jfr.internal.tool.Main\",\n+        \"jdk.jlink/jdk.tools.jimage.Main\",\n+        \"jdk.jlink/jdk.tools.jlink.internal.Main\",\n+        \"jdk.jlink/jdk.tools.jmod.Main\",\n+        \"jdk.jshell/jdk.internal.jshell.tool.JShellToolProvider\",\n+        \"jdk.rmic/sun.rmi.rmic.Main\",\n+        // JDK 8 (before JPMS)\n+        \"com.sun.corba.se.impl.activation.ORBD\",\n+        \"com.sun.corba.se.impl.activation.ServerTool\",\n+        \"com.sun.corba.se.impl.naming.cosnaming.TransientNameServer\",\n+        \"com.sun.javafx.tools.packager.Main\",\n+        \"com.sun.java.util.jar.pack.Driver\",\n+        \"com.sun.tools.corba.se.idl.toJavaPortable.Compile\",\n+        \"com.sun.tools.example.debug.tty.TTY\",\n+        \"com.sun.tools.extcheck.Main\",\n+        \"com.sun.tools.hat.Main\",\n+        \"com.sun.tools.internal.jxc.SchemaGenerator\",\n+        \"com.sun.tools.internal.ws.WsGen\",\n+        \"com.sun.tools.internal.ws.WsImport\",\n+        \"com.sun.tools.internal.xjc.Driver\",\n+        \"com.sun.tools.javac.Main\",\n+        \"com.sun.tools.javadoc.Main\",\n+        \"com.sun.tools.javah.Main\",\n+        \"com.sun.tools.javap.Main\",\n+        \"com.sun.tools.jdeps.Main\",\n+        \"com.sun.tools.script.shell.Main\",\n+        \"jdk.jfr.internal.tool.Main\",\n+        \"jdk.nashorn.tools.Shell\",\n+        \"sun.applet.Main\",\n+        \"sun.jvm.hotspot.CLHSDB\",\n+        \"sun.jvm.hotspot.HSDB\",\n+        \"sun.jvm.hotspot.jdi.SADebugServer\",\n+        \"sun.rmi.registry.RegistryImpl\",\n+        \"sun.rmi.rmic.Main\",\n+        \"sun.rmi.server.Activation\",\n+        \"sun.rmi.transport.proxy.CGIHandler\",\n+        \"sun.security.tools.jarsigner.Main\",\n+        \"sun.security.tools.keytool.Main\",\n+        \"sun.security.tools.policytool.PolicyTool\",\n+        \"sun.tools.jar.Main\",\n+        \"sun.tools.jcmd.JCmd\",\n+        \"sun.tools.jconsole.JConsole\",\n+        \"sun.tools.jinfo.JInfo\",\n+        \"sun.tools.jmap.JMap\",\n+        \"sun.tools.jps.Jps\",\n+        \"sun.tools.jstack.JStack\",\n+        \"sun.tools.jstatd.Jstatd\",\n+        \"sun.tools.jstat.Jstat\",\n+        \"sun.tools.native2ascii.Main\",\n+        \"sun.tools.serialver.SerialVer\",\n+      })\n+  void isJdkToolMainClass_true(String sunJavaCommand) {\n+    assertThat(AgentInitializer.isJdkToolMainClass(sunJavaCommand)).isTrue();\n+  }\n+\n+  @ParameterizedTest\n+  @NullAndEmptySource\n+  @ValueSource(\n+      strings = {\n+        \"com.example.Main arg1 arg2\",\n+        \"myapp/com.example.Main arg1 arg2\",\n+        \"/path/to/application.jar arg1\",\n+        // glassfish/payara application server\n+        \"com.sun.enterprise.glassfish.bootstrap.ASMain\"\n+      })",
+      "id": "PRRT_kwDODJKVX86VKhcv",
+      "opened": "2026-07-30T17:13:28Z",
+      "path": "javaagent-bootstrap/src/test/java/io/opentelemetry/javaagent/bootstrap/AgentInitializerTest.java",
+      "replies": [],
+      "reviewed": "b164521e96c9ff46a4f3f30b87ddc04dabb4f874",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3684293624"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`sun.java.command` includes the tool's full argument list, so printing `command` can expose credentials passed to tools such as `keytool` (`-storepass`/`-keypass`) in stderr and collected logs. Keep this diagnostic generic rather than echoing the command line.",
+      "created": "2026-07-31T15:04:44Z",
+      "hunk": "@@ -53,6 +54,21 @@ public Void run() {\n       throw new IllegalStateException(\"agent initializer should be loaded in boot loader\");\n     }\n \n+    // check if running any JDK tool in $JAVA_HOME/bin, as this is common when setting\n+    // JAVA_TOOL_OPTIONS or _JAVA_OPTIONS globally, and we don't want to instrument those tools.\n+    // opt-in is still possible with an explicit otel.javaagent.enabled=true in system properties,\n+    // java agent arguments or the OTEL_JAVAAGENT_ENABLED environment variable\n+    String command = fromPremain ? getJvmCommand() : null;\n+    if (fromPremain && isJdkToolMainClass(command)) {\n+      System.err.println(\n+          \"JDK tool detected: \"\n+              + command\n+              + \", agent will not be started. To override this behavior, set\"\n+              + \" otel.javaagent.enabled=true as an agent argument or system property, or\"\n+              + \" OTEL_JAVAAGENT_ENABLED=true as an environment variable\");",
+      "id": "PRRT_kwDODJKVX86VdBGI",
+      "opened": "2026-07-31T15:04:45Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [
+        {
+          "at": "2026-07-31T20:57:59Z",
+          "body": "fixed by only logging command when agent debug is enabled, which avoids potential sensitive arguments exposure by default.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3693322243"
+        }
+      ],
+      "reviewed": "a4bcbe75124c6a226122d12cc57cfd4fb3946335",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3691349821"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `System.getProperty(\"sun.java.command\")` can return `null` (the repository already treats this property as unavailable on some systems), so this dereference makes agent initialization fail with a `NullPointerException` instead of bypassing detection as the method contract states. Handle `null` before calling `isEmpty()`.",
+      "created": "2026-07-31T23:30:05Z",
+      "hunk": "@@ -102,6 +120,46 @@ public Boolean run() {\n         });\n   }\n \n+  /**\n+   * Get the command string that started this JVM.\n+   *\n+   * @return command string, {@literal null} when unable to retrieve or command check is bypassed\n+   */\n+  @Nullable\n+  private static String getJvmCommand() {\n+    String cmd =\n+        doPrivileged(\n+            new PrivilegedAction<String>() {\n+              @Override\n+              public String run() {\n+                String enable = System.getProperty(\"otel.javaagent.enabled\");\n+                if (enable == null) {\n+                  enable = System.getenv(\"OTEL_JAVAAGENT_ENABLED\");\n+                }\n+                if (Boolean.parseBoolean(enable)) {\n+                  // using empty string as method should not return null\n+                  return \"\";\n+                }\n+                return System.getProperty(\"sun.java.command\");\n+              }\n+            });\n+    return cmd.isEmpty() ? null : cmd;",
+      "id": "PRRT_kwDODJKVX86VjujW",
+      "opened": "2026-07-31T23:30:05Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentInitializer.java",
+      "replies": [
+        {
+          "at": "2026-08-02T05:12:03Z",
+          "body": "I sent SylvainJuge#4 with this fix and a few possible simplifications to the surrounding flow",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3697932106"
+        },
+        {
+          "at": "2026-08-11T12:32:51Z",
+          "body": "I have just merged https://github.com/SylvainJuge/opentelemetry-java-instrumentation/pull/4 , so we can mark this as resolved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3757948433"
+        }
+      ],
+      "reviewed": "7ce2df2fe025a89327c92d5ffc479d38a16d875f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19203#discussion_r3693923880"
+    }
+  ]
+}

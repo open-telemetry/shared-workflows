@@ -1,0 +1,97 @@
+{
+  "head": "e24c26bb403d8c93a30c76f8119d73ab78c4dcf2",
+  "merge": "aef9c66c1663faf0a032808a2c289ea2f2b35d7e",
+  "merged": "2026-08-28T07:32:20Z",
+  "missing_roots": 0,
+  "number": 19869,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion relies on an exact JSON string match, which is brittle (serialization can legitimately change key ordering/formatting across client/library versions). Consider asserting via JSON parsing (compare semantic structure) or using a weaker assertion that still proves 'unsanitized' behavior (e.g., contains the literal value \\\"test\\\" and does not contain \\\"?\\\").",
+      "created": "2026-08-27T15:10:04Z",
+      "hunk": "@@ -0,0 +1,79 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.instrumentation.testing.junit.service.SemconvServiceStabilityUtil.maybeStablePeerService;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;\n+import static io.opentelemetry.semconv.HttpAttributes.HTTP_REQUEST_METHOD;\n+import static io.opentelemetry.semconv.HttpAttributes.HTTP_RESPONSE_STATUS_CODE;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_VERSION;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static io.opentelemetry.semconv.UrlAttributes.URL_FULL;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import java.io.IOException;\n+import org.junit.jupiter.api.Test;\n+import org.opensearch.client.opensearch._types.query_dsl.Query;\n+import org.opensearch.client.opensearch.core.SearchRequest;\n+import org.opensearch.client.opensearch.core.SearchResponse;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+class OpenSearchQuerySanitizationDisabledTest extends AbstractOpenSearchQueryTest {\n+\n+  @Test\n+  void shouldCaptureUnsanitizedSearchQueryBody() throws IOException {\n+    SearchRequest searchRequest =\n+        SearchRequest.of(\n+            s ->\n+                s.index(INDEX_NAME)\n+                    .query(\n+                        Query.of(\n+                            q ->\n+                                q.match(\n+                                    m -> m.field(\"message\").query(v -> v.stringValue(\"test\"))))));\n+\n+    SearchResponse<TestDocument> searchResponse =\n+        openSearchClient.search(searchRequest, TestDocument.class);\n+    assertThat(searchResponse.hits().total().value()).isGreaterThan(0);\n+\n+    getTesting()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasName(\"POST\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasAttributesSatisfyingExactly(\n+                                equalTo(maybeStable(DB_SYSTEM), \"opensearch\"),\n+                                equalTo(maybeStable(DB_OPERATION), \"POST\"),\n+                                equalTo(\n+                                    maybeStable(DB_STATEMENT),\n+                                    \"{\\\"query\\\":{\\\"match\\\":{\\\"message\\\":{\\\"query\\\":\\\"test\\\"}}}}\")),",
+      "id": "PRRT_kwDODJKVX86c3lb0",
+      "opened": "2026-08-27T15:10:04Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchQuerySanitizationDisabledTest.java",
+      "replies": [],
+      "reviewed": "3d38fbd18e669eb92e74022ffd924d9a292b53f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869#discussion_r3873058121"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`try (generator)` is only valid with Java 9+ (try-with-resources on an effectively-final variable). If this module is compiled with Java 8 source/target (common for javaagent code), this will not compile. Fix by declaring the resource in the try header (e.g., `try (JsonGenerator generator = ...) { ... }`) or by creating a separate variable and declaring that one in the try-with-resources header.",
+      "created": "2026-08-27T15:10:04Z",
+      "hunk": "@@ -27,36 +27,38 @@ class OpenSearchBodyExtractor {\n   private static final JsonFactory JSON_FACTORY = new JsonFactory();\n \n   @Nullable\n-  public static String extractSanitized(JsonpMapper mapper, Object request) {\n+  public static String extract(JsonpMapper mapper, Object request, boolean sanitize) {\n     try {\n       if (request instanceof NdJsonpSerializable) {\n-        return serializeNdJsonSanitized(mapper, (NdJsonpSerializable) request);\n+        return serializeNdJson(mapper, (NdJsonpSerializable) request, sanitize);\n       }\n \n-      return serializeSanitized(mapper, request);\n+      return serialize(mapper, request, sanitize);\n     } catch (Exception e) {\n       logger.log(FINE, \"Failure extracting body\", e);\n       return null;\n     }\n   }\n \n   @Nullable\n-  private static String serializeSanitized(JsonpMapper mapper, Object item) throws IOException {\n+  private static String serialize(JsonpMapper mapper, Object item, boolean sanitize)\n+      throws IOException {\n     ByteArrayOutputStream baos = new ByteArrayOutputStream();\n \n     if (mapper instanceof JacksonJsonpMapper) {\n-      // Use Jackson-based sanitizing generator for JacksonJsonpMapper\n       com.fasterxml.jackson.core.JsonGenerator jacksonGenerator =\n-          JSON_FACTORY.createGenerator(baos);\n-      com.fasterxml.jackson.core.JsonGenerator sanitizingGenerator =\n-          new SanitizingJacksonJsonGenerator(jacksonGenerator);\n-      try (JsonGenerator generator = new JacksonJsonpGenerator(sanitizingGenerator)) {\n+          sanitize\n+              ? new SanitizingJacksonJsonGenerator(JSON_FACTORY.createGenerator(baos))\n+              : JSON_FACTORY.createGenerator(baos);\n+      try (JsonGenerator generator = new JacksonJsonpGenerator(jacksonGenerator)) {\n         mapper.serialize(item, generator);\n       }\n     } else {\n-      // Fallback for other mappers (may not work for all implementations)\n-      JsonGenerator rawGenerator = mapper.jsonProvider().createGenerator(baos);\n-      try (JsonGenerator generator = new SanitizingJsonGenerator(rawGenerator)) {\n+      JsonGenerator generator =\n+          sanitize\n+              ? new SanitizingJsonGenerator(mapper.jsonProvider().createGenerator(baos))\n+              : mapper.jsonProvider().createGenerator(baos);\n+      try (generator) {",
+      "id": "PRRT_kwDODJKVX86c3lbB",
+      "opened": "2026-08-27T15:10:04Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [],
+      "reviewed": "3d38fbd18e669eb92e74022ffd924d9a292b53f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869#discussion_r3873058049"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`try (generator)` is a Java 9+ try-with-resources feature (resource variable in the try header). If this module is compiled with Java 8 source/target (common for javaagent code), it will not compile. Use a Java 8-compatible try-with-resources form (e.g., declare the resource inside the try header) while preserving the current conditional creation logic.",
+      "created": "2026-08-27T17:04:15Z",
+      "hunk": "@@ -27,36 +27,38 @@ class OpenSearchBodyExtractor {\n   private static final JsonFactory JSON_FACTORY = new JsonFactory();\n \n   @Nullable\n-  public static String extractSanitized(JsonpMapper mapper, Object request) {\n+  public static String extract(JsonpMapper mapper, Object request, boolean sanitize) {\n     try {\n       if (request instanceof NdJsonpSerializable) {\n-        return serializeNdJsonSanitized(mapper, (NdJsonpSerializable) request);\n+        return serializeNdJson(mapper, (NdJsonpSerializable) request, sanitize);\n       }\n \n-      return serializeSanitized(mapper, request);\n+      return serialize(mapper, request, sanitize);\n     } catch (Exception e) {\n       logger.log(FINE, \"Failure extracting body\", e);\n       return null;\n     }\n   }\n \n   @Nullable\n-  private static String serializeSanitized(JsonpMapper mapper, Object item) throws IOException {\n+  private static String serialize(JsonpMapper mapper, Object item, boolean sanitize)\n+      throws IOException {\n     ByteArrayOutputStream baos = new ByteArrayOutputStream();\n \n     if (mapper instanceof JacksonJsonpMapper) {\n-      // Use Jackson-based sanitizing generator for JacksonJsonpMapper\n       com.fasterxml.jackson.core.JsonGenerator jacksonGenerator =\n-          JSON_FACTORY.createGenerator(baos);\n-      com.fasterxml.jackson.core.JsonGenerator sanitizingGenerator =\n-          new SanitizingJacksonJsonGenerator(jacksonGenerator);\n-      try (JsonGenerator generator = new JacksonJsonpGenerator(sanitizingGenerator)) {\n+          sanitize\n+              ? new SanitizingJacksonJsonGenerator(JSON_FACTORY.createGenerator(baos))\n+              : JSON_FACTORY.createGenerator(baos);\n+      try (JsonGenerator generator = new JacksonJsonpGenerator(jacksonGenerator)) {\n         mapper.serialize(item, generator);\n       }\n     } else {\n-      // Fallback for other mappers (may not work for all implementations)\n-      JsonGenerator rawGenerator = mapper.jsonProvider().createGenerator(baos);\n-      try (JsonGenerator generator = new SanitizingJsonGenerator(rawGenerator)) {\n+      JsonGenerator generator =\n+          sanitize\n+              ? new SanitizingJsonGenerator(mapper.jsonProvider().createGenerator(baos))\n+              : mapper.jsonProvider().createGenerator(baos);\n+      try (generator) {",
+      "id": "PRRT_kwDODJKVX86c58Gk",
+      "opened": "2026-08-27T17:04:16Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-27T17:10:01Z",
+          "body": "No code change.\n\nAnalysis: This module sets `minJavaVersionSupported` to Java 11. The `try (generator)` resource-variable form is supported from Java 9, so it is valid for every supported runtime. The current form also keeps the conditional generator creation clear.\n\nUpsides: Keeping the code avoids an unnecessary rewrite and preserves the direct ownership of the selected generator.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869#discussion_r3874021087"
+        }
+      ],
+      "reviewed": "0e6a4df5f2ed2a34c98b88a7e2c57f7fcbe8ff57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869#discussion_r3873978919"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new configuration’s description doesn’t mention the key safety implication that disabling sanitization will record query bodies verbatim and may capture sensitive/PII data (this warning exists in the PR description/README). Please add that caution to the `metadata.yaml` description as well, since this file is commonly used for generated config docs.",
+      "created": "2026-08-27T17:04:16Z",
+      "hunk": "@@ -10,8 +10,16 @@ configurations:\n   - name: otel.instrumentation.opensearch.capture-search-query\n     declarative_name: java.opensearch.capture_search_query\n     description: >\n-      Deprecated and will be removed in 3.0, when sanitized search query bodies are always captured.\n+      Deprecated and will be removed in 3.0, when search query bodies are always captured.\n       There is no replacement. Until then, set this to false to disable capture. Search queries may\n       contain personal or sensitive information.\n     type: boolean\n     default: true\n+  - name: otel.instrumentation.opensearch.query-sanitization.enabled\n+    declarative_name: java.opensearch.query_sanitization.enabled\n+    description: >\n+      Enables sanitization of captured search query bodies. Takes precedence over\n+      otel.instrumentation.common.db.query-sanitization.enabled.",
+      "id": "PRRT_kwDODJKVX86c58G-",
+      "opened": "2026-08-27T17:04:16Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-08-27T17:10:02Z",
+          "body": "Addressed in 7f1e4ec02f63f0a7a4a07e6012bfcd6ddc2ff2fe.\n\nAnalysis: The metadata description feeds generated configuration documentation. It should state that disabling sanitization records query bodies verbatim and can expose personal or sensitive information.\n\nUpsides: Generated configuration documentation now gives operators the same safety warning as the OpenSearch README.\n\nDownsides: The configuration description is slightly longer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869#discussion_r3874021262"
+        }
+      ],
+      "reviewed": "0e6a4df5f2ed2a34c98b88a7e2c57f7fcbe8ff57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869#discussion_r3873978973"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think you need to add running this task to https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/.github/scripts/instrumentations.sh if you actually want to get these included in the metadata",
+      "created": "2026-08-28T07:32:07Z",
+      "hunk": "@@ -84,16 +86,67 @@ tasks {\n \n     filter {\n       excludeTestsMatching(\"OpenSearchDisabledCaptureSearchQueryTest\")\n+      excludeTestsMatching(\"OpenSearchQuerySanitizationDisabledTest\")\n+      excludeTestsMatching(\"OpenSearchQuerySanitizationDisabledJsonbTest\")\n     }\n     jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n     systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database\")\n   }\n \n+  val testQuerySanitizationDisabled = register<Test>(\"testQuerySanitizationDisabled\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"OpenSearchQuerySanitizationDisabledTest\")\n+      includeTestsMatching(\"OpenSearchQuerySanitizationDisabledJsonbTest\")\n+    }\n+    jvmArgs(\"-Dotel.instrumentation.opensearch.query-sanitization.enabled=false\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"otel.instrumentation.opensearch.query-sanitization.enabled=false\",",
+      "id": "PRRT_kwDODJKVX86dF9KR",
+      "opened": "2026-08-28T07:32:07Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e24c26bb403d8c93a30c76f8119d73ab78c4dcf2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869#discussion_r3878752729"
+    }
+  ]
+}

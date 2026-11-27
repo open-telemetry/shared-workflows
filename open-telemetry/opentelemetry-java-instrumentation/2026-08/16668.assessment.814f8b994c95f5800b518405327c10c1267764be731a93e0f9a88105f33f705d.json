@@ -1,0 +1,309 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "433e1abfec55bdfb9f73350ff8e267baecfacdd6f8672d243b449920496ac557",
+  "input_digest": "814f8b994c95f5800b518405327c10c1267764be731a93e0f9a88105f33f705d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/impl/HelloServiceErrorImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/impl/HelloServiceErrorImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a2f6d9e31ad58f8e8dbed14eb728c57a4800acf6"
+      ],
+      "id": "PRRT_kwDODJKVX86MJ-gq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ec075a5644424106504fdc2942bce8f75ed0d9b3"
+      ],
+      "id": "PRRT_kwDODJKVX86MJ-hR",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ec075a5644424106504fdc2942bce8f75ed0d9b3"
+      ],
+      "id": "PRRT_kwDODJKVX86MJ-hl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ec075a5644424106504fdc2942bce8f75ed0d9b3"
+      ],
+      "id": "PRRT_kwDODJKVX86MJ-iC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2fff89e1dd6bc39481b6b0bcb87659ff783beaef"
+      ],
+      "id": "PRRT_kwDODJKVX86MJ-ih",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e4f0e7500dbd08997c25a682177dff1a93e38b0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ec075a5644424106504fdc2942bce8f75ed0d9b3"
+      ],
+      "id": "PRRT_kwDODJKVX86MJ-iu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Q6ovN",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fff89e1dd6bc39481b6b0bcb87659ff783beaef/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DecodeableRpcInvocationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fff89e1dd6bc39481b6b0bcb87659ff783beaef/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DecodeableRpcInvocationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5cc6ce843620c83b97ea6342cff8d01c63e57aa4"
+      ],
+      "id": "PRRT_kwDODJKVX86Q6t6-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fff89e1dd6bc39481b6b0bcb87659ff783beaef/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/DubboRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/DubboRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5cc6ce843620c83b97ea6342cff8d01c63e57aa4"
+      ],
+      "id": "PRRT_kwDODJKVX86Q6t6v",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fff89e1dd6bc39481b6b0bcb87659ff783beaef/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fff89e1dd6bc39481b6b0bcb87659ff783beaef/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5cc6ce843620c83b97ea6342cff8d01c63e57aa4"
+      ],
+      "id": "PRRT_kwDODJKVX86Q6t7R",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fff89e1dd6bc39481b6b0bcb87659ff783beaef/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Q6t7e",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fff89e1dd6bc39481b6b0bcb87659ff783beaef/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5cc6ce843620c83b97ea6342cff8d01c63e57aa4"
+      ],
+      "id": "PRRT_kwDODJKVX86Q6t7p",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e9bbd37ece2e6ff4ecd1143bc28b2d193a7f8ee/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76683ff9a16862d4a2c22b5c135090715b17150c"
+      ],
+      "id": "PRRT_kwDODJKVX86VtoxT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e9bbd37ece2e6ff4ecd1143bc28b2d193a7f8ee/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76683ff9a16862d4a2c22b5c135090715b17150c"
+      ],
+      "id": "PRRT_kwDODJKVX86VtoxU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e9bbd37ece2e6ff4ecd1143bc28b2d193a7f8ee/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/DubboRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/DubboRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/internal/DubboInternalHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/DubboTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76683ff9a16862d4a2c22b5c135090715b17150c"
+      ],
+      "id": "PRRT_kwDODJKVX86VtoxY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/76683ff9a16862d4a2c22b5c135090715b17150c/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7664e64d8e51d0eff02fa142e7bf9c922789ed16"
+      ],
+      "id": "PRRT_kwDODJKVX86WcXQD",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/76683ff9a16862d4a2c22b5c135090715b17150c/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7664e64d8e51d0eff02fa142e7bf9c922789ed16"
+      ],
+      "id": "PRRT_kwDODJKVX86WcXQO",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7664e64d8e51d0eff02fa142e7bf9c922789ed16/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e9b42067d7e6589fd1eb13108e1598df8ec22191"
+      ],
+      "id": "PRRT_kwDODJKVX86W0AwN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboProtocolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboProtocolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DecodeableRpcInvocationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DecodeableRpcInvocationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b728650552d979927656b062cac75b30dca2455a"
+      ],
+      "id": "PRRT_kwDODJKVX86XDx1P",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b728650552d979927656b062cac75b30dca2455a"
+      ],
+      "id": "PRRT_kwDODJKVX86XDx14",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboProtocolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DecodeableRpcInvocationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboProtocolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DecodeableRpcInvocationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/GrpcRequestHandlerMappingInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b728650552d979927656b062cac75b30dca2455a"
+      ],
+      "id": "PRRT_kwDODJKVX86XDx1k",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b728650552d979927656b062cac75b30dca2455a"
+      ],
+      "id": "PRRT_kwDODJKVX86XDx1p",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9b42067d7e6589fd1eb13108e1598df8ec22191/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboUnknownServiceHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b728650552d979927656b062cac75b30dca2455a"
+      ],
+      "id": "PRRT_kwDODJKVX86XDx1w",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b728650552d979927656b062cac75b30dca2455a/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c10f7f932e3e93796c2bf93a92f0962d5d6a46de/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/92487d95a4ec8a7ee385a1f0120c63a4570e7ef6"
+      ],
+      "id": "PRRT_kwDODJKVX86XTfy8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

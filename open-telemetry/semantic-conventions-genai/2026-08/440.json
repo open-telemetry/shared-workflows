@@ -1,0 +1,214 @@
+{
+  "head": "dda7ed344905d2852e40ed4753023360a3b24c67",
+  "merge": "8a3767d6c5d09bc0917722720973c0c44182d960",
+  "merged": "2026-08-20T03:24:43Z",
+  "missing_roots": 0,
+  "number": 440,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog fragment filenames use `+.<type>.md` only when there is no PR number yet. Since this change is already in a PR, please rename this fragment to `<pr-number>.breaking.md` (or `<pr-number>.breaking.<counter>.md`).",
+      "created": "2026-08-08T00:30:14Z",
+      "hunk": "@@ -0,0 +1 @@\n+Rename `gen_ai.usage.cache_creation.input_tokens` to `gen_ai.usage.cache_write.input_tokens`.",
+      "id": "PRRT_kwDOSUeMrM6XbDiK",
+      "opened": "2026-08-08T00:30:15Z",
+      "path": "changelog.d/440.breaking.md",
+      "replies": [],
+      "reviewed": "fd3cfc3793b7429b0628408d2dc6494771be8c4a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3739516237"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Unused imports `SpanKind` and `StatusCode` were added but are not referenced anywhere in this scenario, which will fail linting (e.g., Ruff/F401) and adds noise.",
+      "created": "2026-08-08T00:30:14Z",
+      "hunk": "@@ -9,6 +9,7 @@\n import warnings\n from contextlib import contextmanager\n \n+from opentelemetry.trace import SpanKind, StatusCode\n from reference_shared import flush_and_shutdown, reference_event_logger, reference_tracer, setup_otel",
+      "id": "PRRT_kwDOSUeMrM6XbDiO",
+      "opened": "2026-08-08T00:30:15Z",
+      "path": "reference/scenarios/vertexai/scenario.py",
+      "replies": [],
+      "reviewed": "fd3cfc3793b7429b0628408d2dc6494771be8c4a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3739516251"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring says this scenario covers video + document input, but the actual request only includes image and audio parts. Please update the docstring to match what the scenario really exercises (or add the missing modalities).",
+      "created": "2026-08-08T00:30:14Z",
+      "hunk": "@@ -253,18 +309,98 @@ def get_weather(location: str) -> str:\n         response_model = response.to_dict().get(\"modelVersion\")\n         if response_model:\n             span.set_attribute(\"gen_ai.response.model\", response_model)\n-        if response.candidates and response.candidates[0].finish_reason:\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", [str(response.candidates[0].finish_reason.name)])\n+        finish_reason = (\n+            str(response.candidates[0].finish_reason.name)\n+            if response.candidates and response.candidates[0].finish_reason\n+            else None\n+        )\n+        if finish_reason:\n+            span.set_attribute(\"gen_ai.response.finish_reasons\", [finish_reason])\n+        usage = {}\n         if hasattr(response, \"usage_metadata\") and response.usage_metadata:\n-            if response.usage_metadata.prompt_token_count:\n-                span.set_attribute(\"gen_ai.usage.input_tokens\", response.usage_metadata.prompt_token_count)\n-            if response.usage_metadata.candidates_token_count:\n-                span.set_attribute(\"gen_ai.usage.output_tokens\", response.usage_metadata.candidates_token_count)\n-        part = response.candidates[0].content.parts[0]\n-        if hasattr(part, \"function_call\") and part.function_call and part.function_call.name:\n-            print(f\"    -> tool_call: {part.function_call.name}\")\n-        else:\n-            print(f\"    -> {response.text[:60]}\")\n+            usage = _usage_attributes(response.usage_metadata)\n+            for attr, value in usage.items():\n+                span.set_attribute(attr, value)\n+\n+        tool_call = None\n+        if response.candidates and response.candidates[0].content.parts:\n+            part = response.candidates[0].content.parts[0]\n+            if hasattr(part, \"function_call\") and part.function_call:\n+                tool_call = part.function_call\n+        input_messages = [{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": \"What's the weather in Seattle?\"}]}]\n+        output_messages = [\n+            {\n+                \"role\": \"assistant\",\n+                \"parts\": (\n+                    [{\"type\": \"tool_call\", \"name\": tool_call.name, \"arguments\": dict(tool_call.args)}]\n+                    if tool_call\n+                    else [{\"type\": \"text\", \"content\": response.text}]\n+                ),\n+                \"finish_reason\": finish_reason,\n+            }\n+        ]\n+        _emit_inference_event(request_model, input_messages, output_messages, response_model, finish_reason, usage)\n+        print(f\"    -> tool_call: {tool_call.name}\" if tool_call else f\"    -> {response.text[:60]}\")\n+\n+\n+def run_chat_multimodal():\n+    \"\"\"Scenario: multimodal (text + image + audio + video + document) input, per-modality usage.\"\"\"",
+      "id": "PRRT_kwDOSUeMrM6XbDiS",
+      "opened": "2026-08-08T00:30:15Z",
+      "path": "reference/scenarios/vertexai/scenario.py",
+      "replies": [],
+      "reviewed": "fd3cfc3793b7429b0628408d2dc6494771be8c4a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3739516257"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring says this scenario covers video + document input, but the actual request only includes image and audio parts. Please update the docstring to match what the scenario really exercises (or add the missing modalities).",
+      "created": "2026-08-08T00:30:15Z",
+      "hunk": "@@ -290,22 +343,143 @@ def get_weather(location: str) -> str:\n             span.set_attribute(\"gen_ai.response.model\", response.model_version)\n         if response.candidates and response.candidates[0].finish_reason:\n             span.set_attribute(\"gen_ai.response.finish_reasons\", [str(response.candidates[0].finish_reason)])\n+        usage = {}\n         if hasattr(response, \"usage_metadata\") and response.usage_metadata:\n-            if hasattr(response.usage_metadata, \"prompt_token_count\") and response.usage_metadata.prompt_token_count:\n-                span.set_attribute(\"gen_ai.usage.input_tokens\", response.usage_metadata.prompt_token_count)\n-            if (\n-                hasattr(response.usage_metadata, \"candidates_token_count\")\n-                and response.usage_metadata.candidates_token_count\n-            ):\n-                span.set_attribute(\"gen_ai.usage.output_tokens\", response.usage_metadata.candidates_token_count)\n+            usage = _usage_attributes(response.usage_metadata)\n+            for attr, value in usage.items():\n+                span.set_attribute(attr, value)\n+\n+        tool_call = None\n         if response.candidates and response.candidates[0].content.parts:\n             part = response.candidates[0].content.parts[0]\n             if hasattr(part, \"function_call\") and part.function_call:\n-                print(f\"    -> tool_call: {part.function_call.name}\")\n-            else:\n-                print(f\"    -> {response.text[:60]}\")\n-        else:\n-            print(f\"    -> {response.text[:60]}\")\n+                tool_call = part.function_call\n+        input_messages = [{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": \"What's the weather in Seattle?\"}]}]\n+        output_messages = [\n+            {\n+                \"role\": \"assistant\",\n+                \"parts\": (\n+                    [{\"type\": \"tool_call\", \"name\": tool_call.name, \"arguments\": dict(tool_call.args)}]\n+                    if tool_call\n+                    else [{\"type\": \"text\", \"content\": response.text}]\n+                ),\n+                \"finish_reason\": str(response.candidates[0].finish_reason) if response.candidates else None,\n+            }\n+        ]\n+        _emit_inference_event(request_model, input_messages, output_messages, response, usage)\n+        print(f\"    -> tool_call: {tool_call.name}\" if tool_call else f\"    -> {response.text[:60]}\")\n+\n+\n+def run_chat_multimodal():\n+    \"\"\"Scenario: multimodal (text + image + audio + video + document) input, per-modality usage.\"\"\"",
+      "id": "PRRT_kwDOSUeMrM6XbDia",
+      "opened": "2026-08-08T00:30:15Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [],
+      "reviewed": "fd3cfc3793b7429b0628408d2dc6494771be8c4a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3739516269"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog fragment filenames use `+.<type>.md` only when there is no PR number yet. Since this change is already in a PR, please rename this fragment to `<pr-number>.enhancement.md` (or `<pr-number>.enhancement.<counter>.md`).",
+      "created": "2026-08-08T00:30:15Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add per-modality token usage attributes: `gen_ai.usage.{text,image,audio}.{input_tokens,output_tokens}`, `gen_ai.usage.{text,image,audio}.cache_read.input_tokens`, and `gen_ai.usage.tool.input_tokens`.",
+      "id": "PRRT_kwDOSUeMrM6XbDig",
+      "opened": "2026-08-08T00:30:15Z",
+      "path": "changelog.d/440.enhancement.md",
+      "replies": [],
+      "reviewed": "fd3cfc3793b7429b0628408d2dc6494771be8c4a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3739516277"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_MODALITY_MAP` includes `VIDEO` and `DOCUMENT`, but this PR intentionally does not define any `gen_ai.usage.video.*` / `gen_ai.usage.document.*` attributes in the registry. If Vertex returns those modalities, this scenario would emit undefined attribute keys. Consider limiting the map to the modalities that are actually defined by the conventions in this PR (text/image/audio).",
+      "created": "2026-08-08T00:30:15Z",
+      "hunk": "@@ -105,6 +106,80 @@ def instrumented(self, *, response, **kwargs):\n         responder_cls.respond_to_model_response = original\n \n \n+# Maps Vertex `Modality` values to the `gen_ai.usage.<modality>.*` suffix.\n+_MODALITY_MAP = {\n+    \"TEXT\": \"text\",\n+    \"IMAGE\": \"image\",\n+    \"AUDIO\": \"audio\",\n+    \"VIDEO\": \"video\",\n+    \"DOCUMENT\": \"document\",\n+}",
+      "id": "PRRT_kwDOSUeMrM6XbDio",
+      "opened": "2026-08-08T00:30:15Z",
+      "path": "reference/scenarios/vertexai/scenario.py",
+      "replies": [],
+      "reviewed": "fd3cfc3793b7429b0628408d2dc6494771be8c4a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3739516287"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Dumb question but is it OK that these are all `Recommended`, what if a provider doesn't support any of these specific breakdowns?",
+      "created": "2026-08-13T03:31:44Z",
+      "hunk": "@@ -42,10 +42,30 @@ attribute_groups:\n         requirement_level: recommended\n       - ref: gen_ai.usage.cache_read.input_tokens\n         requirement_level: recommended\n-      - ref: gen_ai.usage.cache_creation.input_tokens\n+      - ref: gen_ai.usage.cache_write.input_tokens",
+      "id": "PRRT_kwDOSUeMrM6YzYTC",
+      "opened": "2026-08-13T03:44:28Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-08-13T23:54:07Z",
+          "body": "right, updated to `recommended: when available`",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3779972284"
+        }
+      ],
+      "reviewed": "04fe349d6eef429418f78b56dbd3430a373a04c0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3772187250"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Where did we settle on including these on the agent spans and overcounting issues when doing rollups?",
+      "created": "2026-08-13T03:44:14Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6Yzf5t",
+      "opened": "2026-08-13T03:44:28Z",
+      "path": "reference/reports/invoke-agent-client-span.md",
+      "replies": [
+        {
+          "at": "2026-08-13T23:52:46Z",
+          "body": "good point. I removed new attributes from internal span, but kept on the client spans.\n\nI don't believe we landed anywhere on https://github.com/open-telemetry/semantic-conventions-genai/issues/19\n\nso just not making it worse for now by not including breakdowns on internal agents",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3779966570"
+        }
+      ],
+      "reviewed": "04fe349d6eef429418f78b56dbd3430a373a04c0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3772232198"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Should the note on `gen_ai.usage.<modality>.cache_read.input_tokens` also mention that it's included in `gen_ai.usage.<modality>.input_tokens`?\n\nRight now it only mentions `gen_ai.usage.cache_read.input_tokens`. For reference, that's what we do in:\n- `reference/src/semconv_genai/mock_server/google_genai.py:155-158` (cached tokens are modeled as a subset of prompt tokens)\n- `reference/scenarios/google-genai/scenario.py:88-101` (mapping `prompt_tokens_details` to `<modality>.input_tokens` and `cache_tokens_details` to `<modality>.cache_read.input_tokens`)\n- #374 (\"Each detailed attribute is a subset of its aggregate\")\n\n```yaml\n    note: >\n      The value SHOULD be included in `gen_ai.usage.cache_read.input_tokens` and in `gen_ai.usage.<modality>.input_tokens`.\n```",
+      "created": "2026-08-13T04:07:00Z",
+      "hunk": "@@ -308,6 +336,48 @@ attributes:\n       The value SHOULD be included in `gen_ai.usage.output_tokens`.\n     examples: [50]\n     stability: development\n+  - key: gen_ai.usage.text.output_tokens\n+    type: int\n+    brief: The number of text output tokens.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.output_tokens`.\n+    examples: [180]\n+    stability: development\n+  - key: gen_ai.usage.image.output_tokens\n+    type: int\n+    brief: The number of image output tokens.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.output_tokens`.\n+    examples: [1290]\n+    stability: development\n+  - key: gen_ai.usage.audio.output_tokens\n+    type: int\n+    brief: The number of audio output tokens.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.output_tokens`.\n+    examples: [240]\n+    stability: development\n+  - key: gen_ai.usage.text.cache_read.input_tokens\n+    type: int\n+    brief: The number of text input tokens served from a provider-managed cache.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.cache_read.input_tokens`.",
+      "id": "PRRT_kwDOSUeMrM6Yztar",
+      "opened": "2026-08-13T04:07:00Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "04fe349d6eef429418f78b56dbd3430a373a04c0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3772313187"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "This seems to be only for google's tool_use_prompt_token_count. that field is not about tool definitions. it's also not about all tool calls, just ones that happen server side.\n\ni think that having this as a provider-agnostic field might not be a good idea, if other providers grow a similar sounding field it's likely to mean something slightly different.",
+      "created": "2026-08-17T12:41:35Z",
+      "hunk": "@@ -284,13 +284,41 @@ attributes:\n       The value SHOULD be included in `gen_ai.usage.input_tokens`.\n     examples: [50]\n     stability: development\n-  - key: gen_ai.usage.cache_creation.input_tokens\n+  - key: gen_ai.usage.cache_write.input_tokens\n     type: int\n     brief: The number of input tokens written to a provider-managed cache.\n     note: >\n       The value SHOULD be included in `gen_ai.usage.input_tokens`.\n     examples: [25]\n     stability: development\n+  - key: gen_ai.usage.tool.input_tokens\n+    type: int\n+    brief: The number of input tokens used for tool definitions and tool call results.",
+      "id": "PRRT_kwDOSUeMrM6ZzFyE",
+      "opened": "2026-08-17T12:41:35Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-08-18T13:17:59Z",
+          "body": "agreed, removed for now - can get back to it if anyone asks for it to be added",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3804394633"
+        }
+      ],
+      "reviewed": "d116e3fc5c174024a81ece6a7f571d33ee6d333d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3796424711"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "i don't understand how this reasoning doesn't apply to the other token usage attributes, especially cache and reasoning tokens.",
+      "created": "2026-08-17T12:45:38Z",
+      "hunk": "@@ -41,12 +41,51 @@ attribute_groups:\n       - ref: gen_ai.usage.input_tokens\n         requirement_level: recommended\n       - ref: gen_ai.usage.cache_read.input_tokens\n-        requirement_level: recommended\n-      - ref: gen_ai.usage.cache_creation.input_tokens\n-        requirement_level: recommended\n+        requirement_level:\n+          recommended: When applicable.\n+      - ref: gen_ai.usage.cache_write.input_tokens\n+        requirement_level:\n+          recommended: When applicable.\n       - ref: gen_ai.usage.output_tokens\n         requirement_level: recommended\n \n+  # Kept out of `attributes.gen_ai.usage`: an internal agent span reports the\n+  # usage its own call tree accumulated, and summing breakdowns across that\n+  # tree would count the same tokens more than once.",
+      "id": "PRRT_kwDOSUeMrM6ZzKXl",
+      "opened": "2026-08-17T12:45:37Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-08-18T13:03:06Z",
+          "body": "it absolutely applies, but taking baby steps. Will follow up via https://github.com/open-telemetry/semantic-conventions-genai/issues/460",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3804277423"
+        }
+      ],
+      "reviewed": "d116e3fc5c174024a81ece6a7f571d33ee6d333d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3796451871"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "i think an example that explicitly clarifies these intersection cases is important, including how to translate from a raw API response to attributes, especially when the translation is nontrivial",
+      "created": "2026-08-17T12:47:51Z",
+      "hunk": "@@ -308,6 +336,51 @@ attributes:\n       The value SHOULD be included in `gen_ai.usage.output_tokens`.\n     examples: [50]\n     stability: development\n+  - key: gen_ai.usage.text.output_tokens\n+    type: int\n+    brief: The number of text output tokens.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.output_tokens`.\n+    examples: [180]\n+    stability: development\n+  - key: gen_ai.usage.image.output_tokens\n+    type: int\n+    brief: The number of image output tokens.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.output_tokens`.\n+    examples: [1290]\n+    stability: development\n+  - key: gen_ai.usage.audio.output_tokens\n+    type: int\n+    brief: The number of audio output tokens.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.output_tokens`.\n+    examples: [240]\n+    stability: development\n+  - key: gen_ai.usage.text.cache_read.input_tokens\n+    type: int\n+    brief: The number of text input tokens served from a provider-managed cache.\n+    note: >\n+      The value SHOULD be included in `gen_ai.usage.cache_read.input_tokens`\n+      and in `gen_ai.usage.text.input_tokens`.",
+      "id": "PRRT_kwDOSUeMrM6ZzMyq",
+      "opened": "2026-08-17T12:47:51Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "d116e3fc5c174024a81ece6a7f571d33ee6d333d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/440#discussion_r3796466542"
+    }
+  ]
+}

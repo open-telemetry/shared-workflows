@@ -1,0 +1,994 @@
+{
+  "head": "e4b4327ef5b52de6789571719a9fe9a704c8a607",
+  "merge": "307d34fb06c0f384c78f4a696844cce364c3c1cd",
+  "merged": "2026-10-06T23:54:37Z",
+  "missing_roots": 0,
+  "number": 20382,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This task also enables receive telemetry on line 187, but `metadataConfig` attributes only the propagator flag. Metadata collection will therefore describe telemetry from the receive-enabled mode without recording that setting; include both task-specific properties.",
+      "created": "2026-10-04T05:19:17Z",
+      "hunk": "@@ -185,6 +185,10 @@ tasks {\n     }\n     systemProperty(\"otel.instrumentation.aws-sdk.experimental-use-propagator-for-messaging\", \"true\")\n     systemProperty(\"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"otel.instrumentation.aws-sdk.experimental-use-propagator-for-messaging=true\",\n+    )",
+      "id": "PRRT_kwDODJKVX86ovHQR",
+      "opened": "2026-10-04T05:19:17Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "96e6a62018f82cee5a23c80dab8adb50d01c7f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4176253615"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This assertion is a constant truth, so it can never catch a regression and no longer serves the former semconv gate. Remove it and let the behavioral assertions below define the test.\n\nThis issue also appears on line 83 of the same file.",
+      "created": "2026-10-04T05:19:17Z",
+      "hunk": "@@ -32,7 +31,7 @@ class JmsInstrumenterFactoryTest {\n \n   @Test\n   void recordsIndependentProcessDurationWithoutProcessSpanKey() {\n-    assertThat(emitStableMessagingSemconv()).isTrue();\n+    assertThat(true).isTrue();",
+      "id": "PRRT_kwDODJKVX86ovHQm",
+      "opened": "2026-10-04T05:19:17Z",
+      "path": "instrumentation/jms/jms-common-1.1/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/jms/common/v1_1/JmsInstrumenterFactoryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-06T15:51:42Z",
+          "body": "Hehe",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197480292"
+        }
+      ],
+      "reviewed": "96e6a62018f82cee5a23c80dab8adb50d01c7f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4176253646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:16:13Z",
+      "hunk": "@@ -54,8 +52,8 @@ public String get(Map<String, String> carrier, String key) {\n   static final OpenTelemetryExtension otelTesting = OpenTelemetryExtension.create();\n \n   @Test\n-  void stableUsesProducerAsParentAndLinksIt() {\n-    assumeTrue(emitStableMessagingSemconv());\n+  void usesProducerAsParentAndLinksIt() {\n+",
+      "id": "PRRT_kwDODJKVX86piAyq",
+      "opened": "2026-10-06T15:16:13Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingProcessInstrumenterFactoryTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197073465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:16:26Z",
+      "hunk": "@@ -83,8 +81,8 @@ void stableUsesProducerAsParentAndLinksIt() {\n   }\n \n   @Test\n-  void stableLinksCreationContextEvenWhenItIsTheAmbientParent() {\n-    assumeTrue(emitStableMessagingSemconv());\n+  void linksCreationContextEvenWhenItIsTheAmbientParent() {\n+",
+      "id": "PRRT_kwDODJKVX86piBLS",
+      "opened": "2026-10-06T15:16:25Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingProcessInstrumenterFactoryTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197075909"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:16:39Z",
+      "hunk": "@@ -118,8 +116,8 @@ void stableLinksCreationContextEvenWhenItIsTheAmbientParent() {\n   }\n \n   @Test\n-  void stableDoesNotLinkWhenCarrierHasNoCreationContext() {\n-    assumeTrue(emitStableMessagingSemconv());\n+  void doesNotLinkWhenCarrierHasNoCreationContext() {\n+",
+      "id": "PRRT_kwDODJKVX86piBl0",
+      "opened": "2026-10-06T15:16:39Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingProcessInstrumenterFactoryTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197078545"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:17:06Z",
+      "hunk": "@@ -161,31 +159,22 @@ void usesExpectedParentAndLink(boolean receiveInstrumentationEnabled, boolean pr\n     Context context = instrumenter.start(Context.root().with(Span.wrap(ambientParent)), carrier);\n     instrumenter.end(context, carrier, null, null);\n \n-    SpanContext expectedParent = producerIsParent ? producer : ambientParent;\n     otelTesting\n         .assertTraces()\n         .hasTracesSatisfyingExactly(\n             trace ->\n                 trace.hasSpansSatisfyingExactly(\n-                    span -> {\n-                      span.hasName(\"process\")\n-                          .hasKind(SpanKind.CONSUMER)\n-                          .hasTraceId(expectedParent.getTraceId())\n-                          .hasParentSpanId(expectedParent.getSpanId());\n-                      if (producerIsParent) {\n-                        span.hasLinks();\n-                      } else {\n-                        span.hasLinks(LinkData.create(producer));\n-                      }\n-                    }));\n+                    span ->\n+                        span.hasName(\"process\")\n+                            .hasKind(SpanKind.CONSUMER)\n+                            .hasTraceId(ambientParent.getTraceId())\n+                            .hasParentSpanId(ambientParent.getSpanId())\n+                            .hasLinks(LinkData.create(producer))));\n   }\n \n   private static Stream<Arguments> receiveInstrumentationSettings() {\n-    boolean stable = emitStableMessagingSemconv();\n-    String semconv = stable ? \"stable\" : \"old\";\n-    return Stream.of(\n-        argumentSet(semconv + \" receive disabled\", false, !stable),\n-        argumentSet(semconv + \" receive enabled\", true, false));\n+",
+      "id": "PRRT_kwDODJKVX86piCbv",
+      "opened": "2026-10-06T15:17:06Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingProcessInstrumenterFactoryTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197083812"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:18:02Z",
+      "hunk": "@@ -133,34 +123,21 @@ void shouldExtractAllAvailableAttributes(\n       expectedEntries.add(entry(MESSAGING_DESTINATION_ANONYMOUS, true));\n     }\n     expectedEntries.add(entry(MESSAGING_MESSAGE_CONVERSATION_ID, \"42\"));\n-    if (emitOldMessagingSemconv()) {\n-      expectedEntries.add(entry(MESSAGING_MESSAGE_BODY_SIZE, 100L));\n-      expectedEntries.add(entry(MESSAGING_MESSAGE_ENVELOPE_SIZE, 120L));\n-      expectedEntries.add(entry(stringKey(\"messaging.client_id\"), \"43\"));\n-      expectedEntries.add(entry(MESSAGING_OPERATION, operationType.legacyOperationName()));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      expectedEntries.add(entry(MESSAGING_CLIENT_ID, \"43\"));\n-      expectedEntries.add(entry(MESSAGING_OPERATION_NAME, operationName));\n-      expectedEntries.add(entry(MESSAGING_OPERATION_TYPE, operationType.value()));\n-    }\n+",
+      "id": "PRRT_kwDODJKVX86piEMF",
+      "opened": "2026-10-06T15:18:01Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197094678"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess this will get removed in a later pr",
+      "created": "2026-10-06T15:19:25Z",
+      "hunk": "@@ -65,131 +63,74 @@ void collectsMetricsAndCountsBatchOnce() {\n             .put(MESSAGING_SYSTEM, \"pulsar\")\n             .put(MESSAGING_DESTINATION_NAME, \"topic\")\n             .put(MESSAGING_DESTINATION_TEMPLATE, \"topic-{id}\")\n-            .put(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"receive\" : null)\n-            .put(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"receive\" : null)\n-            .put(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"receive\" : null)\n+            .put(MESSAGING_OPERATION, null)",
+      "id": "PRRT_kwDODJKVX86piG5K",
+      "opened": "2026-10-06T15:19:25Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-06T20:28:15Z",
+          "body": "yeah prob should have been removed here, but is removed in #20389",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4200116616"
+        }
+      ],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197111956"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:19:54Z",
+      "hunk": "@@ -65,131 +63,74 @@ void collectsMetricsAndCountsBatchOnce() {\n             .put(MESSAGING_SYSTEM, \"pulsar\")\n             .put(MESSAGING_DESTINATION_NAME, \"topic\")\n             .put(MESSAGING_DESTINATION_TEMPLATE, \"topic-{id}\")\n-            .put(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"receive\" : null)\n-            .put(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"receive\" : null)\n-            .put(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"receive\" : null)\n+            .put(MESSAGING_OPERATION, null)\n+            .put(MESSAGING_OPERATION_NAME, \"receive\")\n+            .put(MESSAGING_OPERATION_TYPE, \"receive\")\n             .put(MESSAGING_CONSUMER_GROUP_NAME, \"group\")\n             .put(MESSAGING_DESTINATION_SUBSCRIPTION_NAME, \"subscription\")\n             .build();\n     Attributes responseAttributes =\n         Attributes.builder()\n             .put(MESSAGING_BATCH_MESSAGE_COUNT, 3)\n-            .put(\n-                ERROR_TYPE,\n-                emitStableMessagingSemconv() ? IllegalStateException.class.getName() : null)\n+            .put(ERROR_TYPE, IllegalStateException.class.getName())\n             .build();\n \n     Context context = listener.onStart(enable(Context.root()), requestAttributes, nanos(100));\n-    assertThat(contains(context, RECEIVE, CLIENT_OPERATION_DURATION))\n-        .isEqualTo(emitStableMessagingSemconv());\n-    assertThat(contains(context, RECEIVE, CONSUMED_MESSAGES))\n-        .isEqualTo(emitStableMessagingSemconv());\n+    assertThat(contains(context, RECEIVE, CLIENT_OPERATION_DURATION)).isTrue();\n+    assertThat(contains(context, RECEIVE, CONSUMED_MESSAGES)).isTrue();\n     listener.onEnd(context, responseAttributes, nanos(300));\n \n     Collection<MetricData> metrics = metricReader.collectAllMetrics();\n+    assertThat(metrics).hasSize(2);\n+",
+      "id": "PRRT_kwDODJKVX86piHtE",
+      "opened": "2026-10-06T15:19:54Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetricsTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197117474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:20:57Z",
+      "hunk": "@@ -358,20 +283,10 @@ void failedReceiveWithoutBatchCountCountsNoConsumedMessages() {\n     listener.onEnd(context, responseAttributes, nanos(300));\n \n     Collection<MetricData> metrics = metricReader.collectAllMetrics();\n-    if (emitOldMessagingSemconv()) {\n-      assertThat(metrics)\n-          .anySatisfy(\n-              metric ->\n-                  assertThat(metric)\n-                      .hasName(\"messaging.receive.messages\")\n-                      .hasLongSumSatisfying(\n-                          sum -> sum.hasPointsSatisfying(point -> point.hasValue(1))));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertThat(metrics)\n-          .anySatisfy(metric -> assertThat(metric).hasName(\"messaging.client.operation.duration\"))\n-          .noneSatisfy(metric -> assertThat(metric).hasName(\"messaging.client.consumed.messages\"));\n-    }\n+",
+      "id": "PRRT_kwDODJKVX86piJ8N",
+      "opened": "2026-10-06T15:20:57Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetricsTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197131631"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:21:11Z",
+      "hunk": "@@ -387,19 +302,16 @@ void consumedMessagesOnlyCountsFailedDelivery() {\n         Attributes.builder()\n             .put(MESSAGING_SYSTEM, \"pulsar\")\n             .put(MESSAGING_DESTINATION_NAME, \"topic\")\n-            .put(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"process\" : null)\n-            .put(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"process\" : null)\n-            .put(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"process\" : null)\n+            .put(MESSAGING_OPERATION, null)\n+            .put(MESSAGING_OPERATION_NAME, \"process\")\n+            .put(MESSAGING_OPERATION_TYPE, \"process\")\n             .build();\n     Context context = listener.onStart(Context.root(), attributes, nanos(100));\n     listener.onEnd(\n         context, Attributes.of(ERROR_TYPE, IllegalStateException.class.getName()), nanos(300));\n \n     Collection<MetricData> metrics = metricReader.collectAllMetrics();\n-    if (!emitStableMessagingSemconv()) {\n-      assertThat(metrics).isEmpty();\n-      return;\n-    }\n+",
+      "id": "PRRT_kwDODJKVX86piKa4",
+      "opened": "2026-10-06T15:21:11Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetricsTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197134717"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:22:07Z",
+      "hunk": "@@ -92,107 +88,64 @@ void collectsMetrics() {\n                             TraceState.getDefault()))));\n \n     Context context = listener.onStart(parent, requestAttributes, nanos(100));\n-    assertThat(contains(context, SEND, CLIENT_OPERATION_DURATION))\n-        .isEqualTo(emitStableMessagingSemconv());\n-    assertThat(contains(context, SEND, SENT_MESSAGES)).isEqualTo(emitStableMessagingSemconv());\n+    assertThat(contains(context, SEND, CLIENT_OPERATION_DURATION)).isTrue();\n+    assertThat(contains(context, SEND, SENT_MESSAGES)).isTrue();\n     listener.onEnd(context, responseAttributes, nanos(250));\n \n     Collection<MetricData> metrics = metricReader.collectAllMetrics();\n+    assertThat(metrics).hasSize(2);\n+",
+      "id": "PRRT_kwDODJKVX86piMkL",
+      "opened": "2026-10-06T15:22:06Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingProducerMetricsTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197148095"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:24:00Z",
+      "hunk": "@@ -26,17 +25,6 @@ public static void assertMetrics(\n       long processCount,\n       long consumedMessageCount,\n       String errorType) {\n-    if (!emitStableMessagingSemconv()) {\n-      assertMetricNamesAbsent(\n-          testing,\n-          \"messaging.process.duration\",\n-          \"messaging.client.consumed.messages\",\n-          \"messaging.publish.duration\",\n-          \"messaging.publish.messages\",\n-          \"messaging.receive.duration\",\n-          \"messaging.receive.messages\");\n-      return;\n-    }\n ",
+      "id": "PRRT_kwDODJKVX86piQfV",
+      "opened": "2026-10-06T15:24:00Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AwsLambdaSqsMetricsAssertions.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197172385"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:25:26Z",
+      "hunk": "@@ -63,7 +62,7 @@ public AmazonSQSAsyncClientBuilder configureClient(AmazonSQSAsyncClientBuilder c\n \n   @Test\n   void testProcessingOwnershipDisablesRawProcessSpansForResponse() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piTMq",
+      "opened": "2026-10-06T15:25:26Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197189721"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:25:35Z",
+      "hunk": "@@ -94,7 +93,7 @@ void testProcessingOwnershipDisablesRawProcessSpansForResponse() {\n \n   @Test\n   void testDisableSqsMessageCreateSpans() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piTc4",
+      "opened": "2026-10-06T15:25:35Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197191339"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:25:44Z",
+      "hunk": "@@ -129,7 +128,7 @@ void testDisableSqsMessageCreateSpans() {\n \n   @Test\n   void testNoopTelemetryDoesNotInjectInvalidCreationContext() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piTuX",
+      "opened": "2026-10-06T15:25:44Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197193058"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:25:55Z",
+      "hunk": "@@ -155,7 +154,7 @@ void testNoopTelemetryDoesNotInjectInvalidCreationContext() {\n   @Test\n   void testDisableSqsMessageCreateSpansPreservesCustomContext()\n       throws ReflectiveOperationException {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piUFa",
+      "opened": "2026-10-06T15:25:54Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197195318"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:26:03Z",
+      "hunk": "@@ -208,7 +207,7 @@ void testDisableSqsMessageCreateSpansPreservesCustomContext()\n \n   @Test\n   void testBatchLinksSurviveLaterRequestClone() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piUZe",
+      "opened": "2026-10-06T15:26:02Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197197156"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:26:16Z",
+      "hunk": "@@ -129,7 +125,7 @@ void testSimpleSqsProducerConsumerServices() {\n \n   @Test\n   void testAbandonedIteratorDoesNotParentNextProcessSpan() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piU9v",
+      "opened": "2026-10-06T15:26:16Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197200532"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:26:29Z",
+      "hunk": "@@ -223,17 +215,13 @@ void testUnusedFirstIteratorDisablesLaterSdkProcessing() {\n     assertThat(unused).isNotNull();\n     messages.forEach(message -> assertThat(Span.current().getSpanContext().isValid()).isFalse());\n     assertThat(testing().spans())\n-        .filteredOn(\n-            span ->\n-                span.getName()\n-                    .equals(\n-                        emitStableMessagingSemconv() ? \"process testSdkSqs\" : \"testSdkSqs process\"))\n+        .filteredOn(span -> span.getName().equals(\"process testSdkSqs\"))\n         .isEmpty();\n   }\n \n   @Test\n   void testSublistTraversalDoesNotTraceOrDisableResponse() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piVbX",
+      "opened": "2026-10-06T15:26:29Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197203544"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:26:36Z",
+      "hunk": "@@ -255,7 +243,7 @@ void testSublistTraversalDoesNotTraceOrDisableResponse() {\n \n   @Test\n   void testNestedTraversalRestoresOuterProcessScope() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86piVx1",
+      "opened": "2026-10-06T15:26:36Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197205540"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Now that the condition is gone could get rid of the list and move the assers under hasSpansSatisfyingExactly",
+      "created": "2026-10-06T15:30:17Z",
+      "hunk": "@@ -188,32 +185,22 @@ void testSimpleSqsProducerConsumerServicesCaptureHeaders(boolean testCaptureHead\n \n               List<Consumer<SpanDataAssert>> spanAsserts = new ArrayList<>();",
+      "id": "PRRT_kwDODJKVX86pidbf",
+      "opened": "2026-10-06T15:30:17Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197253787"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:31:09Z",
+      "hunk": "@@ -374,7 +344,7 @@ private static void assertProcessSpan(\n \n   @Test\n   void testReceiveSpanLinksToProducer() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86pie3q",
+      "opened": "2026-10-06T15:31:09Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [],
+      "reviewed": "708192724e51fa0ca357cebb72f34f89d365b415",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197263041"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:32:23Z",
+      "hunk": "@@ -425,7 +395,7 @@ void testReceiveSpanLinksToProducer() {\n \n   @Test\n   void testBatchReceiveLinkAttributes() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86pihGs",
+      "opened": "2026-10-06T15:32:23Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197276988"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:32:33Z",
+      "hunk": "@@ -509,7 +479,7 @@ void testBatchReceiveLinkAttributes() {\n \n   @Test\n   void testBatchSendMessageCount() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86pihZa",
+      "opened": "2026-10-06T15:32:33Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197278844"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could move attribute asserts here",
+      "created": "2026-10-06T15:33:56Z",
+      "hunk": "@@ -672,20 +633,12 @@ void testDeleteMessage() {\n                                   equalTo(SERVER_ADDRESS, \"localhost\"),\n                                   equalTo(SERVER_PORT, sqsPort),\n                                   equalTo(NETWORK_PROTOCOL_VERSION, \"1.1\")));\n-                      if (emitStableMessagingSemconv()) {\n-                        attributes.add(equalTo(MESSAGING_SYSTEM, AWS_SQS));\n-                        attributes.add(equalTo(MESSAGING_DESTINATION_NAME, \"testSdkSqs\"));\n-                        attributes.add(equalTo(MESSAGING_OPERATION_NAME, \"delete\"));\n-                        attributes.add(equalTo(MESSAGING_OPERATION_TYPE, \"settle\"));\n-                        attributes.add(\n-                            equalTo(\n-                                MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"settle\" : null));\n-                      }\n-\n-                      span.hasName(\n-                              emitStableMessagingSemconv()\n-                                  ? \"delete testSdkSqs\"\n-                                  : \"SQS.DeleteMessage\")\n+                      attributes.add(equalTo(MESSAGING_SYSTEM, AWS_SQS));\n+                      attributes.add(equalTo(MESSAGING_DESTINATION_NAME, \"testSdkSqs\"));\n+                      attributes.add(equalTo(MESSAGING_OPERATION_NAME, \"delete\"));\n+                      attributes.add(equalTo(MESSAGING_OPERATION_TYPE, \"settle\"));\n+\n+                      span.hasName(\"delete testSdkSqs\")\n                           .hasKind(SpanKind.CLIENT)\n                           .hasNoParent()\n                           .hasAttributesSatisfyingExactly(attributes);",
+      "id": "PRRT_kwDODJKVX86pij9a",
+      "opened": "2026-10-06T15:33:56Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197295076"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:34:16Z",
+      "hunk": "@@ -835,7 +780,7 @@ void testChangeMessageVisibilityBatchUsesGenericRpcSpan() {\n \n   @Test\n   void testDeleteMessageError() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86pikoX",
+      "opened": "2026-10-06T15:34:16Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197299223"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Were the attribute and parent span assert removed deliberately?",
+      "created": "2026-10-06T15:36:29Z",
+      "hunk": "@@ -909,203 +851,43 @@ void testSimpleSqsProducerConsumerServicesWithParentSpan() {\n                   .forEach(message -> testing().runWithSpan(\"process child\", () -> {}));\n             });\n \n-    if (emitStableMessagingSemconv()) {\n-      AtomicReference<SpanData> producerSpan = new AtomicReference<>();\n-      testing()\n-          .waitAndAssertTraces(\n-              trace ->\n-                  trace.hasSpansSatisfyingExactly(\n-                      span -> span.hasName(\"SQS.CreateQueue\").hasKind(SpanKind.CLIENT)),\n-              trace ->\n-                  trace.hasSpansSatisfyingExactly(\n-                      span -> {\n-                        producerSpan.set(trace.getSpan(0));\n-                        span.hasName(\"send testSdkSqs\").hasKind(SpanKind.PRODUCER);\n-                      }),\n-              trace -> {\n-                Consumer<SpanDataAssert> receiveSpanAssertion =\n-                    span -> assertReceiveSpan(span, trace.getSpan(0), producerSpan.get(), false);\n-                Consumer<SpanDataAssert> sdkSpanAssertion =\n-                    span ->\n-                        span.hasName(\"SQS.ReceiveMessage\")\n-                            .hasKind(SpanKind.CLIENT)\n-                            .hasParent(trace.getSpan(0));\n-                Consumer<SpanDataAssert> processSpanAssertion =\n-                    span -> assertProcessSpan(span, trace.getSpan(0), producerSpan.get(), false);\n-\n-                List<Consumer<SpanDataAssert>> assertions =\n-                    new ArrayList<>(\n-                        asList(\n-                            span -> span.hasName(\"parent\").hasNoParent(),\n-                            receiveSpanAssertion,\n-                            sdkSpanAssertion,\n-                            processSpanAssertion,\n-                            span -> span.hasName(\"process child\")));\n-                // on jdk8 the order of the \"SQS.ReceiveMessage\" and \"receive testSdkSqs\"\n-                // spans can vary\n-                if (\"SQS.ReceiveMessage\".equals(trace.getSpan(1).getName())) {\n-                  assertions.set(1, sdkSpanAssertion);\n-                  assertions.set(2, receiveSpanAssertion);\n-                }\n-                trace.hasSpansSatisfyingExactly(assertions);\n-              });\n-      return;\n-    }\n-\n+    AtomicReference<SpanData> producerSpan = new AtomicReference<>();\n     testing()\n         .waitAndAssertTraces(\n             trace ->\n                 trace.hasSpansSatisfyingExactly(\n-                    span ->\n-                        span.hasName(\"SQS.CreateQueue\")\n-                            .hasKind(SpanKind.CLIENT)\n-                            .hasNoParent()\n-                            .hasAttributesSatisfyingExactly(\n-                                equalTo(stringKey(\"aws.agent\"), \"java-aws-sdk\"),\n-                                equalTo(stringKey(\"aws.queue.name\"), \"testSdkSqs\"),\n-                                satisfies(\n-                                    AWS_REQUEST_ID, AbstractSqsTracingTest::assertAwsRequestId),\n-                                equalTo(RPC_SYSTEM, \"aws-api\"),\n-                                equalTo(RPC_SERVICE, \"AmazonSQS\"),\n-                                equalTo(RPC_METHOD, \"CreateQueue\"),\n-                                equalTo(HTTP_REQUEST_METHOD, \"POST\"),\n-                                equalTo(HTTP_RESPONSE_STATUS_CODE, 200),\n-                                equalTo(URL_FULL, \"http://localhost:\" + sqsPort),\n-                                equalTo(SERVER_ADDRESS, \"localhost\"),\n-                                equalTo(SERVER_PORT, sqsPort),\n-                                equalTo(NETWORK_PROTOCOL_VERSION, \"1.1\"))),\n+                    span -> span.hasName(\"SQS.CreateQueue\").hasKind(SpanKind.CLIENT)),",
+      "id": "PRRT_kwDODJKVX86pioS7",
+      "opened": "2026-10-06T15:36:29Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197322782"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:37:48Z",
+      "hunk": "@@ -29,8 +27,8 @@ class SqsImplTest {\n   private static final String SEND_SPAN_ID = \"2222222222222222\";\n \n   @Test\n-  void injectsSendContextIntoContextFreeStableBatchEntries() {\n-    assumeTrue(emitStableMessagingSemconv());\n+  void injectsSendContextIntoContextFreeBatchEntries() {\n+",
+      "id": "PRRT_kwDODJKVX86piqZS",
+      "opened": "2026-10-06T15:37:48Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsImplTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197336179"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:37:58Z",
+      "hunk": "@@ -69,7 +67,6 @@ void processDurationIsolatedFromOuterProcessWhenReceiveTelemetryEnabled() {\n \n   @Test\n   void overlappingProcessOperationsCountDeliveryOnce() {\n-    assumeTrue(emitStableMessagingSemconv());\n ",
+      "id": "PRRT_kwDODJKVX86piqpc",
+      "opened": "2026-10-06T15:37:58Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsProcessMetricsIsolationTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197337892"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:38:08Z",
+      "hunk": "@@ -116,7 +113,6 @@ void overlappingProcessOperationsCountDeliveryOnce() {\n   }\n \n   private static void assertProcessDurationIsolated(boolean receiveTelemetryEnabled) {\n-    assumeTrue(emitStableMessagingSemconv());\n ",
+      "id": "PRRT_kwDODJKVX86piq3q",
+      "opened": "2026-10-06T15:38:07Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsProcessMetricsIsolationTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197339442"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:38:19Z",
+      "hunk": "@@ -52,7 +51,7 @@ void testDuplicateTracingInterceptor() throws URISyntaxException {\n \n   @Test\n   void testDisableSqsMessageCreateSpans() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86pirK8",
+      "opened": "2026-10-06T15:38:18Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/Aws2SqsDefaultPropagatorTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197341465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T15:38:33Z",
+      "hunk": "@@ -86,7 +85,7 @@ void testDisableSqsMessageCreateSpans() {\n \n   @Test\n   void testNoopTelemetryDoesNotInjectInvalidCreationContext() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86pirlD",
+      "opened": "2026-10-06T15:38:33Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/Aws2SqsDefaultPropagatorTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197344089"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Remove this too",
+      "created": "2026-10-06T15:53:37Z",
+      "hunk": "@@ -81,7 +80,7 @@ void recordsIndependentProcessDurationWithoutProcessSpanKey() {\n \n   @Test\n   void recordsConsumedMessagesOnlyWhenProcessOwnsTheCount() {\n-    assertThat(emitStableMessagingSemconv()).isTrue();\n+    assertThat(true).isTrue();",
+      "id": "PRRT_kwDODJKVX86pjEUE",
+      "opened": "2026-10-06T15:53:37Z",
+      "path": "instrumentation/jms/jms-common-1.1/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/jms/common/v1_1/JmsInstrumenterFactoryTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197502519"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think it might be better to remove the else and make it a plain if",
+      "created": "2026-10-06T15:56:55Z",
+      "hunk": "@@ -269,46 +243,34 @@ protected static LinkData receiveRecordLink(SpanData producerSpan) {\n             .build());\n   }\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n   protected static List<AttributeAssertion> processAttributes(\n       String messageKey, String messageValue, boolean testHeaders, boolean testMultiBaggage) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, SHARED_TOPIC),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"process\" : null),\n+                equalTo(MESSAGING_OPERATION_NAME, \"process\"),\n+                equalTo(MESSAGING_OPERATION_TYPE, \"process\"),\n+                satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(\"consumer\")),\n                 satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty)));\n-    addClientIdAssertions(assertions, \"consumer\");\n     assertions.add(satisfies(MESSAGING_KAFKA_CLUSTER_ID, AbstractStringAssert::isNotEmpty));\n     if (EXPERIMENTAL_ATTRIBUTES) {\n       assertions.add(\n           satisfies(longKey(\"kafka.record.queue_time_ms\"), AbstractLongAssert::isNotNegative));\n     }\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n     // consumer group is not available in version 0.11\n     if (testLatestDeps()) {\n-      assertions.add(\n-          equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, emitOldMessagingSemconv() ? \"test\" : null));\n-      assertions.add(\n-          equalTo(MESSAGING_CONSUMER_GROUP_NAME, emitStableMessagingSemconv() ? \"test\" : null));\n+      assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, \"test\"));\n     }\n     if (messageKey != null) {\n       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));\n     }\n     if (messageValue == null) {\n       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_TOMBSTONE, true));\n-    } else if (emitOldMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_MESSAGE_BODY_SIZE, messageValue.getBytes(UTF_8).length));\n-    }\n-    if (testHeaders) {\n+    } else if (testHeaders) {",
+      "id": "PRRT_kwDODJKVX86pjKYO",
+      "opened": "2026-10-06T15:56:54Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClientBaseTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197543558"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Now that the conditional part is gone this method doesn’t seem too useful",
+      "created": "2026-10-06T15:59:23Z",
+      "hunk": "@@ -292,43 +237,30 @@ private static List<AttributeAssertion> processAttributes(boolean experimental)\n                 equalTo(headerAttributeKey(\"Test-Message-Header\"), singletonList(\"test\")),\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, SHARED_TOPIC),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"process\" : null),\n-                equalTo(\n-                    MESSAGING_MESSAGE_BODY_SIZE,\n-                    emitOldMessagingSemconv() ? (long) greeting.getBytes(UTF_8).length : null),\n+                equalTo(MESSAGING_OPERATION_NAME, \"process\"),\n+                equalTo(MESSAGING_OPERATION_TYPE, \"process\"),\n+                equalTo(MESSAGING_MESSAGE_BODY_SIZE, null),\n                 satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),\n-                equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, emitOldMessagingSemconv() ? \"test\" : null),\n-                equalTo(\n-                    MESSAGING_CONSUMER_GROUP_NAME, emitStableMessagingSemconv() ? \"test\" : null),\n+                equalTo(MESSAGING_CONSUMER_GROUP_NAME, \"test\"),\n                 satisfies(\n                     longKey(\"kafka.record.queue_time_ms\"),\n                     val -> {\n                       if (experimental) {\n                         val.isNotNegative();\n                       }\n                     })));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n-      assertions.add(equalTo(stringKey(\"test-baggage-key-1\"), \"test-baggage-value-1\"));\n-      assertions.add(equalTo(stringKey(\"test-baggage-key-2\"), \"test-baggage-value-2\"));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n+    assertions.add(equalTo(stringKey(\"test-baggage-key-1\"), \"test-baggage-value-1\"));\n+    assertions.add(equalTo(stringKey(\"test-baggage-key-2\"), \"test-baggage-value-2\"));\n     addClientIdAssertions(assertions, \"consumer\");\n     assertions.add(satisfies(MESSAGING_KAFKA_CLUSTER_ID, AbstractStringAssert::isNotEmpty));\n     return assertions;\n   }\n \n   private static void addClientIdAssertions(",
+      "id": "PRRT_kwDODJKVX86pjOvV",
+      "opened": "2026-10-06T15:59:22Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/AbstractInterceptorsTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197572863"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess this will get remoed in another pr",
+      "created": "2026-10-06T16:00:07Z",
+      "hunk": "@@ -110,36 +96,23 @@ private static List<AttributeAssertion> processAttributes() {\n             asList(\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, SHARED_TOPIC),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"process\" : null),\n-                equalTo(\n-                    MESSAGING_MESSAGE_BODY_SIZE,\n-                    emitOldMessagingSemconv() ? (long) greeting.getBytes(UTF_8).length : null),\n+                equalTo(MESSAGING_OPERATION_NAME, \"process\"),\n+                equalTo(MESSAGING_OPERATION_TYPE, \"process\"),\n+                equalTo(MESSAGING_MESSAGE_BODY_SIZE, null),",
+      "id": "PRRT_kwDODJKVX86pjQFm",
+      "opened": "2026-10-06T16:00:07Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/InterceptorsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197581730"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing this method",
+      "created": "2026-10-06T16:00:52Z",
+      "hunk": "@@ -110,36 +96,23 @@ private static List<AttributeAssertion> processAttributes() {\n             asList(\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, SHARED_TOPIC),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"process\" : null),\n-                equalTo(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"process\" : null),\n-                equalTo(\n-                    MESSAGING_MESSAGE_BODY_SIZE,\n-                    emitOldMessagingSemconv() ? (long) greeting.getBytes(UTF_8).length : null),\n+                equalTo(MESSAGING_OPERATION_NAME, \"process\"),\n+                equalTo(MESSAGING_OPERATION_TYPE, \"process\"),\n+                equalTo(MESSAGING_MESSAGE_BODY_SIZE, null),\n                 satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),\n-                equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, emitOldMessagingSemconv() ? \"test\" : null),\n-                equalTo(\n-                    MESSAGING_CONSUMER_GROUP_NAME, emitStableMessagingSemconv() ? \"test\" : null),\n+                equalTo(MESSAGING_CONSUMER_GROUP_NAME, \"test\"),\n                 equalTo(stringKey(\"test-baggage-key-1\"), \"test-baggage-value-1\"),\n                 equalTo(stringKey(\"test-baggage-key-2\"), \"test-baggage-value-2\")));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n     addClientIdAssertion(assertions, \"consumer\");\n     assertions.add(satisfies(MESSAGING_KAFKA_CLUSTER_ID, AbstractStringAssert::isNotEmpty));\n     return assertions;\n   }\n \n   private static void addClientIdAssertion(",
+      "id": "PRRT_kwDODJKVX86pjRbI",
+      "opened": "2026-10-06T16:00:52Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/InterceptorsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197590513"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing",
+      "created": "2026-10-06T16:01:56Z",
+      "hunk": "@@ -257,21 +196,13 @@ MESSAGING_CONSUMER_GROUP_NAME, emitStableMessagingSemconv() ? \"test\" : null),\n \n   private static void addClientIdAssertions(",
+      "id": "PRRT_kwDODJKVX86pjTV8",
+      "opened": "2026-10-06T16:01:55Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/WrapperTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197603235"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing",
+      "created": "2026-10-06T16:02:09Z",
+      "hunk": "@@ -257,21 +196,13 @@ MESSAGING_CONSUMER_GROUP_NAME, emitStableMessagingSemconv() ? \"test\" : null),\n \n   private static void addClientIdAssertions(\n       List<AttributeAssertion> assertions, String clientIdPrefix) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID_OLD, val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n   }\n \n   private static void addOffsetAssertions(List<AttributeAssertion> assertions) {",
+      "id": "PRRT_kwDODJKVX86pjTut",
+      "opened": "2026-10-06T16:02:09Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/WrapperTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197605803"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could move inside asList",
+      "created": "2026-10-06T16:05:57Z",
+      "hunk": "@@ -457,62 +279,37 @@ private static List<AttributeAssertion> messagingAttributes(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, KAFKA),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(\n-              stringKey(\"messaging.client_id\"),\n-              val -> {\n-                if (startsWith) {\n-                  val.startsWith(clientIdSuffix);\n-                } else {\n-                  val.endsWith(clientIdSuffix);\n-                }\n-              }));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(\n-              MESSAGING_CLIENT_ID,\n-              val -> {\n-                if (startsWith) {\n-                  val.startsWith(clientIdSuffix);\n-                } else {\n-                  val.endsWith(clientIdSuffix);\n-                }\n-              }));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(",
+      "id": "PRRT_kwDODJKVX86pjaaQ",
+      "opened": "2026-10-06T16:05:57Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197649354"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing",
+      "created": "2026-10-06T16:06:23Z",
+      "hunk": "@@ -457,62 +279,37 @@ private static List<AttributeAssertion> messagingAttributes(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, KAFKA),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(\n-              stringKey(\"messaging.client_id\"),\n-              val -> {\n-                if (startsWith) {\n-                  val.startsWith(clientIdSuffix);\n-                } else {\n-                  val.endsWith(clientIdSuffix);\n-                }\n-              }));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(\n-              MESSAGING_CLIENT_ID,\n-              val -> {\n-                if (startsWith) {\n-                  val.startsWith(clientIdSuffix);\n-                } else {\n-                  val.endsWith(clientIdSuffix);\n-                }\n-              }));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(\n+        satisfies(\n+            MESSAGING_CLIENT_ID,\n+            val -> {\n+              if (startsWith) {\n+                val.startsWith(clientIdSuffix);\n+              } else {\n+                val.endsWith(clientIdSuffix);\n+              }\n+            }));\n     return assertions;\n   }\n \n   private static void addOffsetAssertions(List<AttributeAssertion> assertions, long offset) {",
+      "id": "PRRT_kwDODJKVX86pjbKp",
+      "opened": "2026-10-06T16:06:23Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197654294"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing",
+      "created": "2026-10-06T16:06:50Z",
+      "hunk": "@@ -457,62 +279,37 @@ private static List<AttributeAssertion> messagingAttributes(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, KAFKA),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(\n-              stringKey(\"messaging.client_id\"),\n-              val -> {\n-                if (startsWith) {\n-                  val.startsWith(clientIdSuffix);\n-                } else {\n-                  val.endsWith(clientIdSuffix);\n-                }\n-              }));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(\n-              MESSAGING_CLIENT_ID,\n-              val -> {\n-                if (startsWith) {\n-                  val.startsWith(clientIdSuffix);\n-                } else {\n-                  val.endsWith(clientIdSuffix);\n-                }\n-              }));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(\n+        satisfies(\n+            MESSAGING_CLIENT_ID,\n+            val -> {\n+              if (startsWith) {\n+                val.startsWith(clientIdSuffix);\n+              } else {\n+                val.endsWith(clientIdSuffix);\n+              }\n+            }));\n     return assertions;\n   }\n \n   private static void addOffsetAssertions(List<AttributeAssertion> assertions, long offset) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, offset));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_KAFKA_OFFSET, offset));\n-    }\n+\n+    assertions.add(equalTo(MESSAGING_KAFKA_OFFSET, offset));\n   }\n \n-  private static void addStableBatchRecordAttributes(List<AttributeAssertion> assertions) {\n-    if (!emitStableMessagingSemconv()) {\n-      return;\n-    }\n+  private static void addBatchRecordAttributes(List<AttributeAssertion> assertions) {",
+      "id": "PRRT_kwDODJKVX86pjb9G",
+      "opened": "2026-10-06T16:06:50Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197659444"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing",
+      "created": "2026-10-06T16:07:12Z",
+      "hunk": "@@ -522,11 +319,7 @@ private static LinkData receiveRecordLink(SpanData producerSpan, @Nullable Strin\n   }\n \n   private static void addGroupAssertions(List<AttributeAssertion> assertions, String group) {",
+      "id": "PRRT_kwDODJKVX86pjcsF",
+      "opened": "2026-10-06T16:07:12Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197664037"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T16:10:11Z",
+      "hunk": "@@ -342,44 +199,30 @@ private static List<AttributeAssertion> processAttributes(\n           satisfies(longKey(\"kafka.record.queue_time_ms\"), val -> val.isGreaterThanOrEqualTo(0)));\n     }\n     if (testLatestDeps()) {\n-      if (emitOldMessagingSemconv()) {\n-        assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, consumerGroup));\n-      }\n-      if (emitStableMessagingSemconv()) {\n-        assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, consumerGroup));\n-      }\n+",
+      "id": "PRRT_kwDODJKVX86pjhpr",
+      "opened": "2026-10-06T16:10:11Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197696848"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T16:10:26Z",
+      "hunk": "@@ -326,11 +185,9 @@ private static List<AttributeAssertion> processAttributes(\n       String consumerGroup,\n       StringAssertConsumer clientIdAssertion,\n       AttributeAssertion extra) {\n-    List<AttributeAssertion> assertions = commonAttributes(topic, \"process\", \"process\", \"process\");\n+    List<AttributeAssertion> assertions = commonAttributes(topic, \"process\", \"process\");\n     addClientIdAssertions(assertions, clientIdAssertion);\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_MESSAGE_BODY_SIZE, val -> val.isInstanceOf(Long.class)));\n-    }\n+",
+      "id": "PRRT_kwDODJKVX86pjiEp",
+      "opened": "2026-10-06T16:10:26Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197699447"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing",
+      "created": "2026-10-06T16:10:52Z",
+      "hunk": "@@ -342,44 +199,30 @@ private static List<AttributeAssertion> processAttributes(\n           satisfies(longKey(\"kafka.record.queue_time_ms\"), val -> val.isGreaterThanOrEqualTo(0)));\n     }\n     if (testLatestDeps()) {\n-      if (emitOldMessagingSemconv()) {\n-        assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, consumerGroup));\n-      }\n-      if (emitStableMessagingSemconv()) {\n-        assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, consumerGroup));\n-      }\n+\n+      assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, consumerGroup));\n     }\n     return assertions;\n   }\n \n   private static List<AttributeAssertion> commonAttributes(\n-      String topic, String oldOperation, String operationName, String operationType) {\n+      String topic, String operationName, String operationType) {\n     return new ArrayList<>(\n         asList(\n             equalTo(MESSAGING_SYSTEM, KAFKA),\n             equalTo(MESSAGING_DESTINATION_NAME, topic),\n-            equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-            equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-            equalTo(\n-                MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? operationType : null)));\n+            equalTo(MESSAGING_OPERATION_NAME, operationName),\n+            equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n   }\n \n   private static void addClientIdAssertions(",
+      "id": "PRRT_kwDODJKVX86pjitw",
+      "opened": "2026-10-06T16:10:52Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197703605"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing",
+      "created": "2026-10-06T16:11:06Z",
+      "hunk": "@@ -342,44 +199,30 @@ private static List<AttributeAssertion> processAttributes(\n           satisfies(longKey(\"kafka.record.queue_time_ms\"), val -> val.isGreaterThanOrEqualTo(0)));\n     }\n     if (testLatestDeps()) {\n-      if (emitOldMessagingSemconv()) {\n-        assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, consumerGroup));\n-      }\n-      if (emitStableMessagingSemconv()) {\n-        assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, consumerGroup));\n-      }\n+\n+      assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, consumerGroup));\n     }\n     return assertions;\n   }\n \n   private static List<AttributeAssertion> commonAttributes(\n-      String topic, String oldOperation, String operationName, String operationType) {\n+      String topic, String operationName, String operationType) {\n     return new ArrayList<>(\n         asList(\n             equalTo(MESSAGING_SYSTEM, KAFKA),\n             equalTo(MESSAGING_DESTINATION_NAME, topic),\n-            equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-            equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-            equalTo(\n-                MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? operationType : null)));\n+            equalTo(MESSAGING_OPERATION_NAME, operationName),\n+            equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n   }\n \n   private static void addClientIdAssertions(\n       List<AttributeAssertion> assertions, StringAssertConsumer assertion) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(stringKey(\"messaging.client_id\"), assertion));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, assertion));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, assertion));\n   }\n \n   private static void addOffsetAssertions(List<AttributeAssertion> assertions, long offset) {",
+      "id": "PRRT_kwDODJKVX86pjjIm",
+      "opened": "2026-10-06T16:11:05Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197706108"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Looks like the list isn’t needed any more",
+      "created": "2026-10-06T16:19:17Z",
+      "hunk": "@@ -494,93 +471,40 @@ public void onException(Throwable throwable) {\n             },\n             trace -> {\n               List<Consumer<SpanDataAssert>> assertions = new ArrayList<>();\n-              if (emitStableMessagingSemconv()) {\n-                // a single process span accounts for the whole batch and links to the creation\n-                // context of every message it accounts for\n-                assertions.add(\n-                    span -> {\n-                      span.hasName(\"process \" + sharedTopic)\n-                          .hasKind(SpanKind.CONSUMER)\n-                          .hasNoParent()\n-                          .hasStatus(\n-                              failConsumption && emitStableMessagingSemconv()\n-                                  ? StatusData.error()\n-                                  : StatusData.unset())\n-                          .hasAttributesSatisfyingExactly(\n-                              equalTo(MESSAGING_SYSTEM, \"rocketmq\"),\n-                              namespace(),\n-                              consumerGroup(),\n-                              equalTo(MESSAGING_DESTINATION_NAME, sharedTopic),\n-                              equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 2L),\n-                              oldOperation(\"process\"),\n-                              operationName(\"process\"),\n-                              operationType(\"process\"),\n-                              equalTo(\n-                                  ERROR_TYPE,\n-                                  failConsumption ? ConsumeReturnType.FAILED.name() : null));\n-                      // one link per message the span accounts for\n-                      span.hasLinksSatisfying(\n-                          hasBatchCreateSpans()\n-                              ? links(messageCreationContexts.toArray(new SpanContext[0]))\n-                              : links(producerSpanContext.get(), producerSpanContext.get()));\n-                    });\n-              } else {\n-                assertions.add(\n-                    span ->\n-                        span.hasName(\"multiple_sources receive\")\n-                            .hasKind(CONSUMER)\n-                            .hasTotalRecordedLinks(0)\n-                            .hasAttributesSatisfyingExactly(\n-                                equalTo(MESSAGING_SYSTEM, \"rocketmq\"), oldOperation(\"receive\")));\n-                assertions.add(\n-                    span ->\n-                        assertLegacyBatchProcessSpan(\n-                            span, trace.getSpan(0), producerSpanContext.get(), \"TagA\"));\n-                assertions.add(\n-                    span ->\n-                        assertLegacyBatchProcessSpan(\n-                            span, trace.getSpan(0), producerSpanContext.get(), \"TagB\"));\n-              }\n+              // a single process span accounts for the whole batch and links to the creation\n+              // context of every message it accounts for\n+              assertions.add(\n+                  span -> {\n+                    span.hasName(\"process \" + sharedTopic)\n+                        .hasKind(SpanKind.CONSUMER)\n+                        .hasNoParent()\n+                        .hasStatus(failConsumption ? StatusData.error() : StatusData.unset())\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(MESSAGING_SYSTEM, \"rocketmq\"),\n+                            equalTo(MESSAGING_ROCKETMQ_NAMESPACE, NAMESPACE),\n+                            consumerGroup(),\n+                            equalTo(MESSAGING_DESTINATION_NAME, sharedTopic),\n+                            equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 2L),\n+                            equalTo(MESSAGING_OPERATION_NAME, \"process\"),\n+                            equalTo(MESSAGING_OPERATION_TYPE, \"process\"),\n+                            equalTo(\n+                                ERROR_TYPE,\n+                                failConsumption ? ConsumeReturnType.FAILED.name() : null));\n+                    // one link per message the span accounts for\n+                    span.hasLinksSatisfying(\n+                        hasBatchCreateSpans()\n+                            ? links(messageCreationContexts.toArray(new SpanContext[0]))\n+                            : links(producerSpanContext.get(), producerSpanContext.get()));\n+                  });\n               assertions.add(\n                   span ->\n                       span.hasName(\"messageListener\")\n                           .hasParent(trace.getSpan(0))\n                           .hasKind(SpanKind.INTERNAL));\n               trace.hasSpansSatisfyingExactly(assertions);",
+      "id": "PRRT_kwDODJKVX86pjvkF",
+      "opened": "2026-10-06T16:19:17Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/testing/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/AbstractRocketMqClientTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4197786358"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Deliberately not asserting attributes?",
+      "created": "2026-10-06T16:58:07Z",
+      "hunk": "@@ -102,70 +91,27 @@ void testSendAndConsumeMessage() throws ClientException {\n             .setBody(body)\n             .build();\n \n-    SendReceipt sendReceipt =\n-        testing()\n-            .runWithSpan(\n-                \"parent\",\n-                (ThrowingSupplier<SendReceipt, ClientException>) () -> producer.send(message));\n+    testing()\n+        .runWithSpan(\n+            \"parent\",\n+            (ThrowingSupplier<SendReceipt, ClientException>) () -> producer.send(message));\n     testing()\n         .waitAndAssertTraces(\n             trace -> {\n-              if (emitStableMessagingSemconv()) {\n-                trace.hasSpansSatisfyingExactly(\n-                    span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n-                    span ->\n-                        span.hasKind(SpanKind.PRODUCER)\n-                            .hasName(\"send \" + topic)\n-                            .hasParent(trace.getSpan(0)),\n-                    span ->\n-                        span.hasKind(SpanKind.CONSUMER)\n-                            .hasName(\"process \" + topic)\n-                            .hasParent(trace.getSpan(1)),\n-                    span ->\n-                        span.hasName(\"child\")\n-                            .hasKind(SpanKind.INTERNAL)\n-                            .hasParent(trace.getSpan(2)));\n-                return;\n-              }\n               trace.hasSpansSatisfyingExactly(\n                   span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n                   span ->\n                       span.hasKind(SpanKind.PRODUCER)\n-                          .hasName(topic + \" publish\")\n-                          .hasStatus(StatusData.unset())\n-                          .hasParent(trace.getSpan(0))\n-                          .hasAttributesSatisfyingExactly(\n-                              equalTo(MESSAGING_ROCKETMQ_MESSAGE_TAG, tag),\n-                              equalTo(MESSAGING_ROCKETMQ_MESSAGE_KEYS, asList(keys)),\n-                              equalTo(MESSAGING_ROCKETMQ_MESSAGE_TYPE, NORMAL),\n-                              equalTo(MESSAGING_MESSAGE_BODY_SIZE, (long) body.length),\n-                              equalTo(MESSAGING_SYSTEM, \"rocketmq\"),\n-                              equalTo(MESSAGING_MESSAGE_ID, sendReceipt.getMessageId().toString()),\n-                              equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                              equalTo(MESSAGING_OPERATION, \"publish\")),\n+                          .hasName(\"send \" + topic)\n+                          .hasParent(trace.getSpan(0)),",
+      "id": "PRRT_kwDODJKVX86pkoNF",
+      "opened": "2026-10-06T16:58:07Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v5_0/AbstractRocketMqClientSuppressReceiveSpanTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198152999"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider inlining",
+      "created": "2026-10-06T17:02:14Z",
+      "hunk": "@@ -378,7 +355,7 @@ private static Message newRawMessage() {\n   }\n \n   private static String lowerProcessSpanName() {",
+      "id": "PRRT_kwDODJKVX86pkuAl",
+      "opened": "2026-10-06T17:02:14Z",
+      "path": "instrumentation/spring/spring-integration-4.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/integration/v4_1/MessageProducerSupportInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198190518"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could be removed?",
+      "created": "2026-10-06T17:02:59Z",
+      "hunk": "@@ -93,30 +86,16 @@ void shouldCooperateWithExistingRabbitMqInstrumentation() {\n                             serverAddress(),\n                             serverPort(),\n                             equalTo(MESSAGING_SYSTEM, \"rabbitmq\"),\n-                            equalTo(\n-                                MESSAGING_DESTINATION_NAME,\n-                                emitStableMessagingSemconv() ? \"testTopic:testTopic\" : \"testTopic\"),\n-                            equalTo(\n-                                MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"publish\" : null),\n-                            equalTo(\n-                                MESSAGING_OPERATION_NAME,\n-                                emitStableMessagingSemconv() ? \"publish\" : null),\n-                            equalTo(\n-                                MESSAGING_OPERATION_TYPE,\n-                                emitStableMessagingSemconv() ? \"send\" : null),\n+                            equalTo(MESSAGING_DESTINATION_NAME, \"testTopic:testTopic\"),\n+                            equalTo(MESSAGING_OPERATION_NAME, \"publish\"),\n+                            equalTo(MESSAGING_OPERATION_TYPE, \"send\"),\n                             bodySize(),",
+      "id": "PRRT_kwDODJKVX86pkvJS",
+      "opened": "2026-10-06T17:02:59Z",
+      "path": "instrumentation/spring/spring-integration-4.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/integration/v4_1/SpringIntegrationAndRabbitTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198197949"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider inlining",
+      "created": "2026-10-06T17:09:06Z",
+      "hunk": "@@ -940,61 +566,38 @@ private static List<AttributeAssertion> batchProcessAttributes(\n   }\n \n   private static void addCommonBatchRecordAttributes(List<AttributeAssertion> assertions) {\n-    if (!emitStableMessagingSemconv()) {\n-      return;\n-    }\n+\n     assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n   }\n \n   private static List<AttributeAssertion> messagingAttributes(\n-      String topic,\n-      String oldOperation,\n-      String operationName,\n-      String operationType,\n-      String clientIdPrefix) {\n+      String topic, String operationName, String operationType, String clientIdPrefix) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n     return assertions;\n   }\n \n   private static void addOffsetAssertion(List<AttributeAssertion> assertions) {",
+      "id": "PRRT_kwDODJKVX86pk4Pt",
+      "opened": "2026-10-06T17:09:06Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198256820"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider inlining",
+      "created": "2026-10-06T17:09:22Z",
+      "hunk": "@@ -940,61 +566,38 @@ private static List<AttributeAssertion> batchProcessAttributes(\n   }\n \n   private static void addCommonBatchRecordAttributes(List<AttributeAssertion> assertions) {\n-    if (!emitStableMessagingSemconv()) {\n-      return;\n-    }\n+\n     assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n   }\n \n   private static List<AttributeAssertion> messagingAttributes(\n-      String topic,\n-      String oldOperation,\n-      String operationName,\n-      String operationType,\n-      String clientIdPrefix) {\n+      String topic, String operationName, String operationType, String clientIdPrefix) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n     return assertions;\n   }\n \n   private static void addOffsetAssertion(List<AttributeAssertion> assertions) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n   }\n \n   private static void addGroupAssertions(List<AttributeAssertion> assertions, String group) {",
+      "id": "PRRT_kwDODJKVX86pk4oS",
+      "opened": "2026-10-06T17:09:22Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198259309"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider inlining",
+      "created": "2026-10-06T17:10:40Z",
+      "hunk": "@@ -415,72 +395,48 @@ private static List<AttributeAssertion> singleProcessAttributes(\n   private static List<AttributeAssertion> batchProcessAttributes(\n       String topic, String group, int batchSize) {\n     List<AttributeAssertion> assertions =\n-        messagingAttributes(topic, \"process\", \"process\", \"process\", \"consumer\");\n+        messagingAttributes(topic, \"process\", \"process\", \"consumer\");\n     addGroupAssertions(assertions, group);\n     assertions.add(equalTo(MESSAGING_BATCH_MESSAGE_COUNT, batchSize));\n     assertions.add(satisfies(MESSAGING_KAFKA_CLUSTER_ID, AbstractStringAssert::isNotEmpty));\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n-    }\n+    assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n     return assertions;\n   }\n \n   private static List<AttributeAssertion> messagingAttributes(\n-      String topic,\n-      String oldOperation,\n-      String operationName,\n-      String operationType,\n-      String clientIdPrefix) {\n+      String topic, String operationName, String operationType, String clientIdPrefix) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n     return assertions;\n   }\n \n   private static void addOffsetAssertion(List<AttributeAssertion> assertions) {",
+      "id": "PRRT_kwDODJKVX86pk6Y_",
+      "opened": "2026-10-06T17:10:40Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/testing/src/main/java/io/opentelemetry/testing/AbstractSpringKafkaNoReceiveTelemetryTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198270877"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider inlining",
+      "created": "2026-10-06T17:10:54Z",
+      "hunk": "@@ -415,72 +395,48 @@ private static List<AttributeAssertion> singleProcessAttributes(\n   private static List<AttributeAssertion> batchProcessAttributes(\n       String topic, String group, int batchSize) {\n     List<AttributeAssertion> assertions =\n-        messagingAttributes(topic, \"process\", \"process\", \"process\", \"consumer\");\n+        messagingAttributes(topic, \"process\", \"process\", \"consumer\");\n     addGroupAssertions(assertions, group);\n     assertions.add(equalTo(MESSAGING_BATCH_MESSAGE_COUNT, batchSize));\n     assertions.add(satisfies(MESSAGING_KAFKA_CLUSTER_ID, AbstractStringAssert::isNotEmpty));\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n-    }\n+    assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n     return assertions;\n   }\n \n   private static List<AttributeAssertion> messagingAttributes(\n-      String topic,\n-      String oldOperation,\n-      String operationName,\n-      String operationType,\n-      String clientIdPrefix) {\n+      String topic, String operationName, String operationType, String clientIdPrefix) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, \"kafka\"),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n     return assertions;\n   }\n \n   private static void addOffsetAssertion(List<AttributeAssertion> assertions) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n   }\n \n   private static void addGroupAssertions(List<AttributeAssertion> assertions, String group) {",
+      "id": "PRRT_kwDODJKVX86pk6v_",
+      "opened": "2026-10-06T17:10:54Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/testing/src/main/java/io/opentelemetry/testing/AbstractSpringKafkaNoReceiveTelemetryTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198273163"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Should this be removed?",
+      "created": "2026-10-06T17:11:56Z",
+      "hunk": "@@ -188,11 +181,11 @@ protected void assertStableProcessMetrics() {\n   protected List<AttributeAssertion> publishAttributes() {\n     return asList(\n         equalTo(MESSAGING_SYSTEM, \"pulsar\"),\n-        equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? \"publish\" : null),\n-        equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"send\" : null),\n-        equalTo(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"send\" : null),\n+        equalTo(MESSAGING_OPERATION_NAME, \"send\"),\n+        equalTo(MESSAGING_OPERATION_TYPE, \"send\"),\n         equalTo(MESSAGING_DESTINATION_NAME, OTEL_TOPIC),\n-        bodySize(),\n+        // messaging.message.body.size requires opt-in\n+        equalTo(MESSAGING_MESSAGE_BODY_SIZE, null),",
+      "id": "PRRT_kwDODJKVX86pk8Qa",
+      "opened": "2026-10-06T17:11:56Z",
+      "path": "instrumentation/spring/spring-pulsar-1.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/pulsar/v1_0/AbstractSpringPulsarTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198282801"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could skip adding assertions to list?",
+      "created": "2026-10-06T17:15:18Z",
+      "hunk": "@@ -692,30 +611,22 @@ private static void verifyNackSpan(SpanDataAssert span) {\n     verifySettleSpan(span, \"nack\");\n   }\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n   private static void verifySettleSpan(SpanDataAssert span, String operation) {\n-    boolean stable = emitStableMessagingSemconv();\n+\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(NETWORK_TYPE, \"ipv4\"),\n                 equalTo(NETWORK_PEER_ADDRESS, ip),\n                 satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative),\n                 equalTo(MESSAGING_SYSTEM, \"rabbitmq\")));\n-    if (stable) {\n-      assertions.add(equalTo(SERVER_ADDRESS, ip));\n-      assertions.add(satisfies(SERVER_PORT, AbstractLongAssert::isNotNegative));\n-      assertions.add(equalTo(MESSAGING_OPERATION_NAME, operation));\n-      assertions.add(equalTo(MESSAGING_OPERATION_TYPE, \"settle\"));\n-      assertions.add(\n-          satisfies(MESSAGING_RABBITMQ_MESSAGE_DELIVERY_TAG, AbstractLongAssert::isPositive));\n-      if (emitOldMessagingSemconv()) {\n-        assertions.add(equalTo(MESSAGING_OPERATION, \"settle\"));\n-      }\n-    }\n-    span.hasName(stable ? operation : \"basic.\" + operation)\n-        .hasKind(SpanKind.CLIENT)\n-        .hasAttributesSatisfyingExactly(assertions);\n+    assertions.add(equalTo(SERVER_ADDRESS, ip));\n+    assertions.add(satisfies(SERVER_PORT, AbstractLongAssert::isNotNegative));\n+    assertions.add(equalTo(MESSAGING_OPERATION_NAME, operation));\n+    assertions.add(equalTo(MESSAGING_OPERATION_TYPE, \"settle\"));\n+    assertions.add(\n+        satisfies(MESSAGING_RABBITMQ_MESSAGE_DELIVERY_TAG, AbstractLongAssert::isPositive));\n+    span.hasName(operation).hasKind(SpanKind.CLIENT).hasAttributesSatisfyingExactly(assertions);",
+      "id": "PRRT_kwDODJKVX86plBX3",
+      "opened": "2026-10-06T17:15:18Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitMqTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198315488"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could inline",
+      "created": "2026-10-06T17:17:34Z",
+      "hunk": "@@ -260,71 +246,45 @@ protected List<AttributeAssertion> processAttributes(KafkaProducerRecord<String,\n     if (messageKey != null) {\n       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));\n     }\n-    String messageValue = record.value();\n-    if (messageValue != null && emitOldMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_MESSAGE_BODY_SIZE, messageValue.getBytes(UTF_8).length));\n-    }\n+\n     return assertions;\n   }\n \n   private static List<AttributeAssertion> messagingAttributes(\n-      String topic,\n-      String oldOperation,\n-      String operationName,\n-      String operationType,\n-      String clientIdPrefix) {\n+      String topic, String operationName, String operationType, String clientIdPrefix) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, KAFKA),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n     return assertions;\n   }\n \n   private static void addOffsetAssertion(List<AttributeAssertion> assertions) {",
+      "id": "PRRT_kwDODJKVX86plEeX",
+      "opened": "2026-10-06T17:17:33Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractVertxKafkaTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198335927"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could inline",
+      "created": "2026-10-06T17:17:47Z",
+      "hunk": "@@ -260,71 +246,45 @@ protected List<AttributeAssertion> processAttributes(KafkaProducerRecord<String,\n     if (messageKey != null) {\n       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));\n     }\n-    String messageValue = record.value();\n-    if (messageValue != null && emitOldMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_MESSAGE_BODY_SIZE, messageValue.getBytes(UTF_8).length));\n-    }\n+\n     return assertions;\n   }\n \n   private static List<AttributeAssertion> messagingAttributes(\n-      String topic,\n-      String oldOperation,\n-      String operationName,\n-      String operationType,\n-      String clientIdPrefix) {\n+      String topic, String operationName, String operationType, String clientIdPrefix) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, KAFKA),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n     return assertions;\n   }\n \n   private static void addOffsetAssertion(List<AttributeAssertion> assertions) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n   }\n \n   private static void addGroupAssertions(List<AttributeAssertion> assertions) {",
+      "id": "PRRT_kwDODJKVX86plEz2",
+      "opened": "2026-10-06T17:17:47Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractVertxKafkaTest.java",
+      "replies": [],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198338054"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could inline",
+      "created": "2026-10-06T17:18:13Z",
+      "hunk": "@@ -260,71 +246,45 @@ protected List<AttributeAssertion> processAttributes(KafkaProducerRecord<String,\n     if (messageKey != null) {\n       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));\n     }\n-    String messageValue = record.value();\n-    if (messageValue != null && emitOldMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_MESSAGE_BODY_SIZE, messageValue.getBytes(UTF_8).length));\n-    }\n+\n     return assertions;\n   }\n \n   private static List<AttributeAssertion> messagingAttributes(\n-      String topic,\n-      String oldOperation,\n-      String operationName,\n-      String operationType,\n-      String clientIdPrefix) {\n+      String topic, String operationName, String operationType, String clientIdPrefix) {\n     List<AttributeAssertion> assertions =\n         new ArrayList<>(\n             asList(\n                 equalTo(MESSAGING_SYSTEM, KAFKA),\n                 equalTo(MESSAGING_DESTINATION_NAME, topic),\n-                equalTo(MESSAGING_OPERATION, emitOldMessagingSemconv() ? oldOperation : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? operationName : null),\n-                equalTo(\n-                    MESSAGING_OPERATION_TYPE,\n-                    emitStableMessagingSemconv() ? operationType : null)));\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(\n-          satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(clientIdPrefix)));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n-    }\n+                equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                equalTo(MESSAGING_OPERATION_TYPE, operationType)));\n+\n+    assertions.add(satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(clientIdPrefix)));\n     return assertions;\n   }\n \n   private static void addOffsetAssertion(List<AttributeAssertion> assertions) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n-    }\n+\n+    assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));\n   }\n \n   private static void addGroupAssertions(List<AttributeAssertion> assertions) {\n-    if (emitOldMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, \"test\"));\n-    }\n-    if (emitStableMessagingSemconv()) {\n-      assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, \"test\"));\n-    }\n+\n+    assertions.add(equalTo(MESSAGING_CONSUMER_GROUP_NAME, \"test\"));\n   }\n \n-  protected static String spanName(String topic, String oldOperation, String operationName) {\n-    return emitStableMessagingSemconv() ? operationName + \" \" + topic : topic + \" \" + oldOperation;\n+  protected static String spanName(String topic, String operationName) {\n+    return operationName + \" \" + topic;\n   }\n \n   protected static SpanKind receiveKind() {\n-    return emitStableMessagingSemconv() ? SpanKind.CLIENT : SpanKind.CONSUMER;\n+    return SpanKind.CLIENT;\n   }\n \n   protected static List<AttributeAssertion> withErrorType(List<AttributeAssertion> assertions) {",
+      "id": "PRRT_kwDODJKVX86plFc5",
+      "opened": "2026-10-06T17:18:13Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractVertxKafkaTest.java",
+      "replies": [
+        {
+          "at": "2026-10-06T20:31:11Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20414",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4200142347"
+        }
+      ],
+      "reviewed": "4bca41eff9aced007c670824728569b54ea3d778",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4198342147"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "look for all of these",
+      "created": "2026-10-06T21:34:39Z",
+      "hunk": "@@ -42,7 +41,7 @@ protected boolean isSqsAttributeInjectionEnabled() {\n \n   @Test\n   void testPreservesCustomBatchCreationContexts() {\n-    assumeTrue(emitStableMessagingSemconv());\n+",
+      "id": "PRRT_kwDODJKVX86pqrNP",
+      "opened": "2026-10-06T21:34:39Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/Aws2SqsW3cPropagatorAndXrayPropagatorTest.java",
+      "replies": [],
+      "reviewed": "7546c69cbcd4aa9951faeddb2ddc97401bab4239",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4200662610"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "oops",
+      "created": "2026-10-06T21:36:33Z",
+      "hunk": "@@ -229,7 +195,7 @@ private static LinkData propagatedLink(SpanData producerSpan) {\n   }\n \n   private static void assertMessagingSemconvMode() {\n-    assertThat(emitOldMessagingSemconv()).isFalse();\n-    assertThat(emitStableMessagingSemconv()).isTrue();\n+    assertThat(false).isFalse();\n+    assertThat(true).isTrue();",
+      "id": "PRRT_kwDODJKVX86pqtev",
+      "opened": "2026-10-06T21:36:33Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/aws/SqsCamelTest.java",
+      "replies": [
+        {
+          "at": "2026-10-06T21:51:04Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20414",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4200785068"
+        }
+      ],
+      "reviewed": "7546c69cbcd4aa9951faeddb2ddc97401bab4239",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4200677245"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T21:47:00Z",
+      "hunk": "@@ -57,6 +57,8 @@\n - Remove the deprecated `OpenTelemetryMeterRegistryBuilder#setMicrometerHistogramGaugesEnabled(boolean)`.\n   Use `Experimental#setMicrometerHistogramGaugesEnabled(OpenTelemetryMeterRegistryBuilder, boolean)`\n   instead.\n+- Remove the unused `MessagingMetricsAssertions.assertNoStableMetrics` helper from\n+  `io.opentelemetry.javaagent:opentelemetry-testing-common`.",
+      "id": "PRRT_kwDODJKVX86pq5dJ",
+      "opened": "2026-10-06T21:47:00Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "7546c69cbcd4aa9951faeddb2ddc97401bab4239",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20382#discussion_r4200755215"
+    }
+  ]
+}

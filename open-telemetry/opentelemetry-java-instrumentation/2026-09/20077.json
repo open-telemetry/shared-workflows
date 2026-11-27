@@ -1,0 +1,199 @@
+{
+  "head": "df64329e6b343eb4cc03615bb0f1f5559bc53fff",
+  "merge": "5361fed6826eea6d637fd608333a3ec8a06c53ff",
+  "merged": "2026-09-22T21:20:23Z",
+  "missing_roots": 0,
+  "number": 20077,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Iterable.class?",
+      "created": "2026-09-14T02:38:38Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CLUSTER_CLIENT_TARGET;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONNECTION_STATE;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.ENDPOINT_STATE;\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.lettuce.core.RedisChannelHandler;\n+import io.lettuce.core.RedisURI;\n+import io.lettuce.core.cluster.RedisClusterClient;\n+import io.lettuce.core.protocol.DefaultEndpoint;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.function.Supplier;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceClusterClientInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.lettuce.core.cluster.RedisClusterClient\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(1, named(\"java.lang.Iterable\"))),",
+      "id": "PRRT_kwDODJKVX86h-Yo_",
+      "opened": "2026-09-14T02:38:38Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceClusterClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:36Z",
+          "body": "Changed both applicable matchers to `Iterable.class` in [`e76da18`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e76da18551936d70263dfdc83e771a28629245e0).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4010202046"
+        }
+      ],
+      "reviewed": "528ba4a803f529e3fcee4d40123bdcebc8495aa7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4001832522"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "simplify by moving CONNECTION_STATE inside of LettuceConnectionState? consider more generally across prs / modules",
+      "created": "2026-09-14T02:43:35Z",
+      "hunk": "@@ -0,0 +1,80 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONNECTION_STATE;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.isStatic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.lettuce.core.RedisChannelHandler;\n+import io.lettuce.core.RedisURI;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceMasterSlaveInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.lettuce.core.masterslave.MasterSlave\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic()\n+            .and(isStatic())\n+            .and(named(\"connect\"))\n+            .and(takesArguments(3))\n+            .and(\n+                takesArgument(2, named(\"io.lettuce.core.RedisURI\"))\n+                    .or(takesArgument(2, named(\"java.lang.Iterable\")))),\n+        getClass().getName() + \"$ConnectAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConnectAdvice {\n+\n+    @Advice.AssignReturned.ToArguments(@ToArgument(value = 2, index = 1))\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(@Advice.Argument(2) Object targetSource) {\n+      if (!LettuceServerTargets.configuredTargetsSupported()) {\n+        return new Object[] {null, targetSource};\n+      }\n+      if (targetSource instanceof RedisURI) {\n+        return new Object[] {LettuceServerTargets.of((RedisURI) targetSource), targetSource};\n+      }\n+      List<Object> snapshot = new ArrayList<>();\n+      for (Object redisUri : (Iterable<?>) targetSource) {\n+        snapshot.add(redisUri);\n+      }\n+      return new Object[] {LettuceServerTargets.ofMasterSlaveUris(snapshot), snapshot};\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.Enter Object[] enter, @Advice.Return @Nullable Object connection) {\n+      RedisServerTarget target = (RedisServerTarget) enter[0];\n+      if (target == null || !(connection instanceof RedisChannelHandler)) {\n+        return;\n+      }\n+      RedisChannelHandler<?, ?> connectionHandler = (RedisChannelHandler<?, ?>) connection;\n+      CONNECTION_STATE.set(\n+          connectionHandler,\n+          LettuceConnectionState.withServerTarget(CONNECTION_STATE.get(connectionHandler), target));",
+      "id": "PRRT_kwDODJKVX86h-bJl",
+      "opened": "2026-09-14T02:43:34Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceMasterSlaveInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:37Z",
+          "body": "Moved the Lettuce state handles behind focused helpers in [`33e23ef`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/33e23ef5ee92926d62533c06fbc50d1c88867451). The related command-peer handle in #20086 was also made private in [`b5fb27a`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b5fb27a72b8b9f70430352a591635ee06f766ead).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4010202083"
+        }
+      ],
+      "reviewed": "528ba4a803f529e3fcee4d40123bdcebc8495aa7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4001848271"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "review",
+      "created": "2026-09-14T02:44:25Z",
+      "hunk": "@@ -0,0 +1,97 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import io.lettuce.core.RedisURI;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+public class LettuceServerTargets {\n+\n+  // The tracing SPI marks 5.1+, where this module only runs under v3-preview compatibility mode.\n+  private static final boolean CONFIGURED_TARGETS_SUPPORTED =\n+      RedisURI.class.getClassLoader().getResource(\"io/lettuce/core/tracing/Tracing.class\") == null;",
+      "id": "PRRT_kwDODJKVX86h-bqX",
+      "opened": "2026-09-14T02:44:25Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:37Z",
+          "body": "Removed the incorrect 5.1 gate and made configured-target capture cover Lettuce 5.0 through 7.7 in [`7be647b`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7be647b474c09fae7b5bff3cdf2274480050c139), including both cluster signature layouts and the newer `MasterReplica` path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4010202064"
+        }
+      ],
+      "reviewed": "528ba4a803f529e3fcee4d40123bdcebc8495aa7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4001851256"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These two cluster connections execute instrumented handshake/topology commands during `@BeforeAll`, but setup returns without waiting for their asynchronously exported traces. `InstrumentationExtension.beforeEach` then clears immediately, so a late setup trace can leak into the exact five-trace assertion. Drain the deterministic startup trace count before setup returns (as the other Lettuce fixtures do), or restructure the setup so startup telemetry is fully completed before the lifecycle clear.",
+      "created": "2026-09-14T22:34:22Z",
+      "hunk": "@@ -0,0 +1,374 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_BATCH_SIZE;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.REDIS;\n+import static java.nio.charset.StandardCharsets.US_ASCII;\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.emptyList;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.lettuce.core.RedisFuture;\n+import io.lettuce.core.RedisURI;\n+import io.lettuce.core.api.StatefulRedisConnection;\n+import io.lettuce.core.cluster.RedisClusterClient;\n+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;\n+import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;\n+import io.lettuce.core.cluster.api.reactive.RedisAdvancedClusterReactiveCommands;\n+import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;\n+import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;\n+import io.lettuce.core.cluster.pubsub.api.reactive.RedisClusterPubSubReactiveCommands;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.io.ByteArrayOutputStream;\n+import java.io.DataInputStream;\n+import java.io.IOException;\n+import java.io.OutputStream;\n+import java.net.InetAddress;\n+import java.net.ServerSocket;\n+import java.net.Socket;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Locale;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@DisabledIfSystemProperty(\n+    named = \"otel.instrumentation.lettuce.connection-telemetry.enabled\",\n+    matches = \"true\")\n+class LettuceClusterClientTest {\n+  private static final String NODE_ID = \"0000000000000000000000000000000000000000\";\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static TestRedisCluster redisServer;\n+  private static StatefulRedisClusterConnection<String, String> connection;\n+  private static StatefulRedisClusterPubSubConnection<String, String> pubSubConnection;\n+  private static String host;\n+  private static int port;\n+  private static String configuredTarget;\n+\n+  @BeforeAll\n+  static void setUp() throws Exception {\n+    redisServer = new TestRedisCluster();\n+    cleanup.deferAfterAll(redisServer);\n+\n+    host = redisServer.getHost();\n+    port = redisServer.getPort();\n+    RedisURI seedUri = RedisURI.create(\"redis://\" + host + \":\" + port);\n+    configuredTarget = host + \":\" + port + \",\" + host + \":\" + port;\n+    RedisClusterClient client = RedisClusterClient.create(asList(seedUri, seedUri));\n+    cleanup.deferAfterAll(() -> client.shutdown(0, 15, SECONDS));\n+\n+    connection = client.connect();\n+    cleanup.deferAfterAll(connection);\n+    pubSubConnection = client.connectPubSub();\n+    cleanup.deferAfterAll(pubSubConnection);",
+      "id": "PRRT_kwDODJKVX86iTjEh",
+      "opened": "2026-09-14T22:34:22Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceClusterClientTest.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:01:06Z",
+          "body": "Addressed in d72534e1cdd072656fab8e9cd01f2da7ed245ba4.\n\nAnalysis: Each cluster connection emits one deterministic topology-command trace during setup. Waiting for both traces before `@BeforeAll` returns prevents the extension's lifecycle clear from racing with asynchronous export.\n\nUpsides: The test starts with an empty trace buffer and cannot mistake a late setup trace for one of the five command traces under test.\n\nDownsides: Setup now waits for two expected traces and will time out if Lettuce changes its startup command count.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4010346818"
+        }
+      ],
+      "reviewed": "7be647b474c09fae7b5bff3cdf2274480050c139",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4010200702"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] If attaching the telemetry target throws, this converts an otherwise successful Lettuce connection into an exceptionally completed application future. This callback runs outside the suppressed advice, so instrumentation failures must be logged/suppressed and the wrapper must still complete with `connection`.",
+      "created": "2026-09-20T05:11:54Z",
+      "hunk": "@@ -0,0 +1,142 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.isStatic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.lettuce.core.RedisChannelHandler;\n+import io.lettuce.core.RedisURI;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.function.BiConsumer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.implementation.bytecode.assign.Assigner;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceMasterSlaveInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    // These entry points delegate to each other in different Lettuce versions. Exit advice updates\n+    // only the inner RedisChannelHandler, so instrumenting both names is idempotent.\n+    return named(\"io.lettuce.core.masterslave.MasterSlave\")\n+        .or(named(\"io.lettuce.core.masterreplica.MasterReplica\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic()\n+            .and(isStatic())\n+            .and(named(\"connect\").or(named(\"connectAsync\")))\n+            .and(takesArguments(3))\n+            .and(\n+                takesArgument(2, named(\"io.lettuce.core.RedisURI\"))\n+                    .or(takesArgument(2, Iterable.class))),\n+        getClass().getName() + \"$ConnectAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConnectAdvice {\n+\n+    @Advice.AssignReturned.ToArguments(@ToArgument(value = 2, index = 1))\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(@Advice.Argument(2) Object targetSource) {\n+      if (targetSource instanceof RedisURI) {\n+        return new Object[] {LettuceServerTargets.of((RedisURI) targetSource), targetSource};\n+      }\n+      List<Object> snapshot = new ArrayList<>();\n+      for (Object redisUri : (Iterable<?>) targetSource) {\n+        snapshot.add(redisUri);\n+      }\n+      return new Object[] {LettuceServerTargets.ofMasterSlaveUris(snapshot), snapshot};\n+    }\n+\n+    @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static Object onExit(\n+        @Advice.Enter Object[] enter, @Advice.Return @Nullable Object result) {\n+      RedisServerTarget target = (RedisServerTarget) enter[0];\n+      if (result instanceof RedisChannelHandler) {\n+        setTarget(result, target);\n+      } else if (result instanceof CompletableFuture) {\n+        return new SetTargetFuture((CompletableFuture<?>) result, target);\n+      }\n+      return result;\n+    }\n+\n+    public static void setTarget(Object connection, @Nullable RedisServerTarget target) {\n+      RedisChannelHandler<?, ?> connectionHandler = (RedisChannelHandler<?, ?>) connection;\n+      LettuceConnectionState.updateServerTarget(connectionHandler, target);\n+    }\n+  }\n+\n+  public static class SetTargetFuture extends CompletableFuture<Object> {\n+    private final CompletableFuture<?> delegate;\n+\n+    public SetTargetFuture(\n+        CompletableFuture<?> delegate, @Nullable RedisServerTarget serverTarget) {\n+      this.delegate = delegate;\n+      delegate.whenComplete(new SetTargetConsumer(this, serverTarget));\n+    }\n+\n+    @Override\n+    public boolean cancel(boolean mayInterruptIfRunning) {\n+      boolean cancelled = delegate.cancel(mayInterruptIfRunning);\n+      if (cancelled) {\n+        cancelFromDelegate();\n+        return true;\n+      }\n+      return super.cancel(mayInterruptIfRunning);\n+    }\n+\n+    private void cancelFromDelegate() {\n+      super.cancel(false);\n+    }\n+  }\n+\n+  public static class SetTargetConsumer implements BiConsumer<Object, Throwable> {\n+    private final SetTargetFuture future;\n+    @Nullable private final RedisServerTarget target;\n+\n+    public SetTargetConsumer(SetTargetFuture future, @Nullable RedisServerTarget target) {\n+      this.future = future;\n+      this.target = target;\n+    }\n+\n+    @Override\n+    public void accept(@Nullable Object connection, @Nullable Throwable throwable) {\n+      if (throwable instanceof CancellationException) {\n+        future.cancelFromDelegate();\n+        return;\n+      }\n+      if (throwable != null) {\n+        future.completeExceptionally(throwable);\n+        return;\n+      }\n+      try {\n+        if (connection instanceof RedisChannelHandler) {\n+          ConnectAdvice.setTarget(connection, target);\n+        }\n+        future.complete(connection);\n+      } catch (Throwable t) {\n+        future.completeExceptionally(t);",
+      "id": "PRRT_kwDODJKVX86kHJaV",
+      "opened": "2026-09-20T05:11:55Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceMasterSlaveInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:30:42Z",
+          "body": "Addressed in a7984a734e5f3c27a6255b6d73f80c1ffad428b5.\n\nFixed in the verified source changes a7984a734e5f3c27a6255b6d73f80c1ffad428b5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4056215265"
+        }
+      ],
+      "reviewed": "b8cb072668622f7c278b50cef1557e85b8861056",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4056186197"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Cancellation can race with delegate completion: once the delegate is complete, `delegate.cancel(...)` returns false while its completion callback may not yet have completed this wrapper, and `super.cancel(...)` can then incorrectly turn a successful connection into cancellation. Keep the delegate as the source of truth and return false whenever it cannot be cancelled.",
+      "created": "2026-09-20T05:11:54Z",
+      "hunk": "@@ -0,0 +1,142 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.isStatic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.lettuce.core.RedisChannelHandler;\n+import io.lettuce.core.RedisURI;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.function.BiConsumer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.implementation.bytecode.assign.Assigner;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceMasterSlaveInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    // These entry points delegate to each other in different Lettuce versions. Exit advice updates\n+    // only the inner RedisChannelHandler, so instrumenting both names is idempotent.\n+    return named(\"io.lettuce.core.masterslave.MasterSlave\")\n+        .or(named(\"io.lettuce.core.masterreplica.MasterReplica\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic()\n+            .and(isStatic())\n+            .and(named(\"connect\").or(named(\"connectAsync\")))\n+            .and(takesArguments(3))\n+            .and(\n+                takesArgument(2, named(\"io.lettuce.core.RedisURI\"))\n+                    .or(takesArgument(2, Iterable.class))),\n+        getClass().getName() + \"$ConnectAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConnectAdvice {\n+\n+    @Advice.AssignReturned.ToArguments(@ToArgument(value = 2, index = 1))\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(@Advice.Argument(2) Object targetSource) {\n+      if (targetSource instanceof RedisURI) {\n+        return new Object[] {LettuceServerTargets.of((RedisURI) targetSource), targetSource};\n+      }\n+      List<Object> snapshot = new ArrayList<>();\n+      for (Object redisUri : (Iterable<?>) targetSource) {\n+        snapshot.add(redisUri);\n+      }\n+      return new Object[] {LettuceServerTargets.ofMasterSlaveUris(snapshot), snapshot};\n+    }\n+\n+    @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static Object onExit(\n+        @Advice.Enter Object[] enter, @Advice.Return @Nullable Object result) {\n+      RedisServerTarget target = (RedisServerTarget) enter[0];\n+      if (result instanceof RedisChannelHandler) {\n+        setTarget(result, target);\n+      } else if (result instanceof CompletableFuture) {\n+        return new SetTargetFuture((CompletableFuture<?>) result, target);\n+      }\n+      return result;\n+    }\n+\n+    public static void setTarget(Object connection, @Nullable RedisServerTarget target) {\n+      RedisChannelHandler<?, ?> connectionHandler = (RedisChannelHandler<?, ?>) connection;\n+      LettuceConnectionState.updateServerTarget(connectionHandler, target);\n+    }\n+  }\n+\n+  public static class SetTargetFuture extends CompletableFuture<Object> {\n+    private final CompletableFuture<?> delegate;\n+\n+    public SetTargetFuture(\n+        CompletableFuture<?> delegate, @Nullable RedisServerTarget serverTarget) {\n+      this.delegate = delegate;\n+      delegate.whenComplete(new SetTargetConsumer(this, serverTarget));\n+    }\n+\n+    @Override\n+    public boolean cancel(boolean mayInterruptIfRunning) {\n+      boolean cancelled = delegate.cancel(mayInterruptIfRunning);\n+      if (cancelled) {\n+        cancelFromDelegate();\n+        return true;\n+      }\n+      return super.cancel(mayInterruptIfRunning);\n+    }",
+      "id": "PRRT_kwDODJKVX86kHJaa",
+      "opened": "2026-09-20T05:11:55Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceMasterSlaveInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:30:43Z",
+          "body": "Addressed in a7984a734e5f3c27a6255b6d73f80c1ffad428b5.\n\nFixed in the verified source changes a7984a734e5f3c27a6255b6d73f80c1ffad428b5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4056215298"
+        }
+      ],
+      "reviewed": "b8cb072668622f7c278b50cef1557e85b8861056",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4056186206"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] New tests that directly exercise javaagent helpers should be a `unitTests` `JvmTestSuite` in the javaagent project rather than a separate `javaagent-unit-tests` subproject. That pattern keeps helper tests on the proper non-agent classpath and avoids duplicating project/task wiring; see `instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts:29-38` and `instrumentation/jms/jms-common-1.1/javaagent/build.gradle.kts:12-25`. Please move these tests to `javaagent/src/unitTests` and register the suite there.",
+      "created": "2026-09-20T05:11:55Z",
+      "hunk": "@@ -478,6 +478,7 @@ include(\":instrumentation:kubernetes-client-7.0:javaagent\")\n include(\":instrumentation:kubernetes-client-7.0:javaagent-unit-tests\")\n include(\":instrumentation:lettuce:lettuce-4.0:javaagent\")\n include(\":instrumentation:lettuce:lettuce-5.0:javaagent\")\n+include(\":instrumentation:lettuce:lettuce-5.0:javaagent-unit-tests\")",
+      "id": "PRRT_kwDODJKVX86kHJam",
+      "opened": "2026-09-20T05:11:55Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-20T05:30:44Z",
+          "body": "Addressed in a7984a734e5f3c27a6255b6d73f80c1ffad428b5.\n\nFixed in the verified source changes a7984a734e5f3c27a6255b6d73f80c1ffad428b5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4056215340"
+        }
+      ],
+      "reviewed": "b8cb072668622f7c278b50cef1557e85b8861056",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4056186220"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `namedOneOf`",
+      "created": "2026-09-22T06:39:50Z",
+      "hunk": "@@ -0,0 +1,146 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static java.util.logging.Level.FINE;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.isStatic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.lettuce.core.RedisChannelHandler;\n+import io.lettuce.core.RedisURI;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.function.BiConsumer;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.implementation.bytecode.assign.Assigner;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceMasterSlaveInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    // These entry points delegate to each other in different Lettuce versions. Exit advice updates\n+    // only the inner RedisChannelHandler, so instrumenting both names is idempotent.\n+    return named(\"io.lettuce.core.masterslave.MasterSlave\")",
+      "id": "PRRT_kwDODJKVX86kn2Q8",
+      "opened": "2026-09-22T06:39:50Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceMasterSlaveInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-22T15:22:58Z",
+          "body": "f04e48ed7712a2d56d444011544c5b30248d2a53",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4073331912"
+        }
+      ],
+      "reviewed": "137fe4573f8e15522791af8234987b05e1c9019a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4069042030"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `try (DefaultEndpoint endpoint = new DefaultEndpoint(ClientOptions.create())) {`?",
+      "created": "2026-09-22T06:44:44Z",
+      "hunk": "@@ -0,0 +1,226 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singletonList;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.assertj.core.api.Assertions.assertThatCode;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import io.lettuce.core.ClientOptions;\n+import io.lettuce.core.RedisURI;\n+import io.lettuce.core.StatefulRedisConnectionImpl;\n+import io.lettuce.core.cluster.RedisClusterClient;\n+import io.lettuce.core.codec.StringCodec;\n+import io.lettuce.core.output.StatusOutput;\n+import io.lettuce.core.protocol.Command;\n+import io.lettuce.core.protocol.CommandType;\n+import io.lettuce.core.protocol.DefaultEndpoint;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.function.BiConsumer;\n+import java.util.function.Supplier;\n+import org.junit.jupiter.api.Test;\n+\n+class LettuceAttributesGetterTest {\n+\n+  private static final InetSocketAddress SELECTED_ADDRESS =\n+      InetSocketAddress.createUnresolved(\"selected-node\", 6379);\n+\n+  @Test\n+  void commandWithoutTargetUsesSelectedAddressOnlyForLegacySemconv() {\n+    RedisCommand<String, String, String> command = command();\n+    DefaultEndpoint endpoint = new DefaultEndpoint(ClientOptions.create());\n+    try {",
+      "id": "PRRT_kwDODJKVX86kn6zY",
+      "opened": "2026-09-22T06:44:44Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-09-22T15:22:58Z",
+          "body": "df64329e6b343eb4cc03615bb0f1f5559bc53fff",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4073331996"
+        }
+      ],
+      "reviewed": "137fe4573f8e15522791af8234987b05e1c9019a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20077#discussion_r4069069384"
+    }
+  ]
+}

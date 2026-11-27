@@ -1,0 +1,343 @@
+{
+  "head": "e6bee41e12dece0db6cf61ca5c51f3bfc661e4a6",
+  "merge": "f0e6062162e2b8127f5db6377f34d702d5cdf282",
+  "merged": "2026-05-21T06:12:24Z",
+  "missing_roots": 0,
+  "number": 18797,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The note about removing `ElementType.CONSTRUCTOR` in 3.0 is currently in an inline comment, which won’t show up in generated Javadoc. Consider moving that note (and ideally a link/reference to the tracking issue) into the Javadoc so users see it in API docs.\n",
+      "created": "2026-05-19T04:06:10Z",
+      "hunk": "@@ -30,6 +33,6 @@\n  * <p>If you are a library developer, then probably you should NOT use this annotation, because it\n  * is non-functional without some form of auto-instrumentation.\n  */\n-@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})\n+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR}) // CONSTRUCTOR target to be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86DCGJ1",
+      "opened": "2026-05-19T04:06:11Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+      "replies": [
+        {
+          "at": "2026-05-19T04:12:15Z",
+          "body": "see above\n\n> The constructor target is deprecated and will be removed in the 3.0 release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263586350"
+        }
+      ],
+      "reviewed": "f4188b98cadd5dd381c7a89b3526e5f0da289cd0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263570316"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The note about removing `ElementType.CONSTRUCTOR` in 3.0 is currently in an inline comment, which won’t show up in generated Javadoc. Consider moving that note (and ideally a link/reference to the tracking issue) into the Javadoc so users see it in API docs.",
+      "created": "2026-05-19T04:06:10Z",
+      "hunk": "@@ -13,16 +13,19 @@\n import java.lang.annotation.Target;\n \n /**\n- * This annotation marks that an execution of this method or constructor should result in a new\n- * {@link io.opentelemetry.api.trace.Span}.\n+ * This annotation marks that an execution of this method should result in a new {@link\n+ * io.opentelemetry.api.trace.Span}.\n+ *\n+ * <p>Applying this annotation to constructors is not supported by OpenTelemetry instrumentation.\n+ * The constructor target is deprecated and will be removed in the 3.0 release.\n  *\n  * <p>Application developers can use this annotation to signal OpenTelemetry auto-instrumentation\n- * that a new span should be created whenever marked method is executed.\n+ * that a new span should be created whenever the marked method is executed.\n  *\n  * <p>If you are a library developer, then probably you should NOT use this annotation, because it\n  * is non-functional without some form of auto-instrumentation.\n  */\n-@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})\n+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR}) // CONSTRUCTOR target to be removed in 3.0\n @Retention(RetentionPolicy.RUNTIME)",
+      "id": "PRRT_kwDODJKVX86DCGJi",
+      "opened": "2026-05-19T04:06:11Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+      "replies": [
+        {
+          "at": "2026-05-19T04:12:33Z",
+          "body": "See above\n\n> The constructor target is deprecated and will be removed in the 3.0 release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263587196"
+        }
+      ],
+      "reviewed": "f4188b98cadd5dd381c7a89b3526e5f0da289cd0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263570292"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] Adding another `Thread.sleep(500)` slows down the test suite. Since the agent-for-testing uses synchronous span exporting (SimpleSpanProcessor), it should be sufficient to assert immediately after the constructor call; consider dropping the sleep here.",
+      "created": "2026-05-19T04:06:11Z",
+      "hunk": "@@ -133,6 +133,14 @@ void excludedMethod() throws InterruptedException {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void annotatedConstructorDoesNotCreateSpan() throws InterruptedException {\n+    new TracedWithSpan(\"unused\");\n+\n+    Thread.sleep(500); // sleep a bit just to make sure no span is captured\n+    assertThat(testing.waitForTraces(0)).isEmpty();",
+      "id": "PRRT_kwDODJKVX86DCGKC",
+      "opened": "2026-05-19T04:06:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-05-19T04:23:12Z",
+          "body": "good point, will follow-up separately though since this change should be made more broadly if we're going to do it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263631350"
+        }
+      ],
+      "reviewed": "f4188b98cadd5dd381c7a89b3526e5f0da289cd0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263570332"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] Adding another `Thread.sleep(500)` slows down the test suite. Since the agent-for-testing uses synchronous span exporting (SimpleSpanProcessor), it should be sufficient to assert immediately after the constructor call; consider dropping the sleep here.\n",
+      "created": "2026-05-19T04:06:11Z",
+      "hunk": "@@ -109,6 +109,14 @@ void excludedMethod() throws InterruptedException {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void annotatedConstructorDoesNotCreateSpan() throws InterruptedException {\n+    new TracedWithSpan(\"unused\");\n+\n+    Thread.sleep(500); // sleep a bit just to make sure no span is captured",
+      "id": "PRRT_kwDODJKVX86DCGKP",
+      "opened": "2026-05-19T04:06:11Z",
+      "path": "instrumentation/opentelemetry-extension-annotations-1.0/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "f4188b98cadd5dd381c7a89b3526e5f0da289cd0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263570348"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The Javadoc says “The constructor target is deprecated”, but there’s no actual Java deprecation signal (and there’s no way to deprecate just one ElementType in @Target). This wording can mislead users expecting compiler warnings; consider rephrasing to “Using `@WithSpan` on constructors is not supported and will be removed in 3.0” (optionally noting the CONSTRUCTOR target exists only for backward compatibility).\n",
+      "created": "2026-05-19T05:01:41Z",
+      "hunk": "@@ -13,16 +13,19 @@\n import java.lang.annotation.Target;\n \n /**\n- * This annotation marks that an execution of this method or constructor should result in a new\n- * {@link io.opentelemetry.api.trace.Span}.\n+ * This annotation marks that an execution of this method should result in a new {@link\n+ * io.opentelemetry.api.trace.Span}.\n+ *\n+ * <p>Applying this annotation to constructors is not supported by OpenTelemetry instrumentation.\n+ * The constructor target is deprecated and will be removed in the 3.0 release.",
+      "id": "PRRT_kwDODJKVX86DCnot",
+      "opened": "2026-05-19T05:01:42Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+      "replies": [
+        {
+          "at": "2026-05-19T05:12:06Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797/commits/89e21c1383d99163cae4ef4ac98060be5d8f96e5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263812424"
+        }
+      ],
+      "reviewed": "f4188b98cadd5dd381c7a89b3526e5f0da289cd0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263773388"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] Same as WithSpan: “The constructor target is deprecated” reads like an actual deprecation, but nothing is annotated as `@Deprecated` (and the `@Target` CONSTRUCTOR element can’t be deprecated in isolation). Consider rewording to avoid implying tooling-supported deprecation, e.g. “Using `@AddingSpanAttributes` on constructors is not supported and will be removed in 3.0”.\n",
+      "created": "2026-05-19T05:01:42Z",
+      "hunk": "@@ -11,8 +11,11 @@\n import java.lang.annotation.Target;\n \n /**\n- * This annotation marks that an execution of this method or constructor is able to add attributes\n- * to the current span {@link io.opentelemetry.api.trace.Span}.\n+ * This annotation marks that an execution of this method is able to add attributes to the current\n+ * span {@link io.opentelemetry.api.trace.Span}.\n+ *\n+ * <p>Applying this annotation to constructors is not supported by OpenTelemetry instrumentation.\n+ * The constructor target is deprecated and will be removed in the 3.0 release.",
+      "id": "PRRT_kwDODJKVX86DCnpH",
+      "opened": "2026-05-19T05:01:42Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+      "replies": [
+        {
+          "at": "2026-05-19T05:11:59Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797/commits/89e21c1383d99163cae4ef4ac98060be5d8f96e5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263811994"
+        }
+      ],
+      "reviewed": "f4188b98cadd5dd381c7a89b3526e5f0da289cd0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263773422"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] This new test adds another fixed `Thread.sleep(500)`, which slows the suite and can be flaky. In agent tests spans are exported via a `SimpleSpanProcessor` (synchronous on span end), so it should be sufficient to assert immediately after constructing `TracedWithSpan`, without sleeping.",
+      "created": "2026-05-19T05:01:42Z",
+      "hunk": "@@ -109,6 +109,14 @@ void excludedMethod() throws InterruptedException {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void annotatedConstructorDoesNotCreateSpan() throws InterruptedException {\n+    new TracedWithSpan(\"unused\");\n+\n+    Thread.sleep(500); // sleep a bit just to make sure no span is captured\n+    assertThat(testing.waitForTraces(0)).isEmpty();\n+  }",
+      "id": "PRRT_kwDODJKVX86DCnpS",
+      "opened": "2026-05-19T05:01:42Z",
+      "path": "instrumentation/opentelemetry-extension-annotations-1.0/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-05-19T05:12:25Z",
+          "body": "will follow-up on this after PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263813470"
+        }
+      ],
+      "reviewed": "f4188b98cadd5dd381c7a89b3526e5f0da289cd0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263773439"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This test doesn’t currently exercise constructor handling in the actual `@AddingSpanAttributes` instrumentation path. `AddingSpanAttributesInstrumentation.typeMatcher()` uses `declaresMethod(@AddingSpanAttributes)` (i.e., it won’t even transform types that only have an annotated constructor), so `ConstructedWithAddingSpanAttributes` (constructor-only) will be skipped and the assertion can pass trivially. To make this a meaningful regression test, consider using a class that is eligible for transformation (e.g., add at least one `@AddingSpanAttributes`-annotated method to `ConstructedWithAddingSpanAttributes`, or reuse an existing eligible test class) and then verify the annotated constructor still doesn’t add attributes / doesn’t break instrumentation.\n",
+      "created": "2026-05-19T05:18:16Z",
+      "hunk": "@@ -80,6 +80,21 @@ void noExistingSpan() {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void annotatedConstructorDoesNotAddAttributes() {\n+    testing.runWithSpan(\n+        \"root\", () -> new ConstructedWithAddingSpanAttributes(\"foo\", \"bar\", null, \"baz\"));\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\"root\")\n+                        .hasKind(SpanKind.INTERNAL)\n+                        .hasNoParent()\n+                        .hasTotalAttributeCount(0)));\n+  }\n+\n   @Test",
+      "id": "PRRT_kwDODJKVX86DC0Tw",
+      "opened": "2026-05-19T05:18:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-05-19T15:45:06Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e51cd987dc05c367197d238f5c590f1c14e1b373.\n\nAdded coverage for both current constructor-only behavior and the transform-eligible constructor-plus-method case, without changing instrumentation internals.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3267633007"
+        }
+      ],
+      "reviewed": "89e21c1383d99163cae4ef4ac98060be5d8f96e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3263843220"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using a fixed Thread.sleep in tests is prone to flakiness and can slow the suite. Prefer a polling/await pattern that waits up to a timeout while asserting no traces are reported (or use a testing utility that deterministically drains/flushes spans and then asserts emptiness).",
+      "created": "2026-05-19T15:52:55Z",
+      "hunk": "@@ -133,6 +133,14 @@ void excludedMethod() throws InterruptedException {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void annotatedConstructorDoesNotCreateSpan() throws InterruptedException {\n+    new TracedWithSpan(\"unused\");\n+\n+    Thread.sleep(500); // sleep a bit just to make sure no span is captured\n+    assertThat(testing.waitForTraces(0)).isEmpty();\n+  }",
+      "id": "PRRT_kwDODJKVX86DNhNp",
+      "opened": "2026-05-19T15:52:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-05-20T02:47:07Z",
+          "body": "I'm going to do this as a follow-up after this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3270938966"
+        }
+      ],
+      "reviewed": "e51cd987dc05c367197d238f5c590f1c14e1b373",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3267681868"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same concern as the 1.16 annotations test: fixed sleeps make tests timing-dependent. Consider switching to an await/poll assertion (bounded by a timeout) or a deterministic test harness hook to ensure no spans were captured.",
+      "created": "2026-05-19T15:52:56Z",
+      "hunk": "@@ -109,6 +109,14 @@ void excludedMethod() throws InterruptedException {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void annotatedConstructorDoesNotCreateSpan() throws InterruptedException {\n+    new TracedWithSpan(\"unused\");\n+\n+    Thread.sleep(500); // sleep a bit just to make sure no span is captured\n+    assertThat(testing.waitForTraces(0)).isEmpty();\n+  }",
+      "id": "PRRT_kwDODJKVX86DNhOR",
+      "opened": "2026-05-19T15:52:57Z",
+      "path": "instrumentation/opentelemetry-extension-annotations-1.0/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-05-20T03:08:59Z",
+          "body": "I'm going to do this as a follow-up after this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3270996662"
+        }
+      ],
+      "reviewed": "e51cd987dc05c367197d238f5c590f1c14e1b373",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3267681921"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds a global skip error condition; if it persists past this test it can mask unexpected failures in other tests and reduce signal in CI. Scope it to this test (e.g., install in setup and remove in a finally/@AfterEach, or use an AutoCloseable/try-with-resources API if available) so the condition cannot leak across tests.",
+      "created": "2026-05-19T15:52:56Z",
+      "hunk": "@@ -80,6 +81,51 @@ void noExistingSpan() {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void constructorOnlyAddingSpanAttributesDoesNotTransformType() {\n+    // Current behavior: the type matcher only considers declared methods, so a class with only an\n+    // @AddingSpanAttributes constructor is not transformed.\n+    testing.runWithSpan(\n+        \"root\", () -> new ConstructorOnlyAddingSpanAttributes(\"foo\", \"bar\", null, \"baz\"));\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\"root\")\n+                        .hasKind(SpanKind.INTERNAL)\n+                        .hasNoParent()\n+                        .hasTotalAttributeCount(0)));\n+  }\n+\n+  @Test\n+  void constructorAndMethodAddingSpanAttributesDoesNotAddAttributes() {\n+    // Current behavior: once the annotated method makes the class eligible for transformation, the\n+    // annotated constructor is also matched and fails because @Advice.Origin Method cannot\n+    // represent constructors.\n+    TestAgentListenerAccess.addSkipErrorCondition(\n+        (typeName, t) ->\n+            typeName.equals(ConstructedWithAddingSpanAttributes.class.getName())\n+                && t.getMessage() != null\n+                && t.getMessage().startsWith(\"Cannot represent \")\n+                && t.getMessage().endsWith(\" as the specified constant\"));",
+      "id": "PRRT_kwDODJKVX86DNhOy",
+      "opened": "2026-05-19T15:52:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-05-20T03:00:56Z",
+          "body": "Fixed locally in 06835661d9ba7b28c63ea87672988aa06508fa48 by resetting TestAgentListenerAccess in a finally block so the skip condition cannot leak across tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3270975593"
+        }
+      ],
+      "reviewed": "e51cd987dc05c367197d238f5c590f1c14e1b373",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3267681960"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc states the constructor target 'will be removed in the 3.0 release', which reads like a hard guarantee. If the removal isn’t already scheduled/committed, consider softening the wording (e.g., 'planned to be removed') and/or linking to the tracking issue/PR. Also consider mirroring the same wording consistency in other constructor-related annotations (e.g., AddingSpanAttributes) to avoid mixed guidance.",
+      "created": "2026-05-19T15:52:56Z",
+      "hunk": "@@ -13,16 +13,20 @@\n import java.lang.annotation.Target;\n \n /**\n- * This annotation marks that an execution of this method or constructor should result in a new\n- * {@link io.opentelemetry.api.trace.Span}.\n+ * This annotation marks that an execution of this method should result in a new {@link\n+ * io.opentelemetry.api.trace.Span}.\n+ *\n+ * <p>Using this annotation on constructors is not supported by OpenTelemetry instrumentation. The\n+ * {@link ElementType#CONSTRUCTOR} target exists only for backward compatibility and will be removed\n+ * in the 3.0 release.",
+      "id": "PRRT_kwDODJKVX86DNhPI",
+      "opened": "2026-05-19T15:52:57Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+      "replies": [
+        {
+          "at": "2026-05-20T03:06:08Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/03e1006f471b5879c9b1c1e514464acd641322e1 by softening the constructor target wording to say it is planned for removal in 3.0 and keeping WithSpan and AddingSpanAttributes consistent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3270989465"
+        }
+      ],
+      "reviewed": "e51cd987dc05c367197d238f5c590f1c14e1b373",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3267681989"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc states the constructor target 'will be removed in the 3.0 release', which reads like a hard guarantee. If the removal isn’t already scheduled/committed, consider softening the wording (e.g., 'planned to be removed') and/or linking to the tracking issue/PR. Also consider mirroring the same wording consistency in other constructor-related annotations (e.g., AddingSpanAttributes) to avoid mixed guidance.",
+      "created": "2026-05-19T15:52:57Z",
+      "hunk": "@@ -13,16 +13,20 @@\n import java.lang.annotation.Target;\n \n /**\n- * This annotation marks that an execution of this method or constructor should result in a new\n- * {@link io.opentelemetry.api.trace.Span}.\n+ * This annotation marks that an execution of this method should result in a new {@link\n+ * io.opentelemetry.api.trace.Span}.\n+ *\n+ * <p>Using this annotation on constructors is not supported by OpenTelemetry instrumentation. The\n+ * {@link ElementType#CONSTRUCTOR} target exists only for backward compatibility and will be removed\n+ * in the 3.0 release.\n  *\n  * <p>Application developers can use this annotation to signal OpenTelemetry auto-instrumentation\n- * that a new span should be created whenever marked method is executed.\n+ * that a new span should be created whenever the marked method is executed.\n  *\n  * <p>If you are a library developer, then probably you should NOT use this annotation, because it\n  * is non-functional without some form of auto-instrumentation.\n  */\n-@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})\n+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR}) // CONSTRUCTOR target to be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86DNhPl",
+      "opened": "2026-05-19T15:52:57Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+      "replies": [
+        {
+          "at": "2026-05-20T03:08:41Z",
+          "body": "\"to be removed in 3.0\" is conventional in the repo",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3270995910"
+        }
+      ],
+      "reviewed": "e51cd987dc05c367197d238f5c590f1c14e1b373",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3267682027"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`TestAgentListenerAccess.reset()` clears `instrumentationErrorCount` and other listener state. Since `AgentTestRunner.afterTestClass()` asserts `getInstrumentationErrorCount() == 0` at the end of the class, resetting inside a single test can mask instrumentation errors that happened earlier in this test class and reduce CI signal. Prefer not calling `reset()` here; it should be enough to add a narrowly-scoped skip condition (typeName check) and let the per-test-class reset in the runner handle cleanup.\n",
+      "created": "2026-05-20T03:12:59Z",
+      "hunk": "@@ -80,6 +81,55 @@ void noExistingSpan() {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void constructorOnlyAddingSpanAttributesDoesNotTransformType() {\n+    // Current behavior: the type matcher only considers declared methods, so a class with only an\n+    // @AddingSpanAttributes constructor is not transformed.\n+    testing.runWithSpan(\n+        \"root\", () -> new ConstructorOnlyAddingSpanAttributes(\"foo\", \"bar\", null, \"baz\"));\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\"root\")\n+                        .hasKind(SpanKind.INTERNAL)\n+                        .hasNoParent()\n+                        .hasTotalAttributeCount(0)));\n+  }\n+\n+  @Test\n+  void constructorAndMethodAddingSpanAttributesDoesNotAddAttributes() {\n+    // Current behavior: once the annotated method makes the class eligible for transformation, the\n+    // annotated constructor is also matched and fails because @Advice.Origin Method cannot\n+    // represent constructors.\n+    TestAgentListenerAccess.addSkipErrorCondition(\n+        (typeName, t) ->\n+            typeName.equals(ConstructedWithAddingSpanAttributes.class.getName())\n+                && t.getMessage() != null\n+                && t.getMessage().startsWith(\"Cannot represent \")\n+                && t.getMessage().endsWith(\" as the specified constant\"));\n+\n+    try {\n+      testing.runWithSpan(\n+          \"root\",\n+          () ->\n+              new ConstructedWithAddingSpanAttributes(\"foo\", \"bar\", null, \"baz\")\n+                  .addAttributes(\"method\"));\n+\n+      testing.waitAndAssertTraces(\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span ->\n+                      span.hasName(\"root\")\n+                          .hasKind(SpanKind.INTERNAL)\n+                          .hasNoParent()\n+                          .hasTotalAttributeCount(0)));\n+    } finally {\n+      TestAgentListenerAccess.reset();\n+    }",
+      "id": "PRRT_kwDODJKVX86DWhdX",
+      "opened": "2026-05-20T03:13:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "03e1006f471b5879c9b1c1e514464acd641322e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3271007719"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc says constructor usage is \"planned to be removed in 3.0\", but the inline comment on the `@Target` line says \"to be removed in 3.0\". Consider removing the inline comment (the Javadoc already documents it) or aligning the wording to avoid inconsistencies.\n",
+      "created": "2026-05-20T03:13:00Z",
+      "hunk": "@@ -30,6 +34,6 @@\n  * <p>If you are a library developer, then probably you should NOT use this annotation, because it\n  * is non-functional without some form of auto-instrumentation.\n  */\n-@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})\n+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR}) // CONSTRUCTOR target to be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86DWhd4",
+      "opened": "2026-05-20T03:13:00Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+      "replies": [],
+      "reviewed": "03e1006f471b5879c9b1c1e514464acd641322e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3271007759"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc says constructor usage is \"planned to be removed in 3.0\", but the inline comment on the `@Target` line says \"to be removed in 3.0\". Consider either removing the inline comment (since the Javadoc already covers this) or aligning its wording with the Javadoc to avoid mixed guidance in the source.\n",
+      "created": "2026-05-20T03:13:00Z",
+      "hunk": "@@ -13,16 +13,20 @@\n import java.lang.annotation.Target;\n \n /**\n- * This annotation marks that an execution of this method or constructor should result in a new\n- * {@link io.opentelemetry.api.trace.Span}.\n+ * This annotation marks that an execution of this method should result in a new {@link\n+ * io.opentelemetry.api.trace.Span}.\n+ *\n+ * <p>Using this annotation on constructors is not supported by OpenTelemetry instrumentation. The\n+ * {@link ElementType#CONSTRUCTOR} target exists only for backward compatibility and is planned to\n+ * be removed in the 3.0 release.\n  *\n  * <p>Application developers can use this annotation to signal OpenTelemetry auto-instrumentation\n- * that a new span should be created whenever marked method is executed.\n+ * that a new span should be created whenever the marked method is executed.\n  *\n  * <p>If you are a library developer, then probably you should NOT use this annotation, because it\n  * is non-functional without some form of auto-instrumentation.\n  */\n-@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})\n+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR}) // CONSTRUCTOR target to be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86DWhds",
+      "opened": "2026-05-20T03:13:00Z",
+      "path": "instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+      "replies": [],
+      "reviewed": "03e1006f471b5879c9b1c1e514464acd641322e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3271007744"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why don't we just add `isMethod` to the matcher?",
+      "created": "2026-05-20T07:17:27Z",
+      "hunk": "@@ -80,6 +81,51 @@ void noExistingSpan() {\n     assertThat(testing.waitForTraces(0)).isEmpty();\n   }\n \n+  @Test\n+  void constructorOnlyAddingSpanAttributesDoesNotTransformType() {\n+    // Current behavior: the type matcher only considers declared methods, so a class with only an\n+    // @AddingSpanAttributes constructor is not transformed.\n+    testing.runWithSpan(\n+        \"root\", () -> new ConstructorOnlyAddingSpanAttributes(\"foo\", \"bar\", null, \"baz\"));\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\"root\")\n+                        .hasKind(SpanKind.INTERNAL)\n+                        .hasNoParent()\n+                        .hasTotalAttributeCount(0)));\n+  }\n+\n+  @Test\n+  void constructorAndMethodAddingSpanAttributesDoesNotAddAttributes() {\n+    // Current behavior: once the annotated method makes the class eligible for transformation, the\n+    // annotated constructor is also matched and fails because @Advice.Origin Method cannot\n+    // represent constructors.\n+    TestAgentListenerAccess.addSkipErrorCondition(",
+      "id": "PRRT_kwDODJKVX86DZGr_",
+      "opened": "2026-05-20T07:17:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-05-20T18:59:48Z",
+          "body": "I wanted to just document / lock in the current behavior first. Then I will feel better about fixing up the matchers without needing to wait for major version bump.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3276450795"
+        }
+      ],
+      "reviewed": "e6bee41e12dece0db6cf61ca5c51f3bfc661e4a6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18797#discussion_r3271936689"
+    }
+  ]
+}

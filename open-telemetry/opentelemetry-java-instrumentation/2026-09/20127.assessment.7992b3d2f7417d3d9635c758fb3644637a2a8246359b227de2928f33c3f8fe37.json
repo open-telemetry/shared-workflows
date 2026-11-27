@@ -1,0 +1,61 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b4162961adc72fd2260ae9231183eb1f694893537759a9368dd45035e37e7435",
+  "input_digest": "7992b3d2f7417d3d9635c758fb3644637a2a8246359b227de2928f33c3f8fe37",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6fe504ba6322ac37eec564fb6c089600acce350/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fe4b5b6cca9d4aac0496a365e820c3b90440dba/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fe4b5b6cca9d4aac0496a365e820c3b90440dba/instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cbe0ba2e228c0d9f811368e943aaf1ecd6cefbcf"
+      ],
+      "id": "PRRT_kwDODJKVX86h0WVM",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6fe504ba6322ac37eec564fb6c089600acce350/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedScopeParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fe4b5b6cca9d4aac0496a365e820c3b90440dba/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedScopeParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9e329b89588e893bed8c17489f53f3bcf6402ae2"
+      ],
+      "id": "PRRT_kwDODJKVX86h0WVV",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e329b89588e893bed8c17489f53f3bcf6402ae2/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedScopeParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fe4b5b6cca9d4aac0496a365e820c3b90440dba/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedScopeParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/90dedca363cbd6dadd48866baec266bc9a9cb1ca"
+      ],
+      "id": "PRRT_kwDODJKVX86h0chD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3de4597f0a1b8f54da5630a64b8a7f3436a65da/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3de4597f0a1b8f54da5630a64b8a7f3436a65da/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/DbSpanDecorator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fe4b5b6cca9d4aac0496a365e820c3b90440dba/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fe4b5b6cca9d4aac0496a365e820c3b90440dba/instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fe4b5b6cca9d4aac0496a365e820c3b90440dba/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/CassandraTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2dfe9aecb3bf3a15a859543bdc942bda625ee77d"
+      ],
+      "id": "PRRT_kwDODJKVX86h5e-L",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

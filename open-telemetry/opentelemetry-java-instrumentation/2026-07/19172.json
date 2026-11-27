@@ -1,0 +1,178 @@
+{
+  "head": "d62264d71fda3a57de4c9b84a06f5109b665e101",
+  "merge": "6adcdddee824ee1e702a71c307f7b57227f77b08",
+  "merged": "2026-07-10T19:05:40Z",
+  "missing_roots": 0,
+  "number": 19172,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider\n```suggestion\n        named(\"batch\").and(takesArgument(0, List.class)),\n```",
+      "created": "2026-07-10T10:39:14Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.startBatch;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.hadoop.hbase.client.HTable;\n+import org.apache.hadoop.hbase.client.Row;\n+\n+class HTableInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.hadoop.hbase.client.HTable\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // matches both batch(List, Object[]) and batch(List, Object[], int)\n+    transformer.applyAdviceToMethod(\n+        named(\"batch\").and(takesArgument(0, named(\"java.util.List\"))),",
+      "id": "PRRT_kwDODJKVX86P2nZL",
+      "opened": "2026-07-10T10:39:14Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HTableInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-10T15:15:02Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d65f4f1090. Replaced the name-based argument matcher with takesArgument(0, List.class).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3559987977"
+        }
+      ],
+      "reviewed": "92224107c94ed593e6fd7d007ebd94dfca8427cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3558259151"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Add `inline = false`. I think that currently when instrumentation module has a mix of inline and non-inline advice we treat it as a non-indy instrumentation. To allow using inlined advice we strip the `inline = false` then. I think for v3 we probably should remove the bit the strips `inline = false` and let the instrumentation fail when inline and non-inline advice are mixed.",
+      "created": "2026-07-10T10:48:54Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.startBatch;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.hadoop.hbase.client.HTable;\n+import org.apache.hadoop.hbase.client.Row;\n+\n+class HTableInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.hadoop.hbase.client.HTable\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // matches both batch(List, Object[]) and batch(List, Object[], int)\n+    transformer.applyAdviceToMethod(\n+        named(\"batch\").and(takesArgument(0, named(\"java.util.List\"))),\n+        getClass().getName() + \"$BatchAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class BatchAdvice {\n+    @Advice.OnMethodEnter(suppress = Throwable.class)",
+      "id": "PRRT_kwDODJKVX86P2wsb",
+      "opened": "2026-07-10T10:48:54Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HTableInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-10T15:15:04Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6f4d9ae7c4. Added inline = false to the batch enter advice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3559988175"
+        }
+      ],
+      "reviewed": "92224107c94ed593e6fd7d007ebd94dfca8427cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3558310285"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n```",
+      "created": "2026-07-10T10:49:37Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.startBatch;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.hadoop.hbase.client.HTable;\n+import org.apache.hadoop.hbase.client.Row;\n+\n+class HTableInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.hadoop.hbase.client.HTable\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // matches both batch(List, Object[]) and batch(List, Object[], int)\n+    transformer.applyAdviceToMethod(\n+        named(\"batch\").and(takesArgument(0, named(\"java.util.List\"))),\n+        getClass().getName() + \"$BatchAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class BatchAdvice {\n+    @Advice.OnMethodEnter(suppress = Throwable.class)",
+      "id": "PRRT_kwDODJKVX86P2xW6",
+      "opened": "2026-07-10T10:49:37Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HTableInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-10T15:15:07Z",
+          "body": "No additional code change needed. This duplicates the preceding enter-advice request, which was fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6f4d9ae7c4.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3559988409"
+        }
+      ],
+      "reviewed": "92224107c94ed593e6fd7d007ebd94dfca8427cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3558314026"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n```",
+      "created": "2026-07-10T10:49:47Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseSingletons.startBatch;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.hadoop.hbase.client.HTable;\n+import org.apache.hadoop.hbase.client.Row;\n+\n+class HTableInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.hadoop.hbase.client.HTable\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // matches both batch(List, Object[]) and batch(List, Object[], int)\n+    transformer.applyAdviceToMethod(\n+        named(\"batch\").and(takesArgument(0, named(\"java.util.List\"))),\n+        getClass().getName() + \"$BatchAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class BatchAdvice {\n+    @Advice.OnMethodEnter(suppress = Throwable.class)\n+    @Nullable\n+    public static Scope onEnter(@Advice.Argument(0) List<? extends Row> actions) {\n+      // batch(List, Object[]) delegates to batch(List, Object[], int); only record for the\n+      // outermost call so the batch metadata is produced once.\n+      CallDepth callDepth = CallDepth.forClass(HTable.class);\n+      if (callDepth.getAndIncrement() > 0) {\n+        return null;\n+      }\n+      return startBatch(actions);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)",
+      "id": "PRRT_kwDODJKVX86P2xgW",
+      "opened": "2026-07-10T10:49:46Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HTableInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-10T15:15:09Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2685c18ed4. Added inline = false to the batch exit advice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3559988641"
+        }
+      ],
+      "reviewed": "92224107c94ed593e6fd7d007ebd94dfca8427cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3558314833"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This applies metadata for the entire `Table.batch` call to every `Multi` RPC span. HBase's `AsyncProcess` partitions actions by region server and retries only failed subsets, so a given RPC may contain fewer actions—and even a different homogeneous operation mix—than the original list. Multi-region/retry spans will therefore report an inflated `db.operation.batch.size` and may have the wrong operation name. Derive these values from the actions in the actual `Multi` request (or emit one logical batch span), and cover a batch split across regions.",
+      "created": "2026-07-10T15:24:55Z",
+      "hunk": "@@ -64,9 +65,21 @@ public static RequestAndContext onEnter(\n         port = address.getPort();\n         hostname = address.getHostString();\n       }\n-      HbaseRequest request =\n-          HbaseRequest.create(md.getName(), getTableName(), ticket.getName(), hostname, port);\n+      String operation = md.getName();\n+      Long batchSize = null;\n       Context parentContext = Java8BytecodeBridge.currentContext();\n+      // A Table.batch(...) call is issued as a \"Multi\" RPC. When batch metadata is propagated in\n+      // the context, report the derived batch operation name and db.operation.batch.size instead.\n+      if (\"Multi\".equals(operation)) {\n+        HbaseBatchMetadata batchMetadata = getBatchMetadata(parentContext);\n+        if (batchMetadata != null) {\n+          operation = batchMetadata.getOperation();\n+          batchSize = batchMetadata.getOperationBatchSize();",
+      "id": "PRRT_kwDODJKVX86P7k9T",
+      "opened": "2026-07-10T15:24:55Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/AbstractRpcClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-10T16:35:02Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/09222d0973465f90843e63f3fba0a822886414cb.\n\nBatch operation metadata is now derived from each actual MultiRequest payload, with split-request coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560486867"
+        }
+      ],
+      "reviewed": "2685c18ed4d46953e2fd36d16f47b859d356234c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560053766"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The stable-semconv branch in `testBatch` duplicates the assertions already encapsulated in `traceAssertConsumer(...)` (including stable/old attribute key mapping and `db.operation.batch.size`). Reusing the helper will reduce drift and keep batch assertions consistent with other tests.",
+      "created": "2026-07-10T17:06:42Z",
+      "hunk": "@@ -366,35 +369,69 @@ void testBatch(BatchScenario scenario) throws IOException, InterruptedException\n       table.batch(scenario.actions, new Object[scenario.actions.size()]);\n     }\n \n+    // an empty batch sends nothing to the server, so no span is produced under either semconv\n     if (scenario.actions.isEmpty()) {\n       assertThat(testing().spans()).isEmpty();\n       return;\n     }\n \n+    if (!emitStableDatabaseSemconv()) {\n+      // old semconv reports every batch RPC as the raw \"Multi\" operation\n+      testing()\n+          .waitAndAssertTraces(traceAssertConsumer(TABLE_NAME, MULTI, REGION_SERVER_PORT, true));\n+      return;\n+    }\n+\n+    // stable semconv derives the batch operation name and db.operation.batch.size; the batch size\n+    // is present only for multi-action batches (a single-action batch is a non-batch operation, so\n+    // scenario.batchSize is null and the attribute is asserted absent)\n     testing()\n         .waitAndAssertTraces(\n-            traceAssertConsumer(TABLE_NAME, scenario.operationName, REGION_SERVER_PORT, true));\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->",
+      "id": "PRRT_kwDODJKVX86P9ROX",
+      "opened": "2026-07-10T17:06:43Z",
+      "path": "instrumentation/hbase-client-2.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/testing/AbstractHbaseTest.java",
+      "replies": [
+        {
+          "at": "2026-07-10T17:37:00Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4dba9e757e1826066094cd8b4d726a4d8a42385d. Reused traceAssertConsumer(...) for the stable batch assertions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560856396"
+        }
+      ],
+      "reviewed": "c0314b4b0b7b7f9bc4aeb43111590e7911ac9937",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560667696"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Class.forName(\"org.apache.hadoop.hbase.ipc.AbstractRpcClient\")` is executed for its side effect but the test doesn’t explain why this class-load is required. If it’s only a leftover, it can be removed; if it’s needed to trigger agent initialization/muzzle in this test environment, add a short comment documenting that intent so future refactors don’t break the test inadvertently.",
+      "created": "2026-07-10T17:06:43Z",
+      "hunk": "@@ -0,0 +1,87 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import java.lang.reflect.Method;\n+import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class HbaseBatchMetadataTest {\n+\n+  private static final String METADATA_CLASS_NAME =\n+      \"io.opentelemetry.javaagent.instrumentation.hbase.client.v2_0.HbaseBatchMetadata\";\n+\n+  @RegisterExtension\n+  static final AgentInstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Test\n+  void derivesMetadataFromEachRequestWhenBatchIsSplitAcrossServers()\n+      throws ReflectiveOperationException {\n+    Object getMetadata = createMetadata(request(region(getAction())));\n+    Object mutationMetadata = createMetadata(request(region(mutationAction(), mutationAction())));\n+\n+    assertThat(getOperation(getMetadata)).isEqualTo(\"Get\");\n+    assertThat(getOperationBatchSize(getMetadata)).isNull();\n+    assertThat(getOperation(mutationMetadata)).isEqualTo(\"BATCH Mutate\");\n+    assertThat(getOperationBatchSize(mutationMetadata)).isEqualTo(2L);\n+  }\n+\n+  @Test\n+  void derivesMetadataAcrossRegionsInOneRequest() throws ReflectiveOperationException {\n+    Object metadata = createMetadata(request(region(getAction()), region(mutationAction())));\n+\n+    assertThat(getOperation(metadata)).isEqualTo(\"BATCH\");\n+    assertThat(getOperationBatchSize(metadata)).isEqualTo(2L);\n+  }\n+\n+  private static Object createMetadata(ClientProtos.MultiRequest request)\n+      throws ReflectiveOperationException {\n+    Class.forName(\"org.apache.hadoop.hbase.ipc.AbstractRpcClient\");\n+    Class<?> metadataClass = Class.forName(METADATA_CLASS_NAME);",
+      "id": "PRRT_kwDODJKVX86P9ROy",
+      "opened": "2026-07-10T17:06:43Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseBatchMetadataTest.java",
+      "replies": [
+        {
+          "at": "2026-07-10T17:37:03Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4dba9e757e1826066094cd8b4d726a4d8a42385d. Removed the reflection-based helper test and now cover cross-region metadata through the public Table.batch(...) API against a split table.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560856614"
+        }
+      ],
+      "reviewed": "c0314b4b0b7b7f9bc4aeb43111590e7911ac9937",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560667733"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The implementation now derives metadata from each actual `MultiRequest`, but the PR description still says it instruments `HTable.batch(...)`, carries metadata through the context, and guarantees the table’s name/size mapping for the full submitted action list. Those claims are no longer true when HBase partitions a logical batch into multiple RPCs: each span reports only its request subset. Please update the PR description and behavior table to document the per-RPC semantics introduced here.",
+      "created": "2026-07-10T17:42:15Z",
+      "hunk": "@@ -64,8 +68,17 @@ public static RequestAndContext onEnter(\n         port = address.getPort();\n         hostname = address.getHostString();\n       }\n+      String operation = md.getName();\n+      Long batchSize = null;\n+      if (emitStableDatabaseSemconv() && param instanceof ClientProtos.MultiRequest) {\n+        HbaseBatchMetadata batchMetadata =\n+            HbaseBatchMetadata.create((ClientProtos.MultiRequest) param);",
+      "id": "PRRT_kwDODJKVX86P92TT",
+      "opened": "2026-07-10T17:42:15Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/AbstractRpcClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-10T17:53:34Z",
+          "body": "Updated the PR description to document that metadata is derived from each actual MultiRequest. The behavior table now describes actions per request, and the text explains region-server partitioning and subset retries.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560959884"
+        }
+      ],
+      "reviewed": "4dba9e757e1826066094cd8b4d726a4d8a42385d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19172#discussion_r3560884478"
+    }
+  ]
+}

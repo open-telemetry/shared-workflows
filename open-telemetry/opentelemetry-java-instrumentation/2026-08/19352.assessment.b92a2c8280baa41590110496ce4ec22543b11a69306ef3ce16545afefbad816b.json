@@ -1,0 +1,99 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "2b91d16197bfc0ff2bd3545de4e01cdcdbd965408b87a8385f55d34718fbe395",
+  "input_digest": "b92a2c8280baa41590110496ce4ec22543b11a69306ef3ce16545afefbad816b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractSingleRecordVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractSingleRecordVertxKafkaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz4GD",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractSingleRecordNoReceiveTelemetryVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractSingleRecordNoReceiveTelemetryVertxKafkaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz4Ga",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsVertxKafkaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz4Gt",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsNoReceiveTelemetryVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsNoReceiveTelemetryVertxKafkaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz4HA",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/spring/spring-kafka-2.7/testing/src/main/java/io/opentelemetry/testing/AbstractSpringKafkaNoReceiveTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/spring/spring-kafka-2.7/testing/src/main/java/io/opentelemetry/testing/AbstractSpringKafkaNoReceiveTelemetryTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz4HZ",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz4Hu",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/00545038b3e19c177d52d17d2fb0ecdd7609bebc/instrumentation/reactor/reactor-kafka-1.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/kafka/v1_0/AbstractReactorKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/reactor/reactor-kafka-1.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/kafka/v1_0/AbstractReactorKafkaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz4IA",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f3c4c167b88c1763cb5a368164dc84b8129d96f7/instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4e605f2f593d8483c9463a2209fbd1f1f8fb31ec/instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XCE0v",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

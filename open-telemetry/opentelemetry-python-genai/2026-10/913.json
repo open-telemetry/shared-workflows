@@ -1,0 +1,193 @@
+{
+  "head": "07a6e45dbe4f9a0b045469f895eac42dae7eef98",
+  "merge": "9b8af3af676e8ee1c23fd6a696b44db64a635576",
+  "merged": "2026-10-22T03:16:55Z",
+  "missing_roots": 0,
+  "number": 913,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tuple content containing dictionaries, such as `({\"text\": \"Hello\"},)`, now enters this branch but yields no text: `getattr(item, \"text\", None)` cannot read dictionary keys. Thus `{\"role\": \"user\", \"content\": ({\"text\": \"Hello\"},)}` is omitted from input telemetry. Read each item's text with `_field_value`, which already supports both SDK objects and the dictionary shape included in `QwenContentItem`. Add a raw-dictionary tuple-content regression case.",
+      "created": "2026-10-17T21:01:13Z",
+      "hunk": "@@ -62,14 +63,16 @@ def _field_value(value: Any, *names: str) -> Any:\n     return None\n \n \n-def _extract_content_text(content: str | list[QwenContentItem] | None) -> str:\n+def _extract_content_text(\n+    content: str | Sequence[QwenContentItem] | None,\n+) -> str:\n     \"\"\"Extract text from a qwen-agent Message content field.\n \n     Content can be a plain string or a list of ContentItem.\n     \"\"\"\n     if isinstance(content, str):\n         return content\n-    if isinstance(content, list):\n+    if isinstance(content, (list, tuple)):\n         texts: list[str] = []\n         for item in content:\n             text = getattr(item, \"text\", None)",
+      "id": "PRRT_kwDOSbspP86tkYwz",
+      "opened": "2026-10-17T21:01:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-17T21:18:33Z",
+          "body": "Resolved in commit 0efdb34e: updated _extract_content_text to read text with _field_value(item, \"text\") and convert to str, ensuring raw dictionary content items like ({\"text\": \"Hello\"},) are extracted properly. Added regression test test_convert_to_input_messages_handles_raw_dict_tuple_content.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4304547309"
+        }
+      ],
+      "reviewed": "45982c46661c52e9b9deb382a6f5a810cfee8d87",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4304487120"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The signatures now accept `Sequence`, but all five runtime guards still recognize only lists and tuples. For example, `UserList([{\"role\": \"user\", \"content\": \"Hello\"}])` loses its input text; assistant histories similarly produce empty or missing output. `find_tool_call_id` rejects these histories, and `_extract_content_text` stringifies general sequences instead of joining their text. Use `Sequence` consistently in all five helpers, preserving scalar string/bytes handling, and add `UserList` regression cases to cover the contract requested in #904.",
+      "created": "2026-10-17T21:01:13Z",
+      "hunk": "@@ -141,13 +144,13 @@ def _tool_call_response_id(msg: Any) -> str:\n \n \n def convert_to_input_messages(\n-    messages: QwenMessage | list[QwenMessage] | None,\n+    messages: QwenMessage | Sequence[QwenMessage] | None,\n ) -> list[InputMessage]:\n     \"\"\"Convert a qwen-agent Message list to GenAI InputMessage objects.\"\"\"\n     if not messages:\n         return []\n \n-    if not isinstance(messages, list):\n+    if not isinstance(messages, (list, tuple)):",
+      "id": "PRRT_kwDOSbspP86tkYxA",
+      "opened": "2026-10-17T21:01:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-17T21:18:41Z",
+          "body": "Resolved in commit 0efdb34e: defined _is_sequence helper recognizing general Sequence types while excluding scalar strings, bytes, and mappings. Applied _is_sequence across _extract_content_text, find_tool_call_id, convert_to_input_messages, convert_to_output_messages, and convert_to_final_output_messages. Added regression tests test_conversion_helpers_handle_user_list_sequences and test_agent_run_with_user_list_messages using collections.UserList.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4304547859"
+        }
+      ],
+      "reviewed": "45982c46661c52e9b9deb382a6f5a810cfee8d87",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4304487139"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Could we scope this to tuple inputs? [`Agent.run()` rebuilds each output as a list](https://github.com/QwenLM/Qwen-Agent/blob/main/qwen_agent/agent.py#L128-L131), so is tuple support needed in the output converters? Similarly, since it normalizes inputs into a list before calling `_run()`, is there a path where `find_tool_call_id()` receives a tuple history?",
+      "created": "2026-10-19T01:32:35Z",
+      "hunk": "@@ -186,13 +196,13 @@ def convert_to_input_messages(\n \n \n def convert_to_output_messages(\n-    messages: QwenMessage | list[QwenMessage] | None,\n+    messages: QwenMessage | Sequence[QwenMessage] | None,",
+      "id": "PRRT_kwDOSbspP86twqHH",
+      "opened": "2026-10-19T01:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-19T03:10:26Z",
+          "body": "Updated in commit acfe76f4: scoped tuple inputs strictly to convert_to_input_messages and message content extraction, while keeping convert_to_output_messages, convert_to_final_output_messages, and find_tool_call_id scoped to standard lists as outputs and histories are normalized by Agent.run().",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4310012813"
+        }
+      ],
+      "reviewed": "0efdb34ee0f39b53a8f08eb541fa507f19f20314",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4309649627"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Could we scope this to tuple inputs? [`Agent.run()` rebuilds each output as a list](https://github.com/QwenLM/Qwen-Agent/blob/main/qwen_agent/agent.py#L128-L131), so is tuple support needed in the output converters? Similarly, since it normalizes inputs into a list before calling `_run()`, is there a path where `find_tool_call_id()` receives a tuple history?",
+      "created": "2026-10-19T01:32:52Z",
+      "hunk": "@@ -62,25 +70,27 @@ def _field_value(value: Any, *names: str) -> Any:\n     return None\n \n \n-def _extract_content_text(content: str | list[QwenContentItem] | None) -> str:\n+def _extract_content_text(\n+    content: str | Sequence[QwenContentItem] | None,\n+) -> str:\n     \"\"\"Extract text from a qwen-agent Message content field.\n \n     Content can be a plain string or a list of ContentItem.\n     \"\"\"\n     if isinstance(content, str):\n         return content\n-    if isinstance(content, list):\n+    if _is_sequence(content):\n         texts: list[str] = []\n         for item in content:\n-            text = getattr(item, \"text\", None)\n+            text = _field_value(item, \"text\")\n             if text is not None:\n-                texts.append(text)\n+                texts.append(str(text))\n         return \"\\n\".join(texts)\n     return str(content) if content else \"\"\n \n \n def find_tool_call_id(\n-    messages: list[QwenMessage] | None, tool_name: str\n+    messages: Sequence[QwenMessage] | None, tool_name: str",
+      "id": "PRRT_kwDOSbspP86twqQB",
+      "opened": "2026-10-19T01:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [],
+      "reviewed": "0efdb34ee0f39b53a8f08eb541fa507f19f20314",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4309650631"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Could we fix the type narrowing? `_is_sequence() -> bool` doesn’t narrow the callers’ union types, causing pyright errors. Use `TypeGuard[Sequence[Any]]` for positive checks, and normalize converter inputs separately because `TypeGuard` doesn’t narrow false branches:\n\n```python\ndef _as_message_sequence(\n    messages: QwenMessage | Sequence[QwenMessage] | None,\n) -> Sequence[QwenMessage]:\n    if messages is None:\n        return ()\n    if isinstance(messages, Sequence):\n        return messages\n    return (messages,)\n```\n\nThen iterate over `_as_message_sequence(messages)` instead of reassigning `messages`. Could you verify with `uv run tox -e typecheck`?",
+      "created": "2026-10-19T01:34:39Z",
+      "hunk": "@@ -34,6 +35,13 @@\n _logger = logging.getLogger(__name__)\n \n \n+def _is_sequence(val: object) -> bool:\n+    \"\"\"Check if a value is a non-string, non-mapping sequence.\"\"\"",
+      "id": "PRRT_kwDOSbspP86twrPa",
+      "opened": "2026-10-19T01:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-19T03:10:33Z",
+          "body": "Resolved in commit acfe76f4: annotated _is_sequence with TypeGuard[Sequence[Any]] and introduced _as_message_sequence to normalize QwenMessage | Sequence[QwenMessage] | None inputs without false-branch narrowing issues. Verified with pyright across the package with zero errors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4310013367"
+        }
+      ],
+      "reviewed": "0efdb34ee0f39b53a8f08eb541fa507f19f20314",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4309657009"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Is this needed?",
+      "created": "2026-10-19T01:36:08Z",
+      "hunk": "@@ -62,25 +70,27 @@ def _field_value(value: Any, *names: str) -> Any:\n     return None\n \n \n-def _extract_content_text(content: str | list[QwenContentItem] | None) -> str:\n+def _extract_content_text(\n+    content: str | Sequence[QwenContentItem] | None,\n+) -> str:\n     \"\"\"Extract text from a qwen-agent Message content field.\n \n     Content can be a plain string or a list of ContentItem.\n     \"\"\"\n     if isinstance(content, str):\n         return content\n-    if isinstance(content, list):\n+    if _is_sequence(content):\n         texts: list[str] = []\n         for item in content:\n-            text = getattr(item, \"text\", None)\n+            text = _field_value(item, \"text\")\n             if text is not None:\n-                texts.append(text)\n+                texts.append(str(text))",
+      "id": "PRRT_kwDOSbspP86twsDU",
+      "opened": "2026-10-19T01:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-19T03:10:41Z",
+          "body": "Kept str(text) as defensive conversion in commit acfe76f4 so non-string text values from raw dictionary items are handled consistently without raising in str.join, verified with pyright with zero errors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4310013901"
+        }
+      ],
+      "reviewed": "0efdb34ee0f39b53a8f08eb541fa507f19f20314",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4309662238"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "can you please rename the file to 913 instead of 904?",
+      "created": "2026-10-19T01:36:51Z",
+      "hunk": "@@ -0,0 +1 @@\n+Capture qwen-agent messages, content parts, and tool calls provided as tuples.",
+      "id": "PRRT_kwDOSbspP86twsdh",
+      "opened": "2026-10-19T01:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/.changelog/904.fixed",
+      "replies": [
+        {
+          "at": "2026-10-19T03:10:48Z",
+          "body": "Renamed to instrumentation/opentelemetry-instrumentation-genai-qwen-agent/.changelog/913.fixed in commit acfe76f4.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4310014373"
+        }
+      ],
+      "reviewed": "0efdb34ee0f39b53a8f08eb541fa507f19f20314",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4309664829"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Could we make the integration tests pass tuple inputs to Agent.run(), have _run() yield normal lists, and assert both captured input and output? For tuple/UserList content coverage, could we use raw dictionary messages so the content reaches instrumentation unchanged, since Message(...) converts those containers to lists during validation?",
+      "created": "2026-10-19T01:38:08Z",
+      "hunk": "@@ -395,3 +402,258 @@ def fake_run(self, messages, **kwargs):\n     assert len(child_spans) == 1\n     assert child_spans[0].parent is not None\n     assert child_spans[0].parent.span_id == parent_spans[0].context.span_id\n+\n+\n+def test_convert_to_input_messages_handles_tuples():",
+      "id": "PRRT_kwDOSbspP86twtIp",
+      "opened": "2026-10-19T01:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/tests/test_agent.py",
+      "replies": [
+        {
+          "at": "2026-10-19T03:10:56Z",
+          "body": "Updated in commit acfe76f4: integration tests now pass tuple and UserList inputs with raw dictionary messages to Agent.run(), ensuring container shapes reach instrumentation intact without being converted by Message(...) validation. _run() yields standard lists, and assertions verify both captured input messages and final output messages.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4310014881"
+        }
+      ],
+      "reviewed": "0efdb34ee0f39b53a8f08eb541fa507f19f20314",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4309669385"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "123liuziming"
+      },
+      "body": "Should we use `if _is_sequence(messages):` directly here?",
+      "created": "2026-10-20T08:11:00Z",
+      "hunk": "@@ -34,6 +35,26 @@\n _logger = logging.getLogger(__name__)\n \n \n+def _is_sequence(val: object) -> TypeGuard[Sequence[Any]]:\n+    \"\"\"Check if a value is a non-string, non-mapping sequence.\"\"\"\n+    return isinstance(val, Sequence) and not isinstance(\n+        val, (str, bytes, bytearray, Mapping)\n+    )\n+\n+\n+def _as_message_sequence(\n+    messages: QwenMessage | Sequence[QwenMessage] | None,\n+) -> Sequence[QwenMessage]:\n+    \"\"\"Normalize input messages into a sequence without copying.\"\"\"\n+    if messages is None:\n+        return ()\n+    if isinstance(messages, Sequence) and not isinstance(",
+      "id": "PRRT_kwDOSbspP86uP78J",
+      "opened": "2026-10-20T08:11:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-20T08:14:46Z",
+          "body": "Good catch, updated to use `_is_sequence(messages)` directly in commit 766a21e7.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4322865494"
+        }
+      ],
+      "reviewed": "acfe76f4bd7078340a6f5bdfcf8338f4b222357e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/913#discussion_r4322835099"
+    }
+  ]
+}

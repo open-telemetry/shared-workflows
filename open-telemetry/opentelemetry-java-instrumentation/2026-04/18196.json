@@ -1,0 +1,55 @@
+{
+  "head": "b2f79f770c1aa5410d9e9721659303fe941fd63a",
+  "merge": "132aa31bca4fc52f7d25b52c0855ea7a2699327b",
+  "merged": "2026-04-24T15:03:06Z",
+  "missing_roots": 0,
+  "number": 18196,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    assertThat(events)\n        .extracting(LoggingEvent::getMessage)\n        .containsExactly(\"log message 1\", \"log message 2\");\n\n    LoggingEvent firstEvent = events.get(0);\n    LoggingEvent secondEvent = events.get(1);\n\n```",
+      "created": "2026-04-23T06:57:14Z",
+      "hunk": "@@ -36,17 +36,19 @@ void noIdsWhenNoSpan() {\n     logger.info(\"log message 2\");\n \n     List<LoggingEvent> events = ListAppender.getEvents();\n-\n-    assertThat(events).hasSize(2);\n-    assertThat(events.get(0).getMessage()).isEqualTo(\"log message 1\");\n-    assertThat(events.get(0).getMDC(\"trace_id\")).isNull();\n-    assertThat(events.get(0).getMDC(\"span_id\")).isNull();\n-    assertThat(events.get(0).getMDC(\"trace_flags\")).isNull();\n-\n-    assertThat(events.get(1).getMessage()).isEqualTo(\"log message 2\");\n-    assertThat(events.get(1).getMDC(\"trace_id\")).isNull();\n-    assertThat(events.get(1).getMDC(\"span_id\")).isNull();\n-    assertThat(events.get(1).getMDC(\"trace_flags\")).isNull();\n+    LoggingEvent firstEvent = events.get(0);\n+    LoggingEvent secondEvent = events.get(1);\n+\n+    assertThat(events)\n+        .extracting(LoggingEvent::getMessage)\n+        .containsExactly(\"log message 1\", \"log message 2\");",
+      "id": "PRRT_kwDODJKVX859AVsf",
+      "opened": "2026-04-23T06:57:14Z",
+      "path": "instrumentation/log4j/log4j-mdc-1.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/log4j/mdc/v1_2/Log4j1MdcTest.java",
+      "replies": [],
+      "reviewed": "6dc601e844ce35bfab86cfb89702c62f5e5fae9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18196#discussion_r3128888443"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    assertThat(events)\n        .extracting(LoggingEvent::getMessage)\n        .containsExactly(\"log message 1\", \"log message 2\", \"log message 3\");\n\n    LoggingEvent firstEvent = events.get(0);\n    LoggingEvent secondEvent = events.get(1);\n    LoggingEvent thirdEvent = events.get(2);\n\n```",
+      "created": "2026-04-23T06:57:44Z",
+      "hunk": "@@ -70,25 +72,27 @@ void idsWhenSpan() {\n             });\n \n     List<LoggingEvent> events = ListAppender.getEvents();\n-\n-    assertThat(events).hasSize(3);\n-    assertThat(events.get(0).getMessage()).isEqualTo(\"log message 1\");\n-    assertThat(events.get(0).getMDC(\"trace_id\")).isEqualTo(span1.getSpanContext().getTraceId());\n-    assertThat(events.get(0).getMDC(\"span_id\")).isEqualTo(span1.getSpanContext().getSpanId());\n-    assertThat(events.get(0).getMDC(\"trace_flags\"))\n+    LoggingEvent firstEvent = events.get(0);\n+    LoggingEvent secondEvent = events.get(1);\n+    LoggingEvent thirdEvent = events.get(2);\n+\n+    assertThat(events)\n+        .extracting(LoggingEvent::getMessage)\n+        .containsExactly(\"log message 1\", \"log message 2\", \"log message 3\");",
+      "id": "PRRT_kwDODJKVX859AWFq",
+      "opened": "2026-04-23T06:57:43Z",
+      "path": "instrumentation/log4j/log4j-mdc-1.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/log4j/mdc/v1_2/Log4j1MdcTest.java",
+      "replies": [],
+      "reviewed": "6dc601e844ce35bfab86cfb89702c62f5e5fae9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18196#discussion_r3128890670"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    assertThat(events).extracting(LoggingEvent::getMessage).containsExactly(\"log message 1\");\n\n    LoggingEvent event = events.get(0);\n```",
+      "created": "2026-04-23T06:58:15Z",
+      "hunk": "@@ -97,13 +101,13 @@ void resourceAttributes() {\n     logger.info(\"log message 1\");\n \n     List<LoggingEvent> events = ListAppender.getEvents();\n-\n-    assertThat(events).hasSize(1);\n-    assertThat(events.get(0).getMessage()).isEqualTo(\"log message 1\");\n-    assertThat(events.get(0).getMDC(\"trace_id\")).isNull();\n-    assertThat(events.get(0).getMDC(\"span_id\")).isNull();\n-    assertThat(events.get(0).getMDC(\"trace_flags\")).isNull();\n-    assertThat(events.get(0).getMDC(\"service.name\")).isEqualTo(\"unknown_service:java\");\n-    assertThat(events.get(0).getMDC(\"telemetry.sdk.language\")).isEqualTo(\"java\");\n+    LoggingEvent event = events.get(0);\n+\n+    assertThat(events).extracting(LoggingEvent::getMessage).containsExactly(\"log message 1\");",
+      "id": "PRRT_kwDODJKVX859AWf4",
+      "opened": "2026-04-23T06:58:15Z",
+      "path": "instrumentation/log4j/log4j-mdc-1.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/log4j/mdc/v1_2/Log4j1MdcTest.java",
+      "replies": [],
+      "reviewed": "6dc601e844ce35bfab86cfb89702c62f5e5fae9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18196#discussion_r3128892897"
+    }
+  ]
+}

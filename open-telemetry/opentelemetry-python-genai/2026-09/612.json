@@ -1,0 +1,166 @@
+{
+  "head": "420b5777b78b61d0e0dfb54877cdedabe429d541",
+  "merge": "03b8e8a1c99899dca0f7a099a4f062c2c3f4d82b",
+  "merged": "2026-09-04T22:00:40Z",
+  "missing_roots": 0,
+  "number": 612,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if system is None:\n```",
+      "created": "2026-09-04T03:56:22Z",
+      "hunk": "@@ -125,10 +126,16 @@ def get_input_messages(\n \n def get_system_instruction(\n     system: str | Iterable[TextBlockParam] | None,\n-) -> list[MessagePart]:\n-    if system is None:\n+) -> list[SystemInstructionPart]:\n+    if not system:",
+      "id": "PRRT_kwDOSbspP86fKL-t",
+      "opened": "2026-09-04T03:56:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [],
+      "reviewed": "4da2bdd871aa223ad5bf75ac27def02ba2da59f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3930740411"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this change turns out to be wrong, instructions are only populated when they are provided separately from chat history\n\nhttps://github.com/open-telemetry/semantic-conventions-genai/blob/94f432d7126f5884d30a2cdde6f4e89908ebb6fd/docs/registry/attributes/gen-ai.md?plain=1#L255\n\nfixing it",
+      "created": "2026-09-04T04:00:56Z",
+      "hunk": "@@ -1 +0,0 @@\n-Divert `SystemMessage` inputs to `gen_ai.system_instructions` instead of emitting them as `role=\"system\"` inside `gen_ai.input.messages`.",
+      "id": "PRRT_kwDOSbspP86fKO6W",
+      "opened": "2026-09-04T04:00:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/511.fixed",
+      "replies": [
+        {
+          "at": "2026-09-04T21:18:29Z",
+          "body": "cc @sfc-gh-zeningchen",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3937947910"
+        }
+      ],
+      "reviewed": "4da2bdd871aa223ad5bf75ac27def02ba2da59f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3930758612"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This unrelated change routes every LangChain `SystemMessage` into `gen_ai.input.messages` and stops populating `gen_ai.system_instructions`, undoing the behavior described by the deleted `511.fixed` fragment and the removed conformance assertions. It also contradicts this PR's stated scope of adding the system-instruction part type. Please retain the split/assignment path and keep the existing system-instruction tests; any semantic change to LangChain emission should be a separately justified PR.",
+      "created": "2026-09-04T04:13:33Z",
+      "hunk": "@@ -326,24 +326,21 @@ def on_chat_model_start(\n             if \"ls_max_tokens\" in metadata:\n                 max_tokens = metadata.get(\"ls_max_tokens\")\n \n-        # Flatten ``list[list[BaseMessage]]`` (one inner list per generation\n-        # request) before splitting into system / input.\n+        # ``messages`` from on_chat_model_start is ``list[list[BaseMessage]]``\n+        # (one inner list per generation request). Flatten and let\n+        # :func:`to_input_messages` produce spec-conformant ``InputMessage`` s\n+        # with proper roles, tool-call requests, tool results, and reasoning.\n         flattened: list[BaseMessage] = [msg for sub in messages for msg in sub]\n-        system_instruction: list[MessagePart] = []\n         input_messages: list[InputMessage] = []\n         if self._telemetry_handler.should_capture_content():\n-            system_instruction, input_messages = (\n-                split_system_and_input_messages(flattened)\n-            )\n+            input_messages = to_input_messages(flattened)",
+      "id": "PRRT_kwDOSbspP86fKXHL",
+      "opened": "2026-09-04T04:13:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "4da2bdd871aa223ad5bf75ac27def02ba2da59f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3930808836"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`SystemInstructionPart` does not yet mirror the pinned semconv model: it reuses this package's `GenericPart`, which requires a `value` field and cannot preserve arbitrary provider-specific properties at the top level, while the pinned model declares only `type` and allows arbitrary extra properties. As a result, provider parts must be reshaped as `{\"type\": ..., \"value\": ...}` rather than represented as specified. Please introduce a representation that preserves the model's property shape and cite `gen-ai-system-instructions.json`, as required by the [util-genai semantic-model rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/util-genai.instructions.md#2-semantic-conventions).",
+      "created": "2026-09-04T04:13:34Z",
+      "hunk": "@@ -308,6 +308,9 @@ class Role(str, Enum):\n     TOOL = \"tool\"\n \n \n+SystemInstructionPart = Union[TextPart, GenericPart]",
+      "id": "PRRT_kwDOSbspP86fKXH1",
+      "opened": "2026-09-04T04:13:35Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "4da2bdd871aa223ad5bf75ac27def02ba2da59f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3930808891"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This union is not source-compatible for existing `CompletionHook` subclasses despite retaining `list[MessagePart]`: mutable `list` is invariant, and an override accepting only the old `list[MessagePart]` cannot implement a protocol method that may receive `list[SystemInstructionPart]`. The updated example subclasses have the inverse incompatibility by accepting only the new list type. Please redesign the collection contract so existing hook implementations remain valid, then make every example use that exact protocol signature.",
+      "created": "2026-09-04T04:13:34Z",
+      "hunk": "@@ -68,10 +74,10 @@ class CompletionHook(Protocol):\n     def on_completion(\n         self,\n         *,\n-        inputs: list[types.InputMessage],\n-        outputs: list[types.OutputMessage],\n-        system_instruction: list[types.MessagePart],\n-        tool_definitions: list[types.ToolDefinition] | None = None,\n+        inputs: list[InputMessage],\n+        outputs: list[OutputMessage],\n+        system_instruction: list[SystemInstructionPart] | list[MessagePart],",
+      "id": "PRRT_kwDOSbspP86fKXHZ",
+      "opened": "2026-09-04T04:13:35Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/completion_hook.py",
+      "replies": [],
+      "reviewed": "4da2bdd871aa223ad5bf75ac27def02ba2da59f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3930808854"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Non-text Bedrock system blocks are silently discarded here. Bedrock's existing extractor recognizes `guardContent` and `cachePoint` as `GenericPart`, which is precisely the newly supported system-instruction variant, but this branch only checks `text`. Reuse `extract_content_block` and retain `TextPart`/`GenericPart` results so these valid blocks reach telemetry; add a regression case alongside the new text-only test.",
+      "created": "2026-09-04T04:13:34Z",
+      "hunk": "@@ -256,6 +258,25 @@ def _extract_parts(content: Any) -> list[MessagePart]:\n     return parts\n \n \n+def _extract_system_parts(\n+    content: str | Sequence[Mapping[str, Any] | str] | None,\n+) -> list[SystemInstructionPart]:\n+    if not content:\n+        return []\n+    if isinstance(content, str):\n+        return [TextPart(content=content)] if content else []\n+    parts: list[SystemInstructionPart] = []\n+    for item in content:\n+        if isinstance(item, str):\n+            if item:\n+                parts.append(TextPart(content=item))\n+        else:\n+            text = item.get(\"text\")\n+            if isinstance(text, str) and text:\n+                parts.append(TextPart(content=text))\n+    return parts",
+      "id": "PRRT_kwDOSbspP86fKXHr",
+      "opened": "2026-09-04T04:13:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "4da2bdd871aa223ad5bf75ac27def02ba2da59f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3930808876"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test only constructs the two pre-existing dataclasses; because a type alias has no runtime behavior, it does not verify the claimed invocation or completion-hook support or the serialized `gen_ai.system_instructions` shape. Add tests that pass a `GenericPart` through the public invocation and hook paths and assert the exact emitted names, JSON shape, and value types, per the [util-genai testing rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/util-genai.instructions.md#8-tests).",
+      "created": "2026-09-04T04:13:35Z",
+      "hunk": "@@ -1069,6 +1071,15 @@ def test_messages_with_name(self):\n         serialized_out = json.loads(gen_ai_json_dumps(asdict(out_msg)))\n         self.assertEqual(serialized_out[\"name\"], \"bot\")\n \n+    def test_system_instruction_part(self):\n+        text_part: SystemInstructionPart = TextPart(content=\"You are helpful\")\n+        generic_part: SystemInstructionPart = GenericPart(\n+            type=\"custom\", value={\"k\": \"v\"}\n+        )",
+      "id": "PRRT_kwDOSbspP86fKXIE",
+      "opened": "2026-09-04T04:13:35Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "4da2bdd871aa223ad5bf75ac27def02ba2da59f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3930808915"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This conversion now silently discards every non-text system-instruction part. Google’s `GenerateContentConfig.system_instruction` accepts `ContentUnion`, which includes `Content`, individual `Part` values, and lists of parts, while the new semconv union includes `GenericPart` specifically for non-text/custom system parts. Map non-text parts to an appropriate `GenericPart` discriminator instead of omitting them from telemetry.",
+      "created": "2026-09-04T05:00:17Z",
+      "hunk": "@@ -56,11 +57,12 @@ def content_to_output_message(\n def to_system_instructions(\n     *,\n     content: genai_types.Content,\n-) -> list[MessagePart]:\n-    parts = (\n-        _to_part(part, idx) for idx, part in enumerate(content.parts or [])\n-    )\n-    return [part for part in parts if part is not None]\n+) -> list[SystemInstructionPart]:\n+    return [\n+        TextPart(content=part.text)\n+        for part in content.parts or []\n+        if part.text is not None",
+      "id": "PRRT_kwDOSbspP86fK2zj",
+      "opened": "2026-09-04T05:00:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/message.py",
+      "replies": [],
+      "reviewed": "79551d685ee5d33c639950eca72a1bd789790750",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3931006522"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The migration misses the public `FetchResponseInvocation.system_instruction`, which remains `list[MessagePart]` in `_fetch_response_invocation.py:114`. Because `list` is invariant, callers cannot assign a `list[SystemInstructionPart]` there without a type error, unlike inference and agent invocations. Apply the same transitional `list[SystemInstructionPart] | list[MessagePart]` annotation and deprecation note to the fetch-response invocation.",
+      "created": "2026-09-04T05:00:17Z",
+      "hunk": "@@ -239,7 +244,7 @@ def get_content_attributes(\n     *,\n     input_messages: Sequence[InputMessage],\n     output_messages: Sequence[OutputMessage],\n-    system_instruction: Sequence[MessagePart],\n+    system_instruction: Sequence[SystemInstructionPart | MessagePart],",
+      "id": "PRRT_kwDOSbspP86fK2zw",
+      "opened": "2026-09-04T05:00:17Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "79551d685ee5d33c639950eca72a1bd789790750",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3931006544"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "nit: i'd just inline this code inside _extract_system_parts",
+      "created": "2026-09-04T18:50:40Z",
+      "hunk": "@@ -256,6 +258,37 @@ def _extract_parts(content: Any) -> list[MessagePart]:\n     return parts\n \n \n+def _extract_system_content_block(",
+      "id": "PRRT_kwDOSbspP86faMwJ",
+      "opened": "2026-09-04T18:50:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "191c6516de123be06bf6d2d01af625f683c7904e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/612#discussion_r3937040514"
+    }
+  ]
+}

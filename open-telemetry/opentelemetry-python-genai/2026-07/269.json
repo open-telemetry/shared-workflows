@@ -1,0 +1,268 @@
+{
+  "head": "b6fc483add46ed6782f964405729972b29998e23",
+  "merge": "f6567eaf56bfc19e88b568e3d06e57f8b74638d9",
+  "merged": "2026-07-29T21:10:06Z",
+  "missing_roots": 0,
+  "number": 269,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "todo: let's automate it in post-release workflow",
+      "created": "2026-07-15T05:01:25Z",
+      "hunk": "@@ -21,5 +21,5 @@\n # OpenTelemetry SDK and test utilities come transitively from opentelemetry-test-util-genai, which\n # every oldest env installs. Pin here only test-only deps that nothing else already provides.\n #\n-# There is currently nothing to pin: anthropic has no test-only dependency that isn't already\n-# provided by a declared bound or by the shared test fixtures.\n+# Drop this once opentelemetry-util-genai 1.1b0 is published.\n+-e util/opentelemetry-util-genai",
+      "id": "PRRT_kwDOSbspP86Q-swp",
+      "opened": "2026-07-15T05:01:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "cb3b195744c562067a4f99a3e473a3342edff31b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3584582593"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The per-chunk timing currently sent to `invocation._on_stream_chunk()` is a single timestamp taken after `next()`/`anext()` returns. Because `_on_stream_chunk()` computes deltas between successive timestamps (or start time), the `time_per_output_chunk` metric will include any caller time spent between iterations (time between the previous `yield` and the next `next()` call), not just the blocking read duration. This contradicts the PR description/#13 text that says timing is measured around the blocking `next()`/`anext()` call to avoid inflating metrics with user processing time.\n\nConsider timing the blocking read itself (capture `t0` before calling `next()`/`anext()`, `t1` after it returns) and reporting the read duration (and TTFC as `t1 - start`) rather than inter-iteration timestamps.",
+      "created": "2026-07-15T05:05:51Z",
+      "hunk": "@@ -116,7 +127,12 @@ def __next__(self) -> ChunkT:\n         except Exception as error:\n             self._finalize_failure(error)\n             raise\n+        invocation = self._self_invocation\n+        chunk_at = timeit.default_timer() if invocation is not None else None\n         self._process_chunk(chunk)\n+        # Record after _process_chunk so response.model is on the metrics.\n+        if invocation is not None and chunk_at is not None:\n+            invocation._on_stream_chunk(chunk_at)",
+      "id": "PRRT_kwDOSbspP86Q-vbk",
+      "opened": "2026-07-15T05:05:53Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-07-15T05:12:24Z",
+          "body": "it's not measuring next() duration, it's capturing delta as chunks arrive from server. measures service perf, not client.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3584621874"
+        }
+      ],
+      "reviewed": "eb74d0f6627e7b02aa4571f07c3faddfebf442a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3584598019"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Use the semconv constant for the TTFC span attribute name instead of a hard-coded string, to ensure the test stays aligned with the semantic conventions module and avoids silent drift if the attribute key changes.",
+      "created": "2026-07-15T05:05:52Z",
+      "hunk": "@@ -156,6 +156,119 @@ def test_fail_llm_records_error_and_available_tokens(self) -> None:\n         )\n         self.assertAlmostEqual(token_point.sum, 11.0, places=3)\n \n+    def test_streaming_records_ttfc_and_per_output_chunk(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        with patch(\"timeit.default_timer\", return_value=1000.0):\n+            invocation = handler.inference(\"prov\", request_model=\"model\")\n+        invocation.response_model_name = \"model-2025\"\n+\n+        # First chunk 0.35s after start -> TTFC. Later chunks -> inter-chunk\n+        # gaps of 0.05, 0.08, 0.12.\n+        for chunk_at in (1000.35, 1000.40, 1000.48, 1000.60):\n+            invocation._on_stream_chunk(chunk_at)\n+\n+        with patch(\"timeit.default_timer\", return_value=1002.0):\n+            invocation.stop()\n+\n+        metrics = self._harvest_metrics()\n+\n+        self.assertIn(\"gen_ai.client.operation.time_to_first_chunk\", metrics)\n+        ttfc_points = metrics[\"gen_ai.client.operation.time_to_first_chunk\"]\n+        self.assertEqual(len(ttfc_points), 1)\n+        ttfc_point = ttfc_points[0]\n+        self.assertEqual(ttfc_point.count, 1)\n+        self.assertAlmostEqual(ttfc_point.sum, 0.35, places=6)\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_RESPONSE_MODEL], \"model-2025\"\n+        )\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_REQUEST_MODEL], \"model\"\n+        )\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_PROVIDER_NAME], \"prov\"\n+        )\n+\n+        self.assertIn(\"gen_ai.client.operation.time_per_output_chunk\", metrics)\n+        chunk_points = metrics[\"gen_ai.client.operation.time_per_output_chunk\"]\n+        self.assertEqual(len(chunk_points), 1)\n+        chunk_point = chunk_points[0]\n+        # One data point per inter-chunk gap (3 gaps for 4 chunks).\n+        self.assertEqual(chunk_point.count, 3)\n+        self.assertAlmostEqual(chunk_point.sum, 0.25, places=6)\n+        self.assertEqual(\n+            chunk_point.attributes[GenAI.GEN_AI_RESPONSE_MODEL], \"model-2025\"\n+        )\n+\n+    def test_streaming_records_ttfc_span_attribute(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        with patch(\"timeit.default_timer\", return_value=1000.0):\n+            invocation = handler.inference(\"prov\", request_model=\"model\")\n+\n+        # First chunk 0.42s after the start (1000.0) yields TTFC = 0.42.\n+        invocation._on_stream_chunk(1000.42)\n+\n+        with patch(\"timeit.default_timer\", return_value=1002.0):\n+            invocation.stop()\n+\n+        (span,) = self.get_finished_spans()\n+        self.assertAlmostEqual(\n+            span.attributes[\"gen_ai.response.time_to_first_chunk\"],\n+            0.42,\n+            places=6,\n+        )",
+      "id": "PRRT_kwDOSbspP86Q-vcF",
+      "opened": "2026-07-15T05:05:53Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_metrics.py",
+      "replies": [],
+      "reviewed": "eb74d0f6627e7b02aa4571f07c3faddfebf442a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3584598066"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Use the semconv constant for the streamed-request attribute name instead of a hard-coded string, to keep this assertion aligned with the semantic conventions module.",
+      "created": "2026-07-15T05:05:52Z",
+      "hunk": "@@ -156,6 +156,119 @@ def test_fail_llm_records_error_and_available_tokens(self) -> None:\n         )\n         self.assertAlmostEqual(token_point.sum, 11.0, places=3)\n \n+    def test_streaming_records_ttfc_and_per_output_chunk(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        with patch(\"timeit.default_timer\", return_value=1000.0):\n+            invocation = handler.inference(\"prov\", request_model=\"model\")\n+        invocation.response_model_name = \"model-2025\"\n+\n+        # First chunk 0.35s after start -> TTFC. Later chunks -> inter-chunk\n+        # gaps of 0.05, 0.08, 0.12.\n+        for chunk_at in (1000.35, 1000.40, 1000.48, 1000.60):\n+            invocation._on_stream_chunk(chunk_at)\n+\n+        with patch(\"timeit.default_timer\", return_value=1002.0):\n+            invocation.stop()\n+\n+        metrics = self._harvest_metrics()\n+\n+        self.assertIn(\"gen_ai.client.operation.time_to_first_chunk\", metrics)\n+        ttfc_points = metrics[\"gen_ai.client.operation.time_to_first_chunk\"]\n+        self.assertEqual(len(ttfc_points), 1)\n+        ttfc_point = ttfc_points[0]\n+        self.assertEqual(ttfc_point.count, 1)\n+        self.assertAlmostEqual(ttfc_point.sum, 0.35, places=6)\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_RESPONSE_MODEL], \"model-2025\"\n+        )\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_REQUEST_MODEL], \"model\"\n+        )\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_PROVIDER_NAME], \"prov\"\n+        )\n+\n+        self.assertIn(\"gen_ai.client.operation.time_per_output_chunk\", metrics)\n+        chunk_points = metrics[\"gen_ai.client.operation.time_per_output_chunk\"]\n+        self.assertEqual(len(chunk_points), 1)\n+        chunk_point = chunk_points[0]\n+        # One data point per inter-chunk gap (3 gaps for 4 chunks).\n+        self.assertEqual(chunk_point.count, 3)\n+        self.assertAlmostEqual(chunk_point.sum, 0.25, places=6)\n+        self.assertEqual(\n+            chunk_point.attributes[GenAI.GEN_AI_RESPONSE_MODEL], \"model-2025\"\n+        )\n+\n+    def test_streaming_records_ttfc_span_attribute(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        with patch(\"timeit.default_timer\", return_value=1000.0):\n+            invocation = handler.inference(\"prov\", request_model=\"model\")\n+\n+        # First chunk 0.42s after the start (1000.0) yields TTFC = 0.42.\n+        invocation._on_stream_chunk(1000.42)\n+\n+        with patch(\"timeit.default_timer\", return_value=1002.0):\n+            invocation.stop()\n+\n+        (span,) = self.get_finished_spans()\n+        self.assertAlmostEqual(\n+            span.attributes[\"gen_ai.response.time_to_first_chunk\"],\n+            0.42,\n+            places=6,\n+        )\n+\n+    def test_streamed_request_sets_stream_span_attribute(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        invocation = handler.inference(\"prov\", request_model=\"model\")\n+        # Set by the stream wrapper when the invocation is streamed.\n+        invocation._request_stream = True\n+        invocation.stop()\n+\n+        (span,) = self.get_finished_spans()\n+        self.assertIs(span.attributes[\"gen_ai.request.stream\"], True)\n+",
+      "id": "PRRT_kwDOSbspP86Q-vcY",
+      "opened": "2026-07-15T05:05:53Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_metrics.py",
+      "replies": [],
+      "reviewed": "eb74d0f6627e7b02aa4571f07c3faddfebf442a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3584598087"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Use the semconv constant for the streamed-request attribute name instead of a hard-coded string key, so the test fails if the semconv key changes.",
+      "created": "2026-07-15T05:05:52Z",
+      "hunk": "@@ -156,6 +156,119 @@ def test_fail_llm_records_error_and_available_tokens(self) -> None:\n         )\n         self.assertAlmostEqual(token_point.sum, 11.0, places=3)\n \n+    def test_streaming_records_ttfc_and_per_output_chunk(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        with patch(\"timeit.default_timer\", return_value=1000.0):\n+            invocation = handler.inference(\"prov\", request_model=\"model\")\n+        invocation.response_model_name = \"model-2025\"\n+\n+        # First chunk 0.35s after start -> TTFC. Later chunks -> inter-chunk\n+        # gaps of 0.05, 0.08, 0.12.\n+        for chunk_at in (1000.35, 1000.40, 1000.48, 1000.60):\n+            invocation._on_stream_chunk(chunk_at)\n+\n+        with patch(\"timeit.default_timer\", return_value=1002.0):\n+            invocation.stop()\n+\n+        metrics = self._harvest_metrics()\n+\n+        self.assertIn(\"gen_ai.client.operation.time_to_first_chunk\", metrics)\n+        ttfc_points = metrics[\"gen_ai.client.operation.time_to_first_chunk\"]\n+        self.assertEqual(len(ttfc_points), 1)\n+        ttfc_point = ttfc_points[0]\n+        self.assertEqual(ttfc_point.count, 1)\n+        self.assertAlmostEqual(ttfc_point.sum, 0.35, places=6)\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_RESPONSE_MODEL], \"model-2025\"\n+        )\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_REQUEST_MODEL], \"model\"\n+        )\n+        self.assertEqual(\n+            ttfc_point.attributes[GenAI.GEN_AI_PROVIDER_NAME], \"prov\"\n+        )\n+\n+        self.assertIn(\"gen_ai.client.operation.time_per_output_chunk\", metrics)\n+        chunk_points = metrics[\"gen_ai.client.operation.time_per_output_chunk\"]\n+        self.assertEqual(len(chunk_points), 1)\n+        chunk_point = chunk_points[0]\n+        # One data point per inter-chunk gap (3 gaps for 4 chunks).\n+        self.assertEqual(chunk_point.count, 3)\n+        self.assertAlmostEqual(chunk_point.sum, 0.25, places=6)\n+        self.assertEqual(\n+            chunk_point.attributes[GenAI.GEN_AI_RESPONSE_MODEL], \"model-2025\"\n+        )\n+\n+    def test_streaming_records_ttfc_span_attribute(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        with patch(\"timeit.default_timer\", return_value=1000.0):\n+            invocation = handler.inference(\"prov\", request_model=\"model\")\n+\n+        # First chunk 0.42s after the start (1000.0) yields TTFC = 0.42.\n+        invocation._on_stream_chunk(1000.42)\n+\n+        with patch(\"timeit.default_timer\", return_value=1002.0):\n+            invocation.stop()\n+\n+        (span,) = self.get_finished_spans()\n+        self.assertAlmostEqual(\n+            span.attributes[\"gen_ai.response.time_to_first_chunk\"],\n+            0.42,\n+            places=6,\n+        )\n+\n+    def test_streamed_request_sets_stream_span_attribute(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        invocation = handler.inference(\"prov\", request_model=\"model\")\n+        # Set by the stream wrapper when the invocation is streamed.\n+        invocation._request_stream = True\n+        invocation.stop()\n+\n+        (span,) = self.get_finished_spans()\n+        self.assertIs(span.attributes[\"gen_ai.request.stream\"], True)\n+\n+    def test_non_streamed_request_omits_stream_span_attribute(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        invocation = handler.inference(\"prov\", request_model=\"model\")\n+        invocation.stop()\n+\n+        (span,) = self.get_finished_spans()\n+        self.assertNotIn(\"gen_ai.request.stream\", span.attributes)",
+      "id": "PRRT_kwDOSbspP86Q-vcg",
+      "opened": "2026-07-15T05:05:53Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_metrics.py",
+      "replies": [],
+      "reviewed": "eb74d0f6627e7b02aa4571f07c3faddfebf442a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3584598098"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "Nik-Reddy"
+      },
+      "body": "Good call grabbing `chunk_at` before `_process_chunk` so the arrival time is clean, then deferring `_on_stream_chunk` until after so `response.model` lands on the metric attributes. \r\n\r\nOne thing I noticed though: if `_process_chunk` raises, the timing for that chunk just gets silently skipped. I ran into the same question in #13 and ended up leaving it as-is since a failed chunk probably shouldn't record timing anyway, but maybe worth a short comment here explaining that?",
+      "created": "2026-07-15T23:15:09Z",
+      "hunk": "@@ -116,7 +127,12 @@ def __next__(self) -> ChunkT:\n         except Exception as error:\n             self._finalize_failure(error)\n             raise\n+        invocation = self._self_invocation\n+        chunk_at = timeit.default_timer() if invocation is not None else None\n         self._process_chunk(chunk)\n+        # Record after _process_chunk so response.model is on the metrics.\n+        if invocation is not None and chunk_at is not None:\n+            invocation._on_stream_chunk(chunk_at)",
+      "id": "PRRT_kwDOSbspP86RRRlA",
+      "opened": "2026-07-15T23:15:09Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-07-16T00:50:07Z",
+          "body": "the metric is defined as time to chunk with no error.type on in. I don't think it needs a comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3591780751"
+        }
+      ],
+      "reviewed": "a9691c4eb91eeaf2af9682e592af0b836c846121",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3591379714"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "Nik-Reddy"
+      },
+      "body": "If `_monotonic_start_s` is None here the method just returns silently and no TTFC gets recorded. That's probably the right behavior, but someone debugging missing streaming metrics would have a hard time tracing it back to this guard. Would a logger.debug line here make sense so it's easier to spot?",
+      "created": "2026-07-16T00:00:52Z",
+      "hunk": "@@ -110,6 +117,38 @@ def _get_metric_token_counts(self) -> dict[str, int]:  # pylint: disable=no-self\n         \"\"\"Return {token_type: count} for token histogram recording.\"\"\"\n         return {}\n \n+    def _on_stream_chunk(self, chunk_at: float) -> None:\n+        \"\"\"Record streaming timing for one output chunk as it arrives.\n+\n+        The first chunk's delta from the invocation start is the\n+        time-to-first-chunk; each later chunk's delta from the previous one is\n+        the inter-chunk gap. Called by the stream wrapper for any invocation\n+        type handed to it.\n+        \"\"\"\n+        last_chunk_at = (\n+            self._stream_last_chunk_at\n+            if self._stream_last_chunk_at is not None\n+            else self._monotonic_start_s\n+        )\n+        if last_chunk_at is None:\n+            return\n+        self._stream_last_chunk_at = chunk_at\n+        delta = max(chunk_at - last_chunk_at, 0.0)\n+        attributes = self._get_metric_attributes()\n+        if self._ttfc_seconds is None:\n+            self._ttfc_seconds = delta\n+            self._metrics_recorder.record_time_to_first_chunk(\n+                delta,\n+                attributes=attributes,\n+                context=self._span_context,\n+            )\n+        else:\n+            self._metrics_recorder.record_time_per_chunk(\n+                delta,\n+                attributes=attributes,",
+      "id": "PRRT_kwDOSbspP86RRw03",
+      "opened": "2026-07-16T00:00:52Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-07-16T20:27:16Z",
+          "body": "It should never be none, updated type to be float and removed defensive early return",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3598698076"
+        }
+      ],
+      "reviewed": "a9691c4eb91eeaf2af9682e592af0b836c846121",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3591560616"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "Nik-Reddy"
+      },
+      "body": "Makes sense to set `response_model_name` eagerly here instead of waiting for `_cleanup`. Without this, all the per-chunk streaming metrics would be missing `gen_ai.response.model` until the stream finishes, which kind of defeats the purpose of having per-chunk timing in the first place. Clean refactor.",
+      "created": "2026-07-16T00:05:01Z",
+      "hunk": "@@ -33,17 +33,18 @@ class _ChatStreamMixin:\n     _self_capture_content: bool\n     _self_choice_buffers: list[ChoiceBuffer]\n     _self_response_id: Optional[str]\n-    _self_response_model: Optional[str]\n     _self_service_tier: Optional[str]\n     _self_prompt_tokens: Optional[int]\n     _self_completion_tokens: Optional[int]\n \n     def _set_response_model(self, chunk: ChatCompletionChunk) -> None:",
+      "id": "PRRT_kwDOSbspP86RRz0_",
+      "opened": "2026-07-16T00:05:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-07-16T00:49:26Z",
+          "body": "this seems to be an AI-generated comment. I appreciate support and reviews from humans",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3591778062"
+        }
+      ],
+      "reviewed": "a9691c4eb91eeaf2af9682e592af0b836c846121",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3591578724"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you please not leave AI generated reviews? We have copilot for this. ",
+      "created": "2026-07-16T00:48:04Z",
+      "hunk": "@@ -92,8 +92,19 @@ def __init__(\n         self.top_k: float | None = None\n         self.request_choice_count: int | None = None\n         self.output_type: str | None = None\n+        self._cached_metric_attributes: dict[str, AttributeValue] | None = None\n         self._start(self._get_base_attributes())\n \n+    @property\n+    def response_model_name(self) -> str | None:\n+        return self._response_model_name\n+\n+    @response_model_name.setter\n+    def response_model_name(self, value: str | None) -> None:\n+        if value != self._response_model_name:\n+            self._response_model_name = value",
+      "id": "PRRT_kwDOSbspP86RRW3S",
+      "opened": "2026-07-16T00:48:04Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "a9691c4eb91eeaf2af9682e592af0b836c846121",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3591772372"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "This and other changelogs I thought were markdown but have <code>``</code> double ticks. Is it supposed to be RST?",
+      "created": "2026-07-29T03:02:43Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add streaming timing metrics (``gen_ai.client.operation.time_to_first_chunk``, ``gen_ai.client.operation.time_per_output_chunk``), the ``gen_ai.response.time_to_first_chunk`` span attribute, and the ``gen_ai.request.stream`` span attribute, set by the shared stream wrappers.",
+      "id": "PRRT_kwDOSbspP86Um-zH",
+      "opened": "2026-07-29T03:24:45Z",
+      "path": "util/opentelemetry-util-genai/.changelog/269.added",
+      "replies": [],
+      "reviewed": "ed7dbf96b87527771337c9b101cd9ef0eb299d97",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3670654993"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I couldn't really understand the sequence of these calls that update state, it feels a little fragile because of you must call the seemingly unrelated setters IIUC.",
+      "created": "2026-07-29T03:10:21Z",
+      "hunk": "@@ -161,16 +173,29 @@ def _get_attributes(self) -> dict[str, AttributeValue]:\n                 GenAI.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,\n                 self.thinking_tokens,\n             ),\n+            (\n+                GenAI.GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,\n+                self._ttfc_seconds,\n+            ),\n         )\n         attrs.update({k: v for k, v in optional_attrs if v is not None})\n         return attrs\n \n     def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n-        attrs = self._get_start_attributes()\n-        if self.response_model_name is not None:\n-            attrs[GenAI.GEN_AI_RESPONSE_MODEL] = self.response_model_name\n-        attrs.update(self.metric_attributes)\n-        return attrs\n+        # Cached because this is called once per streaming chunk; invalidated\n+        # by the ``response_model_name`` setter and ``_apply_error_attributes``.",
+      "id": "PRRT_kwDOSbspP86UnDwB",
+      "opened": "2026-07-29T03:24:45Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-07-29T20:59:27Z",
+          "body": "anyone who changes this method would naturally care about what invalidates cache. Setting any settable metric attribute would (which is response model and error). I refactored it a bit to hopefully make it more clear. \r\n\r\nThe reason I still want cache is that there could be hundreds on chunks per stream if not thousands and allocating the same dict of attribute on each of them is wasteful. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3677988630"
+        }
+      ],
+      "reviewed": "ed7dbf96b87527771337c9b101cd9ef0eb299d97",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3670683411"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Any reason the `_on_stream_chunk()` can't call `default_timer()` internally instead of passing it? Looks like there would be negligible time difference but maybe it's just for testing purposes",
+      "created": "2026-07-29T03:14:28Z",
+      "hunk": "@@ -116,7 +127,12 @@ def __next__(self) -> ChunkT:\n         except Exception as error:\n             self._finalize_failure(error)\n             raise\n+        invocation = self._self_invocation\n+        chunk_at = timeit.default_timer() if invocation is not None else None\n         self._process_chunk(chunk)\n+        # Record after _process_chunk so response.model is on the metrics.\n+        if invocation is not None and chunk_at is not None:\n+            invocation._on_stream_chunk(chunk_at)",
+      "id": "PRRT_kwDOSbspP86UnF-g",
+      "opened": "2026-07-29T03:24:45Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-07-29T20:56:36Z",
+          "body": "time between chunks would be negligible on it's own (less than millisecond, easy) so it seems reasonable to care about higher precision here",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3677973913"
+        }
+      ],
+      "reviewed": "ed7dbf96b87527771337c9b101cd9ef0eb299d97",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3670696743"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I can sort of guess why, but can you remind me why we treat the first chunk specially?",
+      "created": "2026-07-29T03:20:15Z",
+      "hunk": "@@ -55,3 +55,21 @@ def create_token_histogram(meter: Meter) -> Histogram:\n         unit=\"{token}\",\n         explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_TOKEN_USAGE_BUCKETS,\n     )\n+\n+\n+def create_time_to_first_chunk_histogram(meter: Meter) -> Histogram:\n+    return meter.create_histogram(\n+        name=gen_ai_metrics.GEN_AI_CLIENT_OPERATION_TIME_TO_FIRST_CHUNK,\n+        description=\"Time to receive the first chunk, measured from when the client issues the generation request to when the first chunk is received in the response stream.\",\n+        unit=\"s\",\n+        explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS,\n+    )\n+\n+\n+def create_time_per_output_chunk_histogram(meter: Meter) -> Histogram:\n+    return meter.create_histogram(\n+        name=gen_ai_metrics.GEN_AI_CLIENT_OPERATION_TIME_PER_OUTPUT_CHUNK,\n+        description=\"Time per output chunk, recorded for each chunk received after the first one, measured as the time elapsed from the end of the previous chunk to the end of the current chunk.\",",
+      "id": "PRRT_kwDOSbspP86UnI9M",
+      "opened": "2026-07-29T03:24:45Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/instruments.py",
+      "replies": [
+        {
+          "at": "2026-07-29T21:00:55Z",
+          "body": "same as time-to-first-byte and time-to-last-byte - the former tells when server started replying and it's one type of SLI, the latter is how fast it finished and it's a different metric that has maybe more to do with network quality than server. These two friends is what vLLM and the inference serving industry care about independently",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3677996699"
+        }
+      ],
+      "reviewed": "ed7dbf96b87527771337c9b101cd9ef0eb299d97",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3670714614"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I don't see any cassettes recordings checked-in to this PR, is that expected?",
+      "created": "2026-07-29T03:24:32Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Metric-recording tests for the Anthropic instrumentation.\"\"\"\n+\n+import pytest\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.semconv._incubating.metrics import gen_ai_metrics\n+\n+MODEL = \"claude-sonnet-4-20250514\"\n+MESSAGES = [{\"role\": \"user\", \"content\": \"Say hello in one word.\"}]\n+\n+\n+def _metrics_by_name(metric_reader):\n+    by_name = {}\n+    for rm in metric_reader.get_metrics_data().resource_metrics:\n+        for scope in rm.scope_metrics:\n+            for metric in scope.metrics:\n+                by_name[metric.name] = metric\n+    return by_name\n+\n+\n+def _assert_streaming_timing_metrics(metric_reader):\n+    \"\"\"Assert the streaming timing metrics are emitted through the real\n+    Anthropic stream wrapper path.\n+\n+    Regression coverage for the ``invocation=invocation`` wiring in\n+    ``wrappers.py``: dropping it would keep every span/attribute test green but\n+    silently stop emitting TTFC and per-output-chunk metrics for Anthropic\n+    streaming.\n+    \"\"\"\n+    metrics = _metrics_by_name(metric_reader)\n+\n+    ttfc = metrics.get(\n+        gen_ai_metrics.GEN_AI_CLIENT_OPERATION_TIME_TO_FIRST_CHUNK\n+    )\n+    assert ttfc is not None\n+    ttfc_point = ttfc.data.data_points[0]\n+    assert ttfc_point.count == 1\n+    assert ttfc_point.sum >= 0\n+    assert (\n+        ttfc_point.attributes[GenAIAttributes.GEN_AI_OPERATION_NAME]\n+        == GenAIAttributes.GenAiOperationNameValues.CHAT.value\n+    )\n+    assert ttfc_point.attributes[GenAIAttributes.GEN_AI_REQUEST_MODEL] == MODEL\n+\n+    per_chunk = metrics.get(\n+        gen_ai_metrics.GEN_AI_CLIENT_OPERATION_TIME_PER_OUTPUT_CHUNK\n+    )\n+    assert per_chunk is not None\n+    per_chunk_point = per_chunk.data.data_points[0]\n+    # One record per inter-chunk gap; the streaming cassette has several events.\n+    assert per_chunk_point.count >= 1\n+    assert per_chunk_point.sum >= 0\n+\n+\n+def test_sync_messages_streaming_timing_metrics(\n+    metric_reader, anthropic_client, instrument_with_content, vcr\n+):\n+    with vcr.use_cassette(\"test_sync_messages_create_streaming.yaml\"):\n+        with anthropic_client.messages.create(\n+            model=MODEL,\n+            max_tokens=100,\n+            messages=MESSAGES,\n+            stream=True,\n+        ) as stream:\n+            for _ in stream:\n+                pass\n+\n+    _assert_streaming_timing_metrics(metric_reader)\n+\n+\n+@pytest.mark.asyncio()\n+async def test_async_messages_streaming_timing_metrics(\n+    metric_reader, async_anthropic_client, instrument_with_content, vcr\n+):\n+    with vcr.use_cassette(\"test_async_messages_create_streaming.yaml\"):",
+      "id": "PRRT_kwDOSbspP86UnLZj",
+      "opened": "2026-07-29T03:24:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_metrics.py",
+      "replies": [
+        {
+          "at": "2026-07-29T21:02:47Z",
+          "body": "we're reusing existing ones - any successful streaming recording works (sync/async  doesn't matter since it's API-level concern, recordings are the same)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3678006809"
+        }
+      ],
+      "reviewed": "ed7dbf96b87527771337c9b101cd9ef0eb299d97",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/269#discussion_r3670728526"
+    }
+  ]
+}

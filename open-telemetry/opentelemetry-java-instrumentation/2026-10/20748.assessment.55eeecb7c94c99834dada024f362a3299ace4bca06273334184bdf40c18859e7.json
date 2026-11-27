@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1959a6ee64d50453bc5e6da4e4288a141a04523731842d2cdc91fa36779ba1b1",
+  "input_digest": "55eeecb7c94c99834dada024f362a3299ace4bca06273334184bdf40c18859e7",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c14bfad43a1b4e5fda007b4fa28b03f93c3a51c9/muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/260c5c3a007fcbe8a9ed0163b285c6ae02fc16f0/muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c060649c90ca025458a23617dac2309dc28b3773"
+      ],
+      "id": "PRRT_kwDODJKVX86uLuRb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c060649c90ca025458a23617dac2309dc28b3773/javaagent/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleBytecodeTransformTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/260c5c3a007fcbe8a9ed0163b285c6ae02fc16f0/javaagent/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleBytecodeTransformTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b24bc312292ceb461a466240f589172a29156db8"
+      ],
+      "id": "PRRT_kwDODJKVX86uM6iK",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b24bc312292ceb461a466240f589172a29156db8/muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/260c5c3a007fcbe8a9ed0163b285c6ae02fc16f0/muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/260c5c3a007fcbe8a9ed0163b285c6ae02fc16f0/muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uSAX3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

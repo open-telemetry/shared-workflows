@@ -1,0 +1,25 @@
+{
+  "head": "e099a0a31d19e50bd7f4705e4807066046530ae0",
+  "merge": "e4331fd9ddf92d668b63704a9b95d253d1b59fd3",
+  "merged": "2026-03-23T20:01:08Z",
+  "missing_roots": 0,
+  "number": 16958,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "occasionally there are failures like https://develocity.opentelemetry.io/s/z5m3ss54intp6/failures?expanded-stacktrace=WyIwLTEtMi0zLTQiXQ I guess the root cause of there could really be something unrelated but since we only use junit5 apis might as well remove the legacy runner",
+      "created": "2026-03-23T16:05:57Z",
+      "hunk": "@@ -179,7 +179,6 @@ testing {\n       implementation(\"org.junit.jupiter:junit-jupiter-api\")\n       implementation(\"org.junit.jupiter:junit-jupiter-params\")\n       runtimeOnly(\"org.junit.jupiter:junit-jupiter-engine\")\n-      runtimeOnly(\"org.junit.vintage:junit-vintage-engine\")",
+      "id": "PRRT_kwDODJKVX852LOUa",
+      "opened": "2026-03-23T16:05:57Z",
+      "path": "conventions/src/main/kotlin/otel.java-conventions.gradle.kts",
+      "replies": [],
+      "reviewed": "e099a0a31d19e50bd7f4705e4807066046530ae0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16958#discussion_r2976020814"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "515de828c1ab71e591139b1ff305de5ace607485",
+  "merge": "9429408866aabfd84c006c20d15ba59563786321",
+  "merged": "2026-06-15T16:41:03Z",
+  "missing_roots": 0,
+  "number": 133,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`request.node.originalname` is not guaranteed to exist on all pytest node types/versions; accessing it unconditionally can raise `AttributeError` and fail the suite for non-parameterized contexts. Use a safe access pattern (e.g., `getattr(request.node, \\\"originalname\\\", request.node.name)`) or compare against `request.node.name` in a way that works for both parametrized and non-parametrized tests.",
+      "created": "2026-06-14T12:41:28Z",
+      "hunk": "@@ -473,6 +474,26 @@ def fixture_model(request):\n     return request.param\n \n \n+@pytest.fixture(name=\"vcr_cassette_name\")\n+def fixture_vcr_cassette_name(\n+    request,\n+    setup_content_recording,\n+    model,\n+    genai_sdk_backend,\n+    is_async,\n+    enable_completion_hook,\n+):\n+    if request.node.originalname != \"test_upload_hook_non_streaming\":\n+        return request.node.name",
+      "id": "PRRT_kwDOSbspP86JZh5e",
+      "opened": "2026-06-14T12:41:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_e2e.py",
+      "replies": [],
+      "reviewed": "73513955fa290e1d763bad0922e87380b25c818a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/133#discussion_r3409545424"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The cassette name embeds multiple parameter values that may contain filesystem-unfriendly characters (e.g., `/`, `:`, spaces) and can easily exceed typical path/filename length limits, which can break recording/playback on some OS/filesystems. Consider normalizing/sanitizing these values (e.g., restrict to `[A-Za-z0-9._-]`) and/or using a stable short hash of the parameter tuple to keep names deterministic but bounded.",
+      "created": "2026-06-14T12:41:28Z",
+      "hunk": "@@ -473,6 +474,26 @@ def fixture_model(request):\n     return request.param\n \n \n+@pytest.fixture(name=\"vcr_cassette_name\")\n+def fixture_vcr_cassette_name(\n+    request,\n+    setup_content_recording,\n+    model,\n+    genai_sdk_backend,\n+    is_async,\n+    enable_completion_hook,\n+):\n+    if request.node.originalname != \"test_upload_hook_non_streaming\":\n+        return request.node.name\n+\n+    async_label = \"async\" if is_async else \"sync\"\n+    return (\n+        \"test_upload_hook_non_streaming\"\n+        f\"[{setup_content_recording}-{model}-{genai_sdk_backend}-\"\n+        f\"{async_label}-{enable_completion_hook}]\"\n+    )",
+      "id": "PRRT_kwDOSbspP86JZh5l",
+      "opened": "2026-06-14T12:41:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_e2e.py",
+      "replies": [],
+      "reviewed": "73513955fa290e1d763bad0922e87380b25c818a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/133#discussion_r3409545432"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "head": "d8cf970eca61cce204455e44828bf6a0658977a0",
+  "merge": "ef26b904487628b155cf8da3e4c66f4f75c22fee",
+  "merged": "2026-10-25T18:30:15Z",
+  "missing_roots": 0,
+  "number": 20924,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please remove this file's changes from the PR. The repository reserves this generated catalog for the nightly metadata workflow (`.github/instructions/instrumentation-list.instructions.md:7`); `.github/workflows/metadata-update.yml` collects telemetry and regenerates its definitions and references after the source changes land.",
+      "created": "2026-10-23T23:27:39Z",
+      "hunk": "@@ -1470,10 +1470,10 @@ definitions:\n       attributes:\n       - name: apache_commons_pool.pool.name\n         type: STRING\n-    db.client.connection.count-255e75e8:\n+    db.client.connection.count-3cbbc5cf:",
+      "id": "PRRT_kwDODJKVX86vza8G",
+      "opened": "2026-10-23T23:27:39Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-23T23:41:53Z",
+          "body": "Removed the generated catalog changes in d8cf970eca61cce204455e44828bf6a0658977a0. The PR no longer changes `docs/instrumentation-list.yaml`; the nightly metadata workflow will regenerate it after the source changes land. All seven metric fixes and their assertions remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20924#discussion_r4365116648"
+        }
+      ],
+      "reviewed": "883403589e74a96bafbfc8c2468e3b2bd2cd8d22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20924#discussion_r4365057362"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to address the valid Copilot review finding https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20924#discussion_r4365057362. Remove all changes to docs/instrumentation-list.yaml from this PR, restoring that generated file to the PR's base version. The repository instruction .github/instructions/instrumentation-list.instructions.md explicitly reserves it for the nightly .github/workflows/metadata-update.yml workflow. This corrects the earlier assignment's request to include generated catalog updates.\n\nPreserve every other delivered change: all seven exact production metric description/unit fixes, the database backticks, legacy RPC milliseconds, current RPC seconds, the new focused GenAI test, and all directly related assertions. Do not regenerate or hand-edit the catalog, change metric behavior, alter unrelated files, create another PR, or edit the PR title or description. The coordinator handles review replies and metadata.\n\nAcceptance criteria: this PR has no diff for docs/instrumentation-list.yaml, and all existing production and test changes remain intact. Verify that the correction is limited to the generated-file revert; no build or CI wait is needed for this documentation-only follow-up.",
+      "created": "2026-10-23T23:30:27Z",
+      "hunk": "@@ -1470,10 +1470,10 @@ definitions:\n       attributes:\n       - name: apache_commons_pool.pool.name\n         type: STRING\n-    db.client.connection.count-255e75e8:\n+    db.client.connection.count-3cbbc5cf:",
+      "id": "PRRT_kwDODJKVX86vzcos",
+      "opened": "2026-10-23T23:30:26Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-23T23:35:17Z",
+          "body": "Restored `docs/instrumentation-list.yaml` to its pre-change version in commit `d8cf970e`. The production metric fixes and tests remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20924#discussion_r4365088638"
+        }
+      ],
+      "reviewed": "883403589e74a96bafbfc8c2468e3b2bd2cd8d22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20924#discussion_r4365068827"
+    }
+  ]
+}

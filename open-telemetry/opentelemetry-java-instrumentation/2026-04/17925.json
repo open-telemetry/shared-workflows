@@ -1,0 +1,25 @@
+{
+  "head": "8b94b61596f5573076a11e5e24dd94445b584b5f",
+  "merge": "08604a21fbe105dbd887a86b127a32d586ee5d24",
+  "merged": "2026-04-18T18:34:51Z",
+  "missing_roots": 0,
+  "number": 17925,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "nice\n\ncc @jaydeluca ",
+      "created": "2026-04-18T18:34:36Z",
+      "hunk": "@@ -7,7 +7,15 @@ semantic_conventions:\n   - DATABASE_CLIENT_METRICS\n library_link: https://github.com/apache/cassandra-java-driver\n configurations:\n+  - name: otel.instrumentation.cassandra.query-sanitization.enabled\n+    declarative_name: java.cassandra.query_sanitization.enabled\n+    description: >\n+      Enables query sanitization for Cassandra queries. Takes precedence over\n+      otel.instrumentation.common.db.query-sanitization.enabled.\n+    type: boolean\n+    default: true",
+      "id": "PRRT_kwDODJKVX8579hTE",
+      "opened": "2026-04-18T18:34:43Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "8b94b61596f5573076a11e5e24dd94445b584b5f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17925#discussion_r3105634979"
+    }
+  ]
+}

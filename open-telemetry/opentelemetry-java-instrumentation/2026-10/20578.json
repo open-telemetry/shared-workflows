@@ -1,0 +1,109 @@
+{
+  "head": "485fb84f83169a10d048af801f53f72314bcb807",
+  "merge": "4696c5fb2fe7c3a7ab40785c51abca2722351e2d",
+  "merged": "2026-10-20T17:11:21Z",
+  "missing_roots": 0,
+  "number": 20578,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "bringing over @laurit https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20428#discussion_r4258328559\n\n> wondering whether https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446 solved all the know issues or whether there is still something that is broken",
+      "created": "2026-10-18T03:08:40Z",
+      "hunk": "@@ -42,7 +30,7 @@ public int order() {\n \n   @Override\n   public boolean defaultEnabled() {\n-    return super.defaultEnabled() && !AgentCommonConfig.get().isV3Preview();\n+    return false;",
+      "id": "PRRT_kwDODJKVX86tm1eU",
+      "opened": "2026-10-18T03:08:40Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-18T03:13:44Z",
+          "body": "looks like https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19446#discussion_r3824285214 may be the only known issue, looking at whether it's real / fixable / or even requires disabling the whole module by default for",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4305531155"
+        }
+      ],
+      "reviewed": "d69dc8f2b5a11bf0955c034a151c80606b7706c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4305519285"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to restore the dispatcher-confinement reproductions as disabled tests, rather than running them against the default-disabled instrumentation. Do not create a follow-up PR.\n\nThe user wants to undo the testing approach introduced by commit 5904336133d0a0e53c92507ed4d8b65349f53e89, while preserving everything else about the reproductions, especially the clearer explanations that application code can resume on the wrong thread and break thread-bound state such as Spring transactions. Use the preceding commit 4d4c3a0863d471888bec625477840b5feca3fa35 as a reference for the disabled reproductions, not as a wholesale PR rollback.\n\nRestore the tail-delegated delay and withContext reproductions in KotlinCoroutinesInstrumentationTest.kt and the callback-suspension reproduction in src/version13Test/.../KotlinCoroutines13InstrumentationTest.kt, with @Disabled and the descriptive application-risk reason linking issue #20744. Preserve the annotated/unannotated controls, thread-identity assertions, tail-delegated helper shapes, and deterministic callback-suspension synchronization. Restore the annotated span assertions from those earlier disabled tests. Remove the standalone DispatcherConfinementTest.kt after restoring its reproductions so there is no duplicate coverage.\n\nIn this module's build.gradle.kts, remove only the dispatcher-confinement-specific include/exclude filters added to run these cases in testDisabled. Keep DefaultEnablementTest and any testDisabled/explicit-opt-in JVM wiring still needed to validate the actual default-off production change and the ordinary enabled annotation suites. The user hoped this would eliminate Gradle changes, but do not remove necessary pre-existing default-enablement wiring just to make the Gradle diff empty.\n\nKeep the production defaultEnabled() returning false, the independent selector, documentation, and all other PR behavior unchanged. Do not change lower PR #20754, the PR base, draft state, or native stack metadata. Do not attempt to fix the underlying dispatcher bug or enable the reproducers. Validate that the three reproductions are discovered but skipped, while ordinary enabled annotation tests, version13 tests, and the representative default-enablement test still pass. Keep the PR description concise and correct if any existing wording becomes stale.",
+      "created": "2026-10-20T03:22:11Z",
+      "hunk": "@@ -0,0 +1,132 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.kotlinxcoroutines.v1_0\n+\n+import io.opentelemetry.instrumentation.annotations.WithSpan\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension\n+import kotlinx.coroutines.CoroutineDispatcher\n+import kotlinx.coroutines.ExperimentalCoroutinesApi\n+import kotlinx.coroutines.asCoroutineDispatcher\n+import kotlinx.coroutines.async\n+import kotlinx.coroutines.delay\n+import kotlinx.coroutines.runBlocking\n+import kotlinx.coroutines.withContext\n+import kotlinx.coroutines.withTimeout\n+import org.assertj.core.api.Assertions.assertThat\n+import org.junit.jupiter.api.AfterAll\n+import org.junit.jupiter.api.TestInstance\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import org.junit.jupiter.params.ParameterizedTest\n+import org.junit.jupiter.params.provider.ValueSource\n+import java.util.concurrent.CompletableFuture\n+import java.util.concurrent.Executors\n+import java.util.concurrent.TimeUnit\n+import kotlin.coroutines.Continuation\n+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED\n+import kotlin.coroutines.intrinsics.intercepted\n+import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn\n+import kotlin.coroutines.resume\n+\n+// Enabling suspend annotations can resume application code on the wrong thread and break\n+// thread-bound state such as Spring transactions:\n+// https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20744\n+@TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+@ExperimentalCoroutinesApi\n+class DispatcherConfinementTest {\n+\n+  private val threadPool = Executors.newFixedThreadPool(2)\n+  private val singleThread = Executors.newSingleThreadExecutor()\n+\n+  @RegisterExtension\n+  val testing = AgentInstrumentationExtension.create()\n+\n+  @AfterAll\n+  fun shutdown() {\n+    threadPool.shutdown()\n+    singleThread.shutdown()\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = [false, true])\n+  fun `tail delay preserves dispatcher`(annotated: Boolean) {",
+      "id": "PRRT_kwDODJKVX86uL8up",
+      "opened": "2026-10-20T03:22:11Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/test/kotlin/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/DispatcherConfinementTest.kt",
+      "replies": [
+        {
+          "at": "2026-10-20T03:31:17Z",
+          "body": "Restored the three reproductions as disabled tests in the existing suites, retained their explanations and assertions, and removed the duplicate class and dedicated filters. Commit: `dc46313f`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4321179834"
+        }
+      ],
+      "reviewed": "5f915ceafd873c9f0ee6769f434f903a6d1cd9ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4321135072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly, not a follow-up PR.\n\nThe lower PR #20754 has the verified selector rename at b91c2c5a8f3dfa80505942e9cbb7b3acbc315993 on trask-suspend-annotation-selector. Its separate pending task only corrects its PR description and must not alter that branch.\n\nUpdate existing PR #20578 after verifying the selector rename delivered to lower PR #20754. Integrate the updated lower branch into the existing upper head with a normal merge, preserving the upper pre-update head on the first-parent chain. Do not rewrite history, change either PR's base or draft state, or modify native stack metadata.\n\nUpdate upper-layer configuration examples, DefaultEnablementTest and Gradle opt-in arguments, changelog and metadata references, and stale PR description wording to use otel.instrumentation.kotlinx-coroutines-suspend-annotations.enabled consistently. Preserve production defaultEnabled() returning false, the separate default-enablement coverage, and the three disabled dispatcher reproducers with their explanations and assertions. Do not re-enable those reproducers or fix the underlying dispatcher bug.\n\nReframe instrumentation/kotlinx-coroutines/README.md to lead with default-enabled coroutine context propagation across suspension and dispatcher switches. Retain the link to the coroutine instrumentation library in opentelemetry-java. Put @WithSpan behavior under one separate subsection: ordinary non-suspend Kotlin functions, including functions returning Flow, remain instrumented by default, with Flow spans ending when collection completes. Support for functions declared with suspend is disabled by default because a known bug can resume application code on the wrong thread and break thread-bound state such as Spring transactions, causing application failures. Make clear that this restriction also applies to a suspend function returning Flow. Link issue #20744 and show opt-in with otel.instrumentation.kotlinx-coroutines-suspend-annotations.enabled=true, explicitly warning that enabling opts into the unresolved risk. Avoid implying coroutine propagation or all Kotlin annotations are disabled, and keep the text concise.\n\nValidate directly affected behavior and docs using repository conventions. Preserve the existing concise PR description, updating only stale or misleading wording and examples. Do not add generic headings, stack narration, or test-command lists.\n\nRecord this PR's pre-update head before merging. Verify that it remains on the final first-parent chain before pushing to this PR's existing head branch. Keep emitted telemetry scope identities unchanged. Inspect the repository PR template before updating this PR's description and preserve required template content. Verify saved description examples use the renamed property. Do not edit lower PR #20754 or its description.",
+      "created": "2026-10-20T04:47:12Z",
+      "hunk": "@@ -4,13 +4,12 @@ Kotlin coroutine library instrumentation is located at\n <https://github.com/open-telemetry/opentelemetry-java/tree/main/extensions/kotlin>\n \n Instrumentation of Kotlin suspend functions annotated with `@WithSpan` uses the independent\n-`kotlinx-coroutines-annotations` selector. It is enabled by default outside v3 preview mode and\n-disabled by default within it.\n+`kotlinx-coroutines-annotations` selector and is disabled by default.\n \n-To disable suspend function annotations without disabling ordinary coroutine context propagation:\n+To enable suspend function annotations:\n \n ```properties\n-otel.instrumentation.kotlinx-coroutines-annotations.enabled=false\n+otel.instrumentation.kotlinx-coroutines-annotations.enabled=true",
+      "id": "PRRT_kwDODJKVX86uM7BK",
+      "opened": "2026-10-20T04:47:12Z",
+      "path": "instrumentation/kotlinx-coroutines/README.md",
+      "replies": [
+        {
+          "at": "2026-10-20T05:00:26Z",
+          "body": "Updated the upper PR and merged selector rename `b91c2c5a` without rewriting history; `dc46313f` remains on the first-parent chain. Commit: `626daa13`. The saved PR body still has the old property and overbroad Flow wording. I could not edit it: the available GitHub tools are read-only for PR bodies, and browser OAuth was unavailable. Suggested replacement:\n\nDisable `@WithSpan` on Kotlin suspend functions—including suspend functions returning `Flow`—by default for 3.0. Tail-optimized calls can resume application code on the wrong thread, breaking dispatcher confinement and thread-bound state such as Spring transactions. See #20744.\n\nTo opt in despite this unresolved risk:\n```properties\notel.instrumentation.kotlinx-coroutines-suspend-annotations.enabled=true\n```\n\nCoroutine context propagation and non-suspend `@WithSpan` functions, including those returning `Flow`, remain unaffected; their Flow spans end when collection completes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4321617336"
+        }
+      ],
+      "reviewed": "dc46313fd6ad9e4c8ffb6ddd548b225bb3adadc9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4321554445"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify the duplicated suspend-annotation test JVM configuration in instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/build.gradle.kts. Do not create a follow-up PR.\r\n\r\nRemove the nested targets/all/testTask.configure block from the version13Test suite and the separate tasks.test flag-setting block. Replace them with one shared block inside tasks:\r\n\r\n```kotlin\r\nwithType<Test>().configureEach {\r\n  if (name != \"testDisabled\") {\r\n    jvmArgs(\"-Dotel.instrumentation.kotlinx-coroutines-suspend-annotations.enabled=true\")\r\n  }\r\n}\r\n```\r\n\r\nThis follows the existing default-off instrumentation pattern in Hystrix, Hibernate, and Twilio. The ordinary test and version13Test JVMs must still explicitly enable suspend annotations, while testDisabled must leave the property unset and exercise the actual disabled default. Preserve testDisabled's DefaultEnablementTest filter, classpath, testClassesDirs, and check wiring. Keep all test-suite dependencies and the three disabled dispatcher reproductions unchanged. Do not alter production defaults, selector names, emitted scopes, documentation, PR title/description, lower PR #20754, base branch, draft state, or native stack metadata.\r\n\r\nRun the narrow module formatter and relevant test, version13Test, and testDisabled tasks using repository conventions. Verify both ordinary suites receive the opt-in and testDisabled receives neither that opt-in nor an explicit false override. Keep the change confined to this Gradle simplification.",
+      "created": "2026-10-20T05:14:54Z",
+      "hunk": "@@ -95,6 +95,14 @@ testing {\n         implementation(project(\":instrumentation:reactor:reactor-3.1:library\"))\n         implementation(project(\":instrumentation-annotations\"))\n       }\n+\n+      targets {\n+        all {\n+          testTask.configure {\n+            jvmArgs(\"-Dotel.instrumentation.kotlinx-coroutines-suspend-annotations.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86uNOZl",
+      "opened": "2026-10-20T05:14:53Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-20T05:24:57Z",
+          "body": "Consolidated the JVM opt-in into the shared `withType<Test>().configureEach` block, excluding `testDisabled`. Formatter, ordinary tests, version13Test, and testDisabled pass; verified only test and version13Test receive the opt-in. Commit: `67fe0599`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4321734558"
+        }
+      ],
+      "reviewed": "626daa1385010f1d063603cc7bb74cd949e46e04",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4321685428"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nOrdinary non-suspend Kotlin functions annotated with `@WithSpan` are instrumented by default.\n```",
+      "created": "2026-10-20T05:31:09Z",
+      "hunk": "@@ -3,16 +3,20 @@\n Kotlin coroutine library instrumentation is located at\n <https://github.com/open-telemetry/opentelemetry-java/tree/main/extensions/kotlin>\n \n-Instrumentation of Kotlin suspend functions annotated with `@WithSpan` uses the independent\n-`kotlinx-coroutines-suspend-annotations` selector. It is enabled by default outside v3 preview mode\n-and disabled by default within it.\n+Coroutine context propagation is enabled by default, including across suspension and dispatcher\n+switches.\n \n-To disable suspend function annotations without disabling ordinary coroutine context propagation:\n+## `@WithSpan`\n+\n+Ordinary non-suspend Kotlin functions annotated with `@WithSpan` remain instrumented by default.",
+      "id": "PRRT_kwDODJKVX86uNbF-",
+      "opened": "2026-10-20T05:31:09Z",
+      "path": "instrumentation/kotlinx-coroutines/README.md",
+      "replies": [],
+      "reviewed": "67fe0599d3b20724877713ea2d465bd1f8cdd6ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20578#discussion_r4321768839"
+    }
+  ]
+}

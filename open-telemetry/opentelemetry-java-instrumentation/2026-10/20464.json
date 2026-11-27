@@ -1,0 +1,25 @@
+{
+  "head": "b57de3eb2642a472c71b1d9252c6a68891feb16e",
+  "merge": "1ef2e5e8d754b2dd902b9af2415ca21ba7becbb7",
+  "merged": "2026-10-09T04:26:30Z",
+  "missing_roots": 0,
+  "number": 20464,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This shared version updates all seven contrib artifacts listed at lines 101–107, not only `opentelemetry-aws-xray-propagator` as the PR title and description state. Please update the PR metadata to describe the full dependency-set upgrade, or split the version if only the propagator is intended to change, so reviewers and release history reflect the actual runtime scope.",
+      "created": "2026-10-09T02:44:24Z",
+      "hunk": "@@ -7,7 +7,7 @@ data class DependencySet(val group: String, val version: String, val modules: Li\n // this line is managed by .github/scripts/update-sdk-version.sh\n val otelSdkVersion = \"1.66.0\"\n val otelZipkinVersion = \"1.64.0\" // last published version, remove with Zipkin support in 3.0\n-val otelContribVersion = \"1.60.0-alpha\"\n+val otelContribVersion = \"1.61.0-alpha\"",
+      "id": "PRRT_kwDODJKVX86qoH_j",
+      "opened": "2026-10-09T02:44:25Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [],
+      "reviewed": "b57de3eb2642a472c71b1d9252c6a68891feb16e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20464#discussion_r4226131087"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6a07c6a2bcd350f2423db7e8db71916efabbcb11aaf6aa97c8cc6b36a6324834",
+  "input_digest": "b5d3d7686fe93685a1fae68ea807d0e79c7b70ee22107248a858c564f753c13f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b988913be3619c8d01fa44226e56104bc9bcddce/instrumentation/kafka/kafka-streams-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/StreamThreadInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d88e30c6bd6668a8f2e81ab9c1084f91825aa1cb/instrumentation/kafka/kafka-streams-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/StreamThreadInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86iNpNk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86ltUpE",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

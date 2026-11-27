@@ -1,0 +1,25 @@
+{
+  "head": "377b42b90666656776115d9b958c8d7b50379ea0",
+  "merge": "32ced9d6381bfe7c62111eeccf33e393506d6f57",
+  "merged": "2026-07-09T03:40:09Z",
+  "missing_roots": 0,
+  "number": 230,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The readme check currently won’t fail if a package directory is missing README.rst: scripts/check_for_valid_readme.py prints \"FAILED: README.rst not found\" but does not set the error flag, so this tox env can still exit 0. Since this env is intended to validate package long descriptions, it should treat missing READMEs as a failure.",
+      "created": "2026-07-09T03:25:48Z",
+      "hunk": "@@ -206,6 +207,17 @@ commands =\n commands =\n   python {toxinidir}/scripts/generate_instrumentation_readme.py\n \n+[testenv:readme]\n+description = Check each package README.rst renders on PyPI (matches twine check).\n+deps =\n+  -c {toxinidir}/dev-requirements.txt\n+  readme-renderer\n+allowlist_externals = sh\n+commands =\n+  sh -c 'python {toxinidir}/scripts/check_for_valid_readme.py -v \\\n+    {toxinidir}/instrumentation/*/ \\\n+    {toxinidir}/util/opentelemetry-util-genai'",
+      "id": "PRRT_kwDOSbspP86PcNSS",
+      "opened": "2026-07-09T03:25:49Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "99864ca627afa287d07aa56676b1806215c5a916",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/230#discussion_r3548693605"
+    }
+  ]
+}

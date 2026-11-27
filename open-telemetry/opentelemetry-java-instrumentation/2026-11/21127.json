@@ -1,0 +1,40 @@
+{
+  "head": "c8b703fe7a639e59531d3652565a2ffa2711d202",
+  "merge": "504a6f309fe64c734611f6b06689a057e7e96cb4",
+  "merged": "2026-11-02T14:31:14Z",
+  "missing_roots": 0,
+  "number": 21127,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing `server.port` makes the Elasticsearch transport inventory omit an attribute still supported for non-default ports. `ElasticsearchTransportAttributesGetter.getServerPort()` supplies the port, and `AbstractElasticsearchTransportClientTest.serverPort()` suppresses it only for port 9300. Make metadata collection exercise a non-default transport port, then regenerate the catalog to retain this attribute.",
+      "created": "2026-11-02T02:09:43Z",
+      "hunk": "@@ -9436,8 +9436,6 @@ libraries:\n         type: LONG\n       - name: server.address\n         type: STRING",
+      "id": "PRRT_kwDODJKVX86yg0ot",
+      "opened": "2026-11-02T02:09:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "c8b703fe7a639e59531d3652565a2ffa2711d202",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21127#discussion_r4438354144"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing `kafka.consumer.heartbeat_response_time_max` from the default profile while retaining it in both opt-in profiles incorrectly suggests that receive-telemetry flags are required. `AbstractOpenTelemetryMetricsReporterTest.observeMetrics()` still expects this metric, and `KafkaMetricRegistry` does not gate it on those flags. Make default-profile metadata collection capture the metric deterministically, then regenerate the catalog.",
+      "created": "2026-11-02T02:09:43Z",
+      "hunk": "@@ -12025,7 +12023,6 @@ libraries:\n     - kafka.consumer.fetch_throttle_time_max-a716c191\n     - kafka.consumer.fetch_total-9d09818d\n     - kafka.consumer.heartbeat_rate-8cb2af4e",
+      "id": "PRRT_kwDODJKVX86yg0pB",
+      "opened": "2026-11-02T02:09:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "c8b703fe7a639e59531d3652565a2ffa2711d202",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21127#discussion_r4438354173"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "head": "93212c07fd8dfed017cf09d683a57f937441242a",
+  "merge": "79fb78b0acfb2866dc89394a28bcb68b38a52a09",
+  "merged": "2026-08-03T14:54:05Z",
+  "missing_roots": 0,
+  "number": 305,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new behavior only takes effect when LangChain is configured to include raw response headers (e.g. `include_response_headers=True` on the chat client). Since this changes what `gen_ai.response.model` can contain, it would be helpful to document this requirement in the package README so users can discover/enable it.",
+      "created": "2026-07-30T16:56:12Z",
+      "hunk": "@@ -444,6 +446,36 @@ def on_llm_end(\n             if response_id is not None:\n                 llm_invocation.response_id = str(response_id)\n \n+        # Responses API (RAPI) may include the served model in the response headers, which accurately returns the served model name for the request.\n+        served_model: str | None = None\n+        for generation in getattr(response, \"generations\", []):",
+      "id": "PRRT_kwDOSbspP86VLfF1",
+      "opened": "2026-07-30T16:56:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "29f323a5d0aa548d007ddc731aa1652172b5bcfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3684660633"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Mapping` is being imported from `typing` but then used in `isinstance(...)` checks. In this repo, runtime type checks typically use `collections.abc.Mapping` (and it avoids any confusion with typing-only constructs). Consider importing `Mapping` from `collections.abc` and keeping `typing` imports for typing/casts only.",
+      "created": "2026-07-30T16:56:12Z",
+      "hunk": "@@ -5,7 +5,7 @@\n \n import json\n from collections.abc import Sequence\n-from typing import Any, Optional, cast\n+from typing import Any, Mapping, Optional, cast\n from uuid import UUID",
+      "id": "PRRT_kwDOSbspP86VLfFd",
+      "opened": "2026-07-30T16:56:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "29f323a5d0aa548d007ddc731aa1652172b5bcfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3684660595"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): do we need this cast?",
+      "created": "2026-07-30T18:07:47Z",
+      "hunk": "@@ -444,6 +446,36 @@ def on_llm_end(\n             if response_id is not None:\n                 llm_invocation.response_id = str(response_id)\n \n+        # Responses API (RAPI) may include the served model in the response headers, which accurately returns the served model name for the request.\n+        served_model: str | None = None\n+        for generation in getattr(response, \"generations\", []):\n+            for chat_generation in generation:\n+                if chat_generation.message is not None:\n+                    if chat_generation.message.response_metadata is not None:\n+                        meta = cast(",
+      "id": "PRRT_kwDOSbspP86VMs61",
+      "opened": "2026-07-30T18:39:14Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-30T21:07:10Z",
+          "body": "Removed this case as ended up using the existing pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3686249910"
+        }
+      ],
+      "reviewed": "f294eb4dbc149b1e7c6bdb2ba1562f86881c04d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3685129474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Any reason this needs its own pass over response.generations? There is an earlier loop right can we use it?",
+      "created": "2026-07-30T18:38:18Z",
+      "hunk": "@@ -444,6 +446,36 @@ def on_llm_end(\n             if response_id is not None:\n                 llm_invocation.response_id = str(response_id)\n \n+        # Responses API (RAPI) may include the served model in the response headers, which accurately returns the served model name for the request.\n+        served_model: str | None = None\n+        for generation in getattr(response, \"generations\", []):",
+      "id": "PRRT_kwDOSbspP86VNNvp",
+      "opened": "2026-07-30T18:39:14Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-30T21:07:18Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3686250630"
+        }
+      ],
+      "reviewed": "f294eb4dbc149b1e7c6bdb2ba1562f86881c04d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3685326920"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not a blocker, but should we do it in openai instrumentation too? ",
+      "created": "2026-08-02T18:52:03Z",
+      "hunk": "@@ -46,6 +46,8 @@\n     ToolCallRequest,\n )\n \n+SUPPORTED_RAPI_RESPONSE_HEADERS = (\"x-ms-served-model\",)",
+      "id": "PRRT_kwDOSbspP86Vzryc",
+      "opened": "2026-08-02T18:52:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-08-03T14:18:18Z",
+          "body": "Yes, that makes sense. I will take up that task.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3704733621"
+        }
+      ],
+      "reviewed": "d45a49d428b87224fda8e6a74c6afaea261b0b24",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/305#discussion_r3700034212"
+    }
+  ]
+}

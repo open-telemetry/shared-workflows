@@ -1,0 +1,125 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f7c12c2a12fd790ab5a6943fff554476a601268d1286a1743d633e6bbd28fb96",
+  "input_digest": "590d79e5bd6196b5d3742106f716ecc53c9499c750141cead7d32a92064dbf44",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c6fd1f270c081dacd648a63441d806d97a641342/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/conventions/src/main/kotlin/otel.java-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c59c671ab8923f353d5854b2524ec9f6426a252d",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8d18b66791874a1bf6cab4a94ce4ac4180a4aae0"
+      ],
+      "id": "PRRT_kwDODJKVX86v6kbC",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v6lM4",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86v6kbC",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8d18b66791874a1bf6cab4a94ce4ac4180a4aae0/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bdf3781cd2b5a37b8d7f6c6c16edfaaa0550cada"
+      ],
+      "id": "PRRT_kwDODJKVX86v6uVb",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/196ab4e6ca436b54776dc4df4f63ecb491a5878c/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/196ab4e6ca436b54776dc4df4f63ecb491a5878c/instrumentation/jdbc/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jdbc/test/MySqlReplicationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jdbc/test/MySqlReplicationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/196ab4e6ca436b54776dc4df4f63ecb491a5878c/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c1e2800d308bd44a47e0e7f374fb3986e90bdf0d"
+      ],
+      "id": "PRRT_kwDODJKVX86v7ZGB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1e2800d308bd44a47e0e7f374fb3986e90bdf0d/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1e2800d308bd44a47e0e7f374fb3986e90bdf0d/.github/config/latest-dep-versions.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/.github/config/latest-dep-versions.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a18713d950df0a0348ea4b5f088fa404afb52aa6"
+      ],
+      "id": "PRRT_kwDODJKVX86v7nEX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v7sb7",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86v7nEX",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v73UL",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86v6uVb",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a18713d950df0a0348ea4b5f088fa404afb52aa6/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/31d4a2d1ba7040e44d9c78258c89b531f429d99f"
+      ],
+      "id": "PRRT_kwDODJKVX86v78F7",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/31d4a2d1ba7040e44d9c78258c89b531f429d99f/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c59c671ab8923f353d5854b2524ec9f6426a252d"
+      ],
+      "id": "PRRT_kwDODJKVX86v8RZF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c59c671ab8923f353d5854b2524ec9f6426a252d/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/DriverInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c59c671ab8923f353d5854b2524ec9f6426a252d/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcUtilsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcUtilsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c59c671ab8923f353d5854b2524ec9f6426a252d/instrumentation/jdbc/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jdbc/test/MySqlReplicationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jdbc/test/MySqlReplicationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c59c671ab8923f353d5854b2524ec9f6426a252d/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10738395887ce0dc38159930267d0a49f38b8e7d/instrumentation/jdbc/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/361bdfeea7c32c2d606309e7ef2b2e8057f93212"
+      ],
+      "id": "PRRT_kwDODJKVX86v8WqK",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

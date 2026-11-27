@@ -1,0 +1,25 @@
+{
+  "head": "31699dfb5f170ee15b136a59fbc91c95b7658e24",
+  "merge": "cdf52cd2b385a64053500487a923a4d53570ccba",
+  "merged": "2026-07-21T16:56:47Z",
+  "missing_roots": 0,
+  "number": 295,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The step name says Python 3.12, but `python-version` is set to 3.14. This is likely to confuse reviewers and can lead to incorrect assumptions about which interpreter version is being validated. Update either the step name to 3.14 or change `python-version` to 3.12 so both match.",
+      "created": "2026-07-21T06:44:19Z",
+      "hunk": "@@ -168,7 +168,7 @@ jobs:\n         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n \n       - name: Set up Python 3.12\n-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0\n         with:\n           python-version: \"3.14\"",
+      "id": "PRRT_kwDOSbspP86Se3wf",
+      "opened": "2026-07-21T06:44:19Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "31699dfb5f170ee15b136a59fbc91c95b7658e24",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/295#discussion_r3619989266"
+    }
+  ]
+}

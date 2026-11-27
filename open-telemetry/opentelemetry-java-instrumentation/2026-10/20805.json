@@ -1,0 +1,52 @@
+{
+  "head": "3449e6b9d218af8af2b2e28493f20889db422383",
+  "merge": "6693944cc3443f2a650f645cf485e9b2d0c1c119",
+  "merged": "2026-10-22T06:54:01Z",
+  "missing_roots": 0,
+  "number": 20805,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify this PR with the two changes below. Update this PR directly, not a separate follow-up PR.\n\n1. Remove the `meters` and `unstableMeters` caches from `MetricRegistrar`. Make `getMeter(boolean unstable, @Nullable String schemaUrl)` build the appropriately scoped meter and return a `FilteringMeter` directly, preserving the instrumentation scope name, scope-version lookup, schema URL, and existing filter predicate. Set the schema URL only when non-null, without converting null to an empty-string cache key. The OpenTelemetry SDK version used here, 1.67.0, already caches meters by scope name, version, and schema URL. Both enrollment methods return before meter creation on subsequent enrollments, so this adds no repeated wrapper creation on ordinary rediscovery. Remove newly unused imports, but retain the concurrent instrument collection and its cleanup.\n2. Remove the now-unused `InternalMetricsDefinitions.getMetricDefs(boolean)` and `MetricConfiguration.addUnstableMetricDef()` methods. The new `addMetricDefsTo()` path replaced their callers. These classes explicitly document their APIs as internal and unsupported.\n\nKeep schema ownership per rule definition, not per metric name: bundled JVM rules, including explicitly enabled unstable JVM metrics, use `https://opentelemetry.io/schemas/1.44.0`; custom rules and other bundled systems remain schema-less even when metric names collide. Preserve unstable opt-in, general metric filtering, custom-handler filtering, and callback cleanup. Do not redesign the rule model or make unrelated changes.\n\nRun the narrowest relevant formatting and existing JMX library tests. Confirm the bundled/custom same-name schema isolation, unstable opt-in, handler behavior, and cleanup regressions still hold, and that the removed methods have no remaining callers.",
+      "created": "2026-10-22T00:50:14Z",
+      "hunk": "@@ -277,6 +276,25 @@ public Collection<ObjectName> getObjectNames() {\n             }));\n   }\n \n+  private Meter getMeter(boolean unstable, @Nullable String schemaUrl) {\n+    return (unstable ? unstableMeters : meters)",
+      "id": "PRRT_kwDODJKVX86vAfqB",
+      "opened": "2026-10-22T00:50:14Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [
+        {
+          "at": "2026-10-22T01:02:27Z",
+          "body": "Implemented in `c055eaf1`. Removed the two Meter caches, build scoped filtered meters directly with schema set only when present, and removed both superseded methods. The JMX library formatting check and tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20805#discussion_r4343536536"
+        }
+      ],
+      "reviewed": "1293487fc1f0d68e3bee2366897e9209fe5d63b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20805#discussion_r4343474966"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly, not a separate follow-up PR. In `instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricConfiguration.java`, change the field declaration to:\n\n```java\nprivate final Map<MetricDef, String> schemaUrls = new IdentityHashMap<>();\n```\n\nAdd the `java.util.Map` import. Keep `IdentityHashMap` as the implementation so key comparison remains identity-based. Limit the change to this declaration and its import; preserve all existing behavior and earlier simplifications. Run the narrowest relevant formatting and existing validation.",
+      "created": "2026-10-22T01:33:37Z",
+      "hunk": "@@ -21,6 +22,7 @@ public class MetricConfiguration {\n \n   private final Collection<MetricDef> currentSet = new ArrayList<>();\n   private final Set<MetricDef> unstableSet = Collections.newSetFromMap(new IdentityHashMap<>());\n+  private final IdentityHashMap<MetricDef, String> schemaUrls = new IdentityHashMap<>();",
+      "id": "PRRT_kwDODJKVX86vBBS3",
+      "opened": "2026-10-22T01:33:36Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-10-22T01:39:58Z",
+          "body": "Updated in `f1742a9c` with only the requested import and field declaration changes. Spotless passed; the library test task is blocked at compilation because Error Prone `IdentityHashMapUsage` treats the requested `Map` declaration with an `IdentityHashMap` initializer as a warning, and warnings are errors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20805#discussion_r4343732307"
+        }
+      ],
+      "reviewed": "c055eaf15c0d53895194c0c4fe68f4ee6deba61c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20805#discussion_r4343701065"
+    }
+  ]
+}

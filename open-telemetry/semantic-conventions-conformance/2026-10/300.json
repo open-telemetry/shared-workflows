@@ -1,0 +1,25 @@
+{
+  "head": "3adc789c4ee4046ccc540b9b940578c092453685",
+  "merge": "78a315cfda0e317379b5bbaf544520c82f96bb99",
+  "merged": "2026-10-12T05:27:41Z",
+  "missing_roots": 0,
+  "number": 300,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The pinned Anthropic 1.11.0 SDK models `server_tool_use` with both `web_fetch_requests` and `web_search_requests` as required integers. Returning only the latter produces an incomplete API payload and can leave SDK consumers without the required field; report zero fetches here as the real response schema does.",
+      "created": "2026-10-11T23:14:11Z",
+      "hunk": "@@ -223,6 +223,43 @@ def _stream_message(body):\n def messages():\n     body = request.get_json(silent=True) or {}\n \n+    if any(\n+        tool.get(\"type\", \"\").startswith(\"web_search_\") and tool.get(\"name\") == \"web_search\"\n+        for tool in body.get(\"tools\") or []\n+    ):\n+        if body.get(\"stream\"):\n+            return {\n+                \"type\": \"error\",\n+                \"error\": {\n+                    \"type\": \"invalid_request_error\",\n+                    \"message\": \"Mock web search streaming is not supported.\",\n+                },\n+            }, 400\n+        resp = copy.deepcopy(MESSAGE_RESPONSE)\n+        resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n+        resp[\"content\"] = [\n+            {\n+                \"type\": \"server_tool_use\",\n+                \"id\": \"srvtoolu_01\",\n+                \"name\": \"web_search\",\n+                \"input\": {\"query\": \"OpenTelemetry\"},\n+            },\n+            {\n+                \"type\": \"web_search_tool_result\",\n+                \"tool_use_id\": \"srvtoolu_01\",\n+                \"content\": [\n+                    {\n+                        \"type\": \"web_search_result\",\n+                        \"title\": \"OpenTelemetry\",\n+                        \"url\": \"https://opentelemetry.io/\",\n+                        \"encrypted_content\": \"mock-encrypted-content\",\n+                    }\n+                ],\n+            },\n+            *resp[\"content\"],\n+        ]\n+        resp[\"usage\"][\"server_tool_use\"] = {\"web_search_requests\": 1}",
+      "id": "PRRT_kwDOTuzK5c6rSiAw",
+      "opened": "2026-10-11T23:14:12Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/anthropic.py",
+      "replies": [],
+      "reviewed": "f5cf6c434ec5845e5d754074800cfee3e8f262a5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/300#discussion_r4243652162"
+    }
+  ]
+}

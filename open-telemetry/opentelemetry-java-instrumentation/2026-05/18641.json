@@ -1,0 +1,55 @@
+{
+  "head": "b4a68bedbb160f89aa34b80c3b93fcd153474c3a",
+  "merge": "cb44c53b26ceab393dbcbf79b116022e120ddb8e",
+  "merged": "2026-05-09T16:29:42Z",
+  "missing_roots": 0,
+  "number": 18641,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nio.opentelemetry.instrumentation.testing.provider.TestExporterCustomizerProvider\n\n```",
+      "created": "2026-05-08T23:33:59Z",
+      "hunk": "@@ -1 +1 @@\n-io.opentelemetry.instrumentation.testing.provider.TestExporterCustomizerProvider\n+io.opentelemetry.instrumentation.testing.provider.TestExporterCustomizerProvider",
+      "id": "PRRT_kwDODJKVX86Aww4W",
+      "opened": "2026-05-08T23:33:59Z",
+      "path": "testing-common/src/main/resources/META-INF/services/io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider",
+      "replies": [],
+      "reviewed": "fb106527fac437ce184a1d29a548a42bfe176984",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18641#discussion_r3211871195"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "change due to https://github.com/open-telemetry/opentelemetry-java/pull/8356",
+      "created": "2026-05-08T23:39:15Z",
+      "hunk": "@@ -42,8 +42,11 @@ public void customize(DeclarativeConfigurationCustomizer customizer) {\n             detectionModel = new ExperimentalResourceDetectionModel();\n             resource.withDetectionDevelopment(detectionModel);\n           }\n-          List<ExperimentalResourceDetectorModel> detectors =\n-              requireNonNull(detectionModel.getDetectors());\n+          List<ExperimentalResourceDetectorModel> detectors = detectionModel.getDetectors();\n+          if (detectors == null) {\n+            detectors = new ArrayList<>();\n+            detectionModel.withDetectors(detectors);\n+          }",
+      "id": "PRRT_kwDODJKVX86Awy-_",
+      "opened": "2026-05-08T23:39:15Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/resources/ResourceCustomizerProvider.java",
+      "replies": [],
+      "reviewed": "b4a68bedbb160f89aa34b80c3b93fcd153474c3a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18641#discussion_r3211882487"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "change due to https://github.com/open-telemetry/opentelemetry-java/pull/8356",
+      "created": "2026-05-08T23:39:42Z",
+      "hunk": "@@ -47,20 +49,29 @@ private void maybeEnableLoggingExporter(OpenTelemetryConfigurationModel model) {\n       tracerProvider = new TracerProviderModel();\n       model.withTracerProvider(tracerProvider);\n     }\n+    List<SpanProcessorModel> processors = tracerProvider.getProcessors();\n+    if (processors == null) {\n+      processors = new ArrayList<>();\n+      tracerProvider.withProcessors(processors);\n+    }\n     SpanProcessorModel processor =\n         new SpanProcessorModel()\n             .withSimple(\n                 new SimpleSpanProcessorModel()\n                     .withExporter(new SpanExporterModel().withConsole(new ConsoleExporterModel())));\n-    tracerProvider.getProcessors().add(processor);\n+    processors.add(processor);\n   }\n \n   private static boolean loggingExporterIsAlreadyConfigured(OpenTelemetryConfigurationModel model) {\n     TracerProviderModel tracerProvider = model.getTracerProvider();\n     if (tracerProvider == null) {\n       return false;\n     }\n-    for (SpanProcessorModel processor : tracerProvider.getProcessors()) {\n+    List<SpanProcessorModel> processors = tracerProvider.getProcessors();\n+    if (processors == null) {\n+      return false;\n+    }\n+    for (SpanProcessorModel processor : processors) {",
+      "id": "PRRT_kwDODJKVX86AwzJu",
+      "opened": "2026-05-08T23:39:42Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/logging/internal/AbstractSpanLoggingCustomizerProvider.java",
+      "replies": [],
+      "reviewed": "b4a68bedbb160f89aa34b80c3b93fcd153474c3a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18641#discussion_r3211883333"
+    }
+  ]
+}

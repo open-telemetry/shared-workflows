@@ -1,0 +1,76 @@
+{
+  "head": "8039813c82b2fac2ac7f738a6be9d8c1ec167529",
+  "merge": "088c2ecf2b23eaff81ad84b86d4971b07a0f6dee",
+  "merged": "2026-08-20T00:44:57Z",
+  "missing_roots": 0,
+  "number": 390,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The runtime now supports `aclose`-only streams, but `AsyncStreamWrapper.__init__` still requires `_AsyncStream`, whose protocol declares `close()` and not `aclose()`. As a result, the async generators this change is meant to support remain invalid inputs for typed consumers (the Google wrapper currently hides this because that package is outside the strict pyright include). Widen the accepted protocol to an async iterable with optional close behavior, or model the two close shapes explicitly.",
+      "created": "2026-08-14T21:38:56Z",
+      "hunk": "@@ -205,22 +257,45 @@ async def __aexit__(\n         if exc_val is not None:\n             self._finalize_failure(exc_val)\n             try:\n-                await self._self_stream.close()\n+                await self._close_stream()\n             except Exception:  # pylint: disable=broad-exception-caught\n                 _logger.debug(\n                     \"GenAI stream close error after user exception\",\n                     exc_info=True,\n                 )\n             return False\n \n-        await self.close()\n+        await self._close()\n         return False\n \n-    async def close(self) -> None:\n-        # Named ``close`` (not ``aclose``) to match OpenAI's ``AsyncStream``.\n-        # Revisit when migrating SDKs that expose ``aclose`` instead.\n+    async def _close_stream(self) -> None:\n+        \"\"\"Close the wrapped stream, whichever close method it exposes.\n+\n+        SDK streams (OpenAI's and Anthropic's ``AsyncStream``) expose an async\n+        ``close``; async generators -- what Google's async\n+        ``generate_content_stream`` hands back -- expose ``aclose`` instead.\n+        ``aclose`` is preferred for an object carrying both, because a pairing\n+        of the two names is how objects with a *sync* ``close`` spell their\n+        async one, and awaiting the sync one would raise.\n+\n+        A stream exposing neither is left alone; there is nothing to close, and\n+        the caller's iteration has already ended.\n+        \"\"\"\n+        close = getattr(self._self_stream, \"aclose\", None)\n+        if close is None:\n+            close = getattr(self._self_stream, \"close\", None)",
+      "id": "PRRT_kwDOSbspP86ZbC8C",
+      "opened": "2026-08-14T21:38:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "0ba4f325030545ec52b21c8429aabc249a1420c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/390#discussion_r3787325092"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This newly added public method exposes `Any` from `opentelemetry.util.genai.stream`, bypassing strict typing for every forwarded attribute. The [util public-API rule](.github/instructions/util-genai.instructions.md#3-api-backwards-compatibility) requires avoiding `Any`; return `object` and expose typed SDK operations on concrete wrappers, or move the dynamically typed forwarding into a private implementation layer.",
+      "created": "2026-08-14T21:38:56Z",
+      "hunk": "@@ -230,6 +305,20 @@ async def close(self) -> None:\n             raise\n         self._finalize_success()\n \n+    def __getattr__(self, name: str) -> Any:",
+      "id": "PRRT_kwDOSbspP86ZbC8U",
+      "opened": "2026-08-14T21:38:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "0ba4f325030545ec52b21c8429aabc249a1420c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/390#discussion_r3787325124"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "After `manager.__exit__` returns successfully, the SDK manager has already closed its stream (both OpenAI and Anthropic managers do this), but calling the wrapper's `__exit__` closes that same stream again. This adds an SDK-visible side effect and can turn a successful context exit into an error for a non-idempotent close. Finalize the wrapper directly after the manager owns cleanup instead of re-entering its close lifecycle.\n\nThis issue also appears on line 532 of the same file.",
+      "created": "2026-08-14T21:38:56Z",
+      "hunk": "@@ -254,32 +343,205 @@ async def __anext__(self) -> ChunkT:\n             invocation._on_stream_chunk(chunk_at)\n         return chunk\n \n-    def _finalize_success(self) -> None:\n-        if self._self_finalized:\n-            return\n-        self._self_finalized = True\n-        self._on_stream_end()\n \n-    def _finalize_failure(self, error: BaseException) -> None:\n-        if self._self_finalized:\n-            return\n-        self._self_finalized = True\n-        self._on_stream_error(error)\n+class _CloseFinalizingProxy(_ObjectProxy):\n+    def __init__(self, wrapped: object, finalize: Callable[[], None]) -> None:\n+        super().__init__(wrapped)\n+        self._self_finalize = finalize\n \n-    @abstractmethod\n-    def _process_chunk(self, chunk: ChunkT) -> None:\n-        \"\"\"Process one stream chunk for telemetry.\"\"\"\n+    def close(self) -> None:\n+        try:\n+            self.__wrapped__.close()\n+        finally:\n+            self._self_finalize()\n+\n+\n+class _AcloseFinalizingProxy(_ObjectProxy):\n+    def __init__(self, wrapped: object, finalize: Callable[[], None]) -> None:\n+        super().__init__(wrapped)\n+        self._self_finalize = finalize\n+\n+    async def aclose(self) -> None:\n+        try:\n+            await self.__wrapped__.aclose()\n+        finally:\n+            self._self_finalize()\n+\n+\n+def finalize_on_close(\n+    wrapped: WrappedT, finalize: Callable[[], None]\n+) -> WrappedT:\n+    \"\"\"Proxy ``wrapped`` so closing it also finalizes telemetry.\n+\n+    Used for objects an SDK stream exposes to callers as a way to end the\n+    operation early -- typically the underlying HTTP response behind\n+    ``stream.response`` -- where a ``close()`` means the caller is done and the\n+    invocation should be finalized. Everything but ``close`` forwards\n+    unchanged.\n+    \"\"\"\n+    return cast(WrappedT, _CloseFinalizingProxy(wrapped, finalize))\n+\n+\n+def finalize_on_aclose(\n+    wrapped: WrappedT, finalize: Callable[[], None]\n+) -> WrappedT:\n+    \"\"\"Async counterpart of ``finalize_on_close``, hooking ``aclose``.\"\"\"\n+    return cast(WrappedT, _AcloseFinalizingProxy(wrapped, finalize))\n+\n+\n+class SyncStreamManagerWrapper(\n+    _ObjectProxy,\n+    Generic[StreamT, InvocationT, SyncStreamWrapperT],\n+    metaclass=_StreamWrapperMeta,\n+):\n+    \"\"\"Base class for wrappers of SDK stream *managers*.\n+\n+    A stream manager is the context manager an SDK returns from a ``stream()``\n+    style API: entering it opens the HTTP request and yields the stream, and\n+    exiting it closes the stream. The invocation is created on entry -- not\n+    when the manager is constructed -- so a manager that is never entered opens\n+    no span.\n+\n+    Subclasses implement ``_wrap_stream`` to return the instrumented stream\n+    wrapper for the SDK stream, and may override ``_enter_manager`` when the\n+    SDK's entry needs to run inside instrumentation-specific state. The type\n+    parameters are the SDK's stream type, the invocation type the factory\n+    produces, and the stream wrapper type, so neither hook needs a cast.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        manager: object,\n+        invocation_factory: Callable[[], InvocationT],\n+    ) -> None:\n+        super().__init__(manager)\n+        self._self_invocation_factory = invocation_factory\n+        self._self_invocation: InvocationT | None = None\n+        self._self_stream_wrapper: SyncStreamWrapperT | None = None\n+\n+    def _enter_manager(self, invocation: InvocationT) -> StreamT:\n+        \"\"\"Enter the wrapped SDK manager and return its stream.\"\"\"\n+        return cast(StreamT, self.__wrapped__.__enter__())\n \n     @abstractmethod\n-    def _on_stream_end(self) -> None:\n-        \"\"\"Finalize the stream successfully.\"\"\"\n+    def _wrap_stream(\n+        self, stream: StreamT, invocation: InvocationT\n+    ) -> SyncStreamWrapperT:\n+        \"\"\"Return the instrumented wrapper for the SDK's stream.\"\"\"\n+\n+    def __enter__(self) -> SyncStreamWrapperT:\n+        invocation = self._self_invocation_factory()\n+        self._self_invocation = invocation\n+        try:\n+            stream = self._enter_manager(invocation)\n+        except Exception as error:\n+            invocation.fail(error)\n+            raise\n+        stream_wrapper = self._wrap_stream(stream, invocation)\n+        self._self_stream_wrapper = stream_wrapper\n+        return stream_wrapper\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> bool | None:\n+        stream_wrapper = self._self_stream_wrapper\n+        self._self_stream_wrapper = None\n+        try:\n+            suppressed = self.__wrapped__.__exit__(exc_type, exc_val, exc_tb)\n+        except Exception as error:\n+            if stream_wrapper is not None:\n+                stream_wrapper.__exit__(\n+                    type(error), error, error.__traceback__\n+                )\n+            elif self._self_invocation is not None:\n+                self._self_invocation.fail(error)\n+            raise\n+        if stream_wrapper is not None:\n+            if suppressed:\n+                # The manager swallowed the caller's exception, so the stream\n+                # ended successfully as far as telemetry is concerned.\n+                stream_wrapper.__exit__(None, None, None)\n+            else:\n+                stream_wrapper.__exit__(exc_type, exc_val, exc_tb)\n+        return suppressed",
+      "id": "PRRT_kwDOSbspP86ZbC8e",
+      "opened": "2026-08-14T21:38:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-08-14T21:46:45Z",
+          "body": "Confirmed, but deferring this one.\n\nBoth SDK managers do close the stream in `__exit__` — anthropic's `MessageStreamManager` and openai's `ResponseStreamManager` both call `self.__stream.close()` (their async variants `await` it) — so the wrapper's `__exit__` does close it a second time.\n\nTwo reasons to leave it here: it is byte-identical to what both instrumentations already do on `main`, since this PR only moved the code; and `httpx.Response.close()` guards on `is_closed`, so the second call is a no-op rather than a live bug.\n\nChanging it would alter SDK-visible behavior in a PR that is otherwise a pure extraction, so it moves to the follow-up that consolidates the raw-response proxy. Tracked there together with the fix direction: finalize the wrapper directly after the manager exits, instead of re-entering its close lifecycle.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/390#discussion_r3787364386"
+        }
+      ],
+      "reviewed": "0ba4f325030545ec52b21c8429aabc249a1420c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/390#discussion_r3787325142"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "moved to utils",
+      "created": "2026-08-14T21:51:24Z",
+      "hunk": "@@ -344,84 +325,6 @@ def test_sync_manager_does_not_create_invocation_until_enter():\n     assert factory_calls == [True]\n \n \n-def test_sync_manager_enter_fails_invocation_when_manager_raises():",
+      "id": "PRRT_kwDOSbspP86ZbMzs",
+      "opened": "2026-08-14T21:51:24Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_wrappers.py",
+      "replies": [],
+      "reviewed": "9f9b01f54c891dc09294645e65b8674f26f3b091",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/390#discussion_r3787386417"
+    }
+  ]
+}

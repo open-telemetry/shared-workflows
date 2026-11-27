@@ -1,0 +1,361 @@
+{
+  "head": "83f1fda78399f2caeb5e3648cd702297140455a2",
+  "merge": "d6b3a3991392727344bc80bcc9b750b5a5160be0",
+  "merged": "2026-04-06T17:34:09Z",
+  "missing_roots": 0,
+  "number": 17220,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "reworked a couple of static initializers to work around ignoring exceptions 🤷‍♂️",
+      "created": "2026-03-31T19:43:14Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX854DRpx",
+      "opened": "2026-03-31T19:43:13Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "0eedafb29938753f6b0e683db434a0ed4a0bd3c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3017966006"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I couldn't see any reason not to attach the original exception here",
+      "created": "2026-03-31T19:44:20Z",
+      "hunk": "@@ -91,9 +91,8 @@ private static List<String> splitByDot(String rawName) {\n       // The returned list is never empty ...\n       verifyAndAddNameSegment(components, currentSegment);\n \n-    } catch (IllegalArgumentException unused) {\n-      // Drop the original exception. We have more meaningful context here.\n-      throw new IllegalArgumentException(\"Invalid attribute name '\" + rawName + \"'\");\n+    } catch (IllegalArgumentException e) {\n+      throw new IllegalArgumentException(\"Invalid attribute name '\" + rawName + \"'\", e);",
+      "id": "PRRT_kwDODJKVX854DSsx",
+      "opened": "2026-03-31T19:44:20Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/BeanAttributeExtractor.java",
+      "replies": [],
+      "reviewed": "0eedafb29938753f6b0e683db434a0ed4a0bd3c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3017971495"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "reworked to avoid empty catch",
+      "created": "2026-03-31T22:15:30Z",
+      "hunk": "@@ -25,29 +25,26 @@ void dispatchPropagates() throws Exception {\n     QueuedThreadPool pool = new QueuedThreadPool();\n     // run test only if QueuedThreadPool has dispatch method\n     // dispatch method was removed in jetty 9.1\n-    Method dispatch = null;\n+    Method dispatch;\n     try {\n       dispatch = QueuedThreadPool.class.getMethod(\"dispatch\", Runnable.class);\n-    } catch (NoSuchMethodException ignore) {\n-      // ignore\n+    } catch (NoSuchMethodException ignored) {\n+      abort(\"Jetty 9.1+ removed dispatch(Runnable)\");\n+      return;\n     }\n-    assumeTrue(dispatch != null);",
+      "id": "PRRT_kwDODJKVX854FX-f",
+      "opened": "2026-03-31T22:15:30Z",
+      "path": "instrumentation/jetty/jetty-8.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jetty/v8_0/QueuedThreadPoolTest.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3018702904"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught exception isn't used in this catch block. Per the repo catch-variable naming rule, rename the catch parameter to `ignored` (instead of `e`) for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:21Z",
+      "hunk": "@@ -36,18 +36,20 @@ public final class AnnotationSingletons {\n   // The reason for using reflection here is that it needs to be compatible with the old version of\n   // @WithSpan annotation that does not include the inheritContext option to avoid failing the\n   // muzzle check.\n-  @Nullable private static MethodHandle inheritContextMethodHandle = null;\n+  @Nullable\n+  private static final MethodHandle INHERIT_CONTEXT_METHOD_HANDLE =\n+      findInheritContextMethodHandle();\n \n-  static {\n+  @Nullable\n+  private static MethodHandle findInheritContextMethodHandle() {\n     try {\n-      inheritContextMethodHandle =\n-          MethodHandles.publicLookup()\n-              .findVirtual(\n-                  application.io.opentelemetry.instrumentation.annotations.WithSpan.class,\n-                  \"inheritContext\",\n-                  MethodType.methodType(boolean.class));\n-    } catch (NoSuchMethodException | IllegalAccessException ignore) {\n-      // ignore\n+      return MethodHandles.publicLookup()\n+          .findVirtual(\n+              application.io.opentelemetry.instrumentation.annotations.WithSpan.class,\n+              \"inheritContext\",\n+              MethodType.methodType(boolean.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n     }",
+      "id": "PRRT_kwDODJKVX854xEev",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/instrumentationannotations/AnnotationSingletons.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907093"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught Throwable isn't used in this catch block. Rename the catch parameter to `ignored` to match the project's catch-variable naming convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:21Z",
+      "hunk": "@@ -135,20 +137,18 @@ public static Context getContextForMethod(Method method) {\n   }\n \n   private static boolean inheritContextFromMethod(Method method) {\n-    if (inheritContextMethodHandle == null) {\n+    if (INHERIT_CONTEXT_METHOD_HANDLE == null) {\n       return true;\n     }\n \n     application.io.opentelemetry.instrumentation.annotations.WithSpan annotation =\n         method.getDeclaredAnnotation(\n             application.io.opentelemetry.instrumentation.annotations.WithSpan.class);\n     try {\n-      return (boolean) inheritContextMethodHandle.invoke(annotation);\n-    } catch (Throwable ignore) {\n-      // ignore\n+      return (boolean) INHERIT_CONTEXT_METHOD_HANDLE.invoke(annotation);\n+    } catch (Throwable e) {\n+      return true;\n     }",
+      "id": "PRRT_kwDODJKVX854xEfA",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/instrumentationannotations/AnnotationSingletons.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907116"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught exception isn't used here; use `ignored` as the catch parameter name to follow the repo's catch-variable naming convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:21Z",
+      "hunk": "@@ -14,53 +14,63 @@\n \n final class ServerCallAccess {\n \n-  private static final Class<?> HTTP_REQUEST_CLASS;\n-  private static final MethodHandle GET_HTTP_CALL;\n-  private static final MethodHandle GET_SERVER_ADDRESS;\n-\n-  static {\n-    Class<?> httpRequestClass = null;\n-    Class<?> serverCallClass = null;\n-    MethodHandle getHttpCall = null;\n-    MethodHandle getServerAddress = null;\n+  private static final Class<?> HTTP_REQUEST_CLASS = findHttpRequestClass();\n+  private static final Class<?> SERVER_CALL_CLASS = findServerCallClass();\n+  private static final MethodHandle GET_HTTP_CALL = findGetHttpCall();\n+  private static final MethodHandle GET_SERVER_ADDRESS = findGetServerAddress();\n \n+  @Nullable\n+  private static Class<?> findHttpRequestClass() {\n     try {\n-      httpRequestClass = Class.forName(\"org.restlet.engine.http.HttpRequest\");\n+      return Class.forName(\"org.restlet.engine.http.HttpRequest\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        httpRequestClass = Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n+  }\n \n+  @Nullable\n+  private static Class<?> findServerCallClass() {\n     try {\n-      serverCallClass = Class.forName(\"org.restlet.engine.http.ServerCall\");\n+      return Class.forName(\"org.restlet.engine.http.ServerCall\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        serverCallClass = Class.forName(\"org.restlet.engine.adapter.ServerCall\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.ServerCall\");\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    if (httpRequestClass != null && serverCallClass != null) {\n-      try {\n-        MethodHandles.Lookup lookup = MethodHandles.publicLookup();\n-        getHttpCall =\n-            lookup.findVirtual(httpRequestClass, \"getHttpCall\", methodType(serverCallClass));\n-        getServerAddress =\n-            lookup.findVirtual(serverCallClass, \"getServerAddress\", methodType(String.class));\n-      } catch (NoSuchMethodException | IllegalAccessException e) {\n-        // ignored\n-      }\n+  @Nullable\n+  private static MethodHandle findGetHttpCall() {\n+    if (HTTP_REQUEST_CLASS == null || SERVER_CALL_CLASS == null) {\n+      return null;\n     }\n+    try {\n+      return MethodHandles.publicLookup()\n+          .findVirtual(HTTP_REQUEST_CLASS, \"getHttpCall\", methodType(SERVER_CALL_CLASS));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX854xEfE",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/ServerCallAccess.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907124"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught exception isn't used in this catch block. Use `ignored` as the catch parameter name to align with the repo's catch-variable naming guideline for unused exceptions.",
+      "created": "2026-04-03T18:34:21Z",
+      "hunk": "@@ -23,27 +23,22 @@\n \n final class RestletHeadersGetter implements TextMapGetter<Request> {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes =\n-          lookup.findVirtual(Message.class, \"getAttributes\", MethodType.methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", MethodType.methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1",
+      "id": "PRRT_kwDODJKVX854xEfN",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/RestletHeadersGetter.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907138"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is intentionally unused; rename it to `ignored` (instead of `e`) to follow the repo's catch-variable naming convention.",
+      "created": "2026-04-03T18:34:22Z",
+      "hunk": "@@ -14,53 +14,63 @@\n \n final class ServerCallAccess {\n \n-  private static final Class<?> HTTP_REQUEST_CLASS;\n-  private static final MethodHandle GET_HTTP_CALL;\n-  private static final MethodHandle GET_SERVER_ADDRESS;\n-\n-  static {\n-    Class<?> httpRequestClass = null;\n-    Class<?> serverCallClass = null;\n-    MethodHandle getHttpCall = null;\n-    MethodHandle getServerAddress = null;\n+  private static final Class<?> HTTP_REQUEST_CLASS = findHttpRequestClass();\n+  private static final Class<?> SERVER_CALL_CLASS = findServerCallClass();\n+  private static final MethodHandle GET_HTTP_CALL = findGetHttpCall();\n+  private static final MethodHandle GET_SERVER_ADDRESS = findGetServerAddress();\n \n+  @Nullable\n+  private static Class<?> findHttpRequestClass() {\n     try {\n-      httpRequestClass = Class.forName(\"org.restlet.engine.http.HttpRequest\");\n+      return Class.forName(\"org.restlet.engine.http.HttpRequest\");\n     } catch (ClassNotFoundException e) {",
+      "id": "PRRT_kwDODJKVX854xEfZ",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/ServerCallAccess.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907156"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is unused; rename it to `ignored` (instead of `f`) to match the project's convention for intentionally unused catch parameters.",
+      "created": "2026-04-03T18:34:22Z",
+      "hunk": "@@ -14,53 +14,63 @@\n \n final class ServerCallAccess {\n \n-  private static final Class<?> HTTP_REQUEST_CLASS;\n-  private static final MethodHandle GET_HTTP_CALL;\n-  private static final MethodHandle GET_SERVER_ADDRESS;\n-\n-  static {\n-    Class<?> httpRequestClass = null;\n-    Class<?> serverCallClass = null;\n-    MethodHandle getHttpCall = null;\n-    MethodHandle getServerAddress = null;\n+  private static final Class<?> HTTP_REQUEST_CLASS = findHttpRequestClass();\n+  private static final Class<?> SERVER_CALL_CLASS = findServerCallClass();\n+  private static final MethodHandle GET_HTTP_CALL = findGetHttpCall();\n+  private static final MethodHandle GET_SERVER_ADDRESS = findGetServerAddress();\n \n+  @Nullable\n+  private static Class<?> findHttpRequestClass() {\n     try {\n-      httpRequestClass = Class.forName(\"org.restlet.engine.http.HttpRequest\");\n+      return Class.forName(\"org.restlet.engine.http.HttpRequest\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        httpRequestClass = Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n+      } catch (ClassNotFoundException f) {\n+        return null;",
+      "id": "PRRT_kwDODJKVX854xEfg",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/ServerCallAccess.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907165"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is intentionally unused; rename it to `ignored` (instead of `e`) to follow the repo's catch-variable naming convention.",
+      "created": "2026-04-03T18:34:22Z",
+      "hunk": "@@ -14,53 +14,63 @@\n \n final class ServerCallAccess {\n \n-  private static final Class<?> HTTP_REQUEST_CLASS;\n-  private static final MethodHandle GET_HTTP_CALL;\n-  private static final MethodHandle GET_SERVER_ADDRESS;\n-\n-  static {\n-    Class<?> httpRequestClass = null;\n-    Class<?> serverCallClass = null;\n-    MethodHandle getHttpCall = null;\n-    MethodHandle getServerAddress = null;\n+  private static final Class<?> HTTP_REQUEST_CLASS = findHttpRequestClass();\n+  private static final Class<?> SERVER_CALL_CLASS = findServerCallClass();\n+  private static final MethodHandle GET_HTTP_CALL = findGetHttpCall();\n+  private static final MethodHandle GET_SERVER_ADDRESS = findGetServerAddress();\n \n+  @Nullable\n+  private static Class<?> findHttpRequestClass() {\n     try {\n-      httpRequestClass = Class.forName(\"org.restlet.engine.http.HttpRequest\");\n+      return Class.forName(\"org.restlet.engine.http.HttpRequest\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        httpRequestClass = Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n+  }\n \n+  @Nullable\n+  private static Class<?> findServerCallClass() {\n     try {\n-      serverCallClass = Class.forName(\"org.restlet.engine.http.ServerCall\");\n+      return Class.forName(\"org.restlet.engine.http.ServerCall\");\n     } catch (ClassNotFoundException e) {",
+      "id": "PRRT_kwDODJKVX854xEfn",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/ServerCallAccess.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907172"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is unused; rename it to `ignored` (instead of `f`) to align with the repo's catch-variable naming rule for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:22Z",
+      "hunk": "@@ -14,53 +14,63 @@\n \n final class ServerCallAccess {\n \n-  private static final Class<?> HTTP_REQUEST_CLASS;\n-  private static final MethodHandle GET_HTTP_CALL;\n-  private static final MethodHandle GET_SERVER_ADDRESS;\n-\n-  static {\n-    Class<?> httpRequestClass = null;\n-    Class<?> serverCallClass = null;\n-    MethodHandle getHttpCall = null;\n-    MethodHandle getServerAddress = null;\n+  private static final Class<?> HTTP_REQUEST_CLASS = findHttpRequestClass();\n+  private static final Class<?> SERVER_CALL_CLASS = findServerCallClass();\n+  private static final MethodHandle GET_HTTP_CALL = findGetHttpCall();\n+  private static final MethodHandle GET_SERVER_ADDRESS = findGetServerAddress();\n \n+  @Nullable\n+  private static Class<?> findHttpRequestClass() {\n     try {\n-      httpRequestClass = Class.forName(\"org.restlet.engine.http.HttpRequest\");\n+      return Class.forName(\"org.restlet.engine.http.HttpRequest\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        httpRequestClass = Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n+  }\n \n+  @Nullable\n+  private static Class<?> findServerCallClass() {\n     try {\n-      serverCallClass = Class.forName(\"org.restlet.engine.http.ServerCall\");\n+      return Class.forName(\"org.restlet.engine.http.ServerCall\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        serverCallClass = Class.forName(\"org.restlet.engine.adapter.ServerCall\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.ServerCall\");\n+      } catch (ClassNotFoundException f) {\n+        return null;",
+      "id": "PRRT_kwDODJKVX854xEfv",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/ServerCallAccess.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907185"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught exceptions aren't used in this catch block. Rename the catch parameter to `ignored` to match the project's convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:23Z",
+      "hunk": "@@ -14,53 +14,63 @@\n \n final class ServerCallAccess {\n \n-  private static final Class<?> HTTP_REQUEST_CLASS;\n-  private static final MethodHandle GET_HTTP_CALL;\n-  private static final MethodHandle GET_SERVER_ADDRESS;\n-\n-  static {\n-    Class<?> httpRequestClass = null;\n-    Class<?> serverCallClass = null;\n-    MethodHandle getHttpCall = null;\n-    MethodHandle getServerAddress = null;\n+  private static final Class<?> HTTP_REQUEST_CLASS = findHttpRequestClass();\n+  private static final Class<?> SERVER_CALL_CLASS = findServerCallClass();\n+  private static final MethodHandle GET_HTTP_CALL = findGetHttpCall();\n+  private static final MethodHandle GET_SERVER_ADDRESS = findGetServerAddress();\n \n+  @Nullable\n+  private static Class<?> findHttpRequestClass() {\n     try {\n-      httpRequestClass = Class.forName(\"org.restlet.engine.http.HttpRequest\");\n+      return Class.forName(\"org.restlet.engine.http.HttpRequest\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        httpRequestClass = Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.HttpRequest\");\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n+  }\n \n+  @Nullable\n+  private static Class<?> findServerCallClass() {\n     try {\n-      serverCallClass = Class.forName(\"org.restlet.engine.http.ServerCall\");\n+      return Class.forName(\"org.restlet.engine.http.ServerCall\");\n     } catch (ClassNotFoundException e) {\n       // moved to another package in version 2.4\n       try {\n-        serverCallClass = Class.forName(\"org.restlet.engine.adapter.ServerCall\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+        return Class.forName(\"org.restlet.engine.adapter.ServerCall\");\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    if (httpRequestClass != null && serverCallClass != null) {\n-      try {\n-        MethodHandles.Lookup lookup = MethodHandles.publicLookup();\n-        getHttpCall =\n-            lookup.findVirtual(httpRequestClass, \"getHttpCall\", methodType(serverCallClass));\n-        getServerAddress =\n-            lookup.findVirtual(serverCallClass, \"getServerAddress\", methodType(String.class));\n-      } catch (NoSuchMethodException | IllegalAccessException e) {\n-        // ignored\n-      }\n+  @Nullable\n+  private static MethodHandle findGetHttpCall() {\n+    if (HTTP_REQUEST_CLASS == null || SERVER_CALL_CLASS == null) {\n+      return null;\n     }\n+    try {\n+      return MethodHandles.publicLookup()\n+          .findVirtual(HTTP_REQUEST_CLASS, \"getHttpCall\", methodType(SERVER_CALL_CLASS));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n+    }\n+  }\n \n-    HTTP_REQUEST_CLASS = httpRequestClass;\n-    GET_HTTP_CALL = getHttpCall;\n-    GET_SERVER_ADDRESS = getServerAddress;\n+  @Nullable\n+  private static MethodHandle findGetServerAddress() {\n+    if (SERVER_CALL_CLASS == null) {\n+      return null;\n+    }\n+    try {\n+      return MethodHandles.publicLookup()\n+          .findVirtual(SERVER_CALL_CLASS, \"getServerAddress\", methodType(String.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX854xEf8",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/ServerCallAccess.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907204"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This inner catch parameter is unused; rename it to `ignored` (instead of `f`) to follow the repo's catch-variable naming convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:23Z",
+      "hunk": "@@ -23,27 +23,22 @@\n \n final class RestletHeadersGetter implements TextMapGetter<Request> {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes =\n-          lookup.findVirtual(Message.class, \"getAttributes\", MethodType.methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", MethodType.methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(\n-                Message.class, \"getAttributes\", MethodType.methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(\n+            Message.class, \"getAttributes\", MethodType.methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }",
+      "id": "PRRT_kwDODJKVX854xEgL",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/RestletHeadersGetter.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907222"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is unused; rename it to `ignored` (instead of `e`) to follow the repo's catch-variable naming convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:23Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1",
+      "id": "PRRT_kwDODJKVX854xEgd",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907244"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This inner catch parameter is unused; rename it to `ignored` (instead of `f`) to match the project's convention for intentionally unused catch parameters.",
+      "created": "2026-04-03T18:34:23Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }",
+      "id": "PRRT_kwDODJKVX854xEgt",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907264"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught exceptions aren't used in this catch block. Rename the catch parameter to `ignored` to align with the repo's unused-catch-parameter naming convention.",
+      "created": "2026-04-03T18:34:24Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    Class<?> setValueReturnType = null;\n+  @Nullable\n+  private static MethodHandle findSetValue() {\n+    Class<?> setValueReturnType;\n     try {\n       // changed the generic bound to NamedValue in version 2.1; earlier than that it's Parameter\n       setValueReturnType = Class.forName(\"org.restlet.util.NamedValue\");\n     } catch (ClassNotFoundException e) {\n       try {\n         setValueReturnType = Class.forName(\"org.restlet.data.Parameter\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n-    if (setValueReturnType != null) {\n-      try {\n-        setValue =\n-            lookup.findVirtual(\n-                Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n-      } catch (NoSuchMethodException | IllegalAccessException e) {\n-        // ignored\n-      }\n+\n+    try {\n+      return MethodHandles.lookup()\n+          .findVirtual(\n+              Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n     }",
+      "id": "PRRT_kwDODJKVX854xEg6",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907283"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is unused; rename it to `ignored` (instead of `e`) to match the repo's convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:24Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    Class<?> setValueReturnType = null;\n+  @Nullable\n+  private static MethodHandle findSetValue() {\n+    Class<?> setValueReturnType;\n     try {\n       // changed the generic bound to NamedValue in version 2.1; earlier than that it's Parameter\n       setValueReturnType = Class.forName(\"org.restlet.util.NamedValue\");\n     } catch (ClassNotFoundException e) {\n       try {\n         setValueReturnType = Class.forName(\"org.restlet.data.Parameter\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n-    if (setValueReturnType != null) {\n-      try {\n-        setValue =\n-            lookup.findVirtual(\n-                Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n-      } catch (NoSuchMethodException | IllegalAccessException e) {\n-        // ignored\n-      }\n+\n+    try {\n+      return MethodHandles.lookup()\n+          .findVirtual(\n+              Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n     }\n+  }\n \n+  @Nullable\n+  private static Class<?> findHeaderClass() {\n     try {\n       // restlet 2.3+\n-      headerClass = Class.forName(\"org.restlet.data.Header\");\n+      return Class.forName(\"org.restlet.data.Header\");\n     } catch (ClassNotFoundException e) {\n       try {",
+      "id": "PRRT_kwDODJKVX854xEhE",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907295"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This inner catch parameter is unused; rename it to `ignored` (instead of `f`) to follow the project's convention for intentionally unused catch parameters.",
+      "created": "2026-04-03T18:34:24Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    Class<?> setValueReturnType = null;\n+  @Nullable\n+  private static MethodHandle findSetValue() {\n+    Class<?> setValueReturnType;\n     try {\n       // changed the generic bound to NamedValue in version 2.1; earlier than that it's Parameter\n       setValueReturnType = Class.forName(\"org.restlet.util.NamedValue\");\n     } catch (ClassNotFoundException e) {\n       try {\n         setValueReturnType = Class.forName(\"org.restlet.data.Parameter\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n-    if (setValueReturnType != null) {\n-      try {\n-        setValue =\n-            lookup.findVirtual(\n-                Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n-      } catch (NoSuchMethodException | IllegalAccessException e) {\n-        // ignored\n-      }\n+\n+    try {\n+      return MethodHandles.lookup()\n+          .findVirtual(\n+              Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n     }\n+  }\n \n+  @Nullable\n+  private static Class<?> findHeaderClass() {\n     try {\n       // restlet 2.3+\n-      headerClass = Class.forName(\"org.restlet.data.Header\");\n+      return Class.forName(\"org.restlet.data.Header\");\n     } catch (ClassNotFoundException e) {\n       try {\n         // restlet 2.1-2.2\n-        headerClass = Class.forName(\"org.restlet.engine.header.Header\");\n-      } catch (ClassNotFoundException ex) {\n+        return Class.forName(\"org.restlet.engine.header.Header\");\n+      } catch (ClassNotFoundException f) {\n         // restlet 2.0 does not have Header\n+        return null;\n       }",
+      "id": "PRRT_kwDODJKVX854xEhM",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907306"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught exceptions aren't used in this catch block. Rename the catch parameter to `ignored` to align with the repo's convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:24Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    Class<?> setValueReturnType = null;\n+  @Nullable\n+  private static MethodHandle findSetValue() {\n+    Class<?> setValueReturnType;\n     try {\n       // changed the generic bound to NamedValue in version 2.1; earlier than that it's Parameter\n       setValueReturnType = Class.forName(\"org.restlet.util.NamedValue\");\n     } catch (ClassNotFoundException e) {\n       try {\n         setValueReturnType = Class.forName(\"org.restlet.data.Parameter\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+      } catch (ClassNotFoundException f) {\n+        return null;\n       }\n     }\n-    if (setValueReturnType != null) {\n-      try {\n-        setValue =\n-            lookup.findVirtual(\n-                Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n-      } catch (NoSuchMethodException | IllegalAccessException e) {\n-        // ignored\n-      }\n+\n+    try {\n+      return MethodHandles.lookup()\n+          .findVirtual(\n+              Series.class, \"set\", methodType(setValueReturnType, String.class, String.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n     }\n+  }\n \n+  @Nullable\n+  private static Class<?> findHeaderClass() {\n     try {\n       // restlet 2.3+\n-      headerClass = Class.forName(\"org.restlet.data.Header\");\n+      return Class.forName(\"org.restlet.data.Header\");\n     } catch (ClassNotFoundException e) {\n       try {\n         // restlet 2.1-2.2\n-        headerClass = Class.forName(\"org.restlet.engine.header.Header\");\n-      } catch (ClassNotFoundException ex) {\n+        return Class.forName(\"org.restlet.engine.header.Header\");\n+      } catch (ClassNotFoundException f) {\n         // restlet 2.0 does not have Header\n+        return null;\n       }\n     }\n-    if (headerClass != null) {\n+  }\n+\n+  @Nullable\n+  private static MethodHandle findNewSeries() {\n+    if (HEADER_CLASS == null) {\n+      return null;\n+    }\n+    try {\n       // restlet 2.1+ Series has different constructor\n-      try {\n-        newSeries = lookup.findConstructor(Series.class, methodType(void.class, Class.class));\n-      } catch (NoSuchMethodException | IllegalAccessException e) {\n-        // ignored\n-      }\n+      return MethodHandles.lookup()\n+          .findConstructor(Series.class, methodType(void.class, Class.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {\n+      return null;\n     }",
+      "id": "PRRT_kwDODJKVX854xEhP",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907314"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is unused; rename it to `ignored` (instead of `e`) to follow the repo's catch-variable naming convention for intentionally unused exceptions.",
+      "created": "2026-04-03T18:34:24Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    Class<?> setValueReturnType = null;\n+  @Nullable\n+  private static MethodHandle findSetValue() {\n+    Class<?> setValueReturnType;\n     try {\n       // changed the generic bound to NamedValue in version 2.1; earlier than that it's Parameter\n       setValueReturnType = Class.forName(\"org.restlet.util.NamedValue\");\n     } catch (ClassNotFoundException e) {",
+      "id": "PRRT_kwDODJKVX854xEhT",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907322"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This inner catch parameter is unused; rename it to `ignored` (instead of `f`) to align with the repo's convention for intentionally unused catch parameters.",
+      "created": "2026-04-03T18:34:25Z",
+      "hunk": "@@ -22,75 +22,77 @@\n  */\n public final class MessageAttributesAccessor {\n \n-  private static final MethodHandle GET_ATTRIBUTES;\n-  private static final MethodHandle SET_VALUE;\n-  private static final Class<?> HEADER_CLASS;\n-  private static final MethodHandle NEW_SERIES;\n-\n-  static {\n-    MethodHandle getAttributes = null;\n-    MethodHandle setValue = null;\n-    Class<?> headerClass = null;\n-    MethodHandle newSeries = null;\n+  private static final MethodHandle GET_ATTRIBUTES = findGetAttributes();\n+  private static final MethodHandle SET_VALUE = findSetValue();\n+  private static final Class<?> HEADER_CLASS = findHeaderClass();\n+  private static final MethodHandle NEW_SERIES = findNewSeries();\n \n+  @Nullable\n+  private static MethodHandle findGetAttributes() {\n     MethodHandles.Lookup lookup = MethodHandles.lookup();\n     try {\n-      getAttributes = lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n+      return lookup.findVirtual(Message.class, \"getAttributes\", methodType(Map.class));\n     } catch (NoSuchMethodException | IllegalAccessException e) {\n       // changed the return type to ConcurrentMap in version 2.1\n       try {\n-        getAttributes =\n-            lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n-      } catch (NoSuchMethodException | IllegalAccessException ex) {\n-        // ignored\n+        return lookup.findVirtual(Message.class, \"getAttributes\", methodType(ConcurrentMap.class));\n+      } catch (NoSuchMethodException | IllegalAccessException f) {\n+        return null;\n       }\n     }\n+  }\n \n-    Class<?> setValueReturnType = null;\n+  @Nullable\n+  private static MethodHandle findSetValue() {\n+    Class<?> setValueReturnType;\n     try {\n       // changed the generic bound to NamedValue in version 2.1; earlier than that it's Parameter\n       setValueReturnType = Class.forName(\"org.restlet.util.NamedValue\");\n     } catch (ClassNotFoundException e) {\n       try {\n         setValueReturnType = Class.forName(\"org.restlet.data.Parameter\");\n-      } catch (ClassNotFoundException ex) {\n-        // ignored\n+      } catch (ClassNotFoundException f) {\n+        return null;",
+      "id": "PRRT_kwDODJKVX854xEhW",
+      "opened": "2026-04-03T18:34:25Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+      "replies": [],
+      "reviewed": "8ccfb0b7fd79209418d7f4b24a7905b05ac320ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3033907328"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo in comment: “cancelation” should be “cancellation”.\n```suggestion\n      // this is expected when cancellation occurs\n```",
+      "created": "2026-04-03T20:06:10Z",
+      "hunk": "@@ -707,8 +707,8 @@ void cancelRequestTest() throws InterruptedException {\n             .build();\n     try {\n       client.get(\"/slow\").aggregate().get();\n-    } catch (ExecutionException ignore) {\n-      // ignore\n+    } catch (ExecutionException ignored) {\n+      // this is expected when cancelation occurs",
+      "id": "PRRT_kwDODJKVX854x6pm",
+      "opened": "2026-04-03T20:06:11Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [],
+      "reviewed": "205012dfe898c3da40ca1522d9e542d0e976b68f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3034212430"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that usually we don't have it in try catch. If we want to catch this we could consider adding it to https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e5fdffc23ad9494b9bce0ee810b464e17378a3b/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java#L316 so it would apply to all instrumentations.",
+      "created": "2026-04-06T13:11:40Z",
+      "hunk": "@@ -51,8 +52,8 @@ private static void customizeResponse(Context context, HttpResponse response) {\n     try {\n       HttpServerResponseCustomizerHolder.getCustomizer()\n           .customize(context, response, NettyHttpResponseMutator.INSTANCE);\n-    } catch (Throwable ignore) {\n-      // Ignore.\n+    } catch (Throwable t) {",
+      "id": "PRRT_kwDODJKVX855B_xo",
+      "opened": "2026-04-06T13:11:40Z",
+      "path": "instrumentation/netty/netty-3.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/netty/v3_8/server/HttpServerResponseTracingHandler.java",
+      "replies": [
+        {
+          "at": "2026-04-06T16:37:14Z",
+          "body": "good idea, will merge as-is and send follow-up PR to propose this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3040492645"
+        }
+      ],
+      "reviewed": "689e0a25a749b88ca7e9c3a0e483563322489190",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17220#discussion_r3039597776"
+    }
+  ]
+}

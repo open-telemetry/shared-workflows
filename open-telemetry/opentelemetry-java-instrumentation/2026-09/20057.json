@@ -1,0 +1,46 @@
+{
+  "head": "ccc17c5e369b4f015530c5f9caea4f4ba9a496ca",
+  "merge": "6a197cd2211ef93ccc6653038330fc128762a3e1",
+  "merged": "2026-09-09T17:28:30Z",
+  "missing_roots": 0,
+  "number": 20057,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This accepts instrumentation-scope samples without collecting their validation findings. Weaver 0.26.1 gives the scope its own `live_check_result` and also validates its attributes, so `checkCommonViolations()` can now pass while the omitted scope findings contain violations. Parse the scope and its attributes just as the other supported sample types are parsed.",
+      "created": "2026-09-09T13:57:09Z",
+      "hunk": "@@ -147,11 +149,12 @@ private static WeaverValidationResult fromJson(JsonNode json) {\n               sample -> {\n                 JsonNode resource = sample.get(\"resource\");\n                 JsonNode metric = sample.get(\"metric\");\n+                JsonNode instrumentationScope = sample.get(\"instrumentation_scope\");\n                 if (resource != null) {\n                   resource.get(\"attributes\").forEach(parseValidationAdvice);\n                 } else if (metric != null) {\n                   parseValidationAdvice.accept(metric);\n-                } else {\n+                } else if (instrumentationScope == null) {\n                   throw new IllegalStateException(\"unexpected weaver validation result type\");\n                 }",
+      "id": "PRRT_kwDODJKVX86gr4yi",
+      "opened": "2026-09-09T13:57:10Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "10be8f3bf017e228880ec49b769850246e4eb7f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20057#discussion_r3969256602"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "why do we need to read the `instrumentation_scope` here ?",
+      "created": "2026-09-09T14:00:42Z",
+      "hunk": "@@ -147,11 +149,12 @@ private static WeaverValidationResult fromJson(JsonNode json) {\n               sample -> {\n                 JsonNode resource = sample.get(\"resource\");\n                 JsonNode metric = sample.get(\"metric\");\n+                JsonNode instrumentationScope = sample.get(\"instrumentation_scope\");",
+      "id": "PRRT_kwDODJKVX86gr_K_",
+      "opened": "2026-09-09T14:00:41Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [
+        {
+          "at": "2026-09-09T15:41:10Z",
+          "body": "Because the test fails with `throw new IllegalStateException(\"unexpected weaver validation result type\");` since now there are instrumentationScope samples that are unexpected. You are welcome to come up with an alternative solution. Alternatively we can block weaver updates.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20057#discussion_r3970322717"
+        }
+      ],
+      "reviewed": "10be8f3bf017e228880ec49b769850246e4eb7f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20057#discussion_r3969295641"
+    }
+  ]
+}

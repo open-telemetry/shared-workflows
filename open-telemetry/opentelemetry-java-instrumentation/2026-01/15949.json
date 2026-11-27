@@ -1,0 +1,25 @@
+{
+  "head": "c0dea1ad0a37218ad50424b7acb5b523085c16d1",
+  "merge": "9e4f7c939024474f7d5d6afe85b36b94bf4be0a1",
+  "merged": "2026-01-21T11:29:44Z",
+  "missing_roots": 0,
+  "number": 15949,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "did you try `hasAttributesSatisfyingExactly`?",
+      "created": "2026-01-20T16:01:27Z",
+      "hunk": "@@ -92,6 +92,13 @@ void collectsMetrics() {\n                                 point ->\n                                     point\n                                         .hasSum(100 /* bytes */)\n+                                        // those span attributes must be discarded by attribute\n+                                        // advice\n+                                        .hasAttributesSatisfying(\n+                                            attributes ->\n+                                                assertThat(attributes)\n+                                                    .doesNotContainKey(\"http.request.body.size\")\n+                                                    .doesNotContainKey(\"http.response.body.size\"))\n                                         .hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX85qMPZw",
+      "opened": "2026-01-20T16:01:27Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/http/HttpClientExperimentalMetricsTest.java",
+      "replies": [],
+      "reviewed": "42c195ef7f138d9f29a4273b3766c413715716d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15949#discussion_r2709018945"
+    }
+  ]
+}

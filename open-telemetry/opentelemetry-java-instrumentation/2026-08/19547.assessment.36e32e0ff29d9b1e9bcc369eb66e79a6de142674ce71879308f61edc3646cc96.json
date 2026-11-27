@@ -1,0 +1,130 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f9a76335418fff8bb954d3ffb0ff2dbf9cb3b147c18cb5add5a872f1429cf90a",
+  "input_digest": "36e32e0ff29d9b1e9bcc369eb66e79a6de142674ce71879308f61edc3646cc96",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1617926ecf432f22f439627367f76c1c74b005c/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1617926ecf432f22f439627367f76c1c74b005c/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/VertxHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/VertxHttpClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ywq4n",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1617926ecf432f22f439627367f76c1c74b005c/instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/VertxHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/VertxHttpClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ywq42",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1617926ecf432f22f439627367f76c1c74b005c/instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/VertxHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/VertxHttpClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ywq5C",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/633380ae581497b7592338e64fa285752229caca/instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/HttpRequestInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YzHW9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/633380ae581497b7592338e64fa285752229caca/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YzHWq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/633380ae581497b7592338e64fa285752229caca/instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/HttpRequestInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YzHXZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86ZAtyo",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fb0d0c0795aa12d9ac5b3999ae59fc114549275f/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3b0b5e29f21f94eae0b4665295709af3fc80da72"
+      ],
+      "id": "PRRT_kwDODJKVX86cGI3s",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3b0b5e29f21f94eae0b4665295709af3fc80da72/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v3_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b5bbb9cae8e09ff96496aa4018d6942fff0eefea"
+      ],
+      "id": "PRRT_kwDODJKVX86cLccH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3b0b5e29f21f94eae0b4665295709af3fc80da72/instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v4_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b5bbb9cae8e09ff96496aa4018d6942fff0eefea"
+      ],
+      "id": "PRRT_kwDODJKVX86cLcca",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3b0b5e29f21f94eae0b4665295709af3fc80da72/instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4c3dc3583f8b3e0e546bb2b4c3c5d2fa6ec9954/instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/HttpRequestInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b5bbb9cae8e09ff96496aa4018d6942fff0eefea"
+      ],
+      "id": "PRRT_kwDODJKVX86cLcct",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

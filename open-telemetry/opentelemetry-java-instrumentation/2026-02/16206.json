@@ -1,0 +1,25 @@
+{
+  "head": "f4bfc58a7e11aca7298e0e69a14cff7a44f4f737",
+  "merge": "7f8e5ec220cb6dc6f4988906d235537554ac3bbe",
+  "merged": "2026-02-20T16:43:55Z",
+  "missing_roots": 0,
+  "number": 16206,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\n      if (rawQueryTexts.size() == 1) {\r\n```",
+      "created": "2026-02-20T11:05:48Z",
+      "hunk": "@@ -210,4 +233,42 @@ private boolean isBatch(REQUEST request) {\n       return batchSize != null && batchSize > 1;\n     }\n   }\n+\n+  /**\n+   * A transitional span name extractor that uses SQL parsing for stable semconv but preserves the\n+   * old semconv span name format (operation + namespace, without collection name) for backward\n+   * compatibility during migration from {@link DbClientAttributesGetter} to {@link\n+   * SqlClientAttributesGetter}.\n+   */\n+  private static final class MigratingSqlClientSpanNameExtractor<REQUEST>\n+      extends DbClientSpanNameExtractor<REQUEST> {\n+\n+    private final SqlClientAttributesGetter<REQUEST, ?> getter;\n+    private final SqlClientSpanNameExtractor<REQUEST> sqlDelegate;\n+\n+    private MigratingSqlClientSpanNameExtractor(SqlClientAttributesGetter<REQUEST, ?> getter) {\n+      this.getter = getter;\n+      this.sqlDelegate = new SqlClientSpanNameExtractor<>(getter);\n+    }\n+\n+    @Override\n+    public String extract(REQUEST request) {\n+      if (SemconvStability.emitStableDatabaseSemconv()) {\n+        return sqlDelegate.extract(request);\n+      }\n+      // For old semconv, use the generic span name format (operation + namespace)\n+      // without collection name to preserve backward compatibility\n+      String namespace = getter.getDbNamespace(request);\n+      Collection<String> rawQueryTexts = getter.getRawQueryTexts(request);\n+      String operationName = null;\n+      if (!rawQueryTexts.isEmpty() && rawQueryTexts.size() == 1) {",
+      "id": "PRRT_kwDODJKVX85vwcRU",
+      "opened": "2026-02-20T11:11:42Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientSpanNameExtractor.java",
+      "replies": [],
+      "reviewed": "ee281fd76f08564d82c6bece8d9bd08d70fe7a0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16206#discussion_r2832664932"
+    }
+  ]
+}

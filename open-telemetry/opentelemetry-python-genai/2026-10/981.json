@@ -1,0 +1,31 @@
+{
+  "head": "73f89380ba954c24c1dcafe478054bd3ac040f78",
+  "merge": "81e76cc8ec6e080d034df865d30da8c43adf3e4b",
+  "merged": "2026-10-28T00:50:36Z",
+  "missing_roots": 0,
+  "number": 981,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "Can we keep a decoding failure from skipping token usage? If the base64 data isn’t a whole number of floats, this raises and the outer catch skips input_tokens too, even when the usage is valid. A small regression test would help.",
+      "created": "2026-10-26T22:00:48Z",
+      "hunk": "@@ -227,7 +229,10 @@ def _set_embeddings_response_properties(\n     if getattr(result, \"data\", None) and len(result.data) > 0:\n         first_embedding = result.data[0]\n         if getattr(first_embedding, \"embedding\", None):\n-            invocation.dimension_count = len(first_embedding.embedding)\n+            embedding = first_embedding.embedding\n+            if isinstance(embedding, str):\n+                embedding = array.array(\"f\", base64.b64decode(embedding))",
+      "id": "PRRT_kwDOSbspP86weQAl",
+      "opened": "2026-10-26T22:00:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [
+        {
+          "at": "2026-10-26T22:43:35Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/981#discussion_r4383311464"
+        }
+      ],
+      "reviewed": "9615cd4f51ce02cb8525a93ef7892dba9a3f9975",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/981#discussion_r4383004353"
+    }
+  ]
+}

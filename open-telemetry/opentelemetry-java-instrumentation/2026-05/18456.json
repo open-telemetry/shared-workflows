@@ -1,0 +1,25 @@
+{
+  "head": "d33ac723778f688fb3b8a92164367c79cb59e24d",
+  "merge": "e5bbb7e185032ce3fce73ef6c33a89e4cdd76766",
+  "merged": "2026-05-04T15:05:41Z",
+  "missing_roots": 0,
+  "number": 18456,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This wrapper delegates `interceptContinuation()` to the underlying dispatcher but keeps `EmptyInterceptor` as the interceptor in the returned continuation context, so coroutine cleanup will call `EmptyInterceptor.releaseInterceptedContinuation()` (the default no-op) instead of the dispatcher release hook. Dispatchers such as kotlinx.coroutines' `CoroutineDispatcher` use that hook to release intercepted continuations, so this can leak/reuse dispatcher state incorrectly.\n\n```suggestion\noverride fun <T> interceptContinuation(continuation: Continuation<T>): Continuation<T> =\n  dispatcher.interceptContinuation(continuation)\n\noverride fun releaseInterceptedContinuation(continuation: Continuation<*>) {\n  dispatcher.releaseInterceptedContinuation(continuation)\n}\n```",
+      "created": "2026-05-04T00:38:25Z",
+      "hunk": "@@ -109,4 +93,27 @@ object KtorServerTelemetryUtil {\n     ApplicationRequestGetter,\n     builder.spanKindExtractor(SpanKindExtractor.alwaysServer())\n   )\n+\n+  // A no-op ContinuationInterceptor. There seems to be a bug in Ktor where when propagate otel\n+  // context by using withContext(context.asContextElement()) updateThreadContext, that activates\n+  // the otel scope, gets called in\n+  // https://github.com/open-telemetry/opentelemetry-java/blob/main/extensions/kotlin/src/main/java/io/opentelemetry/extension/kotlin/KotlinContextElement.java\n+  // but the restoreThreadContext is not always called, which causes the otel context to leak across\n+  // requests. This issue can be worked around by adding -Dio.ktor.internal.disable.sfg=true to jvm\n+  // arguments. Adding this no-op interceptor seems to also work around the issue.\n+  // See https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/16430\n+  private class EmptyInterceptor(val dispatcher: CoroutineDispatcher) : ContinuationInterceptor {\n+    override val key: CoroutineContext.Key<*> = ContinuationInterceptor\n+\n+    override fun <T> interceptContinuation(continuation: Continuation<T>): Continuation<T> {\n+      val c = dispatcher.interceptContinuation(continuation)\n+\n+      return object : Continuation<T> {\n+        override val context = c.context\n+        override fun resumeWith(result: Result<T>) {\n+          c.resumeWith(result)\n+        }\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX85_Opop",
+      "opened": "2026-05-04T01:06:58Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/internal/KtorServerTelemetryUtil.kt",
+      "replies": [],
+      "reviewed": "d187df578bead0ae50427ba2abbf1d7cc8c642cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18456#discussion_r3179013290"
+    }
+  ]
+}

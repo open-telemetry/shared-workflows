@@ -1,0 +1,88 @@
+{
+  "head": "754732b8cbb503ab2cf6d1c294fed5cd43bcefb6",
+  "merge": "3aec1f661226756ccdfb01702c198808b7314a72",
+  "merged": "2026-10-19T06:43:56Z",
+  "missing_roots": 0,
+  "number": 20699,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Keep this existing PR focused on the indy migration by removing the optional client-recreation coverage added at the end of AbstractRedissonConnectionPoolMetricsTest.reportsRegularAndSubscriptionPoolMetricsUntilClientShutdown. Remove the replacement-client creation, deferred shutdown, bucket write, and second assertConnectionPoolMetrics call added by this PR, leaving the existing until-shutdown assertions intact.\n\nKeep all production indy conversions and the necessary Redisson 2.3 test adaptations that use connectionPoolSupplier to access the actual isolated RedissonConnectionPoolAccessor. Do not remove other baseline coverage or add new coverage, refactors, or production changes. Preserve this PR's draft state, validate with appropriate existing targeted checks, and update its description only if it still claims the removed client-recreation coverage. This request applies only to this PR, not the other migration PRs or the tracking issue.",
+      "created": "2026-10-19T00:19:01Z",
+      "hunk": "@@ -104,6 +104,11 @@ void reportsRegularAndSubscriptionPoolMetricsUntilClientShutdown()\n                                 .getName()\n                                 .equals(instrumentationName()))\n                     .isEmpty());\n+\n+    Redisson replacement = createRedissonClient();",
+      "id": "PRRT_kwDODJKVX86twDqT",
+      "opened": "2026-10-19T00:19:01Z",
+      "path": "instrumentation/redisson/redisson-metrics-common-2.3/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redissonmetrics/AbstractRedissonConnectionPoolMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T00:26:14Z",
+          "body": "Removed the optional client-recreation assertions; retained the isolated-helper adaptations. Focused Redisson metrics test passes. Commit: `4317a6f8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20699#discussion_r4309418260"
+        }
+      ],
+      "reviewed": "a96c2fea5d02f2bd743604fa540752ab9b07a970",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20699#discussion_r4309395112"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Redesign this PR's Redisson 2.3 metrics tests to remove their dependency on instrumentation-internal class-loader access. This user-directed request supersedes the earlier instruction to retain connectionPoolSupplier and its isolated-helper adaptations. Preserve every production indy conversion, constructor/version match, shared metrics registry identity, metrics lifecycle behavior, supported library versions, and this PR's draft state. This assignment is only for PR #20699.\n\nThe standalone shouldReadPendingRequestsAfterListenerRemoval case is a direct RedissonConnectionPoolAccessor test over a manually constructed AsyncSemaphore, not an agent integration test. Move it into a small javaagent-unit-tests project for redisson-metrics-2.3, following neighboring repository project conventions and directly calling the ordinary helper there. Preserve the assertions for zero pending requests, one queued listener, and zero again after removal or release, including the version-dependent remove/queueSize/listener-field compatibility behavior. Wire discovery and relevant baseline/version coverage so moving the case does not silently drop the existing Redisson 2.3, 2.5.1, 3.11, 3.15, and latest-3.17 behavior it exercised. Add only the test-project wiring and dependencies needed for this moved coverage; do not invent production hooks or a general testing abstraction.\n\nIn the remaining agent-backed RedissonConnectionPoolMetricsTest.assertDynamicPendingRequests, stop obtaining availableConnectionsSupplier through the isolated instrumentation helper merely to discover the number of permits. The fixture configures REGULAR_MAX permits, and the earlier acquire/release restores them before this method. Follow the existing 3.18 and 3.26 metrics-test pattern of draining the known configured REGULAR_MAX permits, preserve queued-request exported-metric assertions and exact cleanup/restoration, and remove the redundant available supplier lookup. Verify that this invariant holds for each existing supported test version rather than replacing the helper with new reflection or a success-shaped fallback.\n\nRemove connectionPoolSupplier entirely, AgentClassLoaderAccess, IndyModuleRegistry lookup, reflective instrumentation method access, and imports made unused by these changes. Keep the existing real-agent regular/subscription pool metrics, dynamic usage/pending-request, and until-shutdown checks. Leave the pre-existing Redisson driver-state fixture and compatibility reflection alone unless directly made unused; do not broaden this task into rewriting all versions around blocking commands or private-state manipulation. Do not restore the optional client-recreation coverage removed earlier, alter metrics expectations merely to get tests green, change production code, or touch Redisson tracing/shared mode tooling. Run narrowly scoped spotlessApply directly before relevant unit and existing agent-backed versioned integration checks where feasible. Correct the PR description's stale claims about isolated-helper access and client recreation while preserving its template and draft state. Do not change the other migration PRs or tracking issue.",
+      "created": "2026-10-19T01:01:46Z",
+      "hunk": "@@ -80,7 +82,7 @@ protected void assertDynamicPoolMetrics(\n   void shouldReadPendingRequestsAfterListenerRemoval() throws ReflectiveOperationException {\n     AsyncSemaphore semaphore = new AsyncSemaphore(0);\n     Supplier<Integer> pendingRequests =\n-        requireNonNull(RedissonConnectionPoolAccessor.pendingRequestsSupplier(semaphore));\n+        requireNonNull(connectionPoolSupplier(\"pendingRequestsSupplier\", semaphore));",
+      "id": "PRRT_kwDODJKVX86twZVs",
+      "opened": "2026-10-19T01:01:46Z",
+      "path": "instrumentation/redisson/redisson-metrics-2.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/redissonmetrics/v2_3/RedissonConnectionPoolMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T01:12:53Z",
+          "body": "Moved the accessor test into a dedicated unit-test project with baseline and versioned coverage, and removed isolated class-loader access from the agent test. Checks passed across Redisson 2.3, 2.5.1, 3.11, 3.15, and 3.17 baseline; the latest-dependency rerun was blocked because Java 27 is unavailable here. Commit: `e9edf194`. The PR remains a draft. I confirmed the PR body is still stale, but the available GitHub tools do not provide a way to edit it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20699#discussion_r4309576574"
+        }
+      ],
+      "reviewed": "4317a6f80cbc687c7b992f5b48c839072893b99c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20699#discussion_r4309539032"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove RedissonConnectionPoolAccessorTest and the dedicated unit-test project added for it from this existing PR. The user has decided this narrow listener-removal regression is not worth the separate project and version matrix. This explicitly supersedes the earlier instruction to preserve this standalone test and move it into javaagent-unit-tests. This assignment is only for PR #20699.\n\nDelete instrumentation/redisson/redisson-metrics-2.3/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/redissonmetrics/v2_3/RedissonConnectionPoolAccessorTest.java and that dedicated project's build.gradle.kts, including its versioned suites. Remove only the corresponding :instrumentation:redisson:redisson-metrics-2.3:javaagent-unit-tests include from settings.gradle.kts and any other wiring introduced solely for this project. Do not remove unrelated unit-test projects or shared test infrastructure. Do not restore this test in the agent test suite or add replacement coverage; losing the standalone assertion that pending requests return to zero after listener removal is an intentional scope decision.\n\nKeep the production RedissonConnectionPoolAccessor and all other production code unchanged. Preserve every indy conversion, supported-version matcher, metrics registration/shutdown behavior, and existing real-agent regular/subscription usage and pending-request coverage. Retain the REGULAR_MAX permit-draining/restoration simplification and the removal of connectionPoolSupplier, AgentClassLoaderAccess, and IndyModuleRegistry lookup. Leave the pre-existing Redisson driver-state fixture and compatibility reflection alone. Do not restore optional client-recreation coverage or touch the other migration PRs, tracking issue, Redisson tracing, or shared mode tooling.\n\nKeep this PR open and draft. Update its description to remove the now-stale claim that the semaphore-accessor check moved into a versioned unit-test suite, preserving the template and keeping the body concise. Run narrowly scoped spotlessApply directly before relevant remaining existing checks where feasible, and report any unavailable runtime plainly without broadening the change.",
+      "created": "2026-10-19T02:20:04Z",
+      "hunk": "@@ -0,0 +1,44 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redissonmetrics.v2_3;\n+\n+import static java.util.Objects.requireNonNull;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.util.function.Supplier;\n+import org.junit.jupiter.api.Test;\n+import org.redisson.pubsub.AsyncSemaphore;\n+\n+class RedissonConnectionPoolAccessorTest {",
+      "id": "PRRT_kwDODJKVX86txEfI",
+      "opened": "2026-10-19T02:20:04Z",
+      "path": "instrumentation/redisson/redisson-metrics-2.3/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/redissonmetrics/v2_3/RedissonConnectionPoolAccessorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T02:27:17Z",
+          "body": "Removed the standalone accessor test, its dedicated unit-test project and versioned suites, and the settings include. The existing Redisson metrics agent checks pass. Commit: `754732b8`. The PR remains open and draft. The PR body is still stale; the available GitHub tools do not allow editing it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20699#discussion_r4309849620"
+        }
+      ],
+      "reviewed": "e9edf194ad555f4d0ca44ea51ecdcbd9d0b22b11",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20699#discussion_r4309821884"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This test exercised an instrumentation helper directly rather than agent behavior. Removed it instead of adding a dedicated versioned unit-test project for this narrow check. Existing integration tests still cover pending-request metrics.",
+      "created": "2026-10-19T02:39:48Z",
+      "hunk": "@@ -76,31 +72,10 @@ protected void assertDynamicPoolMetrics(\n     assertDynamicPendingRequests(semaphore, regularPool, subscriptionPool);\n   }\n \n-  @Test\n-  void shouldReadPendingRequestsAfterListenerRemoval() throws ReflectiveOperationException {",
+      "id": "PRRT_kwDODJKVX86txPvh",
+      "opened": "2026-10-19T02:39:48Z",
+      "path": "instrumentation/redisson/redisson-metrics-2.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/redissonmetrics/v2_3/RedissonConnectionPoolMetricsTest.java",
+      "replies": [],
+      "reviewed": "754732b8cbb503ab2cf6d1c294fed5cd43bcefb6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20699#discussion_r4309897022"
+    }
+  ]
+}

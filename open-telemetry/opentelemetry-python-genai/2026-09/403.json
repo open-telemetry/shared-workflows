@@ -1,0 +1,151 @@
+{
+  "head": "14670886631fec08c4de9453693a3d89f2603729",
+  "merge": "d14cbe1d3f508a7059b4429e9adb2efda7959b76",
+  "merged": "2026-09-09T02:51:31Z",
+  "missing_roots": 0,
+  "number": 403,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Catching `BaseException` here will swallow interrupts like `KeyboardInterrupt`/`SystemExit` while building tool schemas, potentially leaving an agent run continuing when the process is trying to exit. This should only suppress ordinary `Exception`s (consistent with the other telemetry-extraction guards in this package).",
+      "created": "2026-08-23T20:29:10Z",
+      "hunk": "@@ -202,18 +208,21 @@ def to_output_message(output_message: ChatMessage) -> OutputMessage:\n     return OutputMessage(role=role, parts=parts, finish_reason=\"\")\n \n \n-def _tool_parameters(tool: Tool) -> dict[str, Any] | None:\n+def _tool_parameters(tool: _ModelCallable) -> dict[str, Any] | None:\n     \"\"\"Return the JSON Schema ``parameters`` object for a smolagents tool.\n \n     A tool's ``inputs`` map is not a JSON Schema on its own: smolagents wraps it\n     in an object schema, derives ``required`` from ``nullable``, and rewrites its\n     non-JSON-Schema ``\"any\"`` type. ``get_tool_json_schema`` builds exactly the\n     schema the provider receives.\n+\n+    ``get_tool_json_schema`` also accepts managed agents despite its ``Tool``\n+    annotation.\n     \"\"\"\n     try:\n-        schema = get_tool_json_schema(tool)\n+        schema = get_tool_json_schema(cast(\"Tool\", tool))\n         parameters = schema[\"function\"][\"parameters\"]\n-    except Exception:  # pylint: disable=broad-except\n+    except BaseException:  # pylint: disable=broad-except",
+      "id": "PRRT_kwDOSbspP86bh7al",
+      "opened": "2026-08-23T20:29:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/_messages.py",
+      "replies": [],
+      "reviewed": "b708def942ca3b37c0b4ed5cb2548c5f7c847a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3839519810"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A `run(stream=True)` generator that isn't drained never finishes the span, and its context stays attached - so every later span on that thread nests under the leaked `invoke_agent`. GC closes the underlying generator, but nothing calls the wrapper's `close()`.\n\n`break`ing out of `for step in agent.run(task, stream=True):` is a normal way to use this API, so this is easy to hit. Both of these fail on this branch:\n\n```python\ndef _first_step_only(agent: CodeAgent) -> None:\n    for _ in agent.run(\"Test question\", stream=True):\n        break\n\n\ndef test_abandoned_streaming_run_finalizes_the_span(\n    instrument_with_content, span_exporter\n) -> None:\n    agent = CodeAgent(tools=[], model=FakeCodeModel(), max_steps=3)\n    _first_step_only(agent)\n    gc.collect()\n\n    assert (\n        len(\n            spans_by_operation(\n                span_exporter.get_finished_spans(), \"invoke_agent\"\n            )\n        )\n        == 1\n    )\n\n\ndef test_abandoned_streaming_run_does_not_leak_context(\n    instrument_with_content, span_exporter, tracer_provider\n) -> None:\n    agent = CodeAgent(tools=[], model=FakeCodeModel(), max_steps=3)\n    _first_step_only(agent)\n    gc.collect()\n\n    with tracer_provider.get_tracer(\"test\").start_as_current_span(\"unrelated\"):\n        pass\n\n    (unrelated,) = [\n        span\n        for span in span_exporter.get_finished_spans()\n        if span.name == \"unrelated\"\n    ]\n    assert unrelated.parent is None\n```\n\n```\nE  AssertionError: assert 0 == 1\nE   +  where 0 = len([])\nE   +    where [] = spans_by_operation((), 'invoke_agent')\n\nE  assert SpanContext(trace_id=0xba5e..., span_id=0x68a7..., ...) is None\nE   +  where SpanContext(...) = <ReadableSpan 'unrelated'>.parent\n```\n\nThe context leak is the worse half: everything the process traces afterwards is silently reparented under a span that never ends. `_ModelStreamWrapper` has the same hole, but a partially consumed run generator is much more reachable. Finalizing on `__del__` here (or in `SyncStreamWrapper`) would close it.",
+      "created": "2026-08-25T04:59:53Z",
+      "hunk": "@@ -388,11 +421,196 @@ def wrapper(\n         kwargs: dict[str, Any],\n     ) -> _ModelStreamWrapper:\n         invocation = _start_inference(handler, wrapped, instance, args, kwargs)\n+        with ExitStack() as finishing:\n+            finishing.enter_context(invocation)\n+            stream = _ModelStreamWrapper(\n+                wrapped(*args, **kwargs), invocation, handler\n+            )\n+            # Transfer invocation finalization to the stream.\n+            finishing.pop_all()\n+            return stream\n+\n+    return wrapper\n+\n+\n+def _record_run_answer(\n+    invocation: AgentInvocation,\n+    agent: MultiStepAgent,\n+    output: object,\n+    *,\n+    capture_content: bool,\n+) -> None:\n+    # Reaching ``max_steps`` returns normally with ``AgentMaxStepsError`` on the\n+    # final ``ActionStep``.\n+    steps = agent.memory.steps\n+    last_step = steps[-1] if steps else None\n+    finish_reason = (\n+        \"length\"\n+        if isinstance(last_step, ActionStep)\n+        and isinstance(last_step.error, AgentMaxStepsError)\n+        else \"stop\"\n+    )\n+    invocation.finish_reasons = [finish_reason]\n+    if capture_content:\n+        invocation.output_messages = [\n+            OutputMessage(\n+                role=\"assistant\",\n+                parts=final_answer_parts(output),\n+                finish_reason=finish_reason,\n+            )\n+        ]\n+\n+\n+class _AgentRunStreamWrapper(SyncStreamWrapper[_RunStreamChunk]):\n+    def __init__(\n+        self,\n+        stream: Generator[_RunStreamChunk, None, None],\n+        invocation: AgentInvocation,\n+        agent: MultiStepAgent,\n+        *,\n+        capture_content: bool,\n+    ) -> None:\n+        # Model-stream metrics do not apply to agent steps, so do not pass the\n+        # invocation to the base class.\n+        super().__init__(stream)\n+        self._self_agent_invocation = invocation\n+        self._self_agent = agent\n+        self._self_capture_content = capture_content\n+        self._self_final_output: object = None\n+        self._self_saw_final = False\n+        self._self_finished = False\n+\n+    def _finish_once(self, error: BaseException | None = None) -> None:\n+        if self._self_finished:\n+            return\n+        self._self_finished = True\n+        _finish(self._self_agent_invocation, error)\n+\n+    # The base wrapper finalizes on StopIteration and on an Exception, but not\n+    # on an interrupt, which would leave the span open.\n+    def __next__(self) -> _RunStreamChunk:\n+        try:\n+            return super().__next__()\n+        except BaseException as error:\n+            self._finish_once(error)\n+            raise\n+\n+    def close(self) -> None:",
+      "id": "PRRT_kwDOSbspP86b8OXo",
+      "opened": "2026-08-25T05:06:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-26T13:06:42Z",
+          "body": "Fixed: https://github.com/open-telemetry/opentelemetry-python-genai/pull/403/changes/043c38539dd1af8e08ef2864f6dc880780ff87a9",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3863005226"
+        }
+      ],
+      "reviewed": "b708def942ca3b37c0b4ed5cb2548c5f7c847a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3849695610"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it's not technically length, but AgentMaxStepsError, wdyt about using \"max_steps\" as the constant? ",
+      "created": "2026-08-25T05:02:14Z",
+      "hunk": "@@ -388,11 +421,196 @@ def wrapper(\n         kwargs: dict[str, Any],\n     ) -> _ModelStreamWrapper:\n         invocation = _start_inference(handler, wrapped, instance, args, kwargs)\n+        with ExitStack() as finishing:\n+            finishing.enter_context(invocation)\n+            stream = _ModelStreamWrapper(\n+                wrapped(*args, **kwargs), invocation, handler\n+            )\n+            # Transfer invocation finalization to the stream.\n+            finishing.pop_all()\n+            return stream\n+\n+    return wrapper\n+\n+\n+def _record_run_answer(\n+    invocation: AgentInvocation,\n+    agent: MultiStepAgent,\n+    output: object,\n+    *,\n+    capture_content: bool,\n+) -> None:\n+    # Reaching ``max_steps`` returns normally with ``AgentMaxStepsError`` on the\n+    # final ``ActionStep``.\n+    steps = agent.memory.steps\n+    last_step = steps[-1] if steps else None\n+    finish_reason = (\n+        \"length\"",
+      "id": "PRRT_kwDOSbspP86b8QJ4",
+      "opened": "2026-08-25T05:06:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-26T13:06:43Z",
+          "body": "Renamed: https://github.com/open-telemetry/opentelemetry-python-genai/pull/403/changes/87cb5f70222231c3a71395e4b8932ee0d610f07a",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3863005386"
+        }
+      ],
+      "reviewed": "b708def942ca3b37c0b4ed5cb2548c5f7c847a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3849706332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "if last_step.error, but of a different type we should report \"error\" ",
+      "created": "2026-08-25T05:02:44Z",
+      "hunk": "@@ -388,11 +421,196 @@ def wrapper(\n         kwargs: dict[str, Any],\n     ) -> _ModelStreamWrapper:\n         invocation = _start_inference(handler, wrapped, instance, args, kwargs)\n+        with ExitStack() as finishing:\n+            finishing.enter_context(invocation)\n+            stream = _ModelStreamWrapper(\n+                wrapped(*args, **kwargs), invocation, handler\n+            )\n+            # Transfer invocation finalization to the stream.\n+            finishing.pop_all()\n+            return stream\n+\n+    return wrapper\n+\n+\n+def _record_run_answer(\n+    invocation: AgentInvocation,\n+    agent: MultiStepAgent,\n+    output: object,\n+    *,\n+    capture_content: bool,\n+) -> None:\n+    # Reaching ``max_steps`` returns normally with ``AgentMaxStepsError`` on the\n+    # final ``ActionStep``.\n+    steps = agent.memory.steps\n+    last_step = steps[-1] if steps else None\n+    finish_reason = (\n+        \"length\"\n+        if isinstance(last_step, ActionStep)\n+        and isinstance(last_step.error, AgentMaxStepsError)",
+      "id": "PRRT_kwDOSbspP86b8Qg7",
+      "opened": "2026-08-25T05:06:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-26T13:06:45Z",
+          "body": "Updated: https://github.com/open-telemetry/opentelemetry-python-genai/pull/403/changes/c8e2feb63f65a37799e5ffc1350ba099a1c268f3",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3863005643"
+        }
+      ],
+      "reviewed": "b708def942ca3b37c0b4ed5cb2548c5f7c847a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3849708564"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why is this needed? we should not throw from instrumentation code and should not try to catch exceptions from instrumentation code. None of the instrumentations do",
+      "created": "2026-08-25T05:04:12Z",
+      "hunk": "@@ -48,12 +61,42 @@\n \n _logger = logging.getLogger(__name__)\n \n-# ``Model`` is quoted because a type alias is evaluated at runtime, unlike an\n-# annotation.\n+_InstanceT = TypeVar(\"_InstanceT\")\n+\n _Wrapper: TypeAlias = Callable[\n-    [Callable[..., Any], \"Model\", tuple[Any, ...], dict[str, Any]], Any\n+    [Callable[..., Any], _InstanceT, tuple[Any, ...], dict[str, Any]], Any\n ]\n \n+# Quote the alias because ``PlanningStep`` and ``ChatMessageStreamDelta`` are\n+# imported only for type checking.\n+_RunStreamChunk: TypeAlias = (\n+    \"ActionStep | PlanningStep | FinalAnswerStep | ChatMessageStreamDelta\"\n+)\n+\n+\n+@contextmanager\n+def _recording(what: str) -> Iterator[None]:\n+    \"\"\"Suppress extraction errors so telemetry cannot break the call.\"\"\"\n+    try:\n+        yield\n+    except Exception:  # pylint: disable=broad-except\n+        _logger.debug(\"Failed to record %s\", what, exc_info=True)",
+      "id": "PRRT_kwDOSbspP86b8Rls",
+      "opened": "2026-08-25T05:06:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-26T13:12:56Z",
+          "body": "Removed it. I added it to avoid telemetry conversion failures affecting the call, but I agree that this is too broad and shouldn't be needed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3863061271"
+        }
+      ],
+      "reviewed": "b708def942ca3b37c0b4ed5cb2548c5f7c847a3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3849715069"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`FinalAnswerStep` is the last item the generator yields, so stopping on it never reaches `_on_stream_end` and the span stays open until the wrapper is collected.\n\n```python\ndef test_break_on_final_answer_step_finishes_the_span(\n    instrument_with_content, span_exporter\n) -> None:\n    agent = CodeAgent(tools=[], model=FakeCodeModel(), max_steps=3)\n    stream = agent.run(\"Test question\", stream=True)\n    for step in stream:\n        if isinstance(step, FinalAnswerStep):\n            break\n\n    (span,) = spans_by_operation(\n        span_exporter.get_finished_spans(), \"invoke_agent\"\n    )\n    assert attr(span, GenAI.GEN_AI_RESPONSE_FINISH_REASONS) == (\"stop\",)\n```\n\n```\nE  ValueError: not enough values to unpack (expected 1, got 0)\n```\n\nEverything needed to finalize is already on hand when that chunk arrives, so `_process_chunk` can call `_finalize_success()` instead of waiting for a `StopIteration` that may never come. Callers who stop here currently get no output messages at all, even after GC.\n\nThe leak that remains once nothing marks the end is #491.",
+      "created": "2026-08-29T00:51:59Z",
+      "hunk": "@@ -388,11 +408,200 @@ def wrapper(\n         kwargs: dict[str, Any],\n     ) -> _ModelStreamWrapper:\n         invocation = _start_inference(handler, wrapped, instance, args, kwargs)\n+        with ExitStack() as finishing:\n+            finishing.enter_context(invocation)\n+            stream = _ModelStreamWrapper(\n+                wrapped(*args, **kwargs), invocation, handler\n+            )\n+            # Transfer invocation finalization to the stream.\n+            finishing.pop_all()\n+            return stream\n+\n+    return wrapper\n+\n+\n+def _record_run_answer(\n+    invocation: AgentInvocation,\n+    agent: MultiStepAgent,\n+    output: object,\n+    *,\n+    capture_content: bool,\n+) -> None:\n+    # Reaching ``max_steps`` returns normally with ``AgentMaxStepsError`` on the\n+    # final ``ActionStep``.\n+    steps = agent.memory.steps\n+    last_step = steps[-1] if steps else None\n+    error = last_step.error if isinstance(last_step, ActionStep) else None\n+    if isinstance(error, AgentMaxStepsError):\n+        finish_reason = \"max_steps\"\n+    elif error is not None:\n+        finish_reason = \"error\"\n+    else:\n+        finish_reason = \"stop\"\n+    invocation.finish_reasons = [finish_reason]\n+    if capture_content:\n+        invocation.output_messages = [\n+            OutputMessage(\n+                role=\"assistant\",\n+                parts=final_answer_parts(output),\n+                finish_reason=finish_reason,\n+            )\n+        ]\n+\n+\n+class _AgentRunStreamWrapper(SyncStreamWrapper[_RunStreamChunk]):\n+    def __init__(\n+        self,\n+        stream: Generator[_RunStreamChunk, None, None],\n+        invocation: AgentInvocation,\n+        agent: MultiStepAgent,\n+        *,\n+        capture_content: bool,\n+    ) -> None:\n+        # Model-stream metrics do not apply to agent steps, so do not pass the\n+        # invocation to the base class.\n+        super().__init__(stream)\n+        self._self_agent_invocation = invocation\n+        self._self_agent = agent\n+        self._self_capture_content = capture_content\n+        self._self_final_output: object = None\n+        self._self_saw_final = False\n+        self._self_finished = False\n+\n+    def __del__(self) -> None:\n         try:\n-            stream = wrapped(*args, **kwargs)\n-            return _ModelStreamWrapper(stream, invocation, handler)\n-        except Exception as error:\n-            invocation.fail(error)\n+            self._finalize_success()\n+        except BaseException:  # pylint: disable=broad-except\n+            pass\n+\n+    def _finish_once(self, error: BaseException | None = None) -> None:\n+        if self._self_finished:\n+            return\n+        self._self_finished = True\n+        _finish(self._self_agent_invocation, error)\n+\n+    # The base wrapper finalizes on StopIteration and on an Exception, but not\n+    # on an interrupt, which would leave the span open.\n+    def __next__(self) -> _RunStreamChunk:\n+        try:\n+            return super().__next__()\n+        except BaseException as error:\n+            self._finish_once(error)\n             raise\n \n+    def close(self) -> None:\n+        try:\n+            super().close()\n+        except BaseException as error:\n+            self._finish_once(error)\n+            raise\n+\n+    def _process_chunk(self, chunk: _RunStreamChunk) -> None:\n+        if isinstance(chunk, FinalAnswerStep):\n+            self._self_final_output = chunk.output\n+            self._self_saw_final = True",
+      "id": "PRRT_kwDOSbspP86dVuY9",
+      "opened": "2026-09-02T21:02:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-06T08:13:11Z",
+          "body": "Updated: https://github.com/open-telemetry/opentelemetry-python-genai/pull/403/changes/38e0254a2fab3d5ac9678e60cbd18eec186df5d7",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3943389690"
+        }
+      ],
+      "reviewed": "bda029ee56b9b4cf48ee5d028780e75cc47f71a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3884940912"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`except BaseException as error:` in `__next__` catches `StopIteration` re-raised by `super().__next__()`. Exclude `StopIteration` so normal completion never enters the error path:\n\n```python\n    def __next__(self) -> _RunStreamChunk:\n        try:\n            return super().__next__()\n        except StopIteration:\n            raise\n        except BaseException as error:\n            self._finish_once(error)\n            raise\n```\n\nAlso add a test verifying that normally drained streams complete with `UNSET` status and no `error.type`:\n\n```python\ndef test_streaming_run_completes_without_error(\n    instrument_with_content, span_exporter\n) -> None:\n    agent = CodeAgent(tools=[], model=FakeCodeModel(), max_steps=3)\n    list(agent.run(\"Test question\", stream=True))\n\n    (agent_span,) = spans_by_operation(\n        span_exporter.get_finished_spans(), \"invoke_agent\"\n    )\n    assert agent_span.status.status_code == StatusCode.UNSET\n    assert attr(agent_span, error_attributes.ERROR_TYPE) is None\n```",
+      "created": "2026-09-02T21:02:04Z",
+      "hunk": "@@ -389,12 +406,204 @@ def wrapper(\n         args: tuple[Any, ...],\n         kwargs: dict[str, Any],\n     ) -> _ModelStreamWrapper:\n-        invocation = _start_inference(handler, wrapped, instance, args, kwargs)\n+        invocation = _start_inference(handler, instance)\n+        with ExitStack() as finishing:\n+            finishing.enter_context(invocation)\n+            _record_request(\n+                handler, invocation, wrapped, instance, args, kwargs\n+            )\n+            stream = _ModelStreamWrapper(\n+                wrapped(*args, **kwargs), invocation, handler\n+            )\n+            # Transfer invocation finalization to the stream.\n+            finishing.pop_all()\n+            return stream\n+\n+    return wrapper\n+\n+\n+def _record_run_answer(\n+    invocation: AgentInvocation,\n+    agent: MultiStepAgent,\n+    output: object,\n+    *,\n+    capture_content: bool,\n+) -> None:\n+    # Reaching ``max_steps`` returns normally with ``AgentMaxStepsError`` on the\n+    # final ``ActionStep``.\n+    steps = agent.memory.steps\n+    last_step = steps[-1] if steps else None\n+    error = last_step.error if isinstance(last_step, ActionStep) else None\n+    if isinstance(error, AgentMaxStepsError):\n+        finish_reason = \"max_steps\"\n+    elif error is not None:\n+        finish_reason = \"error\"\n+    else:\n+        finish_reason = \"stop\"\n+    invocation.finish_reasons = [finish_reason]\n+    if capture_content:\n+        invocation.output_messages = [\n+            OutputMessage(\n+                role=\"assistant\",\n+                parts=final_answer_parts(output),\n+                finish_reason=finish_reason,\n+            )\n+        ]\n+\n+\n+class _AgentRunStreamWrapper(SyncStreamWrapper[_RunStreamChunk]):\n+    def __init__(\n+        self,\n+        stream: Generator[_RunStreamChunk, None, None],\n+        invocation: AgentInvocation,\n+        agent: MultiStepAgent,\n+        *,\n+        capture_content: bool,\n+    ) -> None:\n+        # Model-stream metrics do not apply to agent steps, so do not pass the\n+        # invocation to the base class.\n+        super().__init__(stream)\n+        self._self_agent_invocation = invocation\n+        self._self_agent = agent\n+        self._self_capture_content = capture_content\n+        self._self_final_output: object = None\n+        self._self_saw_final = False\n+        self._self_finished = False\n+\n+    def __del__(self) -> None:\n         try:\n-            stream = wrapped(*args, **kwargs)\n-            return _ModelStreamWrapper(stream, invocation, handler)\n-        except Exception as error:\n-            invocation.fail(error)\n+            self._finalize_success()\n+        except BaseException:  # pylint: disable=broad-except\n+            pass\n+\n+    def _finish_once(self, error: BaseException | None = None) -> None:\n+        if self._self_finished:\n+            return\n+        self._self_finished = True\n+        _finish(self._self_agent_invocation, error)\n+\n+    # The base wrapper finalizes on StopIteration and on an Exception, but not\n+    # on an interrupt, which would leave the span open.\n+    def __next__(self) -> _RunStreamChunk:\n+        try:\n+            return super().__next__()\n+        except BaseException as error:",
+      "id": "PRRT_kwDOSbspP86eriu6",
+      "opened": "2026-09-02T21:02:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-06T08:12:34Z",
+          "body": "Updated: https://github.com/open-telemetry/opentelemetry-python-genai/pull/403/changes/c472df074576f30c1e02368ab3f41fe30026fc23",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3943388450"
+        }
+      ],
+      "reviewed": "f9935d4d25ec74f2aec4a0e5f105e9c714491122",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/403#discussion_r3918622390"
+    }
+  ]
+}

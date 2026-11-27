@@ -1,0 +1,25 @@
+{
+  "head": "bece4eca583de0a20825e5644a5b3aaf7e55c57b",
+  "merge": "130e263138d005424618d91d4637b66201da60c3",
+  "merged": "2026-11-14T14:55:36Z",
+  "missing_roots": 0,
+  "number": 21299,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  [General] Classify Jakarta JMS as emitting messaging metrics**\n\n`instrumentation/jms/jms-3.0/metadata.yaml` is left with only `MESSAGING_SPANS`, although Jakarta JMS uses the same `JmsInstrumenterFactory` as this module and records send, receive, and process metrics, as covered by `AbstractJms3Test`. `YamlHelper.addMetadataProperties()` copies the categories from each module's own metadata rather than inferring them from emitted metrics, so regenerating the catalog will still omit Jakarta JMS from the new `MESSAGING_METRICS` classification. Add the tag to the JMS 3.0 metadata as part of this update too.\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-13T13:58:14Z",
+      "hunk": "@@ -4,6 +4,7 @@ description: >\n   consumers.\n semantic_conventions:\n   - MESSAGING_SPANS\n+  - MESSAGING_METRICS",
+      "id": "PRRT_kwDODJKVX863HvqO",
+      "opened": "2026-11-13T13:58:14Z",
+      "path": "instrumentation/jms/jms-1.1/metadata.yaml",
+      "replies": [],
+      "reviewed": "0453a5bb84e8b40720b18aa7457a5e2053de6adc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21299#discussion_r4564172315"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "3815bcc11b7414917cbc1ccdc50b1b703c23df78",
+  "merge": "35256b6873b100792c30e818f2b8d2bee4f02821",
+  "merged": "2026-08-18T17:51:22Z",
+  "missing_roots": 0,
+  "number": 19687,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Register this callback immediately after `HttpServer.create(...)`. If `createContext` or `start` throws, JUnit still runs the cleanup extension, but its stack is currently empty, so the bound server socket is leaked; the previous `@AfterEach` cleaned it because the field had already been assigned.",
+      "created": "2026-08-18T14:42:06Z",
+      "hunk": "@@ -41,66 +42,57 @@ void startServer() throws Exception {\n           exchange.close();\n         });\n     server.start();\n-  }\n-\n-  @AfterEach\n-  void stopServer() throws Exception {\n-    try {\n-      if (client != null) {\n-        client.stop();\n-      }\n-    } finally {\n-      if (server != null) {\n-        server.stop(0);\n-      }\n-    }\n+    cleanup.deferCleanup(() -> server.stop(0));",
+      "id": "PRRT_kwDODJKVX86aJjn5",
+      "opened": "2026-08-18T14:42:07Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/test/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyHttpClient12HeaderSelectorTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T15:14:18Z",
+          "body": "Addressed in 3815bcc11b7414917cbc1ccdc50b1b703c23df78.\n\nAnalysis: Server construction can bind resources before later context setup or startup fails. Registering deferred cleanup immediately after construction preserves the removed `@AfterEach` behavior for partial setup failures.\n\nUpsides: Failed setup now releases bound server sockets in all four test classes. Resource creation and cleanup registration remain adjacent.\n\nDownsides: The cleanup callback can run for a server whose startup did not complete, which each server API supports.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805401978"
+        }
+      ],
+      "reviewed": "70d84dc9569e5606cfb207ef12bd7f776727b2c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805121806"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Register this callback immediately after `HttpServer.create(...)`. If `createContext` or `start` throws, JUnit still runs the cleanup extension, but its stack is currently empty, so the bound server socket is leaked; the previous `@AfterEach` cleaned it because the field had already been assigned.",
+      "created": "2026-08-18T14:42:06Z",
+      "hunk": "@@ -40,66 +41,57 @@ void startServer() throws Exception {\n           exchange.close();\n         });\n     server.start();\n-  }\n-\n-  @AfterEach\n-  void stopServer() throws Exception {\n-    try {\n-      if (client != null) {\n-        client.stop();\n-      }\n-    } finally {\n-      if (server != null) {\n-        server.stop(0);\n-      }\n-    }\n+    cleanup.deferCleanup(() -> server.stop(0));",
+      "id": "PRRT_kwDODJKVX86aJjnD",
+      "opened": "2026-08-18T14:42:07Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/test/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyHttpClient9HeaderSelectorTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T15:14:17Z",
+          "body": "Addressed in 3815bcc11b7414917cbc1ccdc50b1b703c23df78.\n\nAnalysis: Server construction can bind resources before later context setup or startup fails. Registering deferred cleanup immediately after construction preserves the removed `@AfterEach` behavior for partial setup failures.\n\nUpsides: Failed setup now releases bound server sockets in all four test classes. Resource creation and cleanup registration remain adjacent.\n\nDownsides: The cleanup callback can run for a server whose startup did not complete, which each server API supports.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805401747"
+        }
+      ],
+      "reviewed": "70d84dc9569e5606cfb207ef12bd7f776727b2c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805121729"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Defer cleanup immediately after `HttpServer.create(...)`. The server is already bound at that point, so an exception from context/filter setup or `start()` currently leaves it unregistered and leaks its socket, whereas the removed `@AfterEach` would still stop the assigned field.",
+      "created": "2026-08-18T14:42:06Z",
+      "hunk": "@@ -148,6 +143,7 @@ private void start(Filter filter) throws IOException {\n             });\n     context.getFilters().add(filter);\n     server.start();\n+    cleanup.deferCleanup(() -> server.stop(0));",
+      "id": "PRRT_kwDODJKVX86aJjos",
+      "opened": "2026-08-18T14:42:07Z",
+      "path": "instrumentation/java-http-server/library/src/test/java/io/opentelemetry/instrumentation/javahttpserver/JavaHttpServerHeaderSelectorTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T15:14:20Z",
+          "body": "Addressed in 3815bcc11b7414917cbc1ccdc50b1b703c23df78.\n\nAnalysis: Server construction can bind resources before later context setup or startup fails. Registering deferred cleanup immediately after construction preserves the removed `@AfterEach` behavior for partial setup failures.\n\nUpsides: Failed setup now releases bound server sockets in all four test classes. Resource creation and cleanup registration remain adjacent.\n\nDownsides: The cleanup callback can run for a server whose startup did not complete, which each server API supports.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805402206"
+        }
+      ],
+      "reviewed": "70d84dc9569e5606cfb207ef12bd7f776727b2c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805121873"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Register the callback before `server.start().join()`. If startup completes exceptionally, this method exits before registering cleanup, unlike the removed `@AfterEach`, which could stop the server as soon as the field had been assigned.",
+      "created": "2026-08-18T14:42:07Z",
+      "hunk": "@@ -189,8 +182,9 @@ private int startServer(UnaryOperator<ServerBuilder> customizer) {\n                     .build(),\n                 HttpData.ofUtf8(\"success\")));\n \n-    server = customizer.apply(sb).build();\n+    Server server = customizer.apply(sb).build();\n     server.start().join();\n+    cleanup.deferCleanup(() -> server.stop().join());",
+      "id": "PRRT_kwDODJKVX86aJjpe",
+      "opened": "2026-08-18T14:42:07Z",
+      "path": "instrumentation/armeria/armeria-1.3/library/src/test/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaHeaderSelectorTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T15:14:22Z",
+          "body": "Addressed in 3815bcc11b7414917cbc1ccdc50b1b703c23df78.\n\nAnalysis: Server construction can bind resources before later context setup or startup fails. Registering deferred cleanup immediately after construction preserves the removed `@AfterEach` behavior for partial setup failures.\n\nUpsides: Failed setup now releases bound server sockets in all four test classes. Resource creation and cleanup registration remain adjacent.\n\nDownsides: The cleanup callback can run for a server whose startup did not complete, which each server API supports.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805402426"
+        }
+      ],
+      "reviewed": "70d84dc9569e5606cfb207ef12bd7f776727b2c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19687#discussion_r3805121940"
+    }
+  ]
+}

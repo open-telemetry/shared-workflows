@@ -1,0 +1,991 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "553d301fd839de7957b661678848660674a735f19accff00b0bcbef21e755383",
+  "input_digest": "5677beed57bd5b0ba00c6c2d45dfe77623b1c550920986839d6cb91e3d0ed13d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/467d138d514725003b0be63620fe98959e702af4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/467d138d514725003b0be63620fe98959e702af4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/38ba67dbfc96842ebfa3183ec69b88e111f41b4f"
+      ],
+      "id": "PRRT_kwDODJKVX86XxT2_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/467d138d514725003b0be63620fe98959e702af4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XxT39",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/467d138d514725003b0be63620fe98959e702af4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/38ba67dbfc96842ebfa3183ec69b88e111f41b4f"
+      ],
+      "id": "PRRT_kwDODJKVX86XxT3U",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/467d138d514725003b0be63620fe98959e702af4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/38ba67dbfc96842ebfa3183ec69b88e111f41b4f"
+      ],
+      "id": "PRRT_kwDODJKVX86XxT3t",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/467d138d514725003b0be63620fe98959e702af4/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/38ba67dbfc96842ebfa3183ec69b88e111f41b4f",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XxT4P",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/467d138d514725003b0be63620fe98959e702af4/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XxT4m",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81b5c40da462ead6e2cb05c9d2ab97de9f2c19d4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81b5c40da462ead6e2cb05c9d2ab97de9f2c19d4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/85dd2e0d2456c7a4778f068a235e81c26e7a78bb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e10aa70a4cadc17790efd91d6fe8a63dcf0bc956"
+      ],
+      "id": "PRRT_kwDODJKVX86X4hUU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81b5c40da462ead6e2cb05c9d2ab97de9f2c19d4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageEvents.java"
+      ],
+      "id": "PRRT_kwDODJKVX86X4hUf",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81b5c40da462ead6e2cb05c9d2ab97de9f2c19d4/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e10aa70a4cadc17790efd91d6fe8a63dcf0bc956"
+      ],
+      "id": "PRRT_kwDODJKVX86X4hU1",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81b5c40da462ead6e2cb05c9d2ab97de9f2c19d4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e10aa70a4cadc17790efd91d6fe8a63dcf0bc956"
+      ],
+      "id": "PRRT_kwDODJKVX86X5PUN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81b5c40da462ead6e2cb05c9d2ab97de9f2c19d4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/85dd2e0d2456c7a4778f068a235e81c26e7a78bb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6fda534a730824592e4a49cbc4b70445effb93a6",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e10aa70a4cadc17790efd91d6fe8a63dcf0bc956"
+      ],
+      "id": "PRRT_kwDODJKVX86X5Plm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81b5c40da462ead6e2cb05c9d2ab97de9f2c19d4/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e10aa70a4cadc17790efd91d6fe8a63dcf0bc956"
+      ],
+      "id": "PRRT_kwDODJKVX86X5PzD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e10aa70a4cadc17790efd91d6fe8a63dcf0bc956/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4c818a9f45bafdf3af4cf9f55e960ae36d06631b",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0b780ec1370c6643668bc8d3c4cc0f17f9c5deb2"
+      ],
+      "id": "PRRT_kwDODJKVX86YXxPW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e10aa70a4cadc17790efd91d6fe8a63dcf0bc956/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0b780ec1370c6643668bc8d3c4cc0f17f9c5deb2"
+      ],
+      "id": "PRRT_kwDODJKVX86YXxPw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b780ec1370c6643668bc8d3c4cc0f17f9c5deb2/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b780ec1370c6643668bc8d3c4cc0f17f9c5deb2/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YcLXX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/929b789ccefd19340fb1427521166a39fb0751bd/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/929b789ccefd19340fb1427521166a39fb0751bd/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f830a5c42755eec6cda683265a06c011bbc01075"
+      ],
+      "id": "PRRT_kwDODJKVX86YkzMm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc6550f1141486d0f19224d0396c52f175f3047e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageEvents.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y0L4m",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc6550f1141486d0f19224d0396c52f175f3047e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cc8a88e76d61ba34a96239a384aed375ed985f4d"
+      ],
+      "id": "PRRT_kwDODJKVX86Y0L4p",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc6550f1141486d0f19224d0396c52f175f3047e/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/org/springframework/ai/openai/OpenAiChatModel.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc6550f1141486d0f19224d0396c52f175f3047e/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/OpenAiChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/resources/wiremock/mappings/openai-chat-model-call.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4bff06b949668b5e908df40cff85836e615862a6"
+      ],
+      "id": "PRRT_kwDODJKVX86Y0L4s",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5b8470e4cb0c45089f662dccc79e28a10ca14e8a/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZLUfp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78873b23a28a19591b1d8c2f047df6ce4c6b0481/.github/config/latest-dep-versions.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/.github/config/latest-dep-versions.json"
+      ],
+      "id": "PRRT_kwDODJKVX86a6p_M",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78873b23a28a19591b1d8c2f047df6ce4c6b0481/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/72e5b93b388d6639b18dd2aa82017d4400ecfb6e"
+      ],
+      "id": "PRRT_kwDODJKVX86a6p_g",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiErrorAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiErrorAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/36b4c41aeba9ff9195bf60a3967f09d613519ac9"
+      ],
+      "id": "PRRT_kwDODJKVX86bRdfN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/85dd2e0d2456c7a4778f068a235e81c26e7a78bb"
+      ],
+      "id": "PRRT_kwDODJKVX86bRdfR",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/85dd2e0d2456c7a4778f068a235e81c26e7a78bb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/36b4c41aeba9ff9195bf60a3967f09d613519ac9"
+      ],
+      "id": "PRRT_kwDODJKVX86bRdfT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java"
+      ],
+      "id": "PRRT_kwDODJKVX86bRdfh",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86bRdfk",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72e5b93b388d6639b18dd2aa82017d4400ecfb6e/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/85dd2e0d2456c7a4778f068a235e81c26e7a78bb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/36b4c41aeba9ff9195bf60a3967f09d613519ac9"
+      ],
+      "id": "PRRT_kwDODJKVX86bRdfs",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e68764cd8368dc4fe9e9c557a9f2e9cfa0a2901d/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86b811k",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e68764cd8368dc4fe9e9c557a9f2e9cfa0a2901d/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/85dd2e0d2456c7a4778f068a235e81c26e7a78bb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1bce035c81e83051fe17528f39e3cd88ba282a2d"
+      ],
+      "id": "PRRT_kwDODJKVX86b8115",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e68764cd8368dc4fe9e9c557a9f2e9cfa0a2901d/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/OpenAiChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/OpenAiChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1bce035c81e83051fe17528f39e3cd88ba282a2d"
+      ],
+      "id": "PRRT_kwDODJKVX86b812V",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1bce035c81e83051fe17528f39e3cd88ba282a2d/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/863e1d9008111664cc63d6f196a258eafd99af3a"
+      ],
+      "id": "PRRT_kwDODJKVX86cFYAL",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1bce035c81e83051fe17528f39e3cd88ba282a2d/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/863e1d9008111664cc63d6f196a258eafd99af3a"
+      ],
+      "id": "PRRT_kwDODJKVX86cFYAS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/709d422cae3a9c6b788b4ce2508b3c9aacb7e87a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/709d422cae3a9c6b788b4ce2508b3c9aacb7e87a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f9e5d4c6109b594765cd663d105c41ff8997b644"
+      ],
+      "id": "PRRT_kwDODJKVX86cUsZA",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/709d422cae3a9c6b788b4ce2508b3c9aacb7e87a/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/709d422cae3a9c6b788b4ce2508b3c9aacb7e87a/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStringUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStringUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f9e5d4c6109b594765cd663d105c41ff8997b644"
+      ],
+      "id": "PRRT_kwDODJKVX86cUsZD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f9e5d4c6109b594765cd663d105c41ff8997b644/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f9e5d4c6109b594765cd663d105c41ff8997b644/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86cVYOe",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf23df9a30765e4254ce2d83cd128f28fc4505eb/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86eoGJI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf23df9a30765e4254ce2d83cd128f28fc4505eb/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageEvents.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageEvents.java"
+      ],
+      "id": "PRRT_kwDODJKVX86eoGJP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf23df9a30765e4254ce2d83cd128f28fc4505eb/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java"
+      ],
+      "id": "PRRT_kwDODJKVX86eoGJT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf23df9a30765e4254ce2d83cd128f28fc4505eb/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java"
+      ],
+      "id": "PRRT_kwDODJKVX86eoGJZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf23df9a30765e4254ce2d83cd128f28fc4505eb/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java"
+      ],
+      "id": "PRRT_kwDODJKVX86eoGJt",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf23df9a30765e4254ce2d83cd128f28fc4505eb/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/springai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86eoGJw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08b51009093d4fd16f93c525f63c15a6e16d2be3/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d66c6c98d6b8a18d641bb7f36f419368f60f77fd"
+      ],
+      "id": "PRRT_kwDODJKVX86ewK8B",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08b51009093d4fd16f93c525f63c15a6e16d2be3/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d66c6c98d6b8a18d641bb7f36f419368f60f77fd"
+      ],
+      "id": "PRRT_kwDODJKVX86ewK8Q",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08b505cd546aed77fada825f870e2f31fb81a645/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a725f9612be46dc333ec97fd3ebf4e2ba4289669"
+      ],
+      "id": "PRRT_kwDODJKVX86fO_ij",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86f5fa6",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86f5ial",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/509327a2997eea99b1d6cbd02d0ce8a17385c80f"
+      ],
+      "id": "PRRT_kwDODJKVX86f5jvM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/509327a2997eea99b1d6cbd02d0ce8a17385c80f"
+      ],
+      "id": "PRRT_kwDODJKVX86f5kWj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/509327a2997eea99b1d6cbd02d0ce8a17385c80f"
+      ],
+      "id": "PRRT_kwDODJKVX86f5oM7",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86f5zKo",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/509327a2997eea99b1d6cbd02d0ce8a17385c80f"
+      ],
+      "id": "PRRT_kwDODJKVX86f523B",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/.github/scripts/instrumentations.sh"
+      ],
+      "id": "PRRT_kwDODJKVX86f56C6",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/96da377b6807d1d63013f1aef1ffde625f5d0016/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/509327a2997eea99b1d6cbd02d0ce8a17385c80f"
+      ],
+      "id": "PRRT_kwDODJKVX86f56on",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/509327a2997eea99b1d6cbd02d0ce8a17385c80f/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/509327a2997eea99b1d6cbd02d0ce8a17385c80f/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/SpanSuppressors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/509327a2997eea99b1d6cbd02d0ce8a17385c80f/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/SpanSuppressors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/647e6f13584951fd6e5d7dbc60391d80d1389e67",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ffc4eb92cdf1804e31cc0f1fda304af4a962ce06"
+      ],
+      "id": "PRRT_kwDODJKVX86hTzNO",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/509327a2997eea99b1d6cbd02d0ce8a17385c80f/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86hTzNa",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86ld5v9",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2f14341d60dc75d2f2fdf1a936c0d93f9e1ca833"
+      ],
+      "id": "PRRT_kwDODJKVX86mgq99",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2f14341d60dc75d2f2fdf1a936c0d93f9e1ca833"
+      ],
+      "id": "PRRT_kwDODJKVX86mgq9q",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2f14341d60dc75d2f2fdf1a936c0d93f9e1ca833"
+      ],
+      "id": "PRRT_kwDODJKVX86mgq-7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4c818a9f45bafdf3af4cf9f55e960ae36d06631b",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2f14341d60dc75d2f2fdf1a936c0d93f9e1ca833"
+      ],
+      "id": "PRRT_kwDODJKVX86mgq-V",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2f14341d60dc75d2f2fdf1a936c0d93f9e1ca833"
+      ],
+      "id": "PRRT_kwDODJKVX86mgq-m",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/80d23905d1f5cdc3cbc62874319d373608331045",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2f14341d60dc75d2f2fdf1a936c0d93f9e1ca833"
+      ],
+      "id": "PRRT_kwDODJKVX86mgq_N",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4bcd4d5c64aaccd4b4d9c854ba176db0d780d6d/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/OpenAiChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/OpenAiChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2f14341d60dc75d2f2fdf1a936c0d93f9e1ca833"
+      ],
+      "id": "PRRT_kwDODJKVX86mgq_e",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e3a5831910ccfaf0ea520880eff281513179f5/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e3a5831910ccfaf0ea520880eff281513179f5/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3"
+      ],
+      "id": "PRRT_kwDODJKVX86nyTxR",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiRequestTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiRequestTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/OpenAiChatModelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86obUkW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86obZP3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/SpanSuppressors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/SpanSuppressors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86obf5C",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86obo8g",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/ChatModelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86obtRn",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86obuSV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5f8bd01f9aa1f3f6d43ea89a2aa67164bea94c3/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7bac5589936b25a3ac64812f1d4e7f97f266bdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86ob45B",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/80d23905d1f5cdc3cbc62874319d373608331045"
+      ],
+      "id": "PRRT_kwDODJKVX86p6mgC",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/80d23905d1f5cdc3cbc62874319d373608331045"
+      ],
+      "id": "PRRT_kwDODJKVX86p6pT0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86p6uay",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86p6mgC",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7027a891b918ebb2c06ff53928d40aaf65956fad"
+      ],
+      "id": "PRRT_kwDODJKVX86p6ucJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86p63aY",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/80d23905d1f5cdc3cbc62874319d373608331045"
+      ],
+      "id": "PRRT_kwDODJKVX86p7S8P",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86p7fSC",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47eecb88912055af0f715970ef132c2e9b286c39/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiMessageAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c818a9f45bafdf3af4cf9f55e960ae36d06631b/instrumentation/spring/spring-ai-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ai/v1_0/SpringAiStreamTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/80d23905d1f5cdc3cbc62874319d373608331045"
+      ],
+      "id": "PRRT_kwDODJKVX86p7jgr",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

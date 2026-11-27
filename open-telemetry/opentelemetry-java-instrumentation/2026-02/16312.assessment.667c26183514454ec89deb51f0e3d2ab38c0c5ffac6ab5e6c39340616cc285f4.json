@@ -1,0 +1,24 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "83c23a4438db9d781c546eea799bc85eaa193768e131d2fd1fea7cb7a4a0c7ad",
+  "input_digest": "667c26183514454ec89deb51f0e3d2ab38c0c5ffac6ab5e6c39340616cc285f4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4b1dba16eaddfad35a3d4f835fcd8cd592b3c477/instrumentation/twilio-6.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4b1dba16eaddfad35a3d4f835fcd8cd592b3c477/instrumentation/twilio-6.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/twilio/TwilioClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/411fa57141fb08ceafce910b15fc5c56b31cdc57/instrumentation/twilio-6.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/411fa57141fb08ceafce910b15fc5c56b31cdc57/instrumentation/twilio-6.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/twilio/ExperimentalTestHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/411fa57141fb08ceafce910b15fc5c56b31cdc57/instrumentation/twilio-6.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/twilio/TwilioClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eaec06f0cb9e5dc5e719cd6c96ad6341c98184e8"
+      ],
+      "id": "PRRT_kwDODJKVX85xKpiS",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

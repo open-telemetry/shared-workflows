@@ -1,0 +1,31 @@
+{
+  "head": "c80030c50081dc2fa1da7870304bc5734bd77d78",
+  "merge": "b0b18576a981389dd690f30e8eca0a940cb1c083",
+  "merged": "2026-08-20T00:23:11Z",
+  "missing_roots": 0,
+  "number": 19703,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This stable-semconv task is recorded under the same metadata condition as the legacy-semconv task. The metadata collector groups span files by this exact value, so it will merge legacy attributes such as `db.operation` with stable attributes such as `db.query.summary` and document them as one configuration. Include `otel.semconv-stability.opt-in=database` in `metadataConfig`, as is done when other test tasks enable multiple options.",
+      "created": "2026-08-19T04:36:51Z",
+      "hunk": "@@ -50,15 +50,49 @@ tasks {\n     }\n   }\n \n+  test {\n+    filter {\n+      excludeTestsMatching(\"InfluxDbQuerySanitizationDisabledTest\")\n+    }\n+  }\n+\n   val testStableSemconv = register<Test>(\"testStableSemconv\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n \n+    filter {\n+      excludeTestsMatching(\"InfluxDbQuerySanitizationDisabledTest\")\n+    }\n     systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database\")\n     jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n   }\n \n+  val testQuerySanitizationDisabled = register<Test>(\"testQuerySanitizationDisabled\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"InfluxDbQuerySanitizationDisabledTest\")\n+    }\n+    include(\"**/InfluxDbQuerySanitizationDisabledTest.*\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.db.query-sanitization.enabled=false\")\n+    jvmArgs(\"-Dotel.instrumentation.common.db.query-sanitization.enabled=false\")\n+  }\n+\n+  val testQuerySanitizationDisabledStableSemconv = register<Test>(\"testQuerySanitizationDisabledStableSemconv\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"InfluxDbQuerySanitizationDisabledTest\")\n+    }\n+    include(\"**/InfluxDbQuerySanitizationDisabledTest.*\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.db.query-sanitization.enabled=false\")",
+      "id": "PRRT_kwDODJKVX86aWMIW",
+      "opened": "2026-08-19T04:36:52Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-19T05:15:34Z",
+          "body": "Good catch, fixed in 1e4184a. `testQuerySanitizationDisabledStableSemconv` now records `otel.instrumentation.common.db.query-sanitization.enabled=false,otel.semconv-stability.opt-in=database`, so it no longer shares a metadata condition with the legacy task and the collector won't merge `db.statement` / `db.operation` with `db.query.text` / `db.query.summary` into one configuration.\n\nI followed the comma-joined shape used by netty-4.0, netty-4.1 and jsp-2.3 for tasks that enable more than one option, keeping the same order as the `jvmArgs` above it. The semconv half matches this module's existing `testStableSemconv` value exactly, so the two stable tasks group together and apart from the legacy ones. All three values on the branch are now distinct.\n\nRe-ran both tasks afterward and confirmed from the JUnit XML that each still selects only `InfluxDbQuerySanitizationDisabledTest` (1 test, 1 result file per task, no `InfluxDbClientTest`), and that the captured query text is still raw in both modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19703#discussion_r3810236096"
+        }
+      ],
+      "reviewed": "c1fc58783c1016e3fca3cfeba22fc408da36f2c1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19703#discussion_r3810074581"
+    }
+  ]
+}

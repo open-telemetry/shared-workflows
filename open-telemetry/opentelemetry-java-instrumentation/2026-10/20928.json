@@ -1,0 +1,73 @@
+{
+  "head": "13a6a5bb29de7858ddfce94d01b12d6b72d04739",
+  "merge": "81354bb3ad4b6fc655654c121755f5c4100648b0",
+  "merged": "2026-10-27T14:05:30Z",
+  "missing_roots": 0,
+  "number": 20928,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with these two test-only simplifications. Do not create a follow-up PR.\n\nIn javaagent/src/test/java/jvmbootstraptest/AgentLoadedChecker.java, replace the empty bootstrap-delegating URLClassLoader with explicit Class.forName(name, false, null) lookups for AgentInitializer, InstrumentationHolder, and JavaagentFileHolder. Remove the unused URL-related imports, loader construction, try-with-resources wrapper, and obsolete loader comment. Preserve the assertions that the initializer is bootstrap-loaded, the agent actually started, InstrumentationHolder contains an Instrumentation, and JavaagentFileHolder contains the expected agent JAR. Keep the lookups straightforward; do not introduce a reflection helper.\n\nIn javaagent/src/test/java/io/opentelemetry/javaagent/AgentLoadedIntoBootstrapTest.java, change only agentLoadsWithChildFirstSystemClassLoader to use IntegrationTestUtils.runOnSeparateJvm and assert its exit code is zero. Remove that test's ProcessResult, explicit java.class.path argument, and specific startup error-log assertion. Continue printing child output through the helper. The checker already makes failed startup or incorrect bootstrap holder state produce a nonzero exit code. Preserve the separate bootstrap-classpath test's output checks.\n\nLeave the production fix, reflective entrypoint, exception unwrapping, and ChildFirstSystemClassLoader behavior unchanged. Preserve coverage of normal startup, child-first startup, and an agent JAR already on the bootstrap classpath. Apply the narrowest relevant formatter and run the focused AgentLoadedIntoBootstrapTest tests. Keep changes limited to these simplifications.",
+      "created": "2026-10-24T17:15:28Z",
+      "hunk": "@@ -5,20 +5,36 @@\n \n package jvmbootstraptest;\n \n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.io.File;\n+import java.lang.instrument.Instrumentation;\n import java.net.URL;\n import java.net.URLClassLoader;\n \n public class AgentLoadedChecker {\n \n-  public static void main(String[] args) throws ClassNotFoundException {\n+  public static void main(String[] args) throws Exception {\n     // Empty class loader that delegates to bootstrap\n-    URLClassLoader emptyClassLoader = new URLClassLoader(new URL[] {}, null);\n-    Class<?> agentClass =\n-        emptyClassLoader.loadClass(\"io.opentelemetry.javaagent.bootstrap.AgentInitializer\");\n+    try (URLClassLoader emptyClassLoader = new URLClassLoader(new URL[] {}, null)) {\n+      Class<?> agentClass =\n+          emptyClassLoader.loadClass(\"io.opentelemetry.javaagent.bootstrap.AgentInitializer\");",
+      "id": "PRRT_kwDODJKVX86v6G0n",
+      "opened": "2026-10-24T17:15:28Z",
+      "path": "javaagent/src/test/java/jvmbootstraptest/AgentLoadedChecker.java",
+      "replies": [
+        {
+          "at": "2026-10-24T17:26:55Z",
+          "body": "Applied the requested test-only simplifications in `ce1ff38c`. The focused `AgentLoadedIntoBootstrapTest` tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20928#discussion_r4367891053"
+        }
+      ],
+      "reviewed": "84ac9675cdf827c86a2d4483a301098dd2a173f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20928#discussion_r4367860418"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove the InvocationTargetException unwrapping block from the catch (Throwable t) in javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java, and remove the now-unused java.lang.reflect.InvocationTargetException import. Do not create a follow-up PR.\n\nKeep the existing ERROR message, t.printStackTrace(), and non-rethrowing behavior unchanged. The accepted behavior is that reflective startup failures print InvocationTargetException with the underlying exception in the Caused by chain instead of unwrapping it first. Preserve the reflective bootstrap initialization, bootstrap holder initialization, class-loader fixture, and all existing tests. Do not add a replacement unwrapping helper or otherwise expand the change.\n\nApply the narrowest relevant formatter and run focused startup regression tests, including AgentLoadedIntoBootstrapTest. Keep this change limited to removing the block and unused import.",
+      "created": "2026-10-24T17:40:50Z",
+      "hunk": "@@ -55,10 +53,17 @@ private static void startAgent(\n       Instrumentation inst, @Nullable String agentArgs, boolean fromPremain) {\n     try {\n       File javaagentFile = installBootstrapJar(inst);\n-      InstrumentationHolder.setInstrumentation(inst);\n-      JavaagentFileHolder.setJavaagentFile(javaagentFile);\n-      AgentInitializer.initialize(inst, javaagentFile, fromPremain, agentArgs);\n+      // A child-first system loader may define agent classes even after bootstrap is set up.\n+      Class.forName(\"io.opentelemetry.javaagent.bootstrap.AgentInitializer\", true, null)\n+          .getMethod(\"initialize\", Instrumentation.class, File.class, boolean.class, String.class)\n+          .invoke(null, inst, javaagentFile, fromPremain, agentArgs);\n     } catch (Throwable t) {\n+      if (t instanceof InvocationTargetException) {\n+        Throwable cause = t.getCause();\n+        if (cause != null) {",
+      "id": "PRRT_kwDODJKVX86v6RcS",
+      "opened": "2026-10-24T17:40:50Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java",
+      "replies": [
+        {
+          "at": "2026-10-24T17:55:03Z",
+          "body": "Removed the unwrapping block and unused import as requested; the existing error output and non-rethrowing behavior are unchanged. `AgentLoadedIntoBootstrapTest` passes. Commit: `536dece6`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20928#discussion_r4367971410"
+        }
+      ],
+      "reviewed": "ce1ff38cb4b79534f4b271f9f877827e01f093e7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20928#discussion_r4367929622"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the SecurityManager startup regression while preserving the child-first system-loader fix. Do not create a follow-up PR.\n\nConfirmed failure on PR head 536dece663ec28754bf5dd323a20d6a4dc6b63c2: SecurityManagerSmokeTest and SecurityManagerIndySmokeTest both fail on Java 8, 11, 17, and 21. The job is https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/40118276739/job/120944417669 and its test build scan is https://gradle.com/s/rdtc6xukjhdew. The startup stack trace reports java.security.AccessControlException: access denied (\"java.lang.RuntimePermission\" \"getClassLoader\"), at java.lang.Class.forName, at OpenTelemetryAgent.startAgent(OpenTelemetryAgent.java:56). Follow the repository fix-ci workflow to retain the deterministic failing-log bundle before debugging: confirm a clean worktree and run python .github/scripts/pr-triage/fix_ci.py 20928 --download-only, inspect its summary and relevant logs, and work on this PR head.\n\nImplement the agreed approach in javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java. After installBootstrapJar(inst), check AgentInitializer.class.getClassLoader() == null. If true, call AgentInitializer.initialize(inst, javaagentFile, fromPremain, agentArgs) directly. Otherwise retain the current Class.forName(\"io.opentelemetry.javaagent.bootstrap.AgentInitializer\", true, null).getMethod(...).invoke(...) bootstrap handoff. Restore the AgentInitializer import. The direct path preserves previously working parent-first startup under restrictive SecurityManager policies; Class.getClassLoader() returns null for bootstrap-defined classes before doing the permission check. The explicit bootstrap lookup is still needed for a child-first loader's copy.\n\nKeep InstrumentationHolder and JavaagentFileHolder initialization inside bootstrap AgentInitializer. Preserve all existing startup assertions, the child-first fixture, and normal and already-on-bootstrap startup coverage. Keep the ERROR logging, printStackTrace(), and non-rethrowing behavior unchanged; do not restore InvocationTargetException unwrapping. Do not weaken test security policies, grant new permissions, add speculative doPrivileged wrappers, or introduce a helper abstraction. Supporting child-first loaders combined with restrictive SecurityManager policies is not an added requirement.\n\nApply the narrowest relevant formatter immediately before validation. Run AgentLoadedIntoBootstrapTest and the existing SecurityManagerSmokeTest and SecurityManagerIndySmokeTest cases across Java 8, 11, 17, and 21, using the existing smoke-test harness. These SecurityManager tests must start the agent and export their test span without startup permission failures. Retain relevant validation evidence and report any environment blocker accurately instead of disabling tests. Keep code changes limited to this startup correction.",
+      "created": "2026-10-24T19:28:52Z",
+      "hunk": "@@ -55,9 +52,10 @@ private static void startAgent(\n       Instrumentation inst, @Nullable String agentArgs, boolean fromPremain) {\n     try {\n       File javaagentFile = installBootstrapJar(inst);\n-      InstrumentationHolder.setInstrumentation(inst);\n-      JavaagentFileHolder.setJavaagentFile(javaagentFile);\n-      AgentInitializer.initialize(inst, javaagentFile, fromPremain, agentArgs);\n+      // A child-first system loader may define agent classes even after bootstrap is set up.\n+      Class.forName(\"io.opentelemetry.javaagent.bootstrap.AgentInitializer\", true, null)",
+      "id": "PRRT_kwDODJKVX86v7AO2",
+      "opened": "2026-10-24T19:28:52Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java",
+      "replies": [
+        {
+          "at": "2026-10-24T19:43:16Z",
+          "body": "Implemented in `13a6a5bb`: startup now calls `AgentInitializer` directly when it is already bootstrap-loaded, while preserving the reflective handoff for child-first copies. `AgentLoadedIntoBootstrapTest` and both SecurityManager smoke-test classes passed on Java 8, 11, 17, and 21. The deterministic log script could not check out the PR because `GH_TOKEN` is unavailable; I retrieved and inspected the supplied job log through GitHub Actions instead.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20928#discussion_r4368288770"
+        }
+      ],
+      "reviewed": "536dece663ec28754bf5dd323a20d6a4dc6b63c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20928#discussion_r4368233918"
+    }
+  ]
+}

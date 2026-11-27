@@ -1,0 +1,25 @@
+{
+  "head": "bebdb246602fa653c82be930f3aafcb2cc7f4b40",
+  "merge": "42d34c66fbd1835f9def12db30062add1ee703e4",
+  "merged": "2026-08-23T18:38:03Z",
+  "missing_roots": 0,
+  "number": 19740,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This replacement drops `messaging.destination.subscription.name` from Pulsar's documented operation-duration attributes, even though consumer operations still emit it (`PulsarMessagingAttributesGetter#getDestinationSubscriptionName`) and the metric advice includes consumer attributes. The collector currently inspects only the first metric point, so selecting the producer point loses attributes from the consumer point. Please union attributes across all points and regenerate this file rather than accepting the reduced definition.\n\nThis issue also appears on line 16269 of the same file.",
+      "created": "2026-08-22T03:05:55Z",
+      "hunk": "@@ -15003,7 +14963,7 @@ libraries:\n   - when: otel.semconv-stability.preview=messaging\n     metric_refs:\n     - messaging.client.consumed.messages-5c21579f\n-    - messaging.client.operation.duration-df200871\n+    - messaging.client.operation.duration-dab7c60a",
+      "id": "PRRT_kwDODJKVX86bV3W1",
+      "opened": "2026-08-22T03:05:56Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "4d3fd136d8811d5f03b472d185f31aae81a543b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19740#discussion_r3834921669"
+    }
+  ]
+}

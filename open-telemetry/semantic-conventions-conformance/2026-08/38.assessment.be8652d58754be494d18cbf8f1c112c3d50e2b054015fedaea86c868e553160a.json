@@ -1,0 +1,42 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "2fdd34a846252a8b928b9e39d3f7852cfaf06de96d5a5e593a45997c058a18ad",
+  "input_digest": "be8652d58754be494d18cbf8f1c112c3d50e2b054015fedaea86c868e553160a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ce24a29297e2e4d20c9f7d14070f3fe10a205c98/tools/runner/src/opentelemetry/conformance/_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e66b011070501dc283d600ab727d2246de93d00d/tools/runner/src/opentelemetry/conformance/_model.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zir0M",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ce24a29297e2e4d20c9f7d14070f3fe10a205c98/tools/runner/src/opentelemetry/conformance/_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e66b011070501dc283d600ab727d2246de93d00d/tools/runner/src/opentelemetry/conformance/_server.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zir0T",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d28825d31f5dcfb6eec89ce63af5c7c91988d600/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e66b011070501dc283d600ab727d2246de93d00d/.github/workflows/runner.yml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zp4bd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

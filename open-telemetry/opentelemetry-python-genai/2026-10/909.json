@@ -1,0 +1,73 @@
+{
+  "head": "cc02258f46a266dc6a76d42016e57bda372a8270",
+  "merge": "7c8660c8207d236d4eaeb1dcdf7a1fc71ca1fd16",
+  "merged": "2026-10-20T02:51:38Z",
+  "missing_roots": 0,
+  "number": 909,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Could we add a regression case where a valid assistant message is followed by non-output entries, such as a `HumanMessage` or malformed message dict? The old implementation still returned the last valid assistant output in those cases, and the reverse scan appears to preserve that behavior, but the new tests only cover a trailing empty `AIMessage`. This would also protect the malformed-entry behavior added in #881.",
+      "created": "2026-10-19T16:41:44Z",
+      "hunk": "@@ -57,6 +57,7 @@\n     _extract_prompt_context,\n )\n from opentelemetry.instrumentation.genai.langchain.utils import (\n+    _ai_message_parts,",
+      "id": "PRRT_kwDOSbspP86uA1V8",
+      "opened": "2026-10-19T16:41:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-10-19T17:08:47Z",
+          "body": "Added in 7fd8ffe. `test_skips_trailing_non_output_entry` puts a `HumanMessage`, a `ToolMessage`, two malformed dicts, a one-item tuple or `None` after the final assistant message and checks that it's still the one returned. The cases pass against the `main` implementation too, and fail if the scan only looks at the last entry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/909#discussion_r4316624041"
+        }
+      ],
+      "reviewed": "af74edf324aafe7d5dfdccf686b1b2b8cd86d5a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/909#discussion_r4316375097"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this copies the history even when it's already a list (the common case). Could skip the copy for sequences:\n\n```suggestion\n    if not isinstance(messages, Sequence):\n        messages = list(messages)\n    for message in reversed(messages):\n```\n\n(needs `Sequence` from `collections.abc`)",
+      "created": "2026-10-20T02:04:37Z",
+      "hunk": "@@ -546,12 +537,32 @@ def make_last_output_message(data: Any) -> list[OutputMessage]:\n     Called only when content capture is enabled\n     (``TelemetryHandler.should_capture_content()``).\n     \"\"\"\n-    all_messages = make_output_message(data)\n-    if all_messages:\n-        return [all_messages[-1]]\n+    messages = _output_messages_field(data)\n+    if messages is None:\n+        return []\n+    for message in reversed(list(messages)):",
+      "id": "PRRT_kwDOSbspP86uLDze",
+      "opened": "2026-10-20T02:05:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-20T02:20:17Z",
+          "body": "Applied in 4828f00.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/909#discussion_r4320825754"
+        }
+      ],
+      "reviewed": "7fd8ffef49b5b3152950854656ac0d7e64f47811",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/909#discussion_r4320750662"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `make_output_message` has no callers in `src` anymore, only tests. Maybe drop it with its tests?",
+      "created": "2026-10-20T02:04:37Z",
+      "hunk": "@@ -521,19 +521,10 @@ def make_output_message(data: Any) -> list[OutputMessage]:\n     Called only when content capture is enabled\n     (``TelemetryHandler.should_capture_content()``).\n     \"\"\"\n-    if not isinstance(data, dict):\n+    messages = _output_messages_field(data)\n+    if messages is None:\n         return []\n-    data_dict = cast(dict[str, Any], data)\n-    messages: Any = data_dict.get(\"messages\")\n-    if (\n-        messages is None\n-        or isinstance(messages, (str, bytes))\n-        or not isinstance(messages, Iterable)\n-    ):\n-        return []\n-    return to_output_messages(\n-        cast(Iterable[MessageLikeRepresentation], messages)\n-    )\n+    return to_output_messages(messages)",
+      "id": "PRRT_kwDOSbspP86uLDzr",
+      "opened": "2026-10-20T02:05:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-20T02:19:59Z",
+          "body": "Removed in cc02258. Retained the input-shape, `(\"ai\", ...)` tuple, and empty `finish_reason` cases against `make_last_output_message`, and moved the finish-reason note to its docstring.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/909#discussion_r4320824278"
+        }
+      ],
+      "reviewed": "7fd8ffef49b5b3152950854656ac0d7e64f47811",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/909#discussion_r4320750678"
+    }
+  ]
+}

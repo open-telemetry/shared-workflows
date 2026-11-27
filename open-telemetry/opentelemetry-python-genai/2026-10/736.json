@@ -1,0 +1,115 @@
+{
+  "head": "4a4009152d2c758c074b9cbb8452a46e8e52e0a7",
+  "merge": "c4ae07cb1541e403dd9454ee07897751461a8e1d",
+  "merged": "2026-10-22T01:57:09Z",
+  "missing_roots": 0,
+  "number": 736,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Bedrock’s parameter map does not describe the arguments as JSON Schema: `{\"city\": {\"type\": \"string\"}}` needs to become `{\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}`.\n\nCould you either convert it to JSON Schema, preserving descriptions and required fields, or omit tool definitions for now? Please check the exact exported tool definition structure in the regular Bedrock API tests.",
+      "created": "2026-10-11T20:11:32Z",
+      "hunk": "@@ -956,6 +956,98 @@ def extract_invoke_agent_request(\n             ]\n \n \n+def _extract_functions(ag: dict[str, Any]) -> list[dict[str, Any]]:\n+    schema = ag.get(\"functionSchema\")\n+    if not _is_dict(schema):\n+        return []\n+    functions = schema.get(\"functions\")\n+    if not _is_list(functions):\n+        return []\n+    return [f for f in functions if _is_dict(f)]\n+\n+\n+def extract_invoke_inline_agent_request(\n+    api_params: dict[str, Any],\n+    invocation: RemoteAgentInvocation,\n+    *,\n+    capture_content: bool = True,\n+) -> None:\n+    session_id = api_params.get(\"sessionId\")\n+    if session_id:\n+        invocation.conversation_id = str(session_id)\n+\n+    guardrail_cfg = api_params.get(\"guardrailConfiguration\")\n+    if _is_dict(guardrail_cfg):\n+        guardrail_id = guardrail_cfg.get(\n+            \"guardrailIdentifier\"\n+        ) or guardrail_cfg.get(\"guardrailId\")\n+        if guardrail_id:\n+            invocation.attributes[aws_attributes.AWS_BEDROCK_GUARDRAIL_ID] = (\n+                str(guardrail_id)\n+            )\n+\n+    kbs = api_params.get(\"knowledgeBases\")\n+    if _is_list(kbs) and kbs and _is_dict(kbs[0]):\n+        kb_id = kbs[0].get(\"knowledgeBaseId\")\n+        if kb_id:\n+            invocation.attributes[\n+                aws_attributes.AWS_BEDROCK_KNOWLEDGE_BASE_ID\n+            ] = str(kb_id)\n+\n+    action_groups = api_params.get(\"actionGroups\")\n+    if _is_list(action_groups):\n+        tool_defs: list[ToolDefinition] = []\n+        for ag in action_groups:\n+            if not _is_dict(ag):\n+                continue\n+            for func in _extract_functions(ag):\n+                name = str(func.get(\"name\", \"\"))\n+                desc = func.get(\"description\")\n+                params = func.get(\"parameters\")\n+                tool_defs.append(\n+                    FunctionToolDefinition(\n+                        name=name,\n+                        description=str(desc) if desc is not None else None,\n+                        parameters=params if _is_dict(params) else {},",
+      "id": "PRRT_kwDOSbspP86rRGBQ",
+      "opened": "2026-10-11T20:11:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-12T16:16:02Z",
+          "body": "Ack added conversion to json schema.. good catch",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4250137242"
+        }
+      ],
+      "reviewed": "86dc6246448857128d70acc2666b2c996dd793e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4243044660"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could you add an `invoke_inline_agent` conformance scenario?",
+      "created": "2026-10-11T20:11:32Z",
+      "hunk": "@@ -332,6 +332,362 @@ def test_invoke_agent_sync_caller_error_during_stream(\n     assert span.attributes.get(ErrorAttributes.ERROR_TYPE) == \"RuntimeError\"\n \n \n+# --- Sync invoke_inline_agent tests ---\n+\n+\n+def test_invoke_inline_agent_sync_with_content(",
+      "id": "PRRT_kwDOSbspP86rRGBR",
+      "opened": "2026-10-11T20:11:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/test_agent.py",
+      "replies": [
+        {
+          "at": "2026-10-12T16:16:13Z",
+          "body": "added",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4250139140"
+        }
+      ],
+      "reviewed": "86dc6246448857128d70acc2666b2c996dd793e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4243044663"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `InvokeInlineAgent` takes `GuardrailConfigurationWithArn`, which only has `guardrailIdentifier`/`guardrailVersion` in every botocore version. `guardrailId` belongs to `RetrieveAndGenerate`'s `GuardrailConfiguration`, so the fallback can never match here.\n\n```suggestion\n        guardrail_id = guardrail_cfg.get(\"guardrailIdentifier\")\n```\n",
+      "created": "2026-10-15T22:17:21Z",
+      "hunk": "@@ -956,6 +956,131 @@ def extract_invoke_agent_request(\n             ]\n \n \n+def _extract_functions(ag: dict[str, Any]) -> list[dict[str, Any]]:\n+    schema = ag.get(\"functionSchema\")\n+    if not _is_dict(schema):\n+        return []\n+    functions = schema.get(\"functions\")\n+    if not _is_list(functions):\n+        return []\n+    return [f for f in functions if _is_dict(f)]\n+\n+\n+def _convert_bedrock_parameters_to_json_schema(\n+    params: Mapping[str, Any] | None,\n+) -> dict[str, Any]:\n+    \"\"\"Convert Bedrock parameter detail map to a standard JSON Schema object.\"\"\"\n+    if not params:\n+        return {\"type\": \"object\", \"properties\": {}}\n+\n+    properties: dict[str, Any] = {}\n+    required: list[str] = []\n+\n+    for prop_name, prop_def in params.items():\n+        if not _is_dict(prop_def):\n+            continue\n+        prop_schema: dict[str, Any] = {}\n+        for k, v in prop_def.items():\n+            if k == \"required\":\n+                if v is True:\n+                    required.append(prop_name)\n+            else:\n+                prop_schema[k] = v\n+        properties[prop_name] = prop_schema\n+\n+    schema: dict[str, Any] = {\n+        \"type\": \"object\",\n+        \"properties\": properties,\n+    }\n+    if required:\n+        schema[\"required\"] = required\n+    return schema\n+\n+\n+def extract_invoke_inline_agent_request(\n+    api_params: dict[str, Any],\n+    invocation: RemoteAgentInvocation,\n+    *,\n+    capture_content: bool = True,\n+) -> None:\n+    session_id = api_params.get(\"sessionId\")\n+    if session_id:\n+        invocation.conversation_id = str(session_id)\n+\n+    guardrail_cfg = api_params.get(\"guardrailConfiguration\")\n+    if _is_dict(guardrail_cfg):\n+        guardrail_id = guardrail_cfg.get(\n+            \"guardrailIdentifier\"\n+        ) or guardrail_cfg.get(\"guardrailId\")",
+      "id": "PRRT_kwDOSbspP86s_Lb0",
+      "opened": "2026-10-15T22:25:15Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-19T18:57:52Z",
+          "body": "Ack, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4317641582"
+        }
+      ],
+      "reviewed": "269a3ac03c34c8ffaceb710704313c819f1a25b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4288835970"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, fine as a follow up, could we pass `actionGroups` here so live-check validates tool definitions too? \n\n```suggestion\n                    agentName=\"test-inline-agent\",\n                    actionGroups=[\n                        {\n                            \"actionGroupName\": \"CustomTools\",\n                            \"functionSchema\": {\n                                \"functions\": [\n                                    {\n                                        \"name\": \"get_weather\",\n                                        \"description\": \"Get weather for a city\",\n                                        \"parameters\": {\n                                            \"city\": {\"type\": \"string\", \"required\": True},\n                                        },\n                                    }\n                                ]\n                            },\n                        },\n                    ],\n                )\n```",
+      "created": "2026-10-15T22:17:21Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: bedrock invoke_inline_agent.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+import boto3\n+\n+from opentelemetry.instrumentation.genai.bedrock import BedrockInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class InvokeInlineAgentScenario(Scenario):\n+    expected_spans = {\"invoke_agent\": 1}\n+    expected_metrics = (\"gen_ai.client.operation.duration\",)\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            BedrockInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            content_capture=\"SPAN_ONLY\",\n+        ):\n+            with vcr.use_cassette(\"test_invoke_inline_agent_conformance.yaml\"):\n+                client = boto3.client(\n+                    \"bedrock-agent-runtime\", region_name=\"us-east-1\"\n+                )\n+                response = client.invoke_inline_agent(\n+                    foundationModel=\"arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0\",\n+                    instruction=\"You are a helpful inline assistant for testing OpenTelemetry.\",\n+                    sessionId=\"conformance-inline-session-1\",\n+                    inputText=\"What is the capital of France?\",\n+                    agentName=\"test-inline-agent\",\n+                )",
+      "id": "PRRT_kwDOSbspP86s_Lbe",
+      "opened": "2026-10-15T22:25:15Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/conformance/invoke_inline_agent.py",
+      "replies": [
+        {
+          "at": "2026-10-19T18:57:43Z",
+          "body": "Ack, added",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4317640297"
+        }
+      ],
+      "reviewed": "269a3ac03c34c8ffaceb710704313c819f1a25b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4288835931"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "Can we pass sessionId as conversation_id here instead of setting it later in the extractor? Setting it afterward updates the agent span, but nested calls still pick up the old conversation ID, or none at all. It would be good to cover that with a sync/async test too",
+      "created": "2026-10-19T22:16:49Z",
+      "hunk": "@@ -510,6 +512,72 @@ async def _handle_async_invoke_agent(\n     )\n \n \n+def _start_invoke_inline_agent(\n+    instance: BaseClient,\n+    api_params: dict[str, Any],\n+    handler: TelemetryHandler,\n+) -> RemoteAgentInvocation:\n+    server_address, server_port = _server_address_and_port(instance)\n+\n+    request_model = extract_invoke_inline_agent_model(api_params)\n+    raw_agent_name = api_params.get(\"agentName\")\n+    agent_name = str(raw_agent_name) if raw_agent_name else None\n+\n+    invocation = handler.invoke_remote_agent(\n+        provider=GenAiProviderNameValues.AWS_BEDROCK.value,\n+        request_model=request_model,\n+        agent_name=agent_name,\n+        server_address=server_address,\n+        server_port=server_port,",
+      "id": "PRRT_kwDOSbspP86uIBat",
+      "opened": "2026-10-19T22:16:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [
+        {
+          "at": "2026-10-21T17:57:28Z",
+          "body": "Ah i didn't know we put conversation id into the context.. missed that change.. Anyway added it at start time and added tests, thanks !",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4340165688"
+        }
+      ],
+      "reviewed": "269a3ac03c34c8ffaceb710704313c819f1a25b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/736#discussion_r4319434700"
+    }
+  ]
+}

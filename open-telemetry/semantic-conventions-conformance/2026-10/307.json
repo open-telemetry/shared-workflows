@@ -1,0 +1,31 @@
+{
+  "head": "e041a4e2cc8e1f59ff89dc6cdefdb4ee12e30b36",
+  "merge": "361233ab45f0a220cf4a6c05b4355b749c606023",
+  "merged": "2026-10-14T18:10:55Z",
+  "missing_roots": 0,
+  "number": 307,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This major-version bump makes the scenario coverage contract stale: `scenarios/gen-ai/README.md:127` still says the `openllmetry` implementation is omitted because it does not support mistralai 2. Re-evaluate that implementation against v3 and either add it or update the documented reason for its omission.",
+      "created": "2026-10-12T02:19:00Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"mistral-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"mistralai==2.10.1\",\n+    \"mistralai==3.2.0\",",
+      "id": "PRRT_kwDOTuzK5c6rT4qE",
+      "opened": "2026-10-12T02:19:01Z",
+      "path": "scenarios/gen-ai/python/mistral/openinference/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-10-14T17:28:19Z",
+          "body": "Rechecked OpenLLMetry against Mistral 3. Its current Mistral instrumentation still imports `mistralai.models` and wraps `mistralai.chat` and `mistralai.embeddings`, while Mistral 3 places these under `mistralai.client`. The implementation therefore remains incompatible. Updated the README in e041a4e2 to explain the omission using Mistral 3's client namespace.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/307#discussion_r4274086763"
+        }
+      ],
+      "reviewed": "117fa5c82a07d711bedb6849d13a8f3138076751",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/307#discussion_r4244208970"
+    }
+  ]
+}

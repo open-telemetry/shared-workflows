@@ -1,0 +1,109 @@
+{
+  "head": "14c5f67bfd31c1c599f9b98ee1fbfef4bfc1f2bb",
+  "merge": "d09871d5d9e64e33ef29d5d64368134fabc0210d",
+  "merged": "2026-10-26T15:55:25Z",
+  "missing_roots": 0,
+  "number": 20878,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the user's requested simplification directly to this existing GenAI PR #20878. The user approved replacing awkward interface-default fallback delegation with the direct nullable exception-class expression in four non-HTTP getter-family PRs. This assignment is ONLY this PR; do not create another PR or update other branches.\n\nKeep getErrorType() authoritative for the final error.type and retain its default method. In overrides that fall back to the exception-only getter default, replace the fallback-only interface-qualified super.getErrorType(request, response, error) call with the equivalent direct expression: error == null ? null : error.getClass().getName(). A local guard that already proves the throwable is non-null can simply return its class name. Apply this to affected production overrides and changed test fixtures; preserve ordinary inheritance that performs additional classification rather than merely supplying this fallback. Do not introduce a helper, common base class, cross-domain abstraction, flag, or new API to hide the expression.\n\nRevise the affected GenAiAttributesGetter.getErrorType Javadoc so it explains the final-value contract and how an override can return the exception class as fallback without recommending or requiring interface-default delegation. Update this PR's existing breaking-change CHANGELOG entry wherever it mandates or demonstrates such delegation, keeping it concise and not adding a second entry. Keep default exception fallback, no-error null, custom classifications, explicit-null omission, and direct extractor writes exactly as implemented. Delegation remains technically possible, but it is no longer the prescribed migration pattern.\n\nInclude OpenAI chat and embedding overrides. Preserve service-error-code priority and OpenAiErrorType handling of malformed SDK error data. Inherited Bedrock/Spring AI defaults and streaming lifecycle must remain unchanged.\n\nThis is a behavior-preserving simplification of already verified code. Preserve every existing protocol/service-code precedence rule, selected exception identity, cancellation case, deliberate null omission, _OTHER rule, span status, metrics, lifecycle, and semconv selection. Preserve this PR's current base and draft/ready state. Other getter families, HTTP PR #20881, and held Dubbo PR #20782 are out of scope. HTTP needs its role-specific status/exception/_OTHER default policy and must not be simplified to this expression. Do not implement span-status alignment or make getErrorType mandatory.\n\nFollow CONTRIBUTING.md and applicable repository instructions. Do not add Nullable annotations in test code. Keep focused existing default/custom/null and affected-override tests, adjusting only what this simplification requires. Apply the narrowest applicable spotlessApply directly before the targeted behavioral validation, run relevant central extractor and affected-module tests where feasible, and report genuine blockers without unrelated fixes. Acceptance is no fallback-only super delegation remaining for this getter family in the migrated overrides, equivalent telemetry behavior, and Javadoc/changelog guidance consistent with the direct expression. Leave PR title/body edits and review-thread handling to the coordinator.",
+      "created": "2026-10-23T02:01:43Z",
+      "hunk": "@@ -72,18 +72,21 @@ default Long getUsageCacheReadInputTokens(REQUEST request, @Nullable RESPONSE re\n   Long getUsageOutputTokens(REQUEST request, @Nullable RESPONSE response);\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final error type for the operation.",
+      "id": "PRRT_kwDODJKVX86vclVy",
+      "opened": "2026-10-23T02:01:42Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-23T02:09:42Z",
+          "body": "Applied in b0366dac: both OpenAI getters now use the direct nullable exception-class fallback, and the Javadoc and existing changelog entry prescribe that expression. The OpenAI service-code classification remains first.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4355431561"
+        }
+      ],
+      "reviewed": "0d4b271c92207a5423d950bccb2975ec1b553f31",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4355393643"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete and refresh this existing GenAI PR #20878 directly on its existing head branch. Do not create another PR, change its main base or draft state, or update other branches. The user approved a consistent 3.0 final-getter contract.\n\nKeep GenAiAttributesGetter.getErrorType as a default method returning error == null ? null : error.getClass().getName(). The getter returns the final error.type; null deliberately omits it, even for an available exception. GenAiAttributesExtractor must use that result without fallback. In custom overrides, retain protocol/service-code precedence and use the explicit nullable exception-class expression where fallback is appropriate instead of Interface.super.getErrorType.\n\nAudit all current main GenAI getters and shared helpers, not just the original diff. Preserve OpenAI chat/embeddings service-code classification, exception-class fallback, successes, span-status behavior, and span/metric consistency. Keep this separate from the Responses API/lifecycle work in #20537; do not import that unmerged branch, add new inference instrumentation, or invent new classification policies. If related work has already landed in main, migrate affected getters as necessary without losing its behavior.\n\nRefresh against current main if necessary by merging main into this PR head, never the reverse, without rebasing. Record the pre-update head and verify it remains on the first-parent chain before pushing. Only fix concrete omissions, regressions, or stale code needed to complete this contract; if nothing needs changing, explain that rather than manufacturing a diff. Keep concise public API/breaking-change documentation and focused contract coverage, and follow repository instructions for narrow formatting and relevant tests. Do not edit the PR title/description, reply to human comments, resolve unrelated threads, merge PRs, or wait for CI. Stop once scoped work is committed and pushed.",
+      "created": "2026-10-25T19:57:05Z",
+      "hunk": "@@ -72,18 +72,20 @@ default Long getUsageCacheReadInputTokens(REQUEST request, @Nullable RESPONSE re\n   Long getUsageOutputTokens(REQUEST request, @Nullable RESPONSE response);\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final error type for the operation.",
+      "id": "PRRT_kwDODJKVX86wEepQ",
+      "opened": "2026-10-25T19:57:05Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T20:00:21Z",
+          "body": "Audited the merged-main head; no further edits are needed. The default getter remains the nullable exception-class fallback, the extractor writes its result without fallback, and the only custom GenAI overrides are OpenAI chat and embeddings, both keeping service-code priority before the direct exception-class fallback. Bedrock and Spring AI inherit the default. OpenAI’s malformed SDK-code handling and existing chat/embedding sync, async, and streaming error coverage remain intact. There are no fallback-only `super.getErrorType()` calls; the Javadoc and single breaking-change entry prescribe the direct expression. The main merge is on the first-parent chain, and PR #20878 remains draft with base `main`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4372197412"
+        }
+      ],
+      "reviewed": "3da090543fd7a99c7d4caa238e4928c20854501c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4372188782"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20878 directly with a documentation-only refinement. Preserve its existing head branch, base, draft state, and all runtime behavior. Do not create a follow-up PR or update other PRs. The earlier implementation attempt is complete; this is a new, separately scoped user request.\n\nSimplify the getErrorType Javadoc in GenAiAttributesGetter. The user wants the current API documented without migration-oriented emphasis on extractor fallback or overrides. Use the contract \"Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.\" Follow with \"The default implementation returns the exception class name, or {@code null} if there is no exception.\" Remove the override fallback recipe and its example expression. There is no need to separately emphasize that an override's null is honored despite an exception, or that extractors perform no additional fallback. Keep low-cardinality and custom-value guidance. Avoid wording about former behavior or unnecessary finality contrasts.\n\nOnly change directly related source documentation. Preserve the default implementation and all other code, tests, telemetry, public signatures, and existing CHANGELOG migration guidance. Do not alter the PR title or description; the coordinator owns metadata. Follow repository Javadoc style and apply the narrow formatting task if needed. Behavioral tests are unnecessary for this documentation-only change. Do not merge main or sibling branches merely for this wording edit, rebase, wait for CI, reply to human comments, or resolve unrelated threads. Commit and push only this scoped documentation refinement to this PR.",
+      "created": "2026-10-25T21:03:14Z",
+      "hunk": "@@ -72,18 +72,20 @@ default Long getUsageCacheReadInputTokens(REQUEST request, @Nullable RESPONSE re\n   Long getUsageOutputTokens(REQUEST request, @Nullable RESPONSE response);\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final error type for the operation.",
+      "id": "PRRT_kwDODJKVX86wFAHI",
+      "opened": "2026-10-25T21:03:14Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T21:08:21Z",
+          "body": "Updated the Javadoc as requested in 0809a870. The default implementation and all runtime behavior are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4372428139"
+        }
+      ],
+      "reviewed": "3da090543fd7a99c7d4caa238e4928c20854501c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4372407307"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * Returns the {@code error.type} value for the operation.\n```",
+      "created": "2026-10-25T23:40:48Z",
+      "hunk": "@@ -72,18 +72,18 @@ default Long getUsageCacheReadInputTokens(REQUEST request, @Nullable RESPONSE re\n   Long getUsageOutputTokens(REQUEST request, @Nullable RESPONSE response);\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.",
+      "id": "PRRT_kwDODJKVX86wGS3s",
+      "opened": "2026-10-25T23:40:48Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+      "replies": [],
+      "reviewed": "0809a8705ac39a37e618c180c7a058263afe5d57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4372959405"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20878 directly with the following scoped refactor requested by the user. Keep its existing head branch, base, and draft state. Commit and push the changes to this PR, not a new follow-up PR. The previous contract and Javadoc assignments are complete; this is a new request.\n\nIn instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAiErrorType.java, keep the helper name getErrorType and make it return the complete error classification. Return the OpenAIServiceException code when the accessor supplies a value. Otherwise return the original error's class name, or null if error is null. A missing code and an OpenAIInvalidDataException thrown by the typed code accessor must reach the same original-error class-name fallback. Do not classify the accessor exception itself. Keep the existing narrowly scoped accessor exception handling; do not add broad catches or change unwrapping or cancellation behavior. Preserve every non-null service-code string exactly, including empty strings and whitespace.\n\nSimplify both ChatAttributesGetter.getErrorType and EmbeddingAttributesGetter.getErrorType to return OpenAiErrorType.getErrorType(error) directly, removing their duplicated fallback expressions. The user chose consolidation rather than renaming the helper to getServiceErrorCode: both consumers need a complete classification, and there is no independent raw-service-code consumer. Keep the overall GenAI getter/extractor contract, defaults, current Javadocs, telemetry, span status and service-code precedence unchanged. Do not call an interface-super default or reintroduce extractor fallback. Avoid unrelated cleanup and changes to other PRs.\n\nAdd or adapt focused helper coverage for null, an ordinary exception, a service exception with a code, a missing code, and a malformed code whose SDK accessor throws. Reuse the existing ServiceErrorTest coverage for chat, embeddings, sync/async and streaming paths rather than duplicating its broad integration matrix. Its expected classifications, including empty and whitespace code values, must remain unchanged. Apply the narrow relevant formatting task and run the smallest tests covering the helper and the existing service-error behavior. Report any execution blocker accurately. Do not wait for CI, merge main or sibling branches, rebase, reply to humans, resolve unrelated threads, or change the PR title or description; the coordinator handles metadata.",
+      "created": "2026-10-25T23:45:56Z",
+      "hunk": "@@ -34,7 +34,8 @@ public String getSystem(ChatCompletionRequest request) {\n   @Override\n   public String getErrorType(\n       ChatCompletionRequest request, @Nullable ChatCompletion response, @Nullable Throwable error) {\n-    return OpenAiErrorType.getErrorType(error);\n+    String errorType = OpenAiErrorType.getErrorType(error);",
+      "id": "PRRT_kwDODJKVX86wGVFK",
+      "opened": "2026-10-25T23:45:56Z",
+      "path": "instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/ChatAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T23:58:48Z",
+          "body": "Implemented and pushed as `a161750e`. OpenAiErrorType now returns the service code or the original exception class, both getters delegate directly to it, and focused helper coverage passes alongside ServiceErrorTest.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4373016717"
+        }
+      ],
+      "reviewed": "b3e63108f0a312a9363c60e541d3079e6cf174ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20878#discussion_r4372973942"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "74cba8a8d22187b07db2a37f107f948bd3fccd223444cdf61cf49fecb52a04fe",
+  "input_digest": "d311c7c76128be41154ea674ff42b6b84a7d0abab890788f837f439b48f7dbca",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30865626d65163bf9f625846c656acad02e0dbf6/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fb32ef2855f66a5a7610c75bb23aeefe39dfa71f/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d3a42720fac3fd408074b2e792e57587c64ea8e9"
+      ],
+      "id": "PRRT_kwDODJKVX86YC4yr",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30865626d65163bf9f625846c656acad02e0dbf6/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fb32ef2855f66a5a7610c75bb23aeefe39dfa71f/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a0b9712181d8b50493b6044c2f46bd792e8c5a8d",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d3a42720fac3fd408074b2e792e57587c64ea8e9"
+      ],
+      "id": "PRRT_kwDODJKVX86YC4zK",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    }
+  ]
+}

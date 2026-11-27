@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "944ddd0717d5df0ac054fd1d650fe284ee55d9902afcff2d586bd715283f5198",
+  "input_digest": "a94f6bb7ca2c99f857c21f34347b85b0623bd32729600d048cdc4b36a08ebfe1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4ae8f8ed3678e2d6bfd7bdb32f27189e91669340/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4ae8f8ed3678e2d6bfd7bdb32f27189e91669340/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/streaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dacf4cca8506a7cfb7ee7de9f18c466d06dca83f/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dacf4cca8506a7cfb7ee7de9f18c466d06dca83f/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/streaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/4f38404c03c092791625f40698941c639aca8b1b"
+      ],
+      "id": "PRRT_kwDOSbspP86rKURV",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4ae8f8ed3678e2d6bfd7bdb32f27189e91669340/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4ae8f8ed3678e2d6bfd7bdb32f27189e91669340/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/streaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dacf4cca8506a7cfb7ee7de9f18c466d06dca83f/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dacf4cca8506a7cfb7ee7de9f18c466d06dca83f/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/streaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/4f38404c03c092791625f40698941c639aca8b1b"
+      ],
+      "id": "PRRT_kwDOSbspP86rKURb",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

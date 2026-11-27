@@ -1,0 +1,136 @@
+{
+  "head": "1536f16cde62003f42f774b5b389e7f2523da4c5",
+  "merge": "5a47cc3848c866e7920e62f2abce1a1002421462",
+  "merged": "2026-06-15T06:41:42Z",
+  "missing_roots": 0,
+  "number": 18980,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In old database semconv mode (the default unless `otel.semconv-stability.opt-in` includes `database`), `SqlClientAttributesExtractor` only populates old attributes (e.g., `db.statement`, `db.operation`) when `getRawQueryTexts()` returns a single entry. Returning multiple query texts here will therefore drop old semconv statement/operation/span-name parsing for batch executions.\n\nConsider keeping the multi-query collection only when stable database semconv is enabled, and otherwise return a single joined statement for backward compatibility in old semconv mode.",
+      "created": "2026-06-12T23:44:30Z",
+      "hunk": "@@ -64,7 +63,13 @@ public String getConnectionString(DbExecution request) {\n \n   @Override\n   public Collection<String> getRawQueryTexts(DbExecution request) {\n-    return singleton(request.getRawQueryText());\n+    return request.getRawQueryTexts();\n+  }",
+      "id": "PRRT_kwDODJKVX86JRjRC",
+      "opened": "2026-06-12T23:44:31Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-13T00:41:16Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e724faccc4ba16b9645ad5efcd526b0b9ae20233.\n\nPreserved legacy R2DBC batch SQL extraction by returning a single joined raw query text unless stable database semconv is enabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3406944682"
+        }
+      ],
+      "reviewed": "43499e389dd2f89de97b8217c5eb44dd9ba0acca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3406798822"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getRawQueryTexts()` currently returns the internal mutable `List`, which allows external callers to modify `DbExecution` state (and potentially affect attribute extraction in subtle ways). Return an unmodifiable view (or defensively copy) to keep the request object immutable from the outside.",
+      "created": "2026-06-13T00:45:50Z",
+      "hunk": "@@ -146,8 +150,13 @@ public String getConnectionString() {\n     return connectionString;\n   }\n \n-  public String getRawQueryText() {\n-    return rawQueryText;\n+  public List<String> getRawQueryTexts() {\n+    return rawQueryTexts;\n+  }",
+      "id": "PRRT_kwDODJKVX86JR96J",
+      "opened": "2026-06-13T00:45:51Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/DbExecution.java",
+      "replies": [
+        {
+          "at": "2026-06-13T03:00:01Z",
+          "body": "this is an internal API, no need",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407254292"
+        }
+      ],
+      "reviewed": "e724faccc4ba16b9645ad5efcd526b0b9ae20233",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3406953810"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When `otel.semconv-stability.opt-in` includes `database/dup`, both stable *and* old DB semconv are emitted (`SemconvStability.emitStableDatabaseSemconv()==true` and `emitOldDatabaseSemconv()==true`). With the current `emitStableDatabaseSemconv() ? rawQueryTexts : singleton(...)` logic, batch executions return multiple raw query texts in dup mode, but `SqlClientAttributesExtractor` only emits legacy `db.statement`/`db.operation` when `rawQueryTexts.size() == 1`, so the old DB attributes will be dropped for batch operations in dup mode (a behavioral regression vs the previous single joined statement).",
+      "created": "2026-06-13T00:45:51Z",
+      "hunk": "@@ -64,7 +65,25 @@ public String getConnectionString(DbExecution request) {\n \n   @Override\n   public Collection<String> getRawQueryTexts(DbExecution request) {\n-    return singleton(request.getRawQueryText());\n+    Collection<String> rawQueryTexts = request.getRawQueryTexts();\n+    return emitStableDatabaseSemconv() ? rawQueryTexts : singleton(join(\"; \", rawQueryTexts));\n+  }",
+      "id": "PRRT_kwDODJKVX86JR96R",
+      "opened": "2026-06-13T00:45:51Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-13T03:00:10Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9190bd2c49106140d60aedb3317ca07a1dd2f487.\n\nDocumented the R2DBC database/dup tradeoff, preserved old-only joined raw SQL behavior, and gated the new batch-size signal to stable database semconv so legacy extraction does not treat existing requests as batches.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407254801"
+        }
+      ],
+      "reviewed": "e724faccc4ba16b9645ad5efcd526b0b9ae20233",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3406953821"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getRawQueryTexts()` currently joins the query list into a single string on every call when stable DB semconv is disabled, even for the common single-query case. This method is invoked by both span name extraction and attribute extraction, so it adds avoidable per-request allocations in old-semconv mode.\n\nConsider only joining when there is more than one raw query text (i.e., the batch case that actually needs back-compat behavior), and otherwise returning the original collection directly.",
+      "created": "2026-06-13T03:05:19Z",
+      "hunk": "@@ -64,7 +65,30 @@ public String getConnectionString(DbExecution request) {\n \n   @Override\n   public Collection<String> getRawQueryTexts(DbExecution request) {\n-    return singleton(request.getRawQueryText());\n+    Collection<String> rawQueryTexts = request.getRawQueryTexts();\n+    // In old-only mode, return a single joined query to preserve the legacy db.statement and\n+    // db.operation extraction behavior. In database/dup mode, favor stable multi-query batch\n+    // attributes because the shared SQL extractor can only use one raw query collection.\n+    return emitStableDatabaseSemconv() ? rawQueryTexts : singleton(join(\"; \", rawQueryTexts));",
+      "id": "PRRT_kwDODJKVX86JSxCK",
+      "opened": "2026-06-13T03:05:19Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-13T03:13:44Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d21648a81548934c7b79eef19216d668a49f9afb.\n\nAvoided the old-semconv single-query allocation by returning the original raw-query collection unless a multi-query batch actually needs the legacy joined form.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407295912"
+        }
+      ],
+      "reviewed": "9190bd2c49106140d60aedb3317ca07a1dd2f487",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407269667"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `R2dbcSqlAttributesGetter#getRawQueryTexts()` keeps the legacy batch join delimiter (`\";\\n\"`) in old-only mode, this test's old-only expectation should match the newline-delimited joined statement.",
+      "created": "2026-06-13T03:17:52Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.r2dbc.v1_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.instrumentation.r2dbc.v1_0.internal.DbExecution;\n+import io.opentelemetry.instrumentation.r2dbc.v1_0.internal.R2dbcSqlAttributesGetter;\n+import io.r2dbc.proxy.core.QueryExecutionInfo;\n+import io.r2dbc.proxy.core.QueryInfo;\n+import io.r2dbc.proxy.test.MockConnectionInfo;\n+import io.r2dbc.proxy.test.MockQueryExecutionInfo;\n+import io.r2dbc.spi.ConnectionFactoryOptions;\n+import java.util.Collection;\n+import org.junit.jupiter.api.Test;\n+\n+class R2dbcSqlAttributesGetterTest {\n+\n+  private final R2dbcSqlAttributesGetter getter = new R2dbcSqlAttributesGetter();\n+\n+  @Test\n+  void rawQueryTextsForSingleQuery() {\n+    QueryExecutionInfo queryExecutionInfo =\n+        MockQueryExecutionInfo.builder()\n+            .queryInfo(new QueryInfo(\"INSERT INTO person VALUES(1)\"))\n+            .connectionInfo(MockConnectionInfo.builder().build())\n+            .build();\n+    ConnectionFactoryOptions factoryOptions =\n+        ConnectionFactoryOptions.parse(\"r2dbc:postgresql://localhost/db\");\n+    DbExecution dbExecution = new DbExecution(queryExecutionInfo, factoryOptions);\n+\n+    Collection<String> rawQueryTexts = getter.getRawQueryTexts(dbExecution);\n+\n+    assertThat(rawQueryTexts).isSameAs(dbExecution.getRawQueryTexts());\n+    assertThat(rawQueryTexts).containsExactly(\"INSERT INTO person VALUES(1)\");\n+  }\n+\n+  @Test\n+  void rawQueryTextsForBatch() {\n+    QueryExecutionInfo queryExecutionInfo =\n+        MockQueryExecutionInfo.builder()\n+            .queryInfo(new QueryInfo(\"INSERT INTO person VALUES(1)\"))\n+            .queryInfo(new QueryInfo(\"INSERT INTO person VALUES(2)\"))\n+            .batchSize(2)\n+            .connectionInfo(MockConnectionInfo.builder().build())\n+            .build();\n+    ConnectionFactoryOptions factoryOptions =\n+        ConnectionFactoryOptions.parse(\"r2dbc:postgresql://localhost/db\");\n+    DbExecution dbExecution = new DbExecution(queryExecutionInfo, factoryOptions);\n+\n+    Collection<String> rawQueryTexts = getter.getRawQueryTexts(dbExecution);\n+\n+    if (emitStableDatabaseSemconv()) {\n+      assertThat(rawQueryTexts)\n+          .containsExactly(\"INSERT INTO person VALUES(1)\", \"INSERT INTO person VALUES(2)\");\n+      assertThat(getter.getDbOperationBatchSize(dbExecution)).isEqualTo(2);\n+    } else {\n+      assertThat(rawQueryTexts)\n+          .containsExactly(\"INSERT INTO person VALUES(1); INSERT INTO person VALUES(2)\");\n+      assertThat(getter.getDbOperationBatchSize(dbExecution)).isNull();",
+      "id": "PRRT_kwDODJKVX86JS13-",
+      "opened": "2026-06-13T03:17:52Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/R2dbcSqlAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-06-13T03:45:42Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1536f16cde62003f42f774b5b389e7f2523da4c5.\n\nUpdated the focused old-only batch test expectation to match the legacy newline-delimited R2DBC joined statement.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407346802"
+        }
+      ],
+      "reviewed": "d21648a81548934c7b79eef19216d668a49f9afb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407301924"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] In old-only database semconv mode, `getRawQueryTexts()` joins batch queries to preserve legacy `db.statement` behavior when query sanitization is disabled. The previous `DbExecution` implementation joined with `\";\\n\"`, but the new join uses `\"; \"`, which changes the raw `db.statement` value for batch requests when sanitization is disabled (a behavioral regression under the public `R2dbcTelemetryBuilder#setQuerySanitizationEnabled(false)` option). Consider keeping the legacy delimiter in old-only mode.",
+      "created": "2026-06-13T03:17:52Z",
+      "hunk": "@@ -64,7 +65,33 @@ public String getConnectionString(DbExecution request) {\n \n   @Override\n   public Collection<String> getRawQueryTexts(DbExecution request) {\n-    return singleton(request.getRawQueryText());\n+    Collection<String> rawQueryTexts = request.getRawQueryTexts();\n+    // In old-only mode, join multi-query batches into a single query to preserve the legacy\n+    // db.statement and db.operation extraction behavior. In database/dup mode, favor stable\n+    // multi-query batch attributes because the shared SQL extractor can only use one raw query\n+    // collection.\n+    return emitStableDatabaseSemconv() || rawQueryTexts.size() == 1\n+        ? rawQueryTexts\n+        : singleton(join(\"; \", rawQueryTexts));",
+      "id": "PRRT_kwDODJKVX86JS13s",
+      "opened": "2026-06-13T03:17:52Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-13T03:45:41Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1536f16cde62003f42f774b5b389e7f2523da4c5.\n\nRestored the legacy R2DBC old-only batch join delimiter to `;\\n`, preserving the raw db.statement value when query sanitization is disabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407346724"
+        }
+      ],
+      "reviewed": "d21648a81548934c7b79eef19216d668a49f9afb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18980#discussion_r3407301905"
+    }
+  ]
+}

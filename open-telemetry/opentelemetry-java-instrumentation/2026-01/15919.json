@@ -1,0 +1,52 @@
+{
+  "head": "56459b426e9b704be4105d5fa0bb3b84ea686272",
+  "merge": "0d77175fa025966ffb07713ebd94a41083bc15ca",
+  "merged": "2026-01-27T10:51:58Z",
+  "missing_roots": 0,
+  "number": 15919,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot assertDurationMetric method already has an internal check and only applies to emitStableDatabaseSemconv, so this can be simplified to just `DB_QUERY_SUMMARY`\r\n\r\nmake this change in instrumentation/cassandra/cassandra-4-common/testing/src/main/java/io/opentelemetry/cassandra/v4/common/AbstractCassandraTest.java too",
+      "created": "2026-01-19T01:58:56Z",
+      "hunk": "@@ -246,7 +251,7 @@ void testMetrics() {\n         testing,\n         \"io.opentelemetry.cassandra-3.0\",\n         DB_SYSTEM_NAME,\n-        DB_OPERATION_NAME,\n+        emitStableDatabaseSemconv() ? DB_QUERY_SUMMARY : DB_OPERATION_NAME,",
+      "id": "PRRT_kwDODJKVX85p6i4U",
+      "opened": "2026-01-19T01:58:56Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-01-19T02:12:14Z",
+          "body": "Simplified in c2016059. Removed the conditional and unused `DB_OPERATION_NAME` imports from both files since `assertDurationMetric` only runs when `emitStableDatabaseSemconv()` is true.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15919#discussion_r2703003297"
+        }
+      ],
+      "reviewed": "cddb2d0f426fd369b72e8dcde27de80dfcfd9bbd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15919#discussion_r2702988145"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe operation and collection name should be captured, does Cassandra support multiple operation and collection names in non-batch operations?\n\n> The operation name SHOULD NOT be extracted from `db.query.text`, when the database system supports query text with multiple operations in non-batch operations.\n\nand\n\n> The collection name SHOULD NOT be extracted from `db.query.text`, when the database system supports query text with multiple collections in non-batch operations.\n",
+      "created": "2026-01-19T18:28:31Z",
+      "hunk": "@@ -129,8 +129,15 @@ void syncTest(Parameter parameter) {\n                               equalTo(maybeStable(DB_SYSTEM), \"cassandra\"),\n                               equalTo(maybeStable(DB_NAME), parameter.keyspace),\n                               equalTo(maybeStable(DB_STATEMENT), parameter.expectedStatement),\n-                              equalTo(maybeStable(DB_OPERATION), parameter.operation),\n-                              equalTo(maybeStable(DB_CASSANDRA_TABLE), parameter.table))));\n+                              equalTo(\n+                                  DB_QUERY_SUMMARY,\n+                                  emitStableDatabaseSemconv() ? parameter.spanName : null),\n+                              equalTo(\n+                                  maybeStable(DB_OPERATION),\n+                                  emitStableDatabaseSemconv() ? null : parameter.operation),\n+                              equalTo(\n+                                  maybeStable(DB_CASSANDRA_TABLE),\n+                                  emitStableDatabaseSemconv() ? null : parameter.table))));",
+      "id": "PRRT_kwDODJKVX85qCrrN",
+      "opened": "2026-01-19T18:28:30Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-01-27T00:39:53Z",
+          "body": "maybe, but there are too many databases to comb through details, so my suggestion is that we just do simple application of the rules for 3.0, and if/when there is interest in a specific database later on, we can refine it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15919#discussion_r2729801058"
+        }
+      ],
+      "reviewed": "7ec9657f7569387f15919ffeb628ad43234068a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15919#discussion_r2705761445"
+    }
+  ]
+}

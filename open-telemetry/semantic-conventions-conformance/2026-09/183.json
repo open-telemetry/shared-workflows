@@ -1,0 +1,25 @@
+{
+  "head": "fd96b1da430ecd613fa98dd91113e41b9c4d3239",
+  "merge": "955258916bb937b87f45757ab80f18776cfe7a79",
+  "merged": "2026-09-14T22:09:39Z",
+  "missing_roots": 0,
+  "number": 183,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: could use a helper function like Java's `remainingMillis` to calculate this here and below for the metric flush.",
+      "created": "2026-09-13T11:09:03Z",
+      "hunk": "@@ -79,6 +82,35 @@ def _install_providers(\n     return tracer_provider, meter_provider, logger_provider\n \n \n+def _flush_before_shutdown(\n+    providers: tuple[TracerProvider, MeterProvider, LoggerProvider],\n+    timeout_millis: int = FLUSH_TIMEOUT_MILLIS,\n+) -> None:\n+    tracer_provider, meter_provider, logger_provider = providers\n+    deadline = time.monotonic() + timeout_millis / 1000\n+\n+    remaining_millis = max(0, int((deadline - time.monotonic()) * 1000))",
+      "id": "PRRT_kwDOTuzK5c6h4SaE",
+      "opened": "2026-09-13T11:11:04Z",
+      "path": "tools/python/src/otel_conformance_python/__init__.py",
+      "replies": [],
+      "reviewed": "69a818d6ae7258723e2350501c1d6ca3942a8a5f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/183#discussion_r3999447107"
+    }
+  ]
+}

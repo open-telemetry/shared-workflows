@@ -1,0 +1,52 @@
+{
+  "head": "b148b2679f1aa02e639c89bfdb331e9704cdefca",
+  "merge": "39a7e87302ef2b8e1cf0f62fd046d2021196ff75",
+  "merged": "2026-11-05T18:10:25Z",
+  "missing_roots": 0,
+  "number": 346,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This assertion covers the description level, which this PR doesn't change. A registry bump that changes `process.runtime.description`'s level would fail this test for an unrelated reason. Consider asserting only the identity map.",
+      "created": "2026-11-04T23:21:05Z",
+      "hunk": "@@ -55,3 +55,14 @@ def test_the_registry_still_requires_what_the_policy_flags(model) -> None:\n     assert levels[\"http.request.method\"] == \"required\"\n     assert levels[\"url.path\"] == \"required\"\n     assert levels[\"url.scheme\"] == \"required\"\n+\n+\n+def test_entity_identity_attributes_have_required_levels(model) -> None:\n+    \"\"\"Weaver omits identity levels; the model must not expose nulls.\"\"\"\n+    entity = model[\"entities\"][\"process.runtime\"]\n+\n+    assert entity[\"identity\"] == {\n+        \"process.runtime.name\": \"required\",\n+        \"process.runtime.version\": \"required\",\n+    }\n+    assert entity[\"description\"] == {\"process.runtime.description\": \"recommended\"}",
+      "id": "PRRT_kwDOTuzK5c6z2XSM",
+      "opened": "2026-11-04T23:26:47Z",
+      "path": "tools/http/runner/tests/test_http_model.py",
+      "replies": [
+        {
+          "at": "2026-11-05T14:43:54Z",
+          "body": "Removed the description-level assertion in 719677f. The test now checks only the identity attribute map.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/346#discussion_r4481849195"
+        }
+      ],
+      "reviewed": "b381c787e89ba9f00d423621485604696ca8bfae",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/346#discussion_r4474594562"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Nit: consider describing the current state rather than history, e.g. \"Weaver's v2 model carries no requirement levels for identity attributes.\"",
+      "created": "2026-11-04T23:21:05Z",
+      "hunk": "@@ -28,8 +28,10 @@ templates:\n           }\n         ] | from_entries;\n \n+      # All identity attributes are needed to identify an entity. Weaver's\n+      # v2 model no longer carries requirement levels for these attributes.",
+      "id": "PRRT_kwDOTuzK5c6z2XSQ",
+      "opened": "2026-11-04T23:26:47Z",
+      "path": "tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+      "replies": [
+        {
+          "at": "2026-11-05T14:43:59Z",
+          "body": "Updated the comment in 719677f to state that Weaver v2 carries no requirement levels for identity attributes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/346#discussion_r4481850113"
+        }
+      ],
+      "reviewed": "b381c787e89ba9f00d423621485604696ca8bfae",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/346#discussion_r4474594568"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "head": "2964e67d061fb66d69ae5d0bccce8e23b2291b50",
+  "merge": "d761a054d6abfa0140771e62f85c2e4061cb1c7f",
+  "merged": "2026-09-24T04:11:59Z",
+  "missing_roots": 0,
+  "number": 20185,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `--no-daemon` disables only the Gradle daemon. The warm-up build above can leave a separate Kotlin compiler daemon running before CodeQL is initialized, and these commands use matching Kotlin daemon arguments, so they can reconnect to that untraced process. That can leave the manual Kotlin database empty or incomplete; force compilation into the traced Gradle process (or otherwise prevent reuse of the pre-init Kotlin daemon).",
+      "created": "2026-09-19T18:05:56Z",
+      "hunk": "@@ -54,46 +92,69 @@ jobs:\n \n       - name: Increase gradle daemon heap size\n         run: |\n-          # increasing more than other workflows since this is running on a large runner\n-          # and so it uses more parallelism which uses more memory\n+          # Increase more than other workflows since this runs on a large runner\n+          # and uses more parallelism and memory.\n           sed -i \"s/org.gradle.jvmargs=/org.gradle.jvmargs=-Xmx8g /\" gradle.properties\n \n       - name: Set up Gradle\n         # zizmor: ignore[cache-poisoning] This workflow analyzes release branches\n         # but does not build or publish release artifacts.\n-        if: matrix.language == 'java'\n         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0\n         with:\n           cache-read-only: ${{ github.event_name == 'pull_request' }}\n \n+      - name: Prepare Kotlin compiler classpaths\n+        run: ./gradlew compileKotlin -Pkotlin.daemon.jvmargs=-Xmx4g\n+\n       - name: Initialize CodeQL\n         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0\n         with:\n-          languages: ${{ matrix.language }}\n+          languages: java-kotlin\n+          build-mode: manual\n           # using \"linked\" helps to keep up with the linked Kotlin support\n           # see https://github.com/github/codeql-action/issues/1555#issuecomment-1452228433\n           tools: linked\n \n-      - name: Assemble\n-        if: matrix.language == 'java'\n-        # --no-build-cache is required for codeql to analyze all modules\n-        # --no-daemon is required for codeql to observe the compilation\n+      - name: Compile production Kotlin\n+        # --rerun forces only the requested Kotlin compiler tasks. Their prepared Java\n+        # dependencies remain up-to-date and outside CodeQL tracing.\n+        # --no-daemon is required for CodeQL to observe the compilation.\n         # (see https://docs.github.com/en/code-security/codeql-cli/getting-started-with-the-codeql-cli/preparing-your-code-for-codeql-analysis#specifying-build-commands)\n-        run: >\n-          ./gradlew assemble -x javadoc\n-          --no-build-cache --no-daemon\n+        run: |\n+          ./gradlew -p gradle-plugins compileKotlin --rerun --no-build-cache --no-daemon -Pkotlin.daemon.jvmargs=-Xmx4g\n+          ./gradlew -p conventions compileKotlin --rerun --no-build-cache --no-daemon -Pkotlin.daemon.jvmargs=-Xmx4g\n+          ./gradlew compileKotlin --rerun --no-build-cache --no-daemon -Pkotlin.daemon.jvmargs=-Xmx4g",
+      "id": "PRRT_kwDODJKVX86kB_w4",
+      "opened": "2026-09-19T18:05:56Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [
+        {
+          "at": "2026-09-22T19:48:54Z",
+          "body": "Addressed in 1ebfc79f5e0e8aa15a3f6e2579cae20e5e087fe5.\n\nFixed in the verified source changes 1ebfc79f5e0e8aa15a3f6e2579cae20e5e087fe5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20185#discussion_r4075775652"
+        }
+      ],
+      "reviewed": "5032c8fa2c402001f60c49e77b8182dd76da4feb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20185#discussion_r4054149932"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] These two `-p` builds do not read the repository-root `gradle.properties`, so the 8 GiB heap configured above is not applied. With Kotlin now compiling in-process, the verified run used Gradle's 512 MiB default and stopped during `gradle-plugins:compileKotlin` because the GC was thrashing; the Kotlin analysis therefore never ran. Pass an adequate `org.gradle.jvmargs` value to both nested builds (or otherwise configure their project roots) so in-process compilation has the intended heap.",
+      "created": "2026-09-22T20:18:59Z",
+      "hunk": "@@ -54,46 +107,78 @@ jobs:\n \n       - name: Increase gradle daemon heap size\n         run: |\n-          # increasing more than other workflows since this is running on a large runner\n-          # and so it uses more parallelism which uses more memory\n+          # Leave enough heap for CodeQL-traced Kotlin compilation.\n           sed -i \"s/org.gradle.jvmargs=/org.gradle.jvmargs=-Xmx8g /\" gradle.properties\n \n       - name: Set up Gradle\n         # zizmor: ignore[cache-poisoning] This workflow analyzes release branches\n         # but does not build or publish release artifacts.\n-        if: matrix.language == 'java'\n         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0\n         with:\n           cache-read-only: ${{ github.event_name == 'pull_request' }}\n \n+      - name: Prepare Kotlin compiler classpaths\n+        run: ./gradlew compileKotlin -Pkotlin.daemon.jvmargs=-Xmx4g\n+\n       - name: Initialize CodeQL\n         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0\n         with:\n-          languages: ${{ matrix.language }}\n+          languages: java-kotlin\n+          build-mode: manual\n           # using \"linked\" helps to keep up with the linked Kotlin support\n           # see https://github.com/github/codeql-action/issues/1555#issuecomment-1452228433\n           tools: linked\n \n-      - name: Assemble\n-        if: matrix.language == 'java'\n-        # --no-build-cache is required for codeql to analyze all modules\n-        # --no-daemon is required for codeql to observe the compilation\n+      - name: Compile production Kotlin\n+        # --rerun forces only the requested Kotlin compiler tasks. Their prepared Java\n+        # dependencies remain up-to-date and outside CodeQL tracing.\n+        # --no-daemon and in-process Kotlin compilation are required for CodeQL\n+        # to observe the compilation without reusing the warm-up compiler daemon.\n         # (see https://docs.github.com/en/code-security/codeql-cli/getting-started-with-the-codeql-cli/preparing-your-code-for-codeql-analysis#specifying-build-commands)\n-        run: >\n-          ./gradlew assemble -x javadoc\n-          --no-build-cache --no-daemon\n+        run: |\n+          ./gradlew -p gradle-plugins compileKotlin --rerun --no-build-cache --no-daemon -Pkotlin.compiler.execution.strategy=in-process\n+          ./gradlew -p conventions compileKotlin --rerun --no-build-cache --no-daemon -Pkotlin.compiler.execution.strategy=in-process",
+      "id": "PRRT_kwDODJKVX86k5q29",
+      "opened": "2026-09-22T20:19:00Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [
+        {
+          "at": "2026-09-22T20:32:07Z",
+          "body": "Addressed in 518b6eb706ffdfc9804b3f176397b7f5a3689e56.\n\nFixed in the verified source changes 518b6eb706ffdfc9804b3f176397b7f5a3689e56.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20185#discussion_r4076184860"
+        }
+      ],
+      "reviewed": "237a84bbfeac34e93cf0df03f622ffd50bf026ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20185#discussion_r4076072621"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This category conflicts with the PR description, which says the Java scan uses `/language:java-none`. Keeping `/language:java` preserves the existing analysis identity and appears intentional, so update the description to name the actual category; otherwise the documented baseline behavior is misleading.",
+      "created": "2026-09-22T20:18:59Z",
+      "hunk": "@@ -20,25 +20,78 @@ permissions:\n   contents: read\n \n jobs:\n-  analyze:\n-    name: Analyze (${{ matrix.language }})\n+  analyze-actions:\n+    name: Analyze (actions)\n     permissions:\n       contents: read\n       actions: read  # for github/codeql-action/init to get workflow details\n       security-events: write  # for github/codeql-action/analyze to upload SARIF results\n-    strategy:\n-      fail-fast: false\n-      matrix:\n-        include:\n-          - language: actions\n-          - language: java\n-    runs-on: ${{ github.repository == 'open-telemetry/opentelemetry-java-instrumentation' && 'oracle-vm-8cpu-32gb-x86-64' || 'ubuntu-latest' }}\n+    runs-on: ubuntu-latest\n     steps:\n       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n         with:\n           persist-credentials: false\n \n-      # don't need to free disk space (which takes time) since running on larger machine\n+      - name: Initialize CodeQL\n+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0\n+        with:\n+          languages: actions\n+\n+      - name: Perform CodeQL analysis\n+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0\n+        with:\n+          category: \"/language:actions\"\n+\n+  analyze-java-none:\n+    name: Analyze Java (none)\n+    permissions:\n+      contents: read\n+      actions: read  # for github/codeql-action/init to get workflow details\n+      security-events: write  # for github/codeql-action/analyze to upload SARIF results\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        with:\n+          persist-credentials: false\n+\n+      - name: Set up Gradle\n+        # zizmor: ignore[cache-poisoning] This workflow analyzes release branches\n+        # but does not build or publish release artifacts.\n+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0\n+        with:\n+          cache-read-only: ${{ github.event_name == 'pull_request' }}\n+\n+      - name: Initialize CodeQL\n+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0\n+        with:\n+          languages: java-kotlin\n+          build-mode: none\n+          tools: linked\n+\n+      - name: Perform CodeQL analysis\n+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0\n+        with:\n+          category: \"/language:java\"",
+      "id": "PRRT_kwDODJKVX86k5q3u",
+      "opened": "2026-09-22T20:19:00Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [
+        {
+          "at": "2026-09-22T20:32:08Z",
+          "body": "No code change.\n\nThe `/language:java` category is intentional to preserve the existing analysis identity and alert baselines. The PR description should be corrected separately to match it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20185#discussion_r4076185092"
+        }
+      ],
+      "reviewed": "237a84bbfeac34e93cf0df03f622ffd50bf026ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20185#discussion_r4076072693"
+    }
+  ]
+}

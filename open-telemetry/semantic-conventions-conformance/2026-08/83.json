@@ -1,0 +1,25 @@
+{
+  "head": "8e15bb0017cb105ef80bb3acc5f1feea3d576281",
+  "merge": "39a5ea930d3212087a5e31a0675e84ababa61a96",
+  "merged": "2026-08-25T01:42:52Z",
+  "missing_roots": 0,
+  "number": 83,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`Assistant` always runs its Memory sub-agent: `_prepend_knowledge_prompt` calls `self.mem.run` whenever no knowledge string is passed. So this run carries a second agent span too, as the README row for qwen-agent says.\n\n```suggestion\nNo tools, so the run is the agent and the model call it makes. That is what\nmakes the agent span readable on its own. `Assistant` still runs its Memory\nsub-agent, so a second agent span comes with it.\n```",
+      "created": "2026-08-24T23:38:32Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a single qwen-agent agent run.\n+\n+No tools, so the run is the agent and the model call it makes and nothing\n+else. That is what makes the agent span readable on its own.",
+      "id": "PRRT_kwDOTuzK5c6b40-b",
+      "opened": "2026-08-25T00:06:00Z",
+      "path": "scenarios/gen-ai/python/qwen-agent/scenarios/invoke_agent.py",
+      "replies": [],
+      "reviewed": "cffcea750244f8a7263524b3b93c1ef22005e176",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/83#discussion_r3848337308"
+    }
+  ]
+}

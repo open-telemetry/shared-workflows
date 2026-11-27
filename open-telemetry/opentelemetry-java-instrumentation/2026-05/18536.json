@@ -1,0 +1,25 @@
+{
+  "head": "9c772439904d78387a52c7255ec3b03838c5b1e4",
+  "merge": "9e18320389828381f899a90a8bb84063a32eeb51",
+  "merged": "2026-05-04T14:34:02Z",
+  "missing_roots": 0,
+  "number": 18536,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could be a local variable in `setUpClusters`?",
+      "created": "2026-05-04T12:57:49Z",
+      "hunk": "@@ -52,25 +53,43 @@ public abstract class AbstractCouchbaseClientTest extends AbstractCouchbaseTest\n \n   @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n \n+  private CouchbaseEnvironment environmentCouchbase;",
+      "id": "PRRT_kwDODJKVX85_WXub",
+      "opened": "2026-05-04T12:57:49Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseClientTest.java",
+      "replies": [],
+      "reviewed": "5be157f9771c66706c97dd16df396fad4514b877",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18536#discussion_r3181684272"
+    }
+  ]
+}

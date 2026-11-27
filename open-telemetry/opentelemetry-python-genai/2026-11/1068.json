@@ -1,0 +1,31 @@
+{
+  "head": "c57b440667b055261e4c9bce89676203a759eae1",
+  "merge": "2319f14c4c7dc04cba7bba51a59555c2e1b8cdef",
+  "merged": "2026-11-14T02:36:38Z",
+  "missing_roots": 0,
+  "number": 1068,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With `latest` on 3.x, the full suite no longer runs on any 2.x - `v2` is pinned to 2.8.0 and only covers the legacy interactions path. Could we either:\n\n1. rename `requirements.v2.txt` to `requirements.v2.8.txt` (keeping the legacy interactions run), and add a new `requirements.v2.txt` with `google-genai==2.34.0` that runs the full suite, or\n2. drop the 2.8-specific env and run the full suite on `v2` with the latest 2.x (2.34.0)?",
+      "created": "2026-11-11T18:32:33Z",
+      "hunk": "@@ -37,7 +37,7 @@\n # This variant of the requirements aims to test the system using\n # the newest supported version of external dependencies.\n \n-google-genai==2.34.0\n+google-genai==3.0.0",
+      "id": "PRRT_kwDOSbspP862Tw1N",
+      "opened": "2026-11-11T18:41:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/requirements.latest.txt",
+      "replies": [
+        {
+          "at": "2026-11-11T19:07:49Z",
+          "body": "3.0.0 only changed the default HTTP transport (httpx2) and API version (v1), so 3.0.0 already exercises the exact same >= 2.9 SDK code paths as 2.34.0, while 2.8.0 is needed to cover the < 2.9 _interactions branch... So I'll take approach 1 here..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1068#discussion_r4542149363"
+        }
+      ],
+      "reviewed": "128d01d035f0310c18c49350767edc6678a82ea6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1068#discussion_r4541803220"
+    }
+  ]
+}

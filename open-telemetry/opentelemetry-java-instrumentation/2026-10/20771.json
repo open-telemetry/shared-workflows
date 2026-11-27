@@ -1,0 +1,67 @@
+{
+  "head": "f2aa3237ae940d3d43fe137d622d84e5b482cc5b",
+  "merge": "8783ffa99ca4678caad4bd633178ce0eafc8f04a",
+  "merged": "2026-10-21T08:48:02Z",
+  "missing_roots": 0,
+  "number": 20771,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Removing this bean makes `FallbackConfigProperties` eligible in an enabled declarative context: it requires an `OpenTelemetry` bean and no `ConfigProperties` bean, but does not exclude declarative mode. It therefore recreates `otelProperties` using `DefaultConfigProperties`, so existing consumers silently read flat/default values instead of the active YAML. Add `@Conditional(DeclarativeConfigDisabled.class)` to the fallback so the compatibility bean is actually removed in declarative mode while remaining available for flat configuration.",
+      "created": "2026-10-20T18:56:58Z",
+      "hunk": "@@ -212,24 +211,6 @@ OpenTelemetry openTelemetry(\n         return new SpringOpenTelemetrySdk(sdk, configProvider);\n       }\n \n-      /**\n-       * Expose the {@link ConfigProperties} bean for use in other auto-configurations.\n-       *\n-       * <p>Not using spring boot properties directly, because declarative configuration does not\n-       * integrate with spring boot properties.\n-       *\n-       * @deprecated This {@link ConfigProperties} compatibility bean will be removed in 3.0.\n-       *     Auto-configurations that support the experimental Declarative Configuration should use\n-       *     the Declarative Config API directly.\n-       */\n-      @Deprecated // will be removed in 3.0\n-      @Bean\n-      ConfigProperties otelProperties(OpenTelemetry openTelemetry) {\n-        return new DeclarativeConfigPropertiesBridgeBuilder()\n-            .buildFromInstrumentationConfig(\n-                configProviderFrom(openTelemetry).getInstrumentationConfig());\n-      }\n-\n       private static ConfigProvider configProviderFrom(OpenTelemetry openTelemetry) {",
+      "id": "PRRT_kwDODJKVX86uegEG",
+      "opened": "2026-10-20T18:56:59Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-10-20T20:09:28Z",
+          "body": "Addressed in 2129f85384bc2c9799a79737f84c2698a89fd615.\n\nReproduced with DeclarativeConfigTest.customOpenTelemetry: the frozen implementation supplied otelProperties as DefaultConfigProperties despite otel.file_format being set. Adding @Conditional(DeclarativeConfigDisabled.class) prevents this flat fallback in declarative mode without changing the ConfigProvider fallback or flat configuration. Regression assertions cover both custom and auto-configured OpenTelemetry contexts; all 111 normal and 36 declarative tests pass.\n\n<!-- copilot-loop:94751ae9959d015a445ef5b20c6d7c2ceaf9b4cc220bd6d41410da970400adb7:4328990051:a695530f49b248eda64708c39e5499ce -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20771#discussion_r4329755035"
+        }
+      ],
+      "reviewed": "804420d9bfa4dc4b9ff50e3d51a2e6fdff4e019f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20771#discussion_r4328990051"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with both changes below. Do not create a follow-up PR as a workaround. Preserve the existing PR's draft state and its other changes.\n\n1. In `instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java`, keep the SDK-disabled empty `ConfigProperties` bean for flat configuration, but stop providing it for declarative configuration. Move `otelProperties()`, which returns `DefaultConfigProperties.createFromMap(emptyMap())`, from `DisabledOpenTelemetrySdkConfig` into its existing `PropertiesConfig` nested class, which already has `@Conditional(DeclarativeConfigDisabled.class)`. Keep the disabled no-op `OpenTelemetry` and `ConfigProvider` beans available in both modes. Preserve the supported flat-mode bean and the declarative exclusion on `FallbackConfigProperties`.\n\n2. In `CHANGELOG.md`, replace this PR's Spring Boot entry under the top breaking-changes heading with exactly: \"Remove the Spring Boot starter-provided `ConfigProperties` bean in declarative mode, including when telemetry is disabled. Read configuration through `ConfigProvider` and `DeclarativeConfigProperties` instead.\" Wrap it according to the existing changelog style. Leave the separate entry about removing `DeclarativeConfigPropertiesBridge` and `DeclarativeConfigPropertiesBridgeBuilder` unchanged.\n\nAdd focused regression assertions to the existing normal and `testDeclarativeConfig` SDK-disabled tests. Flat mode with `otel.sdk.disabled=true` must retain an empty `otelProperties` bean of type `ConfigProperties`; declarative mode with `otel.file_format` present and `otel.disabled=true` must have neither a starter-provided `otelProperties` bean nor a `ConfigProperties` bean. Both disabled modes must still provide no-op `OpenTelemetry` and `ConfigProvider`. Existing enabled-mode behavior must remain unchanged. Run the narrowest applicable formatter and tests using the repository's documented commands. Do not add unrelated changes.",
+      "created": "2026-10-20T21:43:27Z",
+      "hunk": "@@ -334,6 +315,7 @@ OtelMapConverter otelMapConverter() {\n   @Configuration\n   @ConditionalOnBean(OpenTelemetry.class)\n   @ConditionalOnMissingBean({ConfigProperties.class})\n+  @Conditional(DeclarativeConfigDisabled.class)",
+      "id": "PRRT_kwDODJKVX86uiZch",
+      "opened": "2026-10-20T21:43:27Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-10-20T21:54:29Z",
+          "body": "Implemented in 380f0249. The disabled `ConfigProperties` bean is now flat-mode-only; disabled-mode assertions and the requested changelog update are in place.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20771#discussion_r4330750195"
+        }
+      ],
+      "reviewed": "2129f85384bc2c9799a79737f84c2698a89fd615",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20771#discussion_r4330658972"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Remove the Spring Boot starter-provided `ConfigProperties` bean in declarative mode.\n  Read configuration through `ConfigProvider` and `DeclarativeConfigProperties` instead.\n```",
+      "created": "2026-10-20T22:04:31Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove the Spring Boot starter-provided `ConfigProperties` bean in declarative mode, including\n+  when telemetry is disabled. Read configuration through `ConfigProvider` and\n+  `DeclarativeConfigProperties` instead.",
+      "id": "PRRT_kwDODJKVX86uiyuJ",
+      "opened": "2026-10-20T22:04:31Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "380f024956f1bc81688c59b8757fd2686fd49816",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20771#discussion_r4330827989"
+    }
+  ]
+}

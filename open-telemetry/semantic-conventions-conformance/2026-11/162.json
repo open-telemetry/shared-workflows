@@ -1,0 +1,271 @@
+{
+  "head": "e152bd18ade7b0f4e1c3f8653605e575151c3d85",
+  "merge": "559b4abff315fa2304a12a2dc59542ee9f684724",
+  "merged": "2026-11-04T19:03:21Z",
+  "missing_roots": 0,
+  "number": 162,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compare response JSON independently of property order**\n\nWhen a contract-compatible server serializes an object with a different property order, comparing the two parsed values via `JSON.stringify` rejects the response even though JSON object ordering is not part of the shared HTTP contract. This makes the Fetch scenario behave differently from the existing client workload in `tools/http/test-client/js/src/client-workload.js`, which uses structural equality, and can cause a harmless mock-server serialization change to fail only this scenario.\n\nUseful? React with 👍 / 👎.",
+      "created": "2026-08-31T08:12:36Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/** Sends the shared exchanges with browser Fetch, without telemetry setup. */\n+\n+async function drive(baseUrl, exchanges) {\n+  for (const exchange of exchanges) {\n+    if (exchange.readiness) {\n+      continue;\n+    }\n+    const response = await fetch(`${baseUrl}${exchange.path}`, {\n+      method: exchange.method,\n+      headers:\n+        exchange.body === null ? {} : { \"content-type\": \"application/json\" },\n+      body: exchange.body,\n+    });\n+    const body = await response.text();\n+    if (response.status !== exchange.status) {\n+      throw new Error(\n+        `${exchange.method} ${exchange.path} answered ${response.status}, expected ${exchange.status}`,\n+      );\n+    }\n+    const expected = exchange.responseBody.replace(\n+      \"${requestBody}\",\n+      exchange.body ?? \"{}\",\n+    );\n+    if (\n+      JSON.stringify(JSON.parse(body)) !== JSON.stringify(JSON.parse(expected))",
+      "id": "PRRT_kwDOTuzK5c6dptIj",
+      "opened": "2026-08-31T08:12:36Z",
+      "path": "scenarios/http/js/fetch/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-08-31T08:33:30Z",
+          "body": "Addressed in eabd67d. JSON object member order is not significant under the shared HTTP contract, so the browser workload now uses a shared structural comparator. Regression coverage proves reordered nested object keys compare equal while array order and value types remain significant. The stacked XMLHttpRequest scenario uses the same helper.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r3892878053"
+        }
+      ],
+      "reviewed": "5921d581e3816dd9cff293f117b5f5da9fbbc747",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r3892752983"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This named scenario does not load the indexed HTTP contract, so the runner does not set `OTEL_CONFORMANCE_SCENARIO_INDEX` and `scenarioRequest()` throws before the browser launches. It also omits the shared telemetry expectations. Replace this block with `scenario_contract` and `scenario_run`, as the existing HTTP and undici clients do, to run and validate each contract case.",
+      "created": "2026-10-26T12:54:25Z",
+      "hunk": "@@ -0,0 +1,15 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: fetch\n+instrumentation_library: \"@opentelemetry/instrumentation-fetch\"\n+\n+setup: otel-conformance-js install\n+\n+server:\n+  run: http-mock-server --port ${PORT}\n+\n+scenarios:\n+  client:\n+    run: node ../client.js",
+      "id": "PRRT_kwDOTuzK5c6wRBBH",
+      "opened": "2026-10-26T12:54:26Z",
+      "path": "scenarios/http/js/fetch/opentelemetry-fetch/client/conformance.yaml",
+      "replies": [],
+      "reviewed": "7c63349fc98b3022cb4d6bac86938bb2770eb593",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4377416270"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The lockfile's reachable entries do not satisfy the new exact pins: the browser runner requires `@grpc/grpc-js@1.14.4` but resolves to `1.14.5`, and `sdk-trace-web` requires `sdk-trace-base@2.10.0` but resolves to `2.12.0` (line 1282). Fetch instrumentation has similar core/instrumentation mismatches, so `npm ci` rejects the lockfile and blocks installation for the entire JavaScript HTTP workspace. Regenerate the workspace lockfile from the manifests so every pinned dependency has a compatible resolution.",
+      "created": "2026-11-02T03:35:58Z",
+      "hunk": "@@ -660,6 +1297,16 @@\n         \"node\": \">=14\"\n       }\n     },\n+    \"node_modules/@otel-conformance/browser-runner\": {\n+      \"version\": \"0.1.0\",\n+      \"resolved\": \"file:../../../tools/js/browser-runner\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@grpc/grpc-js\": \"1.14.4\",",
+      "id": "PRRT_kwDOTuzK5c6yhpwJ",
+      "opened": "2026-11-02T03:35:59Z",
+      "path": "scenarios/http/js/package-lock.json",
+      "replies": [],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438702523"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This is a registry version range, not a local path. Every other scenarios package uses `file:../../../../../tools/http/test-client/js`. It resolves today only because the sibling `opentelemetry-fetch` workspace installs the local copy. `@otel-conformance/http-test-client` isn't published on npm, so installing or relocking this package on its own goes to the registry: a 404 today, and a dependency-confusion risk if anyone claims the `@otel-conformance` scope.",
+      "created": "2026-11-02T03:52:00Z",
+      "hunk": "@@ -0,0 +1,11 @@\n+{\n+  \"name\": \"@otel-conformance/fetch-scenarios\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"description\": \"What the browser Fetch HTTP conformance scenario does, with no OpenTelemetry in it.\",\n+  \"license\": \"Apache-2.0\",\n+  \"main\": \"client.js\",\n+  \"dependencies\": {\n+    \"@otel-conformance/http-test-client\": \"0.1.0\"",
+      "id": "PRRT_kwDOTuzK5c6yhzmO",
+      "opened": "2026-11-02T03:54:13Z",
+      "path": "scenarios/http/js/fetch/scenarios/package.json",
+      "replies": [
+        {
+          "at": "2026-11-04T05:31:51Z",
+          "body": "Addressed in d3afc7e. `@otel-conformance/http-test-client` now uses `file:../../../../../tools/http/test-client/js` instead of a registry version range. The workspace installs successfully with `npm ci`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463969566"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438765606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "With `install-links=true`, `node_modules/@otel-conformance/browser-runner` is a copy, so this runs the installed tests rather than the source in `tools/js/browser-runner`. Local edits there aren't tested until a reinstall. The `scenario-sdk` entry next to it runs the tests from the source directory.",
+      "created": "2026-11-02T03:52:01Z",
+      "hunk": "@@ -6,11 +6,12 @@\n   \"license\": \"Apache-2.0\",\n   \"workspaces\": [\n     \"express/*\",\n+    \"fetch/*\",\n     \"http/*\",\n     \"undici/*\"\n   ],\n   \"scripts\": {\n-    \"test\": \"npm ci --ignore-scripts --prefix ../../../tools/http/test-client/js && npm --prefix ../../../tools/http/test-client/js test && npm --prefix ../../../tools/js/scenario-sdk test\",\n+    \"test\": \"npm ci --ignore-scripts --prefix ../../../tools/http/test-client/js && npm --prefix ../../../tools/http/test-client/js test && npm --prefix ../../../tools/js/scenario-sdk test && node node_modules/@otel-conformance/browser-runner/test/index.test.js && node fetch/opentelemetry-fetch/test/client.test.js\",",
+      "id": "PRRT_kwDOTuzK5c6yhzmX",
+      "opened": "2026-11-02T03:54:13Z",
+      "path": "scenarios/http/js/package.json",
+      "replies": [
+        {
+          "at": "2026-11-04T05:31:54Z",
+          "body": "Addressed in d3afc7e. The test command now runs `npm --prefix ../../../tools/js/browser-runner test` against the source directory, with a separate install for its test dependencies. The source browser-runner suite passes locally.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463969844"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438765613"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This copies `verify`/`renderResponseBody` from the shared test client, and the copies differ slightly:\n\n- It uses `exchange.body ?? \"{}\"` where `renderResponseBody` uses a truthiness check.\n- It hardcodes `\"application/json\"` (line 20) instead of `CONTENT_TYPE`.\n\nIf `contract.js` can't be bundled because it reads YAML from disk, could the status/body check and the response rendering move into a browser-safe module next to `json-equal` so both clients share them?",
+      "created": "2026-11-02T03:52:01Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const {\n+  isJsonEqual,\n+} = require(\"@otel-conformance/http-test-client/json-equal\");\n+\n+/** Sends the shared exchanges with browser Fetch, without telemetry setup. */\n+\n+async function drive(baseUrl, exchanges) {\n+  for (const exchange of exchanges) {\n+    if (exchange.readiness) {\n+      continue;\n+    }\n+    const response = await fetch(`${baseUrl}${exchange.path}`, {\n+      method: exchange.method,\n+      headers:\n+        exchange.body === null ? {} : { \"content-type\": \"application/json\" },\n+      body: exchange.body,\n+    });\n+    const body = await response.text();\n+    if (response.status !== exchange.status) {\n+      throw new Error(\n+        `${exchange.method} ${exchange.path} answered ${response.status}, expected ${exchange.status}`,\n+      );\n+    }\n+    const expected = exchange.responseBody.replace(\n+      \"${requestBody}\",\n+      () => exchange.body ?? \"{}\",\n+    );",
+      "id": "PRRT_kwDOTuzK5c6yhzmZ",
+      "opened": "2026-11-02T03:54:13Z",
+      "path": "scenarios/http/js/fetch/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:31:57Z",
+          "body": "Addressed in d3afc7e. `CONTENT_TYPE`, `renderResponseBody`, and `verify` now live in the browser-safe `response.js` module next to `json-equal`. The browser Fetch workload and Node test client use that shared implementation.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463970140"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438765620"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The Chrome launch error is discarded. If the Chromium fallback also fails (for example, browsers not installed), the original reason is lost. Consider attaching it as the `cause` of the fallback error, or logging it.",
+      "created": "2026-11-02T03:52:01Z",
+      "hunk": "@@ -0,0 +1,219 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Starts a browser workload and forwards its OTLP/HTTP protobuf exports to\n+ * the conformance runner's OTLP/gRPC collector.\n+ *\n+ * A browser cannot speak OTLP/gRPC directly. The bridge gives its bundled\n+ * page a same-origin OTLP/HTTP endpoint, then carries the protobuf request\n+ * unchanged over gRPC. Every path except the bridge's own endpoints proxies\n+ * unchanged to the runner's mock server, so Fetch observes the contract's\n+ * exact paths without a cross-origin preflight.\n+ */\n+\n+const http = require(\"node:http\");\n+const { URL } = require(\"node:url\");\n+\n+const grpc = require(\"@grpc/grpc-js\");\n+const { chromium } = require(\"@playwright/test\");\n+const esbuild = require(\"esbuild\");\n+\n+const TRACE_EXPORT_PATH =\n+  \"/opentelemetry.proto.collector.trace.v1.TraceService/Export\";\n+const BRIDGE_PATH = \"/_otel-conformance\";\n+\n+function requireEnv(name) {\n+  const value = process.env[name];\n+  if (!value) {\n+    throw new Error(`required environment variable is missing: ${name}`);\n+  }\n+  return value;\n+}\n+\n+function requireUrl(name) {\n+  const value = requireEnv(name);\n+  try {\n+    const url = new URL(value);\n+    if (!url.host) {\n+      throw new Error(\"URL must include a host\");\n+    }\n+    return url;\n+  } catch (error) {\n+    throw new Error(`required environment variable is not a URL: ${name}`, {\n+      cause: error,\n+    });\n+  }\n+}\n+\n+function grpcTraceClient(endpoint) {\n+  const address = endpoint.host;\n+  const TraceService = grpc.makeGenericClientConstructor(\n+    {\n+      export: {\n+        path: TRACE_EXPORT_PATH,\n+        requestStream: false,\n+        responseStream: false,\n+        requestSerialize: (value) => value,\n+        requestDeserialize: (value) => value,\n+        responseSerialize: (value) => value,\n+        responseDeserialize: (value) => value,\n+      },\n+    },\n+    \"TraceService\",\n+  );\n+  return new TraceService(address, grpc.credentials.createInsecure());\n+}\n+\n+function forward(client, payload) {\n+  return new Promise((resolve, reject) => {\n+    client.export(payload, (error) => (error ? reject(error) : resolve()));\n+  });\n+}\n+\n+function read(request) {\n+  return new Promise((resolve, reject) => {\n+    const chunks = [];\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => resolve(Buffer.concat(chunks)));\n+    request.on(\"error\", reject);\n+  });\n+}\n+\n+function proxy(request, response, mockServer) {\n+  const target = new URL(request.url, mockServer);\n+  const upstream = http.request(target, {\n+    method: request.method,\n+    headers: { ...request.headers, host: target.host },\n+  });\n+  upstream.on(\"response\", (upstreamResponse) => {\n+    response.writeHead(upstreamResponse.statusCode, upstreamResponse.headers);\n+    upstreamResponse.pipe(response);\n+  });\n+  upstream.on(\"error\", (error) => {\n+    response.writeHead(502, { \"content-type\": \"text/plain\" });\n+    response.end(error.message);\n+  });\n+  request.pipe(upstream);\n+}\n+\n+function listen(server) {\n+  return new Promise((resolve, reject) => {\n+    server.once(\"error\", reject);\n+    server.listen(0, \"127.0.0.1\", () => {\n+      server.off(\"error\", reject);\n+      resolve(server.address().port);\n+    });\n+  });\n+}\n+\n+function close(server) {\n+  server.closeAllConnections?.();\n+  return new Promise((resolve, reject) =>\n+    server.close((error) => (error ? reject(error) : resolve())),\n+  );\n+}\n+\n+/** Prefer a locally installed Chrome, then Playwright's managed Chromium. */\n+async function launchBrowser(browserType = chromium) {\n+  try {\n+    return await browserType.launch({ channel: \"chrome\", headless: true });\n+  } catch {",
+      "id": "PRRT_kwDOTuzK5c6yhzmd",
+      "opened": "2026-11-02T03:54:13Z",
+      "path": "tools/js/browser-runner/index.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:32:01Z",
+          "body": "Addressed in d3afc7e. If both browser launches fail, an `AggregateError` retains the original Chrome error and the Chromium fallback error. Regression coverage verifies that both reasons are preserved.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463970399"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438765625"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Nothing listens for `pageerror` or console output. If the bundle throws at the top level, `__otelConformanceResult` is never set, and this shows up as a generic 30-second Playwright timeout with no hint of the actual error. Forwarding `page.on(\"pageerror\")` and console messages, or failing fast on a page error, would make these failures much easier to diagnose.",
+      "created": "2026-11-02T03:52:01Z",
+      "hunk": "@@ -0,0 +1,219 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Starts a browser workload and forwards its OTLP/HTTP protobuf exports to\n+ * the conformance runner's OTLP/gRPC collector.\n+ *\n+ * A browser cannot speak OTLP/gRPC directly. The bridge gives its bundled\n+ * page a same-origin OTLP/HTTP endpoint, then carries the protobuf request\n+ * unchanged over gRPC. Every path except the bridge's own endpoints proxies\n+ * unchanged to the runner's mock server, so Fetch observes the contract's\n+ * exact paths without a cross-origin preflight.\n+ */\n+\n+const http = require(\"node:http\");\n+const { URL } = require(\"node:url\");\n+\n+const grpc = require(\"@grpc/grpc-js\");\n+const { chromium } = require(\"@playwright/test\");\n+const esbuild = require(\"esbuild\");\n+\n+const TRACE_EXPORT_PATH =\n+  \"/opentelemetry.proto.collector.trace.v1.TraceService/Export\";\n+const BRIDGE_PATH = \"/_otel-conformance\";\n+\n+function requireEnv(name) {\n+  const value = process.env[name];\n+  if (!value) {\n+    throw new Error(`required environment variable is missing: ${name}`);\n+  }\n+  return value;\n+}\n+\n+function requireUrl(name) {\n+  const value = requireEnv(name);\n+  try {\n+    const url = new URL(value);\n+    if (!url.host) {\n+      throw new Error(\"URL must include a host\");\n+    }\n+    return url;\n+  } catch (error) {\n+    throw new Error(`required environment variable is not a URL: ${name}`, {\n+      cause: error,\n+    });\n+  }\n+}\n+\n+function grpcTraceClient(endpoint) {\n+  const address = endpoint.host;\n+  const TraceService = grpc.makeGenericClientConstructor(\n+    {\n+      export: {\n+        path: TRACE_EXPORT_PATH,\n+        requestStream: false,\n+        responseStream: false,\n+        requestSerialize: (value) => value,\n+        requestDeserialize: (value) => value,\n+        responseSerialize: (value) => value,\n+        responseDeserialize: (value) => value,\n+      },\n+    },\n+    \"TraceService\",\n+  );\n+  return new TraceService(address, grpc.credentials.createInsecure());\n+}\n+\n+function forward(client, payload) {\n+  return new Promise((resolve, reject) => {\n+    client.export(payload, (error) => (error ? reject(error) : resolve()));\n+  });\n+}\n+\n+function read(request) {\n+  return new Promise((resolve, reject) => {\n+    const chunks = [];\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => resolve(Buffer.concat(chunks)));\n+    request.on(\"error\", reject);\n+  });\n+}\n+\n+function proxy(request, response, mockServer) {\n+  const target = new URL(request.url, mockServer);\n+  const upstream = http.request(target, {\n+    method: request.method,\n+    headers: { ...request.headers, host: target.host },\n+  });\n+  upstream.on(\"response\", (upstreamResponse) => {\n+    response.writeHead(upstreamResponse.statusCode, upstreamResponse.headers);\n+    upstreamResponse.pipe(response);\n+  });\n+  upstream.on(\"error\", (error) => {\n+    response.writeHead(502, { \"content-type\": \"text/plain\" });\n+    response.end(error.message);\n+  });\n+  request.pipe(upstream);\n+}\n+\n+function listen(server) {\n+  return new Promise((resolve, reject) => {\n+    server.once(\"error\", reject);\n+    server.listen(0, \"127.0.0.1\", () => {\n+      server.off(\"error\", reject);\n+      resolve(server.address().port);\n+    });\n+  });\n+}\n+\n+function close(server) {\n+  server.closeAllConnections?.();\n+  return new Promise((resolve, reject) =>\n+    server.close((error) => (error ? reject(error) : resolve())),\n+  );\n+}\n+\n+/** Prefer a locally installed Chrome, then Playwright's managed Chromium. */\n+async function launchBrowser(browserType = chromium) {\n+  try {\n+    return await browserType.launch({ channel: \"chrome\", headless: true });\n+  } catch {\n+    return browserType.launch({ headless: true });\n+  }\n+}\n+\n+async function bundle(entrypoint) {\n+  const result = await esbuild.build({\n+    bundle: true,\n+    entryPoints: [entrypoint],\n+    format: \"iife\",\n+    platform: \"browser\",\n+    target: \"es2022\",\n+    write: false,\n+  });\n+  return result.outputFiles[0].text;\n+}\n+\n+/** Runs one bundled browser workload against the shared HTTP contract. */\n+async function runBrowserScenario({ entrypoint, exchanges }) {\n+  const mockServer = requireUrl(\"MOCK_SERVER_URL\");\n+  const collectorEndpoint = requireUrl(\"OTEL_EXPORTER_OTLP_ENDPOINT\");\n+  const collector = grpcTraceClient(collectorEndpoint);\n+  let server;\n+  let browser;\n+  try {\n+    const script = await bundle(entrypoint);\n+    let bridgeUrl;\n+    server = http.createServer(async (request, response) => {\n+      try {\n+        if (request.method === \"GET\" && request.url === \"/\") {\n+          response.writeHead(200, {\n+            \"content-type\": \"text/html; charset=utf-8\",\n+          });\n+          response.end(\n+            `<!doctype html><link rel=\"icon\" href=\"data:,\"><script src=\"${BRIDGE_PATH}/scenario.js\"></script>`,\n+          );\n+          return;\n+        }\n+        if (\n+          request.method === \"GET\" &&\n+          request.url === `${BRIDGE_PATH}/scenario.js`\n+        ) {\n+          response.writeHead(200, {\n+            \"content-type\": \"text/javascript; charset=utf-8\",\n+          });\n+          response.end(\n+            `window.__otelConformance = ${JSON.stringify({\n+              baseUrl: bridgeUrl,\n+              traceExporterUrl: `${bridgeUrl}${BRIDGE_PATH}/v1/traces`,\n+              exchanges,\n+            })};\\n${script}`,\n+          );\n+          return;\n+        }\n+        if (\n+          request.method === \"POST\" &&\n+          request.url === `${BRIDGE_PATH}/v1/traces`\n+        ) {\n+          await forward(collector, await read(request));\n+          response.writeHead(200);\n+          response.end();\n+          return;\n+        }\n+        proxy(request, response, mockServer);\n+      } catch (error) {\n+        response.writeHead(500, { \"content-type\": \"text/plain\" });\n+        response.end(error instanceof Error ? error.stack : String(error));\n+      }\n+    });\n+    const port = await listen(server);\n+    bridgeUrl = `http://127.0.0.1:${port}`;\n+    browser = await launchBrowser();\n+    const page = await browser.newPage();\n+    await page.goto(bridgeUrl);\n+    await page.waitForFunction(",
+      "id": "PRRT_kwDOTuzK5c6yhzmg",
+      "opened": "2026-11-02T03:54:13Z",
+      "path": "tools/js/browser-runner/index.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:32:04Z",
+          "body": "Addressed in d3afc7e. The launcher forwards console output and page errors, and a top-level page error fails the run immediately with the original error as its cause. The throwing-bundle test passes locally.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463970687"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438765630"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "A non-JSON body throws a bare `SyntaxError` here that doesn't name the request. The Go client's `Verify` tests check that this failure names the request. Also, `drive()` now checks responses for the existing Node `http` and `undici` clients, which matches the other languages but isn't mentioned in the PR description.",
+      "created": "2026-11-02T03:52:01Z",
+      "hunk": "@@ -40,6 +41,29 @@ async function drive(baseUrl, send) {\n     `${exchange.method} ${exchange.path} -> ${response.status} ` +\n       `${abbreviate(response.body)}`,\n   );\n+  verify(exchange, response);\n+}\n+\n+/** Checks one answer against the exchange that describes it. */\n+function verify(exchange, response) {\n+  const where = `${exchange.method} ${exchange.path}`;\n+  if (response.status !== exchange.status) {\n+    throw new Error(\n+      `${where} answered ${response.status}, but the contract's request ` +\n+        `answers ${exchange.status}`,\n+    );\n+  }\n+\n+  // Parsed, not compared as text: whitespace and key order are a language's\n+  // choice of JSON writer, and neither is part of the contract.\n+  const expected = JSON.parse(renderResponseBody(exchange, exchange.body));\n+  const actual = JSON.parse(response.body);",
+      "id": "PRRT_kwDOTuzK5c6yhzmk",
+      "opened": "2026-11-02T03:54:13Z",
+      "path": "tools/http/test-client/js/src/client-workload.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:32:07Z",
+          "body": "Addressed in d3afc7e. Non-JSON response errors now name the request method and path and retain the parse error as the cause; regression coverage checks that diagnostic. The PR description also explicitly notes the shared response validation used by the Node HTTP and undici clients.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463971033"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438765635"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Both specs load the same `scenario_contract` file, so this equality check can only pass. It's not clear what regression it would catch beyond a missing `scenario_contract`, which the scenario run itself would already reveal.",
+      "created": "2026-11-02T03:52:01Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from dataclasses import replace\n+from pathlib import Path\n+\n+import pytest\n+\n+from opentelemetry.conformance import load_spec\n+\n+\n+@pytest.mark.parametrize(\n+    \"browser_client\", [\"fetch/opentelemetry-fetch/client\"]\n+)\n+def test_browser_client_uses_the_shared_http_contract(\n+    browser_client: str,\n+) -> None:\n+    root = Path(__file__).resolve().parents[4] / \"scenarios/http/js\"\n+    reference = load_spec(root / \"undici/opentelemetry-undici/client\")\n+    browser = load_spec(root / browser_client)\n+\n+    assert browser.scenarios.keys() == reference.scenarios.keys()\n+    for name, scenario in browser.scenarios.items():\n+        expected = reference.scenarios[name]\n+        assert replace(scenario, directory=expected.directory) == expected",
+      "id": "PRRT_kwDOTuzK5c6yhzml",
+      "opened": "2026-11-02T03:54:13Z",
+      "path": "tools/http/runner/tests/test_browser_contract.py",
+      "replies": [
+        {
+          "at": "2026-11-04T05:32:11Z",
+          "body": "Addressed in d3afc7e. Removed the contract-file equality test. The decoded-span browser integration test remains and verifies the actual selected Fetch request.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463971330"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438765638"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could we reuse the runner's existing OTLP/HTTP bridge instead of adding another HTTP-to-gRPC implementation here? #258 sets `otlp_protocol: http/protobuf` and relays the browser's same-origin exports to the injected `OTEL_EXPORTER_OTLP_ENDPOINT`.\n\nWe would still need the mock-server proxy for the HTTP contract, but the gRPC forwarding can stay in the shared runner. I'd like Fetch, XHR, and the browser-event scenarios to share the browser-launching/relay code rather than growing separate runners.",
+      "created": "2026-11-02T04:34:10Z",
+      "hunk": "@@ -0,0 +1,219 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Starts a browser workload and forwards its OTLP/HTTP protobuf exports to\n+ * the conformance runner's OTLP/gRPC collector.\n+ *\n+ * A browser cannot speak OTLP/gRPC directly. The bridge gives its bundled\n+ * page a same-origin OTLP/HTTP endpoint, then carries the protobuf request\n+ * unchanged over gRPC. Every path except the bridge's own endpoints proxies\n+ * unchanged to the runner's mock server, so Fetch observes the contract's\n+ * exact paths without a cross-origin preflight.\n+ */\n+\n+const http = require(\"node:http\");\n+const { URL } = require(\"node:url\");\n+\n+const grpc = require(\"@grpc/grpc-js\");\n+const { chromium } = require(\"@playwright/test\");\n+const esbuild = require(\"esbuild\");\n+\n+const TRACE_EXPORT_PATH =\n+  \"/opentelemetry.proto.collector.trace.v1.TraceService/Export\";\n+const BRIDGE_PATH = \"/_otel-conformance\";\n+\n+function requireEnv(name) {\n+  const value = process.env[name];\n+  if (!value) {\n+    throw new Error(`required environment variable is missing: ${name}`);\n+  }\n+  return value;\n+}\n+\n+function requireUrl(name) {\n+  const value = requireEnv(name);\n+  try {\n+    const url = new URL(value);\n+    if (!url.host) {\n+      throw new Error(\"URL must include a host\");\n+    }\n+    return url;\n+  } catch (error) {\n+    throw new Error(`required environment variable is not a URL: ${name}`, {\n+      cause: error,\n+    });\n+  }\n+}\n+\n+function grpcTraceClient(endpoint) {",
+      "id": "PRRT_kwDOTuzK5c6yiNk8",
+      "opened": "2026-11-02T04:39:26Z",
+      "path": "tools/js/browser-runner/index.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:32:13Z",
+          "body": "Addressed in d3afc7e. The scenario declares `otlp_protocol: http/protobuf`, and the same-origin relay forwards exports to the injected `OTEL_EXPORTER_OTLP_ENDPOINT`. The separate browser-side gRPC forwarding is removed, the mock-server proxy is retained, and the shared launcher/page helpers are available for other browser scenarios. The full five-case Fetch run completed through the runner's existing bridge.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463971613"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438933544"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could we put a deadline on this wait and report the expected and exported span counts if it expires? If the instrumentation stops emitting a span, `complete` never settles, so we don't get a useful missing-span error.\n\n#258 bounds both its expected-event wait and page workload. Could we do the equivalent here, including a launcher-side timeout for failures before `__otelConformanceResult` is set?",
+      "created": "2026-11-02T04:34:11Z",
+      "hunk": "@@ -0,0 +1,87 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const {\n+  OTLPTraceExporter,\n+} = require(\"@opentelemetry/exporter-trace-otlp-proto\");\n+const { registerInstrumentations } = require(\"@opentelemetry/instrumentation\");\n+const {\n+  FetchInstrumentation,\n+} = require(\"@opentelemetry/instrumentation-fetch\");\n+const {\n+  SimpleSpanProcessor,\n+  WebTracerProvider,\n+} = require(\"@opentelemetry/sdk-trace-web\");\n+const { drive } = require(\"@otel-conformance/fetch-scenarios\");\n+\n+/** Resolves once exactly `expected` Fetch spans have reached the exporter. */\n+function trackingExporter(exporter, expected) {\n+  let exported = 0;\n+  let resolve;\n+  let reject;\n+  const complete = new Promise((onResolve, onReject) => {\n+    resolve = onResolve;\n+    reject = onReject;\n+  });\n+  return {\n+    export(spans, callback) {\n+      exporter.export(spans, (result) => {\n+        callback(result);\n+        if (result.code !== 0) {\n+          reject(result.error || new Error(\"OTLP export failed\"));\n+          return;\n+        }\n+        exported += spans.length;\n+        if (exported === expected) {\n+          resolve();\n+        } else if (exported > expected) {\n+          reject(new Error(`exported ${exported} spans, expected ${expected}`));\n+        }\n+      });\n+    },\n+    forceFlush() {\n+      return exporter.forceFlush();\n+    },\n+    shutdown() {\n+      return exporter.shutdown();\n+    },\n+    waitForExpectedSpans() {\n+      return complete;\n+    },\n+  };\n+}\n+\n+async function run() {\n+  const { baseUrl, exchanges, traceExporterUrl } = window.__otelConformance;\n+  const exporter = trackingExporter(\n+    new OTLPTraceExporter({ url: traceExporterUrl }),\n+    exchanges.filter((exchange) => !exchange.readiness).length,\n+  );\n+  const provider = new WebTracerProvider({\n+    spanProcessors: [new SimpleSpanProcessor(exporter)],\n+  });\n+  provider.register();\n+  registerInstrumentations({\n+    tracerProvider: provider,\n+    instrumentations: [\n+      new FetchInstrumentation({ ignoreUrls: [traceExporterUrl] }),\n+    ],\n+  });\n+  await drive(baseUrl, exchanges);\n+  await exporter.waitForExpectedSpans();",
+      "id": "PRRT_kwDOTuzK5c6yiNlC",
+      "opened": "2026-11-02T04:39:26Z",
+      "path": "scenarios/http/js/fetch/opentelemetry-fetch/browser.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:32:16Z",
+          "body": "Addressed in d3afc7e and e152bd1. The span-export wait has a 20-second deadline and reports expected and exported span counts. The launcher separately bounds page startup and workload execution at 30 seconds. Tests cover an unfinished workload and a page that never exposes one; a focused check also verified the missing-span count diagnostic. de538ff ensures abandoned upstream requests are cancelled when the run closes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463971919"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438933553"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "When this switches to the shared HTTP bridge, could we bring over the relay failure-path coverage from #258? In particular, cover an unreachable endpoint and a non-2xx export response, and verify that the scenario fails rather than reporting success.\n\nThe bridge requires `Content-Length` and rejects `Transfer-Encoding`, so the relay should normalize chunked exports and test that case too. Please keep the decoded-span browser integration test alongside these relay tests.",
+      "created": "2026-11-02T04:34:11Z",
+      "hunk": "@@ -0,0 +1,137 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const assert = require(\"node:assert/strict\");\n+const http = require(\"node:http\");\n+const path = require(\"node:path\");\n+const test = require(\"node:test\");\n+\n+const grpc = require(\"@grpc/grpc-js\");\n+\n+const { launchBrowser, runBrowserScenario } = require(\"../index\");\n+\n+const TRACE_EXPORT_PATH =\n+  \"/opentelemetry.proto.collector.trace.v1.TraceService/Export\";\n+\n+const service = {\n+  export: {\n+    path: TRACE_EXPORT_PATH,\n+    requestStream: false,\n+    responseStream: false,\n+    requestSerialize: (value) => value,\n+    requestDeserialize: (value) => value,\n+    responseSerialize: (value) => value,\n+    responseDeserialize: (value) => value,\n+  },\n+};\n+\n+function listen(server) {\n+  return new Promise((resolve) => server.listen(0, \"127.0.0.1\", resolve));\n+}\n+\n+function close(server) {\n+  server.closeAllConnections?.();\n+  return new Promise((resolve) => server.close(resolve));\n+}\n+\n+function bind(server) {\n+  return new Promise((resolve, reject) => {\n+    server.bindAsync(\n+      \"127.0.0.1:0\",\n+      grpc.ServerCredentials.createInsecure(),\n+      (error, port) => (error ? reject(error) : resolve(port)),\n+    );\n+  });\n+}\n+\n+test(\"falls back to Playwright's managed Chromium\", async () => {\n+  const launches = [];\n+  const managed = { close() {} };\n+  const browserType = {\n+    async launch(options) {\n+      launches.push(options);\n+      if (options.channel === \"chrome\") {\n+        throw new Error(\"Chrome is not installed\");\n+      }\n+      return managed;\n+    },\n+  };\n+\n+  assert.equal(await launchBrowser(browserType), managed);\n+  assert.deepEqual(launches, [\n+    { channel: \"chrome\", headless: true },\n+    { headless: true },\n+  ]);\n+});\n+\n+test(\"validates the mock URL before constructing a collector client\", async () => {\n+  const original = Object.getOwnPropertyDescriptor(\n+    grpc,\n+    \"makeGenericClientConstructor\",\n+  );\n+  let constructed = false;\n+  const previous = {\n+    mock: process.env.MOCK_SERVER_URL,\n+    endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,\n+  };\n+  Object.defineProperty(grpc, \"makeGenericClientConstructor\", {\n+    configurable: true,\n+    value: () => {\n+      constructed = true;\n+    },\n+  });\n+  process.env.MOCK_SERVER_URL = \"not a URL\";\n+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT = \"http://127.0.0.1:4317\";\n+  try {\n+    await assert.rejects(\n+      runBrowserScenario({ entrypoint: \"unused.js\", exchanges: [] }),\n+      /MOCK_SERVER_URL/,\n+    );\n+  } finally {\n+    Object.defineProperty(grpc, \"makeGenericClientConstructor\", original);\n+    process.env.MOCK_SERVER_URL = previous.mock;\n+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = previous.endpoint;\n+  }\n+  assert.equal(constructed, false);\n+});\n+\n+test(\"proxies contract traffic and forwards browser OTLP protobuf\", async () => {",
+      "id": "PRRT_kwDOTuzK5c6yiNlF",
+      "opened": "2026-11-02T04:39:26Z",
+      "path": "tools/js/browser-runner/test/index.test.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:32:20Z",
+          "body": "Addressed in d3afc7e. Relay tests cover unreachable endpoints and non-2xx export responses and assert that the scenario fails. Chunked exports are buffered, sent with `Content-Length`, and have `Transfer-Encoding` removed. The decoded-span browser integration test is retained. The relay and integration tests pass locally on Node 26.13.0.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4463972224"
+        }
+      ],
+      "reviewed": "3c447c514a63c1d5ad28a1f16f58eadf941912a3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/162#discussion_r4438933556"
+    }
+  ]
+}

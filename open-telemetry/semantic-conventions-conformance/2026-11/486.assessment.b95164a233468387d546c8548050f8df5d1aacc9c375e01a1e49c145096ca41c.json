@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "af66ed55191c99a18245dc4b1994c1396cf327aed9bb3e2311b68ebf14d29157",
+  "input_digest": "b95164a233468387d546c8548050f8df5d1aacc9c375e01a1e49c145096ca41c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/24650d0ff50e09a0c8714522b14cf2f61a797a92/scenarios/gen-ai/js/vercel-ai/native/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f5186c15d67f6fa0e59dc56adbf49f89df52a7c2/scenarios/gen-ai/js/vercel-ai/native/data.json"
+      ],
+      "id": "PRRT_kwDOTuzK5c61lTZJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/24650d0ff50e09a0c8714522b14cf2f61a797a92/tools/js/browser-runner/package.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f5186c15d67f6fa0e59dc56adbf49f89df52a7c2/tools/js/browser-runner/package.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/24650d0ff50e09a0c8714522b14cf2f61a797a92/scenarios/browser/js/package-lock.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f5186c15d67f6fa0e59dc56adbf49f89df52a7c2/scenarios/browser/js/package-lock.json"
+      ],
+      "id": "PRRT_kwDOTuzK5c61lTZn",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

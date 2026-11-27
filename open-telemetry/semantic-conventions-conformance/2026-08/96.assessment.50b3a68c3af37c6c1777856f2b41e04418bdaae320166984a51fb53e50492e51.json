@@ -1,0 +1,55 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4e7ab0659a5fb3dd53012aeee6e25f5d226522041c541c93068871c56355e77d",
+  "input_digest": "50b3a68c3af37c6c1777856f2b41e04418bdaae320166984a51fb53e50492e51",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b661b6a4061c4088b57b1b3f6146db9cff29053c/scenarios/gen-ai/python/haystack/native/scenarios/automatic_tool_calling.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b2ddaf91cbee9a158ca451a60ca710a958400c3/scenarios/gen-ai/python/haystack/native/scenarios/automatic_tool_calling.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b2ddaf91cbee9a158ca451a60ca710a958400c3/scenarios/gen-ai/python/haystack/native/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b2ddaf91cbee9a158ca451a60ca710a958400c3/scenarios/gen-ai/python/haystack/native/automatic_tool_calling.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b89ck",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9ff44d9e79b0944a63a580931f883634e9f59471/scenarios/gen-ai/python/haystack/scenarios/workflow.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b2ddaf91cbee9a158ca451a60ca710a958400c3/scenarios/gen-ai/python/haystack/scenarios/workflow.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dFF5x",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9ff44d9e79b0944a63a580931f883634e9f59471/scenarios/gen-ai/python/haystack/scenarios/invoke_agent.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b2ddaf91cbee9a158ca451a60ca710a958400c3/scenarios/gen-ai/python/haystack/scenarios/invoke_agent.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dFF6G",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9ff44d9e79b0944a63a580931f883634e9f59471/scenarios/gen-ai/python/haystack/scenarios/automatic_tool_calling.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1b2ddaf91cbee9a158ca451a60ca710a958400c3/scenarios/gen-ai/python/haystack/scenarios/automatic_tool_calling.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dFF6V",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

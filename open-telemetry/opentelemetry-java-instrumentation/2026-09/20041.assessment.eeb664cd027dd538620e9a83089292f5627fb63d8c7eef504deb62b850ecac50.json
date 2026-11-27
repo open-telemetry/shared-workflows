@@ -1,0 +1,138 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c719cc03f662caa0f765a42096c1b55ae1af9f3cf8280d568578e68181bc5f16",
+  "input_digest": "eeb664cd027dd538620e9a83089292f5627fb63d8c7eef504deb62b850ecac50",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/263f9380ca1831c8ffbec8d73e6f5fc5c430ef2e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gYwhF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/263f9380ca1831c8ffbec8d73e6f5fc5c430ef2e/instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/263f9380ca1831c8ffbec8d73e6f5fc5c430ef2e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/hikaricp-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gYwiD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/263f9380ca1831c8ffbec8d73e6f5fc5c430ef2e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gYwi5",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49fac225b8dddebca27006fcd660b0a36fc44ac4/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtilTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gcgPt",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49fac225b8dddebca27006fcd660b0a36fc44ac4/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49fac225b8dddebca27006fcd660b0a36fc44ac4/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/UniversalConnectionPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/UniversalConnectionPoolInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gcgQV",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49fac225b8dddebca27006fcd660b0a36fc44ac4/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49fac225b8dddebca27006fcd660b0a36fc44ac4/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/PoolDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49fac225b8dddebca27006fcd660b0a36fc44ac4/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/UniversalConnectionPoolInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/PoolDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/UniversalConnectionPoolInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gcgQj",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9bb5604e4a93ea55e4c25dd87d7faebfc1fbb5a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbConnectionPoolMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbConnectionPoolMetrics.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gc6rv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9bb5604e4a93ea55e4c25dd87d7faebfc1fbb5a/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolMetricsUtilTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gc6sA",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/46fe1a22490905c39279a4ff69bd7f5df3836fd8/instrumentation/c3p0-0.9/library/src/main/java/io/opentelemetry/instrumentation/c3p0/v0_9/C3p0Telemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/c3p0-0.9/library/src/main/java/io/opentelemetry/instrumentation/c3p0/v0_9/C3p0Telemetry.java"
+      ],
+      "id": "PRRT_kwDODJKVX86kX4Tj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86kX7St",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e34e49562d5c5a9e42a3dbccdc3b2a0f6686b9c7/instrumentation/apache-dbcp-2.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/apache-dbcp-2.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e34e49562d5c5a9e42a3dbccdc3b2a0f6686b9c7/instrumentation/apache-dbcp-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/apache-dbcp-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e34e49562d5c5a9e42a3dbccdc3b2a0f6686b9c7/instrumentation/vibur-dbcp-11.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6b6678b38ab92b5cd5fd17687b281073846b56e/instrumentation/vibur-dbcp-11.0/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86kfMBU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

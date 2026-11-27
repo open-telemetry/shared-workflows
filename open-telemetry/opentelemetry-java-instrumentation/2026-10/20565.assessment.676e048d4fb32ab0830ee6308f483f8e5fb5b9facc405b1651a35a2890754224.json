@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "95d55806d994e82f669df91a1a109eea6708d7df2b55025d4859b867530bf263",
+  "input_digest": "676e048d4fb32ab0830ee6308f483f8e5fb5b9facc405b1651a35a2890754224",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/461e5605f793daffe6e25e7d5b5d6dca4ef6275b/instrumentation/jaxrs/jaxrs-1.0-annotations/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5ede18370dbeee5948314e3a57f96ba0ed274dd8/instrumentation/jaxrs/jaxrs-1.0-annotations/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/461e5605f793daffe6e25e7d5b5d6dca4ef6275b/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5ede18370dbeee5948314e3a57f96ba0ed274dd8/.github/scripts/instrumentations.sh"
+      ],
+      "id": "PRRT_kwDODJKVX86rsN-e",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/461e5605f793daffe6e25e7d5b5d6dca4ef6275b/instrumentation/jaxrs/jaxrs-3.0/jaxrs-3.0-resteasy-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5ede18370dbeee5948314e3a57f96ba0ed274dd8/instrumentation/jaxrs/jaxrs-3.0/jaxrs-3.0-resteasy-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/461e5605f793daffe6e25e7d5b5d6dca4ef6275b/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5ede18370dbeee5948314e3a57f96ba0ed274dd8/.github/scripts/instrumentations.sh"
+      ],
+      "id": "PRRT_kwDODJKVX86rsN-0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

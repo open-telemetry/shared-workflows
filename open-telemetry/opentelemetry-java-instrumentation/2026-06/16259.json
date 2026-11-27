@@ -1,0 +1,866 @@
+{
+  "head": "4ff60272fabfe7da835f704e9a7927de50ffcb74",
+  "merge": "b2035d079e60cccfaaaac8607f0fb4f04b44a2d4",
+  "merged": "2026-06-03T14:29:28Z",
+  "missing_roots": 0,
+  "number": 16259,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "need to think about this more",
+      "created": "2026-02-22T20:19:48Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.instrumenter;\n+\n+import io.opentelemetry.api.logs.LogRecordBuilder;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.LocalRootSpan;\n+\n+/**\n+ * {@link ExceptionEventExtractor} that sets the given event name, using {@link Severity#ERROR} when\n+ * the span is a local root, and {@link Severity#DEBUG} otherwise.",
+      "id": "PRRT_kwDODJKVX85wBRxl",
+      "opened": "2026-02-22T20:19:47Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/instrumenter/DefaultExceptionEventExtractor.java",
+      "replies": [
+        {
+          "at": "2026-02-24T18:25:53Z",
+          "body": "Default by span kind:\r\n\r\n- `SERVER`/`CONSUMER` - `ERROR`\r\n- `CLIENT`/`PRODUCER` - `WARN`\r\n- `INTERNAL` - `DEBUG`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2848858499"
+        },
+        {
+          "at": "2026-02-24T18:32:09Z",
+          "body": "https://github.com/lmolkova/semantic-conventions/blob/96adf3b49f5b73b9c85ddc2e013b22b3acb30228/docs/exceptions/exceptions-logs.md#warn-severity",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2848886988"
+        },
+        {
+          "at": "2026-02-24T18:32:25Z",
+          "body": "(maybe not default for INTERNAL)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2848888160"
+        },
+        {
+          "at": "2026-02-25T03:26:07Z",
+          "body": "Removed defaulting based on whether span is local root.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2850610581"
+        }
+      ],
+      "reviewed": "bc09a65f631774cbda100c9da0de0614ec62b452",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2838463968"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "If the extractor is not set the exception would be lost. Is there a plan to introduce a default extractor or do we need to change the instrumenter api to force user to always provide an extractor?",
+      "created": "2026-03-02T08:44:39Z",
+      "hunk": "@@ -260,7 +278,12 @@ private void doEnd(\n \n     if (error != null) {\n       error = errorCauseExtractor.extract(error);\n-      span.recordException(error);\n+      if (emitExceptionAsSpanEvents()) {\n+        span.recordException(error);\n+      }\n+      if (emitExceptionAsLogs() && exceptionEventExtractor != null) {",
+      "id": "PRRT_kwDODJKVX85xfgvZ",
+      "opened": "2026-03-02T08:44:39Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/Instrumenter.java",
+      "replies": [
+        {
+          "at": "2026-03-03T04:26:07Z",
+          "body": "added a default\n\nname is `{instrumentationName}.exception`\nseverity is WARN\n\ncc @lmolkova ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2876017572"
+        },
+        {
+          "at": "2026-03-12T16:50:36Z",
+          "body": "changed the default to\r\n\r\n- name: `\"exception\"`\r\n- severity: `WARN`\r\n\r\nbased on https://github.com/open-telemetry/semantic-conventions/pull/3311",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2926006170"
+        }
+      ],
+      "reviewed": "ca470b98b36694cb336be69daa57b1f5af233abd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2871186543"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should timestamp be also set?",
+      "created": "2026-03-02T08:47:35Z",
+      "hunk": "@@ -301,6 +324,32 @@ private void doEnd(\n     }\n   }\n \n+  private void emitExceptionLog(Context context, Throwable throwable, REQUEST request) {\n+    if (logger == null || exceptionEventExtractor == null) {\n+      // this condition is to keep nullaway happy\n+      // doEnd already guards on exceptionEventExtractor != null, so this is unreachable\n+      return;\n+    }\n+    LogRecordBuilder logRecordBuilder = logger.logRecordBuilder();",
+      "id": "PRRT_kwDODJKVX85xfixw",
+      "opened": "2026-03-02T08:47:35Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/Instrumenter.java",
+      "replies": [
+        {
+          "at": "2026-03-03T03:13:33Z",
+          "body": "it will default to current time, unfortunately won't use the span \"anchored clock\" though. hopefully we'll get https://github.com/open-telemetry/opentelemetry-specification/issues/4882 and can align exception with the span end time",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2875814765"
+        }
+      ],
+      "reviewed": "ca470b98b36694cb336be69daa57b1f5af233abd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2871197595"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "do we need to make this customizable or use the `ExceptionAttributeResolver` from the sdk?",
+      "created": "2026-03-02T08:49:54Z",
+      "hunk": "@@ -301,6 +324,32 @@ private void doEnd(\n     }\n   }\n \n+  private void emitExceptionLog(Context context, Throwable throwable, REQUEST request) {\n+    if (logger == null || exceptionEventExtractor == null) {\n+      // this condition is to keep nullaway happy\n+      // doEnd already guards on exceptionEventExtractor != null, so this is unreachable\n+      return;\n+    }\n+    LogRecordBuilder logRecordBuilder = logger.logRecordBuilder();\n+    logRecordBuilder.setContext(context);\n+    exceptionEventExtractor.extract(logRecordBuilder, context, request);\n+\n+    if (logRecordBuilder instanceof ExtendedLogRecordBuilder) {\n+      ((ExtendedLogRecordBuilder) logRecordBuilder).setException(throwable);\n+    } else {\n+      logRecordBuilder.setAttribute(EXCEPTION_TYPE, throwable.getClass().getName());\n+      String message = throwable.getMessage();\n+      if (message != null) {\n+        logRecordBuilder.setAttribute(EXCEPTION_MESSAGE, message);\n+      }\n+      StringWriter writer = new StringWriter();\n+      throwable.printStackTrace(new PrintWriter(writer));",
+      "id": "PRRT_kwDODJKVX85xfkiu",
+      "opened": "2026-03-02T08:49:54Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/Instrumenter.java",
+      "replies": [
+        {
+          "at": "2026-03-03T03:27:18Z",
+          "body": "we won't need this whole else condition after the next SDK release: https://github.com/open-telemetry/opentelemetry-java/pull/8089",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2875864499"
+        },
+        {
+          "at": "2026-03-10T00:06:17Z",
+          "body": "removed the condition now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2908579690"
+        }
+      ],
+      "reviewed": "ca470b98b36694cb336be69daa57b1f5af233abd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2871207907"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```java\n    OpenTelemetryAssertions.assertThat(logs.get(0))\n        // Should be WARN (from setExceptionEventExtractor), not ERROR (from CONSUMER span kind)\n        .hasSeverity(Severity.WARN)\n        .hasEventName(\"messaging.client.operation.exception\")\n        .hasAttributesSatisfyingExactly(equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"), \n            equalTo(EXCEPTION_MESSAGE, \"test\"),\n            satisfies(EXCEPTION_STACKTRACE, AbstractAssert::isNotNull));\n```",
+      "created": "2026-03-03T08:33:51Z",
+      "hunk": "@@ -337,14 +375,116 @@ void client_error() {\n     assertThat(spanContext.isValid()).isTrue();\n     assertThat(request).containsKey(\"traceparent\");\n \n-    instrumenter.end(context, request, RESPONSE, new IllegalStateException(\"test\"));\n+    IllegalStateException error = new IllegalStateException(\"test\");\n+    instrumenter.end(context, request, RESPONSE, error);\n \n     otelTesting\n         .assertTraces()\n         .hasTracesSatisfyingExactly(\n             trace ->\n                 trace.hasSpansSatisfyingExactly(\n-                    span -> span.hasName(\"span\").hasStatus(StatusData.error())));\n+                    span ->\n+                        span.hasName(\"span\")\n+                            .hasStatus(StatusData.error())\n+                            .hasException(emitExceptionAsSpanEvents() ? error : null)));\n+\n+    if (emitExceptionAsLogs()) {\n+      List<LogRecordData> logs = otelTesting.getLogRecords();\n+      assertThat(logs).hasSize(1);\n+      LogRecordData log = logs.get(0);\n+      assertThat(log.getSeverity()).isEqualTo(Severity.WARN);\n+      assertThat(log.getEventName()).isEqualTo(\"http.client.request.exception\");\n+      assertThat(log.getAttributes().get(EXCEPTION_TYPE))\n+          .isEqualTo(\"java.lang.IllegalStateException\");\n+      assertThat(log.getAttributes().get(EXCEPTION_MESSAGE)).isEqualTo(\"test\");\n+      assertThat(log.getAttributes().get(EXCEPTION_STACKTRACE)).isNotNull();\n+    }\n+  }\n+\n+  @Test\n+  void consumer_error_with_explicit_severity() {\n+    // Verifies that severity comes from setExceptionEventExtractor, not from span kind.\n+    // A CONSUMER span would get ERROR from span-kind logic, but\n+    // \"messaging.client.operation.exception\" should always be WARN.\n+    InstrumenterBuilder<Map<String, String>, Map<String, String>> builder =\n+        Instrumenter.<Map<String, String>, Map<String, String>>builder(\n+            otelTesting.getOpenTelemetry(), \"test\", unused -> \"span\");\n+    Experimental.setExceptionEventExtractor(\n+        builder,\n+        (logRecordBuilder, context1, request) -> {\n+          logRecordBuilder.setEventName(\"messaging.client.operation.exception\");\n+          logRecordBuilder.setSeverity(Severity.WARN);\n+        });\n+    Instrumenter<Map<String, String>, Map<String, String>> instrumenter =\n+        builder.buildConsumerInstrumenter(new MapGetter());\n+\n+    Context context = instrumenter.start(Context.root(), REQUEST);\n+    assertThat(Span.fromContext(context).getSpanContext().isValid()).isTrue();\n+\n+    IllegalStateException error = new IllegalStateException(\"test\");\n+    instrumenter.end(context, REQUEST, RESPONSE, error);\n+\n+    otelTesting\n+        .assertTraces()\n+        .hasTracesSatisfyingExactly(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasName(\"span\")\n+                            .hasKind(SpanKind.CONSUMER)\n+                            .hasStatus(StatusData.error())\n+                            .hasException(emitExceptionAsSpanEvents() ? error : null)));\n+\n+    if (emitExceptionAsLogs()) {\n+      List<LogRecordData> logs = otelTesting.getLogRecords();\n+      assertThat(logs).hasSize(1);\n+      LogRecordData log = logs.get(0);\n+      // Should be WARN (from setExceptionEventExtractor), not ERROR (from CONSUMER span kind)\n+      assertThat(log.getSeverity()).isEqualTo(Severity.WARN);\n+      assertThat(log.getEventName()).isEqualTo(\"messaging.client.operation.exception\");\n+      assertThat(log.getAttributes().get(EXCEPTION_TYPE))\n+          .isEqualTo(\"java.lang.IllegalStateException\");\n+      assertThat(log.getAttributes().get(EXCEPTION_MESSAGE)).isEqualTo(\"test\");\n+      assertThat(log.getAttributes().get(EXCEPTION_STACKTRACE)).isNotNull();",
+      "id": "PRRT_kwDODJKVX85xvwpB",
+      "opened": "2026-03-03T08:33:50Z",
+      "path": "instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterTest.java",
+      "replies": [],
+      "reviewed": "d06b0e9f5b0950f248e1f66cd07bca678a11db69",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r2876870814"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "SemconvExceptionSignal duplicates the existing property/env resolution logic (including env var naming) instead of using ConfigPropertiesUtil.getString(...). Using the shared util would reduce duplication and keep config behavior consistent with other semconv opt-in flags (e.g., SemconvStability), and it avoids hard-coding the env var name.",
+      "created": "2026-05-08T14:52:07Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import java.util.logging.Logger;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class SemconvExceptionSignal {\n+\n+  private static final Logger logger = Logger.getLogger(SemconvExceptionSignal.class.getName());\n+\n+  private static final boolean emitExceptionAsSpanEvents;\n+  private static final boolean emitExceptionAsLogs;\n+\n+  static {\n+    boolean spanEvents = true;\n+    boolean logs = false;\n+\n+    String value = System.getProperty(\"otel.semconv.exception.signal.opt-in\");\n+    if (value == null) {\n+      value = System.getenv(\"OTEL_SEMCONV_EXCEPTION_SIGNAL_OPT_IN\");\n+    }\n+    if (value != null) {\n+      if (value.equals(\"logs\")) {\n+        spanEvents = false;\n+        logs = true;\n+      } else if (value.equals(\"logs/dup\")) {\n+        spanEvents = true;\n+        logs = true;\n+      } else if (!value.isEmpty()) {\n+        logger.warning(\n+            \"Unrecognized value for otel.semconv.exception.signal.opt-in: \\\"\"\n+                + value\n+                + \"\\\". Expected \\\"logs\\\" or \\\"logs/dup\\\". Defaulting to span events.\");\n+      }",
+      "id": "PRRT_kwDODJKVX86AqAoT",
+      "opened": "2026-05-08T14:52:09Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvExceptionSignal.java",
+      "replies": [],
+      "reviewed": "1c3e7b95ed43b5a29ef66ecdb0944aa1432d4a83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3209463211"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc for setExceptionEventExtractor says it is \"Only used when stable exception semconv is enabled\", but the current implementation is actually gated by the exception-signal opt-in (emitExceptionAsLogs()) in Instrumenter. Please update the comment to reflect the real behavior/flag so it doesn’t mislead future callers.",
+      "created": "2026-05-08T14:52:08Z",
+      "hunk": "@@ -117,4 +121,23 @@ public static <REQUEST, RESPONSE> void internalAddOperationListenerAttributesExt\n     Experimental.operationListenerAttributesExtractorAdder =\n         (BiConsumer) operationListenerAttributesExtractorAdder;\n   }\n+\n+  /**\n+   * Sets the {@link InternalExceptionEventExtractor} that will determine the exception event name\n+   * and severity. Only used when stable exception semconv is enabled.\n+   */\n+  public static <REQUEST> void setExceptionEventExtractor(\n+      InstrumenterBuilder<REQUEST, ?> builder,\n+      InternalExceptionEventExtractor<? super REQUEST> exceptionEventExtractor) {\n+    if (exceptionEventExtractorSetter != null) {\n+      exceptionEventExtractorSetter.accept(builder, exceptionEventExtractor);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86AqAo5",
+      "opened": "2026-05-08T14:52:09Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/Experimental.java",
+      "replies": [],
+      "reviewed": "1c3e7b95ed43b5a29ef66ecdb0944aa1432d4a83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3209463261"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This shared HTTP server span assertion helper still unconditionally expects exception details to be present on spans for EXCEPTION cases (later in this method). With the new opt-in that can disable recording exceptions as span events (otel.semconv.exception.signal.opt-in=logs), these tests will fail when run under that mode. Consider gating span exception assertions on SemconvExceptionSignal.emitExceptionAsSpanEvents() (and optionally asserting the corresponding log signal when emitExceptionAsLogs() is enabled).",
+      "created": "2026-05-08T14:52:08Z",
+      "hunk": "@@ -1084,7 +1084,7 @@ protected SpanDataAssert assertServerSpan(\n         .satisfies(\n             spanData ->\n                 assertThat(spanData.getInstrumentationScopeInfo().getSchemaUrl())\n-                    .isEqualTo(SchemaUrls.V1_37_0));\n+                    .isEqualTo(SchemaUrls.V1_41_0));\n     if (statusCode >= 500) {",
+      "id": "PRRT_kwDODJKVX86AqApa",
+      "opened": "2026-05-08T14:52:09Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpServerTest.java",
+      "replies": [],
+      "reviewed": "1c3e7b95ed43b5a29ef66ecdb0944aa1432d4a83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3209463302"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This shared HTTP client span assertion helper has multiple .hasException(...) expectations in error scenarios, which will break when exceptions are configured to be emitted as logs instead of span events (otel.semconv.exception.signal.opt-in=logs). To keep the test utility usable under both configurations, gate exception span-event assertions on SemconvExceptionSignal.emitExceptionAsSpanEvents() (and optionally assert emitted log records when emitExceptionAsLogs() is enabled).",
+      "created": "2026-05-08T14:52:09Z",
+      "hunk": "@@ -1158,7 +1158,7 @@ protected SpanDataAssert assertClientSpan(\n         .satisfies(\n             spanData ->\n                 assertThat(spanData.getInstrumentationScopeInfo().getSchemaUrl())\n-                    .isEqualTo(SchemaUrls.V1_37_0));\n+                    .isEqualTo(SchemaUrls.V1_41_0));\n   }",
+      "id": "PRRT_kwDODJKVX86AqAp7",
+      "opened": "2026-05-08T14:52:09Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "1c3e7b95ed43b5a29ef66ecdb0944aa1432d4a83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3209463343"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`testExceptionSignalLogs` does not inherit the `collectMetadata` system property that is set for `tasks.test`, so when `otelProps.collectMetadata` is enabled this task won't collect metadata even though it sets `metadataConfig`. Consider moving `systemProperty(\"collectMetadata\", otelProps.collectMetadata)` to `withType<Test>().configureEach { ... }`, or at least duplicating it inside this task as well.",
+      "created": "2026-05-08T18:08:01Z",
+      "hunk": "@@ -23,6 +23,19 @@ tasks.test {\n   systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n }\n \n+tasks {\n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    jvmArgs(\"-Dotel.semconv.exception.signal.opt-in=logs\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.opt-in=logs\")\n+  }",
+      "id": "PRRT_kwDODJKVX86As709",
+      "opened": "2026-05-08T18:08:02Z",
+      "path": "instrumentation/undertow-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "ed72463a2263484e9bbe501f1dd407c8b48d84b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3210508143"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test task runs with `-Dotel.instrumentation.common.experimental.controller-telemetry.enabled=true` from the `withType<Test>().configureEach` block, but it overrides `metadataConfig` to only include `otel.semconv.exception.signal.opt-in=logs`. If metadata collection is enabled, the recorded `metadataConfig` will be incomplete. Consider including both properties in `metadataConfig` (comma-separated), similar to `testStableSemconv`.\n",
+      "created": "2026-05-08T18:08:01Z",
+      "hunk": "@@ -90,8 +90,15 @@ tasks {\n     )\n   }\n \n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    jvmArgs(\"-Dotel.semconv.exception.signal.opt-in=logs\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.opt-in=logs\")",
+      "id": "PRRT_kwDODJKVX86As71m",
+      "opened": "2026-05-08T18:08:02Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "ed72463a2263484e9bbe501f1dd407c8b48d84b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3210508194"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`assertParentExceptionLog` filters for log records with a null/empty event name, but `Instrumenter`’s default exception-log behavior sets `eventName` to \"exception\" (see `Instrumenter.defaultExceptionEventExtractor`). This makes the Awaitility assertion unable to ever match the parent-span exception log when `otel.semconv.exception.signal.opt-in=logs` is enabled, causing the test to time out. Update the filter/assertion to expect event name \"exception\" (or at least include it) for the parent span’s exception log.\n",
+      "created": "2026-05-08T19:22:23Z",
+      "hunk": "@@ -1216,4 +1251,50 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> log.getEventName() == null || log.getEventName().isEmpty())\n+                      .filter(\n+                          log ->",
+      "id": "PRRT_kwDODJKVX86At52c",
+      "opened": "2026-05-08T19:22:23Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "6081ccfc0a3757023de719b9f641d826cd880b10",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3210847976"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment references \"docs/exceptions/exceptions-logs.md\", but that path doesn’t exist in this repo. This makes the rationale hard to verify/maintain; consider updating the reference to an existing doc in this repository or linking to the semantic conventions proposal/URL instead.\n",
+      "created": "2026-05-08T19:41:44Z",
+      "hunk": "@@ -301,6 +325,34 @@ private void doEnd(\n     }\n   }\n \n+  private void emitExceptionLog(Context context, Throwable throwable, REQUEST request) {\n+    if (logger == null || exceptionEventExtractor == null) {\n+      // this condition is to keep nullaway happy\n+      // doEnd already guards on exceptionEventExtractor != null, so this is unreachable\n+      return;\n+    }\n+    LogRecordBuilder logRecordBuilder = logger.logRecordBuilder();\n+    logRecordBuilder.setContext(context);\n+    exceptionEventExtractor.extract(logRecordBuilder, context, request);\n+    logRecordBuilder.setException(throwable);\n+    logRecordBuilder.emit();\n+  }\n+\n+  // Per semconv (docs/exceptions/exceptions-logs.md), SERVER and CONSUMER spans should record\n+  // exceptions with ERROR severity, while CLIENT and PRODUCER spans should use WARN.",
+      "id": "PRRT_kwDODJKVX86AuJ74",
+      "opened": "2026-05-08T19:41:44Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/Instrumenter.java",
+      "replies": [],
+      "reviewed": "e69afd10d3a1a3483408cbb8fe58b0ab30296f74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3210937294"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "SemconvExceptionSignal reads the opt-in flag exclusively via deprecated ConfigPropertiesUtil (system props/env vars). This means the setting won’t work when users configure instrumentation via Declarative Config / ExtendedOpenTelemetry (unlike SemconvStability, which consults DeclarativeConfigProperties first and only falls back to ConfigPropertiesUtil). Consider resolving this flag through ExtendedOpenTelemetry config (or ConfigProvider) first, with ConfigPropertiesUtil as a fallback, to keep new configuration paths consistent and future-proof.",
+      "created": "2026-05-08T19:41:44Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import java.util.logging.Logger;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+@SuppressWarnings(\"deprecation\") // ConfigPropertiesUtil\n+public final class SemconvExceptionSignal {\n+\n+  private static final Logger logger = Logger.getLogger(SemconvExceptionSignal.class.getName());\n+\n+  private static final boolean emitExceptionAsSpanEvents;\n+  private static final boolean emitExceptionAsLogs;\n+\n+  static {\n+    boolean spanEvents = true;\n+    boolean logs = false;\n+\n+    String value = ConfigPropertiesUtil.getString(\"otel.semconv.exception.signal.opt-in\");\n+    if (value != null) {",
+      "id": "PRRT_kwDODJKVX86AuJ7a",
+      "opened": "2026-05-08T19:41:44Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvExceptionSignal.java",
+      "replies": [],
+      "reviewed": "e69afd10d3a1a3483408cbb8fe58b0ab30296f74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3210937258"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `satisfies(EXCEPTION_STACKTRACE, …)` lambda is currently asserting that the assertion object itself is non-null (`assertThat(stacktrace).isNotNull()`), which will always pass and does not verify the attribute value. Call `stacktrace.isNotNull()` (or stronger like `isNotBlank()`), consistent with other `satisfies` usage in this repo.",
+      "created": "2026-05-08T21:51:04Z",
+      "hunk": "@@ -1216,4 +1251,50 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              exception\n+                                  .getClass()\n+                                  .getCanonicalName()\n+                                  .equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getCanonicalName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(\n+                          EXCEPTION_STACKTRACE, stacktrace -> assertThat(stacktrace).isNotNull()));\n+            });",
+      "id": "PRRT_kwDODJKVX86Av2t4",
+      "opened": "2026-05-08T21:51:05Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "ea5c42eebdb3b00791e474745e3eb250003a5c2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211554112"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue here: `assertThat(stacktrace).isNotNull()` only checks that the AssertJ assertion object is non-null, not the stacktrace attribute value. Use `stacktrace.isNotNull()` / `isNotBlank()` so this assertion actually validates the exported log record.",
+      "created": "2026-05-08T21:51:04Z",
+      "hunk": "@@ -1216,4 +1251,50 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              exception\n+                                  .getClass()\n+                                  .getCanonicalName()\n+                                  .equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getCanonicalName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(\n+                          EXCEPTION_STACKTRACE, stacktrace -> assertThat(stacktrace).isNotNull()));\n+            });\n+  }\n+\n+  private void assertClientExceptionLog(Throwable exception, String eventName) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> eventName.equals(log.getEventName()))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getCanonicalName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(\n+                          EXCEPTION_STACKTRACE, stacktrace -> assertThat(stacktrace).isNotNull()));",
+      "id": "PRRT_kwDODJKVX86Av2uM",
+      "opened": "2026-05-08T21:51:05Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "ea5c42eebdb3b00791e474745e3eb250003a5c2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211554138"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When `doEnd()` is invoked with a non-null `endTime` (via `startAndEnd()`), the emitted exception log currently uses the SDK's default timestamp (\"now\") instead of the provided end timestamp. Consider passing `endTime` into `emitExceptionLog` and setting it on the `LogRecordBuilder` so spans and exception logs remain time-consistent for explicit-timestamp instrumentations.",
+      "created": "2026-05-08T21:51:05Z",
+      "hunk": "@@ -260,7 +279,12 @@ private void doEnd(\n \n     if (error != null) {\n       error = errorCauseExtractor.extract(error);\n-      span.recordException(error);\n+      if (emitExceptionAsSpanEvents()) {\n+        span.recordException(error);\n+      }\n+      if (emitExceptionAsLogs() && exceptionEventExtractor != null) {\n+        emitExceptionLog(context, error, request);\n+      }",
+      "id": "PRRT_kwDODJKVX86Av2ue",
+      "opened": "2026-05-08T21:51:05Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/Instrumenter.java",
+      "replies": [],
+      "reviewed": "ea5c42eebdb3b00791e474745e3eb250003a5c2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211554164"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When exception-as-logs is enabled, an exception log is emitted for every non-null error regardless of whether the span is recording or even valid (e.g., suppressed spans or spans dropped by sampling). This can significantly increase log volume and diverges from the previous span-event behavior (recordException is a no-op for non-recording spans). Consider gating log emission on span.isRecording() and/or a valid SpanContext (or whatever suppression semantics you want) so exception logs follow the same suppression/sampling behavior as exception span events.\n",
+      "created": "2026-05-08T23:30:04Z",
+      "hunk": "@@ -260,7 +279,12 @@ private void doEnd(\n \n     if (error != null) {\n       error = errorCauseExtractor.extract(error);\n-      span.recordException(error);\n+      if (emitExceptionAsSpanEvents()) {\n+        span.recordException(error);\n+      }\n+      if (emitExceptionAsLogs() && exceptionEventExtractor != null) {",
+      "id": "PRRT_kwDODJKVX86AwvQe",
+      "opened": "2026-05-08T23:30:05Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/Instrumenter.java",
+      "replies": [],
+      "reviewed": "15bcc10f32d69af34c91c96eb2a215a3a87a2384",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211861980"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue here: exception.getClass().getCanonicalName() can be null and may not match the value produced for exception.type. Prefer getName() when filtering/asserting EXCEPTION_TYPE to avoid NPEs and make the test robust.",
+      "created": "2026-05-08T23:30:05Z",
+      "hunk": "@@ -1216,4 +1251,48 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              exception\n+                                  .getClass()\n+                                  .getCanonicalName()\n+                                  .equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getCanonicalName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(EXCEPTION_STACKTRACE, stacktrace -> stacktrace.isNotNull()));\n+            });\n+  }\n+\n+  private void assertClientExceptionLog(Throwable exception, String eventName) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> eventName.equals(log.getEventName()))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getCanonicalName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(EXCEPTION_STACKTRACE, stacktrace -> stacktrace.isNotNull()));",
+      "id": "PRRT_kwDODJKVX86AwvQ0",
+      "opened": "2026-05-08T23:30:05Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "15bcc10f32d69af34c91c96eb2a215a3a87a2384",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211862008"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using exception.getClass().getCanonicalName() can return null (e.g., anonymous/local classes), which would throw NPE in the filter and also mismatches how exception.type is typically populated (Class#getName). Prefer getName() here (and in the subsequent assertions) to avoid null handling and better match semconv expectations.",
+      "created": "2026-05-08T23:30:05Z",
+      "hunk": "@@ -1216,4 +1251,48 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              exception\n+                                  .getClass()\n+                                  .getCanonicalName()\n+                                  .equals(log.getAttributes().get(EXCEPTION_TYPE)))",
+      "id": "PRRT_kwDODJKVX86AwvQo",
+      "opened": "2026-05-08T23:30:05Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "15bcc10f32d69af34c91c96eb2a215a3a87a2384",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211861990"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions use exception.getClass().getCanonicalName() for exception.type. canonicalName can be null and can differ from the emitted exception.type value (typically Class#getName). Switch to getName() to prevent potential NPEs and avoid false negatives for inner/anonymous exception classes.",
+      "created": "2026-05-08T23:30:05Z",
+      "hunk": "@@ -1216,4 +1251,48 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              exception\n+                                  .getClass()\n+                                  .getCanonicalName()\n+                                  .equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getCanonicalName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(EXCEPTION_STACKTRACE, stacktrace -> stacktrace.isNotNull()));",
+      "id": "PRRT_kwDODJKVX86AwvQw",
+      "opened": "2026-05-08T23:30:05Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "15bcc10f32d69af34c91c96eb2a215a3a87a2384",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211862001"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In these log assertions, the code unconditionally expects the exception.message attribute to be present (equalTo(EXCEPTION_MESSAGE, exception.getMessage())). OTel exception semantic conventions typically omit exception.message when Throwable#getMessage() is null, which would make this assertion fail for null-message exceptions. Mirror AbstractHttpServerTest.assertExceptionLogs by asserting message only when non-null (or otherwise asserting it is absent).",
+      "created": "2026-05-08T23:50:20Z",
+      "hunk": "@@ -1216,4 +1251,48 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              exception\n+                                  .getClass()\n+                                  .getName()\n+                                  .equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(EXCEPTION_STACKTRACE, stacktrace -> stacktrace.isNotNull()));",
+      "id": "PRRT_kwDODJKVX86Aw3eZ",
+      "opened": "2026-05-08T23:50:21Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "4768165cff1a0d13d45815c481c1c5a26dc1d006",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211906613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion requires exception.message to be present even when Throwable#getMessage() is null. Since exception.message is optional and may be omitted when null, this can lead to test failures on some exception types/JDKs. Consider asserting message only when non-null (or asserting absence when null), consistent with the server-side log assertion helper.",
+      "created": "2026-05-08T23:50:21Z",
+      "hunk": "@@ -1216,4 +1251,48 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              exception\n+                                  .getClass()\n+                                  .getName()\n+                                  .equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(EXCEPTION_STACKTRACE, stacktrace -> stacktrace.isNotNull()));\n+            });\n+  }\n+\n+  private void assertClientExceptionLog(Throwable exception, String eventName) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> eventName.equals(log.getEventName()))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exception.getClass().getName()),\n+                      equalTo(EXCEPTION_MESSAGE, exception.getMessage()),\n+                      satisfies(EXCEPTION_STACKTRACE, stacktrace -> stacktrace.isNotNull()));",
+      "id": "PRRT_kwDODJKVX86Aw3ep",
+      "opened": "2026-05-08T23:50:21Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "4768165cff1a0d13d45815c481c1c5a26dc1d006",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3211906634"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Newly added constant is indented differently from the rest of the class (4 spaces vs the file’s consistent 2-space indentation). This will likely fail formatting checks / reduce readability; reformat the class (or run the repo formatter) so the declaration aligns with surrounding code.",
+      "created": "2026-05-09T18:12:19Z",
+      "hunk": "@@ -63,6 +70,8 @@\n @SuppressWarnings(\"deprecation\") // using deprecated semconv\n public abstract class AbstractSpringWebfluxTest {\n \n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.spring-webflux-5.0\";\n+",
+      "id": "PRRT_kwDODJKVX86A13V2",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630265"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When emitExceptionAsSpanEvents() is false (logs-only mode), this test no longer asserts that the exception span event is absent. Adding an explicit assertion for the no-span-event case would prevent regressions where exceptions are still recorded as span events despite logs-only configuration.\n",
+      "created": "2026-05-09T18:12:20Z",
+      "hunk": "@@ -401,16 +410,23 @@ void get404Test() {\n                             equalTo(URL_SCHEME, \"http\"),\n                             satisfies(USER_AGENT_ORIGINAL, val -> val.isInstanceOf(String.class)),\n                             equalTo(HTTP_ROUTE, \"/**\")),\n-                span ->\n-                    span.hasName(\"ResourceWebHandler.handle\")\n-                        .hasKind(SpanKind.INTERNAL)\n-                        .hasParent(trace.getSpan(0))\n-                        .hasStatus(StatusData.error())\n-                        .hasEventsSatisfyingExactly(AbstractSpringWebfluxTest::resource404Exception)\n-                        .hasAttributesSatisfyingExactly(\n-                            codeFunctionAssertions(\n-                                \"org.springframework.web.reactive.resource.ResourceWebHandler\",\n-                                \"handle\"))));\n+                span -> {\n+                  span.hasName(\"ResourceWebHandler.handle\")\n+                      .hasKind(SpanKind.INTERNAL)\n+                      .hasParent(trace.getSpan(0))\n+                      .hasStatus(StatusData.error());\n+                  if (emitExceptionAsSpanEvents()) {\n+                    span.hasEventsSatisfyingExactly(\n+                        AbstractSpringWebfluxTest::resource404Exception);",
+      "id": "PRRT_kwDODJKVX86A13WB",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630283"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The indentation in this block is inconsistent with the rest of the file (it uses deeper indentation than surrounding code), which makes the control flow harder to read and will likely be rewritten by Spotless. Please reformat this span assertion section to match the file’s standard indentation.\n",
+      "created": "2026-05-09T18:12:20Z",
+      "hunk": "@@ -401,16 +410,23 @@ void get404Test() {\n                             equalTo(URL_SCHEME, \"http\"),\n                             satisfies(USER_AGENT_ORIGINAL, val -> val.isInstanceOf(String.class)),\n                             equalTo(HTTP_ROUTE, \"/**\")),\n-                span ->\n-                    span.hasName(\"ResourceWebHandler.handle\")\n-                        .hasKind(SpanKind.INTERNAL)\n-                        .hasParent(trace.getSpan(0))\n-                        .hasStatus(StatusData.error())\n-                        .hasEventsSatisfyingExactly(AbstractSpringWebfluxTest::resource404Exception)\n-                        .hasAttributesSatisfyingExactly(\n-                            codeFunctionAssertions(\n-                                \"org.springframework.web.reactive.resource.ResourceWebHandler\",\n-                                \"handle\"))));\n+                span -> {\n+                  span.hasName(\"ResourceWebHandler.handle\")",
+      "id": "PRRT_kwDODJKVX86A13WG",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630293"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This helper method’s indentation is inconsistent with the rest of the class (extra leading spaces), making it likely to churn in formatting-only commits. Please reformat it to match the file’s standard indentation.\n",
+      "created": "2026-05-09T18:12:20Z",
+      "hunk": "@@ -439,6 +455,23 @@ private static void resource404Exception(EventDataAssert event) {\n     }\n   }\n \n+  private static void assertResource404ExceptionLog() {\n+    if (testLatestDeps()) {\n+      assertHandlerExceptionLog(\n+          type ->\n+              type.isEqualTo(\"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+          message -> message.isInstanceOf(String.class));\n+    } else {\n+      assertHandlerExceptionLog(\n+          type ->\n+              type.isIn(\n+                  \"org.springframework.web.server.ResponseStatusException\",\n+                  // Changed in spring 7+\n+                  \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+          message -> message.contains(\"404\"));",
+      "id": "PRRT_kwDODJKVX86A13WK",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630302"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When emitExceptionAsSpanEvents() is false (logs-only mode), this branch skips event assertions entirely, so the logs-only test run won’t catch accidental emission of an exception span event. Consider asserting that no \"exception\" event is present when span events are disabled.",
+      "created": "2026-05-09T18:12:21Z",
+      "hunk": "@@ -516,19 +549,51 @@ void getToBadEndpointTest(Parameter parameter) {\n                   }\n                   span.hasKind(SpanKind.INTERNAL)\n                       .hasParent(trace.getSpan(0))\n-                      .hasStatus(StatusData.error())\n-                      .hasEventsSatisfyingExactly(\n-                          event ->\n-                              event\n-                                  .hasName(\"exception\")\n-                                  .hasAttributesSatisfyingExactly(\n-                                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                                      equalTo(EXCEPTION_MESSAGE, \"bad things happen\"),\n-                                      satisfies(\n-                                          EXCEPTION_STACKTRACE,\n-                                          val -> val.isInstanceOf(String.class))))\n-                      .hasAttributesSatisfyingExactly(assertCodeFunction(parameter));\n+                      .hasStatus(StatusData.error());\n+                  if (emitExceptionAsSpanEvents()) {\n+                    span.hasEventsSatisfyingExactly(",
+      "id": "PRRT_kwDODJKVX86A13WS",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630315"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The fluent stream pipeline indentation is inconsistent (the chained .filter calls are misaligned), reducing readability and likely to be rewritten by the formatter. Please reformat this stream chain to match surrounding style.\n",
+      "created": "2026-05-09T18:12:21Z",
+      "hunk": "@@ -64,4 +78,29 @@ protected void configure(HttpServerTestOptions options) {\n     options.setTestPathParam(true);\n     options.setHasHandlerSpan(unused -> true);\n   }\n+\n+  protected static void assertHandlerExceptionLog(\n+      StringAssertConsumer exceptionTypeAssertion, StringAssertConsumer exceptionMessageAssertion) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.logRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(\n+                          log ->\n+                              INSTRUMENTATION_NAME.equals(\n+                                  log.getInstrumentationScopeInfo().getName()))",
+      "id": "PRRT_kwDODJKVX86A13WX",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebFluxServerTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630325"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When emitExceptionAsSpanEvents() is false (logs-only mode), this test doesn’t assert that the handler span lacks the \"exception\" span event. Adding an explicit else-assertion (for both EXCEPTION and NOT_FOUND paths) would better validate the logs-only behavior.",
+      "created": "2026-05-09T18:12:21Z",
+      "hunk": "@@ -34,43 +36,63 @@ protected SpanDataAssert assertHandlerSpan(\n     span.hasName(handlerSpanName).hasKind(SpanKind.INTERNAL);\n     if (endpoint == EXCEPTION) {\n       span.hasStatus(StatusData.error());\n-      span.hasEventsSatisfyingExactly(\n-          event ->\n-              event\n-                  .hasName(\"exception\")\n-                  .hasAttributesSatisfyingExactly(\n-                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                      equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n-                      satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n-    } else if (endpoint == NOT_FOUND) {\n-      span.hasStatus(StatusData.error());\n-      if (testLatestDeps()) {\n+      if (emitExceptionAsSpanEvents()) {\n         span.hasEventsSatisfyingExactly(\n             event ->",
+      "id": "PRRT_kwDODJKVX86A13WZ",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractHandlerSpringWebFluxServerTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630330"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When emitExceptionAsSpanEvents() is false (logs-only mode), this test stops asserting that the handler span has no \"exception\" span event. Consider adding an explicit assertion in the else-case (for both EXCEPTION and NOT_FOUND branches) to catch regressions in logs-only mode.",
+      "created": "2026-05-09T18:12:22Z",
+      "hunk": "@@ -35,44 +37,64 @@ protected SpanDataAssert assertHandlerSpan(\n     span.hasName(handlerSpanName).hasKind(SpanKind.INTERNAL);\n     if (endpoint == EXCEPTION) {\n       span.hasStatus(StatusData.error());\n-      span.hasEventsSatisfyingExactly(\n-          event ->\n-              event\n-                  .hasName(\"exception\")\n-                  .hasAttributesSatisfyingExactly(\n-                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                      equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n-                      satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n-    } else if (endpoint == NOT_FOUND) {\n-      span.hasStatus(StatusData.error());\n-      if (testLatestDeps()) {\n-        span.hasEventsSatisfyingExactly(\n-            event ->\n-                event\n-                    .hasName(\"exception\")\n-                    .hasAttributesSatisfyingExactly(\n-                        equalTo(\n-                            EXCEPTION_TYPE,\n-                            \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n-                        equalTo(\n-                            EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n-                        satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n-      } else {\n+      if (emitExceptionAsSpanEvents()) {\n         span.hasEventsSatisfyingExactly(\n             event ->",
+      "id": "PRRT_kwDODJKVX86A13Wi",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractControllerSpringWebFluxServerTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630344"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The else-branch closing brace indentation here is misaligned relative to the corresponding if/else blocks, which hurts readability and is likely to be rewritten by formatting tools. Please reformat this section so braces/indentation line up with the surrounding style.",
+      "created": "2026-05-09T18:12:22Z",
+      "hunk": "@@ -439,6 +455,23 @@ private static void resource404Exception(EventDataAssert event) {\n     }\n   }\n \n+  private static void assertResource404ExceptionLog() {\n+    if (testLatestDeps()) {\n+      assertHandlerExceptionLog(\n+          type ->\n+              type.isEqualTo(\"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+          message -> message.isInstanceOf(String.class));\n+    } else {\n+      assertHandlerExceptionLog(\n+          type ->\n+              type.isIn(\n+                  \"org.springframework.web.server.ResponseStatusException\",\n+                  // Changed in spring 7+\n+                  \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+          message -> message.contains(\"404\"));\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86A13Wk",
+      "opened": "2026-05-09T18:12:22Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [],
+      "reviewed": "88d976625a78ab43067ceddf7c9b6fb998b9fe79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213630347"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the `testExceptionSignalLogs` task, the `metadataConfig` string is missing `=true` for `otel.instrumentation.common.experimental.controller-telemetry.enabled`. This likely prevents controller telemetry from being enabled for this test task and makes the metadata/config string inconsistent with the other test tasks in this module.\n",
+      "created": "2026-05-09T21:09:09Z",
+      "hunk": "@@ -90,8 +90,19 @@ tasks {\n     )\n   }\n \n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    jvmArgs(\"-Dotel.semconv.exception.signal.opt-in=logs\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"otel.instrumentation.common.experimental.controller-telemetry.enabled,\" +",
+      "id": "PRRT_kwDODJKVX86A2oYG",
+      "opened": "2026-05-09T21:09:11Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "cde1b63597820ac745c56682669692a2d3ab3a95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213894659"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `satisfies(AttributeKey, ...)` assertions, the project’s test guidelines expect the lambda parameter to be named `val` (it’s an AssertJ assert object, not the raw value). Rename the `message` parameter accordingly to match the established convention and keep assertions consistent.",
+      "created": "2026-05-09T21:09:10Z",
+      "hunk": "@@ -1017,18 +1026,50 @@ protected void assertTheTraces(\n     }\n \n     testing.waitAndAssertTraces(assertions);\n+\n+    if (endpoint == EXCEPTION\n+        && emitExceptionAsLogs()\n+        && options.hasExceptionOnServerSpan.test(endpoint)) {\n+      assertExceptionLogs(options.expectedException, \"http.server.request.exception\");\n+    }\n   }\n \n   @CanIgnoreReturnValue\n   protected SpanDataAssert assertControllerSpan(SpanDataAssert span, Throwable expectedException) {\n     span.hasName(\"controller\").hasKind(SpanKind.INTERNAL);\n     if (expectedException != null) {\n-      span.hasStatus(StatusData.error());\n-      span.hasException(expectedException);\n+      span.hasStatus(StatusData.error())\n+          .hasException(emitExceptionAsSpanEvents() ? expectedException : null);\n     }\n     return span;\n   }\n \n+  protected void assertExceptionLogs(Throwable expectedException, String expectedEventName) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> expectedEventName.equals(log.getEventName()))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.ERROR)\n+                  .hasEventName(expectedEventName)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, expectedException.getClass().getName()),\n+                      satisfies(\n+                          EXCEPTION_MESSAGE,\n+                          message -> {\n+                            if (expectedException.getMessage() != null) {\n+                              message.isEqualTo(expectedException.getMessage());\n+                            }",
+      "id": "PRRT_kwDODJKVX86A2oYI",
+      "opened": "2026-05-09T21:09:11Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpServerTest.java",
+      "replies": [],
+      "reviewed": "cde1b63597820ac745c56682669692a2d3ab3a95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213894664"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `satisfies(AttributeKey, ...)` assertions, the project’s test guidelines expect the lambda parameter to be named `val` (it’s an AssertJ assert object, not the raw value). Rename the `message` parameter accordingly to match the established convention and keep assertions consistent.",
+      "created": "2026-05-09T21:09:10Z",
+      "hunk": "@@ -1216,4 +1251,62 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    String exceptionType = exceptionType(exception);\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(log -> exceptionType.equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exceptionType),\n+                      satisfies(\n+                          EXCEPTION_MESSAGE,\n+                          message -> {\n+                            if (exception.getMessage() != null) {\n+                              message.isEqualTo(exception.getMessage());\n+                            }\n+                          }),",
+      "id": "PRRT_kwDODJKVX86A2oYN",
+      "opened": "2026-05-09T21:09:11Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "cde1b63597820ac745c56682669692a2d3ab3a95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213894670"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `satisfies(AttributeKey, ...)` assertions, the project’s test guidelines expect the lambda parameter to be named `val` (it’s an AssertJ assert object, not the raw value). Rename the `message` parameter accordingly to match the established convention and keep assertions consistent.",
+      "created": "2026-05-09T21:09:10Z",
+      "hunk": "@@ -1216,4 +1251,62 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    String exceptionType = exceptionType(exception);\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(log -> exceptionType.equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exceptionType),\n+                      satisfies(\n+                          EXCEPTION_MESSAGE,\n+                          message -> {\n+                            if (exception.getMessage() != null) {\n+                              message.isEqualTo(exception.getMessage());\n+                            }\n+                          }),\n+                      satisfies(EXCEPTION_STACKTRACE, stacktrace -> stacktrace.isNotNull()));\n+            });\n+  }\n+\n+  private void assertClientExceptionLog(Throwable exception, String eventName) {\n+    String exceptionType = exceptionType(exception);\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> eventName.equals(log.getEventName()))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exceptionType),\n+                      satisfies(\n+                          EXCEPTION_MESSAGE,\n+                          message -> {\n+                            if (exception.getMessage() != null) {\n+                              message.isEqualTo(exception.getMessage());\n+                            }\n+                          }),",
+      "id": "PRRT_kwDODJKVX86A2oYS",
+      "opened": "2026-05-09T21:09:11Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [],
+      "reviewed": "cde1b63597820ac745c56682669692a2d3ab3a95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213894675"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The log selection in `assertExceptionLogs` filters only by `eventName`, which can pick up unrelated exception logs from other spans/tests and make this assertion flaky. Consider also filtering by exception identity (e.g., `EXCEPTION_TYPE` and/or trace/span context) to ensure you’re asserting on the expected log record(s).\n",
+      "created": "2026-05-09T22:13:51Z",
+      "hunk": "@@ -1017,18 +1026,50 @@ protected void assertTheTraces(\n     }\n \n     testing.waitAndAssertTraces(assertions);\n+\n+    if (endpoint == EXCEPTION\n+        && emitExceptionAsLogs()\n+        && options.hasExceptionOnServerSpan.test(endpoint)) {\n+      assertExceptionLogs(options.expectedException, \"http.server.request.exception\");\n+    }\n   }\n \n   @CanIgnoreReturnValue\n   protected SpanDataAssert assertControllerSpan(SpanDataAssert span, Throwable expectedException) {\n     span.hasName(\"controller\").hasKind(SpanKind.INTERNAL);\n     if (expectedException != null) {\n-      span.hasStatus(StatusData.error());\n-      span.hasException(expectedException);\n+      span.hasStatus(StatusData.error())\n+          .hasException(emitExceptionAsSpanEvents() ? expectedException : null);\n     }\n     return span;\n   }\n \n+  protected void assertExceptionLogs(Throwable expectedException, String expectedEventName) {\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> expectedEventName.equals(log.getEventName()))",
+      "id": "PRRT_kwDODJKVX86A22hy",
+      "opened": "2026-05-09T22:13:52Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpServerTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T01:23:12Z",
+          "body": "Not changing — the exporter is reset per test (`InstrumentationExtension.beforeEach` calls `clearAllExportedData()`), and the assertion already verifies `hasSize(1)` plus `hasAttributesSatisfyingExactly(equalTo(EXCEPTION_TYPE, ...), ...)`. Any unrelated log with the same event name would fail the assertion loudly rather than slip through. Adding extra type/message filters would mask unexpected logs, not surface them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3215896348"
+        }
+      ],
+      "reviewed": "2d29ba09cc588370afde17aafb26d4417441927c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213966251"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`assertClientExceptionLog` collects logs by `eventName` only. If multiple logs with the same event name are emitted (e.g., retries/redirects or other tests sharing the exporter), this can cause flaky `hasSize(1)` assertions or validate the wrong record. Consider filtering by `EXCEPTION_TYPE` (like `assertParentExceptionLog` does) and/or instrumentation scope to make the selection deterministic.\n",
+      "created": "2026-05-09T22:13:52Z",
+      "hunk": "@@ -1216,4 +1251,62 @@ private static int defaultPortForScheme(String scheme) {\n     }\n     throw new IllegalArgumentException(\"Unexpected URI scheme: \" + scheme);\n   }\n+\n+  private void assertParentExceptionLog(Throwable exception) {\n+    String exceptionType = exceptionType(exception);\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> \"exception\".equals(log.getEventName()))\n+                      .filter(log -> exceptionType.equals(log.getAttributes().get(EXCEPTION_TYPE)))\n+                      .collect(toList());\n+\n+              assertThat(logs).hasSize(1);\n+              assertThat(logs.get(0))\n+                  .hasSeverity(Severity.WARN)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(EXCEPTION_TYPE, exceptionType),\n+                      satisfies(\n+                          EXCEPTION_MESSAGE,\n+                          val -> {\n+                            if (exception.getMessage() != null) {\n+                              val.isEqualTo(exception.getMessage());\n+                            }\n+                          }),\n+                      satisfies(EXCEPTION_STACKTRACE, val -> val.isNotNull()));\n+            });\n+  }\n+\n+  private void assertClientExceptionLog(Throwable exception, String eventName) {\n+    String exceptionType = exceptionType(exception);\n+    Awaitility.await()\n+        .untilAsserted(\n+            () -> {\n+              List<LogRecordData> logs =\n+                  testing.getExportedLogRecords().stream()\n+                      .filter(log -> eventName.equals(log.getEventName()))",
+      "id": "PRRT_kwDODJKVX86A22iA",
+      "opened": "2026-05-09T22:13:52Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T01:23:13Z",
+          "body": "Not changing — the exporter is reset per test (`InstrumentationExtension.beforeEach` calls `clearAllExportedData()`), and the assertion already verifies `hasSize(1)` plus `hasAttributesSatisfyingExactly(equalTo(EXCEPTION_TYPE, ...), ...)`. Any unrelated log with the same event name would fail the assertion loudly rather than slip through. Adding extra type/message filters would mask unexpected logs, not surface them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3215896401"
+        }
+      ],
+      "reviewed": "2d29ba09cc588370afde17aafb26d4417441927c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213966267"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file now statically imports both `io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat` and `org.assertj.core.api.Assertions.assertThat`. Mixing two `assertThat` static imports makes it hard to tell which assertion type is being used at each call site, and can become ambiguous if overloads overlap. Consider keeping a single static import and qualifying the other (`Assertions.assertThat(...)` or `OpenTelemetryAssertions.assertThat(...)`) where needed.",
+      "created": "2026-05-09T22:13:52Z",
+      "hunk": "@@ -30,11 +33,14 @@\n import static org.assertj.core.api.Assertions.assertThat;\n import static org.junit.jupiter.api.Named.named;",
+      "id": "PRRT_kwDODJKVX86A22iG",
+      "opened": "2026-05-09T22:13:52Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T01:21:53Z",
+          "body": "Good catch — fixed in c204a4dc792ee48d0f271ebd504ffb7115a13470. `OpenTelemetryAssertions` extends `Assertions`, so the redundant `Assertions.assertThat` static import was dropped. Also added a style-guide note for this in #18675.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3215891963"
+        }
+      ],
+      "reviewed": "2d29ba09cc588370afde17aafb26d4417441927c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213966274"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file has static imports for both `OpenTelemetryAssertions.assertThat` and `org.assertj.core.api.Assertions.assertThat`. Using two different `assertThat` entry points in the same class is easy to misread and can lead to ambiguous resolution if overloads overlap. Consider qualifying one of them (or removing one static import) so it’s explicit which assertion API is being used for lists vs telemetry types.",
+      "created": "2026-05-09T22:13:52Z",
+      "hunk": "@@ -7,21 +7,35 @@\n \n import static io.opentelemetry.instrumentation.testing.junit.http.ServerEndpoint.NOT_FOUND;\n import static io.opentelemetry.instrumentation.testing.junit.http.ServerEndpoint.PATH_PARAM;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_MESSAGE;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_STACKTRACE;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_TYPE;\n+import static java.util.stream.Collectors.toList;\n+import static org.assertj.core.api.Assertions.assertThat;\n ",
+      "id": "PRRT_kwDODJKVX86A22iM",
+      "opened": "2026-05-09T22:13:52Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebFluxServerTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T01:21:54Z",
+          "body": "Good catch — fixed in c204a4dc792ee48d0f271ebd504ffb7115a13470. `OpenTelemetryAssertions` extends `Assertions`, so the redundant `Assertions.assertThat` static import was dropped. Also added a style-guide note for this in #18675.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3215892075"
+        }
+      ],
+      "reviewed": "2d29ba09cc588370afde17aafb26d4417441927c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3213966286"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file statically imports both `io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat` and `org.assertj.core.api.Assertions.assertThat`. Per the style guide, avoid importing `Assertions.assertThat` when `OpenTelemetryAssertions.assertThat` is in use (it already brings all AssertJ `assertThat` overloads into scope), to prevent ambiguity and keep call sites consistent.\n",
+      "created": "2026-05-12T03:33:46Z",
+      "hunk": "@@ -42,12 +48,15 @@\n import static java.nio.charset.StandardCharsets.US_ASCII;\n import static java.util.Collections.singletonList;\n import static java.util.concurrent.TimeUnit.SECONDS;\n+import static java.util.stream.Collectors.toList;\n+import static org.assertj.core.api.Assertions.assertThat;",
+      "id": "PRRT_kwDODJKVX86BSKen",
+      "opened": "2026-05-12T03:33:46Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpServerTest.java",
+      "replies": [],
+      "reviewed": "0051a0b5544af3fd9d8df63d0a36cf55eda0d910",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3223523909"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-actions"
+      },
+      "body": "This connection instrumenter is built manually instead of going through `JavaagentHttpClientInstrumenters.create(...)`, so in `otel.semconv.exception.signal.preview=logs` mode it will fall back to the default exception log event name `exception` instead of the HTTP semconv event name `http.client.request.exception`. Because this error-only connection span is the HTTP client stand-in for failed connects, please install the same HTTP client exception event extractor on this builder before building it.",
+      "created": "2026-05-14T03:22:53Z",
+      "hunk": "@@ -44,7 +44,7 @@ public class NettyClientSingletons {\n             .addAttributesExtractor(\n                 HttpClientServicePeerAttributesExtractor.create(\n                     new NettyConnectHttpAttributesGetter(), GlobalOpenTelemetry.get()))\n-            .setSchemaUrl(SchemaUrls.V1_37_0)\n+            .setSchemaUrl(SchemaUrls.V1_41_0)",
+      "id": "PRRT_kwDODJKVX86B87kg",
+      "opened": "2026-05-14T03:22:53Z",
+      "path": "instrumentation/netty/netty-3.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/netty/v3_8/client/NettyClientSingletons.java",
+      "replies": [
+        {
+          "at": "2026-05-15T03:58:36Z",
+          "body": "Fixed in f721eefc35a. I added a shared HTTP client exception event extractor helper, used it for the Netty 3.8 failed-connect stand-in instrumenter, and applied the same HTTP event name to the Netty 4 error-only connection path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3245818163"
+        }
+      ],
+      "reviewed": "d0ecb52482ebe6787b2838a5615c90546f9e55dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3238867848"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] In `satisfies(...)`/`StringAssertConsumer` lambdas, the parameter represents an AssertJ assert object (not the raw value). Per test conventions in this repo, the outer parameter should be named `val` to make this clear and consistent.",
+      "created": "2026-06-03T03:11:27Z",
+      "hunk": "@@ -439,6 +456,23 @@ private static void resource404Exception(EventDataAssert event) {\n     }\n   }\n \n+  private static void assertResource404ExceptionLog() {\n+    if (testLatestDeps()) {\n+      assertHandlerExceptionLog(\n+          type ->\n+              type.isEqualTo(\"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+          message -> message.isInstanceOf(String.class));\n+    } else {",
+      "id": "PRRT_kwDODJKVX86Gnwpr",
+      "opened": "2026-06-03T03:11:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:26:59Z",
+          "body": "The `val` naming convention applies to lambdas written directly inline as a `satisfies(AttributeKey, lambda)` argument, where the attribute key already documents what is being asserted. Here the lambdas are passed to a custom helper (`assertHandlerExceptionLog(typeAssertion, messageAssertion)`), and the descriptive `type`/`message` names document which attribute each lambda asserts — renaming both to `val` would lose that context. I clarified the review rule to exclude this case in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ff60272fabfe7da835f704e9a7927de50ffcb74.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345726645"
+        }
+      ],
+      "reviewed": "f721eefc35a2dd74f26c8d37c6d61070f7617e80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345685916"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `val` as the lambda parameter name for `StringAssertConsumer`/`satisfies(...)` assertions to reflect that it’s an AssertJ assert object, matching the project’s test conventions.",
+      "created": "2026-06-03T03:11:28Z",
+      "hunk": "@@ -439,6 +456,23 @@ private static void resource404Exception(EventDataAssert event) {\n     }\n   }\n \n+  private static void assertResource404ExceptionLog() {\n+    if (testLatestDeps()) {\n+      assertHandlerExceptionLog(\n+          type ->\n+              type.isEqualTo(\"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+          message -> message.isInstanceOf(String.class));\n+    } else {\n+      assertHandlerExceptionLog(\n+          type ->\n+              type.isIn(\n+                  \"org.springframework.web.server.ResponseStatusException\",\n+                  // Changed in spring 7+\n+                  \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+          message -> message.contains(\"404\"));",
+      "id": "PRRT_kwDODJKVX86GnwqP",
+      "opened": "2026-06-03T03:11:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:27:00Z",
+          "body": "The `val` naming convention applies to lambdas written directly inline as a `satisfies(AttributeKey, lambda)` argument, where the attribute key already documents what is being asserted. Here the lambdas are passed to a custom helper (`assertHandlerExceptionLog(typeAssertion, messageAssertion)`), and the descriptive `type`/`message` names document which attribute each lambda asserts — renaming both to `val` would lose that context. I clarified the review rule to exclude this case in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ff60272fabfe7da835f704e9a7927de50ffcb74.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345726688"
+        }
+      ],
+      "reviewed": "f721eefc35a2dd74f26c8d37c6d61070f7617e80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345685966"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] For `StringAssertConsumer` lambdas used by `satisfies(...)`, prefer naming the assert parameter `val` (it’s an AssertJ assert, not the raw value).",
+      "created": "2026-06-03T03:11:28Z",
+      "hunk": "@@ -516,19 +550,53 @@ void getToBadEndpointTest(Parameter parameter) {\n                   }\n                   span.hasKind(SpanKind.INTERNAL)\n                       .hasParent(trace.getSpan(0))\n-                      .hasStatus(StatusData.error())\n-                      .hasEventsSatisfyingExactly(\n-                          event ->\n-                              event\n-                                  .hasName(\"exception\")\n-                                  .hasAttributesSatisfyingExactly(\n-                                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                                      equalTo(EXCEPTION_MESSAGE, \"bad things happen\"),\n-                                      satisfies(\n-                                          EXCEPTION_STACKTRACE,\n-                                          val -> val.isInstanceOf(String.class))))\n-                      .hasAttributesSatisfyingExactly(assertCodeFunction(parameter));\n+                      .hasStatus(StatusData.error());\n+                  if (emitExceptionAsSpanEvents()) {\n+                    span.hasEventsSatisfyingExactly(\n+                        event ->\n+                            event\n+                                .hasName(\"exception\")\n+                                .hasAttributesSatisfyingExactly(\n+                                    equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n+                                    equalTo(EXCEPTION_MESSAGE, \"bad things happen\"),\n+                                    satisfies(\n+                                        EXCEPTION_STACKTRACE,\n+                                        val -> val.isInstanceOf(String.class))));\n+                  } else {\n+                    span.hasEventsSatisfyingExactly();\n+                  }\n+                  span.hasAttributesSatisfyingExactly(assertCodeFunction(parameter));\n                 }));\n+    if (emitExceptionAsLogs()) {\n+      assertHandlerExceptionLog(\n+          type -> type.isEqualTo(\"java.lang.IllegalStateException\"),\n+          message -> message.isEqualTo(\"bad things happen\"));\n+    }",
+      "id": "PRRT_kwDODJKVX86Gnwqh",
+      "opened": "2026-06-03T03:11:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractSpringWebfluxTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:27:02Z",
+          "body": "The `val` naming convention applies to lambdas written directly inline as a `satisfies(AttributeKey, lambda)` argument, where the attribute key already documents what is being asserted. Here the lambdas are passed to a custom helper (`assertHandlerExceptionLog(typeAssertion, messageAssertion)`), and the descriptive `type`/`message` names document which attribute each lambda asserts — renaming both to `val` would lose that context. I clarified the review rule to exclude this case in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ff60272fabfe7da835f704e9a7927de50ffcb74.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345726743"
+        }
+      ],
+      "reviewed": "f721eefc35a2dd74f26c8d37c6d61070f7617e80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345685992"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Lambda parameter names passed to `assertHandlerExceptionLog` should follow the `satisfies(...)` convention (`val`) to signal the parameter is an AssertJ assertion object.",
+      "created": "2026-06-03T03:11:28Z",
+      "hunk": "@@ -34,43 +36,67 @@ protected SpanDataAssert assertHandlerSpan(\n     span.hasName(handlerSpanName).hasKind(SpanKind.INTERNAL);\n     if (endpoint == EXCEPTION) {\n       span.hasStatus(StatusData.error());\n-      span.hasEventsSatisfyingExactly(\n-          event ->\n-              event\n-                  .hasName(\"exception\")\n-                  .hasAttributesSatisfyingExactly(\n-                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                      equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n-                      satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n-    } else if (endpoint == NOT_FOUND) {\n-      span.hasStatus(StatusData.error());\n-      if (testLatestDeps()) {\n+      if (emitExceptionAsSpanEvents()) {\n         span.hasEventsSatisfyingExactly(\n             event ->\n                 event\n                     .hasName(\"exception\")\n                     .hasAttributesSatisfyingExactly(\n-                        equalTo(\n-                            EXCEPTION_TYPE,\n-                            \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n-                        equalTo(\n-                            EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                        equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n+                        equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n                         satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n       } else {\n-        span.hasEventsSatisfyingExactly(\n-            event ->\n-                event\n-                    .hasName(\"exception\")\n-                    .hasAttributesSatisfyingExactly(\n-                        satisfies(\n-                            EXCEPTION_TYPE,\n-                            val ->\n-                                val.isIn(\n-                                    // changed in spring 7+\n-                                    \"org.springframework.web.server.ResponseStatusException\",\n-                                    \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n-                        satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class)),\n-                        satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\"))));\n+        span.hasEventsSatisfyingExactly();\n+      }\n+    } else if (endpoint == NOT_FOUND) {\n+      span.hasStatus(StatusData.error());\n+      if (emitExceptionAsSpanEvents()) {\n+        if (testLatestDeps()) {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          equalTo(\n+                              EXCEPTION_TYPE,\n+                              \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+                          equalTo(\n+                              EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        } else {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          satisfies(\n+                              EXCEPTION_TYPE,\n+                              val ->\n+                                  val.isIn(\n+                                      // changed in spring 7+\n+                                      \"org.springframework.web.server.ResponseStatusException\",\n+                                      \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class)),\n+                          satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\"))));\n+        }\n+      } else {\n+        span.hasEventsSatisfyingExactly();\n+      }\n+      if (emitExceptionAsLogs()) {\n+        if (testLatestDeps()) {\n+          assertHandlerExceptionLog(\n+              type ->\n+                  type.isEqualTo(\n+                      \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+              message -> message.isEqualTo(\"404 NOT_FOUND \\\"No static resource notFound.\\\"\"));\n+        } else {",
+      "id": "PRRT_kwDODJKVX86Gnwqy",
+      "opened": "2026-06-03T03:11:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractHandlerSpringWebFluxServerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:27:03Z",
+          "body": "The `val` naming convention applies to lambdas written directly inline as a `satisfies(AttributeKey, lambda)` argument, where the attribute key already documents what is being asserted. Here the lambdas are passed to a custom helper (`assertHandlerExceptionLog(typeAssertion, messageAssertion)`), and the descriptive `type`/`message` names document which attribute each lambda asserts — renaming both to `val` would lose that context. I clarified the review rule to exclude this case in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ff60272fabfe7da835f704e9a7927de50ffcb74.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345726797"
+        }
+      ],
+      "reviewed": "f721eefc35a2dd74f26c8d37c6d61070f7617e80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345686017"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `val` for `StringAssertConsumer` lambda parameters (these are AssertJ asserts), for consistency with other `satisfies(...)` assertions across the test suite.",
+      "created": "2026-06-03T03:11:29Z",
+      "hunk": "@@ -34,43 +36,67 @@ protected SpanDataAssert assertHandlerSpan(\n     span.hasName(handlerSpanName).hasKind(SpanKind.INTERNAL);\n     if (endpoint == EXCEPTION) {\n       span.hasStatus(StatusData.error());\n-      span.hasEventsSatisfyingExactly(\n-          event ->\n-              event\n-                  .hasName(\"exception\")\n-                  .hasAttributesSatisfyingExactly(\n-                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                      equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n-                      satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n-    } else if (endpoint == NOT_FOUND) {\n-      span.hasStatus(StatusData.error());\n-      if (testLatestDeps()) {\n+      if (emitExceptionAsSpanEvents()) {\n         span.hasEventsSatisfyingExactly(\n             event ->\n                 event\n                     .hasName(\"exception\")\n                     .hasAttributesSatisfyingExactly(\n-                        equalTo(\n-                            EXCEPTION_TYPE,\n-                            \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n-                        equalTo(\n-                            EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                        equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n+                        equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n                         satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n       } else {\n-        span.hasEventsSatisfyingExactly(\n-            event ->\n-                event\n-                    .hasName(\"exception\")\n-                    .hasAttributesSatisfyingExactly(\n-                        satisfies(\n-                            EXCEPTION_TYPE,\n-                            val ->\n-                                val.isIn(\n-                                    // changed in spring 7+\n-                                    \"org.springframework.web.server.ResponseStatusException\",\n-                                    \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n-                        satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class)),\n-                        satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\"))));\n+        span.hasEventsSatisfyingExactly();\n+      }\n+    } else if (endpoint == NOT_FOUND) {\n+      span.hasStatus(StatusData.error());\n+      if (emitExceptionAsSpanEvents()) {\n+        if (testLatestDeps()) {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          equalTo(\n+                              EXCEPTION_TYPE,\n+                              \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+                          equalTo(\n+                              EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        } else {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          satisfies(\n+                              EXCEPTION_TYPE,\n+                              val ->\n+                                  val.isIn(\n+                                      // changed in spring 7+\n+                                      \"org.springframework.web.server.ResponseStatusException\",\n+                                      \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class)),\n+                          satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\"))));\n+        }\n+      } else {\n+        span.hasEventsSatisfyingExactly();\n+      }\n+      if (emitExceptionAsLogs()) {\n+        if (testLatestDeps()) {\n+          assertHandlerExceptionLog(\n+              type ->\n+                  type.isEqualTo(\n+                      \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+              message -> message.isEqualTo(\"404 NOT_FOUND \\\"No static resource notFound.\\\"\"));\n+        } else {\n+          assertHandlerExceptionLog(\n+              type ->\n+                  type.isIn(\n+                      \"org.springframework.web.server.ResponseStatusException\",\n+                      \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+              message -> message.contains(\"404\"));\n+        }",
+      "id": "PRRT_kwDODJKVX86Gnwq7",
+      "opened": "2026-06-03T03:11:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractHandlerSpringWebFluxServerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:27:05Z",
+          "body": "The `val` naming convention applies to lambdas written directly inline as a `satisfies(AttributeKey, lambda)` argument, where the attribute key already documents what is being asserted. Here the lambdas are passed to a custom helper (`assertHandlerExceptionLog(typeAssertion, messageAssertion)`), and the descriptive `type`/`message` names document which attribute each lambda asserts — renaming both to `val` would lose that context. I clarified the review rule to exclude this case in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ff60272fabfe7da835f704e9a7927de50ffcb74.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345726847"
+        }
+      ],
+      "reviewed": "f721eefc35a2dd74f26c8d37c6d61070f7617e80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345686032"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `val` as the lambda parameter name for `StringAssertConsumer` assertions so it’s clear the parameter is an AssertJ assert object.",
+      "created": "2026-06-03T03:11:29Z",
+      "hunk": "@@ -35,43 +37,67 @@ protected SpanDataAssert assertHandlerSpan(\n     span.hasName(handlerSpanName).hasKind(SpanKind.INTERNAL);\n     if (endpoint == EXCEPTION) {\n       span.hasStatus(StatusData.error());\n-      span.hasEventsSatisfyingExactly(\n-          event ->\n-              event\n-                  .hasName(\"exception\")\n-                  .hasAttributesSatisfyingExactly(\n-                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                      equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n-                      satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n-    } else if (endpoint == NOT_FOUND) {\n-      span.hasStatus(StatusData.error());\n-      if (testLatestDeps()) {\n+      if (emitExceptionAsSpanEvents()) {\n         span.hasEventsSatisfyingExactly(\n             event ->\n                 event\n                     .hasName(\"exception\")\n                     .hasAttributesSatisfyingExactly(\n-                        equalTo(\n-                            EXCEPTION_TYPE,\n-                            \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n-                        equalTo(\n-                            EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                        equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n+                        equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n                         satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n       } else {\n-        span.hasEventsSatisfyingExactly(\n-            event ->\n-                event\n-                    .hasName(\"exception\")\n-                    .hasAttributesSatisfyingExactly(\n-                        satisfies(\n-                            EXCEPTION_TYPE,\n-                            val ->\n-                                val.isIn(\n-                                    \"org.springframework.web.server.ResponseStatusException\",\n-                                    // Changed in spring 7+\n-                                    \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n-                        satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\")),\n-                        satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        span.hasEventsSatisfyingExactly();\n+      }\n+    } else if (endpoint == NOT_FOUND) {\n+      span.hasStatus(StatusData.error());\n+      if (emitExceptionAsSpanEvents()) {\n+        if (testLatestDeps()) {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          equalTo(\n+                              EXCEPTION_TYPE,\n+                              \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+                          equalTo(\n+                              EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        } else {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          satisfies(\n+                              EXCEPTION_TYPE,\n+                              val ->\n+                                  val.isIn(\n+                                      \"org.springframework.web.server.ResponseStatusException\",\n+                                      // Changed in spring 7+\n+                                      \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n+                          satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\")),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        }\n+      } else {\n+        span.hasEventsSatisfyingExactly();\n+      }\n+      if (emitExceptionAsLogs()) {\n+        if (testLatestDeps()) {\n+          assertHandlerExceptionLog(\n+              type ->\n+                  type.isEqualTo(\n+                      \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+              message -> message.isEqualTo(\"404 NOT_FOUND \\\"No static resource notFound.\\\"\"));\n+        } else {",
+      "id": "PRRT_kwDODJKVX86GnwrL",
+      "opened": "2026-06-03T03:11:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractControllerSpringWebFluxServerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:27:06Z",
+          "body": "The `val` naming convention applies to lambdas written directly inline as a `satisfies(AttributeKey, lambda)` argument, where the attribute key already documents what is being asserted. Here the lambdas are passed to a custom helper (`assertHandlerExceptionLog(typeAssertion, messageAssertion)`), and the descriptive `type`/`message` names document which attribute each lambda asserts — renaming both to `val` would lose that context. I clarified the review rule to exclude this case in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ff60272fabfe7da835f704e9a7927de50ffcb74.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345726904"
+        }
+      ],
+      "reviewed": "f721eefc35a2dd74f26c8d37c6d61070f7617e80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345686055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Align `StringAssertConsumer` lambda parameter names with the `satisfies(...)` convention (`val`) to avoid implying the parameter is the raw attribute value.",
+      "created": "2026-06-03T03:11:29Z",
+      "hunk": "@@ -35,43 +37,67 @@ protected SpanDataAssert assertHandlerSpan(\n     span.hasName(handlerSpanName).hasKind(SpanKind.INTERNAL);\n     if (endpoint == EXCEPTION) {\n       span.hasStatus(StatusData.error());\n-      span.hasEventsSatisfyingExactly(\n-          event ->\n-              event\n-                  .hasName(\"exception\")\n-                  .hasAttributesSatisfyingExactly(\n-                      equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n-                      equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n-                      satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n-    } else if (endpoint == NOT_FOUND) {\n-      span.hasStatus(StatusData.error());\n-      if (testLatestDeps()) {\n+      if (emitExceptionAsSpanEvents()) {\n         span.hasEventsSatisfyingExactly(\n             event ->\n                 event\n                     .hasName(\"exception\")\n                     .hasAttributesSatisfyingExactly(\n-                        equalTo(\n-                            EXCEPTION_TYPE,\n-                            \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n-                        equalTo(\n-                            EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                        equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n+                        equalTo(EXCEPTION_MESSAGE, EXCEPTION.getBody()),\n                         satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n       } else {\n-        span.hasEventsSatisfyingExactly(\n-            event ->\n-                event\n-                    .hasName(\"exception\")\n-                    .hasAttributesSatisfyingExactly(\n-                        satisfies(\n-                            EXCEPTION_TYPE,\n-                            val ->\n-                                val.isIn(\n-                                    \"org.springframework.web.server.ResponseStatusException\",\n-                                    // Changed in spring 7+\n-                                    \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n-                        satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\")),\n-                        satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        span.hasEventsSatisfyingExactly();\n+      }\n+    } else if (endpoint == NOT_FOUND) {\n+      span.hasStatus(StatusData.error());\n+      if (emitExceptionAsSpanEvents()) {\n+        if (testLatestDeps()) {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          equalTo(\n+                              EXCEPTION_TYPE,\n+                              \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+                          equalTo(\n+                              EXCEPTION_MESSAGE, \"404 NOT_FOUND \\\"No static resource notFound.\\\"\"),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        } else {\n+          span.hasEventsSatisfyingExactly(\n+              event ->\n+                  event\n+                      .hasName(\"exception\")\n+                      .hasAttributesSatisfyingExactly(\n+                          satisfies(\n+                              EXCEPTION_TYPE,\n+                              val ->\n+                                  val.isIn(\n+                                      \"org.springframework.web.server.ResponseStatusException\",\n+                                      // Changed in spring 7+\n+                                      \"org.springframework.web.reactive.resource.NoResourceFoundException\")),\n+                          satisfies(EXCEPTION_MESSAGE, val -> val.contains(\"404\")),\n+                          satisfies(EXCEPTION_STACKTRACE, val -> val.isInstanceOf(String.class))));\n+        }\n+      } else {\n+        span.hasEventsSatisfyingExactly();\n+      }\n+      if (emitExceptionAsLogs()) {\n+        if (testLatestDeps()) {\n+          assertHandlerExceptionLog(\n+              type ->\n+                  type.isEqualTo(\n+                      \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+              message -> message.isEqualTo(\"404 NOT_FOUND \\\"No static resource notFound.\\\"\"));\n+        } else {\n+          assertHandlerExceptionLog(\n+              type ->\n+                  type.isIn(\n+                      \"org.springframework.web.server.ResponseStatusException\",\n+                      \"org.springframework.web.reactive.resource.NoResourceFoundException\"),\n+              message -> message.contains(\"404\"));\n+        }",
+      "id": "PRRT_kwDODJKVX86GnwrX",
+      "opened": "2026-06-03T03:11:29Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/testing/src/main/java/io/opentelemetry/instrumentation/spring/webflux/server/AbstractControllerSpringWebFluxServerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:27:07Z",
+          "body": "The `val` naming convention applies to lambdas written directly inline as a `satisfies(AttributeKey, lambda)` argument, where the attribute key already documents what is being asserted. Here the lambdas are passed to a custom helper (`assertHandlerExceptionLog(typeAssertion, messageAssertion)`), and the descriptive `type`/`message` names document which attribute each lambda asserts — renaming both to `val` would lose that context. I clarified the review rule to exclude this case in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ff60272fabfe7da835f704e9a7927de50ffcb74.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345726950"
+        }
+      ],
+      "reviewed": "f721eefc35a2dd74f26c8d37c6d61070f7617e80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16259#discussion_r3345686072"
+    }
+  ]
+}

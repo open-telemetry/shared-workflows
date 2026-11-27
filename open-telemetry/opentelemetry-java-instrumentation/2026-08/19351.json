@@ -1,0 +1,145 @@
+{
+  "head": "3577dbf5a85b67dc7e924c54fa29ed4d535ab64c",
+  "merge": "77a00c9420149027009f96b390be1a8ee2e20618",
+  "merged": "2026-08-07T14:07:41Z",
+  "missing_roots": 0,
+  "number": 19351,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In preview mode this returns the context active during `poll`, and the unchanged wrapper/interceptor callers store it in `KafkaConsumerContext`; `TracingIterator` then prefers that stored context over `Context.current()`. If records are iterated under a handler span established after `poll`, the `process` span is incorrectly parented to the poll-time span and ignores the ambient processing context. Avoid carrying the poll parent in stable mode and let iteration capture/clean the context that is current when processing begins; the callers' current null fallback will need to be adjusted as part of that change.",
+      "created": "2026-08-05T22:29:23Z",
+      "hunk": "@@ -90,16 +92,12 @@ public <K, V> Context buildAndFinishSpan(\n               timer.now());\n     }\n \n-    // we're returning the context of the receive span so that process spans can use it as\n-    // parent context even though the span has ended\n-    // this is the suggested behavior according to the spec batch receive scenario:\n-    // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/messaging/messaging-spans.md#batch-receiving\n-    return context;\n+    return emitStableMessagingSemconv() ? parentContext : receiveContext;",
+      "id": "PRRT_kwDODJKVX86Wz5bi",
+      "opened": "2026-08-05T22:29:24Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaConsumerTelemetry.java",
+      "replies": [],
+      "reviewed": "acffb72e38403abb5b8ba2d2462bfd90348b175a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3724520074"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`KafkaClientPropagationDisabledTest` is excluded from the preview task, so the javaagent-specific behavior introduced here—disabled propagation producing a `CLIENT` send span—is never exercised under v1.43. Add a preview-plus-propagation-disabled task and update that test to assert the new span name/kind and absence of injected headers.",
+      "created": "2026-08-05T22:29:24Z",
+      "hunk": "@@ -53,6 +53,29 @@ tasks {\n     include(\"**/KafkaClientSuppressReceiveSpansTest.*\")\n   }\n \n+  val testMessagingPreview = register<Test>(\"testMessagingPreview\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    filter {\n+      excludeTestsMatching(\"KafkaClientPropagationDisabledTest\")",
+      "id": "PRRT_kwDODJKVX86Wz5b0",
+      "opened": "2026-08-05T22:29:24Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-05T23:19:20Z",
+          "body": "Addressed in 06b19929b4875fc874aef8aa6907cc28209272ec: Added a testMessagingPreviewPropagationDisabled task and stable-semconv assertions in KafkaClientPropagationDisabledTest, so the javaagent CLIENT send span, the poll span and the root process span are now exercised under v1.43. Header absence is covered by the inherited testClientHeaderPropagationManualConfig, which now also runs under preview.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3724742257"
+        }
+      ],
+      "reviewed": "acffb72e38403abb5b8ba2d2462bfd90348b175a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3724520111"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This stores the context active during `poll` on every record in preview mode, so `TracingIterator` later ignores any handler span made current between polling and iteration. The resulting `process` span is parented to the poll-time span instead of the ambient context where processing actually begins. For stable semantics, leave the stored context unset and let the iterator capture the cleaned current context at iteration time while retaining the ended receive context only for old semantics.",
+      "created": "2026-08-05T22:29:24Z",
+      "hunk": "@@ -86,16 +87,14 @@ public static void onExit(\n                   timer.now());\n         }\n \n-        // we're storing the context of the receive span so that process spans can use it as\n-        // parent context even though the span has ended\n-        // this is the suggested behavior according to the spec batch receive scenario:\n-        // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/messaging/messaging-spans.md#batch-receiving\n+        Context processParentContext =\n+            emitStableMessagingSemconv() ? parentContext : receiveContext;",
+      "id": "PRRT_kwDODJKVX86Wz5bs",
+      "opened": "2026-08-05T22:29:24Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaclients/v0_11/KafkaConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "acffb72e38403abb5b8ba2d2462bfd90348b175a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3724520100"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe we should copy the comment\n```\n        // ideally we'd want producer callback to be part of the main trace, we just aren't able to\n        // instrument that\n```\nfrom the old test so it would be clear that having this callback span in separate trace is not ideal",
+      "created": "2026-08-06T14:37:45Z",
+      "hunk": "@@ -112,6 +119,48 @@ void testInterceptors() throws InterruptedException {\n \n   void assertTraces() {\n     AtomicReference<SpanContext> producerSpanContext = new AtomicReference<>();\n+\n+    if (emitStableMessagingSemconv()) {\n+      testing.waitAndAssertSortedTraces(\n+          orderByRootSpanName(\"parent\", \"poll \" + SHARED_TOPIC, \"producer callback\"),\n+          trace -> {\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n+                span ->\n+                    span.hasName(\"send \" + SHARED_TOPIC)\n+                        .hasKind(SpanKind.PRODUCER)\n+                        .hasParent(trace.getSpan(0))\n+                        .hasAttributesSatisfyingExactly(\n+                            publishAttributes(captureExperimentalSpanAttributes())),\n+                span ->\n+                    span.hasName(\"process \" + SHARED_TOPIC)\n+                        .hasKind(SpanKind.CONSUMER)\n+                        .hasParent(trace.getSpan(1))\n+                        .hasLinks(LinkData.create(asRemote(trace.getSpan(1).getSpanContext())))\n+                        .hasAttributesSatisfyingExactly(\n+                            processAttributes(captureExperimentalSpanAttributes())),\n+                span ->\n+                    span.hasName(\"process child\")\n+                        .hasKind(SpanKind.INTERNAL)\n+                        .hasParent(trace.getSpan(2)));\n+            SpanContext spanContext = trace.getSpan(1).getSpanContext();\n+            producerSpanContext.set(asRemote(spanContext));\n+          },\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span ->\n+                      span.hasName(\"poll \" + SHARED_TOPIC)\n+                          .hasKind(SpanKind.CLIENT)\n+                          .hasNoParent()\n+                          .hasLinks(LinkData.create(producerSpanContext.get()))\n+                          .hasAttributesSatisfyingExactly(receiveAttributes())),\n+          trace ->",
+      "id": "PRRT_kwDODJKVX86XBfYp",
+      "opened": "2026-08-06T14:37:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/AbstractInterceptorsTest.java",
+      "replies": [
+        {
+          "at": "2026-08-07T03:40:15Z",
+          "body": "Restored in `2cc2ca2`. Turned out the same thing happened in #19350 and #19352, fixed there too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3733276487"
+        }
+      ],
+      "reviewed": "0b314ac5ab7570255440c1002f33cad978efb08e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3729738404"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "for now receive telemetry disabled should be the default, do you plan to change that?",
+      "created": "2026-08-06T14:42:01Z",
+      "hunk": "@@ -6,25 +6,38 @@\n package io.opentelemetry.instrumentation.kafkaclients.v2_6;\n \n import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitOldMessagingSemconv;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_CONSUMER_GROUP_NAME;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_CONSUMER_GROUP;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_OFFSET;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_MESSAGE_BODY_SIZE;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_TYPE;\n import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Arrays.asList;\n \n import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;\n+import java.util.ArrayList;\n+import java.util.List;\n import org.assertj.core.api.AbstractLongAssert;\n import org.assertj.core.api.AbstractStringAssert;\n \n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n class InterceptorsSuppressReceiveSpansTest extends AbstractInterceptorsTest {\n \n   private static final KafkaTelemetry kafkaTelemetry =\n-      KafkaTelemetry.create(testing.getOpenTelemetry());\n+      KafkaTelemetry.builder(testing.getOpenTelemetry())\n+          .setMessagingReceiveTelemetryEnabled(false)",
+      "id": "PRRT_kwDODJKVX86XBlII",
+      "opened": "2026-08-06T14:42:00Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/InterceptorsSuppressReceiveSpansTest.java",
+      "replies": [
+        {
+          "at": "2026-08-07T03:40:21Z",
+          "body": "Under v1.43 receive telemetry defaults to on when unconfigured, which is why the test opts out explicitly here. #19350 does not do this, so I opened #19433 to settle the default across instrumentations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3733276894"
+        }
+      ],
+      "reviewed": "0b314ac5ab7570255440c1002f33cad978efb08e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3729772131"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `MessagingIncubatingAttributes.MESSAGING_CLIENT_ID`?",
+      "created": "2026-08-06T14:47:29Z",
+      "hunk": "@@ -166,6 +229,26 @@ protected static List<AttributeAssertion> receiveAttributes(boolean testHeaders)\n     return assertions;\n   }\n \n+  private static void addClientIdAssertions(\n+      List<AttributeAssertion> assertions, String clientIdPrefix) {\n+    if (emitOldMessagingSemconv()) {\n+      assertions.add(satisfies(MESSAGING_CLIENT_ID_OLD, val -> val.startsWith(clientIdPrefix)));\n+    }\n+    if (emitStableMessagingSemconv()) {\n+      assertions.add(\n+          satisfies(stringKey(\"messaging.client.id\"), val -> val.startsWith(clientIdPrefix)));",
+      "id": "PRRT_kwDODJKVX86XBsWe",
+      "opened": "2026-08-06T14:47:28Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/WrapperTest.java",
+      "replies": [
+        {
+          "at": "2026-08-07T03:40:28Z",
+          "body": "Done in `2cc2ca2` - switched all four test helpers over to the constant.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3733277320"
+        }
+      ],
+      "reviewed": "0b314ac5ab7570255440c1002f33cad978efb08e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3729814691"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "nice, I think we can use the same approach to improve the stability of these tests since I think they don't always create the same amount of traces",
+      "created": "2026-08-06T14:53:35Z",
+      "hunk": "@@ -130,6 +155,27 @@ protected String getKafkaBootstrapServers() {\n     return kafka.getHost() + \":\" + kafkaExposedPort;\n   }\n \n+  @SafeVarargs\n+  @SuppressWarnings(\"varargs\")\n+  protected final void waitAndAssertTracesIgnoringStableReceive(",
+      "id": "PRRT_kwDODJKVX86XB0pQ",
+      "opened": "2026-08-06T14:53:34Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/testing/src/test/java/io/opentelemetry/instrumentation/kafkaconnect/v2_6/KafkaConnectSinkTaskBaseTest.java",
+      "replies": [
+        {
+          "at": "2026-08-07T03:40:35Z",
+          "body": "Done in `2cc2ca2` - the helper is now `waitAndAssertRelevantTraces` and filters out `kafka-connect-status` traces too, so these tests no longer depend on how many status records Connect happens to write. Trade-off is that we lose the incidental coverage that the status topic is instrumented, which was never what these tests were for.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3733277641"
+        }
+      ],
+      "reviewed": "0b314ac5ab7570255440c1002f33cad978efb08e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19351#discussion_r3729863942"
+    }
+  ]
+}

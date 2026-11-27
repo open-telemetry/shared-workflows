@@ -1,0 +1,55 @@
+{
+  "head": "a9a831edae7b92ff12848e9f049e04357df8f4cd",
+  "merge": "cc80df665890a63e22457032d4e318e990d4f360",
+  "merged": "2026-07-20T19:08:17Z",
+  "missing_roots": 0,
+  "number": 283,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename will fail the changelog CI job: fragment basenames must be `<PR_NUMBER>.(added|changed|deprecated|removed|fixed)` and the PR number must match the current PR. Please rename this file accordingly.",
+      "created": "2026-07-18T04:39:37Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+`gen_ai.usage.output_tokens` is now taken directly from `invocation.output_tokens` and no longer auto-added to `thinking_tokens`. \n+Instrumentations must include reasoning/thinking tokens in `output_tokens` when their underlying library API does not do it.",
+      "id": "PRRT_kwDOSbspP86R9AQh",
+      "opened": "2026-07-18T04:39:38Z",
+      "path": "util/opentelemetry-util-genai/.changelog/+reasoning-token-count.changed",
+      "replies": [],
+      "reviewed": "4f5a2fb9730d0ff156c8feca47738369ce7d9cc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/283#discussion_r3607605863"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The first sentence is a bit misleading: previously `thinking_tokens` were added into `output_tokens`, not the other way around. Rewording this helps readers understand what changed.",
+      "created": "2026-07-18T04:39:37Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+`gen_ai.usage.output_tokens` is now taken directly from `invocation.output_tokens` and no longer auto-added to `thinking_tokens`. ",
+      "id": "PRRT_kwDOSbspP86R9AQj",
+      "opened": "2026-07-18T04:39:38Z",
+      "path": "util/opentelemetry-util-genai/.changelog/+reasoning-token-count.changed",
+      "replies": [],
+      "reviewed": "4f5a2fb9730d0ff156c8feca47738369ce7d9cc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/283#discussion_r3607605868"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename will fail the changelog CI job: fragment basenames must be `<PR_NUMBER>.(added|changed|deprecated|removed|fixed)` and the PR number must match the current PR. Please rename this file accordingly.",
+      "created": "2026-07-18T04:39:38Z",
+      "hunk": "@@ -0,0 +1 @@\n+Include reasoning/thinking tokens in `gen_ai.usage.output_tokens` on both the span and the token-usage metric (candidates_token_count excludes thoughts).",
+      "id": "PRRT_kwDOSbspP86R9AQm",
+      "opened": "2026-07-18T04:39:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/283.fixed",
+      "replies": [],
+      "reviewed": "4f5a2fb9730d0ff156c8feca47738369ce7d9cc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/283#discussion_r3607605872"
+    }
+  ]
+}

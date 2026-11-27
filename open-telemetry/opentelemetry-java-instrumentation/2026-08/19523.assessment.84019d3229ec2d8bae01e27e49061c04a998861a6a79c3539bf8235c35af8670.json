@@ -1,0 +1,219 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "efbebc21f709c516921a0ca54f86f5081d95aed7d5ac4d5d26378d645baa0d39",
+  "input_digest": "84019d3229ec2d8bae01e27e49061c04a998861a6a79c3539bf8235c35af8670",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/CapturedMessageHeadersUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_Vd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AwsSdkTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AwsSdkTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_V9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AwsSdkTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AwsSdkTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_Vy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_WI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/NatsTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/NatsTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_WQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_We",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/SpringIntegrationTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/SpringIntegrationTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_Wu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/448fd2bfe83dbecd343597fe36df65e6af189b7b/instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Ya_W1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i5Z",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i6D",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/NatsTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/NatsTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i6f",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i72",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i7F",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/SpringIntegrationTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/SpringIntegrationTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i7b",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AwsSdkTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AwsSdkTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i8F",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AwsSdkTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AwsSdkTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i8h",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03518b535f76535adc5b409e57e000b04da31426/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2789b87c15cbd1a9d98053aaf895623837a14979/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Y-i9D",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

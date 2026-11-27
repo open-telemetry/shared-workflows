@@ -1,0 +1,31 @@
+{
+  "head": "4933dad02d31c14428efe3a4cf3679609ca57878",
+  "merge": "fc378a6c5269fee991d56432aac0dafbab44db49",
+  "merged": "2026-10-23T05:06:22Z",
+  "missing_roots": 0,
+  "number": 20887,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to raise the supported Spring Rabbit minimum to 1.1.0.RELEASE and rename the instrumentation consistently from spring-rabbit-1.0 to spring-rabbit-1.1. Do not create another PR or implement an alternative 1.0 coverage strategy.\n\nThe user explicitly requested: \"Okay, let's bump the Spring Rabbit module to one dot one. This means the module name, the instrumentation name, everything. No need for backwards compatibility because the next release from main is three point zero and we can make breaking changes in major releases.\" This supersedes the earlier assignment to preserve the 1.0 baseline. Treat the support drop and outgoing instrumentation identity change as intentional 3.0 breaking changes. Do not retain spring-rabbit-1.0 aliases, deprecated forwarding packages, or compatibility shims. Preserve the ordinary versionless spring-rabbit selector unless there is a concrete reason it must change; it does not encode the old minimum.\n\nRename instrumentation/spring/spring-rabbit-1.0 to instrumentation/spring/spring-rabbit-1.1 and the Java package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0 to v1_1 throughout production and test sources. Update the main InstrumentationModule name, emitted scope name to io.opentelemetry.spring-rabbit-1.1, scope-version lookup, imports, expected identities, project coordinates, settings.gradle.kts, test instrumentation dependencies, CI and metadata-collection references, generated instrumentation catalog, supported-library documentation, and FOSSA configuration using the repository's generator where applicable. Search the whole repository for old versioned paths and identities, including Spring Integration's dependency and scope assertions in instrumentation/spring/spring-integration-4.1/javaagent.\n\nSet library(\"org.springframework.amqp:spring-rabbit:1.1.0.RELEASE\") and the supported Muzzle range to start at 1.1.0.RELEASE. Verify the compatibility checks against actual symbol behavior, following repository Muzzle conventions rather than assuming a Maven range itself controls runtime matching. Keep the baseline runtime at Spring Rabbit and Spring AMQP 1.1.0.RELEASE with its original RabbitMQ Java client 2.8.1. Verify the resolved runtime graph so shared fixtures do not silently upgrade that baseline. Leave RabbitMQ instrumentation enabled and retain real producer-to-Spring-processing propagation, ownership, and metrics coverage.\n\nRemove the version10Test suite, its test class, and its RabbitMQ-disablement workaround introduced by this PR. Keep the existing version11Test as the real minimum-version integration coverage; preserve the newer default and version20Test coverage. Do not duplicate equivalent baseline suites or raise the unrelated RabbitMQ instrumentation minimum.\n\nAdd a concise breaking-change entry under the appropriate CHANGELOG.md heading for dropping Spring Rabbit 1.0 support and changing the versioned selector and telemetry scope. Put migration history there, not in a new README migration section. Do not add unnecessary documentation inventories or an issue-wide dependency-drift framework.\n\nRead CONTRIBUTING.md and applicable path-specific instructions. Run narrow formatting, baseline dependency inspection, and relevant renamed-module tests plus directly affected Spring Integration interoperability tests where feasible. Confirm no stale operational spring-rabbit-1.0 identities or v1_0 Spring Rabbit package references remain outside intentional historical changelog text. Preserve the existing PR's draft state. Keep PR title and description edits out of your changes; the coordinating session will update them after the coding changes are ready.",
+      "created": "2026-10-23T03:23:42Z",
+      "hunk": "@@ -38,6 +38,14 @@ testing {\n       }\n     }\n \n+    register<JvmTestSuite>(\"version10Test\") {",
+      "id": "PRRT_kwDODJKVX86vde3u",
+      "opened": "2026-10-23T03:23:41Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T03:38:49Z",
+          "body": "Implemented and pushed as `4933dad0`: the module/package, selector, scope, and supported minimum now target 1.1; the 1.0 suite is removed, and RabbitMQ-enabled interoperability remains covered. Muzzle, the renamed module suites, and Spring Integration Rabbit interoperability pass. I did not edit the generated catalog directly: its generator requires repository-wide telemetry collection, including Colima-only tasks unavailable here; the metadata-collection task reference is updated for nightly regeneration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20887#discussion_r4355848567"
+        }
+      ],
+      "reviewed": "acaf5ecf941f23e1be9cd52c42dd5d4408c7a4d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20887#discussion_r4355780669"
+    }
+  ]
+}

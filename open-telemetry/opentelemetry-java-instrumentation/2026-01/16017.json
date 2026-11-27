@@ -1,0 +1,77 @@
+{
+  "head": "214d0130b37de4abd8173c66f8fb8e3604a39574",
+  "merge": "9268602b2b6f6ca1f3cab8d93e237d5e9a382da5",
+  "merged": "2026-01-30T16:49:31Z",
+  "missing_roots": 0,
+  "number": 16017,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "these didn't work previously",
+      "created": "2026-01-27T23:20:15Z",
+      "hunk": "@@ -736,7 +736,15 @@ private static Stream<Arguments> simplifyArgs() {\n             expect(\"SELECT * FROM TABLE WHERE FIELD = ?\", \"SELECT\", \"TABLE\", \"SELECT TABLE\")),\n         Arguments.of(\n             \"SELECT * FROM TABLE WHERE FIELD = $a$nested $b$value$b$ here$a$\",\n-            expect(\"SELECT * FROM TABLE WHERE FIELD = ?\", \"SELECT\", \"TABLE\", \"SELECT TABLE\")));\n+            expect(\"SELECT * FROM TABLE WHERE FIELD = ?\", \"SELECT\", \"TABLE\", \"SELECT TABLE\")),\n+\n+        // Subqueries in comma-separated FROM lists - state properly isolated via operation stack\n+        Arguments.of(\n+            \"SELECT * FROM a, (SELECT * FROM b), c\",\n+            expect(\"SELECT\", null, \"SELECT a SELECT b c\")),\n+        Arguments.of(\n+            \"SELECT * FROM (SELECT * FROM inner1), (SELECT * FROM inner2), outer_table\",\n+            expect(\"SELECT\", null, \"SELECT SELECT inner1 SELECT inner2 outer_table\")));",
+      "id": "PRRT_kwDODJKVX85rVJHk",
+      "opened": "2026-01-27T23:20:15Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlStatementSanitizerTest.java",
+      "replies": [],
+      "reviewed": "24a8e754b318b3d79df4fb81389704da6e717644",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017#discussion_r2734224380"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "what if you have `SELECT * FROM (TABLE)`",
+      "created": "2026-01-28T08:57:19Z",
+      "hunk": "@@ -113,6 +119,23 @@ WHITESPACE           = [ \\t\\r\\n]+\n     this.operation = operation;\n   }\n \n+  /** Push current operation onto stack and reset to none for subquery processing. */\n+  private void pushOperation() {\n+    operationStack.push(operation);\n+    subqueryStartLevels.push(parenLevel);\n+    operation = none;",
+      "id": "PRRT_kwDODJKVX85rY8Vy",
+      "opened": "2026-01-28T08:57:19Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-01-28T19:14:05Z",
+          "body": "I don't think this is valid SQL?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017#discussion_r2738173607"
+        },
+        {
+          "at": "2026-01-29T06:48:27Z",
+          "body": "you can try it our in https://www.db-fiddle.com/ it works on mysql but doesn't on postgres",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017#discussion_r2740205527"
+        },
+        {
+          "at": "2026-01-29T18:17:20Z",
+          "body": "handled now in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017/commits/0eba6fd4fa92a2f86c97d1339daf9f1887169532",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017#discussion_r2742931116"
+        }
+      ],
+      "reviewed": "3cda0ec466554cbedb9bdf6a8be97d8a7f41d625",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017#discussion_r2735543242"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "commenting this line out doesn't seem to make any tests fail",
+      "created": "2026-01-30T14:03:19Z",
+      "hunk": "@@ -113,6 +124,38 @@ WHITESPACE           = [ \\t\\r\\n]+\n     this.operation = operation;\n   }\n \n+  /** Push current operation onto stack and reset to none for subquery processing. */\n+  private void pushOperation() {\n+    operationStack.push(operation);\n+    subqueryStartLevels.push(parenLevel);\n+    operation = none;\n+  }\n+\n+  /** Called when an operation keyword is seen - confirms pending subquery if any. */\n+  private void confirmPendingSubqueryIfNeeded() {\n+    if (pendingSubqueryPush) {\n+      pushOperation();\n+      pendingSubqueryPush = false;\n+    }\n+  }\n+\n+  /** Called when an identifier is seen - cancels pending subquery (it's a parenthesized table name). */\n+  private void cancelPendingSubqueryIfNeeded() {\n+    pendingSubqueryPush = false;",
+      "id": "PRRT_kwDODJKVX85r4BaT",
+      "opened": "2026-01-30T14:03:19Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-01-30T16:09:26Z",
+          "body": "now it does! https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017/commits/214d0130b37de4abd8173c66f8fb8e3604a39574",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017#discussion_r2746968213"
+        }
+      ],
+      "reviewed": "0eba6fd4fa92a2f86c97d1339daf9f1887169532",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16017#discussion_r2746472970"
+    }
+  ]
+}

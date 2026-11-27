@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3f2b80ca0949a792b3fdcadd2603d6707709ff1e0e56635d1681d939fe531b7a",
+  "input_digest": "abeddb5950eda3984eed9daecf26692fcf115412eb48237d10c9b24f46ad91bd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/690efed148175c028dff9a3716dea64008cc1904/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bf072dbee9abc34980ebd90f246c7f0e2a3f6b22/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/bf072dbee9abc34980ebd90f246c7f0e2a3f6b22",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bf072dbee9abc34980ebd90f246c7f0e2a3f6b22/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_merge_streamed_candidates.py"
+      ],
+      "id": "PRRT_kwDOSbspP86tZYYf",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/e470616e7d30d3916903b3921ae718bc47c740ab/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bf072dbee9abc34980ebd90f246c7f0e2a3f6b22/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/compare/e470616e7d30d3916903b3921ae718bc47c740ab...c1d17e08bae509b08e662cf1992cba9cd03ab5d3",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/bf072dbee9abc34980ebd90f246c7f0e2a3f6b22",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bf072dbee9abc34980ebd90f246c7f0e2a3f6b22/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_merge_streamed_candidates.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/c1d17e08bae509b08e662cf1992cba9cd03ab5d3"
+      ],
+      "id": "PRRT_kwDOSbspP86t7rCN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

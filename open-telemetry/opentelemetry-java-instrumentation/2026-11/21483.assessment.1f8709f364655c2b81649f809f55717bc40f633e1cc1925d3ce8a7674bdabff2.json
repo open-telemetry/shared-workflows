@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "031071abb08e2943861a846b890cb2833494d3a5837a12fbbdf06d952091baa5",
+  "input_digest": "1f8709f364655c2b81649f809f55717bc40f633e1cc1925d3ce8a7674bdabff2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8a2fbc56d35354861d3d13c6f54f9a0b9368daab/instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8a2fbc56d35354861d3d13c6f54f9a0b9368daab/instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpclient/v5_0/ApacheHttpAsyncClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ef062854f21c1d4a4edfb1d5c806e9bc2ef051d/instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ef062854f21c1d4a4edfb1d5c806e9bc2ef051d/instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpclient/v5_0/ApacheHttpAsyncClientInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX8676TlM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8a2fbc56d35354861d3d13c6f54f9a0b9368daab/instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8a2fbc56d35354861d3d13c6f54f9a0b9368daab/instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpclient/v5_0/ApacheHttpAsyncClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ef062854f21c1d4a4edfb1d5c806e9bc2ef051d/instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ef062854f21c1d4a4edfb1d5c806e9bc2ef051d/instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpclient/v5_0/ApacheHttpAsyncClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7f38cc5081169bd39aab2c5bd41e93bf7daa2ce2"
+      ],
+      "id": "PRRT_kwDODJKVX8676bbn",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

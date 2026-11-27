@@ -1,0 +1,103 @@
+{
+  "head": "d2961f8c0ef291a850ac1713fac259248025ddb4",
+  "merge": "8d29b12d5a098466682cfee0a0e1330f45757e6d",
+  "merged": "2026-07-09T22:34:17Z",
+  "missing_roots": 0,
+  "number": 221,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`uvx` is invoked without version pinning, so release preparation can become non-reproducible and may reintroduce the code-scanning alert about unpinned tooling. Pin `tox`, `tox-uv`, and `towncrier` versions (ideally matching `uv.lock`) when using `uvx`.",
+      "created": "2026-07-09T00:22:07Z",
+      "hunk": "@@ -35,7 +35,7 @@ fi\n \n sed -i -E \"s/__version__\\\\s*=\\\\s*\\\"${version}\\\\.dev\\\"/__version__ = \\\"${version}\\\"/g\" \"$version_file\"\n \n-tox -e generate\n-towncrier build --yes --version \"$version\" --dir \"$(dirname \"$changelog\")\"\n+uvx --with tox-uv tox -e generate\n+uvx towncrier build --yes --version \"$version\" --dir \"$(dirname \"$changelog\")\"",
+      "id": "PRRT_kwDOSbspP86PadqR",
+      "opened": "2026-07-09T00:22:07Z",
+      "path": "scripts/prepare_package_for_release.sh",
+      "replies": [
+        {
+          "at": "2026-07-09T00:23:26Z",
+          "body": "@copilot but uv is version pinned!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3548046989"
+        }
+      ],
+      "reviewed": "722f0cdc7e12f23ecbfd51677686acb6c3c8fd76",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3548043486"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`uvx` is invoked without version pinning, so patch-release prep can vary over time and may keep code-scanning findings about unpinned tooling. Pin `tox`, `tox-uv`, and `towncrier` versions (ideally matching `uv.lock`) when using `uvx`.",
+      "created": "2026-07-09T00:22:07Z",
+      "hunk": "@@ -43,7 +43,7 @@ fi\n \n sed -i -E \"s/__version__\\\\s*=\\\\s*\\\"${version}\\\"/__version__ = \\\"${next_version}\\\"/g\" \"$version_file\"\n \n-tox -e generate\n-towncrier build --yes --version \"$next_version\" --dir \"$(dirname \"$changelog\")\"\n+uvx --with tox-uv tox -e generate\n+uvx towncrier build --yes --version \"$next_version\" --dir \"$(dirname \"$changelog\")\"",
+      "id": "PRRT_kwDOSbspP86PadqY",
+      "opened": "2026-07-09T00:22:07Z",
+      "path": "scripts/prepare_package_for_patch_release.sh",
+      "replies": [],
+      "reviewed": "722f0cdc7e12f23ecbfd51677686acb6c3c8fd76",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3548043493"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "> dependabot can't read dependencies from examples because of missing pyproject.toml\n\nwhere are you seeing this problem? thanks",
+      "created": "2026-07-09T00:50:07Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86PasSc",
+      "opened": "2026-07-09T00:50:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/manual/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-07-09T01:03:51Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/actions/workflows/dependabot/update-graph?query=is%3Afailure",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3548164948"
+        }
+      ],
+      "reviewed": "722f0cdc7e12f23ecbfd51677686acb6c3c8fd76",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3548126071"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Don't we need to install the actual instrumentation too?",
+      "created": "2026-07-09T04:09:07Z",
+      "hunk": "@@ -0,0 +1,14 @@\n+[project]\n+name = \"otel-genai-langchain-example-manual\"\n+version = \"0.0.0\"\n+description = \"Manual instrumentation example for the OpenTelemetry LangChain instrumentation.\"\n+requires-python = \">=3.10\"\n+dependencies = [",
+      "id": "PRRT_kwDOSbspP86Pckm1",
+      "opened": "2026-07-09T04:10:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/manual/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-07-09T22:24:14Z",
+          "body": "yes, but we so inconsistent here across examples, let's address it for all https://github.com/open-telemetry/opentelemetry-python-genai/issues/243",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3555188173"
+        }
+      ],
+      "reviewed": "055673ba1d78d7a28e8f8891fd19c8aba2f8c112",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3548825751"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "There's also an environment variable [`UV_FROZEN`](https://docs.astral.sh/uv/reference/environment/#uv_frozen) if you prefer to set it in the workflows globally.",
+      "created": "2026-07-09T04:10:06Z",
+      "hunk": "@@ -43,7 +43,7 @@ fi\n \n sed -i -E \"s/__version__\\\\s*=\\\\s*\\\"${version}\\\"/__version__ = \\\"${next_version}\\\"/g\" \"$version_file\"\n \n-tox -e generate\n-towncrier build --yes --version \"$next_version\" --dir \"$(dirname \"$changelog\")\"\n+uv run --frozen tox -e generate",
+      "id": "PRRT_kwDOSbspP86PclLw",
+      "opened": "2026-07-09T04:10:29Z",
+      "path": "scripts/prepare_package_for_patch_release.sh",
+      "replies": [],
+      "reviewed": "055673ba1d78d7a28e8f8891fd19c8aba2f8c112",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/221#discussion_r3548828885"
+    }
+  ]
+}

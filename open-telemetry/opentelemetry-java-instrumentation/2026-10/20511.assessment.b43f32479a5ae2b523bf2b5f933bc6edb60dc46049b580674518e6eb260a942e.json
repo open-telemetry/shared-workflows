@@ -1,0 +1,38 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "63d5f3cb2b6316af114b752a39ca7d372f8087494e43b4a2cae9d45d6febad7f",
+  "input_digest": "b43f32479a5ae2b523bf2b5f933bc6edb60dc46049b580674518e6eb260a942e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a45c93752443ed6acc0784aa21faa96a1fda72ae/smoke-tests/src/test/java/io/opentelemetry/smoketest/AbstractSpringBootSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8710b896a8ad9ae4699341603841ec5d2ded534/smoke-tests/src/test/java/io/opentelemetry/smoketest/AbstractSpringBootSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8710b896a8ad9ae4699341603841ec5d2ded534/javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ea06541def024e9e24da31fa9018842ab7a15a64"
+      ],
+      "id": "PRRT_kwDODJKVX86rVQc-",
+      "kind": "test coverage gap",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86rx5Fj",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/98e13aa63d8bc98cb6cd0f866389893110c5f34d/javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8710b896a8ad9ae4699341603841ec5d2ded534/javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java"
+      ],
+      "id": "PRRT_kwDODJKVX86r8kvM",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

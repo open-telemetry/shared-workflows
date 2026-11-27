@@ -1,0 +1,57 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d2c562a78ebd4d13a021aea7ac9f45f600c276ce06f2b5aa5c88acb90f7198f3",
+  "input_digest": "07e17ac52bb1e31166521894fbf2205a251082b76c5110b95d00441f9879f12f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bdc341cdee9f2237d8f9982869a5b8dc2989c10f/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f829f996775180ae1363da94b411d4d219f8729b/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/3d2d9efcb64c3265af21de64be4c245bbd7e819f"
+      ],
+      "id": "PRRT_kwDOSbspP86gJDMe",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bdc341cdee9f2237d8f9982869a5b8dc2989c10f/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f829f996775180ae1363da94b411d4d219f8729b/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/3d2d9efcb64c3265af21de64be4c245bbd7e819f"
+      ],
+      "id": "PRRT_kwDOSbspP86gJDNV",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/3d2d9efcb64c3265af21de64be4c245bbd7e819f/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f829f996775180ae1363da94b411d4d219f8729b/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/3e53eee4b0d6a90f914abfbe1bab4b27db8511bb"
+      ],
+      "id": "PRRT_kwDOSbspP86g4Nn4",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/3d2d9efcb64c3265af21de64be4c245bbd7e819f/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f829f996775180ae1363da94b411d4d219f8729b/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/7311244afca510fee9fcbc8e939f4f4e9557f838"
+      ],
+      "id": "PRRT_kwDOSbspP86g4NoV",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

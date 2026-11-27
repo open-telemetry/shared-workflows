@@ -1,0 +1,94 @@
+{
+  "head": "0eb2708000da185b6961a82a00ba5d9fe2b385a2",
+  "merge": "e9c2faf72adaf9fdc0d2ae2526a3f49f9370cff9",
+  "merged": "2026-09-29T15:05:40Z",
+  "missing_roots": 0,
+  "number": 20195,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] In the default legacy-semconv task, `assertMetrics()` only verifies that stable metrics are absent, so this test never proves that the second invocation of the reused event starts event and message processing. A regression that suppresses the second event would still pass that task. Assert the second trace's three spans so the reuse behavior is covered in every mode.",
+      "created": "2026-09-20T09:02:47Z",
+      "hunk": "@@ -226,6 +226,26 @@ void processFailureMetrics() {\n         IllegalStateException.class.getName());\n   }\n \n+  @Test\n+  void reusedEventStartsNewProcessing() {\n+    SQSEvent.SQSMessage message = newMessage();\n+    message.setAttributes(emptyMap());\n+    message.setMessageId(\"message1\");\n+    message.setEventSource(\"aws:sqs\");\n+    message.setEventSourceArn(\"arn:aws:sqs:us-east-2:123456789012:queue1\");\n+\n+    SQSEvent event = new SQSEvent();\n+    event.setRecords(asList(message));\n+\n+    TestHandler handler = new TestHandler(testing.getOpenTelemetrySdk());\n+    handler.handleRequest(event, context);\n+    assertMetrics(testing, TracingSqsEventHandler.INSTRUMENTATION_NAME, \"queue1\", 2, 1, null);\n+    testing.clearData();\n+\n+    handler.handleRequest(event, context);\n+    assertMetrics(testing, TracingSqsEventHandler.INSTRUMENTATION_NAME, \"queue1\", 2, 1, null);",
+      "id": "PRRT_kwDODJKVX86kIKFN",
+      "opened": "2026-09-20T09:02:47Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-09-22T19:19:40Z",
+          "body": "Addressed in a26b7cc5aa87580bf468531fcf48dd63474490c2.\n\nFixed in the verified source changes a26b7cc5aa87580bf468531fcf48dd63474490c2.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4075506541"
+        }
+      ],
+      "reviewed": "d19d7d7c712164d6843d36657129073bcaf3a558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4056578259"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new javaagent selection branch is not exercised by the added library tests: those use the library-loaded `ContextKey`, while this advice intentionally has an independently loaded selection. The existing javaagent test only covers a single non-nested event, so using `functionContext` instead of `ambientContext` here (or otherwise breaking same-event delegation/distinct-event nesting) would go undetected. Add javaagent tests that invoke a nested `RequestHandler` with both the same `SQSEvent` and a distinct event, and assert the resulting processing-span counts.",
+      "created": "2026-09-22T19:48:10Z",
+      "hunk": "@@ -93,24 +94,30 @@ public static AdviceScope start(Object arg, Context context) {\n \n         io.opentelemetry.context.Context functionContext =\n             functionInstrumenter().start(parentContext, lambdaRequest);\n+        io.opentelemetry.context.Context ambientContext =\n+            io.opentelemetry.context.Context.current();\n         Scope functionScope = functionContext.makeCurrent();\n \n-        io.opentelemetry.context.Context messageContext = null;\n-        Scope messageScope = null;\n+        io.opentelemetry.context.Context eventContext = null;\n+        Scope eventScope = null;\n         if (arg instanceof SQSEvent) {\n-          if (messageInstrumenter().shouldStart(functionContext, (SQSEvent) arg)) {\n-            messageContext = messageInstrumenter().start(functionContext, (SQSEvent) arg);\n-            messageScope = messageContext.makeCurrent();\n+          SQSEvent sqsEvent = (SQSEvent) arg;\n+          boolean processingSelected = SqsProcessingSelection.isSelected(ambientContext, sqsEvent);\n+          if (!processingSelected && eventInstrumenter().shouldStart(functionContext, sqsEvent)) {\n+            io.opentelemetry.context.Context selectedContext =\n+                SqsProcessingSelection.select(functionContext, sqsEvent);",
+      "id": "PRRT_kwDODJKVX86k46bO",
+      "opened": "2026-09-22T19:48:10Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awslambdaevents/v2_2/AwsLambdaRequestHandlerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-23T16:40:41Z",
+          "body": "Addressed in a9a6b33471fab84ce27d57fdf8b84c59dd8bff5d, 9145c78887b2f89eeed8a637469d6437a2ec171e.\n\nFixed in the verified source changes a9a6b33471fab84ce27d57fdf8b84c59dd8bff5d, 9145c78887b2f89eeed8a637469d6437a2ec171e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4084889913"
+        }
+      ],
+      "reviewed": "06d3771602eb8a99348ba11f9a9229b8835b8fc5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4075768502"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we use `hasParent`",
+      "created": "2026-09-25T10:33:50Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awslambdaevents.v3_11;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.instrumentation.awslambdaevents.v2_2.AwsLambdaSqsMetricsAssertions.assertMetrics;\n+import static java.util.Collections.emptyMap;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.when;\n+\n+import com.amazonaws.services.lambda.runtime.Context;\n+import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;\n+import com.amazonaws.services.lambda.runtime.events.SQSEvent;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import io.opentelemetry.sdk.OpenTelemetrySdk;\n+import java.lang.reflect.Constructor;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.ExtendWith;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.mockito.Mock;\n+import org.mockito.junit.jupiter.MockitoExtension;\n+\n+@ExtendWith(MockitoExtension.class)\n+class AwsLambdaSqsNestedEventHandlerTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @Mock private Context context;\n+\n+  @BeforeEach\n+  void setUp() {\n+    when(context.getFunctionName()).thenReturn(\"my_function\");\n+    when(context.getAwsRequestId()).thenReturn(\"1-22-333\");\n+  }\n+\n+  @Test\n+  void distinctNestedEventStartsProcessing() {\n+    SQSEvent outerEvent = newEvent(\"outer\");\n+    SQSEvent nestedEvent = newEvent(\"nested\");\n+\n+    SQSBatchResponse result =\n+        new NestedHandler(testing.getOpenTelemetrySdk(), nestedEvent)\n+            .handleRequest(outerEvent, context);\n+\n+    assertThat(result).isNull();\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"my_function\").hasKind(SpanKind.SERVER),\n+                span ->\n+                    span.hasName(\n+                            emitStableMessagingSemconv() ? \"process queue1\" : \"aws:sqs process\")\n+                        .hasKind(SpanKind.CONSUMER)\n+                        .hasParentSpanId(trace.getSpan(0).getSpanId()),",
+      "id": "PRRT_kwDODJKVX86l90R7",
+      "opened": "2026-09-25T10:33:49Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsNestedEventHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T15:52:49Z",
+          "body": "73924a1bbf008dc13b71ba46fa68660e0ddae7dc",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4106246087"
+        }
+      ],
+      "reviewed": "9145c78887b2f89eeed8a637469d6437a2ec171e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4103687297"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering what makes this use case special so that we don't suppress the nested consumer span",
+      "created": "2026-09-25T11:13:44Z",
+      "hunk": "@@ -270,18 +319,14 @@ void nestedProcessSpan() {\n     new TestHandler(openTelemetrySdk, eventInstrumenter).handleRequest(event, context);\n \n     testing.waitAndAssertTraces(\n-        trace -> {\n-          if (emitStableMessagingSemconv()) {\n-            trace.hasSpansSatisfyingExactly(\n-                span -> span.hasName(\"my_function\"),\n-                span -> span.hasName(\"custom process\").hasKind(SpanKind.CONSUMER));\n-          } else {\n+        trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span -> span.hasName(\"my_function\"),\n                 span -> span.hasName(\"custom process\").hasKind(SpanKind.CONSUMER),\n-                span -> span.hasName(\"aws:sqs process\").hasKind(SpanKind.CONSUMER));\n-          }\n-        });\n+                span ->",
+      "id": "PRRT_kwDODJKVX86l-deL",
+      "opened": "2026-09-25T11:13:44Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-09-28T04:43:13Z",
+          "body": "fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0eb2708000da185b6961a82a00ba5d9fe2b385a2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4118630410"
+        }
+      ],
+      "reviewed": "9145c78887b2f89eeed8a637469d6437a2ec171e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20195#discussion_r4103947106"
+    }
+  ]
+}

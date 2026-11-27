@@ -1,0 +1,262 @@
+{
+  "head": "f78b234892f4217fdd89e6b93758bca8a23b8e35",
+  "merge": "1a73c37e5922cfcf514e62aeb8a225cec7df1362",
+  "merged": "2026-08-26T21:28:03Z",
+  "missing_roots": 0,
+  "number": 466,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This autouse fixture mutates `os.environ` without restoring it, which can leak state across tests (especially when running the full suite). Prefer using pytest’s `monkeypatch` fixture (or yielding and restoring the previous value) so the environment change is automatically reverted.",
+      "created": "2026-08-24T19:13:03Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Test configuration and fixtures for Portkey AI instrumentation tests.\"\"\"\n+\n+from __future__ import annotations\n+\n+import os\n+\n+import pytest\n+\n+from opentelemetry.instrumentation.genai.portkey import PortkeyInstrumentor\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+pytest_plugins = [\n+    \"opentelemetry.test_util_genai.fixtures\",\n+    \"opentelemetry.test_util_genai.vcr\",\n+]\n+\n+\n+@pytest.fixture(autouse=True)\n+def environment():\n+    if not os.getenv(\"PORTKEY_API_KEY\"):\n+        os.environ[\"PORTKEY_API_KEY\"] = \"test_portkey_api_key\"",
+      "id": "PRRT_kwDOSbspP86b0iTl",
+      "opened": "2026-08-24T19:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/conftest.py",
+      "replies": [],
+      "reviewed": "f4092498b4706a121e1a132a4139ceea65037821",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3846654086"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Dictionaries are `Iterable`, so if `content` is a `dict` (rather than a list of dict parts), this will iterate over keys and incorrectly record them as text parts. A concrete fix is to exclude mappings from the iterable branch (e.g., check `isinstance(content, Iterable) and not isinstance(content, (str, Mapping))`) and handle `Mapping` explicitly if Portkey/providers can return structured content objects.",
+      "created": "2026-08-24T19:13:04Z",
+      "hunk": "@@ -0,0 +1,347 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Utilities for extracting telemetry from Portkey AI requests and responses.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterable, Mapping\n+from typing import Any, cast\n+from urllib.parse import urlparse\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    FunctionToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def get_property_value(obj: Any, property_name: str) -> Any:\n+    \"\"\"Extract a property value from either a dict or an object attribute.\"\"\"\n+    if isinstance(obj, dict):\n+        return cast(dict[str, Any], obj).get(property_name)\n+    return getattr(obj, property_name, None)\n+\n+\n+def value_is_set(value: Any) -> bool:\n+    \"\"\"Check if a value is meaningful (not None, Omit, or NotGiven).\"\"\"\n+    if value is None:\n+        return False\n+    type_name = type(value).__name__\n+    if type_name in (\"Omit\", \"NotGiven\"):\n+        return False\n+    return True\n+\n+\n+def get_value(value: Any) -> Any:\n+    \"\"\"Return the value if set, else None.\"\"\"\n+    return value if value_is_set(value) else None\n+\n+\n+def is_streaming(kwargs: dict[str, Any]) -> bool:\n+    \"\"\"Check whether the request is configured for streaming.\"\"\"\n+    stream = kwargs.get(\"stream\")\n+    if not value_is_set(stream):\n+        return False\n+    return bool(stream)\n+\n+\n+def get_provider(client_instance: Any) -> str:\n+    \"\"\"Derive the provider name from the Portkey client instance.\"\"\"\n+    provider = getattr(client_instance, \"provider\", None)\n+    if provider and isinstance(provider, str):\n+        return provider.lower()\n+    return \"portkey\"\n+\n+\n+def get_server_address_and_port(\n+    client_instance: Any,\n+) -> tuple[str | None, int | None]:\n+    \"\"\"Extract the server host and port from client base_url.\"\"\"\n+    base_url = getattr(client_instance, \"base_url\", None)\n+    if not base_url:\n+        return None, None\n+\n+    url = urlparse(str(base_url))\n+    address = url.hostname\n+    port = url.port\n+    if port == 443:\n+        port = None\n+    return address, port\n+\n+\n+def _extract_tool_calls(tool_calls: Iterable[Any]) -> list[ToolCallRequest]:\n+    parts: list[ToolCallRequest] = []\n+    for tool_call in tool_calls:\n+        call_id = get_property_value(tool_call, \"id\")\n+        func_name = \"\"\n+        arguments: Any = None\n+        func = get_property_value(tool_call, \"function\")\n+        if func is not None:\n+            func_name = str(get_property_value(func, \"name\") or \"\")\n+            args_raw = get_property_value(func, \"arguments\")\n+            if isinstance(args_raw, str):\n+                try:\n+                    arguments = json.loads(args_raw)\n+                except Exception:\n+                    arguments = args_raw\n+            elif args_raw is not None:\n+                arguments = args_raw\n+        parts.append(\n+            ToolCallRequest(\n+                id=str(call_id) if call_id is not None else None,\n+                name=func_name,\n+                arguments=arguments,\n+            )\n+        )\n+    return parts\n+\n+\n+def _prepare_input_messages(messages: Iterable[Any]) -> list[InputMessage]:\n+    chat_messages: list[InputMessage] = []\n+    for message in messages:\n+        role = get_property_value(message, \"role\")\n+        if role is None:\n+            continue\n+        parts: list[MessagePart] = []\n+        content = get_property_value(message, \"content\")\n+        tool_calls = get_property_value(message, \"tool_calls\")\n+        tool_call_id = get_property_value(message, \"tool_call_id\")\n+\n+        if tool_calls is not None and isinstance(tool_calls, Iterable):\n+            parts.extend(_extract_tool_calls(cast(Iterable[Any], tool_calls)))\n+        if tool_call_id is not None:\n+            parts.append(\n+                ToolCallResponse(id=str(tool_call_id), response=content)\n+            )\n+        elif content:\n+            if isinstance(content, str):\n+                parts.append(Text(content=content))\n+            elif isinstance(content, Iterable):\n+                for item in cast(Iterable[Any], content):\n+                    if isinstance(item, str):\n+                        parts.append(Text(content=item))\n+                    elif isinstance(item, dict):\n+                        item_dict = cast(dict[str, Any], item)",
+      "id": "PRRT_kwDOSbspP86b0iUM",
+      "opened": "2026-08-24T19:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [],
+      "reviewed": "f4092498b4706a121e1a132a4139ceea65037821",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3846654147"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For streamed tool-calls, later chunks may provide `id`/`function.name` after the buffer is created (or may provide them only once, depending on provider). Currently, `tool_call_id` and `function_name` are only set when `buffer is None`, so they will never be updated if they arrive in a later chunk. Consider updating `buffer.tool_call_id` / `buffer.function_name` when they are still unset and the incoming chunk contains a value.",
+      "created": "2026-08-24T19:13:04Z",
+      "hunk": "@@ -0,0 +1,247 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Stream wrappers for Portkey AI instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterable\n+from typing import Any, cast\n+\n+from opentelemetry.instrumentation.genai.portkey.utils import (\n+    get_property_value,\n+)\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.stream import (\n+    AsyncStreamWrapper,\n+    SyncStreamWrapper,\n+)\n+from opentelemetry.util.genai.types import (\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+)\n+\n+\n+class ToolCallBuffer:\n+    def __init__(\n+        self,\n+        index: int,\n+        tool_call_id: str | None,\n+        function_name: str | None,\n+    ) -> None:\n+        self.index: int = index\n+        self.function_name: str | None = function_name\n+        self.tool_call_id: str | None = tool_call_id\n+        self.arguments: list[str] = []\n+\n+    def append_arguments(self, arguments: str | None) -> None:\n+        if arguments is not None:\n+            self.arguments.append(arguments)\n+\n+\n+class ChoiceBuffer:\n+    def __init__(self, index: int) -> None:\n+        self.index: int = index\n+        self.finish_reason: str | None = None\n+        self.text_content: list[str] = []\n+        self.tool_calls_buffers: list[ToolCallBuffer | None] = []\n+\n+    def append_text_content(self, content: str) -> None:\n+        self.text_content.append(content)\n+\n+    def append_tool_call(self, tool_call: Any) -> None:\n+        idx = get_property_value(tool_call, \"index\") or 0\n+        for _ in range(len(self.tool_calls_buffers), idx + 1):\n+            self.tool_calls_buffers.append(None)\n+\n+        function = get_property_value(tool_call, \"function\")\n+        buffer = self.tool_calls_buffers[idx]\n+        if buffer is None:\n+            func_name = (\n+                get_property_value(function, \"name\") if function else None\n+            )\n+            call_id = get_property_value(tool_call, \"id\")\n+            buffer = ToolCallBuffer(\n+                idx,\n+                str(call_id) if call_id is not None else None,\n+                str(func_name) if func_name is not None else None,\n+            )\n+            self.tool_calls_buffers[idx] = buffer\n+\n+        if function:\n+            args = get_property_value(function, \"arguments\")\n+            if args is not None:\n+                buffer.append_arguments(str(args))",
+      "id": "PRRT_kwDOSbspP86b0iUt",
+      "opened": "2026-08-24T19:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/wrappers.py",
+      "replies": [],
+      "reviewed": "f4092498b4706a121e1a132a4139ceea65037821",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3846654200"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Defaulting `finish_reason` to the string \\\"error\\\" for successful streams where the provider never sets `finish_reason` can mislabel normal completions as failures (even though the invocation ends via `stop()`). A safer default is to omit the finish reason (if allowed by `OutputMessage`) or default to something consistent with non-streaming handling (e.g., \\\"stop\\\") while keeping actual errors signaled via `invocation.fail(error)`.",
+      "created": "2026-08-24T19:13:04Z",
+      "hunk": "@@ -0,0 +1,247 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Stream wrappers for Portkey AI instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterable\n+from typing import Any, cast\n+\n+from opentelemetry.instrumentation.genai.portkey.utils import (\n+    get_property_value,\n+)\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.stream import (\n+    AsyncStreamWrapper,\n+    SyncStreamWrapper,\n+)\n+from opentelemetry.util.genai.types import (\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+)\n+\n+\n+class ToolCallBuffer:\n+    def __init__(\n+        self,\n+        index: int,\n+        tool_call_id: str | None,\n+        function_name: str | None,\n+    ) -> None:\n+        self.index: int = index\n+        self.function_name: str | None = function_name\n+        self.tool_call_id: str | None = tool_call_id\n+        self.arguments: list[str] = []\n+\n+    def append_arguments(self, arguments: str | None) -> None:\n+        if arguments is not None:\n+            self.arguments.append(arguments)\n+\n+\n+class ChoiceBuffer:\n+    def __init__(self, index: int) -> None:\n+        self.index: int = index\n+        self.finish_reason: str | None = None\n+        self.text_content: list[str] = []\n+        self.tool_calls_buffers: list[ToolCallBuffer | None] = []\n+\n+    def append_text_content(self, content: str) -> None:\n+        self.text_content.append(content)\n+\n+    def append_tool_call(self, tool_call: Any) -> None:\n+        idx = get_property_value(tool_call, \"index\") or 0\n+        for _ in range(len(self.tool_calls_buffers), idx + 1):\n+            self.tool_calls_buffers.append(None)\n+\n+        function = get_property_value(tool_call, \"function\")\n+        buffer = self.tool_calls_buffers[idx]\n+        if buffer is None:\n+            func_name = (\n+                get_property_value(function, \"name\") if function else None\n+            )\n+            call_id = get_property_value(tool_call, \"id\")\n+            buffer = ToolCallBuffer(\n+                idx,\n+                str(call_id) if call_id is not None else None,\n+                str(func_name) if func_name is not None else None,\n+            )\n+            self.tool_calls_buffers[idx] = buffer\n+\n+        if function:\n+            args = get_property_value(function, \"arguments\")\n+            if args is not None:\n+                buffer.append_arguments(str(args))\n+\n+\n+class _PortkeyStreamMixin:\n+    \"\"\"Stream processing hooks shared by sync and async wrappers.\"\"\"\n+\n+    _self_invocation: InferenceInvocation\n+    _self_capture_content: bool\n+    _self_choice_buffers: list[ChoiceBuffer]\n+    _self_response_id: str | None\n+    _self_prompt_tokens: int | None\n+    _self_completion_tokens: int | None\n+\n+    def _process_chunk(self, chunk: Any) -> None:\n+        if not self._self_response_id:\n+            resp_id = get_property_value(chunk, \"id\")\n+            if resp_id:\n+                self._self_response_id = str(resp_id)\n+\n+        if not self._self_invocation.response_model_name:\n+            model = get_property_value(chunk, \"model\")\n+            if model:\n+                self._self_invocation.response_model_name = str(model)\n+\n+        usage = get_property_value(chunk, \"usage\")\n+        if usage is not None:\n+            prompt_tokens = get_property_value(usage, \"prompt_tokens\")\n+            if prompt_tokens is not None:\n+                self._self_prompt_tokens = int(prompt_tokens)\n+            completion_tokens = get_property_value(usage, \"completion_tokens\")\n+            if completion_tokens is not None:\n+                self._self_completion_tokens = int(completion_tokens)\n+\n+        choices = get_property_value(chunk, \"choices\")\n+        if choices is not None and isinstance(choices, Iterable):\n+            for choice in cast(Iterable[Any], choices):\n+                idx = get_property_value(choice, \"index\") or 0\n+                for _ in range(len(self._self_choice_buffers), idx + 1):\n+                    self._self_choice_buffers.append(\n+                        ChoiceBuffer(len(self._self_choice_buffers))\n+                    )\n+\n+                finish_reason = get_property_value(choice, \"finish_reason\")\n+                if finish_reason:\n+                    self._self_choice_buffers[idx].finish_reason = str(\n+                        finish_reason\n+                    )\n+\n+                delta = get_property_value(choice, \"delta\")\n+                if delta is not None:\n+                    content = get_property_value(delta, \"content\")\n+                    if content is not None:\n+                        self._self_choice_buffers[idx].append_text_content(\n+                            str(content)\n+                        )\n+                    tool_calls = get_property_value(delta, \"tool_calls\")\n+                    if tool_calls is not None and isinstance(\n+                        tool_calls, Iterable\n+                    ):\n+                        for tool_call in cast(Iterable[Any], tool_calls):\n+                            self._self_choice_buffers[idx].append_tool_call(\n+                                tool_call\n+                            )\n+\n+                text = get_property_value(choice, \"text\")\n+                if text is not None:\n+                    self._self_choice_buffers[idx].append_text_content(\n+                        str(text)\n+                    )\n+\n+    def _set_output_messages(self) -> None:\n+        if not self._self_capture_content:\n+            return\n+        output_messages: list[OutputMessage] = []\n+        for choice in self._self_choice_buffers:\n+            parts: list[MessagePart] = []\n+            if choice.text_content:\n+                parts.append(Text(content=\"\".join(choice.text_content)))\n+            if choice.tool_calls_buffers:\n+                tool_calls: list[ToolCallRequest] = []\n+                for tool_call in filter(None, choice.tool_calls_buffers):\n+                    arguments = None\n+                    args_str = \"\".join(tool_call.arguments)\n+                    if args_str:\n+                        try:\n+                            arguments = json.loads(args_str)\n+                        except Exception:\n+                            arguments = args_str\n+                    tool_calls.append(\n+                        ToolCallRequest(\n+                            name=tool_call.function_name or \"\",\n+                            id=tool_call.tool_call_id,\n+                            arguments=arguments,\n+                        )\n+                    )\n+                parts.extend(tool_calls)\n+            output_messages.append(\n+                OutputMessage(\n+                    role=\"assistant\",\n+                    finish_reason=choice.finish_reason or \"error\",",
+      "id": "PRRT_kwDOSbspP86b0iVR",
+      "opened": "2026-08-24T19:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/wrappers.py",
+      "replies": [],
+      "reviewed": "f4092498b4706a121e1a132a4139ceea65037821",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3846654246"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The local variable `msg` is built but never used, which makes the helper harder to follow. Removing it (or using it to build the returned `SimpleNamespace` message structure) would reduce dead code in the test helper.",
+      "created": "2026-08-24T19:13:05Z",
+      "hunk": "@@ -0,0 +1,535 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for Portkey AI chat completion instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from types import SimpleNamespace\n+from unittest.mock import AsyncMock, MagicMock\n+\n+import pytest\n+from portkey_ai import Portkey\n+\n+try:\n+    from portkey_ai import AsyncPortkey\n+except ImportError:\n+    AsyncPortkey = None  # type: ignore[assignment,misc]\n+\n+from opentelemetry.instrumentation.genai.portkey import PortkeyInstrumentor\n+from opentelemetry.semconv._incubating.attributes import (\n+    error_attributes as ErrorAttributes,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.semconv.attributes import server_attributes\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import StatusCode\n+\n+_has_async_portkey = AsyncPortkey is not None\n+\n+\n+def _create_mock_chat_completion(\n+    id_val: str = \"chatcmpl-123\",\n+    model: str = \"gpt-4o\",\n+    content: str = \"Hello from Portkey!\",\n+    role: str = \"assistant\",\n+    finish_reason: str = \"stop\",\n+    prompt_tokens: int = 10,\n+    completion_tokens: int = 5,\n+    tool_calls: list[dict[str, object]] | None = None,\n+) -> SimpleNamespace:\n+    msg: dict[str, object] = {\"role\": role, \"content\": content}\n+    if tool_calls:\n+        msg[\"tool_calls\"] = tool_calls\n+    return SimpleNamespace(\n+        id=id_val,\n+        model=model,\n+        choices=[\n+            SimpleNamespace(\n+                index=0,\n+                message=SimpleNamespace(\n+                    role=role,\n+                    content=content,\n+                    tool_calls=[\n+                        SimpleNamespace(\n+                            id=tc.get(\"id\"),\n+                            type=tc.get(\"type\"),\n+                            function=SimpleNamespace(\n+                                name=tc.get(\"function\", {}).get(\"name\"),  # type: ignore[union-attr]\n+                                arguments=tc.get(\"function\", {}).get(  # type: ignore[union-attr]\n+                                    \"arguments\"\n+                                ),\n+                            ),\n+                        )\n+                        for tc in tool_calls\n+                    ]\n+                    if tool_calls\n+                    else None,\n+                ),",
+      "id": "PRRT_kwDOSbspP86b0iV0",
+      "opened": "2026-08-24T19:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_chat_completions.py",
+      "replies": [],
+      "reviewed": "f4092498b4706a121e1a132a4139ceea65037821",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3846654299"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment block is incomplete (\\\"installed in conjunction\\\" with what?) and has stray blank comment lines. Tightening this header to clearly say what it’s installed alongside (e.g., tox base deps / editable installs) will reduce confusion when updating test pins.",
+      "created": "2026-08-24T19:13:05Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+# Copyright The OpenTelemetry Authors\n+#\n+# Licensed under the Apache License, Version 2.0 (the \"License\");\n+# you may not use this file except in compliance with the License.\n+# You may obtain a copy of the License at\n+#\n+#     http://www.apache.org/licenses/LICENSE-2.0\n+#\n+# Unless required by applicable law or agreed to in writing, software\n+# distributed under the License is distributed on an \"AS IS\" BASIS,\n+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n+# See the License for the specific language governing permissions and\n+# limitations under the License.\n+\n+\n+# ********************************\n+# WARNING: NOT HERMETIC !!!!!!!!!!\n+# ********************************\n+#\n+# This \"requirements.txt\" is installed in conjunction\n+#\n+#\n+# This variant of the requirements aims to test the system using\n+# the newest supported version of external dependencies.",
+      "id": "PRRT_kwDOSbspP86b0iWP",
+      "opened": "2026-08-24T19:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "f4092498b4706a121e1a132a4139ceea65037821",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3846654342"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Shipping AI-generated VCR cassettes (called out via TODO) undermines the intent of conformance tests, since the payload shape and headers may not match real Portkey responses. Re-record these cassettes from real HTTP interactions (with the existing header scrubbing) and remove the TODO line so conformance failures reflect actual API behavior.",
+      "created": "2026-08-24T19:13:06Z",
+      "hunk": "@@ -0,0 +1,29 @@\n+# TODO: this is generated by AI, re-record",
+      "id": "PRRT_kwDOSbspP86b0iWz",
+      "opened": "2026-08-24T19:13:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/cassettes/inference_conformance.yaml",
+      "replies": [],
+      "reviewed": "f4092498b4706a121e1a132a4139ceea65037821",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3846654391"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "could we use exact type instead of Any?",
+      "created": "2026-08-25T04:34:38Z",
+      "hunk": "@@ -0,0 +1,352 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Utilities for extracting telemetry from Portkey AI requests and responses.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterable, Mapping\n+from typing import Any, cast\n+from urllib.parse import urlparse\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    FunctionToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def get_property_value(obj: Any, property_name: str) -> Any:\n+    \"\"\"Extract a property value from either a dict or an object attribute.\"\"\"\n+    if isinstance(obj, dict):\n+        return cast(dict[str, Any], obj).get(property_name)\n+    return getattr(obj, property_name, None)\n+\n+\n+def value_is_set(value: Any) -> bool:\n+    \"\"\"Check if a value is meaningful (not None, Omit, or NotGiven).\"\"\"\n+    if value is None:\n+        return False\n+    type_name = type(value).__name__\n+    if type_name in (\"Omit\", \"NotGiven\"):\n+        return False\n+    return True\n+\n+\n+def get_value(value: Any) -> Any:\n+    \"\"\"Return the value if set, else None.\"\"\"\n+    return value if value_is_set(value) else None\n+\n+\n+def is_streaming(kwargs: dict[str, Any]) -> bool:\n+    \"\"\"Check whether the request is configured for streaming.\"\"\"\n+    stream = kwargs.get(\"stream\")\n+    if not value_is_set(stream):\n+        return False\n+    return bool(stream)\n+\n+\n+def get_provider(client_instance: Any) -> str:",
+      "id": "PRRT_kwDOSbspP86b79d4",
+      "opened": "2026-08-25T04:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-25T13:59:38Z",
+          "body": "Yes ! done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3853732918"
+        }
+      ],
+      "reviewed": "b26e0b77afb3c055f35cc24d835a0f9675c19ad5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3849592241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "would it return the same set as we document in semconv?",
+      "created": "2026-08-25T04:34:38Z",
+      "hunk": "@@ -0,0 +1,352 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Utilities for extracting telemetry from Portkey AI requests and responses.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterable, Mapping\n+from typing import Any, cast\n+from urllib.parse import urlparse\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    FunctionToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def get_property_value(obj: Any, property_name: str) -> Any:\n+    \"\"\"Extract a property value from either a dict or an object attribute.\"\"\"\n+    if isinstance(obj, dict):\n+        return cast(dict[str, Any], obj).get(property_name)\n+    return getattr(obj, property_name, None)\n+\n+\n+def value_is_set(value: Any) -> bool:\n+    \"\"\"Check if a value is meaningful (not None, Omit, or NotGiven).\"\"\"\n+    if value is None:\n+        return False\n+    type_name = type(value).__name__\n+    if type_name in (\"Omit\", \"NotGiven\"):\n+        return False\n+    return True\n+\n+\n+def get_value(value: Any) -> Any:\n+    \"\"\"Return the value if set, else None.\"\"\"\n+    return value if value_is_set(value) else None\n+\n+\n+def is_streaming(kwargs: dict[str, Any]) -> bool:\n+    \"\"\"Check whether the request is configured for streaming.\"\"\"\n+    stream = kwargs.get(\"stream\")\n+    if not value_is_set(stream):\n+        return False\n+    return bool(stream)\n+\n+\n+def get_provider(client_instance: Any) -> str:\n+    \"\"\"Derive the provider name from the Portkey client instance.\"\"\"\n+    provider = getattr(client_instance, \"provider\", None)\n+    if provider and isinstance(provider, str):",
+      "id": "PRRT_kwDOSbspP86b79d5",
+      "opened": "2026-08-25T04:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-25T14:00:01Z",
+          "body": "No.. Created a Map to do the conversion to the enum..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3853736355"
+        }
+      ],
+      "reviewed": "b26e0b77afb3c055f35cc24d835a0f9675c19ad5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3849592243"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is there a type we can use?",
+      "created": "2026-08-25T04:34:38Z",
+      "hunk": "@@ -0,0 +1,352 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Utilities for extracting telemetry from Portkey AI requests and responses.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterable, Mapping\n+from typing import Any, cast\n+from urllib.parse import urlparse\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    FunctionToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def get_property_value(obj: Any, property_name: str) -> Any:\n+    \"\"\"Extract a property value from either a dict or an object attribute.\"\"\"\n+    if isinstance(obj, dict):\n+        return cast(dict[str, Any], obj).get(property_name)\n+    return getattr(obj, property_name, None)\n+\n+\n+def value_is_set(value: Any) -> bool:\n+    \"\"\"Check if a value is meaningful (not None, Omit, or NotGiven).\"\"\"\n+    if value is None:\n+        return False\n+    type_name = type(value).__name__\n+    if type_name in (\"Omit\", \"NotGiven\"):\n+        return False\n+    return True\n+\n+\n+def get_value(value: Any) -> Any:\n+    \"\"\"Return the value if set, else None.\"\"\"\n+    return value if value_is_set(value) else None\n+\n+\n+def is_streaming(kwargs: dict[str, Any]) -> bool:\n+    \"\"\"Check whether the request is configured for streaming.\"\"\"\n+    stream = kwargs.get(\"stream\")\n+    if not value_is_set(stream):\n+        return False\n+    return bool(stream)\n+\n+\n+def get_provider(client_instance: Any) -> str:\n+    \"\"\"Derive the provider name from the Portkey client instance.\"\"\"\n+    provider = getattr(client_instance, \"provider\", None)\n+    if provider and isinstance(provider, str):\n+        return provider.lower()\n+    return \"portkey\"\n+\n+\n+def get_server_address_and_port(\n+    client_instance: Any,",
+      "id": "PRRT_kwDOSbspP86b79d6",
+      "opened": "2026-08-25T04:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-25T14:00:08Z",
+          "body": "Yes",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3853737289"
+        }
+      ],
+      "reviewed": "b26e0b77afb3c055f35cc24d835a0f9675c19ad5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3849592244"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's do the second call submitting tool responses so we can cover corresponding parts too",
+      "created": "2026-08-25T04:34:38Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: Portkey AI chat with tool calls.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from portkey_ai import Portkey\n+\n+from opentelemetry.instrumentation.genai.portkey import PortkeyInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class ToolCallingScenario(Scenario):\n+    expected_spans = {\"chat\": 1}\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            PortkeyInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            content_capture=\"SPAN_ONLY\",\n+        ):\n+            with vcr.use_cassette(\"tool_calling_conformance.yaml\"):\n+                client = Portkey(\n+                    api_key=\"test_portkey_api_key\",\n+                    provider=\"openai\",\n+                )\n+                tools = [\n+                    {\n+                        \"type\": \"function\",\n+                        \"function\": {\n+                            \"name\": \"get_weather\",\n+                            \"description\": \"Get weather for a city\",\n+                            \"parameters\": {\n+                                \"type\": \"object\",\n+                                \"properties\": {\n+                                    \"city\": {\"type\": \"string\"},\n+                                },\n+                                \"required\": [\"city\"],\n+                            },\n+                        },\n+                    }\n+                ]\n+                client.chat.completions.create(",
+      "id": "PRRT_kwDOSbspP86b79d9",
+      "opened": "2026-08-25T04:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/conformance/tool_calling.py",
+      "replies": [
+        {
+          "at": "2026-08-25T14:01:47Z",
+          "body": "Ack, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3853752139"
+        }
+      ],
+      "reviewed": "b26e0b77afb3c055f35cc24d835a0f9675c19ad5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3849592251"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please add it to relesable packages in workflows as well",
+      "created": "2026-08-25T04:34:38Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add inference and streaming span instrumentation for Portkey",
+      "id": "PRRT_kwDOSbspP86b79eA",
+      "opened": "2026-08-25T04:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/.changelog/466.added",
+      "replies": [
+        {
+          "at": "2026-08-25T13:59:23Z",
+          "body": "Ack, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3853730599"
+        }
+      ],
+      "reviewed": "b26e0b77afb3c055f35cc24d835a0f9675c19ad5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3849592254"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A streaming request that fails before the stream exists leaks the span. `handler.inference()` has already started it, and `wrapped(*args, **kwargs)` on line 103 runs outside `with invocation`, so nothing calls `stop()` or `fail()` - no span, no error type, no duration metric. Same in the other three wrappers (129, 157, 184).\n\nFailing test:\n\n```python\ndef test_sync_streaming_request_failure_records_span(\n    tracer_provider, logger_provider, meter_provider, span_exporter\n):\n    with instrument(PortkeyInstrumentor(), tracer_provider=tracer_provider,\n                    logger_provider=logger_provider, meter_provider=meter_provider,\n                    content_capture=\"SPAN_ONLY\"):\n        p = Portkey(api_key=\"test_pk\", provider=\"openai\")\n        p.chat.completions.openai_client = MagicMock()\n        p.chat.completions.openai_client.chat.completions.create.side_effect = RuntimeError(\"boom\")\n        p.chat.completions._post = MagicMock(side_effect=RuntimeError(\"boom\"))\n\n        with pytest.raises(RuntimeError, match=\"boom\"):\n            p.chat.completions.create(\n                messages=[{\"role\": \"user\", \"content\": \"Hi\"}],\n                model=\"gpt-4o\", stream=True,\n            )\n\n        assert len(span_exporter.get_finished_spans()) == 1  # got 0\n```\n\nThe openai instrumentation's shape works: `try: result = wrapped(...) ... except Exception as error: invocation.fail(error); raise`. The four bodies here differ only in sync/async and `is_prompt`, so folding them into one factory would fix all four at once.",
+      "created": "2026-08-25T04:34:38Z",
+      "hunk": "@@ -79,58 +88,106 @@ def unpatch_portkey() -> None:\n def _chat_completions_create(\n     handler: TelemetryHandler,\n ) -> Callable[..., Any]:\n+    capture_content = handler.should_capture_content()\n+\n     def traced_method(\n         wrapped: Callable[..., Any],\n         instance: Any,\n         args: tuple[Any, ...],\n         kwargs: dict[str, Any],\n     ) -> Any:\n-        # TODO: Implement full inference invocation telemetry mapping\n-        return wrapped(*args, **kwargs)\n+        invocation = create_inference_invocation(\n+            handler, instance, kwargs, capture_content\n+        )\n+        if is_streaming(kwargs):\n+            return PortkeyStreamWrapper(",
+      "id": "PRRT_kwDOSbspP86b79eE",
+      "opened": "2026-08-25T04:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-25T13:59:06Z",
+          "body": "Ok I refactored it like you said. I feel like there are some failure cases we would probably not want to write a span for, like if the user passes a param the method doesn't accept, a TypeError would be raised.. But there are a lot of cases we do want to create a span for so I think this is better on the whole",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3853727872"
+        }
+      ],
+      "reviewed": "b26e0b77afb3c055f35cc24d835a0f9675c19ad5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3849592258"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `kwargs.get(\"top_p\") or kwargs.get(\"p\")` drops `top_p=0.0`. Same on line 222 for `max_tokens`. Check `value_is_set` per key instead of `or`.",
+      "created": "2026-08-25T04:34:38Z",
+      "hunk": "@@ -0,0 +1,352 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Utilities for extracting telemetry from Portkey AI requests and responses.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterable, Mapping\n+from typing import Any, cast\n+from urllib.parse import urlparse\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    FunctionToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def get_property_value(obj: Any, property_name: str) -> Any:\n+    \"\"\"Extract a property value from either a dict or an object attribute.\"\"\"\n+    if isinstance(obj, dict):\n+        return cast(dict[str, Any], obj).get(property_name)\n+    return getattr(obj, property_name, None)\n+\n+\n+def value_is_set(value: Any) -> bool:\n+    \"\"\"Check if a value is meaningful (not None, Omit, or NotGiven).\"\"\"\n+    if value is None:\n+        return False\n+    type_name = type(value).__name__\n+    if type_name in (\"Omit\", \"NotGiven\"):\n+        return False\n+    return True\n+\n+\n+def get_value(value: Any) -> Any:\n+    \"\"\"Return the value if set, else None.\"\"\"\n+    return value if value_is_set(value) else None\n+\n+\n+def is_streaming(kwargs: dict[str, Any]) -> bool:\n+    \"\"\"Check whether the request is configured for streaming.\"\"\"\n+    stream = kwargs.get(\"stream\")\n+    if not value_is_set(stream):\n+        return False\n+    return bool(stream)\n+\n+\n+def get_provider(client_instance: Any) -> str:\n+    \"\"\"Derive the provider name from the Portkey client instance.\"\"\"\n+    provider = getattr(client_instance, \"provider\", None)\n+    if provider and isinstance(provider, str):\n+        return provider.lower()\n+    return \"portkey\"\n+\n+\n+def get_server_address_and_port(\n+    client_instance: Any,\n+) -> tuple[str | None, int | None]:\n+    \"\"\"Extract the server host and port from client base_url.\"\"\"\n+    base_url = getattr(client_instance, \"base_url\", None)\n+    if not base_url:\n+        return None, None\n+\n+    url = urlparse(str(base_url))\n+    address = url.hostname\n+    port = url.port\n+    if port == 443:\n+        port = None\n+    return address, port\n+\n+\n+def _extract_tool_calls(tool_calls: Iterable[Any]) -> list[ToolCallRequest]:\n+    parts: list[ToolCallRequest] = []\n+    for tool_call in tool_calls:\n+        call_id = get_property_value(tool_call, \"id\")\n+        func_name = \"\"\n+        arguments: Any = None\n+        func = get_property_value(tool_call, \"function\")\n+        if func is not None:\n+            func_name = str(get_property_value(func, \"name\") or \"\")\n+            args_raw = get_property_value(func, \"arguments\")\n+            if isinstance(args_raw, str):\n+                try:\n+                    arguments = json.loads(args_raw)\n+                except Exception:\n+                    arguments = args_raw\n+            elif args_raw is not None:\n+                arguments = args_raw\n+        parts.append(\n+            ToolCallRequest(\n+                id=str(call_id) if call_id is not None else None,\n+                name=func_name,\n+                arguments=arguments,\n+            )\n+        )\n+    return parts\n+\n+\n+def _prepare_input_messages(messages: Iterable[Any]) -> list[InputMessage]:\n+    chat_messages: list[InputMessage] = []\n+    for message in messages:\n+        role = get_property_value(message, \"role\")\n+        if role is None:\n+            continue\n+        parts: list[MessagePart] = []\n+        content = get_property_value(message, \"content\")\n+        tool_calls = get_property_value(message, \"tool_calls\")\n+        tool_call_id = get_property_value(message, \"tool_call_id\")\n+\n+        if tool_calls is not None and isinstance(tool_calls, Iterable):\n+            parts.extend(_extract_tool_calls(cast(Iterable[Any], tool_calls)))\n+        if tool_call_id is not None:\n+            parts.append(\n+                ToolCallResponse(id=str(tool_call_id), response=content)\n+            )\n+        elif content:\n+            if isinstance(content, str):\n+                parts.append(Text(content=content))\n+            elif isinstance(content, Mapping):\n+                content_dict = cast(Mapping[str, Any], content)\n+                content_type = content_dict.get(\"type\")\n+                if content_type == \"text\" and content_dict.get(\"text\"):\n+                    parts.append(Text(content=str(content_dict[\"text\"])))\n+            elif isinstance(content, Iterable):\n+                for item in cast(Iterable[Any], content):\n+                    if isinstance(item, str):\n+                        parts.append(Text(content=item))\n+                    elif isinstance(item, Mapping):\n+                        item_dict = cast(Mapping[str, Any], item)\n+                        item_type = item_dict.get(\"type\")\n+                        if item_type == \"text\" and item_dict.get(\"text\"):\n+                            parts.append(Text(content=str(item_dict[\"text\"])))\n+        chat_messages.append(InputMessage(role=str(role), parts=parts))\n+    return chat_messages\n+\n+\n+def _prepare_tool_definitions(\n+    tools: Iterable[Any] | None,\n+) -> list[ToolDefinition] | None:\n+    if not tools:\n+        return None\n+    definitions: list[ToolDefinition] = []\n+    for tool in tools:\n+        tool_type = get_property_value(tool, \"type\")\n+        if tool_type == \"function\":\n+            func = get_property_value(tool, \"function\")\n+            if func is not None:\n+                definitions.append(\n+                    FunctionToolDefinition(\n+                        name=str(get_property_value(func, \"name\") or \"\"),\n+                        description=get_property_value(func, \"description\"),\n+                        parameters=get_property_value(func, \"parameters\"),\n+                    )\n+                )\n+    return definitions or None\n+\n+\n+def _prepare_output_messages(\n+    choices: Iterable[Any] | None,\n+) -> list[OutputMessage]:\n+    if not choices:\n+        return []\n+    output_messages: list[OutputMessage] = []\n+    for choice in choices:\n+        finish_reason = get_property_value(choice, \"finish_reason\") or \"stop\"\n+        parts: list[MessagePart] = []\n+        message = get_property_value(choice, \"message\")\n+        role = \"assistant\"\n+        if message is not None:\n+            msg_role = get_property_value(message, \"role\")\n+            if msg_role:\n+                role = str(msg_role)\n+            content = get_property_value(message, \"content\")\n+            if content:\n+                parts.append(Text(content=str(content)))\n+            tool_calls = get_property_value(message, \"tool_calls\")\n+            if tool_calls is not None and isinstance(tool_calls, Iterable):\n+                parts.extend(\n+                    _extract_tool_calls(cast(Iterable[Any], tool_calls))\n+                )\n+        else:\n+            text = get_property_value(choice, \"text\")\n+            if text:\n+                parts.append(Text(content=str(text)))\n+        output_messages.append(\n+            OutputMessage(\n+                role=role,\n+                parts=parts,\n+                finish_reason=str(finish_reason),\n+            )\n+        )\n+    return output_messages\n+\n+\n+def _apply_request_parameters(\n+    invocation: InferenceInvocation,\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+) -> None:\n+    if (temp := get_value(kwargs.get(\"temperature\"))) is not None:\n+        invocation.temperature = float(temp)\n+    if (\n+        top_p := get_value(kwargs.get(\"top_p\") or kwargs.get(\"p\"))",
+      "id": "PRRT_kwDOSbspP86b79eI",
+      "opened": "2026-08-25T04:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-25T14:00:16Z",
+          "body": "Done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3853738372"
+        }
+      ],
+      "reviewed": "b26e0b77afb3c055f35cc24d835a0f9675c19ad5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/466#discussion_r3849592263"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "head": "64ad1128ceaac62b55caf9c19df3a16fc0c43bdf",
+  "merge": "e40bd44b90abb346d5ccc4936af1b1d23127458f",
+  "merged": "2026-08-25T03:31:27Z",
+  "missing_roots": 0,
+  "number": 86,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Weaver's emitted value is `log`, not `event`, as shown by the regenerated Google and Bedrock findings in this PR. Listing `event` here gives an incorrect account of the persisted `signal_type` values; it should also clarify that resource advice has no concrete signal name.",
+      "created": "2026-08-25T01:08:21Z",
+      "hunk": "@@ -41,26 +42,43 @@\n \n @dataclass(frozen=True)\n class Finding:\n-    \"\"\"One thing weaver said, independent of how often it said it.\n+    \"\"\"One thing weaver said about one signal, however often it said it.\n \n     ``context`` is kept serialised so two findings with the same message about\n     different attributes stay apart, and so a finding is hashable.\n+\n+    ``signal_type`` and ``signal_name`` are what weaver stamps on every piece\n+    of advice — the span, metric, event or resource it was checking. Advice\n+    about an attribute carries the signal that held it, so a finding always\n+    says where to go and look.",
+      "id": "PRRT_kwDOTuzK5c6b521S",
+      "opened": "2026-08-25T01:08:22Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_report.py",
+      "replies": [],
+      "reviewed": "72b6997bbf79be020eaa28adfa307f43e98fd500",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/86#discussion_r3848748275"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The documented signal kinds and resource behavior do not match the generated format: this PR emits `signal_type: \"log\"` in the Google/Bedrock data, and the new resource test retains `signal_type: \"resource\"` while omitting only `signal_name`. As written, consumers could incorrectly reject `log` or expect resource findings to have neither field.",
+      "created": "2026-08-25T01:08:22Z",
+      "hunk": "@@ -184,13 +186,17 @@ seen, plus what weaver said about them:\n Each span entry pairs a `match` — written the way the scenario declared it —\n with the attributes the spans it selected carried.\n \n-`findings` is every violation weaver reported over the run, deduplicated on\n-id, message and context. Weaver's lesser advice — `improvement`,\n+`findings` is every\n+violation weaver reported over it, deduplicated on id, message, context and\n+the signal it was reported on. Weaver's lesser advice — `improvement`,\n `information` — is left out: it says what could be better, not what an\n-implementation got wrong. One gap reported on each of a\n-hundred spans is one entry; how often it was tripped over is not recorded,\n-because a coverage file is about what is true of an implementation, not about\n-how much traffic a run happened to send.\n+implementation got wrong. `signal_type` and `signal_name` say which span,\n+metric or event weaver was looking at, including when the advice was about\n+one of its attributes; a finding about the resource carries neither. The same",
+      "id": "PRRT_kwDOTuzK5c6b522b",
+      "opened": "2026-08-25T01:08:22Z",
+      "path": "tools/runner/README.md",
+      "replies": [],
+      "reviewed": "72b6997bbf79be020eaa28adfa307f43e98fd500",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/86#discussion_r3848748373"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-25T01:12:02Z",
+      "hunk": "@@ -61,8 +61,10 @@ def _reduce(\n         \"spans\": _signals(observed.spans, model.get(\"spans\", {}), bare=False),\n         \"events\": _signals(observed.events, model.get(\"events\", {})),\n         \"metrics\": _signals(observed.metrics, model.get(\"metrics\", {})),\n-        \"findings\": finding_list(observed.findings),\n         \"entities\": _entities(observed.resources, model.get(\"entities\", {})),\n+        # Last, and deliberately: everything above is what the run emitted,\n+        # and this is what was wrong with it.",
+      "id": "PRRT_kwDOTuzK5c6b55WN",
+      "opened": "2026-08-25T01:12:47Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_semconv.py",
+      "replies": [],
+      "reviewed": "72b6997bbf79be020eaa28adfa307f43e98fd500",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/86#discussion_r3848764030"
+    }
+  ]
+}

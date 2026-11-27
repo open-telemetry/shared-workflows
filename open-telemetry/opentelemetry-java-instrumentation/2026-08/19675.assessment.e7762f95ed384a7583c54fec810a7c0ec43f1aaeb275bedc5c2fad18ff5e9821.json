@@ -1,0 +1,144 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8adfa1fc26dbb8db3e05d66c36114e49c68dca13e498b61bb2615c401584332b",
+  "input_digest": "e7762f95ed384a7583c54fec810a7c0ec43f1aaeb275bedc5c2fad18ff5e9821",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/73bd6df208b351f6f745cab4c7cb0d2a81cf174f/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/test/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/test/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/19d54788f457d3f726cdb91f808fcfb901594dc6"
+      ],
+      "id": "PRRT_kwDODJKVX86Z8qA2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/73bd6df208b351f6f745cab4c7cb0d2a81cf174f/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/JacksonElasticsearchQuerySanitizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/19d54788f457d3f726cdb91f808fcfb901594dc6"
+      ],
+      "id": "PRRT_kwDODJKVX86Z8qAs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/73bd6df208b351f6f745cab4c7cb0d2a81cf174f/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/19d54788f457d3f726cdb91f808fcfb901594dc6"
+      ],
+      "id": "PRRT_kwDODJKVX86Z8qBG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/19d54788f457d3f726cdb91f808fcfb901594dc6/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/19d54788f457d3f726cdb91f808fcfb901594dc6/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/test/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Z9vPR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba546037aad028ba69eff0649b28394c2d83e7c5/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v5_0/ElasticsearchRest5Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1c1def292ad034b22076f52b8c7d938299fb5e24"
+      ],
+      "id": "PRRT_kwDODJKVX86cp-vz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba546037aad028ba69eff0649b28394c2d83e7c5/instrumentation/elasticsearch/elasticsearch-rest-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v5_0/RestClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v5_0/RestClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba546037aad028ba69eff0649b28394c2d83e7c5/instrumentation/elasticsearch/elasticsearch-rest-6.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v6_4/RestClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-6.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v6_4/RestClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-5.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86cp-wB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ec2ef59d3e6a060159d1a5fc08e7461c87272b9/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ec2ef59d3e6a060159d1a5fc08e7461c87272b9/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/test/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/test/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f8e866f81b6c3f26dc66f0227f8aedd96be652ad"
+      ],
+      "id": "PRRT_kwDODJKVX86cqNXR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86c2ED3",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/52383386b8dd706819ef4d1b7e9f5ef56bc5728f/instrumentation/elasticsearch/elasticsearch-rest-7.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-7.0/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86c2LdF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5eab622ebab9162e8ed7aebe3fb4c3df3134af53/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchQuerySanitizerInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5eab622ebab9162e8ed7aebe3fb4c3df3134af53/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/elasticsearch/ElasticsearchQuerySanitizerAccess.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchQuerySanitizerInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/elasticsearch/ElasticsearchQuerySanitizerAccess.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d3d10b9ed55d5eb2dc612f3b78d13546d17152cf"
+      ],
+      "id": "PRRT_kwDODJKVX86c_QpK",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3d10b9ed55d5eb2dc612f3b78d13546d17152cf/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff3e300d9a99c96484a5bbb1dec42221f6d939e0/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ac168fe5fa5b482925d24bc3ff3ff4ce73a7bcdd"
+      ],
+      "id": "PRRT_kwDODJKVX86dPBpf",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

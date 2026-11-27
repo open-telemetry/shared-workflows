@@ -1,0 +1,31 @@
+{
+  "head": "2fa9037e34de1ed8981d6de16ed18cd749a56fbd",
+  "merge": "1fc2590b3923c0c7b00d486ab0ee1902bbc8cda9",
+  "merged": "2026-06-15T06:29:31Z",
+  "missing_roots": 0,
+  "number": 18985,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getBatchOperationName()` returns just \"MULTI\"/\"PIPELINE\" when the batch contains mixed command names. That contradicts the PR goal of deriving stable multi-command names in the form `MULTI <command>` / `PIPELINE <command>` and also loses useful detail for heterogeneous batches. Consider always appending a deterministic command name (e.g., the first command after `MULTI`, or the first pipeline command) when there isn't a single common command.",
+      "created": "2026-06-13T19:02:27Z",
+      "hunk": "@@ -86,13 +90,30 @@ public String getOperationName() {\n       return ((CommandData<?, ?>) command).getCommand().getName();\n     } else if (command instanceof CommandsData) {\n       CommandsData commandsData = (CommandsData) command;\n-      if (commandsData.getCommands().size() == 1) {\n-        return commandsData.getCommands().get(0).getCommand().getName();\n+      List<CommandData<?, ?>> commands = commandsData.getCommands();\n+      if (commands.size() == 1) {\n+        return commands.get(0).getCommand().getName();\n       }\n+      return emitStableDatabaseSemconv() ? getBatchOperationName(commands) : null;\n     }\n     return null;\n   }\n \n+  @Nullable\n+  private static String getBatchOperationName(List<CommandData<?, ?>> commands) {\n+    if (commands.size() < 2) {\n+      return null;\n+    }\n+\n+    String firstCommandName = commands.get(0).getCommand().getName();\n+    String batchOperationName = firstCommandName.equals(MULTI) ? MULTI : PIPELINE;\n+    int firstBatchCommandIndex = firstCommandName.equals(MULTI) ? 1 : 0;\n+    String commonCommandName = getCommonCommandName(commands, firstBatchCommandIndex);\n+    return commonCommandName == null\n+        ? batchOperationName\n+        : batchOperationName + \" \" + commonCommandName;",
+      "id": "PRRT_kwDODJKVX86JWQGb",
+      "opened": "2026-06-13T19:02:27Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-14T00:41:24Z",
+          "body": "Handled in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2fa9037e34de1ed8981d6de16ed18cd749a56fbd.\n\nRedis database semantic conventions say mixed transactions and pipelines should use `MULTI` or `PIPELINE`, while homogeneous batches use `MULTI <command>` or `PIPELINE <command>`. I left the production behavior unchanged and added a regression test covering mixed `SET`/`GET` pipeline naming.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18985#discussion_r3408819838"
+        }
+      ],
+      "reviewed": "3ec945ff80cc5a3113f1c982227970098da42ade",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18985#discussion_r3408444393"
+    }
+  ]
+}

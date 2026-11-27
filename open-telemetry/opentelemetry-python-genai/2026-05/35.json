@@ -1,0 +1,25 @@
+{
+  "head": "a91644c6129f758ec5c6f2cf995977fce2501c00",
+  "merge": "bc5a2a73a8ebee4b0a114a0e14a92d651a030293",
+  "merged": "2026-05-22T21:42:35Z",
+  "missing_roots": 0,
+  "number": 35,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👀 ",
+      "created": "2026-05-18T04:14:10Z",
+      "hunk": "@@ -46,7 +46,7 @@ packaging==24.0\n wrapt==1.16.0\n # test with the latest version of opentelemetry-api, sdk, semantic conventions, and instrumentation\n grpcio>=1.60.0; implementation_name != \"pypy\"\n-grpcio<1.60.0; implementation_name == \"pypy\"\n+grpcio<1.80.1; implementation_name == \"pypy\"",
+      "id": "PRRT_kwDOSbspP86Ct4BO",
+      "opened": "2026-05-18T04:14:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "94d09beefff7efac7017fbac66c2403588380f44",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/35#discussion_r3256307857"
+    }
+  ]
+}

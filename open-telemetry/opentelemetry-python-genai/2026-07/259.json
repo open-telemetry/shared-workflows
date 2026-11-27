@@ -1,0 +1,55 @@
+{
+  "head": "717a0ceb6dcfe367fedff340da2878fb0bfcfc60",
+  "merge": "7473c38ff56dbe6c5bdb319eaed6f275f3fe892d",
+  "merged": "2026-07-13T16:43:12Z",
+  "missing_roots": 0,
+  "number": 259,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The script assumes `find \"$path\" ... version.py` returns exactly one file, but unlike the other release-prep scripts it doesn't validate this. If it returns 0 or >1 paths (e.g., layout changes), `sed` will either fail with a confusing error or apply to multiple files. Add the same `file_count` check used in `scripts/prepare_package_for_release.sh` and `scripts/prepare_package_for_patch_release.sh`.",
+      "created": "2026-07-13T14:08:38Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+#!/bin/bash\n+\n+# Bump a package to the next minor .dev version. Called by the bump-minor\n+# workflow when a maintainer wants to move a package to the next minor line\n+# (e.g., 1.0b3.dev -> 1.1b0.dev, or 1.0.5 -> 1.1.0.dev).\n+#\n+# Accepts the current version whether or not it carries a .dev suffix.\n+\n+set -euo pipefail\n+\n+package=\"${1:?usage: bump_package_minor_version.sh PACKAGE}\"\n+\n+path=\"./$(./scripts/eachdist.py find-package --package \"$package\")\"\n+version=\"$(./scripts/eachdist.py version --package \"$package\")\"\n+version_file=\"$(find \"$path\" -type f -path \"**/version.py\")\"\n+",
+      "id": "PRRT_kwDOSbspP86QawUU",
+      "opened": "2026-07-13T14:08:39Z",
+      "path": "scripts/bump_package_minor_version.sh",
+      "replies": [],
+      "reviewed": "4dd234888e39183ea7d6f8662a7d05cb474604cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/259#discussion_r3571310233"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Like the other release/version scripts, this should validate that exactly one `version.py` file was found before running `sed`. Without the check, a missing or duplicated `version.py` path will produce confusing failures or unintended edits.",
+      "created": "2026-07-13T14:08:39Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+#!/bin/bash\n+\n+# Bump a package to the next major .dev version. Called by the bump-major\n+# workflow when a maintainer wants to move a package to the next major line\n+# (e.g., 1.5b2.dev -> 2.0b0.dev, or 1.5.3 -> 2.0.0.dev).\n+#\n+# Accepts the current version whether or not it carries a .dev suffix.\n+\n+set -euo pipefail\n+\n+package=\"${1:?usage: bump_package_major_version.sh PACKAGE}\"\n+\n+path=\"./$(./scripts/eachdist.py find-package --package \"$package\")\"\n+version=\"$(./scripts/eachdist.py version --package \"$package\")\"\n+version_file=\"$(find \"$path\" -type f -path \"**/version.py\")\"\n+",
+      "id": "PRRT_kwDOSbspP86QawVE",
+      "opened": "2026-07-13T14:08:39Z",
+      "path": "scripts/bump_package_major_version.sh",
+      "replies": [],
+      "reviewed": "4dd234888e39183ea7d6f8662a7d05cb474604cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/259#discussion_r3571310291"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This script also assumes `find \"$path\" ... version.py` returns exactly one file, but it doesn't validate that assumption (unlike `prepare_package_for_release.sh`). If the file is missing or duplicated, `sed` will fail in a hard-to-diagnose way. Consider adding the same `file_count` check here.",
+      "created": "2026-07-13T14:08:39Z",
+      "hunk": "@@ -10,24 +16,16 @@ path=\"./$(./scripts/eachdist.py find-package --package \"$package\")\"\n version=\"$(./scripts/eachdist.py version --package \"$package\")\"\n version_file=\"$(find \"$path\" -type f -path \"**/version.py\")\"\n ",
+      "id": "PRRT_kwDOSbspP86QawVf",
+      "opened": "2026-07-13T14:08:39Z",
+      "path": "scripts/bump_package_dev_version.sh",
+      "replies": [],
+      "reviewed": "4dd234888e39183ea7d6f8662a7d05cb474604cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/259#discussion_r3571310331"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "23dd771e0745e0639b5364c8d49885f98f0700f1d0cc0526d69f8c9739ab7774",
+  "input_digest": "8af725cd4028eb645afbfe761478fb0c84d45d285081844c4a29ce189b756e82",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1de97ac3f9713cbdf64b1516c17cbd6f9e3710b9/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/internal/ManifestResourceExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992e8fa2f593d3a94a05a3267de46b68dd8907a2/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/internal/ManifestResourceExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/aa904fb3e9ab9f81ca16f47f1edb50cdf990f7be"
+      ],
+      "id": "PRRT_kwDODJKVX86A2A6M",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa904fb3e9ab9f81ca16f47f1edb50cdf990f7be/sdk-autoconfigure-support/src/test/java/io/opentelemetry/instrumentation/resources/internal/ResourceProviderPropertiesCustomizerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992e8fa2f593d3a94a05a3267de46b68dd8907a2/sdk-autoconfigure-support/src/test/java/io/opentelemetry/instrumentation/resources/internal/ResourceProviderPropertiesCustomizerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/967c9f8c665f19d0518e663beb69be2074f95d80"
+      ],
+      "id": "PRRT_kwDODJKVX86A2bzT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f6612ff804f92ce71b38fa0df5130eab4141e7156eca4ea228fa539950a44503",
+  "input_digest": "4b6c2dc87dabd7d459040eb4ac43ec2f139793a3795a1afb91453cebc883fc4b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX85oeebq",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28066c434086eb6b89f0ca61c00517d5169199b2/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be30e0c903ded55d555ea2efaf591cd3eb62d130/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oeo4P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3fbe450a1dab2e5f35ec134e60a21549bc0eb6d6/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/instrumentation/DenyUnsafeInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be30e0c903ded55d555ea2efaf591cd3eb62d130/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/instrumentation/DenyUnsafeInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oj3oY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3fbe450a1dab2e5f35ec134e60a21549bc0eb6d6/instrumentation/spring/spring-ws-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ws/v2_0/SpringWsInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be30e0c903ded55d555ea2efaf591cd3eb62d130/instrumentation/spring/spring-ws-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ws/v2_0/SpringWsInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oj4-z",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8e6c9f3b77b61769caf947a3b93ab5f258863937/instrumentation/internal/internal-application-logger/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/logging/ApplicationLoggingInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be30e0c903ded55d555ea2efaf591cd3eb62d130/instrumentation/internal/internal-application-logger/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/logging/ApplicationLoggingInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oubKm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8e6c9f3b77b61769caf947a3b93ab5f258863937/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/instrumentation/DenyUnsafeInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be30e0c903ded55d555ea2efaf591cd3eb62d130/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/instrumentation/DenyUnsafeInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oucqD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

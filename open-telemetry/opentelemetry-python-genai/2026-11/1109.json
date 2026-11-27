@@ -1,0 +1,31 @@
+{
+  "head": "ee4384b896cf213457bb2231eaaea37226bc31a9",
+  "merge": "90b527c5563619eab9678aa481df7fc73d0abb9f",
+  "merged": "2026-11-20T22:24:29Z",
+  "missing_roots": 0,
+  "number": 1109,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "CI now renders with the locked towncrier (26.9.0), but `tox -e changelog-preview` (what AGENTS.md tells contributors to run) still pins `towncrier==25.8.0`, so local and CI previews can drift. Maybe point the tox env at the lock too, or drop it and document this command instead?\n\n```ini\n[testenv:changelog-preview]\ndescription = Render a draft changelog for every package that uses towncrier.\nskip_install = true\nallowlist_externals = uv\ncommands =\n  uv run --locked --only-group towncrier python {toxinidir}/scripts/preview_changelogs.py\n```",
+      "created": "2026-11-20T04:50:17Z",
+      "hunk": "@@ -97,4 +100,4 @@ jobs:\n         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3\n \n       - name: Preview changelogs\n-        run: uvx --with tox-uv tox -e changelog-preview\n+        run: uv run --only-group towncrier python ./scripts/preview_changelogs.py",
+      "id": "PRRT_kwDOSbspP865109r",
+      "opened": "2026-11-20T04:51:46Z",
+      "path": ".github/workflows/changelog.yml",
+      "replies": [
+        {
+          "at": "2026-11-20T14:55:55Z",
+          "body": "Good catch! Updated `[testenv:changelog-preview]` in 43589574f94ef124cf92937bbc097e7aa2dd128f to use `tox-uv`'s `uv-venv-lock-runner` with `only_groups = towncrier` (and bumped `tox-uv>=1.30`, which introduced `only_groups`). That keeps `uv run tox -e changelog-preview` synced to the locked `towncrier` (26.9.0) inside `.tox/changelog-preview` without mutating `.venv` while `tox` is running from it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1109#discussion_r4643912343"
+        }
+      ],
+      "reviewed": "df092bc66ace95078a63378e3e0550baaf9b0c7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1109#discussion_r4638600600"
+    }
+  ]
+}

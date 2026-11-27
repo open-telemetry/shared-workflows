@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "11873b893e8c51f9b5a53ca0f61acd2291985ce617510c0a1f6342a27fe1c19c",
+  "input_digest": "f767f9025572ff90746165dcdcce174bd03c25d09d8ef9b588eca066fc4baa35",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/972873c6815bff2c319f3241c6583252c474ac3a/instrumentation/reactor/reactor-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/v3_1/HooksInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0f4b8428cdf630698de1e4872619ba9d528c6913/instrumentation/reactor/reactor-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/v3_1/HooksInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0f4b8428cdf630698de1e4872619ba9d528c6913/instrumentation/reactor/reactor-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/v3_1/ReactorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/60be7a98c82fb0175ae67e9d043c86d8c1abd5b6"
+      ],
+      "id": "PRRT_kwDODJKVX86vGzaL",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60be7a98c82fb0175ae67e9d043c86d8c1abd5b6/instrumentation/reactor/reactor-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/v3_1/ReactorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0f4b8428cdf630698de1e4872619ba9d528c6913/instrumentation/reactor/reactor-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/v3_1/ReactorSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1a3bbe64aba00901dce211ee7bf3f23b9cfb8d0a"
+      ],
+      "id": "PRRT_kwDODJKVX86vHdEY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "head": "3bef9101c877529fb45750ba19c3db12901243e4",
+  "merge": "4989331da9c09718c4032c788d1469899d7bd0f2",
+  "merged": "2026-06-15T17:09:04Z",
+  "missing_roots": 0,
+  "number": 18990,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The Javadoc now says “DO NOT USE OR OVERRIDE THIS METHOD”, but `SqlClientAttributesExtractor` explicitly allows custom `getDbOperationName()` implementations to override the parsed value (see comment around `DbClientAttributesExtractor.onStartCommon(...)` call). This wording is misleading for instrumentation authors and contradicts the extractor behavior.\n\nConsider rewording to explain that the extractor can derive `db.operation.name` from SQL text when `setSingleOperationAndCollection(true)` is enabled, and that overriding is optional and takes precedence when provided.",
+      "created": "2026-06-14T02:33:15Z",
+      "hunk": "@@ -23,8 +23,11 @@ public interface SqlClientAttributesGetter<REQUEST, RESPONSE>\n     extends DbClientAttributesGetter<REQUEST, RESPONSE> {\n \n   /**\n-   * SqlClientAttributesExtractor will try to populate db.operation.name based on {@link\n-   * #getRawQueryTexts(REQUEST)}, but this can be used to explicitly provide the operation name.\n+   * DO NOT USE OR OVERRIDE THIS METHOD.\n+   *\n+   * <p>{@link SqlClientAttributesExtractor} will try to populate {@code db.operation.name} based on\n+   * {@link #getRawQueryTexts(REQUEST)} when {@link\n+   * SqlClientAttributesExtractorBuilder#setSingleOperationAndCollection(boolean)} is enabled.",
+      "id": "PRRT_kwDODJKVX86JXo3P",
+      "opened": "2026-06-14T02:33:16Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-15T00:51:27Z",
+          "body": "addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3410553722"
+        }
+      ],
+      "reviewed": "7fe4b08dc83192c9d6b57d2bb2a2f79c3a9179d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3408910741"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] Same issue as `getDbOperationName()`: the Javadoc says not to use/override `getDbCollectionName()`, but the extractor code is designed so that an explicit getter implementation can override the parsed `db.collection.name` when `setSingleOperationAndCollection(true)` is enabled. The current wording is likely to confuse implementers.\n\nReword to describe the default behavior (derived from SQL parsing) and when overriding makes sense.",
+      "created": "2026-06-14T02:33:15Z",
+      "hunk": "@@ -52,6 +55,19 @@ default String getDbQuerySummary(REQUEST request) {\n     return null;\n   }\n \n+  /**\n+   * DO NOT USE OR OVERRIDE THIS METHOD.\n+   *\n+   * <p>{@link SqlClientAttributesExtractor} will try to populate {@code db.collection.name} based\n+   * on {@link #getRawQueryTexts(REQUEST)} when {@link\n+   * SqlClientAttributesExtractorBuilder#setSingleOperationAndCollection(boolean)} is enabled.\n+   */",
+      "id": "PRRT_kwDODJKVX86JXo3W",
+      "opened": "2026-06-14T02:33:16Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-15T00:51:19Z",
+          "body": "addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3410553342"
+        }
+      ],
+      "reviewed": "7fe4b08dc83192c9d6b57d2bb2a2f79c3a9179d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3408910749"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] In stable semconv, the SQL span-name fallback when `analyzedQuery.getQuerySummary()` is null currently ignores `analyzedQuery.getOperationName()` and `analyzedQuery.getCollectionName()`. That can produce low-information span names (e.g., falling back to `db.namespace` / `db.system.name`) even though the analyzer already extracted operation + target and stable semconv’s primary naming format is `{db.operation.name} {db.collection.name}`.\n\nIt seems safer to use the parsed operation/collection when available before falling back to stored procedure / namespace / server address.",
+      "created": "2026-06-14T02:33:15Z",
+      "hunk": "@@ -224,16 +222,15 @@ public String extract(REQUEST request) {\n           return batch ? \"BATCH \" + querySummary : querySummary;\n         }\n         return computeSpanNameStable(\n-            getter, request, batch ? \"BATCH\" : null, null, analyzedQuery.getStoredProcedureName());\n+            getter, request, batch ? \"BATCH\" : null, analyzedQuery.getStoredProcedureName());",
+      "id": "PRRT_kwDODJKVX86JXo3g",
+      "opened": "2026-06-14T02:33:16Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientSpanNameExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-15T02:04:19Z",
+          "body": "The `analyzeWithSummary` analyzer only records `operationName`/`collectionName` together with the query summary — every `recordOperationName()` in the JFlex grammar is paired with an `appendOperationToSummary()`, and `getResult()` returns `summary = querySummaryBuilder.length() > 0 ? ... : null`. So when `getQuerySummary()` is null, the operation and collection names are also null. This fallback is only reached in that \"nothing was parsed\" case, so passing `getOperationName()`/`getCollectionName()` here would be dead code.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3410688999"
+        }
+      ],
+      "reviewed": "7fe4b08dc83192c9d6b57d2bb2a2f79c3a9179d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3408910759"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grammar fix: change 'still use' to 'still uses' in the comment.",
+      "created": "2026-06-15T16:36:01Z",
+      "hunk": "@@ -21,7 +22,24 @@ public String getDbSystemName(HbaseRequest hbaseRequest) {\n   @Nullable\n   @Override\n   public String getDbNamespace(HbaseRequest hbaseRequest) {\n-    return hbaseRequest.getTable();\n+    TableName tableName = hbaseRequest.getTableName();\n+    return tableName == null ? null : tableName.getNamespaceAsString();\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getDbCollectionName(HbaseRequest hbaseRequest) {\n+    TableName tableName = hbaseRequest.getTableName();\n+    return tableName == null ? null : tableName.getNameAsString();\n+  }\n+\n+  @Nullable\n+  @Override\n+  // Old database semconv still use db.name, so we must implement the deprecated hook.",
+      "id": "PRRT_kwDODJKVX86JpKR9",
+      "opened": "2026-06-15T16:36:02Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-15T16:38:40Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990/commits/3bef9101c877529fb45750ba19c3db12901243e4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3415064593"
+        }
+      ],
+      "reviewed": "15ca877805c09d561d24f6866a2563d350a1fe2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3415050462"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Including `DB_COLLECTION_NAME` unconditionally in `hasDurationMetric()` will fail when stable database semconv is disabled, since that attribute is not expected to be emitted in legacy mode. Make the expected attribute key set conditional on `emitStableDatabaseSemconv()` (e.g., only include `DB_COLLECTION_NAME` when stable semconv is enabled).",
+      "created": "2026-06-15T16:36:01Z",
+      "hunk": "@@ -509,6 +519,7 @@ void hasDurationMetric() throws IOException {\n         DB_SYSTEM_NAME,\n         maybeStable(DB_OPERATION),\n         maybeStable(DB_NAME),\n+        DB_COLLECTION_NAME,\n         SERVER_ADDRESS,\n         SERVER_PORT);",
+      "id": "PRRT_kwDODJKVX86JpKRc",
+      "opened": "2026-06-15T16:36:02Z",
+      "path": "instrumentation/hbase-client-2.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/testing/AbstractHbaseTest.java",
+      "replies": [
+        {
+          "at": "2026-06-15T16:37:03Z",
+          "body": "this metric is only emitted under stable",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3415055839"
+        }
+      ],
+      "reviewed": "15ca877805c09d561d24f6866a2563d350a1fe2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3415050425"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`emitStableDatabaseSemconv()` is evaluated multiple times in the same assertion block, which hurts readability and makes it easier for the logic to drift over time. Consider storing the result in a local boolean (e.g., `boolean stable = emitStableDatabaseSemconv();`) and using that for the conditional branches.",
+      "created": "2026-06-15T16:36:02Z",
+      "hunk": "@@ -273,7 +274,16 @@ void testGetTimeout() throws IOException {\n                                     maybeStable(DB_SYSTEM),\n                                     maybeStableDbSystemName(DB_SYSTEM_VALUE)),\n                                 equalTo(maybeStable(DB_OPERATION), GET),\n-                                equalTo(maybeStable(DB_NAME), TABLE_NAME.getNameAsString()),\n+                                equalTo(\n+                                    maybeStable(DB_NAME),\n+                                    emitStableDatabaseSemconv()\n+                                        ? TABLE_NAME.getNamespaceAsString()\n+                                        : TABLE_NAME.getNameAsString()),\n+                                equalTo(\n+                                    DB_COLLECTION_NAME,\n+                                    emitStableDatabaseSemconv()\n+                                        ? TABLE_NAME.getNameAsString()\n+                                        : null),",
+      "id": "PRRT_kwDODJKVX86JpKST",
+      "opened": "2026-06-15T16:36:02Z",
+      "path": "instrumentation/hbase-client-2.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/testing/AbstractHbaseTest.java",
+      "replies": [
+        {
+          "at": "2026-06-15T16:37:56Z",
+          "body": "nope",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3415060875"
+        }
+      ],
+      "reviewed": "15ca877805c09d561d24f6866a2563d350a1fe2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18990#discussion_r3415050487"
+    }
+  ]
+}

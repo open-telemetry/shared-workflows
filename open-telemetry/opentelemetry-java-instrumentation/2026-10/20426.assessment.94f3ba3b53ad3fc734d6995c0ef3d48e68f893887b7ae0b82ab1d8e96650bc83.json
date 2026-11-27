@@ -1,0 +1,74 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e76fa8ec2f710e44f7909e4819d0330884706bd6e1fc401e05973d454f6db82a",
+  "input_digest": "94f3ba3b53ad3fc734d6995c0ef3d48e68f893887b7ae0b82ab1d8e96650bc83",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6c7f6d6d0b76fd40184987743c1f3b5e6ec33664/.github/agents/knowledge/testing-general-patterns.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b3ad35f0acdc5d40167378b295cc977562c02a0/.github/agents/knowledge/testing-general-patterns.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/6c7f6d6d0b76fd40184987743c1f3b5e6ec33664...aa42f649b012a30c06045eb026d9b7cfa2ed8446",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6b3ad35f0acdc5d40167378b295cc977562c02a0",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/aa42f649b012a30c06045eb026d9b7cfa2ed8446"
+      ],
+      "id": "PRRT_kwDODJKVX86pvFef",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6c7f6d6d0b76fd40184987743c1f3b5e6ec33664/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/internal/DubboClientNetworkAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b3ad35f0acdc5d40167378b295cc977562c02a0/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/internal/DubboClientNetworkAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1d091b6c88eb6052d10d7ccaa68d5d042e1c04f7"
+      ],
+      "id": "PRRT_kwDODJKVX86pvFfL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6c7f6d6d0b76fd40184987743c1f3b5e6ec33664/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboRegistryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b3ad35f0acdc5d40167378b295cc977562c02a0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboRegistryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1d091b6c88eb6052d10d7ccaa68d5d042e1c04f7"
+      ],
+      "id": "PRRT_kwDODJKVX86pvFfr",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6c7f6d6d0b76fd40184987743c1f3b5e6ec33664/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b3ad35f0acdc5d40167378b295cc977562c02a0/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/6c7f6d6d0b76fd40184987743c1f3b5e6ec33664...aa42f649b012a30c06045eb026d9b7cfa2ed8446",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6b3ad35f0acdc5d40167378b295cc977562c02a0",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1d091b6c88eb6052d10d7ccaa68d5d042e1c04f7"
+      ],
+      "id": "PRRT_kwDODJKVX86pvFgD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa42f649b012a30c06045eb026d9b7cfa2ed8446/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b3ad35f0acdc5d40167378b295cc977562c02a0/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa42f649b012a30c06045eb026d9b7cfa2ed8446/instrumentation-api/gradle.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b3ad35f0acdc5d40167378b295cc977562c02a0/instrumentation-api/gradle.properties"
+      ],
+      "id": "PRRT_kwDODJKVX86pwgct",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

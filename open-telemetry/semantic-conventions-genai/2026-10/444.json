@@ -1,0 +1,55 @@
+{
+  "head": "5b38cf5f6b170e6a224063021f66b56769f93c25",
+  "merge": "547934afa90a34298441caf80c43b27255c3a292",
+  "merged": "2026-10-18T02:50:10Z",
+  "missing_roots": 0,
+  "number": 444,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "todo - not right",
+      "created": "2026-08-09T05:53:21Z",
+      "hunk": "@@ -11,3 +11,23 @@ env:\n scenarios:\n   reference:\n     run: uv run --frozen --python 3.12 --project . python scenario.py\n+    expected_violations:\n+      # Memory operations are experimental and not yet in the semconv operation name enum\n+      - id: genai_operation_name_unknown",
+      "id": "PRRT_kwDOSUeMrM6XkO0U",
+      "opened": "2026-08-09T05:53:21Z",
+      "path": "reference/scenarios/aws-bedrock-agentcore/conformance.yaml",
+      "replies": [],
+      "reviewed": "d792faf39727e11b5657cfffd9e62d1913ac8bc1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/444#discussion_r3742814520"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.output.messages` requires `finish_reason` to be a string (see `model/gen-ai/gen-ai-output-messages.json`, where `finish_reason` is required and does not allow null). This code can emit JSON with `\"finish_reason\": null` when `finish_reason` is unavailable, which will fail strict conformance schema validation.",
+      "created": "2026-08-09T05:59:00Z",
+      "hunk": "@@ -281,6 +282,7 @@ async def _run():\n                                 {\n                                     \"role\": \"assistant\",\n                                     \"parts\": [{\"type\": \"text\", \"content\": last_text}],\n+                                    \"finish_reason\": str(finish_reason).lower() if finish_reason is not None else None,\n                                 }",
+      "id": "PRRT_kwDOSUeMrM6XkRPx",
+      "opened": "2026-08-09T05:59:01Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [],
+      "reviewed": "d792faf39727e11b5657cfffd9e62d1913ac8bc1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/444#discussion_r3742826529"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.response.finish_reasons` is derivable from the Responses `status`/`incomplete_details` (you already have `_fetch_response_finish_reason()` below). With the current `if response.status == \"completed\"` guard, non-`completed` terminal responses (e.g. `incomplete`, `failed`) will omit `gen_ai.response.finish_reasons` even though a meaningful value can be recorded, which is likely to surface as a strict-mode missing-attribute violation.\n\nThis issue also appears in the following locations of the same file:\n- line 319\n- line 657\n- line 669",
+      "created": "2026-08-09T05:59:00Z",
+      "hunk": "@@ -220,6 +225,8 @@ def run_responses_compaction_reference(client):\n         if response.usage:\n             span.set_attribute(\"gen_ai.usage.input_tokens\", response.usage.input_tokens)\n             span.set_attribute(\"gen_ai.usage.output_tokens\", response.usage.output_tokens)\n+        if response.status == \"completed\":\n+            span.set_attribute(\"gen_ai.response.finish_reasons\", [\"stop\"])",
+      "id": "PRRT_kwDOSUeMrM6XkRQA",
+      "opened": "2026-08-09T05:59:01Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "d792faf39727e11b5657cfffd9e62d1913ac8bc1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/444#discussion_r3742826549"
+    }
+  ]
+}

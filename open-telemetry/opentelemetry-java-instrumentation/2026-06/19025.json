@@ -1,0 +1,25 @@
+{
+  "head": "6d0ae78bf562dad73f7524133c8a9678b51e63d4",
+  "merge": "23da7602a2b7d95f9383f8ca241e088846d85f0e",
+  "merged": "2026-06-17T15:02:47Z",
+  "missing_roots": 0,
+  "number": 19025,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `getClient` is `protected static` but both classes are in the same package, so package-private (`static`) is sufficient and more consistent with the established codebase convention. See e.g. `apache-httpclient-2.0/AbstractCommonsHttpClientTest.java:46`, `apache-httpclient-4.3/AbstractApacheHttpClientTest.java:52`, and `apache-httpclient-5.2/AbstractApacheHttpClientTest.java:50` which all use package-private `getClient` methods for the same subclass-access pattern.",
+      "created": "2026-06-17T09:22:54Z",
+      "hunk": "@@ -34,14 +34,28 @@ class AsyncHttpClientTest extends AbstractHttpClientTest<Request> {\n   static final InstrumentationExtension testing = HttpClientInstrumentationExtension.forAgent();\n \n   private static final int CONNECTION_TIMEOUT_MS = (int) CONNECTION_TIMEOUT.toMillis();\n+  private static final int READ_TIMEOUT_MS = (int) READ_TIMEOUT.toMillis();\n \n-  // request timeout is needed in addition to connect timeout on async-http-client versions 2.1.0+\n-  static final AsyncHttpClient client = Dsl.asyncHttpClient(configureTimeout(Dsl.config()));\n+  private static final AsyncHttpClient client = buildClient(false);\n+  private static final AsyncHttpClient clientWithReadTimeout = buildClient(true);\n+\n+  private static AsyncHttpClient buildClient(boolean readTimeout) {\n+    return Dsl.asyncHttpClient(configureTimeout(Dsl.config(), readTimeout));\n+  }\n+\n+  protected static AsyncHttpClient getClient(URI uri) {",
+      "id": "PRRT_kwDODJKVX86KKUxl",
+      "opened": "2026-06-17T09:22:54Z",
+      "path": "instrumentation/async-http-client/async-http-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/asynchttpclient/v2_0/AsyncHttpClientTest.java",
+      "replies": [],
+      "reviewed": "15ed584bc8383cb36ec6e489c60c57807448bb0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19025#discussion_r3426988770"
+    }
+  ]
+}

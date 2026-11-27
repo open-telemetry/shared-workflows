@@ -1,0 +1,31 @@
+{
+  "head": "9d6b5bd1937a9d889904c1fbdd0e59cf889e2e35",
+  "merge": "08e5230c4446baa15eec95cf7f2cdc329f34b4e2",
+  "merged": "2026-11-22T16:35:13Z",
+  "missing_roots": 0,
+  "number": 21407,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly on open-telemetry/opentelemetry-java-instrumentation branch `copilot/cloud-release-batch-4-issue-20095`. Keep the branch GitHub Copilot assigned; do not rename or replace it, or create a follow-up PR as a workaround. If GitHub assigns a follow-up branch, keep that assigned branch.\n\nRemove only the complete Vert.x Redis Client 4.0 migration from this PR so it can go in the separate named-unit-suite rollout PR. Revert this PR's changes under `instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/`, including its javaagent build edits, all source moves, and deletion of `javaagent-unit-tests/build.gradle.kts`. Restore its standalone project include in `settings.gradle.kts`. Restore the pre-PR test layout with the standalone 4.4.5 and existing javaagent 4.4.4 coverage intact; do not copy over unrelated upstream changes. Use a targeted follow-up commit on the existing branch, not a history rewrite.\n\nKeep all six other migrations exactly as they are, including agent-free helper-test behavior, separate pins, Redisson denyUnsafe behavior, and the Spymemcached class rename. Do not introduce the named suite helper here. Verify the resulting PR diff has no Vert.x Redis module changes or removal of its settings entry; all six other migrations must still be present. If running formatting, run narrow Spotless apply before targeted verification.",
+      "created": "2026-11-21T20:40:15Z",
+      "hunk": "@@ -35,14 +37,19 @@ dependencies {\n }\n \n testing.suites {\n-  register<JvmTestSuite>(\"unitTests\") {\n+  unitTests {\n     dependencies {\n-      implementation(project())\n-      implementation(project(\":instrumentation-api-incubator\"))\n       implementation(\"io.vertx:vertx-redis-client:4.4.4\")\n     }\n   }\n \n+  register<JvmTestSuite>(\"redis445UnitTests\") {",
+      "id": "PRRT_kwDODJKVX866cEfe",
+      "opened": "2026-11-21T20:40:15Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T20:49:09Z",
+          "body": "Restored the Vert.x Redis Client 4.0 standalone helper-test project and its settings entry, leaving the other six migrations unchanged. The Vert.x module has no net diff against its pre-migration state. Targeted tests passed. Follow-up commit: `9d6b5bd1`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21407#discussion_r4654912977"
+        }
+      ],
+      "reviewed": "bd7226ff5cf4ace1a07f627d3ee6c584d749d190",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21407#discussion_r4654873268"
+    }
+  ]
+}

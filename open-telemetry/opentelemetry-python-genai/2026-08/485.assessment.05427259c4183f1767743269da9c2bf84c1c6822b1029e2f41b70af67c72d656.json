@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "2e30fe63596f0423181a883c8e21d92d44d32bbfbded01cd4731844b8faf94bf",
+  "input_digest": "05427259c4183f1767743269da9c2bf84c1c6822b1029e2f41b70af67c72d656",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/fdd3d25018eb215deadb59e899320855517105bc/instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b70398865dc3c95945c16b8aab0a92f94bcd316b/instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/1c54c72dc7c90e16dd6d297efdfcfa07ffc77d39"
+      ],
+      "id": "PRRT_kwDOSbspP86cn_Co",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/fdd3d25018eb215deadb59e899320855517105bc/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_processor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/fdd3d25018eb215deadb59e899320855517105bc/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/cassettes/test_runner_failing_tool_records_span_error.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b70398865dc3c95945c16b8aab0a92f94bcd316b/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_processor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b70398865dc3c95945c16b8aab0a92f94bcd316b/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/cassettes/test_runner_failing_tool_records_span_error.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/1c54c72dc7c90e16dd6d297efdfcfa07ffc77d39"
+      ],
+      "id": "PRRT_kwDOSbspP86cn_Cq",
+      "kind": "test coverage gap",
+      "regressed": true,
+      "status": "unaddressed"
+    }
+  ]
+}

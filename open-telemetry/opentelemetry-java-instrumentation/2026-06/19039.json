@@ -1,0 +1,40 @@
+{
+  "head": "31f68c5a5028474b52d6ced99f2d6d50a8e239c4",
+  "merge": "0a0b2d940fb385acd3ed2728ab416b1d2ba80f71",
+  "merged": "2026-06-20T23:46:13Z",
+  "missing_roots": 0,
+  "number": 19039,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  private static class BatchScenario {\n```",
+      "created": "2026-06-19T18:10:47Z",
+      "hunk": "@@ -569,4 +579,37 @@ private static String dbCollectionName(TableName table, boolean hasTable) {\n     }\n     return null;\n   }\n+\n+  private static final class BatchScenario {",
+      "id": "PRRT_kwDODJKVX86K5ni_",
+      "opened": "2026-06-19T18:10:58Z",
+      "path": "instrumentation/hbase-client-2.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/testing/AbstractHbaseTest.java",
+      "replies": [],
+      "reviewed": "2ba80c682387f95c86a39ed9f9e78e8a753e4119",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19039#discussion_r3444010883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    static class Builder {\n```",
+      "created": "2026-06-19T18:10:55Z",
+      "hunk": "@@ -569,4 +579,37 @@ private static String dbCollectionName(TableName table, boolean hasTable) {\n     }\n     return null;\n   }\n+\n+  private static final class BatchScenario {\n+    final List<Row> actions;\n+    final String operationName;\n+\n+    BatchScenario(Builder builder) {\n+      this.actions = builder.actions;\n+      this.operationName = builder.operationName;\n+    }\n+\n+    static Builder builder() {\n+      return new Builder();\n+    }\n+\n+    static final class Builder {",
+      "id": "PRRT_kwDODJKVX86K5nm6",
+      "opened": "2026-06-19T18:10:58Z",
+      "path": "instrumentation/hbase-client-2.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/testing/AbstractHbaseTest.java",
+      "replies": [],
+      "reviewed": "2ba80c682387f95c86a39ed9f9e78e8a753e4119",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19039#discussion_r3444011236"
+    }
+  ]
+}

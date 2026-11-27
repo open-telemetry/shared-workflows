@@ -1,0 +1,46 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "867a3f85418ab2be5fd958e070e0d64344d6395c536f644f3e2f770464392141",
+  "input_digest": "5aa183025f5536259d231c32743a4f947812b1f7118f991675bf4b68b021e8c9",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/646d98da433fcd35b83e17243cdc7e583623deac/instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/646d98da433fcd35b83e17243cdc7e583623deac/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/31563921a37f6dd1fcc5675351cf2ad0db46d454/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5d7621e874439d6e7c775943f26e9a249874b136"
+      ],
+      "id": "PRRT_kwDODJKVX86mUNKE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/646d98da433fcd35b83e17243cdc7e583623deac/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/31563921a37f6dd1fcc5675351cf2ad0db46d454/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5d7621e874439d6e7c775943f26e9a249874b136"
+      ],
+      "id": "PRRT_kwDODJKVX86mUNKQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/646d98da433fcd35b83e17243cdc7e583623deac/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/31563921a37f6dd1fcc5675351cf2ad0db46d454/instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5d7621e874439d6e7c775943f26e9a249874b136"
+      ],
+      "id": "PRRT_kwDODJKVX86mUNKb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

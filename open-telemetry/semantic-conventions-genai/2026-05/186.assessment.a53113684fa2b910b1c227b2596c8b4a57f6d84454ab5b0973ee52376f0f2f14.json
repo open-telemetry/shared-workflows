@@ -1,0 +1,43 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7433cb9701138c774de93a7988882dc2f2d8e96420c927efc93c461811cce391",
+  "input_digest": "a53113684fa2b910b1c227b2596c8b4a57f6d84454ab5b0973ee52376f0f2f14",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/31be1bab64f71d471140692e7ded492dda4d27f4/reference/scenarios/claude-agent-sdk/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/af2f15afe0eda0bd79019fee383a5e35688efcfa/reference/scenarios/claude-agent-sdk/scenario.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM6EQAnF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aeca796ed1889e248f6055f6634eecb652333da6/reference/scenarios/claude-agent-sdk/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/af2f15afe0eda0bd79019fee383a5e35688efcfa/reference/scenarios/claude-agent-sdk/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/91662ae22f34e2bec502c8cc79a20baeb4529973"
+      ],
+      "id": "PRRT_kwDOSUeMrM6E5JK4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/aeca796ed1889e248f6055f6634eecb652333da6/reference/scenarios/claude-agent-sdk/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/af2f15afe0eda0bd79019fee383a5e35688efcfa/reference/scenarios/claude-agent-sdk/scenario.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM6E5JLf",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

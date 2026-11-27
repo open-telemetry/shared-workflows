@@ -1,0 +1,50 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "754ca8ef416781ce4e5baea0810c67e3548938ec37643fd9d282cf65f2bf109f",
+  "input_digest": "3bdbe807823f08bc7109d5833d027e15b0822dc19857b5bb6a54361e8961e8de",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2b40bf2448c72b2b9eb01aa1f5e6c422d13a6ab3/model/gen-ai/metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/953dd22e3cecd3a397d742c349d2435d59c8b771/model/gen-ai/metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/953dd22e3cecd3a397d742c349d2435d59c8b771"
+      ],
+      "id": "PRRT_kwDOSUeMrM6LyfWi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2b40bf2448c72b2b9eb01aa1f5e6c422d13a6ab3/model/gen-ai/metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/953dd22e3cecd3a397d742c349d2435d59c8b771/model/gen-ai/metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/fa44bd60215ffcd8e4e0e85f743241a05a69f135"
+      ],
+      "id": "PRRT_kwDOSUeMrM6LyfWu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2b40bf2448c72b2b9eb01aa1f5e6c422d13a6ab3/templates/registry/markdown/metric_table.j2",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/953dd22e3cecd3a397d742c349d2435d59c8b771/templates/registry/markdown/metric_table.j2"
+      ],
+      "id": "PRRT_kwDOSUeMrM6LyfW0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6PUD6x",
+      "kind": null,
+      "original": "PRRT_kwDOSUeMrM6LyfWu",
+      "status": "duplicate"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "0fe256584d151714489d0edf17e20d62db45ec72",
+  "merge": "6f9ca5672ce84edbbe36ce0e14386c31d68f479f",
+  "merged": "2026-08-26T11:18:11Z",
+  "missing_roots": 0,
+  "number": 19788,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This version is explicitly required to stay synchronized with `conventions/src/main/kotlin/otel.spring-native-test-conventions.gradle.kts:12-13`, but that file still downloads `graalvm-reachability-metadata:1.1.9`; `conventions/build.gradle.kts:84` also still compiles the convention against `native-gradle-plugin:1.1.9`. Please update both coupled versions to 1.1.10 so native tests use matching metadata and plugin APIs.",
+      "created": "2026-08-25T00:55:27Z",
+      "hunk": "@@ -7,7 +7,7 @@ pluginManagement {\n     id(\"org.jetbrains.kotlin.jvm\") version \"2.4.10\"\n     id(\"org.xbib.gradle.plugin.jflex\") version \"3.0.2\"\n     id(\"com.github.bjornvester.xjc\") version \"1.9.1\"\n-    id(\"org.graalvm.buildtools.native\") version \"1.1.9\"\n+    id(\"org.graalvm.buildtools.native\") version \"1.1.10\"",
+      "id": "PRRT_kwDODJKVX86b5tel",
+      "opened": "2026-08-25T00:55:27Z",
+      "path": "settings.gradle.kts",
+      "replies": [],
+      "reviewed": "da86947c5f9a7288de18b98c9fa5a263cc3ae349",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19788#discussion_r3848690206"
+    }
+  ]
+}

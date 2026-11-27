@@ -1,0 +1,31 @@
+{
+  "head": "6de3b1d2d89b50b38cd84c3dfde55226f7f283cd",
+  "merge": "cfb831b6b68f043a8abf25dc8f8329be80fee6e3",
+  "merged": "2026-09-30T22:12:01Z",
+  "missing_roots": 0,
+  "number": 20328,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "If it helps could always use `-Ob` I think the optimization side isn't really important for us.",
+      "created": "2026-09-30T18:08:47Z",
+      "hunk": "@@ -88,6 +88,10 @@ To execute all the instrumentation tests runnable as GraalVM native executables:\n ./gradlew nativeTest\n ```\n \n+Native image generation is slow, so pull request CI builds the test binaries with GraalVM's quick\n+build mode (`-Ob`) by passing `-PnativeTestQuickBuild=true`. The daily workflow and local runs keep\n+the default fully optimized build.",
+      "id": "PRRT_kwDODJKVX86npwF6",
+      "opened": "2026-09-30T18:08:46Z",
+      "path": "docs/contributing/running-tests.md",
+      "replies": [
+        {
+          "at": "2026-09-30T18:22:12Z",
+          "body": "153bb30e74fd2a11a0f74bd597cd1baa4f6c8e84",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20328#discussion_r4147920413"
+        }
+      ],
+      "reviewed": "881d840aa7806c87c9b9b7fafb362e46d7a0409e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20328#discussion_r4147801637"
+    }
+  ]
+}

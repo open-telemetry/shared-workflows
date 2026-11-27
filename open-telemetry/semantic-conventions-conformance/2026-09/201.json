@@ -1,0 +1,25 @@
+{
+  "head": "a828f15aa9121a8443d37c49b7bf91999dacc752",
+  "merge": "516a31b932077df0f5a8da4c8134ee5ca8d2be99",
+  "merged": "2026-09-29T05:36:18Z",
+  "missing_roots": 0,
+  "number": 201,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Because this module replaces and imports `tools/go`, its dependency graph includes the versions declared by `tools/go/go.mod`. This hunk updates the core OTel module to v1.46.0 but leaves all three OTLP exporter modules at v1.45.0, while `tools/go` now requires them at v1.46.0; `scenarios/http/go/go.sum` likewise has no v1.46.0 exporter checksums. A clean build will therefore either rewrite the lock files or fail with `-mod=readonly` (the same stale graph also remains for grpc-gateway/genproto/grpc elsewhere in this file). Regenerate this module's go.mod and go.sum after the shared-module update.",
+      "created": "2026-09-14T00:45:48Z",
+      "hunk": "@@ -54,29 +54,29 @@ require (\n \tgithub.com/quic-go/qpack v0.6.0 // indirect\n \tgithub.com/quic-go/quic-go v0.61.0 // indirect\n \tgithub.com/twitchyliquid64/golang-asm v0.15.1 // indirect\n-\tgithub.com/ugorji/go/codec v1.3.1 // indirect\n+\tgithub.com/ugorji/go/codec v1.3.2 // indirect\n \tgithub.com/valyala/bytebufferpool v1.0.0 // indirect\n \tgithub.com/valyala/fasttemplate v1.2.2 // indirect\n-\tgo.mongodb.org/mongo-driver/v2 v2.8.0 // indirect\n+\tgo.mongodb.org/mongo-driver/v2 v2.8.1 // indirect\n \tgo.opentelemetry.io/auto/sdk v1.2.1 // indirect\n-\tgo.opentelemetry.io/otel v1.45.0 // indirect\n+\tgo.opentelemetry.io/otel v1.46.0 // indirect\n \tgo.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.45.0 // indirect\n \tgo.opentelemetry.io/otel/exporters/otlp/otlptrace v1.45.0 // indirect\n \tgo.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.45.0 // indirect",
+      "id": "PRRT_kwDOTuzK5c6h9gFz",
+      "opened": "2026-09-14T00:45:48Z",
+      "path": "scenarios/http/go/go.mod",
+      "replies": [],
+      "reviewed": "f4d4df5b2a533eab05f814e9e3b790da92567aa9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/201#discussion_r4001483776"
+    }
+  ]
+}

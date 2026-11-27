@@ -1,0 +1,25 @@
+{
+  "head": "c115ea3f64f716e13885ba5ab1e98feeefa61db3",
+  "merge": "86dc4cad8b93d954e51dfd612b08a8e3085bf8af",
+  "merged": "2026-08-27T14:23:17Z",
+  "missing_roots": 0,
+  "number": 119,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think we could simplify, I don't think we really care if it fails to shutdown cleanly\n\ntry {\n    system.terminate();\n    system.getWhenTerminated().toCompletableFuture().get(10, TimeUnit.SECONDS);\n  } finally {\n    System.exit(0);\n  }",
+      "created": "2026-08-27T13:49:02Z",
+      "hunk": "@@ -43,8 +50,37 @@ public static void run() throws Exception {\n         binding.unbind().toCompletableFuture().get();\n       }\n     } finally {\n-      system.terminate();\n-      system.getWhenTerminated().toCompletableFuture().get();\n+      terminate(system);",
+      "id": "PRRT_kwDOTuzK5c6c1tyT",
+      "opened": "2026-08-27T13:49:02Z",
+      "path": "scenarios/http/java/pekko-http/scenarios/src/main/java/io/opentelemetry/conformance/http/pekkohttp/PekkoHttpServerScenario.java",
+      "replies": [],
+      "reviewed": "b30389712db37e2e6e1379e221538c263620e309",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/119#discussion_r3872327204"
+    }
+  ]
+}

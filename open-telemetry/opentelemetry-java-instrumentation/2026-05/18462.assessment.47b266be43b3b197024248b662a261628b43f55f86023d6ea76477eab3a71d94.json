@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b710ae5a9dc6c28f71dc4866f86ee695e12aadd63351f88fcd1ccb83a2d257a5",
+  "input_digest": "47b266be43b3b197024248b662a261628b43f55f86023d6ea76477eab3a71d94",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3f402c27bf5bee227a09ae3b8b1434e12a356d8f/instrumentation/vertx/vertx-web-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/RoutingContextHandlerWrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6985c81c4925eb99370aebf23a00b1cdd957e5b1/instrumentation/vertx/vertx-web-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/RoutingContextHandlerWrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8742f66a789aa592da716cbdd7a5abf9c7d4e995"
+      ],
+      "id": "PRRT_kwDODJKVX85-4RaF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

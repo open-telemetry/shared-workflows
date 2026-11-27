@@ -1,0 +1,31 @@
+{
+  "head": "ea4604f0cf2188aa74be85ede0ff2b4114ebc7e4",
+  "merge": "3a417fc1a23f6602fd64d03a9b5e9b9ffab21835",
+  "merged": "2026-10-22T06:04:00Z",
+  "missing_roots": 0,
+  "number": 20820,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to drop the dependency cleanup and keep only the runtime-telemetry stabilization. This is a user-directed scope correction: the user selected \"Drop the dependency cleanup\" after pointing out the upstream OpenTelemetry Java versioning policy at https://github.com/open-telemetry/opentelemetry-java/blob/main/VERSIONING.md#compatibility-requirements. That policy permits stable artifacts to depend on alpha artifacts via implementation dependencies. The current comment claiming that a stable library must not publish the convention's incubator dependency is incorrect; eliminating instrumentation-api-incubator was never a stabilization requirement.\n\nRestore instrumentation/runtime-telemetry/library/build.gradle.kts to its pre-PR dependency configuration, including implementation(project(\":instrumentation-api-incubator\")). Remove the convention-dependency exclusion and the explicit upstream dependencies introduced only to replace that transitive dependency. Restore Internal.java to use DeclarativeConfigUtil.getInstrumentationConfig() instead of duplicating the ExtendedOpenTelemetry lookup. Remove the new InternalConfigTest.java that exists solely to cover that now-unnecessary lookup rewrite.\n\nKeep instrumentation/runtime-telemetry/library/gradle.properties with otel.stable=true and the generated docs/apidiffs/current_vs_latest/opentelemetry-runtime-telemetry.txt API baseline. The expected final diff is just these two stabilization files, unless a directly necessary publication fix is discovered. Preserve the existing supported API, unstable Experimental API boundary, runtime behavior, configuration, and Java 8/17 multi-release packaging. Do not introduce other cleanup or versioning-policy changes.\n\nThe previous coding task is completed and all checks on head 34d175ff21925ddfa64a5d463e45e18a9280d8ed passed. Validate the narrowed change with the relevant library checks and generated publication/BOM metadata. Confirm stable publication and stable BOM inclusion; the alpha implementation dependency is now intentionally retained and is not an acceptance failure. Commit and push the revision to this PR's existing head branch rather than creating a follow-up PR. Keep the PR a draft.\n",
+      "created": "2026-10-22T01:27:02Z",
+      "hunk": "@@ -4,9 +4,18 @@ plugins {\n \n val mrJarVersions = listOf(17)\n \n+// Stable library instrumentation must not publish the incubator dependency added by the convention.",
+      "id": "PRRT_kwDODJKVX86vA8pd",
+      "opened": "2026-10-22T01:27:01Z",
+      "path": "instrumentation/runtime-telemetry/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-22T01:35:05Z",
+          "body": "Addressed in ea4604f0. Restored the original dependencies and DeclarativeConfigUtil lookup, and removed InternalConfigTest. The final diff is only otel.stable=true and the generated API baseline. Library check passed; generated POM/module/BOM metadata confirms stable publication and stable BOM inclusion, with the alpha implementation dependency intentionally retained. Updated the existing draft PR branch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20820#discussion_r4343707934"
+        }
+      ],
+      "reviewed": "34d175ff21925ddfa64a5d463e45e18a9280d8ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20820#discussion_r4343669364"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "a25ed2c4b93be3c0d422d7c9350167934a807e1c",
+  "merge": "57c43de71cfebd4befb62f5e87761d7c24b9d08c",
+  "merged": "2026-10-12T05:47:57Z",
+  "missing_roots": 0,
+  "number": 309,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Regenerate this implementation’s `data.json` after upgrading the instrumentation and commit the result. `scenarios/gen-ai/AGENTS.md:53-60` requires every implementation change to be run through `otel-conformance`; without that generated update, the checked-in conformance coverage/findings are not verified against 1.0.4 and CI will fail if the output changed.",
+      "created": "2026-10-12T04:50:27Z",
+      "hunk": "@@ -4,7 +4,7 @@ version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n     \"google-adk==2.11.0\",\n-    \"openinference-instrumentation-google-adk==0.1.28\",\n+    \"openinference-instrumentation-google-adk==1.0.4\",",
+      "id": "PRRT_kwDOTuzK5c6rVP8v",
+      "opened": "2026-10-12T04:50:27Z",
+      "path": "scenarios/gen-ai/python/google-adk/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "254a110504112c248b99f869465f86a66b8677ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/309#discussion_r4244763468"
+    }
+  ]
+}

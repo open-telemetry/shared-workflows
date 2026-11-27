@@ -1,0 +1,31 @@
+{
+  "head": "c23fbba7e105e5b4d834380c601c4769f3f530e3",
+  "merge": "8cc6292e810285e4acd18029599e7bf64ec49361",
+  "merged": "2026-10-26T09:27:58Z",
+  "missing_roots": 0,
+  "number": 20927,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This entry publishes a Spring Integration test package as a nonexistent `opentelemetry` instrumentation with the scope `io.opentelemetry.opentelemetry`. `FileManager.isValidInstrumentationPath()` accepts the nested `version41Test/java/io/opentelemetry/javaagent` directory as a module directory. Exclude source-tree package directories from module discovery and regenerate the catalog; deleting only this generated entry would let the next nightly run recreate it.",
+      "created": "2026-10-24T02:43:15Z",
+      "hunk": "@@ -16482,6 +16403,10 @@ libraries:\n         type: STRING\n       - name: server.port\n         type: LONG\n+- name: opentelemetry\n+  source_path: instrumentation/spring/spring-integration-4.1/library/src/version41Test/java/io/opentelemetry\n+  scope:\n+    name: io.opentelemetry.opentelemetry",
+      "id": "PRRT_kwDODJKVX86v09AI",
+      "opened": "2026-10-24T02:43:15Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-25T04:36:32Z",
+          "body": "opened https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20956",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20927#discussion_r4369660293"
+        }
+      ],
+      "reviewed": "31216e5199324360aa9670d4756578cac2a9433b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20927#discussion_r4365720354"
+    }
+  ]
+}

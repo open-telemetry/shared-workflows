@@ -1,0 +1,78 @@
+{
+  "head": "0b012391efa8d8c59f82c33a3e8fe0378d556352",
+  "merge": "d509a561275ebb3fd7ef5215921d69c9655dbd6b",
+  "merged": "2026-11-03T21:30:52Z",
+  "missing_roots": 0,
+  "number": 128,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The selective error recovery has no unit coverage, so swallowing unrelated failures or accepting an unexpectedly successful query could go undetected. Add proxy-based tests in `R2dbcScenarioTest` verifying that only SQLSTATE `42P01` is handled, other SQLSTATEs and non-R2DBC exceptions propagate, and successful execution raises the intended failure. Verify connection cleanup in each case.",
+      "created": "2026-11-01T00:16:18Z",
+      "hunk": "@@ -0,0 +1,138 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.database.r2dbc;\n+\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import io.r2dbc.spi.Batch;\n+import io.r2dbc.spi.Connection;\n+import io.r2dbc.spi.ConnectionFactory;\n+import io.r2dbc.spi.ConnectionFactoryOptions;\n+import io.r2dbc.spi.R2dbcException;\n+import io.r2dbc.spi.Result;\n+import java.time.Duration;\n+import java.util.Objects;\n+import reactor.core.publisher.Flux;\n+import reactor.core.publisher.Mono;\n+\n+/** Exercises individual reactive R2DBC execution paths against PostgreSQL. */\n+public final class R2dbcScenario {\n+  private static final Duration TIMEOUT = Duration.ofSeconds(30);\n+\n+  private R2dbcScenario() {}\n+\n+  public static ConnectionFactoryOptions connectionFactoryOptions() {\n+    return connectionFactoryOptions(\n+        ScenarioEnvironment.require(\"R2DBC_URL\"),\n+        ScenarioEnvironment.require(\"R2DBC_USER\"),\n+        ScenarioEnvironment.require(\"R2DBC_PASSWORD\"));\n+  }\n+\n+  static ConnectionFactoryOptions connectionFactoryOptions(\n+      String url, String user, String password) {\n+    return ConnectionFactoryOptions.parse(url)\n+        .mutate()\n+        .option(ConnectionFactoryOptions.USER, user)\n+        .option(ConnectionFactoryOptions.PASSWORD, password)\n+        .build();\n+  }\n+\n+  public static void run(ConnectionFactory connectionFactory, String operation) {\n+    Operation parsedOperation = Operation.parse(operation);\n+    Mono.usingWhen(\n+            Mono.from(connectionFactory.create()),\n+            connection -> execute(connection, parsedOperation),\n+            connection -> Mono.from(connection.close()))\n+        .block(TIMEOUT);\n+  }\n+\n+  private static Mono<Void> execute(Connection connection, Operation operation) {\n+    switch (operation) {\n+      case STATEMENT:\n+        return statement(connection);\n+      case BIND:\n+        return bind(connection);\n+      case BATCH:\n+        return batch(connection);\n+      case STORED_PROCEDURE:\n+        return storedProcedure(connection);\n+      case ERROR:\n+        return error(connection);\n+    }\n+    throw new AssertionError(\"unhandled R2DBC operation: \" + operation);\n+  }\n+\n+  private static Mono<Void> statement(Connection connection) {\n+    return Mono.from(\n+            connection.createStatement(\"SELECT count(*) >= 0 FROM conformance.items\").execute())\n+        .flatMap(result -> Mono.from(result.map((row, metadata) -> row.get(0, Boolean.class))))\n+        .filter(Boolean.TRUE::equals)\n+        .switchIfEmpty(\n+            Mono.error(new IllegalStateException(\"statement returned an unexpected result\")))\n+        .then();\n+  }\n+\n+  private static Mono<Void> bind(Connection connection) {\n+    return Mono.from(\n+            connection\n+                .createStatement(\"SELECT name FROM conformance.items WHERE id = $1\")\n+                .bind(0, -1)\n+                .execute())\n+        .flatMapMany(result -> result.map((row, metadata) -> row.get(0, String.class)))\n+        .hasElements()\n+        .flatMap(\n+            hasRows ->\n+                hasRows\n+                    ? Mono.error(new IllegalStateException(\"bind returned an unexpected row\"))\n+                    : Mono.empty());\n+  }\n+\n+  private static Mono<Void> batch(Connection connection) {\n+    Batch batch =\n+        connection\n+            .createBatch()\n+            .add(\"INSERT INTO conformance.items (id, name) VALUES (1001, 'first')\")\n+            .add(\"INSERT INTO conformance.items (id, name) VALUES (1002, 'second')\");\n+    return Flux.from(batch.execute())\n+        .flatMap(Result::getRowsUpdated)\n+        .reduce(0L, Long::sum)\n+        .filter(updated -> updated == 2)\n+        .switchIfEmpty(Mono.error(new IllegalStateException(\"batch did not insert two rows\")))\n+        .then();\n+  }\n+\n+  private static Mono<Void> storedProcedure(Connection connection) {\n+    return Flux.from(connection.createStatement(\"CALL conformance.noop()\").execute())\n+        .concatMap(Result::getRowsUpdated)\n+        .then();\n+  }\n+\n+  private static Mono<Void> error(Connection connection) {\n+    return Flux.from(\n+            connection.createStatement(\"SELECT * FROM conformance.missing_items\").execute())\n+        .flatMap(Result::getRowsUpdated)\n+        .then(\n+            Mono.<Void>error(new IllegalStateException(\"invalid statement unexpectedly succeeded\")))\n+        .onErrorResume(\n+            R2dbcException.class,\n+            error ->\n+                Objects.equals(\"42P01\", error.getSqlState()) ? Mono.empty() : Mono.error(error));",
+      "id": "PRRT_kwDOTuzK5c6yV0lv",
+      "opened": "2026-11-01T00:16:19Z",
+      "path": "scenarios/database/java/shared/r2dbc/scenarios/src/main/java/io/opentelemetry/conformance/database/r2dbc/R2dbcScenario.java",
+      "replies": [
+        {
+          "at": "2026-11-01T23:01:08Z",
+          "body": "Added proxy-based tests in fb56eb52. They verify that only SQLSTATE `42P01` is recovered, other and null SQLSTATEs and non-R2DBC failures propagate the original exception, and unexpected success throws the intended `IllegalStateException`. The error cases cover failures from both `Statement.execute()` and `Result.getRowsUpdated()`. Every case checks the submitted SQL and that the connection-close publisher completes. No production changes were needed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/128#discussion_r4437724528"
+        }
+      ],
+      "reviewed": "d8c3f08bce56ae5903ed5dba5b3dfa2163951c98",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/128#discussion_r4433800684"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: could the workload read the shared `sql-test-client` actions via `SqlContract.selectedScenario()` like `JdbcScenario` does (`renderSql(i -> \"$\" + i)` for binds), and keep only the expectations R2DBC-specific? Right now the SQL is duplicated and already differs from the PostgreSQL contract (batch ids `1001/1002` vs `1/2`).",
+      "created": "2026-11-03T06:18:19Z",
+      "hunk": "@@ -0,0 +1,138 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.database.r2dbc;\n+\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import io.r2dbc.spi.Batch;\n+import io.r2dbc.spi.Connection;\n+import io.r2dbc.spi.ConnectionFactory;\n+import io.r2dbc.spi.ConnectionFactoryOptions;\n+import io.r2dbc.spi.R2dbcException;\n+import io.r2dbc.spi.Result;\n+import java.time.Duration;\n+import java.util.Objects;\n+import reactor.core.publisher.Flux;\n+import reactor.core.publisher.Mono;\n+\n+/** Exercises individual reactive R2DBC execution paths against PostgreSQL. */\n+public final class R2dbcScenario {\n+  private static final Duration TIMEOUT = Duration.ofSeconds(30);\n+\n+  private R2dbcScenario() {}\n+\n+  public static ConnectionFactoryOptions connectionFactoryOptions() {\n+    return connectionFactoryOptions(\n+        ScenarioEnvironment.require(\"R2DBC_URL\"),\n+        ScenarioEnvironment.require(\"R2DBC_USER\"),\n+        ScenarioEnvironment.require(\"R2DBC_PASSWORD\"));\n+  }\n+\n+  static ConnectionFactoryOptions connectionFactoryOptions(\n+      String url, String user, String password) {\n+    return ConnectionFactoryOptions.parse(url)\n+        .mutate()\n+        .option(ConnectionFactoryOptions.USER, user)\n+        .option(ConnectionFactoryOptions.PASSWORD, password)\n+        .build();\n+  }\n+\n+  public static void run(ConnectionFactory connectionFactory, String operation) {\n+    Operation parsedOperation = Operation.parse(operation);\n+    Mono.usingWhen(\n+            Mono.from(connectionFactory.create()),\n+            connection -> execute(connection, parsedOperation),\n+            connection -> Mono.from(connection.close()))\n+        .block(TIMEOUT);\n+  }\n+\n+  private static Mono<Void> execute(Connection connection, Operation operation) {\n+    switch (operation) {\n+      case STATEMENT:\n+        return statement(connection);\n+      case BIND:\n+        return bind(connection);\n+      case BATCH:\n+        return batch(connection);\n+      case STORED_PROCEDURE:\n+        return storedProcedure(connection);\n+      case ERROR:\n+        return error(connection);\n+    }\n+    throw new AssertionError(\"unhandled R2DBC operation: \" + operation);\n+  }\n+\n+  private static Mono<Void> statement(Connection connection) {\n+    return Mono.from(\n+            connection.createStatement(\"SELECT count(*) >= 0 FROM conformance.items\").execute())",
+      "id": "PRRT_kwDOTuzK5c6zADl0",
+      "opened": "2026-11-03T06:33:26Z",
+      "path": "scenarios/database/java/shared/r2dbc/scenarios/src/main/java/io/opentelemetry/conformance/database/r2dbc/R2dbcScenario.java",
+      "replies": [
+        {
+          "at": "2026-11-03T21:06:19Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/issues/450",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/128#discussion_r4460435867"
+        }
+      ],
+      "reviewed": "fb56eb52f02341833e59da65da2d9b2967f56593",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/128#discussion_r4451496072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The contract encodes two semconv gaps without calling them out: `db.namespace` is `conformance` while PostgreSQL semconv says `{database}|{schema}` (JDBC records `conformance|conformance`), and the `error` scenario has no `db.response.status_code`, which is conditionally required on errors. Maybe list them like the Redis guide does?\n\n```markdown\n## Telemetry differences\n\n- `db.namespace` has only the database name, without the `|{schema}` suffix\n  that JDBC records.\n- The `error` span records SQLSTATE `42P01` in `error.type` but does not set\n  `db.response.status_code`. The contract does not assert it while\n  [#384](https://github.com/open-telemetry/semantic-conventions-conformance/issues/384)\n  tracks recording conditional semantic-convention violations as findings.\n```",
+      "created": "2026-11-03T06:18:19Z",
+      "hunk": "@@ -0,0 +1,44 @@\n+# R2DBC workload\n+\n+PostgreSQL R2DBC packages run one reactive workload through the OpenTelemetry\n+Java agent or `opentelemetry-r2dbc-1.0` library instrumentation. The\n+`shared:r2dbc:scenarios` project owns the SQL and has no OpenTelemetry dependency.\n+Both launchers create the same PostgreSQL `ConnectionFactory`; the library\n+launcher wraps it with the instrumentation.\n+\n+Each operation is a named scenario in\n+[`contracts/postgresql-r2dbc.yaml`](../../../contracts/postgresql-r2dbc.yaml):\n+\n+| Scenario | Workload |\n+| --- | --- |\n+| `statement` | Run a plain `Statement` and verify `SELECT count(*) >= 0 FROM conformance.items` returns true. |\n+| `bind` | Bind `-1` to `$1` in `SELECT name FROM conformance.items WHERE id = $1` and verify no rows return. |\n+| `batch` | Execute two inserts through `Batch` and verify they update two rows. |\n+| `stored_procedure` | Execute `CALL conformance.noop()` through `Statement`. |\n+| `error` | Query `conformance.missing_items` and handle only PostgreSQL SQLSTATE `42P01`. |\n+\n+The workload consumes results before closing the connection. The runner owns\n+the PostgreSQL container and schema initialization; each measured process only\n+connects and executes its selected operation. Connection pooling, transactions,\n+and cancellation are not covered.\n+\n+## Contract and connection settings\n+\n+The contract contains telemetry expectations only. Unlike the shared SQL\n+contracts, it does not inject an `action` object. Each package declares a run\n+command for every named operation. The separate contract records R2DBC-specific\n+namespace and bind-marker attributes and handled-error telemetry.",
+      "id": "PRRT_kwDOTuzK5c6zADlw",
+      "opened": "2026-11-03T06:33:26Z",
+      "path": "scenarios/database/java/shared/r2dbc/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T17:05:40Z",
+          "body": "b49883f4c61d19115fee7de0052dda051addd32b",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/128#discussion_r4457959337"
+        },
+        {
+          "at": "2026-11-03T21:04:52Z",
+          "body": "also https://github.com/open-telemetry/semantic-conventions-conformance/issues/384#issuecomment-6615384209",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/128#discussion_r4460421702"
+        }
+      ],
+      "reviewed": "fb56eb52f02341833e59da65da2d9b2967f56593",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/128#discussion_r4451496067"
+    }
+  ]
+}

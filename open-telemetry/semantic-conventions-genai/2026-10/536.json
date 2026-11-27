@@ -1,0 +1,139 @@
+{
+  "head": "9c2f63ff480cdb35f18a4c4b21051a11dc1a5461",
+  "merge": "6a1163cb00a7497b71e6e0266a2b489e92f86291",
+  "merged": "2026-10-09T19:18:17Z",
+  "missing_roots": 0,
+  "number": 536,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This anchored note is inherited only by the total input/output counters. The cache-read, cache-write, and reasoning usage counters each retain separate notes, so the model does not apply the PR's advertised `gen_ai.client.inference.usage.*` failed-operation behavior to the whole counter family. Either apply the rule to those detailed counters too or narrow the PR description, design note, and changelog to the two totals.",
+      "created": "2026-09-23T05:13:47Z",
+      "hunk": "@@ -18,6 +18,9 @@ metrics:\n \n       When systems report both used tokens and billable tokens, instrumentation\n       MUST report billable tokens.\n+\n+      Instrumentation SHOULD record these counters for failed operations too,\n+      so that tokens consumed before the failure are still counted.",
+      "id": "PRRT_kwDOSUeMrM6lBjaO",
+      "opened": "2026-09-23T05:13:48Z",
+      "path": "model/gen-ai/token-metrics.yaml",
+      "replies": [],
+      "reviewed": "c4533806063c3b6254ee1c018745c8e52ad9c1aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4079267544"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These counters can report used tokens when billable-token data is unavailable, and providers do not necessarily bill tokens from every failed request. Saying the tokens \"were still billed\" overstates both the metric and provider behavior; base the rationale on cumulative consumption instead.",
+      "created": "2026-09-23T05:13:48Z",
+      "hunk": "@@ -109,3 +109,11 @@ The two metric families serve different purposes, reflected in their namespaces:\n   operations. The `operation` namespace indicates that each measurement represents\n   a single operation's token count, producing per-operation distributions and\n   percentiles rather than totals.\n+\n+This split also explains why failed operations are handled differently across\n+the two families. Histograms carry no `error.type` dimension, so a failed\n+operation's token count would sit in the same distribution as successful ones\n+and skew percentiles; instrumentation should skip recording it there. Counters\n+exist to track spend, and tokens consumed before a failure were still billed,\n+so instrumentation should keep recording them on the counters even when the\n+operation ends in an error.",
+      "id": "PRRT_kwDOSUeMrM6lBja3",
+      "opened": "2026-09-23T05:13:48Z",
+      "path": "docs/gen-ai/non-normative/token-metrics-design.md",
+      "replies": [],
+      "reviewed": "c4533806063c3b6254ee1c018745c8e52ad9c1aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4079267613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new failed-operation and zero-token branches have no reference coverage. The OpenAI, Anthropic, and Google GenAI scenarios currently record each histogram beside its counter after successful responses; none demonstrates that a successful zero reaches the histogram or that an operation recording `error.type` omits the histogram while retaining counter usage. Add a real SDK scenario for both branches and regenerate its data/report in this PR.",
+      "created": "2026-09-23T05:13:48Z",
+      "hunk": "@@ -93,6 +96,10 @@ metrics:\n       it MAY allow users to enable offline token counting. Otherwise it MUST NOT report usage metrics.\n \n       When systems report both used tokens and billable tokens, instrumentation MUST report billable tokens.\n+\n+      Instrumentation SHOULD NOT record this metric for an operation that ended\n+      in an error (that is, recorded `error.type`). A successful operation\n+      that reports zero tokens SHOULD be recorded with a value of `0`.",
+      "id": "PRRT_kwDOSUeMrM6lBjal",
+      "opened": "2026-09-23T05:13:48Z",
+      "path": "model/gen-ai/token-metrics.yaml",
+      "replies": [],
+      "reviewed": "c4533806063c3b6254ee1c018745c8e52ad9c1aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4079267578"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nInstrumentation SHOULD record this metric for all operations with a non-zero token count, including failed operations, when the token count is available.\n```\n\nand please add the same for the other counters.",
+      "created": "2026-09-23T07:14:32Z",
+      "hunk": "@@ -718,6 +719,7 @@ Reports the usage of output tokens following the common [gen_ai.client.inference\n \n **[1]:** This metric SHOULD be reported when an operation involves the usage of tokens and the count is readily available.\n When systems report both used tokens and billable tokens, instrumentation MUST report billable tokens.\n+Instrumentation SHOULD record these counters for failed operations too, so that tokens consumed before the failure are still counted.",
+      "id": "PRRT_kwDOSUeMrM6lDPdw",
+      "opened": "2026-10-05T17:44:05Z",
+      "path": "docs/gen-ai/openai.md",
+      "replies": [
+        {
+          "at": "2026-10-06T01:20:05Z",
+          "body": "Added this to all the usage counters now.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4190592644"
+        }
+      ],
+      "reviewed": "c4533806063c3b6254ee1c018745c8e52ad9c1aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4079932269"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, a bit more formal and generic note\n\n```suggestion\n      Instrumentations SHOULD record this metric for each inference operation,\n      including failed ones. The recorded value SHOULD match the token count \n      returned by the provider, or `0` if the response was not received or \n      did not contain token usage.\n```",
+      "created": "2026-10-05T17:40:55Z",
+      "hunk": "@@ -93,12 +93,19 @@ metrics:\n       it MAY allow users to enable offline token counting. Otherwise it MUST NOT report usage metrics.\n \n       When systems report both used tokens and billable tokens, instrumentation MUST report billable tokens.\n+\n+      Instrumentation that reports this metric SHOULD also record it for failed\n+      operations, with `error.type` set. Whether or not the operation succeeded,\n+      it SHOULD record the provider's count for this metric. When a failed\n+      operation has no such count, it SHOULD record the count it knows for this\n+      metric, or `0` if it has none.",
+      "id": "PRRT_kwDOSUeMrM6pJWMG",
+      "opened": "2026-10-05T17:44:05Z",
+      "path": "model/gen-ai/token-metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-06T01:44:22Z",
+          "body": "Done.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4190713499"
+        }
+      ],
+      "reviewed": "1769fd1cc7c8e10cfb0216301ce128ce410b77c3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4186957465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it duplicates what's already in the spec, let's drop it\n\n```suggestion\n```",
+      "created": "2026-10-05T17:41:57Z",
+      "hunk": "@@ -109,3 +109,8 @@ The two metric families serve different purposes, reflected in their namespaces:\n   operations. The `operation` namespace indicates that each measurement represents\n   a single operation's token count, producing per-operation distributions and\n   percentiles rather than totals.\n+\n+Histograms also record failed operations, with `error.type`, so failures can\n+be filtered out or compared. For each histogram, a failed operation records the\n+provider's count if there is one, otherwise the count instrumentation knows, or\n+`0` if it has none.",
+      "id": "PRRT_kwDOSUeMrM6pJXl3",
+      "opened": "2026-10-05T17:44:05Z",
+      "path": "docs/gen-ai/non-normative/token-metrics-design.md",
+      "replies": [
+        {
+          "at": "2026-10-06T01:18:44Z",
+          "body": "Dropped.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4190584426"
+        }
+      ],
+      "reviewed": "1769fd1cc7c8e10cfb0216301ce128ce410b77c3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4186966582"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "SIG meeting discussion:\n\nLet's make counters and histograms the same.\nThere could be edge cases for counters when recording 0 could be meaningful now or in the future and it's not worth is to have different logic for counters.\n\n```suggestion\n      Instrumentations SHOULD record this metric for each inference operation,\n      including failed ones. The recorded value SHOULD match the token count\n      returned by the provider, or `0` if the response was not received or\n      did not contain token usage.\n```",
+      "created": "2026-10-07T19:10:47Z",
+      "hunk": "@@ -43,6 +47,10 @@ metrics:\n     brief: 'The number of input tokens served from a provider-managed cache.'\n     note: >\n       This value is a subset of `gen_ai.client.inference.usage.input_tokens`.\n+\n+      Instrumentation SHOULD record this metric for all operations with a\n+      non-zero token count, including failed operations, when the token count\n+      is available.",
+      "id": "PRRT_kwDOSUeMrM6qDjzj",
+      "opened": "2026-10-07T19:10:47Z",
+      "path": "model/gen-ai/token-metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-08T06:17:40Z",
+          "body": "Done, for all the usage counters. On failures with no usage, the 0 goes to modality `unknown`.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4215537706"
+        }
+      ],
+      "reviewed": "55be1a47a6a6dfa5b4b552728beb78f054bd4b57",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/536#discussion_r4210906032"
+    }
+  ]
+}

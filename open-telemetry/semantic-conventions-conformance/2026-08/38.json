@@ -1,0 +1,73 @@
+{
+  "head": "fbce8aae7193ee65483e0e4a8f3a404688dc05dd",
+  "merge": "e66b011070501dc283d600ab727d2246de93d00d",
+  "merged": "2026-08-17T02:38:43Z",
+  "missing_roots": 0,
+  "number": 38,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`resolve()` duplicates weaver presence checking and raises a generic `RuntimeError`, while the rest of the runner uses `check_weaver()` / `WeaverNotInstalledError` for a consistent (and pinned-version) message that the CLI already catches. Reusing `check_weaver()` here avoids divergent error handling and redundant PATH probing.",
+      "created": "2026-08-15T20:39:06Z",
+      "hunk": "@@ -52,19 +56,43 @@ def resolve(registry: Path, output: Path) -> Path:\n     if output.is_file():\n         return output\n \n+    weaver = shutil.which(\"weaver\")\n+    if weaver is None:\n+        raise RuntimeError(\n+            \"weaver is not on PATH — install it from \"\n+            \"https://github.com/open-telemetry/weaver/releases\"\n+        )",
+      "id": "PRRT_kwDOTuzK5c6Zir0M",
+      "opened": "2026-08-15T20:39:07Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_model.py",
+      "replies": [
+        {
+          "at": "2026-08-15T21:15:51Z",
+          "body": "Addressed in 660d6f6f6debae316b3886b471a474f7e1b10fcd.\n\nAnalysis: The coverage-model resolver bypassed the runner's shared Weaver preflight and therefore produced a different exception and omitted pinned-version diagnostics. Calling `check_weaver()` before invoking the executable aligns this path with every other Weaver-backed runner operation.\n\nUpsides: Missing Weaver installations now use the CLI-handled error and pinned installation guidance, while version mismatches produce the established warning.\n\nDownsides: The executable is invoked by its PATH name after the preflight rather than by an absolute path; this matches the runner's existing Weaver calls.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/38#discussion_r3790280293"
+        }
+      ],
+      "reviewed": "ce24a29297e2e4d20c9f7d14070f3fe10a205c98",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/38#discussion_r3790219193"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`contextlib.suppress(OSError)` is broader than necessary here and can hide unexpected failures (e.g., a programming error producing a non-file path). Since `missing_ok=True` already handles the missing-file case, it’s safer to suppress only `PermissionError`, which is the Windows failure mode described in the comment.",
+      "created": "2026-08-15T20:39:07Z",
+      "hunk": "@@ -152,7 +153,11 @@ def close(self) -> None:\n             self._log.close()\n             self._log = None\n         if self._log_path is not None:\n-            self._log_path.unlink(missing_ok=True)\n+            # A grandchild can still hold the handle just after the server\n+            # exits, which on Windows fails the unlink. A file left in the\n+            # system temp directory is not worth failing a run over.\n+            with contextlib.suppress(OSError):\n+                self._log_path.unlink(missing_ok=True)",
+      "id": "PRRT_kwDOTuzK5c6Zir0T",
+      "opened": "2026-08-15T20:39:07Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_server.py",
+      "replies": [
+        {
+          "at": "2026-08-15T21:15:52Z",
+          "body": "Addressed in 913382bacc7af6b586e8f91ee0eb1f0e9b2a791c.\n\nAnalysis: The cleanup intentionally tolerates only Windows denying deletion while a descendant still owns the file handle. Missing files are already handled by `missing_ok=True`, and other filesystem errors should remain visible.\n\nUpsides: Unexpected path and filesystem failures now propagate instead of being silently treated as successful cleanup.\n\nDownsides: Non-permission cleanup errors can now fail a run, which is intentional because they fall outside the documented transient Windows condition.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/38#discussion_r3790280345"
+        }
+      ],
+      "reviewed": "ce24a29297e2e4d20c9f7d14070f3fe10a205c98",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/38#discussion_r3790219209"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, we don't care about different python versions, do we? let's keep 3.14 only?\n\nupdate: I know it's not in scope, feel free to ignore",
+      "created": "2026-08-16T22:04:37Z",
+      "hunk": "@@ -11,16 +11,23 @@ permissions:\n \n jobs:\n   test:\n-    name: Test (Python ${{ matrix.python-version }})\n-    runs-on: ubuntu-latest\n+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})\n+    runs-on: ${{ matrix.os }}\n     concurrency:\n-      group: ${{ github.workflow }}-test-${{ matrix.python-version }}-${{ github.event.pull_request.number || github.ref }}\n+      group: ${{ github.workflow }}-test-${{ matrix.os }}-${{ matrix.python-version }}-${{ github.event.pull_request.number || github.ref }}\n       cancel-in-progress: true\n     strategy:\n       fail-fast: false\n       matrix:\n-        # The bounds of requires-python in tools/runner/pyproject.toml.\n-        python-version: [\"3.10\", \"3.14\"]\n+        include:\n+          # The bounds of requires-python in tools/runner/pyproject.toml.\n+          - os: ubuntu-latest\n+            python-version: \"3.10\"\n+          - os: ubuntu-latest",
+      "id": "PRRT_kwDOTuzK5c6Zp4bd",
+      "opened": "2026-08-16T22:04:37Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-17T01:58:21Z",
+          "body": "Done. The test matrix now runs only Python 3.14 on Ubuntu and Windows.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/38#discussion_r3793403890"
+        }
+      ],
+      "reviewed": "d28825d31f5dcfb6eec89ce63af5c7c91988d600",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/38#discussion_r3792929944"
+    }
+  ]
+}

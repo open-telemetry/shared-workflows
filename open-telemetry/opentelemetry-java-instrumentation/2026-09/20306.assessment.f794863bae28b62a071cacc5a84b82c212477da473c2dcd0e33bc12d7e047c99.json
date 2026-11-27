@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "462b2f78510ecedd6d430932caa6834dbef310fca718321a41b08f59640703e2",
+  "input_digest": "f794863bae28b62a071cacc5a84b82c212477da473c2dcd0e33bc12d7e047c99",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8dbfcb6b0c9528399545e7bd37e7f7dc356b784a/.github/workflows/module-cleanup.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/74a5a6ee7aed823355e056e3fbf144f111ac0c90/.github/workflows/module-cleanup.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0c362b23e1851779485c4ff23dafc4b4b366eab5"
+      ],
+      "id": "PRRT_kwDODJKVX86m7Xqg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8dbfcb6b0c9528399545e7bd37e7f7dc356b784a/.github/workflows/pr-review.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/74a5a6ee7aed823355e056e3fbf144f111ac0c90/.github/workflows/pr-review.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0c362b23e1851779485c4ff23dafc4b4b366eab5"
+      ],
+      "id": "PRRT_kwDODJKVX86m7Xqz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

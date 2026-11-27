@@ -1,0 +1,31 @@
+{
+  "head": "493edc959de7eb8c7f183b310dcae5ec43e006c9",
+  "merge": "81208852098dd05a5a6006d89c71ddbe2eebea8e",
+  "merged": "2026-10-17T05:56:23Z",
+  "missing_roots": 0,
+  "number": 20650,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] @copilot Please simplify `GraphqlErrorRecorderTest`. Remove the sampled/unsampled parameterization and custom sampler setup. We don't need defensive tests against a hypothetical `span.isRecording()` guard.\n\nReplace the sampling/schema/message Cartesian product with a few focused tests for GraphQL-specific behavior. Avoid re-testing SDK behavior such as dropping null attribute values, and reuse the existing integration coverage instead of duplicating it here. Keep coverage for GraphQL error mapping, correct log context/scope, and exception-signal selection without multiplying unrelated cases. Do not change production behavior.",
+      "created": "2026-10-16T23:29:30Z",
+      "hunk": "@@ -0,0 +1,274 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.graphql.common.v12_0.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvExceptionSignal.emitExceptionAsLogs;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvExceptionSignal.emitExceptionAsSpanEvents;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_MESSAGE;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_TYPE;\n+import static java.util.Arrays.asList;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import graphql.ErrorType;\n+import graphql.ExceptionWhileDataFetching;\n+import graphql.ExecutionResult;\n+import graphql.GraphQLError;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.impl.InstrumentationUtil;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.api.trace.TracerBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.internal.EmbeddedInstrumentationProperties;\n+import io.opentelemetry.sdk.OpenTelemetrySdk;\n+import io.opentelemetry.sdk.common.InstrumentationScopeInfo;\n+import io.opentelemetry.sdk.logs.SdkLoggerProvider;\n+import io.opentelemetry.sdk.logs.export.SimpleLogRecordProcessor;\n+import io.opentelemetry.sdk.testing.exporter.InMemoryLogRecordExporter;\n+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;\n+import io.opentelemetry.sdk.trace.SdkTracerProvider;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;\n+import io.opentelemetry.sdk.trace.samplers.Sampler;\n+import io.opentelemetry.semconv.SchemaUrls;\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+import org.junit.jupiter.params.provider.ValueSource;\n+\n+class GraphqlErrorRecorderTest {\n+\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.graphql-java-common-12.0\";\n+\n+  @ParameterizedTest\n+  @MethodSource(\"recordingCases\")\n+  void recordsError(boolean sampled, String schemaUrl, String message) {",
+      "id": "PRRT_kwDODJKVX86taTyD",
+      "opened": "2026-10-16T23:29:29Z",
+      "path": "instrumentation/graphql-java/graphql-java-common-12.0/library/src/test/java/io/opentelemetry/instrumentation/graphql/common/v12_0/internal/GraphqlErrorRecorderTest.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:15Z",
+          "body": "Simplified the recorder test to one focused GraphQL error case, removed sampler and Cartesian-product coverage, and retained exact signal, context, and scope assertions across the existing default/logs/logs-dup tasks. Committed as `493edc95`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20650#discussion_r4300255312"
+        }
+      ],
+      "reviewed": "64dd287ced6f2f5d3c8a5672f91240a57274fc8a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20650#discussion_r4300223080"
+    }
+  ]
+}

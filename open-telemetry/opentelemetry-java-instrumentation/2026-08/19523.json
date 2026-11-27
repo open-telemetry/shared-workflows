@@ -1,0 +1,367 @@
+{
+  "head": "46bf7d2f4a958f97ba7b67db69624b632afe7fc1",
+  "merge": "2789b87c15cbd1a9d98053aaf895623837a14979",
+  "merged": "2026-08-14T21:38:13Z",
+  "missing_roots": 0,
+  "number": 19523,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: `CapturedMessageHeadersUtil` preserves dashes in v3 preview. This new public API documentation should describe both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:05Z",
+      "hunk": "@@ -34,6 +31,29 @@ public final class MessagingAttributesExtractorBuilder<REQUEST, RESPONSE> {\n     this.supportsStableSemconv = supportsStableSemconv;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_Vd",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:43Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762853630"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832782"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: v3 preview preserves dashes instead of replacing them. Please document both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:06Z",
+      "hunk": "@@ -30,15 +27,34 @@ public final class AwsSdkTelemetryBuilder {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_V9",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AwsSdkTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:46Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762853793"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832824"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: v3 preview preserves dashes instead of replacing them. Please document both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:06Z",
+      "hunk": "@@ -5,36 +5,52 @@\n \n package io.opentelemetry.instrumentation.awssdk.v1_11;\n \n-import static java.util.Collections.emptyList;\n-\n import com.google.errorprone.annotations.CanIgnoreReturnValue;\n import io.opentelemetry.api.OpenTelemetry;\n-import java.util.ArrayList;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n import java.util.Collection;\n-import java.util.List;\n \n /** A builder of {@link AwsSdkTelemetry}. */\n public final class AwsSdkTelemetryBuilder {\n \n   private final OpenTelemetry openTelemetry;\n \n-  private List<String> capturedHeaders = emptyList();\n+  private IncludeExclude headers = IncludeExclude.builder().build();\n   private boolean captureExperimentalSpanAttributes;\n   private boolean messagingReceiveTelemetryEnabled;\n \n   AwsSdkTelemetryBuilder(OpenTelemetry openTelemetry) {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_Vy",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AwsSdkTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:45Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762853730"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832811"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: v3 preview preserves dashes instead of replacing them. Please document both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:07Z",
+      "hunk": "@@ -61,15 +61,34 @@ public KafkaTelemetryBuilder addConsumerReceiveAttributesExtractors(\n     return this;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_WI",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:47Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762853880"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832842"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: v3 preview preserves dashes instead of replacing them. Please document both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:07Z",
+      "hunk": "@@ -5,41 +5,57 @@\n \n package io.opentelemetry.instrumentation.nats.v2_17;\n \n-import static java.util.Collections.emptyList;\n-\n import com.google.errorprone.annotations.CanIgnoreReturnValue;\n import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n import io.opentelemetry.instrumentation.nats.v2_17.internal.NatsInstrumenterFactory;\n-import java.util.ArrayList;\n import java.util.Collection;\n-import java.util.List;\n \n /** A builder of {@link NatsTelemetry}. */\n public final class NatsTelemetryBuilder {\n \n   private final OpenTelemetry openTelemetry;\n-  private List<String> capturedHeaders = emptyList();\n+  private IncludeExclude headers = IncludeExclude.builder().build();\n \n   NatsTelemetryBuilder(OpenTelemetry openTelemetry) {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_WQ",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/NatsTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:49Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762853971"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832857"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: v3 preview preserves dashes instead of replacing them. Please document both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:07Z",
+      "hunk": "@@ -37,22 +34,41 @@ public RocketMqTelemetryBuilder setCaptureExperimentalSpanAttributes(\n     return this;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_We",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:50Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762854058"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832876"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: v3 preview preserves dashes instead of replacing them. Please document both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:07Z",
+      "hunk": "@@ -55,15 +55,34 @@ public SpringIntegrationTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_Wu",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/SpringIntegrationTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:51Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762854155"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832896"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The attribute-key naming is not unconditional: v3 preview preserves dashes instead of replacing them. Please document both modes so callers do not query the wrong key.",
+      "created": "2026-08-12T00:55:08Z",
+      "hunk": "@@ -5,36 +5,57 @@\n \n package io.opentelemetry.instrumentation.spring.kafka.v2_7;\n \n-import static java.util.Collections.emptyList;\n-\n import com.google.errorprone.annotations.CanIgnoreReturnValue;\n import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaInstrumenterFactory;\n import io.opentelemetry.instrumentation.spring.kafka.v2_7.internal.SpringKafkaErrorCauseExtractor;\n-import java.util.ArrayList;\n import java.util.Collection;\n-import java.util.List;\n \n /** A builder of {@link SpringKafkaTelemetry}. */\n public final class SpringKafkaTelemetryBuilder {\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.spring-kafka-2.7\";\n \n   private final OpenTelemetry openTelemetry;\n-  private List<String> capturedHeaders = emptyList();\n+  private IncludeExclude headers = IncludeExclude.builder().build();\n   private boolean captureExperimentalSpanAttributes = false;\n   private boolean messagingReceiveInstrumentationEnabled = false;\n \n   SpringKafkaTelemetryBuilder(OpenTelemetry openTelemetry) {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by\n+   * underscores.",
+      "id": "PRRT_kwDODJKVX86Ya_W1",
+      "opened": "2026-08-12T00:55:08Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-12T01:00:52Z",
+          "body": "Addressed in 46094a6b06460798b6ef888074d8a582a34ca13e.\n\nAnalysis: CapturedMessageHeadersUtil replaces dashes with underscores only when the v3 preview mode is disabled. The new selector Javadocs described only that default behavior, so callers using v3 preview could look up the wrong attribute key. Documenting the otel.instrumentation.common.v3-preview exception across every exposed builder aligns the API contract with the shared key-generation logic.\n\nUpsides: Callers can derive the correct captured-header attribute key in both modes, and all sibling builder APIs now describe the behavior consistently.\n\nDownsides: The API documentation is slightly longer; no runtime behavior changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762854242"
+        }
+      ],
+      "reviewed": "448fd2bfe83dbecd343597fe36df65e6af189b7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3762832908"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias no longer preserves its exact-name behavior: `IncludeExclude` interprets `*` and `?` as globs, so a previously literal value such as `foo*` (or `*`) can suddenly capture many headers and expose sensitive values. The changelog promises that deprecated methods select the same headers; retain a literal-name path for this method instead of converting through the glob selector.",
+      "created": "2026-08-13T15:01:17Z",
+      "hunk": "@@ -34,20 +31,47 @@ public final class MessagingAttributesExtractorBuilder<REQUEST, RESPONSE> {\n     this.supportsStableSemconv = supportsStableSemconv;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive, unless the underlying messaging library treats header names\n+   * case-insensitively. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   *\n+   * <p>Header names that are not listed as exact included names are resolved through {@link\n+   * MessagingAttributesGetter#getMessageHeaderNames(Object)}, so wildcard and exclude-only\n+   * selectors only capture headers when the getter implements that method.\n+   */\n+  @CanIgnoreReturnValue\n+  public MessagingAttributesExtractorBuilder<REQUEST, RESPONSE> setHeaders(IncludeExclude headers) {\n+    this.headers = headers.isEmpty() ? null : headers;\n+    return this;\n+  }\n+\n   /**\n    * Configures the messaging headers that will be captured as span attributes.\n    *\n    * <p>The messaging header values will be captured under the {@code messaging.header.<name>}\n    * attribute key. The {@code <name>} part in the attribute key is the header name with dashes\n-   * replaced by underscores.\n+   * replaced by underscores unless {@code otel.instrumentation.common.v3-preview} is enabled, in\n+   * which case dashes are preserved.\n    *\n    * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n    */\n+  @Deprecated // may be removed in the next minor release\n   @CanIgnoreReturnValue\n   public MessagingAttributesExtractorBuilder<REQUEST, RESPONSE> setCapturedHeaders(\n       Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n-    return this;\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i5Z",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:13Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776523512"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484392"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `SelectorConfig.resolve` converts the deprecated `capture_headers` list into an `IncludeExclude`, which changes legacy exact names containing `*` or `?` into glob patterns. That contradicts the compatibility promise and can unexpectedly capture sensitive headers; resolve deprecated messaging values through a literal-name path while keeping glob matching only for the new selector.",
+      "created": "2026-08-13T15:01:17Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.SelectorConfig;\n+\n+/**\n+ * Resolves the common messaging header selector, shared by every messaging instrumentation so that\n+ * precedence and deprecation warnings are uniform.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class MessagingConfig {\n+\n+  private static final IncludeExclude NONE = IncludeExclude.builder().build();\n+\n+  /**\n+   * Returns the configured messaging header selector, or an {@linkplain IncludeExclude#isEmpty()\n+   * empty} selector when no headers are configured to be captured.\n+   */\n+  public static IncludeExclude getHeaders(OpenTelemetry openTelemetry) {\n+    return getHeaders(openTelemetry, false);\n+  }\n+\n+  /**\n+   * Returns the configured messaging header selector, or an {@linkplain IncludeExclude#isEmpty()\n+   * empty} selector when no headers are configured to be captured.\n+   *\n+   * @param systemPropertyFallback whether to fall back to the flat system properties when the\n+   *     declarative configuration does not contain a value. This is needed by library\n+   *     instrumentation entry points that have no programmatic configuration surface.\n+   */\n+  public static IncludeExclude getHeaders(\n+      OpenTelemetry openTelemetry, boolean systemPropertyFallback) {\n+    return getHeaders(\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\"),\n+        systemPropertyFallback);\n+  }\n+\n+  // visible for testing\n+  static IncludeExclude getHeaders(\n+      DeclarativeConfigProperties messagingConfig, boolean systemPropertyFallback) {\n+    IncludeExclude selector =\n+        SelectorConfig.resolve(messagingConfig, \"messaging\", \"headers\", systemPropertyFallback);",
+      "id": "PRRT_kwDODJKVX86Y-i6D",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:14Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776523696"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484450"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias now treats `*` and `?` in formerly exact header names as glob metacharacters. Existing callers can therefore capture additional, potentially sensitive headers despite the stated compatibility guarantee; preserve literal matching for `setCapturedHeaders` rather than translating it directly to `IncludeExclude`.",
+      "created": "2026-08-13T15:01:17Z",
+      "hunk": "@@ -5,41 +5,59 @@\n \n package io.opentelemetry.instrumentation.nats.v2_17;\n \n-import static java.util.Collections.emptyList;\n-\n import com.google.errorprone.annotations.CanIgnoreReturnValue;\n import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n import io.opentelemetry.instrumentation.nats.v2_17.internal.NatsInstrumenterFactory;\n-import java.util.ArrayList;\n import java.util.Collection;\n-import java.util.List;\n \n /** A builder of {@link NatsTelemetry}. */\n public final class NatsTelemetryBuilder {\n \n   private final OpenTelemetry openTelemetry;\n-  private List<String> capturedHeaders = emptyList();\n+  private IncludeExclude headers = IncludeExclude.builder().build();\n \n   NatsTelemetryBuilder(OpenTelemetry openTelemetry) {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive. {@code ?} matches one character and {@code *} matches any number\n+   * of characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public NatsTelemetryBuilder setHeaders(IncludeExclude headers) {\n+    this.headers = headers;\n+    return this;\n+  }\n+\n   /**\n    * Configures the messaging headers that will be captured as span attributes.\n    *\n    * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n    */\n+  @Deprecated // may be removed in the next minor release\n   @CanIgnoreReturnValue\n   public NatsTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n-    return this;\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i6f",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/NatsTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:16Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776523859"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484492"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias now treats `*` and `?` in formerly exact header names as glob metacharacters. Existing callers can therefore capture additional, potentially sensitive headers despite the stated compatibility guarantee; preserve literal matching for `setCapturedHeaders` rather than translating it directly to `IncludeExclude`.",
+      "created": "2026-08-13T15:01:18Z",
+      "hunk": "@@ -5,36 +5,59 @@\n \n package io.opentelemetry.instrumentation.spring.kafka.v2_7;\n \n-import static java.util.Collections.emptyList;\n-\n import com.google.errorprone.annotations.CanIgnoreReturnValue;\n import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaInstrumenterFactory;\n import io.opentelemetry.instrumentation.spring.kafka.v2_7.internal.SpringKafkaErrorCauseExtractor;\n-import java.util.ArrayList;\n import java.util.Collection;\n-import java.util.List;\n \n /** A builder of {@link SpringKafkaTelemetry}. */\n public final class SpringKafkaTelemetryBuilder {\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.spring-kafka-2.7\";\n \n   private final OpenTelemetry openTelemetry;\n-  private List<String> capturedHeaders = emptyList();\n+  private IncludeExclude headers = IncludeExclude.builder().build();\n   private boolean captureExperimentalSpanAttributes = false;\n   private boolean messagingReceiveInstrumentationEnabled = false;\n \n   SpringKafkaTelemetryBuilder(OpenTelemetry openTelemetry) {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive. {@code ?} matches one character and {@code *} matches any number\n+   * of characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n   @CanIgnoreReturnValue\n-  public SpringKafkaTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n+  public SpringKafkaTelemetryBuilder setHeaders(IncludeExclude headers) {\n+    this.headers = headers;\n     return this;\n   }\n \n+  /**\n+   * Configures the messaging headers that will be captured as span attributes.\n+   *\n+   * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n+   */\n+  @Deprecated // may be removed in the next minor release\n+  @CanIgnoreReturnValue\n+  public SpringKafkaTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i72",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:20Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776524393"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484620"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias now treats `*` and `?` in formerly exact header names as glob metacharacters. Existing callers can therefore capture additional, potentially sensitive headers despite the stated compatibility guarantee; preserve literal matching for `setCapturedHeaders` rather than translating it directly to `IncludeExclude`.",
+      "created": "2026-08-13T15:01:18Z",
+      "hunk": "@@ -37,22 +34,43 @@ public RocketMqTelemetryBuilder setCaptureExperimentalSpanAttributes(\n     return this;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive. {@code ?} matches one character and {@code *} matches any number\n+   * of characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public RocketMqTelemetryBuilder setHeaders(IncludeExclude headers) {\n+    this.headers = headers;\n+    return this;\n+  }\n+\n   /**\n    * Configures the messaging headers that will be captured as span attributes.\n    *\n    * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n    */\n+  @Deprecated // may be removed in the next minor release\n   @CanIgnoreReturnValue\n   public RocketMqTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n-    return this;\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i7F",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:17Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776524063"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484539"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias now treats `*` and `?` in formerly exact header names as glob metacharacters. Existing callers can therefore capture additional, potentially sensitive headers despite the stated compatibility guarantee; preserve literal matching for `setCapturedHeaders` rather than translating it directly to `IncludeExclude`.",
+      "created": "2026-08-13T15:01:18Z",
+      "hunk": "@@ -55,15 +55,36 @@ public SpringIntegrationTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive. {@code ?} matches one character and {@code *} matches any number\n+   * of characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public SpringIntegrationTelemetryBuilder setHeaders(IncludeExclude headers) {\n+    this.headers = headers;\n+    return this;\n+  }\n+\n   /**\n    * Configures the messaging headers that will be captured as span attributes.\n    *\n    * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n    */\n+  @Deprecated // may be removed in the next minor release\n   @CanIgnoreReturnValue\n   public SpringIntegrationTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n-    return this;\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i7b",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation/spring/spring-integration-4.1/library/src/main/java/io/opentelemetry/instrumentation/spring/integration/v4_1/SpringIntegrationTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:19Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776524245"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484577"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias now treats `*` and `?` in formerly exact header names as glob metacharacters. Existing callers can therefore capture additional, potentially sensitive headers despite the stated compatibility guarantee; preserve literal matching for `setCapturedHeaders` rather than translating it directly to `IncludeExclude`.",
+      "created": "2026-08-13T15:01:19Z",
+      "hunk": "@@ -5,36 +5,54 @@\n \n package io.opentelemetry.instrumentation.awssdk.v1_11;\n \n-import static java.util.Collections.emptyList;\n-\n import com.google.errorprone.annotations.CanIgnoreReturnValue;\n import io.opentelemetry.api.OpenTelemetry;\n-import java.util.ArrayList;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n import java.util.Collection;\n-import java.util.List;\n \n /** A builder of {@link AwsSdkTelemetry}. */\n public final class AwsSdkTelemetryBuilder {\n \n   private final OpenTelemetry openTelemetry;\n \n-  private List<String> capturedHeaders = emptyList();\n+  private IncludeExclude headers = IncludeExclude.builder().build();\n   private boolean captureExperimentalSpanAttributes;\n   private boolean messagingReceiveTelemetryEnabled;\n \n   AwsSdkTelemetryBuilder(OpenTelemetry openTelemetry) {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive. {@code ?} matches one character and {@code *} matches any number\n+   * of characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public AwsSdkTelemetryBuilder setHeaders(IncludeExclude headers) {\n+    this.headers = headers;\n+    return this;\n+  }\n+\n   /**\n    * Configures the messaging headers that will be captured as span attributes.\n    *\n    * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n    */\n+  @Deprecated // may be removed in the next minor release\n   @CanIgnoreReturnValue\n   public AwsSdkTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n-    return this;\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i8F",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AwsSdkTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:21Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776524529"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484645"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias now treats `*` and `?` in formerly exact header names as glob metacharacters. Existing callers can therefore capture additional, potentially sensitive headers despite the stated compatibility guarantee; preserve literal matching for `setCapturedHeaders` rather than translating it directly to `IncludeExclude`.",
+      "created": "2026-08-13T15:01:19Z",
+      "hunk": "@@ -30,15 +27,36 @@ public final class AwsSdkTelemetryBuilder {\n     this.openTelemetry = openTelemetry;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive. {@code ?} matches one character and {@code *} matches any number\n+   * of characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public AwsSdkTelemetryBuilder setHeaders(IncludeExclude headers) {\n+    this.headers = headers;\n+    return this;\n+  }\n+\n   /**\n    * Configures the messaging headers that will be captured as span attributes.\n    *\n    * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n    */\n+  @Deprecated // may be removed in the next minor release\n   @CanIgnoreReturnValue\n   public AwsSdkTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n-    return this;\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i8h",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AwsSdkTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:23Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776524715"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484687"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deprecated alias now treats `*` and `?` in formerly exact header names as glob metacharacters. Existing callers can therefore capture additional, potentially sensitive headers despite the stated compatibility guarantee; preserve literal matching for `setCapturedHeaders` rather than translating it directly to `IncludeExclude`.",
+      "created": "2026-08-13T15:01:19Z",
+      "hunk": "@@ -61,15 +61,36 @@ public KafkaTelemetryBuilder addConsumerReceiveAttributesExtractors(\n     return this;\n   }\n \n+  /**\n+   * Configures which message headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code messaging.header.<name>} attribute key. The\n+   * {@code <name>} part in the attribute key is the header name with dashes replaced by underscores\n+   * unless {@code otel.instrumentation.common.v3-preview} is enabled, in which case dashes are\n+   * preserved.\n+   *\n+   * <p>Matching is case-sensitive. {@code ?} matches one character and {@code *} matches any number\n+   * of characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public KafkaTelemetryBuilder setHeaders(IncludeExclude headers) {\n+    this.headers = headers;\n+    return this;\n+  }\n+\n   /**\n    * Configures the messaging headers that will be captured as span attributes.\n    *\n    * @param capturedHeaders A list of messaging header names.\n+   * @deprecated Use {@link #setHeaders(IncludeExclude)} instead. May be removed in the next minor\n+   *     release.\n    */\n+  @Deprecated // may be removed in the next minor release\n   @CanIgnoreReturnValue\n   public KafkaTelemetryBuilder setCapturedHeaders(Collection<String> capturedHeaders) {\n-    this.capturedHeaders = new ArrayList<>(capturedHeaders);\n-    return this;\n+    return setHeaders(IncludeExclude.builder().setIncluded(capturedHeaders).build());",
+      "id": "PRRT_kwDODJKVX86Y-i9D",
+      "opened": "2026-08-13T15:01:19Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-13T15:06:24Z",
+          "body": "Addressed in 887ff341191c9e4bc97b91e2af78ceb10163b3d9.\n\nAnalysis: The code intentionally follows the gRPC and servlet selector migrations by treating deprecated collections as include-only selector aliases. Messaging never documented the MDC-specific legacy wildcard behavior that required a separate literal predicate in the logging migrations. The defect was the changelog sentence promising unchanged selection despite the intentional glob alias semantics, so I corrected that statement instead of adding a second matching mode to the shared public selector API.\n\nUpsides: The documented migration now matches the implementation and related selector precedents, while the shared IncludeExclude API retains one consistent matching model.\n\nDownsides: A deprecated value containing `*` or `?` gains glob semantics; this is now explicit, and these experimental properties and alpha APIs may be removed in the next minor release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776524863"
+        }
+      ],
+      "reviewed": "03518b535f76535adc5b409e57e000b04da31426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19523#discussion_r3776484740"
+    }
+  ]
+}

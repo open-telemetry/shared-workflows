@@ -1,0 +1,25 @@
+{
+  "head": "7aa99954bf773f9935f12a93a0783c60c2e1266a",
+  "merge": "61fc02b2796e1ed5928e7566faa8c6c568e50565",
+  "merged": "2026-03-26T14:29:36Z",
+  "missing_roots": 0,
+  "number": 17072,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```\nI think the logic here was that jetty is tested with jetty + servlet instrumentation and tomcat is tested with only servlet instrumentation.",
+      "created": "2026-03-26T12:50:07Z",
+      "hunk": "@@ -3,7 +3,7 @@ plugins {\n }\n \n dependencies {\n-  testInstrumentation(project(\":instrumentation:jetty:jetty-11.0:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:tomcat:tomcat-10.0:javaagent\"))",
+      "id": "PRRT_kwDODJKVX853AR7M",
+      "opened": "2026-03-26T12:50:07Z",
+      "path": "instrumentation/servlet/servlet-5.0/tomcat-testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "2d1e4f191ad75a8a85e9b8add177ba20eeb199a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17072#discussion_r2994661025"
+    }
+  ]
+}

@@ -1,0 +1,716 @@
+{
+  "head": "8befd9f1de3c5e6f7291e7b4eda097bd4364c864",
+  "merge": "51a0f580f8a6ad804ca4de5e033683c6fbbe5906",
+  "merged": "2026-10-27T16:52:03Z",
+  "missing_roots": 0,
+  "number": 490,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says the attribute notes call out high cardinality, but this warning only mentions sensitive paths. Add the omitted cardinality warning so instrumentation authors understand the span cost risk described by the proposal.\n\nThis issue also appears in the following locations of the same file:\n- line 951\n- line 1001",
+      "created": "2026-09-02T05:49:18Z",
+      "hunk": "@@ -869,6 +869,20 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.system_instructions_ref\n+    type: string\n+    brief: The reference to the system instructions in external storage.\n+    note: |\n+      This attribute identifies the external storage target for the value that\n+      would otherwise be recorded in `gen_ai.system_instructions`.\n+\n+      The reference does not indicate whether storing the content succeeded or\n+      whether the content remains available.\n+\n+      > [!Warning]\n+      > This attribute may contain sensitive information such as storage paths.",
+      "id": "PRRT_kwDOSUeMrM6eYbK4",
+      "opened": "2026-09-02T05:49:19Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "f08e25ae10f0482170df540d7d6cfaa18656ae03",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3911121899"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Passing `None` disables `UploadCompletionHook`'s real path for attaching the generated references to a span. The committed data therefore has no spans, and every report lists these three new span attributes as `(none)`. Exercise the hook with a genuine GenAI operation span and regenerate the scenario data and reports so the changes in `spans.yaml` have reference coverage.",
+      "created": "2026-09-02T05:49:18Z",
+      "hunk": "@@ -0,0 +1,213 @@\n+\"\"\"Reference implementation for opentelemetry-util-genai content storage.\"\"\"\n+\n+import logging\n+import threading\n+from collections.abc import Callable\n+from pathlib import Path\n+from tempfile import TemporaryDirectory\n+\n+from opentelemetry import context\n+from opentelemetry._logs import SeverityNumber\n+from opentelemetry.trace import SpanKind\n+from opentelemetry.util.genai import types\n+from opentelemetry.util.genai._upload.completion_hook import (\n+    CompletionRefs,\n+    JsonEncodeable,\n+    UploadCompletionHook,\n+    UploadData,\n+)\n+from reference_shared import flush_and_shutdown, reference_event_logger, reference_tracer, setup_otel\n+\n+_reference_tracer = reference_tracer()\n+_upload_logger = logging.getLogger(\"opentelemetry.util.genai._upload.completion_hook\")\n+\n+\n+class _DroppedUploadHandler(logging.Handler):\n+    \"\"\"Translate the upload hook's real queue-admission rejection.\"\"\"\n+\n+    def __init__(self, hook: \"ReceiptUploadCompletionHook\") -> None:\n+        super().__init__()\n+        self._hook = hook\n+\n+    def emit(self, record: logging.LogRecord) -> None:\n+        if record.msg != \"upload queue is full, dropping upload %s\" or not record.args:\n+            return\n+        path = record.args[0] if isinstance(record.args, tuple) else record.args\n+        if isinstance(path, str):\n+            reference_attribute, receipt_context = self._hook.receipt_context(path)\n+            token = context.attach(receipt_context)\n+            try:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.content.storage.result\",\n+                    body=\"GenAI content storage result\",\n+                    severity_number=SeverityNumber.WARN,\n+                    attributes={\n+                        reference_attribute: path,\n+                        \"gen_ai.content.storage.status\": \"dropped\",\n+                    },\n+                )\n+            finally:\n+                context.detach(token)\n+\n+\n+class ReceiptUploadCompletionHook(UploadCompletionHook):\n+    \"\"\"Instrument the hook's real terminal write result.\"\"\"\n+\n+    def __init__(self, *, base_path: str, max_queue_size: int, block_uploads: bool) -> None:\n+        super().__init__(base_path=base_path, max_queue_size=max_queue_size)\n+        self._release_upload = threading.Event()\n+        if not block_uploads:\n+            self._release_upload.set()\n+        self._receipt_context: dict[str, tuple[str, context.Context]] = {}\n+        self._dropped_upload_handler = _DroppedUploadHandler(self)\n+\n+    def _calculate_ref_path(\n+        self,\n+        system_instruction: list[types.MessagePart],\n+        tool_definitions: list[types.ToolDefinition] | None = None,\n+    ) -> CompletionRefs:\n+        refs = super()._calculate_ref_path(system_instruction, tool_definitions)\n+        current_context = context.get_current()\n+        self._receipt_context[refs.inputs_ref] = (\n+            \"gen_ai.input.messages_ref\",\n+            current_context,\n+        )\n+        self._receipt_context[refs.outputs_ref] = (\n+            \"gen_ai.output.messages_ref\",\n+            current_context,\n+        )\n+        self._receipt_context[refs.system_instruction_ref] = (\n+            \"gen_ai.system_instructions_ref\",\n+            current_context,\n+        )\n+        return refs\n+\n+    def _submit_all(self, upload_data: UploadData) -> None:\n+        _upload_logger.addHandler(self._dropped_upload_handler)\n+        try:\n+            super()._submit_all(upload_data)\n+        finally:\n+            _upload_logger.removeHandler(self._dropped_upload_handler)\n+\n+    def receipt_context(self, path: str) -> tuple[str, context.Context]:\n+        return self._receipt_context[path]\n+\n+    def _do_upload(\n+        self,\n+        path: str,\n+        contents_hashed_to_filename: bool,\n+        json_encodeable: Callable[[], JsonEncodeable],\n+    ) -> None:\n+        if not self._release_upload.wait(timeout=5):\n+            raise TimeoutError(\"reference scenario did not release upload\")\n+\n+        try:\n+            super()._do_upload(path, contents_hashed_to_filename, json_encodeable)\n+        except Exception as error:\n+            reference_attribute, receipt_context = self._receipt_context[path]\n+            token = context.attach(receipt_context)\n+            try:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.content.storage.result\",\n+                    body=\"GenAI content storage result\",\n+                    severity_number=SeverityNumber.WARN,\n+                    attributes={\n+                        reference_attribute: path,\n+                        \"gen_ai.content.storage.status\": \"failed\",\n+                        \"error.type\": type(error).__qualname__,\n+                    },\n+                )\n+            finally:\n+                context.detach(token)\n+            raise\n+        else:\n+            reference_attribute, receipt_context = self._receipt_context[path]\n+            token = context.attach(receipt_context)\n+            try:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.content.storage.result\",\n+                    body=\"GenAI content storage result\",\n+                    severity_number=SeverityNumber.INFO,\n+                    attributes={\n+                        reference_attribute: path,\n+                        \"gen_ai.content.storage.status\": \"stored\",\n+                    },\n+                )\n+            finally:\n+                context.detach(token)\n+\n+    def release_upload(self) -> None:\n+        self._release_upload.set()\n+\n+\n+def run_stored_and_dropped_content_storage() -> None:\n+    \"\"\"Store one object and reject two from the hook's bounded queue.\"\"\"\n+    print(\"  [content_storage] stored and queue-dropped content\")\n+\n+    with TemporaryDirectory() as upload_dir:\n+        hook = ReceiptUploadCompletionHook(\n+            base_path=upload_dir,\n+            max_queue_size=1,\n+            block_uploads=True,\n+        )\n+        with _reference_tracer.start_as_current_span(\n+            \"reference.content_storage.queue\",\n+            kind=SpanKind.INTERNAL,\n+        ):\n+            hook.on_completion(\n+                inputs=[types.InputMessage(role=\"user\", parts=[types.Text(content=\"Weather in Paris?\")])],\n+                outputs=[\n+                    types.OutputMessage(\n+                        role=\"assistant\",\n+                        parts=[types.Text(content=\"The weather in Paris is rainy.\")],\n+                        finish_reason=\"stop\",\n+                    )\n+                ],\n+                system_instruction=[types.Text(content=\"Answer weather questions concisely.\")],\n+                span=None,",
+      "id": "PRRT_kwDOSUeMrM6eYbKd",
+      "opened": "2026-09-02T05:49:19Z",
+      "path": "reference/scenarios/opentelemetry-util-genai/scenario.py",
+      "replies": [],
+      "reviewed": "f08e25ae10f0482170df540d7d6cfaa18656ae03",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3911121858"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`CompletionRefs` in the pinned `opentelemetry-util-genai==1.1b0` also has `tool_definitions_ref`, and `on_completion` schedules that upload when `tool_definitions` is non-empty. This map omits its path, but both the drop handler and `_do_upload` unconditionally look up every scheduled path, so a tool-definition upload raises `KeyError` instead of completing normally. Either make the receipt lookup optional and skip result events for this unmodeled content type, or add the corresponding reference convention and mapping.",
+      "created": "2026-09-02T06:41:43Z",
+      "hunk": "@@ -0,0 +1,215 @@\n+\"\"\"Reference implementation for opentelemetry-util-genai content storage.\"\"\"\n+\n+import logging\n+import threading\n+from collections.abc import Callable\n+from pathlib import Path\n+from tempfile import TemporaryDirectory\n+\n+from opentelemetry import context\n+from opentelemetry._logs import SeverityNumber\n+from opentelemetry.trace import SpanKind\n+from opentelemetry.util.genai import types\n+from opentelemetry.util.genai._upload.completion_hook import (\n+    CompletionRefs,\n+    JsonEncodeable,\n+    UploadCompletionHook,\n+    UploadData,\n+)\n+from reference_shared import flush_and_shutdown, reference_event_logger, reference_tracer, setup_otel\n+\n+_reference_tracer = reference_tracer()\n+_upload_logger = logging.getLogger(\"opentelemetry.util.genai._upload.completion_hook\")\n+\n+\n+class _DroppedUploadHandler(logging.Handler):\n+    \"\"\"Translate the upload hook's real queue-admission rejection.\"\"\"\n+\n+    def __init__(self, hook: \"ReceiptUploadCompletionHook\") -> None:\n+        super().__init__()\n+        self._hook = hook\n+\n+    def emit(self, record: logging.LogRecord) -> None:\n+        if record.msg != \"upload queue is full, dropping upload %s\" or not record.args:\n+            return\n+        path = record.args[0] if isinstance(record.args, tuple) else record.args\n+        if isinstance(path, str):\n+            reference_attribute, receipt_context = self._hook.receipt_context(path)\n+            token = context.attach(receipt_context)\n+            try:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.content.storage.result\",\n+                    body=\"GenAI content storage result\",\n+                    severity_number=SeverityNumber.WARN,\n+                    attributes={\n+                        reference_attribute: path,\n+                        \"gen_ai.content.storage.status\": \"dropped\",\n+                    },\n+                )\n+            finally:\n+                context.detach(token)\n+\n+\n+class ReceiptUploadCompletionHook(UploadCompletionHook):\n+    \"\"\"Instrument the hook's real terminal write result.\"\"\"\n+\n+    def __init__(self, *, base_path: str, max_queue_size: int, block_uploads: bool) -> None:\n+        super().__init__(base_path=base_path, max_queue_size=max_queue_size)\n+        self._release_upload = threading.Event()\n+        if not block_uploads:\n+            self._release_upload.set()\n+        self._receipt_context: dict[str, tuple[str, context.Context]] = {}\n+        self._dropped_upload_handler = _DroppedUploadHandler(self)\n+\n+    def _calculate_ref_path(\n+        self,\n+        system_instruction: list[types.MessagePart],\n+        tool_definitions: list[types.ToolDefinition] | None = None,\n+    ) -> CompletionRefs:\n+        refs = super()._calculate_ref_path(system_instruction, tool_definitions)\n+        current_context = context.get_current()\n+        self._receipt_context[refs.inputs_ref] = (\n+            \"gen_ai.input.messages_ref\",\n+            current_context,\n+        )\n+        self._receipt_context[refs.outputs_ref] = (\n+            \"gen_ai.output.messages_ref\",\n+            current_context,\n+        )\n+        self._receipt_context[refs.system_instruction_ref] = (\n+            \"gen_ai.system_instructions_ref\",\n+            current_context,\n+        )",
+      "id": "PRRT_kwDOSUeMrM6eZMVu",
+      "opened": "2026-09-02T06:41:44Z",
+      "path": "reference/scenarios/opentelemetry-util-genai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-09-02T09:08:37Z",
+          "body": "Commit `9f1cbcb` addresses this: `receipt_context` now returns `None` for unsupported paths. The drop handler skips those paths, and `_do_upload` does not emit `gen_ai.content.storage.result` for them. I also added a case with populated `tool_definitions` that verifies the upload completes without an unsupported result event.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3912508148"
+        }
+      ],
+      "reviewed": "f2dc66518b1c2ac48413366bd8e4beead893535c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3911427990"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This declares an inference client span, but the span wraps only `UploadCompletionHook.on_completion`; no model or GenAI service call occurs. That conflicts with `reference/CONTRIBUTING.md:101-113` and this scenario's README, and it makes the generated report falsely list `opentelemetry-util-genai` as inference support while producing missing-inference-attribute findings. Demonstrate span enrichment in a provider or framework scenario whose span wraps the real operation, and keep this scenario focused on the storage-result event.\n\nThis issue also appears on line 189 of the same file.",
+      "created": "2026-09-02T06:41:44Z",
+      "hunk": "@@ -0,0 +1,215 @@\n+\"\"\"Reference implementation for opentelemetry-util-genai content storage.\"\"\"\n+\n+import logging\n+import threading\n+from collections.abc import Callable\n+from pathlib import Path\n+from tempfile import TemporaryDirectory\n+\n+from opentelemetry import context\n+from opentelemetry._logs import SeverityNumber\n+from opentelemetry.trace import SpanKind\n+from opentelemetry.util.genai import types\n+from opentelemetry.util.genai._upload.completion_hook import (\n+    CompletionRefs,\n+    JsonEncodeable,\n+    UploadCompletionHook,\n+    UploadData,\n+)\n+from reference_shared import flush_and_shutdown, reference_event_logger, reference_tracer, setup_otel\n+\n+_reference_tracer = reference_tracer()\n+_upload_logger = logging.getLogger(\"opentelemetry.util.genai._upload.completion_hook\")\n+\n+\n+class _DroppedUploadHandler(logging.Handler):\n+    \"\"\"Translate the upload hook's real queue-admission rejection.\"\"\"\n+\n+    def __init__(self, hook: \"ReceiptUploadCompletionHook\") -> None:\n+        super().__init__()\n+        self._hook = hook\n+\n+    def emit(self, record: logging.LogRecord) -> None:\n+        if record.msg != \"upload queue is full, dropping upload %s\" or not record.args:\n+            return\n+        path = record.args[0] if isinstance(record.args, tuple) else record.args\n+        if isinstance(path, str):\n+            reference_attribute, receipt_context = self._hook.receipt_context(path)\n+            token = context.attach(receipt_context)\n+            try:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.content.storage.result\",\n+                    body=\"GenAI content storage result\",\n+                    severity_number=SeverityNumber.WARN,\n+                    attributes={\n+                        reference_attribute: path,\n+                        \"gen_ai.content.storage.status\": \"dropped\",\n+                    },\n+                )\n+            finally:\n+                context.detach(token)\n+\n+\n+class ReceiptUploadCompletionHook(UploadCompletionHook):\n+    \"\"\"Instrument the hook's real terminal write result.\"\"\"\n+\n+    def __init__(self, *, base_path: str, max_queue_size: int, block_uploads: bool) -> None:\n+        super().__init__(base_path=base_path, max_queue_size=max_queue_size)\n+        self._release_upload = threading.Event()\n+        if not block_uploads:\n+            self._release_upload.set()\n+        self._receipt_context: dict[str, tuple[str, context.Context]] = {}\n+        self._dropped_upload_handler = _DroppedUploadHandler(self)\n+\n+    def _calculate_ref_path(\n+        self,\n+        system_instruction: list[types.MessagePart],\n+        tool_definitions: list[types.ToolDefinition] | None = None,\n+    ) -> CompletionRefs:\n+        refs = super()._calculate_ref_path(system_instruction, tool_definitions)\n+        current_context = context.get_current()\n+        self._receipt_context[refs.inputs_ref] = (\n+            \"gen_ai.input.messages_ref\",\n+            current_context,\n+        )\n+        self._receipt_context[refs.outputs_ref] = (\n+            \"gen_ai.output.messages_ref\",\n+            current_context,\n+        )\n+        self._receipt_context[refs.system_instruction_ref] = (\n+            \"gen_ai.system_instructions_ref\",\n+            current_context,\n+        )\n+        return refs\n+\n+    def _submit_all(self, upload_data: UploadData) -> None:\n+        _upload_logger.addHandler(self._dropped_upload_handler)\n+        try:\n+            super()._submit_all(upload_data)\n+        finally:\n+            _upload_logger.removeHandler(self._dropped_upload_handler)\n+\n+    def receipt_context(self, path: str) -> tuple[str, context.Context]:\n+        return self._receipt_context[path]\n+\n+    def _do_upload(\n+        self,\n+        path: str,\n+        contents_hashed_to_filename: bool,\n+        json_encodeable: Callable[[], JsonEncodeable],\n+    ) -> None:\n+        if not self._release_upload.wait(timeout=5):\n+            raise TimeoutError(\"reference scenario did not release upload\")\n+\n+        try:\n+            super()._do_upload(path, contents_hashed_to_filename, json_encodeable)\n+        except Exception as error:\n+            reference_attribute, receipt_context = self._receipt_context[path]\n+            token = context.attach(receipt_context)\n+            try:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.content.storage.result\",\n+                    body=\"GenAI content storage result\",\n+                    severity_number=SeverityNumber.WARN,\n+                    attributes={\n+                        reference_attribute: path,\n+                        \"gen_ai.content.storage.status\": \"failed\",\n+                        \"error.type\": type(error).__qualname__,\n+                    },\n+                )\n+            finally:\n+                context.detach(token)\n+            raise\n+        else:\n+            reference_attribute, receipt_context = self._receipt_context[path]\n+            token = context.attach(receipt_context)\n+            try:\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.content.storage.result\",\n+                    body=\"GenAI content storage result\",\n+                    severity_number=SeverityNumber.INFO,\n+                    attributes={\n+                        reference_attribute: path,\n+                        \"gen_ai.content.storage.status\": \"stored\",\n+                    },\n+                )\n+            finally:\n+                context.detach(token)\n+\n+    def release_upload(self) -> None:\n+        self._release_upload.set()\n+\n+\n+def run_stored_and_dropped_content_storage() -> None:\n+    \"\"\"Store one object and reject two from the hook's bounded queue.\"\"\"\n+    print(\"  [content_storage] stored and queue-dropped content\")\n+\n+    with TemporaryDirectory() as upload_dir:\n+        hook = ReceiptUploadCompletionHook(\n+            base_path=upload_dir,\n+            max_queue_size=1,\n+            block_uploads=True,\n+        )\n+        with _reference_tracer.start_as_current_span(\n+            \"chat\",\n+            kind=SpanKind.CLIENT,\n+            attributes={\"gen_ai.operation.name\": \"chat\"},\n+        ) as span:",
+      "id": "PRRT_kwDOSUeMrM6eZMWH",
+      "opened": "2026-09-02T06:41:44Z",
+      "path": "reference/scenarios/opentelemetry-util-genai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-09-02T09:09:15Z",
+          "body": "Commit `9f1cbcb` addresses this: the `opentelemetry-util-genai` scenario no longer creates or reports inference spans and now passes `span=None`. Its documentation limits the scenario to storage result events. The `anthropic` scenario now exercises all three reference attributes on the real Messages inference span.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3912513258"
+        }
+      ],
+      "reviewed": "f2dc66518b1c2ac48413366bd8e4beead893535c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3911428027"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The shared content group does not cover every signal that already records these values. `gen_ai.fetch_response.client` declares system instructions and output messages directly at lines 383 and 389, `gen_ai.create_agent.client` declares system instructions at line 506, and `gen_ai.invoke_workflow.internal` declares input and output messages at lines 665 and 667. Those signals therefore cannot provide the new external reference for content they support. Add the matching `_ref` attributes to those signal definitions, or explicitly narrow the reference contract to the signals covered by this group.",
+      "created": "2026-09-02T08:10:48Z",
+      "hunk": "@@ -85,10 +85,16 @@ attribute_groups:\n     attributes:\n       - ref: gen_ai.system_instructions\n         requirement_level: opt_in\n+      - ref: gen_ai.system_instructions_ref\n+        requirement_level: opt_in\n       - ref: gen_ai.input.messages\n         requirement_level: opt_in\n+      - ref: gen_ai.input.messages_ref",
+      "id": "PRRT_kwDOSUeMrM6eaywM",
+      "opened": "2026-09-02T08:10:49Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-09-02T09:09:51Z",
+          "body": "Commit `0a4de66` addresses this by using the explicit narrowing option: the three `_ref` attributes were removed from the shared content group and are now declared only on `gen_ai.inference.client`. The release note and generated documentation were updated accordingly. Signals that do not represent inference are therefore outside this reference contract, even if they carry inline content.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3912518164"
+        }
+      ],
+      "reviewed": "9f1cbcb1d24ed559e975a84c02be1e7410d8cf78",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3912058503"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This group is inherited by both invoke-agent span types, but the regenerated client and internal reports list `(none)` for all three new references. Repository reference rules require runnable coverage for convention fields on the signals that should emit them. Add a real agent-library scenario that produces these references, or keep them out of the invoke-agent group until one can.",
+      "created": "2026-09-02T08:10:49Z",
+      "hunk": "@@ -85,10 +85,16 @@ attribute_groups:\n     attributes:\n       - ref: gen_ai.system_instructions\n         requirement_level: opt_in\n+      - ref: gen_ai.system_instructions_ref\n+        requirement_level: opt_in\n       - ref: gen_ai.input.messages\n         requirement_level: opt_in\n+      - ref: gen_ai.input.messages_ref\n+        requirement_level: opt_in\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n+      - ref: gen_ai.output.messages_ref",
+      "id": "PRRT_kwDOSUeMrM6eayw4",
+      "opened": "2026-09-02T08:10:49Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-09-02T09:09:59Z",
+          "body": "Commit `0a4de66` addresses this: removing the `_ref` attributes from the shared content group also removes them from both agent invocation span types. The regenerated agent invocation reports no longer list unsupported reference fields. Reference coverage remains on the real inference span in the `anthropic` scenario.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3912519080"
+        }
+      ],
+      "reviewed": "9f1cbcb1d24ed559e975a84c02be1e7410d8cf78",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3912058573"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "It sounds like this typically will add 3 events per span. i don't like that at all. i would be more open to only emitting an event in case of failure.\n\neither way i think this is questionable enough to be a separate PR that gets reviewed after the refs part is done.",
+      "created": "2026-09-02T14:05:31Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6eiOlp",
+      "opened": "2026-09-02T14:05:30Z",
+      "path": "model/gen-ai/events.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T08:53:45Z",
+          "body": "Commit `e2ff4fc` removes the storage result event and status from this PR, along with the scenario and reports specific to that event. The PR now contains only the external reference attributes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3922791875"
+        }
+      ],
+      "reviewed": "0a4de6660a326703228dd47a017cdd61cc729897",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3914953066"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "why is high cardinality here bad?",
+      "created": "2026-09-02T14:10:27Z",
+      "hunk": "@@ -923,6 +937,20 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: The reference to the input messages in external storage.\n+    note: |\n+      This attribute identifies the external storage target for the value that\n+      would otherwise be recorded in `gen_ai.input.messages`.\n+\n+      The reference does not indicate whether storing the content succeeded or\n+      whether the content remains available.\n+\n+      > [!Warning]\n+      > This attribute may contain sensitive information such as storage paths and may have high cardinality.",
+      "id": "PRRT_kwDOSUeMrM6eiWvc",
+      "opened": "2026-09-02T14:16:54Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T08:54:14Z",
+          "body": "Agreed—the generic high cardinality warning was not justified here. Commit `e2ff4fc` removes it and instead names the concrete information a `URI` may expose, such as a provider, bucket or container, tenant or object identifiers, and credentials in query parameters.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3922795917"
+        }
+      ],
+      "reviewed": "0a4de6660a326703228dd47a017cdd61cc729897",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3915002479"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "would this description be clear to someone just looking at the docs without the context of the PRs or issues behind it? do other explanations about external storage in the docs make it clear?",
+      "created": "2026-09-02T14:11:50Z",
+      "hunk": "@@ -923,6 +937,20 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: The reference to the input messages in external storage.\n+    note: |\n+      This attribute identifies the external storage target for the value that",
+      "id": "PRRT_kwDOSUeMrM6eiZIi",
+      "opened": "2026-09-02T14:16:54Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T08:54:41Z",
+          "body": "Commit `e2ff4fc` rewrites the external storage section so it stands on its own: the four references identify complete values, external handling must be enabled separately from inline capture, the identifiers are opaque, and a reference does not imply successful storage or continued availability.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3922799662"
+        }
+      ],
+      "reviewed": "0a4de6660a326703228dd47a017cdd61cc729897",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3915017125"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "do we want to avoid specifying anything about these URLs? for example, this URL shape would probably not work in practice since there can be multiple spans in a trace. and a unique URL per span would be especially inefficient in the case of system messages where there would be loads of duplication. in https://github.com/open-telemetry/semantic-conventions/pull/2750#issuecomment-3271005893 I argue for the URL to contain a hash of content to dedupe. this doesn't require having separate refs per message part.",
+      "created": "2026-09-02T14:14:46Z",
+      "hunk": "@@ -923,6 +937,20 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: The reference to the input messages in external storage.\n+    note: |\n+      This attribute identifies the external storage target for the value that\n+      would otherwise be recorded in `gen_ai.input.messages`.\n+\n+      The reference does not indicate whether storing the content succeeded or\n+      whether the content remains available.\n+\n+      > [!Warning]\n+      > This attribute may contain sensitive information such as storage paths and may have high cardinality.\n+    examples: [\"s3://example-bucket/gen-ai/trace-123/input-messages.json\"]",
+      "id": "PRRT_kwDOSUeMrM6eid2r",
+      "opened": "2026-09-02T14:16:54Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T08:55:14Z",
+          "body": "Commit `e2ff4fc` makes `URI` construction explicitly opaque and no longer prescribes a layout based on trace or span identifiers. The guidance now permits identifiers derived from content to avoid storing repeated system instructions and tool definitions more than once, without making that layout normative.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3922804030"
+        }
+      ],
+      "reviewed": "0a4de6660a326703228dd47a017cdd61cc729897",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3915046316"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "\"may contain sensitive information such as storage paths\"\n\ncan it NOT contain storage paths? isn't that the point?",
+      "created": "2026-09-02T14:15:32Z",
+      "hunk": "@@ -923,6 +937,20 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: The reference to the input messages in external storage.\n+    note: |\n+      This attribute identifies the external storage target for the value that\n+      would otherwise be recorded in `gen_ai.input.messages`.\n+\n+      The reference does not indicate whether storing the content succeeded or\n+      whether the content remains available.\n+\n+      > [!Warning]\n+      > This attribute may contain sensitive information such as storage paths and may have high cardinality.",
+      "id": "PRRT_kwDOSUeMrM6eie-h",
+      "opened": "2026-09-02T14:16:54Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T08:55:46Z",
+          "body": "Agreed. Commit `e2ff4fc` replaces “may contain storage paths” with the concrete risk: a `URI` can expose a provider, bucket or container, tenant or object identifiers, or credentials in query parameters.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3922808267"
+        }
+      ],
+      "reviewed": "0a4de6660a326703228dd47a017cdd61cc729897",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3915053393"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "i think more needs to be said about opting into this, separately from opting into capturing content in general",
+      "created": "2026-09-02T14:16:19Z",
+      "hunk": "@@ -923,6 +937,20 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref",
+      "id": "PRRT_kwDOSUeMrM6eigNu",
+      "opened": "2026-09-02T14:16:54Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T08:56:13Z",
+          "body": "Commit `e2ff4fc` now states that external upload and reference emission must be enabled independently from inline content capture. Enabling the existing content attributes alone must not enable external handling.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3922811836"
+        }
+      ],
+      "reviewed": "0a4de6660a326703228dd47a017cdd61cc729897",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3915060984"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "tool definitions are much like system instructions and probably deserve similar treatment",
+      "created": "2026-09-02T14:16:51Z",
+      "hunk": "@@ -869,6 +869,20 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.system_instructions_ref",
+      "id": "PRRT_kwDOSUeMrM6eihB5",
+      "opened": "2026-09-02T14:16:54Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T08:56:41Z",
+          "body": "Commit `e2ff4fc` adds `gen_ai.tool.definitions_ref`, includes tool definitions in the external storage guidance, and exercises the attribute in the Anthropic reference scenario using the real `tools` argument and returned tool use data.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3922815433"
+        }
+      ],
+      "reviewed": "0a4de6660a326703228dd47a017cdd61cc729897",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r3915065923"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I think MUST is too strict. Some things it would prevent/make questionable that I consider to be good / reasonable:\n\n- having feature flag enum that combines different modes: `capture_content_mode =  attributes | extern_storage | both`\n- specialized instrumentations that only support external sources",
+      "created": "2026-10-13T17:50:01Z",
+      "hunk": "@@ -968,16 +968,19 @@ such as individual message contents, preserving JSON structure.\n #### Uploading content to external storage\n \n Instrumentations MAY support user-defined in-process hooks to handle content upload.\n-\n-The hook SHOULD operate independently of the opt-in flags that control capturing of\n-`gen_ai.system_instructions`, `gen_ai.input.messages`, and `gen_ai.output.messages`.\n-\n-If such a hook is supported and configured, instrumentations SHOULD invoke it regardless\n-of the span sampling decision with:\n-\n-- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json), and\n-  [outputs](/model/gen-ai/gen-ai-output-messages.json) object using formats defined in this convention\n-  and before they are serialized to JSON string;\n+Uploading content and emitting external references MUST be explicitly enabled",
+      "id": "PRRT_kwDOSUeMrM6r_VfW",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-18T07:17:45Z",
+          "body": "Relaxed to SHOULD in 7c728cf, so a combined mode flag or an instrumentation that only supports external sources stays conforming.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306150078"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262102317"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> Enabling those\ncontent attributes alone MUST NOT enable external content handling.\n\nisn't it a duplication of \"independently of the opt-in flags\" in the previous sentence? ",
+      "created": "2026-10-13T17:50:57Z",
+      "hunk": "@@ -968,16 +968,19 @@ such as individual message contents, preserving JSON structure.\n #### Uploading content to external storage\n \n Instrumentations MAY support user-defined in-process hooks to handle content upload.\n-\n-The hook SHOULD operate independently of the opt-in flags that control capturing of\n-`gen_ai.system_instructions`, `gen_ai.input.messages`, and `gen_ai.output.messages`.\n-\n-If such a hook is supported and configured, instrumentations SHOULD invoke it regardless\n-of the span sampling decision with:\n-\n-- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json), and\n-  [outputs](/model/gen-ai/gen-ai-output-messages.json) object using formats defined in this convention\n-  and before they are serialized to JSON string;\n+Uploading content and emitting external references MUST be explicitly enabled\n+independently of the opt-in flags that control recording\n+`gen_ai.system_instructions`, `gen_ai.input.messages`, `gen_ai.output.messages`,\n+and `gen_ai.tool.definitions` directly on telemetry signals. Enabling those\n+content attributes alone MUST NOT enable external content handling.",
+      "id": "PRRT_kwDOSUeMrM6r_W1f",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-18T07:18:07Z",
+          "body": "Removed the duplicated sentence in 7c728cf.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306151182"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262111104"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nexternal representation of the corresponding complete value. \n```\n\nI think it's duplicating notes on attributes.",
+      "created": "2026-10-13T17:52:15Z",
+      "hunk": "@@ -998,13 +1002,24 @@ implementation including\n - recording references to the uploaded content on the span,\n - handling content in a different way.\n \n+When a hook handles content externally, it SHOULD use\n+`gen_ai.system_instructions_ref`, `gen_ai.input.messages_ref`,\n+`gen_ai.output.messages_ref`, or `gen_ai.tool.definitions_ref` to identify an\n+external representation of the corresponding complete value. Consumers MUST\n+treat each URI as opaque. This convention does not prescribe its scheme, object\n+layout, serialization format, retention policy, or access mechanism.",
+      "id": "PRRT_kwDOSUeMrM6r_Y2Z",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-18T07:18:23Z",
+          "body": "Dropped the duplicated wording. The paragraph now only names the four _ref attributes and what the convention does not prescribe.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306151822"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262124070"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nImplementations MAY use content-derived identifiers to deduplicate repeated\ncontent, such as system instructions or tool definitions.\n```\n\nsame? it's in the attribute notes",
+      "created": "2026-10-13T17:52:52Z",
+      "hunk": "@@ -998,13 +1002,24 @@ implementation including\n - recording references to the uploaded content on the span,\n - handling content in a different way.\n \n+When a hook handles content externally, it SHOULD use\n+`gen_ai.system_instructions_ref`, `gen_ai.input.messages_ref`,\n+`gen_ai.output.messages_ref`, or `gen_ai.tool.definitions_ref` to identify an\n+external representation of the corresponding complete value. Consumers MUST\n+treat each URI as opaque. This convention does not prescribe its scheme, object\n+layout, serialization format, retention policy, or access mechanism.\n+\n+Implementations MAY use content-derived identifiers to deduplicate repeated\n+content, such as system instructions or tool definitions. A reference is a\n+locator, not confirmation that content was stored successfully or remains\n+available. Consumers MUST NOT infer a storage outcome from the reference alone.",
+      "id": "PRRT_kwDOSUeMrM6r_Zx2",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-18T07:18:44Z",
+          "body": "Applied your suggestion. The locator and storage-outcome sentences are removed, since the attribute notes cover them.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306152858"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262130110"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "It's not invalid to record `gen_ai.input.messages` along with `gen_ai.input.messages_ref` (not useful, but not invalid), but 'otherwise' creates an impression they are mutually exclusive\n\nBut also this sentence duplicates the brief, do we need it? \n\n(same for other attributes)",
+      "created": "2026-10-13T17:56:33Z",
+      "hunk": "@@ -966,12 +989,31 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: A URI identifying the input messages in external storage.\n+    note: |\n+      This attribute identifies an external representation of the complete\n+      value that would otherwise be recorded in `gen_ai.input.messages`.",
+      "id": "PRRT_kwDOSUeMrM6r_fQs",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-18T07:21:57Z",
+          "body": "Reworded: the notes now say a reference may be recorded together with the attribute it points to, and the “otherwise” wording is gone. I kept one sentence stating that the URI identifies the complete value. Happy to drop it if you think it still duplicates the brief.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306161410"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262166002"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please expand, what does it mean for consumers? ",
+      "created": "2026-10-13T17:57:15Z",
+      "hunk": "@@ -966,12 +989,31 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: A URI identifying the input messages in external storage.\n+    note: |\n+      This attribute identifies an external representation of the complete\n+      value that would otherwise be recorded in `gen_ai.input.messages`.\n+      Consumers MUST treat the URI as opaque.",
+      "id": "PRRT_kwDOSUeMrM6r_gVR",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-18T07:22:09Z",
+          "body": "Expanded: consumers must not parse the URI to derive provider, format or storage outcome, and need separate access to resolve it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306161901"
+        },
+        {
+          "at": "2026-10-18T20:22:32Z",
+          "body": "Semantic conventions are not authoritative for consumers of telemetry, only for producers controlled by otel, plus it does not seem to be necessary to put any expectations on consumers.\r\n\r\nAn example of how it's used in the wild https://docs.cloud.google.com/stackdriver/docs/instrumentation/collect-view-multimodal-prompts-responses- the upload behavior and consumption are controlled by the same platform; credentials, destination, and consumption etc are all controlled by the same entity.  It's easy to imagine that any other company can have a distro that uploads using their custom code to a storage of their preference with access model aligned with telemetry producer. \r\n\r\nI think `opaque` can't come with MUST and I don't think it's helpful at all. Why do we care in semantic conventions about it?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4308560960"
+        },
+        {
+          "at": "2026-10-19T06:10:30Z",
+          "body": "Agreed. The consumer wording is removed from all four `_ref` attributes in the latest push, using your suggestion on the storage outcome sentence.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4310813199"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262172763"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we have any guidance on avoiding signed URLs and using other means to secure the content? It would be 'NOT RECOMMENDED' since we have no means to enforce",
+      "created": "2026-10-13T18:00:45Z",
+      "hunk": "@@ -966,12 +989,31 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: A URI identifying the input messages in external storage.\n+    note: |\n+      This attribute identifies an external representation of the complete\n+      value that would otherwise be recorded in `gen_ai.input.messages`.\n+      Consumers MUST treat the URI as opaque.\n+\n+      The URI does not indicate whether storing the content succeeded or whether\n+      the content remains available.\n+\n+      > [!Warning]\n+      > The URI may expose sensitive storage metadata, such as storage provider,\n+      > bucket or container names, tenant or object identifiers, or credentials\n+      > in query parameters.",
+      "id": "PRRT_kwDOSUeMrM6r_lga",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-18T07:22:21Z",
+          "body": "Added: credentials in the URI, such as signed URL parameters, are NOT RECOMMENDED, and access should be secured by other means, for example storage-level access control.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306162413"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262206678"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    brief: An absolute URI identifying the input messages in external storage.\n```\n\n(also for other attributes)",
+      "created": "2026-10-13T18:01:11Z",
+      "hunk": "@@ -966,12 +989,31 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: A URI identifying the input messages in external storage.",
+      "id": "PRRT_kwDOSUeMrM6r_mJg",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-18T07:23:08Z",
+          "body": "Done for all four attributes: the briefs now start with “An absolute URI”.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306164403"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262210982"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you put refs into attributes.gen_ai.content where their non-ref counterparts are referenced?",
+      "created": "2026-10-13T18:02:40Z",
+      "hunk": "@@ -191,6 +191,14 @@ spans:\n       - ref_group: attributes.gen_ai.usage\n       - ref_group: attributes.gen_ai.usage.breakdown\n       - ref_group: attributes.gen_ai.content\n+      - ref: gen_ai.system_instructions_ref\n+        requirement_level: opt_in",
+      "id": "PRRT_kwDOSUeMrM6r_oY-",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-18T07:23:26Z",
+          "body": "Moved the four references into attributes.gen_ai.content next to their counterparts. That group is shared with invoke_agent, so they now apply there as well.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306165117"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262225516"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The refs are also defined on `gen_ai.client.inference.operation.details` (it inherits the span group), but the hook only gets the span here, so there's no documented way to put them on the event.\n\n```suggestion\n- the span and/or event instance\n```",
+      "created": "2026-10-13T18:05:52Z",
+      "hunk": "@@ -968,16 +968,19 @@ such as individual message contents, preserving JSON structure.\n #### Uploading content to external storage\n \n Instrumentations MAY support user-defined in-process hooks to handle content upload.\n-\n-The hook SHOULD operate independently of the opt-in flags that control capturing of\n-`gen_ai.system_instructions`, `gen_ai.input.messages`, and `gen_ai.output.messages`.\n-\n-If such a hook is supported and configured, instrumentations SHOULD invoke it regardless\n-of the span sampling decision with:\n-\n-- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json), and\n-  [outputs](/model/gen-ai/gen-ai-output-messages.json) object using formats defined in this convention\n-  and before they are serialized to JSON string;\n+Uploading content and emitting external references MUST be explicitly enabled\n+independently of the opt-in flags that control recording\n+`gen_ai.system_instructions`, `gen_ai.input.messages`, `gen_ai.output.messages`,\n+and `gen_ai.tool.definitions` directly on telemetry signals. Enabling those\n+content attributes alone MUST NOT enable external content handling.\n+\n+If such a hook is supported and explicitly configured, instrumentations SHOULD\n+invoke it regardless of the span sampling decision with:\n+\n+- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json),\n+  [outputs](/model/gen-ai/gen-ai-output-messages.json), and\n+  [tool definitions](/model/gen-ai/gen-ai-tool-definitions.json) objects using\n+  formats defined in this convention and before they are serialized to JSON;\n - the span instance",
+      "id": "PRRT_kwDOSUeMrM6r_tHl",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-18T07:23:52Z",
+          "body": "Applied: the hook receives the span and/or event instance.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306166142"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262256591"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Tool definitions are missing here and in the next paragraph (\"enrich and modify provided span, instructions, and message objects\").\n\n```suggestion\nThe hook SHOULD receive the same instructions, inputs, outputs, and tool definitions that the\n```",
+      "created": "2026-10-13T18:05:53Z",
+      "hunk": "@@ -968,16 +968,19 @@ such as individual message contents, preserving JSON structure.\n #### Uploading content to external storage\n \n Instrumentations MAY support user-defined in-process hooks to handle content upload.\n-\n-The hook SHOULD operate independently of the opt-in flags that control capturing of\n-`gen_ai.system_instructions`, `gen_ai.input.messages`, and `gen_ai.output.messages`.\n-\n-If such a hook is supported and configured, instrumentations SHOULD invoke it regardless\n-of the span sampling decision with:\n-\n-- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json), and\n-  [outputs](/model/gen-ai/gen-ai-output-messages.json) object using formats defined in this convention\n-  and before they are serialized to JSON string;\n+Uploading content and emitting external references MUST be explicitly enabled\n+independently of the opt-in flags that control recording\n+`gen_ai.system_instructions`, `gen_ai.input.messages`, `gen_ai.output.messages`,\n+and `gen_ai.tool.definitions` directly on telemetry signals. Enabling those\n+content attributes alone MUST NOT enable external content handling.\n+\n+If such a hook is supported and explicitly configured, instrumentations SHOULD\n+invoke it regardless of the span sampling decision with:\n+\n+- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json),\n+  [outputs](/model/gen-ai/gen-ai-output-messages.json), and\n+  [tool definitions](/model/gen-ai/gen-ai-tool-definitions.json) objects using\n+  formats defined in this convention and before they are serialized to JSON;\n - the span instance\n \n The hook SHOULD receive the same instructions, inputs, and outputs that the",
+      "id": "PRRT_kwDOSUeMrM6r_tJW",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-18T07:24:06Z",
+          "body": "Added tool definitions to both paragraphs. The enrich and modify paragraph now also mentions event and tool definition objects.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306166744"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262256774"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this imports a private module. Users enable it with `OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK=upload` + `OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH` and `load_completion_hook()` from `opentelemetry.util.genai.completion_hook`. Using that here would show the real setup.",
+      "created": "2026-10-13T18:05:54Z",
+      "hunk": "@@ -6,11 +6,20 @@\n import base64\n import json\n import os\n+from tempfile import TemporaryDirectory\n \n import anthropic\n from opentelemetry.trace import SpanKind, StatusCode\n+from opentelemetry.util.genai._upload.completion_hook import UploadCompletionHook",
+      "id": "PRRT_kwDOSUeMrM6r_tLp",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-18T07:24:18Z",
+          "body": "Switched to load_completion_hook() with OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK=upload and OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH. The returned wrapper has no shutdown, so the scenario flushes the wrapped hook before removing the temp directory. Let me know if you prefer another approach.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306167189"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262257017"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`, `gen_ai.retrieval.documents` and `gen_ai.memory.records` are also unbounded, but they don't have this annotation. Not for this PR, but would you consider to follow up on them in a separate one?",
+      "created": "2026-10-13T18:07:40Z",
+      "hunk": "@@ -592,6 +592,8 @@ attributes:\n     annotations:\n       type:\n         json_schema: model/gen-ai/gen-ai-tool-definitions.json\n+      value:\n+        unbounded_size: true",
+      "id": "PRRT_kwDOSUeMrM6r_vrH",
+      "opened": "2026-10-13T18:09:31Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-18T07:24:33Z",
+          "body": "Agreed, I will open a separate PR for these four attributes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4306167806"
+        }
+      ],
+      "reviewed": "bce777baf8363440e0651ee8ae4b5cbcf17be255",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262273241"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description promises that enabling inline capture alone will not enable uploads or reference attributes. `SHOULD` allows exceptions to that separation, so it does not enforce the stated guarantee for these potentially sensitive values. Use `MUST` to require separate explicit enablement.",
+      "created": "2026-10-18T20:04:34Z",
+      "hunk": "@@ -973,28 +973,31 @@ such as individual message contents, preserving JSON structure.\n #### Uploading content to external storage\n \n Instrumentations MAY support user-defined in-process hooks to handle content upload.\n+Uploading content and emitting external references SHOULD be explicitly enabled",
+      "id": "PRRT_kwDOSUeMrM6tuA74",
+      "opened": "2026-10-18T20:04:34Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T06:06:01Z",
+          "body": "Keeping `SHOULD`. The maintainer review in https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262102317 asked for it, so a combined capture mode flag or an instrumentation that only supports external storage stays conforming. The PR description promised the stricter rule, and I updated it to match.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4310790729"
+        }
+      ],
+      "reviewed": "7c728cfd85584c5e067f86ef1b37d879bf3856e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4308527688"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Adding these four references to `attributes.gen_ai.content` reintroduces them on both invoke-agent span types through `attributes.gen_ai.invoke_agent.common`, reversing the earlier narrowing. Both regenerated agent reports list `(none)` for every reference; the Anthropic scenario demonstrates only inference. This leaves the agent additions without the coverage required by `.github/instructions/evaluate-reference.instructions.md:7-9,40-43`. Move the references to `gen_ai.client.inference`, which also supplies the operation-details event, or add runnable coverage for both client and internal agent spans using real library content. Regenerate the documentation and reports afterward.",
+      "created": "2026-10-18T20:04:34Z",
+      "hunk": "@@ -91,6 +91,14 @@ attribute_groups:\n         requirement_level: opt_in\n       - ref: gen_ai.tool.definitions\n         requirement_level: opt_in\n+      - ref: gen_ai.system_instructions_ref\n+        requirement_level: opt_in\n+      - ref: gen_ai.input.messages_ref\n+        requirement_level: opt_in\n+      - ref: gen_ai.output.messages_ref\n+        requirement_level: opt_in\n+      - ref: gen_ai.tool.definitions_ref\n+        requirement_level: opt_in",
+      "id": "PRRT_kwDOSUeMrM6tuA8C",
+      "opened": "2026-10-18T20:04:34Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "7c728cfd85584c5e067f86ef1b37d879bf3856e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4308527710"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n      The presence of this attribute does not indicate whether storing the content succeeded or \n      whether the content remains available.\n```\n\nSee https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4262172763 for motivation on removing the first part. \n",
+      "created": "2026-10-18T20:19:20Z",
+      "hunk": "@@ -969,12 +998,37 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.input.messages_ref\n+    type: string\n+    brief: An absolute URI identifying the input messages in external storage.\n+    note: |\n+      The URI identifies an external representation of the complete value of\n+      `gen_ai.input.messages`. It MAY be recorded together with\n+      `gen_ai.input.messages`.\n+\n+      Consumers MUST treat the URI as opaque: they MUST NOT parse it to derive\n+      the storage provider, content format or storage outcome, and need to be\n+      given access to the storage separately to resolve it. The URI does not\n+      indicate whether storing the content succeeded or whether the content\n+      remains available.",
+      "id": "PRRT_kwDOSUeMrM6tuIM_",
+      "opened": "2026-10-18T20:22:32Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-19T06:06:24Z",
+          "body": "Applied to all four `_ref` attributes in the latest push. The consumer paragraph is gone, and each note keeps only the sentence about storage success and availability.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4310792543"
+        }
+      ],
+      "reviewed": "7c728cfd85584c5e067f86ef1b37d879bf3856e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4308576256"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nThis duplicates the brief and states something that is implied ( MAY be recorded together ...)",
+      "created": "2026-10-18T20:22:28Z",
+      "hunk": "@@ -915,13 +919,38 @@ attributes:\n           }\n         ]\n     stability: development\n+  - key: gen_ai.system_instructions_ref\n+    type: string\n+    brief: An absolute URI identifying the system instructions in external storage.\n+    note: |\n+      The URI identifies an external representation of the complete value of\n+      `gen_ai.system_instructions`. It MAY be recorded together with\n+      `gen_ai.system_instructions`.\n+",
+      "id": "PRRT_kwDOSUeMrM6tuJzb",
+      "opened": "2026-10-18T20:22:32Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-19T06:08:05Z",
+          "body": "Removed from all four `_ref` attributes in the latest push, so each note now starts with the storage outcome sentence.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4310800761"
+        }
+      ],
+      "reviewed": "7c728cfd85584c5e067f86ef1b37d879bf3856e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4308586687"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n- the [instructions](/model/gen-ai/gen-ai-system-instructions.json), [inputs](/model/gen-ai/gen-ai-input-messages.json),\n```",
+      "created": "2026-10-19T16:35:20Z",
+      "hunk": "@@ -973,28 +973,31 @@ such as individual message contents, preserving JSON structure.\n #### Uploading content to external storage\n \n Instrumentations MAY support user-defined in-process hooks to handle content upload.\n+Uploading content and emitting external references SHOULD be explicitly enabled\n+independently of the opt-in flags that control recording\n+`gen_ai.system_instructions`, `gen_ai.input.messages`, `gen_ai.output.messages`,\n+and `gen_ai.tool.definitions` directly on telemetry signals.\n \n-The hook SHOULD operate independently of the opt-in flags that control capturing of\n-`gen_ai.system_instructions`, `gen_ai.input.messages`, and `gen_ai.output.messages`.\n+If such a hook is supported and explicitly configured, instrumentations SHOULD\n+invoke it regardless of the span sampling decision with:\n \n-If such a hook is supported and configured, instrumentations SHOULD invoke it regardless\n-of the span sampling decision with:\n+- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json),",
+      "id": "PRRT_kwDOSUeMrM6uAshk",
+      "opened": "2026-10-21T05:07:18Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-21T09:26:05Z",
+          "body": "Applied in the latest push.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4335147600"
+        }
+      ],
+      "reviewed": "063cfe35fdd2e108d48ef419492818bbd0d9ce64",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4316317355"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> event instance\n\nI'm not sure it's necessary, useful, or the correct way to do it (even though python does it). Can we undo any changes related to events in this section and discuss separately in https://github.com/open-telemetry/semantic-conventions-genai/issues/615? ",
+      "created": "2026-10-19T16:36:05Z",
+      "hunk": "@@ -973,28 +973,31 @@ such as individual message contents, preserving JSON structure.\n #### Uploading content to external storage\n \n Instrumentations MAY support user-defined in-process hooks to handle content upload.\n+Uploading content and emitting external references SHOULD be explicitly enabled\n+independently of the opt-in flags that control recording\n+`gen_ai.system_instructions`, `gen_ai.input.messages`, `gen_ai.output.messages`,\n+and `gen_ai.tool.definitions` directly on telemetry signals.\n \n-The hook SHOULD operate independently of the opt-in flags that control capturing of\n-`gen_ai.system_instructions`, `gen_ai.input.messages`, and `gen_ai.output.messages`.\n+If such a hook is supported and explicitly configured, instrumentations SHOULD\n+invoke it regardless of the span sampling decision with:\n \n-If such a hook is supported and configured, instrumentations SHOULD invoke it regardless\n-of the span sampling decision with:\n+- the instructions, [inputs](/model/gen-ai/gen-ai-input-messages.json),\n+  [outputs](/model/gen-ai/gen-ai-output-messages.json), and\n+  [tool definitions](/model/gen-ai/gen-ai-tool-definitions.json) objects using\n+  formats defined in this convention and before they are serialized to JSON;\n+- the span and/or event instance",
+      "id": "PRRT_kwDOSUeMrM6uAthx",
+      "opened": "2026-10-21T05:07:18Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-21T09:26:34Z",
+          "body": "Reverted in the latest push. The hook receives the span instance again, and the enrich and modify sentence no longer lists events. The event question can go to #615.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4335152051"
+        }
+      ],
+      "reviewed": "063cfe35fdd2e108d48ef419492818bbd0d9ce64",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4316323964"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `_wrapped` is a private attribute of the safe wrapper. If the goal is only to keep the temp dir alive until uploads finish, `tempfile.mkdtemp()` instead of `TemporaryDirectory()` would avoid reaching into it (the upload executor is joined at interpreter exit).",
+      "created": "2026-10-26T18:30:53Z",
+      "hunk": "@@ -485,17 +531,28 @@ def main():\n     os.environ[\"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\"] = \"true\"\n \n     tp, lp, mp = setup_otel(metric_views=(inference_duration_view(),))\n-    handler = get_telemetry_handler(\n-        tracer_provider=tp,\n-        meter_provider=mp,\n-        logger_provider=lp,\n-    )\n+    with TemporaryDirectory() as upload_dir:\n+        os.environ[\"OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK\"] = \"upload\"\n+        os.environ[\"OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH\"] = upload_dir\n+        completion_hook = load_completion_hook()\n+        handler = get_telemetry_handler(\n+            tracer_provider=tp,\n+            meter_provider=mp,\n+            logger_provider=lp,\n+            completion_hook=completion_hook,\n+        )\n \n-    run_chat(handler)\n-    run_compaction(handler)\n-    run_chat_with_document_input(handler)\n-    run_chat_with_image_input(handler)\n-    run_create_agent()\n+        try:\n+            run_chat(handler)\n+            run_compaction(handler)\n+            run_chat_with_document_input(handler)\n+            run_chat_with_image_input(handler)\n+            run_create_agent()\n+        finally:\n+            # The safe wrapper returned by load_completion_hook() does not\n+            # expose shutdown, so flush the wrapped upload hook before the\n+            # temporary directory is removed.\n+            completion_hook._wrapped.shutdown(timeout_sec=5)",
+      "id": "PRRT_kwDOSUeMrM6wZh_l",
+      "opened": "2026-10-26T18:34:12Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-27T06:13:22Z",
+          "body": "Switched to `tempfile.mkdtemp()` in the latest push, so the scenario no longer reaches into `_wrapped`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4385644910"
+        }
+      ],
+      "reviewed": "f27f49d396428477d591c2f7ff9a601026025576",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4381000008"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the refs also apply to invoke agent spans now, not just inference.\n\n```suggestion\nAdd `gen_ai.system_instructions_ref`, `gen_ai.input.messages_ref`, `gen_ai.output.messages_ref`, and `gen_ai.tool.definitions_ref` attributes referencing GenAI content stored externally.\n```",
+      "created": "2026-10-26T18:30:53Z",
+      "hunk": "@@ -0,0 +1 @@\n+Define external references for GenAI inference content.",
+      "id": "PRRT_kwDOSUeMrM6wZh_o",
+      "opened": "2026-10-26T18:34:12Z",
+      "path": "changelog.d/490.enhancement.md",
+      "replies": [
+        {
+          "at": "2026-10-27T06:14:40Z",
+          "body": "Applied your suggestion in the latest push.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4385652614"
+        }
+      ],
+      "reviewed": "f27f49d396428477d591c2f7ff9a601026025576",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/490#discussion_r4381000012"
+    }
+  ]
+}

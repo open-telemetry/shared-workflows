@@ -1,0 +1,46 @@
+{
+  "head": "22f151cc8452f172f59d8d4b7390cca48e7d00cd",
+  "merge": "d8dcc7ee82ab185d9aabdada3bcbb3986821982d",
+  "merged": "2026-11-21T22:12:52Z",
+  "missing_roots": 0,
+  "number": 21402,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please retain `dependsOn(testing.suites)` when all suites belong in `check`, as preferred by `.github/instructions/instrumentation-gradle.instructions.md:175-178`. Enumerating the remaining suites adds a second list to maintain, and adopting `unitTests()` does not require it. Apply the same fix to the other narrowed `check` blocks in Spring JMS 2.0, Spring AI, Lettuce, JMS 1.1, Jedis 2.0, InfluxDB, and Couchbase.",
+      "created": "2026-11-21T18:35:37Z",
+      "hunk": "@@ -82,7 +82,7 @@ tasks {\n   }\n \n   check {\n-    dependsOn(testing.suites)\n+    dependsOn(testing.suites.named(\"version11Test\"), testing.suites.named(\"version20Test\"))",
+      "id": "PRRT_kwDODJKVX866axSG",
+      "opened": "2026-11-21T18:35:38Z",
+      "path": "instrumentation/spring/spring-rabbit-1.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T18:52:44Z",
+          "body": "Restored `dependsOn(testing.suites)` in all eight modules in 22f151cc8452. The `unitTests()` conversions are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21402#discussion_r4654396452"
+        }
+      ],
+      "reviewed": "4080e31411db96826b550ff7584d9a46e71734fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21402#discussion_r4654321977"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21402 directly on its verified branch `copilot/javaagent-unit-test-rollout-batch-1` in `open-telemetry/opentelemetry-java-instrumentation`. Keep the branch GitHub Copilot cloud agent assigned. Do not rename it, replace it, or create another PR. If GitHub itself assigns a follow-up branch, keep it.\n\nAddress Copilot review 6007299136 and preserve the original scope: restore the original `check { dependsOn(testing.suites) }` wiring in the eight modules whose checks now enumerate other suites. Under `instrumentation/`, these are `couchbase/couchbase-3.2`, `influxdb-2.4`, `jedis/jedis-2.0`, `jms/jms-1.1`, `lettuce/lettuce-5.0`, `spring/spring-ai-1.0`, `spring/spring-jms/spring-jms-2.0`, and `spring/spring-rabbit-1.1`. All their registered suites belonged in `check` before the migration, and `.github/instructions/instrumentation-gradle.instructions.md` prefers collection wiring in that case. Keep the 24 `unitTests()` conversions and leave the other 16 modules alone. Preserve all existing suite-local dependencies, test versions, modes and gates. No production changes.\n\nApply the narrow Spotless tasks first, then compare `check` task graphs for these modules in baseline and latest-dependency modes where feasible. Report any concrete limitations in your run. Do not reply to or resolve review threads; the coordinator handles the review after verifying the fix.",
+      "created": "2026-11-21T18:41:49Z",
+      "hunk": "@@ -82,7 +82,7 @@ tasks {\n   }\n \n   check {\n-    dependsOn(testing.suites)\n+    dependsOn(testing.suites.named(\"version11Test\"), testing.suites.named(\"version20Test\"))",
+      "id": "PRRT_kwDODJKVX866a0rN",
+      "opened": "2026-11-21T18:41:49Z",
+      "path": "instrumentation/spring/spring-rabbit-1.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "4080e31411db96826b550ff7584d9a46e71734fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21402#discussion_r4654344385"
+    }
+  ]
+}

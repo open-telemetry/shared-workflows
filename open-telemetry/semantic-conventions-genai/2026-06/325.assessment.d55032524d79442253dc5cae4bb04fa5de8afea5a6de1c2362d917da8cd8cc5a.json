@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "29d604722f025c29f02db947a9b89639d7b5d4864d474907ff283d7226e87a24",
+  "input_digest": "d55032524d79442253dc5cae4bb04fa5de8afea5a6de1c2362d917da8cd8cc5a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e22f9b55b6af47ccc617f88bcf7867e18f3d29b0/reference/src/semconv_genai/mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b028dceecdad117461a785c3af35315e7184e813/reference/src/semconv_genai/mock_server/openai.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM6K2nZ0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/e22f9b55b6af47ccc617f88bcf7867e18f3d29b0/reference/src/semconv_genai/mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b028dceecdad117461a785c3af35315e7184e813/reference/src/semconv_genai/mock_server/openai.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM6K2naT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6LcvBV",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/4e4166a992887351944b52d4ec88ffe2b9650e70/reference/scenarios/agent-framework/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/4e4166a992887351944b52d4ec88ffe2b9650e70/reference/scenarios/agent-framework/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b028dceecdad117461a785c3af35315e7184e813/reference/scenarios/agent-framework/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b028dceecdad117461a785c3af35315e7184e813/reference/scenarios/agent-framework/data.json"
+      ],
+      "id": "PRRT_kwDOSUeMrM6Lcv_P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

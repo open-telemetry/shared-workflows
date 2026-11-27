@@ -1,0 +1,31 @@
+{
+  "head": "27eb80f801666e534ee32e94e918b953792d3ea9",
+  "merge": "2cd4e751a156fbe36ca4beca94d0a991337bab2c",
+  "merged": "2026-10-05T14:42:23Z",
+  "missing_roots": 0,
+  "number": 257,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "If I understood the branch protection right the prefix is supposed to be the author's username.\nIs `otelbot` the bot's username?\n~~On https://github.com/open-telemetry/semantic-conventions-conformance/pull/255/changes/10b2c0cad3f44a8a21c8308f029166a24dbc7d27 we see `otelbot-semconv-conformance[bot]`, will that work with the branch protection?~~\nOn https://github.com/open-telemetry/semantic-conventions-conformance/actions/runs/37100341328/job/111138464463 we see that `otelbot` is only used if `USE_OTELBOT=true` is used, but it is false.",
+      "created": "2026-10-03T15:17:46Z",
+      "hunk": "@@ -20,7 +20,7 @@ jobs:\n     name: Build\n     runs-on: ubuntu-latest\n     env:\n-      REPORT_BRANCH: chore/conformance-report\n+      REPORT_BRANCH: otelbot/conformance-report",
+      "id": "PRRT_kwDOTuzK5c6oo255",
+      "opened": "2026-10-03T15:17:46Z",
+      "path": ".github/workflows/report.yml",
+      "replies": [
+        {
+          "at": "2026-10-05T14:03:39Z",
+          "body": "thanks, I hadn't noticed that otelbot wasn't being used, and now I see that this workflow reads `OTELBOT_SEMANTIC_CONVENTIONS_CONFORMANCE_*`, but the app is actually configured as `OTELBOT_SEMCONV_CONFORMANCE_*` (according to renovate-data-autofix.yml), so I fixed the variable names and the commit identity",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/257#discussion_r4184858495"
+        }
+      ],
+      "reviewed": "296ffe40dfb7a102a44ddaa5587725d478e6debe",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/257#discussion_r4173702417"
+    }
+  ]
+}

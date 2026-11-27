@@ -1,0 +1,57 @@
+{
+  "head": "178a5feefe14dc1cbfd55639161d7fdfdcd9ebaf",
+  "merge": "6f5d991a4919e68e121c8d82f49d29a085744de0",
+  "merged": "2026-09-29T22:52:56Z",
+  "missing_roots": 0,
+  "number": 812,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "I am wondering if this should be added instead of fixed. The other PR specifically added the tokens for chat completions and not the responses API.",
+      "created": "2026-09-28T23:26:17Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record `gen_ai.usage.reasoning.output_tokens` for Responses API calls",
+      "id": "PRRT_kwDOSbspP86m5enm",
+      "opened": "2026-09-28T23:26:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/812.fixed",
+      "replies": [
+        {
+          "at": "2026-09-28T23:33:26Z",
+          "body": "Got it, if the other PRs treat it as added I'd just follow that convention :) Renamed to `812.added`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/812#discussion_r4128059682"
+        }
+      ],
+      "reviewed": "bbaf0536d61550950fd1795e3a518dab39139a42",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/812#discussion_r4128011191"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "OpenAI reports `reasoning_tokens: 0` for non-reasoning responses. Could we omit the attribute in that case so its presence doesn’t imply reasoning was used?",
+      "created": "2026-09-29T16:17:04Z",
+      "hunk": "@@ -867,6 +868,9 @@ def extract_usage_tokens(usage: ResponseUsage | None) -> UsageTokens:\n             if details is not None\n             else None\n         ),\n+        thinking_tokens=getattr(",
+      "id": "PRRT_kwDOSbspP86nMeyv",
+      "opened": "2026-09-29T16:17:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-29T16:48:56Z",
+          "body": "good point! It's already the case, `InferenceInvocation._get_attributes` will set `GEN_AI_USAGE_REASONING_OUTPUT_TOKENS` to None if it's zero, and only non none value will be added to the attr:\r\nhttps://github.com/open-telemetry/opentelemetry-python-genai/blob/17ddbc6e3a9dd5b5e42ddadd4d332c95b260a8e1/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py#L317-L320\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-python-genai/blob/17ddbc6e3a9dd5b5e42ddadd4d332c95b260a8e1/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py#L382\r\n\r\nOr would you prefer handling it explicitly here as well, just to be safe?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/812#discussion_r4136056644"
+        },
+        {
+          "at": "2026-09-29T16:56:52Z",
+          "body": "Ah, thanks for catching that. I think it is fine as is then,",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/812#discussion_r4136128832"
+        }
+      ],
+      "reviewed": "ab71d7fbcc3c274b3cfdd96cd00d478c338b5a2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/812#discussion_r4135754389"
+    }
+  ]
+}

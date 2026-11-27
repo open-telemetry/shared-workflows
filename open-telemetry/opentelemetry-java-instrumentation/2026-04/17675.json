@@ -1,0 +1,40 @@
+{
+  "head": "c8acca74118766e86604d5485d837e6fe4e9eeda",
+  "merge": "6cc823a65f3bd727a337aea7bdb67657d41be9a3",
+  "merged": "2026-04-07T19:31:18Z",
+  "missing_roots": 0,
+  "number": 17675,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "utafrali"
+      },
+      "body": "Package-private visibility is fine here for JUnit 5, which discovers test methods via reflection (`setAccessible(true)`) regardless of visibility. The RxJava 3 sibling (`AbstractRxJava3SubscriptionTest`) already uses this same pattern successfully, so this aligns well. Just worth knowing that this works because of JUnit 5 reflective discovery, not Java inheritance, since concrete subclasses in other packages won't inherit package-private methods through normal Java semantics.",
+      "created": "2026-04-07T19:05:52Z",
+      "hunk": "@@ -19,7 +19,7 @@ public abstract class AbstractRxJava2SubscriptionTest {\n   protected abstract InstrumentationExtension testing();\n \n   @Test\n-  public void subscriptionSingleTest() throws InterruptedException {\n+  void subscriptionSingleTest() throws InterruptedException {",
+      "id": "PRRT_kwDODJKVX855YC1Q",
+      "opened": "2026-04-07T19:05:53Z",
+      "path": "instrumentation/rxjava/rxjava-2.0/testing/src/main/java/io/opentelemetry/instrumentation/rxjava/v2_0/AbstractRxJava2SubscriptionTest.java",
+      "replies": [],
+      "reviewed": "c8acca74118766e86604d5485d837e6fe4e9eeda",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17675#discussion_r3047273425"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "utafrali"
+      },
+      "body": "Switching from `hasAttributes(attributeEntry(...))` to `hasAttributesSatisfyingExactly(equalTo(longKey(\"iteration\"), iteration))` is strictly correct for spans you fully control (\"outer\", \"middle\", \"inner\" are user-created via `runWithSpan`). One thing to confirm: `iteration` appears to be typed as `int` in the enclosing loop. The call `equalTo(longKey(\"iteration\"), iteration)` relies on widening from `int` to `long` at the primitive level, which Java handles automatically. If `iteration` were ever declared as `Integer` (boxed), you would get a generic type mismatch with `AttributeKey<Long>`. The current pattern is fine as-is, but casting to `(long) iteration` would make the intent explicit and guard against future refactoring.",
+      "created": "2026-04-07T19:05:52Z",
+      "hunk": "@@ -873,15 +873,16 @@ void maybeMultipleTraceChains(Scheduler scheduler) {\n                   span ->\n                       span.hasName(\"outer\")\n                           .hasNoParent()\n-                          .hasAttributes(attributeEntry(\"iteration\", iteration)),\n+                          .hasAttributesSatisfyingExactly(equalTo(longKey(\"iteration\"), iteration)),",
+      "id": "PRRT_kwDODJKVX855YC1V",
+      "opened": "2026-04-07T19:05:53Z",
+      "path": "instrumentation/rxjava/rxjava-2.0/testing/src/main/java/io/opentelemetry/instrumentation/rxjava/v2_0/AbstractRxJava2Test.java",
+      "replies": [],
+      "reviewed": "c8acca74118766e86604d5485d837e6fe4e9eeda",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17675#discussion_r3047273430"
+    }
+  ]
+}

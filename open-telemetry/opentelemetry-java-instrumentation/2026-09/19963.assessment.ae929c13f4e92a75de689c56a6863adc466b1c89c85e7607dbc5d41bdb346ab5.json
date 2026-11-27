@@ -1,0 +1,42 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "23f77a9a57edde036c8a536d248a23076c27f599832651c4bcfca3a7e09d6ca2",
+  "input_digest": "ae929c13f4e92a75de689c56a6863adc466b1c89c85e7607dbc5d41bdb346ab5",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/15e2f09b0f38b16cf7a8ae3985b26956e84c08a5/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/AbstractHttpServerInstrumentationTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5ea43aa3dfe6d38eb99976bc099db6b398886d1f/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/AbstractHttpServerInstrumentationTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX86gY721",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/15e2f09b0f38b16cf7a8ae3985b26956e84c08a5/instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5ea43aa3dfe6d38eb99976bc099db6b398886d1f/instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX86gY73d",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e5358de17f3a778a19b0f181043f5e62b23d029f/instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5ea43aa3dfe6d38eb99976bc099db6b398886d1f/instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX86kQhCG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

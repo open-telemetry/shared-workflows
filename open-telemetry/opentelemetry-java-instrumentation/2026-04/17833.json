@@ -1,0 +1,25 @@
+{
+  "head": "db6a7533e8d0a8eea72ea09702281c1a987c0b7a",
+  "merge": "2dd53ed94ed24a81be868098559f6188c7c14cca",
+  "merged": "2026-04-15T01:40:33Z",
+  "missing_roots": 0,
+  "number": 17833,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "from https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17530 which is now testing messages with keys in WrapperSendExceptionTest.java\r\n\r\n",
+      "created": "2026-04-15T00:14:45Z",
+      "hunk": "@@ -7976,6 +7976,8 @@ libraries:\n           type: STRING\n         - name: messaging.destination.partition.id\n           type: STRING\n+        - name: messaging.kafka.message.key\n+          type: STRING",
+      "id": "PRRT_kwDODJKVX856-osE",
+      "opened": "2026-04-15T00:14:51Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "db6a7533e8d0a8eea72ea09702281c1a987c0b7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17833#discussion_r3083228571"
+    }
+  ]
+}

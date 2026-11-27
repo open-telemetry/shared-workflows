@@ -1,0 +1,52 @@
+{
+  "head": "a6fd87356a89638583d1d95b3601f4bb3ce5dbd0",
+  "merge": "a1be91e42586824c5adba2ed51e9cb9b2be73f27",
+  "merged": "2026-08-16T15:09:47Z",
+  "missing_roots": 0,
+  "number": 19591,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The patch does not yet apply this “everywhere else” rule to all ordinary compiled methods. For example, `SuppressNestedClientHelper` (azure-core 1.36 and 1.53, lines 22/35), `SpringSchedulingRunnableWrapper.run()` (line 24), and `ChunkSingletons.extractSpanLinks()` (line 45) still call `Java8BytecodeBridge.currentContext()` outside annotated advice. Please convert the remaining call sites as part of this sweep so the implementation matches the stated PR purpose and this new guidance.",
+      "created": "2026-08-14T19:18:45Z",
+      "hunk": "@@ -63,10 +65,18 @@ Advice classes should also have **no instance fields** — they are never instan\n \n ## `Java8BytecodeBridge`\n \n-Use the bridge only for supported OpenTelemetry API calls written directly in annotated advice\n-methods, which classic mode may copy into pre-Java-8 bytecode. Helpers called by advice are not\n-copied, so use direct APIs such as `Context.current()` and `Span.fromContext()` there. Ignore\n-source-level `inline = false`; the transformer controls inlining.\n+When building or reviewing advice, inspect both the annotated advice bodies and every helper they\n+call for `Java8BytecodeBridge` usage.\n+\n+Use the bridge only for supported OpenTelemetry API calls written directly in\n+`@Advice.OnMethodEnter` or `@Advice.OnMethodExit` methods, which classic mode may copy into\n+pre-Java-8 bytecode. Everywhere else, use the direct OpenTelemetry API, for example\n+`Context.current()` instead of `Java8BytecodeBridge.currentContext()` and\n+`Span.fromContext(context)` instead of `Java8BytecodeBridge.spanFromContext(context)`.",
+      "id": "PRRT_kwDODJKVX86ZZCWw",
+      "opened": "2026-08-14T19:18:46Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [
+        {
+          "at": "2026-08-14T20:10:27Z",
+          "body": "Addressed in 14621c3c56025f7cb19270a8b1ab6f7da577d3ca.\n\nAnalysis: An AST-based sweep found 45 remaining Java8BytecodeBridge.currentContext() calls in ordinary compiled methods across 42 files. Replacing only those invocations with Context.current() preserves Java8BytecodeBridge usage in annotated advice methods where classic instrumentation may require it.\n\nUpsides: The implementation now consistently follows the documented boundary, removes unnecessary bridge dependencies from helpers and callbacks, and covers all remaining ordinary-method call sites rather than only the examples.\n\nDownsides: This is a broad mechanical change across many instrumentation modules; no runtime semantic difference is expected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19591#discussion_r3786859794"
+        }
+      ],
+      "reviewed": "c57e19606e88b826092e68d47c4ed76a3ed93a60",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19591#discussion_r3786550140"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The always-loaded checklist still routes `javaagent-advice-patterns.md` only for `@Advice` classes (`general-rules.md:22`). For a helper-only or bridge-only change, an agent following that checklist can therefore still skip this knowledge file, so the expanded routing is inconsistent. Please update that scope trigger to match this entry.",
+      "created": "2026-08-14T19:18:46Z",
+      "hunk": "@@ -13,7 +13,7 @@ Load only files relevant to the current scope to reduce noise and avoid over-con\n | `general-rules.md`                 | Always — review checklist table and core rules enforced on every review                                                                                                                                     |\n | `metadata-yaml-format.md`          | Always — mandatory review of metadata.yaml for config coverage                                                                                                                                              |\n | `gradle-conventions.md`            | `build.gradle.kts` or `settings.gradle.kts` changes, custom test task registration or wiring                                                                                                                |\n-| `javaagent-advice-patterns.md`     | ByteBuddy `@Advice` class or advice-method changes                                                                                                                                                          |\n+| `javaagent-advice-patterns.md`     | ByteBuddy `@Advice` classes or methods, helpers called by advice, or `Java8BytecodeBridge` usage                                                                                                            |",
+      "id": "PRRT_kwDODJKVX86ZZCXE",
+      "opened": "2026-08-14T19:18:46Z",
+      "path": ".github/agents/knowledge/README.md",
+      "replies": [
+        {
+          "at": "2026-08-14T20:10:29Z",
+          "body": "Addressed in 441b123392089046c6c302abc52518ce741d6d93.\n\nAnalysis: The knowledge index already routes helper-called-by-advice and Java8BytecodeBridge changes to javaagent-advice-patterns.md, but the always-loaded general checklist retained the narrower @Advice-class-only trigger. Expanding the checklist trigger makes both routing surfaces consistent.\n\nUpsides: Agents reviewing helper-only or bridge-only changes will reliably load the relevant advice guidance regardless of which routing table they follow.\n\nDownsides: The broader trigger loads one additional focused knowledge file for those changes; no material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19591#discussion_r3786859987"
+        }
+      ],
+      "reviewed": "c57e19606e88b826092e68d47c4ed76a3ed93a60",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19591#discussion_r3786550172"
+    }
+  ]
+}

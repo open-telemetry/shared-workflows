@@ -1,0 +1,31 @@
+{
+  "head": "9a6e352fb969dc2006baeb248dafdd93d96233ae",
+  "merge": "b4fddccf0760c8b657d8a8f933434a07ab280677",
+  "merged": "2026-10-12T08:13:49Z",
+  "missing_roots": 0,
+  "number": 20498,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This new section duplicates the review policy and exceptions from `.github/instructions/javaagent.instructions.md:67-82`, including the negative-test guidance. That conflicts with `.github/agents/knowledge/README.md:10-15`, which requires reportable review rules to remain in native instructions instead of being repeated in knowledge articles, and creates two copies that can drift. Keep the canonical rule in the native instruction and limit this article to implementation mechanics or examples that add technical context.",
+      "created": "2026-10-10T21:38:24Z",
+      "hunk": "@@ -567,6 +565,25 @@ explicit type constraint only when every matched signature has a separate runtim\n guarantees the value is assignable to the advice parameter. Otherwise, constrain the matcher to\n prevent `ClassCastException`.\n \n+Omit return-type predicates by default, including for statically and dynamically typed\n+`@Advice.Return`. A typed return parameter alone does not justify `returns(...)`; the target type,\n+method and argument selection, and supported API contract can already establish compatibility.\n+Keep or add a return predicate only for a concrete, necessary selection or compatibility distinction\n+under supported usage, including selecting operations by return type. Synthetic negative matcher",
+      "id": "PRRT_kwDODJKVX86rH_KV",
+      "opened": "2026-10-10T21:38:25Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-10-11T17:42:05Z",
+          "body": "Addressed in 9a6e352fb969dc2006baeb248dafdd93d96233ae.\n\nThe frozen head still repeated the complete return-type predicate policy in .github/agents/knowledge/javaagent-module-patterns.md:559-563, verbatim from .github/instructions/javaagent.instructions.md:67-71. This conflicts with the knowledge index at .github/agents/knowledge/README.md:10-15. Removed only that duplicate paragraph; the canonical native instruction and the article's argument-binding mechanics remain unchanged. The negative-test guidance mentioned by the older finding is already absent from the frozen head.\n\n<!-- copilot-loop:3440903d340b4c86f78bf3b07869f2f24b76501dd618c2828f6a89644f99406b:4239294005:6cd15c2a98484308b12244fa873570f2 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20498#discussion_r4242550099"
+        }
+      ],
+      "reviewed": "45d3959ca5e77e3aa544d21758b1e04303c3341e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20498#discussion_r4239294005"
+    }
+  ]
+}

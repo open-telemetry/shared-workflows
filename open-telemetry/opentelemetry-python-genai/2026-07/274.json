@@ -1,0 +1,40 @@
+{
+  "head": "92b84fbfe4c2c8bfa73a18417dcdf461d6536efc",
+  "merge": "dc2ee00a1173ee7db9800489b9dff7e8a4db1518",
+  "merged": "2026-07-17T15:59:08Z",
+  "missing_roots": 0,
+  "number": 274,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment file name will fail the changelog workflow. CI enforces fragments to be named `<PR_NUMBER>.<type>` (type: added/changed/deprecated/removed/fixed) and to match the current PR number; `+tool-span-internal-kind.fixed` does not match the required pattern.\n\nRename this fragment to `util/opentelemetry-util-genai/.changelog/<PR_NUMBER>.fixed` (and keep the same one-line contents).",
+      "created": "2026-07-16T02:25:46Z",
+      "hunk": "@@ -0,0 +1 @@\n+Emit ``execute_tool`` spans with ``INTERNAL`` span kind instead of ``CLIENT``.",
+      "id": "PRRT_kwDOSbspP86RTY_4",
+      "opened": "2026-07-16T02:25:47Z",
+      "path": "util/opentelemetry-util-genai/.changelog/274.fixed",
+      "replies": [],
+      "reviewed": "99da7b6af421115e9c5777938cd1f9c672966af1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/274#discussion_r3592201789"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`expected_kinds` is a set, but `sort()` is intended for arrays. To avoid Rego type issues (and make the message deterministic across OPA versions), convert the set to an array before sorting.",
+      "created": "2026-07-16T02:25:47Z",
+      "hunk": "@@ -212,6 +212,43 @@ deny contains _span_finding(\n \tnot _has_attr(input.sample.span, attr_name)\n }\n \n+# ─── Per-operation span kind (violation) ────────────────────────────────────\n+#\n+# Semconv pins the span kind for each operation. `_expected_kinds_for_op`\n+# returns the set of kinds semconv allows; a span whose kind is outside that\n+# set is flagged. Single-element sets are the unambiguous cases (inference and\n+# embeddings are remote calls → CLIENT; tool execution runs in-process →\n+# INTERNAL). `invoke_agent` / `create_agent` may be same-process or remote, so\n+# both kinds are allowed. Undefined (→ no violation) for unmapped ops.\n+_expected_kinds_for_op[\"chat\"]             := {\"client\"}\n+_expected_kinds_for_op[\"generate_content\"] := {\"client\"}\n+_expected_kinds_for_op[\"text_completion\"]  := {\"client\"}\n+_expected_kinds_for_op[\"embeddings\"]       := {\"client\"}\n+_expected_kinds_for_op[\"execute_tool\"]     := {\"internal\"}\n+_expected_kinds_for_op[\"invoke_workflow\"]  := {\"internal\"}\n+_expected_kinds_for_op[\"retrieval\"]        := {\"client\"}\n+_expected_kinds_for_op[\"invoke_agent\"]     := {\"internal\", \"client\"}\n+_expected_kinds_for_op[\"create_agent\"]     := {\"internal\", \"client\"}\n+\n+deny contains _span_finding(\n+\t\"genai_span_kind_unexpected\",\n+\t\"violation\",\n+\tinput.sample.span,\n+\t{\n+\t\t\"operation\": op,\n+\t\t\"kind\":      input.sample.span.kind,\n+\t},\n+\tsprintf(\n+\t\t\"Span '%v' (operation '%v') has kind '%v'; semconv expects one of %v\",\n+\t\t[input.sample.span.name, op, input.sample.span.kind, sort(expected_kinds)],\n+\t),",
+      "id": "PRRT_kwDOSbspP86RTZAE",
+      "opened": "2026-07-16T02:25:47Z",
+      "path": "policies/genai_span_validation.rego",
+      "replies": [],
+      "reviewed": "99da7b6af421115e9c5777938cd1f9c672966af1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/274#discussion_r3592201813"
+    }
+  ]
+}

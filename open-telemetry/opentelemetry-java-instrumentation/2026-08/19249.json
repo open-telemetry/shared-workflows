@@ -1,0 +1,114 @@
+{
+  "head": "840bbf44230f2d58439ba2c47e5d4a66a4312c5b",
+  "merge": "182eafad0153b25cf4f35e69b351e7b6e5363a33",
+  "merged": "2026-08-11T20:51:13Z",
+  "missing_roots": 0,
+  "number": 19249,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] `startWeaverValidation` is called after `startTarget`, whereas `TomcatTest` and `JvmTest` call it before. `startWeaverValidation` is what calls `otlpServer.setForwardEndpoint(...)`, so with this ordering the target is already exporting (5s interval) before forwarding is wired up — the first export batches are dropped, and `forwardStub` gets assigned from the test thread while the Armeria gRPC thread may already be reading it. Nothing here needs the later position since `jettyMajorVersion` is known up front, so this block can move above `startTarget(container)`.",
+      "created": "2026-07-29T16:00:12Z",
+      "hunk": "@@ -64,6 +65,36 @@ void testCollectedMetrics(int jettyMajorVersion) {\n \n     startTarget(container);\n \n+    List<String> reportedMetrics =\n+        new ArrayList<>(\n+            asList(\n+                \"jetty.thread.limit\",\n+                \"jetty.thread.count\",\n+                \"jetty.thread.queue.size\",\n+                \"jetty.thread.busy.count\",\n+                \"jetty.select.count\",\n+                \"jetty.thread.idle.count\"));\n+\n+    List<String> notReportedMetrics = new ArrayList<>();\n+\n+    if (jettyMajorVersion >= 12) {\n+      reportedMetrics.add(\"jetty.session.count\");\n+      notReportedMetrics.add(\"jetty.session.created.count\");\n+      notReportedMetrics.add(\"jetty.session.duration.sum\");\n+    } else {\n+      notReportedMetrics.add(\"jetty.session.count\");\n+      reportedMetrics.add(\"jetty.session.created.count\");\n+      reportedMetrics.add(\"jetty.session.duration.sum\");\n+    }\n+\n+    startWeaverValidation(",
+      "id": "PRRT_kwDODJKVX86U0vj-",
+      "opened": "2026-07-29T16:00:12Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/JettyTest.java",
+      "replies": [
+        {
+          "at": "2026-07-30T07:21:10Z",
+          "body": "Fixed in 1eb13c3 and 86ea412",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3680784014"
+        }
+      ],
+      "reviewed": "9a8d898aca46fd5de209945a8c05022a470541b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3676011370"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Now that this file is the canonical list of jetty metrics, it's worth noticing that `library/jetty.md` has drifted from what is actually emitted. The doc lists `jetty.io.select.count` in both tables, but the rule and this registry both use `jetty.select.count`. The doc also gives `jetty.session.duration.sum` the unit `{session}` where it is really `s`. Could you fix those two in `jetty.md` as part of this PR so the doc and the registry agree?",
+      "created": "2026-08-05T20:39:23Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-telemetry/weaver/v0.24.2/schemas/semconv.schema.json\n+\n+groups:\n+  - id: attributes.jetty\n+    type: attribute_group\n+    brief: Jetty attributes\n+    attributes:\n+      - id: jetty.context\n+        type: string\n+        stability: development\n+        brief: Web application context path.\n+        examples:\n+          - \"/myapp\"\n+\n+  - id: metric.jetty.thread.count\n+    metric_name: jetty.thread.count\n+    stability: development\n+    type: metric\n+    brief: The current number of threads.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.limit\n+    metric_name: jetty.thread.limit\n+    stability: development\n+    type: metric\n+    brief: The configured maximum number of threads in the pool.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.idle.count\n+    metric_name: jetty.thread.idle.count\n+    stability: development\n+    type: metric\n+    brief: The current number of idle threads.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.busy.count\n+    metric_name: jetty.thread.busy.count\n+    stability: development\n+    type: metric\n+    brief: The current number of busy threads.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.queue.size\n+    metric_name: jetty.thread.queue.size\n+    stability: development\n+    type: metric\n+    brief: The current job queue size.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.session.created.count\n+    metric_name: jetty.session.created.count\n+    stability: development\n+    type: metric\n+    brief: The total number of created sessions.\n+    unit: \"{session}\"\n+    instrument: counter\n+    attributes:\n+      - ref: jetty.context\n+\n+  - id: metric.jetty.session.duration.sum\n+    metric_name: jetty.session.duration.sum\n+    stability: development\n+    type: metric\n+    brief: The cumulated session duration.\n+    unit: s\n+    instrument: counter\n+    attributes:\n+      - ref: jetty.context\n+\n+  - id: metric.jetty.select.count\n+    metric_name: jetty.select.count",
+      "id": "PRRT_kwDODJKVX86WyLG6",
+      "opened": "2026-08-05T20:42:08Z",
+      "path": "instrumentation/jmx-metrics/model/jetty.yaml",
+      "replies": [],
+      "reviewed": "83e424d83fecfb1854492266b3ed8ab128db1d3d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3723859038"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "#19406 removed this header from the other model files when it bumped weaver to `v0.25.1`, and its renovate rule only matches `otel/weaver:` in Java files, so this `v0.24.2` pin won't get updated. Looks like the merge just left this copy behind. Worth dropping this line and the blank one below.",
+      "created": "2026-08-11T13:56:07Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-telemetry/weaver/v0.24.2/schemas/semconv.schema.json",
+      "id": "PRRT_kwDODJKVX86YP-oN",
+      "opened": "2026-08-11T14:00:34Z",
+      "path": "instrumentation/jmx-metrics/model/jetty.yaml",
+      "replies": [
+        {
+          "at": "2026-08-11T14:11:07Z",
+          "body": "fixed in 2695568",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3758702280"
+        },
+        {
+          "at": "2026-08-11T14:11:19Z",
+          "body": "fixed in 2695568",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3758704044"
+        }
+      ],
+      "reviewed": "e13148746ea439aaf877048d9e3992e3221394e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3758576467"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`queueSize` counts queued jobs, not threads — this inherits `{thread}` from the group-level unit in the rule file. Camel's equivalent uses `{task}`. Worth fixing before the registry locks it in (rule, doc table and test assertion too).",
+      "created": "2026-08-11T13:56:07Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-telemetry/weaver/v0.24.2/schemas/semconv.schema.json\n+\n+groups:\n+  - id: attributes.jetty\n+    type: attribute_group\n+    brief: Jetty attributes\n+    attributes:\n+      - id: jetty.context\n+        type: string\n+        stability: development\n+        brief: Web application context path.\n+        examples:\n+          - \"/myapp\"\n+\n+  - id: metric.jetty.thread.count\n+    metric_name: jetty.thread.count\n+    stability: development\n+    type: metric\n+    brief: The current number of threads.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.limit\n+    metric_name: jetty.thread.limit\n+    stability: development\n+    type: metric\n+    brief: The configured maximum number of threads in the pool.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.idle.count\n+    metric_name: jetty.thread.idle.count\n+    stability: development\n+    type: metric\n+    brief: The current number of idle threads.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.busy.count\n+    metric_name: jetty.thread.busy.count\n+    stability: development\n+    type: metric\n+    brief: The current number of busy threads.\n+    unit: \"{thread}\"\n+    instrument: updowncounter\n+\n+  - id: metric.jetty.thread.queue.size\n+    metric_name: jetty.thread.queue.size\n+    stability: development\n+    type: metric\n+    brief: The current job queue size.\n+    unit: \"{thread}\"",
+      "id": "PRRT_kwDODJKVX86YP-oR",
+      "opened": "2026-08-11T14:00:34Z",
+      "path": "instrumentation/jmx-metrics/model/jetty.yaml",
+      "replies": [
+        {
+          "at": "2026-08-11T14:13:08Z",
+          "body": "fixed in d159a93",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3758719431"
+        }
+      ],
+      "reviewed": "e13148746ea439aaf877048d9e3992e3221394e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3758576476"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The emitted description is \"The configured maximum number of threads in the pool.\" Missing `configured` here and in the Jetty 9 to 11 table below.",
+      "created": "2026-08-11T13:56:07Z",
+      "hunk": "@@ -11,31 +11,31 @@ The metrics captured and their respective attributes depend on the Jetty version\n \n Those metrics require the following Jetty modules to be enabled : `jmx`, `http`, `statistics`, `sessions` and at least one of `ee8-deploy`, `ee9-deploy` or `ee10-deploy`.\n \n-| Metric Name             | Type          | Unit        | Attributes    | Description                               |\n-| ----------------------- | ------------- | ----------- | ------------- | ----------------------------------------- |\n-| jetty.thread.count      | UpDownCounter | {thread}    |               | The current number of threads             |\n-| jetty.thread.limit      | UpDownCounter | {thread}    |               | The maximum number of threads in the pool |\n-| jetty.thread.busy.count | UpDownCounter | {thread}    |               | The current number of busy threads        |\n-| jetty.thread.idle.count | UpDownCounter | {thread}    |               | The current number of idle threads        |\n-| jetty.thread.queue.size | UpDownCounter | {thread}    |               | The current job queue size                |\n-| jetty.io.select.count   | Counter       | {operation} |               | The number of select calls                |\n-| jetty.session.count     | UpDownCounter | {session}   | jetty.context | Current number of active sessions         |\n+| Metric Name             | Type          | Unit        | Attributes    | Description                                |\n+| ----------------------- | ------------- | ----------- | ------------- | ------------------------------------------ |\n+| jetty.thread.count      | UpDownCounter | {thread}    |               | The current number of threads.             |\n+| jetty.thread.limit      | UpDownCounter | {thread}    |               | The maximum number of threads in the pool. |",
+      "id": "PRRT_kwDODJKVX86YP-oV",
+      "opened": "2026-08-11T14:00:34Z",
+      "path": "instrumentation/jmx-metrics/library/jetty.md",
+      "replies": [
+        {
+          "at": "2026-08-11T14:13:05Z",
+          "body": "fixed in d159a93",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3758718868"
+        }
+      ],
+      "reviewed": "e13148746ea439aaf877048d9e3992e3221394e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19249#discussion_r3758576479"
+    }
+  ]
+}

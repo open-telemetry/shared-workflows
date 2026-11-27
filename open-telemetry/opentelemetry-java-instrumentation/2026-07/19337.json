@@ -1,0 +1,31 @@
+{
+  "head": "4e0fa7b0176cabcdb7010a8e9481660bac00c296",
+  "merge": "83f92e57a7d7b5faebe9f342a36a9c38ee5eb0c1",
+  "merged": "2026-07-29T22:29:16Z",
+  "missing_roots": 0,
+  "number": 19337,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file includes a note that when updating this dependency, `dependencyManagement/build.gradle.kts` should be updated as well. Since this PR changes the version here, it should also update the corresponding version in `dependencyManagement/build.gradle.kts` (or centralize the version in a single place such as a version catalog / dependency constraints) to prevent version drift between build logic components.",
+      "created": "2026-07-29T20:41:26Z",
+      "hunk": "@@ -67,7 +67,7 @@ dependencies {\n   }\n   implementation(\"org.apache.httpcomponents:httpclient:4.5.14\")\n   implementation(\"com.gradle.develocity:com.gradle.develocity.gradle.plugin:4.5.0\")\n-  implementation(\"org.sonatype.gradle.plugins:scan-gradle-plugin:3.1.6\")\n+  implementation(\"org.sonatype.gradle.plugins:scan-gradle-plugin:4.0.0\")",
+      "id": "PRRT_kwDODJKVX86U5pQA",
+      "opened": "2026-07-29T20:41:26Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-07-29T21:51:43Z",
+          "body": "That comment applies to `net.bytebuddy:byte-buddy-gradle-plugin` on the line directly below it, not to `scan-gradle-plugin`. `dependencyManagement/build.gradle.kts` only pins the byte-buddy plugin version; `org.sonatype.gradle.plugins:scan-gradle-plugin` isn't referenced anywhere else in the repo, so there's no version drift here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19337#discussion_r3678270500"
+        }
+      ],
+      "reviewed": "4e0fa7b0176cabcdb7010a8e9481660bac00c296",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19337#discussion_r3677889072"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "head": "b5a86d417197cf33eef627bc783b6123c8874b57",
+  "merge": "1702fc245fd317560316cf7d2526653431c89ef7",
+  "merged": "2026-11-22T22:34:50Z",
+  "missing_roots": 0,
+  "number": 21408,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly on open-telemetry/opentelemetry-java-instrumentation branch `copilot/open-telemetry-20095-batch-5`. Keep the branch GitHub Copilot assigned; do not rename or replace it, or create a follow-up PR as a workaround. If GitHub assigns a follow-up branch, keep that assigned branch.\n\nRemove only the complete RocketMQ Client 5.0 migration from this PR so it can go in the separate named-unit-suite rollout PR. Revert this PR's changes under `instrumentation/rocketmq/rocketmq-client-5.0/`, including its javaagent build edits, source move, and deletion of `javaagent-unit-tests/build.gradle.kts`. Restore its standalone project include in `settings.gradle.kts`. Both the original standalone fixed 5.0.0 test and existing baseline/latest unit suite must remain in their original projects. Revert only this PR's work for this module; do not take unrelated upstream changes. Use a targeted follow-up commit on the existing branch, not a history rewrite.\n\nKeep the Camel, Kafka Clients, and Pulsar migrations as they are, including their pins and installed-agent denyUnsafe and mode wiring. Do not introduce the named suite helper here. Verify the resulting PR diff has no RocketMQ module changes or removal of its settings entry; all three retained migrations must still be present. If running formatting, run narrow Spotless apply before targeted verification.",
+      "created": "2026-11-21T20:40:15Z",
+      "hunk": "@@ -36,6 +36,15 @@ testing.suites {\n     }\n   }\n \n+  register<JvmTestSuite>(\"fixedVersionUnitTests\") {",
+      "id": "PRRT_kwDODJKVX866cEfq",
+      "opened": "2026-11-21T20:40:15Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T20:47:52Z",
+          "body": "Done in `a9508e3f`. RocketMQ is restored to its pre-migration state, including both standalone suites and its settings entry; the Camel, Kafka, and Pulsar migrations remain. Both RocketMQ unit-test tasks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21408#discussion_r4654907964"
+        }
+      ],
+      "reviewed": "30680d225ed69a11fccb5a60d2f83dbf5a3f18a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21408#discussion_r4654873283"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think the actual debugging code that was enabled with this flag already got removed.\n```suggestion\n```",
+      "created": "2026-11-22T13:00:29Z",
+      "hunk": "@@ -53,6 +66,12 @@ testing.suites {\n   }\n \n   executions(\"version5Test\") {\n+    configureEach {\n+      systemProperty(\"io.opentelemetry.pulsar-2.8.debug\", \"true\")",
+      "id": "PRRT_kwDODJKVX866j7YC",
+      "opened": "2026-11-22T13:00:28Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a9508e3f1d917fd73f6dc37a159a6451b56075b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21408#discussion_r4658202525"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-11-22T13:00:39Z",
+      "hunk": "@@ -67,6 +86,12 @@ testing.suites {\n   }\n \n   executions(\"test\") {\n+    configureEach {\n+      systemProperty(\"io.opentelemetry.pulsar-2.8.debug\", \"true\")",
+      "id": "PRRT_kwDODJKVX866j7cj",
+      "opened": "2026-11-22T13:00:39Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a9508e3f1d917fd73f6dc37a159a6451b56075b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21408#discussion_r4658202978"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly on open-telemetry/opentelemetry-java-instrumentation branch `copilot/open-telemetry-20095-batch-5`. Keep the branch GitHub Copilot assigned; do not rename or replace it, or create a follow-up PR as a workaround. If GitHub assigns a follow-up branch, keep that assigned branch.\n\nAddress both open review suggestions in `instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts` by removing only the two `systemProperty(\"io.opentelemetry.pulsar-2.8.debug\", \"true\")` assignments, one in `executions(\"version5Test\")` and one in `executions(\"test\")`. Commit 5945b1db18 already removed the flag's consumer and debugging code. Keep both configureEach blocks and their denyUnsafe exclusions unchanged. Preserve all Camel, Kafka Clients, and Pulsar migrations, dependency pins, and installed-agent test-mode wiring; do not reintroduce RocketMQ changes.\n\nUse a targeted follow-up commit, not a history rewrite. Verify that the incremental diff removes only these two dead property assignments and preserves the unsafe-mode exclusions. Run the narrow Pulsar javaagent Spotless apply task before relevant targeted verification or tests. Do not reply to or resolve the human review threads.",
+      "created": "2026-11-22T21:55:12Z",
+      "hunk": "@@ -53,6 +66,12 @@ testing.suites {\n   }\n \n   executions(\"version5Test\") {\n+    configureEach {\n+      systemProperty(\"io.opentelemetry.pulsar-2.8.debug\", \"true\")",
+      "id": "PRRT_kwDODJKVX866onq7",
+      "opened": "2026-11-22T21:55:11Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a9508e3f1d917fd73f6dc37a159a6451b56075b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21408#discussion_r4660209703"
+    }
+  ]
+}

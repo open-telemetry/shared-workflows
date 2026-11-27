@@ -1,0 +1,67 @@
+{
+  "head": "b69ce1ce6e568bc6d902a83863287436cc3fc9d9",
+  "merge": "f8a24de839dcb86c1efbe0dddcace3fcafc9c728",
+  "merged": "2026-10-26T13:24:56Z",
+  "missing_roots": 0,
+  "number": 20932,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to revise the context-scoping guidance. The user has reconsidered the original before-send rule. Application request-generation hooks and response-consumption callbacks are symmetric: both can contribute to the exchange without their application work belonging under the outgoing CLIENT or PRODUCER span. The agreed direction is captured caller context for application callbacks in both directions, with operation context scoped to justified library-internal execution rather than every request/before-send hook. Classify by the code being invoked, not request versus response or before versus after timing.\n\nRevise .github/agents/knowledge/instrumentation-context-scoping.md accordingly and keep its index entry accurate. Preserve the distinction between asynchronous span lifetime and thread-bound Scope lifetime, restoring the full captured caller Context including span-free contexts, scope restoration after callbacks, and correct remote outgoing-span propagation. Do not imply CLIENT/PRODUCER spans must be leaves or remove justified internal contexts and duplicate-span suppression. Do not require ending an operation before every callback; retain correct terminal completion behavior without prematurely ending request or response processing. Preserve explicit application context choices. Explain that independently instrumented outgoing work started by application callbacks must not be accidentally suppressed or parented to the enclosing outgoing span.\n\nInclude focused testing guidance for application request/body generation, response consumption including deferred demand, completion, failure, inline/asynchronous execution, no caller span, custom Context values, and restoration of an unrelated callback thread's context. Keep the article concise and avoid prescribing unverified framework-specific behavior. The full repository-wide audit is still outstanding and tracked in #20958; updating this guidance is not completion of that audit and must not close that issue. Do not update any other PR or perform the full audit. Follow the repository's documentation tooling when applicable. Acceptance is revised, symmetric guidance with the useful lifecycle/internal-execution distinctions retained. This request supersedes this PR's original blanket before-send context convention.",
+      "created": "2026-10-25T04:32:10Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+# [General] Context in client and producer hooks and callbacks",
+      "id": "PRRT_kwDODJKVX86v-YK6",
+      "opened": "2026-10-25T04:32:10Z",
+      "path": ".github/agents/knowledge/instrumentation-context-scoping.md",
+      "replies": [
+        {
+          "at": "2026-10-25T04:34:37Z",
+          "body": "Revised the guidance and index in 92fe7f56. The article now applies captured caller context symmetrically to application request/body generation and response/completion callbacks, while retaining operation context for justified library-internal execution, remote propagation, lifecycle and thread-bound scope guidance, and focused test cases. I did not perform or close the repository-wide audit tracked in #20958.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20932#discussion_r4369656704"
+        }
+      ],
+      "reviewed": "0e5297eec695cca619e783d72e2263105782ab83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20932#discussion_r4369652430"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with this documentation-only addition to .github/agents/knowledge/instrumentation-context-scoping.md under 'Separate span lifetime from context scope'. The user approved this exact proposed paragraph after explicitly removing one sentence:\n\nIdeally, the outgoing span starts after application request preparation and ends before application response handling, so its duration excludes that application work. Temporal overlap is acceptable when the client does not expose suitable instrumentation hooks. Whether or not their execution overlaps the span, application hooks and callbacks run under the captured caller `Context`.\n\nIntegrate that paragraph into the existing section. Preserve the distinction between temporal overlap and active Context, existing full-caller-Context behavior, remote propagation, and asynchronous scope guidance. The user explicitly removed the sentence 'Do not omit part of the outgoing operation or end an in-flight span early solely to avoid overlap.' Do not add that sentence back or rephrase it as an added qualification. Do not change instrumentation code or unrelated guidance, and leave the existing testing section unchanged. Do not update other PRs, conduct the full audit, or modify the tracking issue. Run the repository's targeted Markdown formatter/linter if available; no Java build or tests are needed for this documentation-only change.\n\nCommit and push to this PR's existing branch, not a new PR. Leave the title and description for the coordinator to manage.",
+      "created": "2026-10-25T18:41:04Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+# [General] Context in client and producer hooks and callbacks",
+      "id": "PRRT_kwDODJKVX86wD5T-",
+      "opened": "2026-10-25T18:41:04Z",
+      "path": ".github/agents/knowledge/instrumentation-context-scoping.md",
+      "replies": [],
+      "reviewed": "92fe7f56fd142401d3aaa9a22de82df2e872008d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20932#discussion_r4371943809"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply this documentation-only update directly to the existing head branch of PR #20932, trask-instrumentation-context-scoping. The prior coding session 76c90b6d-28d5-4602-a493-a8c24981c0e3 ended at 2026-10-25T18:43:31Z without delivering any change: the original PR still points at 92fe7f56fd142401d3aaa9a22de82df2e872008d, and its actual .github/agents/knowledge/instrumentation-context-scoping.md does not contain the requested paragraph. This is a scoped follow-up for that missing delivery, not a new feature or PR.\n\nInsert this exact paragraph under 'Separate span lifetime from context scope':\n\nIdeally, the outgoing span starts after application request preparation and ends before application response handling, so its duration excludes that application work. Temporal overlap is acceptable when the client does not expose suitable instrumentation hooks. Whether or not their execution overlaps the span, application hooks and callbacks run under the captured caller `Context`.\n\nKeep the rest of the guidance, including the testing section, unchanged. The user explicitly excluded the proposed additional sentence about omitting operation time or ending an in-flight span early; do not add that qualification. This is solely a guidance change, with no instrumentation, audit, other-PR, title, or description edits. Use the repository's targeted Markdown lint/format command if available, with no Java build. Commit and push the intended change to this PR's existing head branch so the live original PR diff contains the paragraph. If you cannot update that branch, report the concrete blocker rather than leaving an unreported local change.",
+      "created": "2026-10-25T18:47:11Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+# [General] Context in client and producer hooks and callbacks",
+      "id": "PRRT_kwDODJKVX86wD8Fn",
+      "opened": "2026-10-25T18:47:11Z",
+      "path": ".github/agents/knowledge/instrumentation-context-scoping.md",
+      "replies": [
+        {
+          "at": "2026-10-25T18:51:20Z",
+          "body": "Added the exact paragraph under “Separate span lifetime from context scope” in commit `e6e8cffd`. No other guidance changed. `git diff --check` passed; Markdown lint was unavailable because `mise`, `flint`, and `rumdl` are not installed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20932#discussion_r4371974355"
+        }
+      ],
+      "reviewed": "92fe7f56fd142401d3aaa9a22de82df2e872008d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20932#discussion_r4371962227"
+    }
+  ]
+}

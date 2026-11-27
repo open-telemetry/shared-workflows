@@ -1,0 +1,91 @@
+{
+  "head": "a88457b343598b06215ef2c031eda491147d3b78",
+  "merge": "59717d74daa12ce8baf723d2928fbb9c0f4d33b3",
+  "merged": "2026-08-30T18:03:33Z",
+  "missing_roots": 0,
+  "number": 126,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The pinned Ollama 0.6.2 SDK exposes `dimensions` on `EmbedRequest`, so the claim that this API has no dimension count is incorrect and the scenario omits stimulus required by the embeddings contract (`scenarios/gen-ai/README.md:85`). That can make missing dimension telemetry appear to be an instrumentation gap rather than a scenario gap. Keep the unsupported encoding format omitted, but pass an explicit dimension count like the sibling embedding scenarios.",
+      "created": "2026-08-29T00:04:48Z",
+      "hunk": "@@ -0,0 +1,17 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: Ollama embeddings.\n+\n+A different operation, so a different span type, which is why this is its own\n+program rather than another call inside inference.py. Batched input; Ollama's\n+embed API takes neither an encoding format nor a dimension count, so this\n+request carries only the batch.\n+\"\"\"\n+\n+from ollama import embed\n+\n+embed(\n+    model=\"nomic-embed-text\",\n+    input=[\"Say this is a test\", \"And this is another one\"],\n+)",
+      "id": "PRRT_kwDOTuzK5c6dVYWF",
+      "opened": "2026-08-29T00:04:48Z",
+      "path": "scenarios/gen-ai/python/ollama/scenarios/embeddings.py",
+      "replies": [],
+      "reviewed": "bfd0b17092726c54667914efe84efd744dfb2c7d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/126#discussion_r3884804626"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Ollama's REST API enables streaming by default when `stream` is omitted, but this condition treats an omitted field as non-streaming. That makes the new endpoint wire-incompatible for direct callers that rely on Ollama's default. Default this lookup to `True`, and update the JSON-response fixtures/tests to send `\"stream\": false` explicitly.",
+      "created": "2026-08-29T00:04:48Z",
+      "hunk": "@@ -0,0 +1,133 @@\n+\"\"\"Ollama-compatible endpoints (chat and embeddings).\n+\n+Ollama has a wire protocol of its own rather than an OpenAI-compatible one:\n+a streamed response is newline-delimited JSON rather than SSE, tool call\n+arguments arrive as an object rather than a JSON string, and the answer's\n+shape a structured request asks for is the ``format`` field itself.\n+\"\"\"\n+\n+import copy\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+from ._common import mock_json_schema_value, mock_tool_arguments\n+\n+bp = Blueprint(\"ollama\", __name__)\n+\n+CHAT_RESPONSE = {\n+    \"model\": \"llama3.2\",\n+    \"created_at\": \"2023-11-14T22:13:20Z\",\n+    \"message\": {\n+        \"role\": \"assistant\",\n+        \"content\": \"This is a response from the mock server.\",\n+    },\n+    \"done_reason\": \"stop\",\n+    \"done\": True,\n+    \"total_duration\": 1000000000,\n+    \"load_duration\": 100000000,\n+    \"prompt_eval_count\": 25,\n+    \"prompt_eval_duration\": 200000000,\n+    \"eval_count\": 12,\n+    \"eval_duration\": 700000000,\n+}\n+\n+\n+def _wants_tool_call(body):\n+    if not body.get(\"tools\"):\n+        return False\n+    return not any(\n+        message.get(\"role\") == \"tool\" for message in body.get(\"messages\", [])\n+    )\n+\n+\n+def _tool_call_response(body):\n+    resp = copy.deepcopy(CHAT_RESPONSE)\n+    resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n+    tool = body.get(\"tools\", [{}])[0]\n+    function = tool.get(\"function\", tool)\n+    resp[\"message\"][\"content\"] = \"\"\n+    # Ollama carries the arguments as an object, not as a JSON string.\n+    resp[\"message\"][\"tool_calls\"] = [\n+        {\n+            \"function\": {\n+                \"name\": function.get(\"name\") or \"get_weather\",\n+                \"arguments\": mock_tool_arguments(tool),\n+            }\n+        }\n+    ]\n+    resp[\"prompt_eval_count\"] = 50\n+    resp[\"eval_count\"] = 20\n+    return resp\n+\n+\n+def _chat_response(body):\n+    if _wants_tool_call(body):\n+        return _tool_call_response(body)\n+\n+    resp = copy.deepcopy(CHAT_RESPONSE)\n+    resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n+    # `format` is the schema itself, so the answer is built from it.\n+    schema = body.get(\"format\")\n+    if isinstance(schema, dict):\n+        resp[\"message\"][\"content\"] = json.dumps(mock_json_schema_value(schema))\n+    return resp\n+\n+\n+def _stream(resp):\n+    \"\"\"Yield the NDJSON lines of a streamed chat.\n+\n+    The finished response is streamed a piece at a time rather than composed\n+    separately, so the two routes cannot drift apart: same request, same\n+    content, whichever way it was asked for.\n+    \"\"\"\n+    message = resp[\"message\"]\n+    base = {\"model\": resp[\"model\"], \"created_at\": resp[\"created_at\"]}\n+\n+    if message.get(\"tool_calls\"):\n+        yield json.dumps(\n+            {\n+                **base,\n+                \"message\": {\n+                    \"role\": \"assistant\",\n+                    \"content\": \"\",\n+                    \"tool_calls\": message[\"tool_calls\"],\n+                },\n+                \"done\": False,\n+            }\n+        ) + \"\\n\"\n+    else:\n+        for word in (message[\"content\"] or \"\").split(\" \"):\n+            yield json.dumps(\n+                {\n+                    **base,\n+                    \"message\": {\"role\": \"assistant\", \"content\": f\"{word} \"},\n+                    \"done\": False,\n+                }\n+            ) + \"\\n\"\n+\n+    final = {key: value for key, value in resp.items() if key != \"message\"}\n+    yield json.dumps({**final, \"message\": {\"role\": \"assistant\", \"content\": \"\"}}) + \"\\n\"\n+\n+\n+@bp.route(\"/api/chat\", methods=[\"POST\"])\n+def chat():\n+    body = request.get_json(silent=True) or {}\n+    resp = _chat_response(body)\n+    if body.get(\"stream\"):\n+        return Response(_stream(resp), mimetype=\"application/x-ndjson\")",
+      "id": "PRRT_kwDOTuzK5c6dVYWX",
+      "opened": "2026-08-29T00:04:48Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/ollama.py",
+      "replies": [],
+      "reviewed": "bfd0b17092726c54667914efe84efd744dfb2c7d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/126#discussion_r3884804650"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "how come no spans but metircs? should be enableable somehow",
+      "created": "2026-08-29T00:21:42Z",
+      "hunk": "@@ -0,0 +1,285 @@\n+{\n+  \"spans\": {},",
+      "id": "PRRT_kwDOTuzK5c6dVg0L",
+      "opened": "2026-08-29T00:21:42Z",
+      "path": "scenarios/gen-ai/python/ollama/openllmetry/data.json",
+      "replies": [],
+      "reviewed": "bfd0b17092726c54667914efe84efd744dfb2c7d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/126#discussion_r3884856430"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "i don't understand this comment",
+      "created": "2026-08-29T01:04:16Z",
+      "hunk": "@@ -31,4 +31,7 @@ against those, and check:\n   fix.\n - **No expectations declared.** No `expected_violations`, and no `spans`,\n   `metrics` or `events` blocks. Scenarios here measure; a finding is a result\n-  this repo exists to record, so anything that quiets one is a defect.\n+  this repo exists to record, so anything that quiets one is a defect. A\n+  `span_types` block is not one of those: it places a span the reduction cannot\n+  recognise, and quiets nothing. Check it is commented and that the spans\n+  really carry nothing identifying.",
+      "id": "PRRT_kwDOTuzK5c6dVzdy",
+      "opened": "2026-08-29T01:04:16Z",
+      "path": ".github/instructions/gen-ai-scenarios.instructions.md",
+      "replies": [
+        {
+          "at": "2026-08-29T01:09:50Z",
+          "body": "```suggestion\n  Scenarios may provide custom span type mapping, and runner would report any violations if that span does not meet corresponding span type expectations.\n```",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/126#discussion_r3884986075"
+        }
+      ],
+      "reviewed": "70ca07ccbffcd48850a5fa57554f6d12128532b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/126#discussion_r3884972617"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n  this repo exists to record, so anything that quiets one is a defect.\n```",
+      "created": "2026-08-29T01:31:09Z",
+      "hunk": "@@ -31,4 +31,7 @@ against those, and check:\n   fix.\n - **No expectations declared.** No `expected_violations`, and no `spans`,\n   `metrics` or `events` blocks. Scenarios here measure; a finding is a result\n-  this repo exists to record, so anything that quiets one is a defect.\n+  this repo exists to record, so anything that quiets one is a defect. One\n+  exception: a `match` with `type` and no `expect` places a span the reduction\n+  cannot recognise, and quiets nothing. Check it is commented, that the span\n+  really carries nothing identifying, and that no `expect` crept in beside it.",
+      "id": "PRRT_kwDOTuzK5c6dWAq4",
+      "opened": "2026-08-29T01:31:09Z",
+      "path": ".github/instructions/gen-ai-scenarios.instructions.md",
+      "replies": [],
+      "reviewed": "3ce2dea16093ce24c5b95b73c4666d9116166d0e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/126#discussion_r3885055497"
+    }
+  ]
+}

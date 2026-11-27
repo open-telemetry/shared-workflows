@@ -1,0 +1,70 @@
+{
+  "head": "f135960ead74dedd4b75fcefb4c75b057da20f7f",
+  "merge": "36d7c53f7bcb1d64bdaca9e579d534789d3fb325",
+  "merged": "2026-08-06T08:45:10Z",
+  "missing_roots": 0,
+  "number": 19371,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The linked #19370 explicitly requires the shared code to be available when a pool instrumentation is packaged without the JDBC instrumentation module. This placement does not achieve that: only `instrumentation/jdbc/javaagent/build.gradle.kts:45-53` adds the shaded library output, while the three consumers use it only as `compileOnly` and their tests add the JDBC javaagent. A custom distribution containing one of these pool modules but omitting JDBC will therefore lack both this class and `JdbcConnectionUrlParser`; the suppressed advice will hit `NoClassDefFoundError` and stop reporting pool metrics. Please give the pool modules a direct runtime-packaged shared dependency (and exercise a distribution without the JDBC module).",
+      "created": "2026-08-03T06:48:33Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jdbc.internal;\n+\n+import io.opentelemetry.instrumentation.jdbc.internal.dbinfo.DbInfo;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class JdbcConnectionPoolNameUtil {",
+      "id": "PRRT_kwDODJKVX86V4jt4",
+      "opened": "2026-08-03T06:48:34Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionPoolNameUtil.java",
+      "replies": [],
+      "reviewed": "4228cad63181d2bfc99e1e63496083054bf78bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19371#discussion_r3701864304"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could we name this `javaagent-common` and put it directly under `jdbc/`, i.e. `instrumentation/jdbc/javaagent-common/`?\r\n\r\n`X-common` elsewhere in the repo means \"shared across versions of X, for any consumer\" — `servlet-common` has `bootstrap`, `library`, and `javaagent` siblings. This module is javaagent-only by construction (it exists purely to deliver the shaded/relocated half to modules that can't depend on `jdbc:library` directly), and there will never be a library half, so `jdbc-common` sets the wrong expectation.\r\n\r\n`javaagent-` is already established as a component-dir prefix (`servlet-3.0/javaagent-testing`, `servlet-5.0/javaagent-unit-tests`, `jms-common-1.1/javaagent-unit-tests`), so `javaagent-common` reads unambiguously. It would also sit next to `bootstrap`/`javaagent`/`library`, mirroring `jdbc:bootstrap` — which is structurally its twin, since both are source-free shells over one half of the same shaded jar. And it drops the `jdbc/jdbc-common/javaagent` stutter, which only exists because grouping dirs like `servlet/` need it and `jdbc/` isn't one.\r\n\r\nOne catch if you flatten it: `otel.javaagent-instrumentation` does `base.archivesName.set(projectDir.parentFile.name)`, so at `jdbc/javaagent-common/` the parent is `jdbc` and the artifact name would collide with `jdbc:javaagent`. That needs an explicit override (same approach as `aws-sdk-2.2/library-autoconfigure`):\r\n\r\n```kotlin\r\nbase.archivesName.set(\"${base.archivesName.get()}-common\")\r\n```\r\n\r\nwhich gives `opentelemetry-javaagent-jdbc-common` — the same artifact this already publishes, so no artifact churn.",
+      "created": "2026-08-03T21:53:24Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+/*\n+ * Contains the shaded JDBC library classes shared by JDBC-based javaagent instrumentations.\n+ */\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")",
+      "id": "PRRT_kwDODJKVX86WIhv3",
+      "opened": "2026-08-03T21:53:30Z",
+      "path": "instrumentation/jdbc/javaagent-common/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1fd231edc86f5b5ff824662ec2f915972c11f487",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19371#discussion_r3707939430"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This module picks up `javaagent-common`, but `DruidSingletons.getDataSourceName()` still carries its own copy of the address/port/namespace formatting — byte-for-byte the same as the extracted helper. Druid is one of the four pools this is meant to consolidate and the other three were converted, so it looks like it just got missed. Same one-liner as the others:\n\n```java\nreturn JdbcConnectionPoolNameUtil.poolName(dbInfo, \"alibaba-druid\");\n```",
+      "created": "2026-08-04T17:09:37Z",
+      "hunk": "@@ -15,6 +15,7 @@ dependencies {\n   library(\"com.alibaba:druid:1.0.0\")\n \n   implementation(project(\":instrumentation:alibaba-druid-1.0:library\"))\n+  implementation(project(\":instrumentation:jdbc:javaagent-common\"))",
+      "id": "PRRT_kwDODJKVX86WaGTX",
+      "opened": "2026-08-04T17:41:08Z",
+      "path": "instrumentation/alibaba-druid-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "51d7a783c0ae77e6ce7501d8345bd52caef67810",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19371#discussion_r3714644324"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Now that `javaagent-common` is on the classpath, the `compileOnly(project(\":instrumentation:jdbc:library\", configuration = \"shadow\"))` block just below is redundant — the same shaded JDBC classes come in twice. Leaving it in means compilation still succeeds even if the new common module isn't wired up correctly, which defeats part of the point of this refactor. Worth removing it here and in the other migrated modules.",
+      "created": "2026-08-04T17:09:37Z",
+      "hunk": "@@ -14,8 +14,7 @@ muzzle {\n dependencies {\n   compileOnly(\"org.apache.tomcat:tomcat-jdbc:8.5.0\")\n \n-  // JdbcConnectionUrlParser is provided by the shaded JDBC library, and its DbInfo return type is\n-  // relocated to the JDBC bootstrap package.\n+  implementation(project(\":instrumentation:jdbc:javaagent-common\"))",
+      "id": "PRRT_kwDODJKVX86WaGTd",
+      "opened": "2026-08-04T17:41:08Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "51d7a783c0ae77e6ce7501d8345bd52caef67810",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19371#discussion_r3714644329"
+    }
+  ]
+}

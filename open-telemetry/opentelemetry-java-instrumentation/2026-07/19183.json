@@ -1,0 +1,155 @@
+{
+  "head": "a5ad6510e1a254dcaeedf0915eeec049a333566d",
+  "merge": "e71bd171d5818777cf9f9c017fe12c0864725d65",
+  "merged": "2026-07-16T15:51:06Z",
+  "missing_roots": 0,
+  "number": 19183,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "I can extract that as separate PR if needed",
+      "created": "2026-07-13T11:25:44Z",
+      "hunk": "@@ -27,5 +27,7 @@ exclude = [\n   '^http://www.slf4j.org.*',\n   '^https://logback.qos.ch/.*',\n   '^https://vaadin.com/$',\n-  '^https://camel.apache.org/$'\n+  '^https://camel.apache.org/$',\n+  # SSL certificate expired.\n+  '^https://www.gwtproject.org/$'",
+      "id": "PRRT_kwDODJKVX86QXtP1",
+      "opened": "2026-07-13T11:25:44Z",
+      "path": ".github/config/lychee.toml",
+      "replies": [
+        {
+          "at": "2026-07-13T21:59:40Z",
+          "body": "either is fine",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3574441809"
+        },
+        {
+          "at": "2026-07-15T09:20:55Z",
+          "body": "Kept the lychee exclusion in this PR. No further change needed here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3586015673"
+        },
+        {
+          "at": "2026-07-15T14:27:08Z",
+          "body": "https://www.gwtproject.org/ works now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3588103073"
+        },
+        {
+          "at": "2026-07-16T10:01:00Z",
+          "body": "thanks - removed again",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3594446539"
+        }
+      ],
+      "reviewed": "1222eb1f970beee23c429e53654476b2b1e183e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3570224091"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "moving my Windows troubles to discussion thread so the PR dashboard understands state better...\n\nstill failing for me on Windows after latest update:\n\n```\n$  mise run lint:fix\n[lint:fix] $ flint run --fix\nflint: warning: GITHUB_TOKEN is not set; lychee GitHub requests may be rate limited\n[lychee]\n==> Checking all links in all files\nflint: links: failed to spawn lychee: The filename or extension is too long. (os error 206)\nflint: review: lychee\n[lint:fix] ERROR task failed\n\n/c/src/opentelemetry-java-instrumentation-2 (rumdl-md060-and-revert-spotless-prettier)\n$ git log -1\ncommit 4bc28c22b492318ebdd2f9cfb4a67507ac8110dd (HEAD -> rumdl-md060-and-revert-spotless-prettier)\nAuthor: Gregor Zeitlinger <gregor.zeitlinger@grafana.com>\nDate:   Mon Jul 13 13:29:55 2026 +0200\n\n    comment\n    Signed-off-by: Gregor Zeitlinger <gregor.zeitlinger@grafana.com>\n```",
+      "created": "2026-07-13T22:00:55Z",
+      "hunk": "@@ -3,6 +3,8 @@\n [global]\n # disable link text should be descriptive check\n disable = [\"MD059\", \"line-length\", \"no-inline-html\", \"MD041\", \"MD022\", \"ul-style\", \"fenced-code-language\"]\n+# MD060 (table-cell-alignment)\n+extend-enable = [\"MD060\"]",
+      "id": "PRRT_kwDODJKVX86QjVdx",
+      "opened": "2026-07-13T22:00:55Z",
+      "path": ".github/config/.rumdl.toml",
+      "replies": [
+        {
+          "at": "2026-07-14T04:34:12Z",
+          "body": "sent https://github.com/grafana/flint/pull/400",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3576040156"
+        },
+        {
+          "at": "2026-07-14T16:42:32Z",
+          "body": "please try again - I've created https://github.com/grafana/flint/releases/tag/v0.22.9 with the fix",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3580925714"
+        }
+      ],
+      "reviewed": "4bc28c22b492318ebdd2f9cfb4a67507ac8110dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3574449171"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "sent https://github.com/grafana/flint/pull/404 to improve perf issue on Windows\n\nseparately, we should probably find where to doc flint now that it's in charge of md files, contributors will need to know about it",
+      "created": "2026-07-14T19:12:07Z",
+      "hunk": "@@ -3,6 +3,8 @@\n [global]\n # disable link text should be descriptive check\n disable = [\"MD059\", \"line-length\", \"no-inline-html\", \"MD041\", \"MD022\", \"ul-style\", \"fenced-code-language\"]\n+# MD060 (table-cell-alignment)\n+extend-enable = [\"MD060\"]",
+      "id": "PRRT_kwDODJKVX86Q3pdR",
+      "opened": "2026-07-14T19:12:07Z",
+      "path": ".github/config/.rumdl.toml",
+      "replies": [
+        {
+          "at": "2026-07-15T09:20:56Z",
+          "body": "Added contributor docs in docs/contributing/style-guide.md so markdown formatting now points to `mise run lint:fix` / flint.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3586015831"
+        }
+      ],
+      "reviewed": "5880e720e545c7221b30ad0d91092891063ea6df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3581924385"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(pending https://github.com/grafana/flint/pull/404 to improve perf issue on Windows)",
+      "created": "2026-07-15T14:52:54Z",
+      "hunk": "@@ -3,6 +3,8 @@\n [global]\n # disable link text should be descriptive check\n disable = [\"MD059\", \"line-length\", \"no-inline-html\", \"MD041\", \"MD022\", \"ul-style\", \"fenced-code-language\"]\n+# MD060 (table-cell-alignment)\n+extend-enable = [\"MD060\"]",
+      "id": "PRRT_kwDODJKVX86RI-F_",
+      "opened": "2026-07-15T15:41:43Z",
+      "path": ".github/config/.rumdl.toml",
+      "replies": [
+        {
+          "at": "2026-07-15T16:49:58Z",
+          "body": "do you want to have a release right away?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3589188461"
+        },
+        {
+          "at": "2026-07-15T17:26:54Z",
+          "body": "maybe it's just bad for me in this PR because this PR branch because it updates flint itself and so doesn't use modified files?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3589421406"
+        },
+        {
+          "at": "2026-07-16T05:55:48Z",
+          "body": "Yes ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3592967519"
+        }
+      ],
+      "reviewed": "bc9f351695cab2cb23f1a77782bbf5c2d6c6a9f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3588311316"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think I noticed this runs link check, even though non-fixable, which also makes it slow?\n\nif that can't be changed, could we have a command that only does markdown formatting, which is what is generally needed for contributors",
+      "created": "2026-07-15T15:41:40Z",
+      "hunk": "@@ -19,6 +19,15 @@ In addition to Google Java Style formatting, spotless applies\n [custom static importing rules](../../conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/StaticImportFormatter.kt)\n (e.g. rewriting `Objects.requireNonNull` to a static import).\n \n+Markdown files are formatted and linted separately through\n+[flint](https://github.com/grafana/flint), run via [mise](https://mise.jdx.dev/):\n+\n+```bash\n+mise run lint:fix",
+      "id": "PRRT_kwDODJKVX86RKCDP",
+      "opened": "2026-07-15T15:41:43Z",
+      "path": "docs/contributing/style-guide.md",
+      "replies": [
+        {
+          "at": "2026-07-15T16:49:21Z",
+          "body": "it only checks links in modified files (and also uses the lychee cache in local mode) - so it should not be an issue.\r\n\r\nThat being said `flint run --fix rumdl` would only run markdown check on modified files.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3589183974"
+        },
+        {
+          "at": "2026-07-15T17:25:56Z",
+          "body": "> it only checks links in modified files\r\n\r\nah probably takes a long time in this PR branch because it updates flint itself?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3589415189"
+        },
+        {
+          "at": "2026-07-16T05:55:25Z",
+          "body": "Yes - that causes a full run",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3592965807"
+        }
+      ],
+      "reviewed": "bc9f351695cab2cb23f1a77782bbf5c2d6c6a9f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19183#discussion_r3588698669"
+    }
+  ]
+}

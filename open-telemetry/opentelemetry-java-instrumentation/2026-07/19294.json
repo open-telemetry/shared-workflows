@@ -1,0 +1,25 @@
+{
+  "head": "07e93637683a21f13a99c1d123e88c89f2015274",
+  "merge": "f5727bd2a13e5567cde604d3f8523c29f3aefed1",
+  "merged": "2026-07-22T18:24:35Z",
+  "missing_roots": 0,
+  "number": 19294,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "`stringBefore`!!! I love that.",
+      "created": "2026-07-22T18:20:19Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.gradle\n+\n+import org.gradle.api.DefaultTask\n+import org.gradle.api.GradleException\n+import org.gradle.api.provider.ListProperty\n+import org.gradle.api.tasks.Input\n+import org.gradle.api.tasks.TaskAction\n+\n+abstract class CheckMavenPublicationCoordinatesTask : DefaultTask() {\n+  @get:Input\n+  abstract val publicationCoordinates: ListProperty<String>\n+\n+  @TaskAction\n+  fun checkPublicationCoordinates() {\n+    val duplicatePublications = publicationCoordinates.get()\n+      .groupBy { it.substringBefore('=') }",
+      "id": "PRRT_kwDODJKVX86TBX4a",
+      "opened": "2026-07-22T18:20:19Z",
+      "path": "conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/CheckMavenPublicationCoordinatesTask.kt",
+      "replies": [],
+      "reviewed": "07e93637683a21f13a99c1d123e88c89f2015274",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19294#discussion_r3632729422"
+    }
+  ]
+}

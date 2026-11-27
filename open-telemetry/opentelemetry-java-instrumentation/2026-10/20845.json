@@ -1,0 +1,52 @@
+{
+  "head": "1a3bbe64aba00901dce211ee7bf3f23b9cfb8d0a",
+  "merge": "0f4b8428cdf630698de1e4872619ba9d528c6913",
+  "merged": "2026-10-24T23:06:22Z",
+  "missing_roots": 0,
+  "number": 20845,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This resets a newly built operator rather than the one that registered the existing hook. Each operator creates its own `ReactorAsyncOperationEndStrategy`, and the agent registry unregisters strategies by identity, so this unregisters nothing and then adds another entry. Publishers retained across resets can keep the old lifters and strategies alive, preventing weak-reference cleanup. Repeated resets therefore accumulate live registry entries and increase lookup work for unsupported return types or strategies later in the list. Reuse the registering operator across both advice paths, or provide a hook-only reinstallation path that preserves the existing strategy registration.",
+      "created": "2026-10-22T08:30:19Z",
+      "hunk": "@@ -48,4 +52,23 @@ public static void postStaticInitializer() {\n           .registerOnEachOperator();\n     }\n   }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ResetAllOnEachOperatorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void postResetAll() {\n+      // Hooks.resetOnEachOperator() has removed our hook without telling the operator, which\n+      // still considers it registered and would ignore a plain registration.\n+      ContextPropagationOperator operator =\n+          ContextPropagationOperator.builder()\n+              .setCaptureExperimentalSpanAttributes(\n+                  DeclarativeConfigUtil.getInstrumentationConfig(\n+                          GlobalOpenTelemetry.get(), \"reactor\")\n+                      .getBoolean(\"experimental_span_attributes/development\", false))\n+              .build();\n+      operator.resetOnEachOperator();\n+      operator.registerOnEachOperator();",
+      "id": "PRRT_kwDODJKVX86vGzaL",
+      "opened": "2026-10-22T08:30:19Z",
+      "path": "instrumentation/reactor/reactor-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/v3_1/HooksInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-22T08:56:00Z",
+          "body": "Good catch, thanks. Each reset built a new operator, so its `resetOnEachOperator()` unregistered nothing and every reset added another strategy. The agent now keeps a single operator in `ReactorSingletons` and resets and registers that same instance, so the registry keeps one strategy across resets. Type initializers and keyed resets still only call `registerOnEachOperator()`: the operator resets its own hook by key, so re-registering there would recurse. Fixed in 60be7a98c8.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20845#discussion_r4346387255"
+        }
+      ],
+      "reviewed": "972873c6815bff2c319f3241c6583252c474ac3a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20845#discussion_r4346161890"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] Non-blocking: this field stores a registration helper, not an immutable value constant. The Fields rule in `.github/instructions/java-style.instructions.md` requires helpers to use lower camel case even when `static final`. Rename `OPERATOR` to `operator`, including its three references.",
+      "created": "2026-10-22T09:01:32Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.reactor.v3_1;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+\n+final class ReactorSingletons {\n+\n+  // A single operator, so that registering again after a reset reuses the same async operation end\n+  // strategy instead of adding a new one to the strategy registry each time.\n+  private static final ContextPropagationOperator OPERATOR =\n+      ContextPropagationOperator.builder()\n+          .setCaptureExperimentalSpanAttributes(\n+              DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"reactor\")\n+                  .getBoolean(\"experimental_span_attributes/development\", false))\n+          .build();\n+\n+  static void registerOnEachOperator() {\n+    OPERATOR.registerOnEachOperator();\n+  }\n+\n+  // Hooks.resetOnEachOperator() removes the hook without going through the operator, which still\n+  // considers it registered and would ignore a plain registration.\n+  static void reregisterOnEachOperator() {\n+    OPERATOR.resetOnEachOperator();\n+    OPERATOR.registerOnEachOperator();",
+      "id": "PRRT_kwDODJKVX86vHdEY",
+      "opened": "2026-10-22T09:01:32Z",
+      "path": "instrumentation/reactor/reactor-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/v3_1/ReactorSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-22T09:09:30Z",
+          "body": "Renamed to `operator` in 1a3bbe64, thanks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20845#discussion_r4346508118"
+        }
+      ],
+      "reviewed": "60be7a98c82fb0175ae67e9d043c86d8c1abd5b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20845#discussion_r4346436530"
+    }
+  ]
+}

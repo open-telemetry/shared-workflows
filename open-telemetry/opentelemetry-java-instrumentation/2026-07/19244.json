@@ -1,0 +1,112 @@
+{
+  "head": "306cc26c54ed91d990ab33ec3df6aa1cd465aec6",
+  "merge": "26f51b365ece5e6d7c3d6ef3478e5693be3b3bbb",
+  "merged": "2026-07-17T13:23:47Z",
+  "missing_roots": 0,
+  "number": 19244,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The shared client definition names the pre-rename metrics. The current implementation emits `http.client.request.body.size` and `http.client.response.body.size` (`HttpClientExperimentalMetrics.java:56,64`), so every module using this ref will publish incorrect metric names in the generated catalog.",
+      "created": "2026-07-16T20:43:19Z",
+      "hunk": "@@ -0,0 +1,111 @@\n+# Shared configuration definitions (\"globals\") for instrumentation metadata.\n+#\n+# These are configuration options that many instrumentations expose identically. Instead of\n+# hand-copying the full block into every instrumentation's metadata.yaml, a module references a\n+# definition by id:\n+#\n+#   configurations:\n+#     - ref: http.known-methods\n+#     - name: otel.instrumentation.my-module.specific   # module-specific configs stay inline\n+#       ...\n+#\n+# The doc generator resolves each `ref` against this file (see SharedConfigurationRegistry) and\n+# fails the build on an unknown id. The id is also used as the definition key in the generated\n+# docs/instrumentation-list.yaml `definitions.configurations` catalog, so keep ids stable.\n+configurations:\n+  http.known-methods:\n+    name: otel.instrumentation.http.known-methods\n+    declarative_name: java.common.http.known_methods\n+    description: \"Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.\"\n+    type: list\n+    default: \"CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE\"\n+\n+  common.peer-service-mapping:\n+    name: otel.instrumentation.common.peer-service-mapping\n+    declarative_name: java.common.service_peer_mapping\n+    description: \"Used to specify a mapping from host names or IP addresses to peer services.\"\n+    type: map\n+    default: \"\"\n+    declarative_type: structured_list\n+    declarative_schema:\n+      type: object\n+      required:\n+        - peer\n+        - service_name\n+      properties:\n+        peer:\n+          type: string\n+          description: \"Host name or IP address to match against.\"\n+        service_name:\n+          type: string\n+          description: \"Peer service name to record for matching peers.\"\n+\n+  http.client.capture-request-headers:\n+    name: otel.instrumentation.http.client.capture-request-headers\n+    declarative_name: general.http.client.request_captured_headers\n+    description: \"List of HTTP request headers to capture in HTTP client telemetry.\"\n+    type: list\n+    default: \"\"\n+\n+  http.client.capture-response-headers:\n+    name: otel.instrumentation.http.client.capture-response-headers\n+    declarative_name: general.http.client.response_captured_headers\n+    description: \"List of HTTP response headers to capture in HTTP client telemetry.\"\n+    type: list\n+    default: \"\"\n+\n+  http.client.emit-experimental-telemetry:\n+    name: otel.instrumentation.http.client.emit-experimental-telemetry\n+    declarative_name: java.common.http.client.emit_experimental_telemetry/development\n+    description: \"Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.\"",
+      "id": "PRRT_kwDODJKVX86RlXa5",
+      "opened": "2026-07-16T20:43:21Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [],
+      "reviewed": "8655fbf9066a0773636084a76e410fedebe2f46b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3598784319"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The shared server definition still documents the metric names retired in 2.6.0. The implementation now emits `http.server.request.body.size` and `http.server.response.body.size` (`HttpServerExperimentalMetrics.java:68,76`; CHANGELOG.md:2020-2022), so the centralized catalog would propagate stale names to all referencing modules.",
+      "created": "2026-07-16T20:43:20Z",
+      "hunk": "@@ -0,0 +1,111 @@\n+# Shared configuration definitions (\"globals\") for instrumentation metadata.\n+#\n+# These are configuration options that many instrumentations expose identically. Instead of\n+# hand-copying the full block into every instrumentation's metadata.yaml, a module references a\n+# definition by id:\n+#\n+#   configurations:\n+#     - ref: http.known-methods\n+#     - name: otel.instrumentation.my-module.specific   # module-specific configs stay inline\n+#       ...\n+#\n+# The doc generator resolves each `ref` against this file (see SharedConfigurationRegistry) and\n+# fails the build on an unknown id. The id is also used as the definition key in the generated\n+# docs/instrumentation-list.yaml `definitions.configurations` catalog, so keep ids stable.\n+configurations:\n+  http.known-methods:\n+    name: otel.instrumentation.http.known-methods\n+    declarative_name: java.common.http.known_methods\n+    description: \"Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.\"\n+    type: list\n+    default: \"CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE\"\n+\n+  common.peer-service-mapping:\n+    name: otel.instrumentation.common.peer-service-mapping\n+    declarative_name: java.common.service_peer_mapping\n+    description: \"Used to specify a mapping from host names or IP addresses to peer services.\"\n+    type: map\n+    default: \"\"\n+    declarative_type: structured_list\n+    declarative_schema:\n+      type: object\n+      required:\n+        - peer\n+        - service_name\n+      properties:\n+        peer:\n+          type: string\n+          description: \"Host name or IP address to match against.\"\n+        service_name:\n+          type: string\n+          description: \"Peer service name to record for matching peers.\"\n+\n+  http.client.capture-request-headers:\n+    name: otel.instrumentation.http.client.capture-request-headers\n+    declarative_name: general.http.client.request_captured_headers\n+    description: \"List of HTTP request headers to capture in HTTP client telemetry.\"\n+    type: list\n+    default: \"\"\n+\n+  http.client.capture-response-headers:\n+    name: otel.instrumentation.http.client.capture-response-headers\n+    declarative_name: general.http.client.response_captured_headers\n+    description: \"List of HTTP response headers to capture in HTTP client telemetry.\"\n+    type: list\n+    default: \"\"\n+\n+  http.client.emit-experimental-telemetry:\n+    name: otel.instrumentation.http.client.emit-experimental-telemetry\n+    declarative_name: java.common.http.client.emit_experimental_telemetry/development\n+    description: \"Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.\"\n+    type: boolean\n+    default: false\n+\n+  http.server.capture-request-headers:\n+    name: otel.instrumentation.http.server.capture-request-headers\n+    declarative_name: general.http.server.request_captured_headers\n+    description: \"List of HTTP request headers to capture in HTTP server telemetry.\"\n+    type: list\n+    default: \"\"\n+\n+  http.server.capture-response-headers:\n+    name: otel.instrumentation.http.server.capture-response-headers\n+    declarative_name: general.http.server.response_captured_headers\n+    description: \"List of HTTP response headers to capture in HTTP server telemetry.\"\n+    type: list\n+    default: \"\"\n+\n+  http.server.emit-experimental-telemetry:\n+    name: otel.instrumentation.http.server.emit-experimental-telemetry\n+    declarative_name: java.common.http.server.emit_experimental_telemetry/development\n+    description: \"Enable the capture of experimental HTTP server telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.server.request.size` and `http.server.response.size` metrics.\"",
+      "id": "PRRT_kwDODJKVX86RlXbS",
+      "opened": "2026-07-16T20:43:21Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [],
+      "reviewed": "8655fbf9066a0773636084a76e410fedebe2f46b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3598784352"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This module only enriches existing HTTP client spans with URL-template information (the module description and `SpringRestTemplateTest.java:110-114` confirm that behavior). Replacing its tailored option with the shared definition now claims that Spring Web emits body-size attributes and metrics, which is inaccurate; keep this module-specific definition inline as documented for options whose behavior differs.",
+      "created": "2026-07-16T20:43:20Z",
+      "hunk": "@@ -6,13 +6,7 @@ features:\n   - HTTP_ROUTE\n library_link: https://github.com/spring-projects/spring-framework\n configurations:\n-  - name: otel.instrumentation.http.client.emit-experimental-telemetry\n-    declarative_name: java.common.http.client.emit_experimental_telemetry/development\n-    description: >\n-      Enables the capture of experimental HTTP client telemetry, including URL template\n-      as the span name.\n-    type: boolean\n-    default: false\n+  - ref: http.client.emit-experimental-telemetry",
+      "id": "PRRT_kwDODJKVX86RlXbt",
+      "opened": "2026-07-16T20:43:21Z",
+      "path": "instrumentation/spring/spring-web/spring-web-6.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "8655fbf9066a0773636084a76e410fedebe2f46b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3598784390"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A `ref` combined with `default`, `type`, `examples`, schema fields, or `id` passes validation, but `resolve()` then replaces the entire object and silently discards those values. Since overrides are unsupported and the comment says ref entries carry only the id, reject every additional field (and a blank ref) so metadata authors cannot publish settings that appear effective but are ignored.",
+      "created": "2026-07-16T20:43:20Z",
+      "hunk": "@@ -23,40 +23,67 @@ public record ConfigurationOption(\n     ConfigurationType type,\n     @Nullable List<String> examples,\n     @JsonProperty(\"declarative_type\") @Nullable ConfigurationType declarativeType,\n-    @JsonProperty(\"declarative_schema\") @Nullable DeclarativeSchema declarativeSchema) {\n+    @JsonProperty(\"declarative_schema\") @Nullable DeclarativeSchema declarativeSchema,\n+    @Nullable String ref,\n+    @Nullable String id) {\n \n   public ConfigurationOption {\n-    requireNonNull(description, \"description\");\n-    requireNonNull(defaultValue, \"defaultValue\");\n-    requireNonNull(type, \"type\");\n-\n-    // Most configs are backed by a flat system property (name). Declarative-only configs (such as\n-    // the url_template_rules structured list) have no flat property and rely on declarative_name.\n-    if (name == null && declarativeName == null) {\n-      throw new IllegalArgumentException(\n-          \"ConfigurationOption must have a name or a declarative_name\");\n-    }\n-    if ((name != null && name.isBlank()) || description.isBlank()) {\n-      throw new IllegalArgumentException(\"ConfigurationOption name/description cannot be blank\");\n-    }\n-\n-    if (declarativeType == ConfigurationType.STRUCTURED_LIST) {\n-      if (declarativeSchema == null\n-          || declarativeSchema.properties() == null\n-          || declarativeSchema.properties().isEmpty()) {\n+    // A reference entry (`- ref: <id>`) in a metadata.yaml carries only the ref id; it is resolved\n+    // against the shared configuration registry before use, so it skips the field validation that\n+    // applies to fully-specified options.\n+    if (ref != null) {\n+      if (name != null || declarativeName != null || description != null) {\n         throw new IllegalArgumentException(\n-            \"structured_list configuration must define a declarative_schema with properties\");\n+            \"A ref ConfigurationOption must not also specify name/declarative_name/description\");\n       }",
+      "id": "PRRT_kwDODJKVX86RlXcD",
+      "opened": "2026-07-16T20:43:21Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/internal/ConfigurationOption.java",
+      "replies": [],
+      "reviewed": "8655fbf9066a0773636084a76e410fedebe2f46b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3598784418"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `id` is intended to be assigned internally by `withId`, but as a record component it is also accepted from `metadata.yaml`. An inline option can therefore supply a duplicate arbitrary id; `buildDefinitionCatalog` will treat it as registry-backed and overwrite the definition under that id, causing modules to resolve to the wrong configuration. Prevent Jackson from deserializing this internal field.",
+      "created": "2026-07-17T00:18:26Z",
+      "hunk": "@@ -23,40 +23,82 @@ public record ConfigurationOption(\n     ConfigurationType type,\n     @Nullable List<String> examples,\n     @JsonProperty(\"declarative_type\") @Nullable ConfigurationType declarativeType,\n-    @JsonProperty(\"declarative_schema\") @Nullable DeclarativeSchema declarativeSchema) {\n+    @JsonProperty(\"declarative_schema\") @Nullable DeclarativeSchema declarativeSchema,\n+    @Nullable String ref,\n+    @Nullable String id) {",
+      "id": "PRRT_kwDODJKVX86Rnb6z",
+      "opened": "2026-07-17T00:18:26Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/internal/ConfigurationOption.java",
+      "replies": [
+        {
+          "at": "2026-07-17T10:36:30Z",
+          "body": "Good catch. Added `@JsonIgnore` to the `id` record component so Jackson can no longer deserialize it from metadata.yaml; it is only ever set internally via `withId()`. Added `testInlineConfigurationCannotSupplyId` to lock in the behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3602441365"
+        }
+      ],
+      "reviewed": "3d309ee0a0d7ea486a78a75d6d7fe67e3af8558a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3599572114"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The documented id rule omits the collision branch implemented in `buildDefinitionCatalog`: when distinct inline definitions share a configuration name, their ids include a content hash. Documenting that form is important for consumers that inspect or persist these generated ids.",
+      "created": "2026-07-17T00:18:26Z",
+      "hunk": "@@ -167,17 +165,63 @@ public class SpringWebInstrumentationModule extends InstrumentationModule\n     conforms to. (See [telemetry schema docs](https://opentelemetry.io/docs/specs/otel/schemas/#schema-url))\n   - attributes: The instrumentation scope’s optional attributes provide additional information\n     about the scope.\n-- configuration settings\n-  - List of settings that are available for the instrumentation module\n-  - Each setting has a name (flat property format), optional declarative_name (YAML path format), description, type, default value, and optional examples\n-  - `name` is optional for declarative-only settings that have no flat property (they must provide a `declarative_name`)\n-  - Structured-list settings additionally carry `declarative_type: structured_list` and a `declarative_schema` describing the per-item object shape\n-- metrics\n-  - List of metrics that the instrumentation module collects, including the metric name, description, type, and attributes.\n-  - Separate lists for the metrics emitted by default vs via configuration options.\n+- configuration_refs\n+  - List of configuration definition ids the instrumentation module exposes.\n+  - Each id resolves to an entry in the top-level `definitions.configurations` catalog (see below).\n+  - This is the _generated_ representation. In a module's `metadata.yaml` you still author each\n+    configuration either inline or as a shared `ref` (see \"metadata.yaml file\" and \"Shared\n+    configuration definitions\" below); the generator collects both forms into the catalog and emits\n+    the ids here.\n+- metrics (referenced via `metric_refs`)\n+  - Each telemetry `when` block lists `metric_refs`: the ids of metric definitions the module emits.\n+  - Each id resolves to an entry in the top-level `definitions.metrics` catalog.\n+  - Separate `when` blocks distinguish metrics emitted by default vs via configuration options.\n+  - This is the _generated_ representation, produced automatically from collected telemetry (and any\n+    inline `additional_telemetry`). Metrics are always authored inline (or auto-collected from\n+    tests) — there is no author-time shared metric catalog; the generator does the de-duplication\n+    into `definitions.metrics` for you.\n - spans\n-  - List of spans kinds the instrumentation module generates, including the attributes and their types.\n-  - Separate lists for the spans emitted by default vs via configuration options.\n+  - List of span kinds the instrumentation module generates, including the attributes and their types.\n+  - Emitted inline under each telemetry `when` block (spans are not yet part of the definitions catalog).\n+  - Separate `when` blocks distinguish spans emitted by default vs via configuration options.\n+\n+### Definitions catalog\n+\n+To avoid inlining the same metric or configuration block into every instrumentation entry, common\n+definitions are collected once into a top-level `definitions` section and referenced by id:\n+\n+```yaml\n+definitions:\n+  configurations:\n+    http.known-methods:          # id, reused as the configuration_refs value\n+      name: otel.instrumentation.http.known-methods\n+      declarative_name: java.common.http.known_methods\n+      description: ...\n+      type: list\n+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE\n+  metrics:\n+    http.client.request.duration-1a2b3c4d:   # <metric name>-<short content hash>\n+      name: http.client.request.duration\n+      description: Duration of HTTP client requests.\n+      instrument: histogram\n+      data_type: HISTOGRAM\n+      unit: s\n+      attributes: [...]\n+libraries:\n+- name: java-http-client\n+  configuration_refs:\n+  - http.known-methods\n+  telemetry:\n+  - when: default\n+    metric_refs:\n+    - http.client.request.duration-1a2b3c4d\n+```\n+\n+Configuration ids are the curated ids from the shared registry (see below) for shared options, or the\n+config `name` for module-specific options. Metric ids are `<metric name>-<short content hash>`; the\n+hash disambiguates metrics that share a name but have different attribute sets. Any consumer of",
+      "id": "PRRT_kwDODJKVX86Rnb7T",
+      "opened": "2026-07-17T00:18:26Z",
+      "path": "instrumentation-docs/readme.md",
+      "replies": [
+        {
+          "at": "2026-07-17T10:36:32Z",
+          "body": "Documented the collision branch: module-specific ids that share a `name` but differ in content are now described as `<config name>-<short content hash>`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3602441518"
+        }
+      ],
+      "reviewed": "3d309ee0a0d7ea486a78a75d6d7fe67e3af8558a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19244#discussion_r3599572156"
+    }
+  ]
+}

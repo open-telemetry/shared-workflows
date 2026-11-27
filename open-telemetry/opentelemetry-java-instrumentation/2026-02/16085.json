@@ -1,0 +1,36 @@
+{
+  "head": "77e6c0fe8b518aa52b29a1531438bb189709ad24",
+  "merge": "074b04120e4159de3e2f8f13dd304beb06d35328",
+  "merged": "2026-02-05T20:24:04Z",
+  "missing_roots": 0,
+  "number": 16085,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\n            expect(\"SELECT * FROM ONLY parent\", \"SELECT\", \"parent\", \"SELECT parent\")),\r\n```\r\n\r\nis the table name is supposed to be \"ONLY\" for these?  the comment says\r\n\r\n> / PostgreSQL: FROM/UPDATE/DELETE ONLY - just skip, don't treat as table name\r\n\r\n\r\nDo we need to add a similar `ONLY` parsing block to `SqlSanitizer.jflex` too?\r\n",
+      "created": "2026-02-05T12:04:14Z",
+      "hunk": "@@ -657,6 +657,21 @@ private static Stream<Arguments> simplifyArgs() {\n                 \"t1\",\n                 \"SELECT t1; INSERT t2\")),\n \n+        // Trailing semicolons\n+        Arguments.of(\"SELECT * FROM t;\", expect(\"SELECT * FROM t;\", \"SELECT\", \"t\", \"SELECT t\")),\n+        Arguments.of(\"SELECT * FROM t;;\", expect(\"SELECT * FROM t;;\", \"SELECT\", \"t\", \"SELECT t\")),\n+\n+        // PostgreSQL ONLY keyword (inherits from parent table only, not children)\n+        Arguments.of(\n+            \"SELECT * FROM ONLY parent\",\n+            expect(\"SELECT * FROM ONLY parent\", \"SELECT\", \"ONLY\", \"SELECT parent\")),",
+      "id": "PRRT_kwDODJKVX85s3WXa",
+      "opened": "2026-02-05T12:10:02Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlStatementSanitizerTest.java",
+      "replies": [
+        {
+          "at": "2026-02-05T19:50:32Z",
+          "body": "`SqlSanitizer.jflex` is only used for old semconv\r\n\r\nI split out the new `SqlSanitizerWithSummar.jflex` in order to avoid disturbing existing behavior for old semconv.\r\n\r\nWill drop `SqlSanitizer.jflex` in 3.0.\r\n\r\nThe test assertion just shows existing behavior of old semconv (which I'm not making any attempt to improve).\r\n\r\n(table isn't captured at all in new semconv)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16085#discussion_r2770871622"
+        },
+        {
+          "at": "2026-02-05T20:04:19Z",
+          "body": "thank you for the explanation",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16085#discussion_r2770929780"
+        }
+      ],
+      "reviewed": "77e6c0fe8b518aa52b29a1531438bb189709ad24",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16085#discussion_r2768791965"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "head": "483be10f4e32019fc763f100d0ce1c2e40ce9e9e",
+  "merge": "8c1b98a376e91d422726ccf33bef051fd9ce4b25",
+  "merged": "2026-08-07T01:51:00Z",
+  "missing_roots": 0,
+  "number": 410,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I think this belongs in the attribute definition rather than in reference on the workflow. \n\nconsider also mentioning Langchain with session_id https://reference.langchain.com/python/langchain-core/runnables/history/RunnableWithMessageHistory\n\nand ADK with https://adk.dev/sessions/session",
+      "created": "2026-07-30T02:54:17Z",
+      "hunk": "@@ -598,6 +598,26 @@ spans:\n       - ref: gen_ai.workflow.name\n         requirement_level:\n           conditionally_required: When available.\n+      - ref: gen_ai.conversation.id\n+        requirement_level:\n+          conditionally_required: When available.\n+        note: |\n+          Instrumentations SHOULD populate conversation id when they have an identifier\n+          for the conversation readily available for a given operation, for example:\n+\n+          - when client framework being instrumented manages conversation history\n+          (see [LlamaIndex chat store](https://docs.llamaindex.ai/en/stable/module_guides/storing/chat_stores/))\n+          - when instrumenting GenAI client libraries that maintain conversation on the backend side\n+          (see [AWS Bedrock agent sessions](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-session-state.html),\n+          [OpenAI Assistant threads](https://platform.openai.com/docs/api-reference/threads))",
+      "id": "PRRT_kwDOSUeMrM6U-Eib",
+      "opened": "2026-07-30T02:59:26Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "16f95c5e9d51126bd7abdd63dba8a0a47fc7a4c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/410#discussion_r3679587012"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n          conditionally_required: If and only if instrumented library has one readily available or when user application provided it though OpenTelemetry context or library-specific mechanisms.\n          \n```",
+      "created": "2026-07-30T02:57:17Z",
+      "hunk": "@@ -598,6 +598,26 @@ spans:\n       - ref: gen_ai.workflow.name\n         requirement_level:\n           conditionally_required: When available.\n+      - ref: gen_ai.conversation.id\n+        requirement_level:\n+          conditionally_required: When available.",
+      "id": "PRRT_kwDOSUeMrM6U-GkR",
+      "opened": "2026-07-30T02:59:26Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "16f95c5e9d51126bd7abdd63dba8a0a47fc7a4c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/410#discussion_r3679599019"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nSuggested a shorter form on the requirement_level",
+      "created": "2026-07-30T02:59:02Z",
+      "hunk": "@@ -598,6 +598,26 @@ spans:\n       - ref: gen_ai.workflow.name\n         requirement_level:\n           conditionally_required: When available.\n+      - ref: gen_ai.conversation.id\n+        requirement_level:\n+          conditionally_required: When available.\n+        note: |\n+          Instrumentations SHOULD populate conversation id when they have an identifier\n+          for the conversation readily available for a given operation, for example:\n+\n+          - when client framework being instrumented manages conversation history\n+          (see [LlamaIndex chat store](https://docs.llamaindex.ai/en/stable/module_guides/storing/chat_stores/))\n+          - when instrumenting GenAI client libraries that maintain conversation on the backend side\n+          (see [AWS Bedrock agent sessions](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-session-state.html),\n+          [OpenAI Assistant threads](https://platform.openai.com/docs/api-reference/threads))\n+\n+          When no identifier for the conversation is available, instrumentations SHOULD NOT\n+          populate conversation id. For example, a new UUID, a trace identifier, or a hash\n+          of request content SHOULD NOT be used as a fallback value.\n+\n+          Application developers that manage conversation history MAY add conversation id to GenAI and other\n+          spans or logs using custom span or log record processors or hooks provided by instrumentation\n+          libraries.",
+      "id": "PRRT_kwDOSUeMrM6U-Hj7",
+      "opened": "2026-07-30T02:59:26Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "16f95c5e9d51126bd7abdd63dba8a0a47fc7a4c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/410#discussion_r3679604999"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The same attribute now ends up with two different conditions. This ref and the `invoke_agent` one below still say `When available.`, while the new `invoke_workflow` ref spells out exactly when to set it. You can see it in the generated docs: the workflow table puts its condition in a footnote, every other `gen_ai.conversation.id` row just says `When available.` inline.\n\nNow that the shared note lives on the attribute itself, it'd be good for the requirement level to read the same way everywhere. Same change for the `invoke_agent` ref around line 226.\n\n```suggestion\n          conditionally_required: If and only if the instrumented library has one readily available, or the user application provides one through OpenTelemetry context or library-specific mechanisms.\n```",
+      "created": "2026-08-04T19:18:49Z",
+      "hunk": "@@ -112,23 +112,6 @@ attribute_groups:\n       - ref: gen_ai.conversation.id\n         requirement_level:\n           conditionally_required: When available.",
+      "id": "PRRT_kwDOSUeMrM6WcVcG",
+      "opened": "2026-08-04T19:34:09Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "fefba19fbad527b9d3cc2653305ad77cce72df58",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/410#discussion_r3715499988"
+    }
+  ]
+}

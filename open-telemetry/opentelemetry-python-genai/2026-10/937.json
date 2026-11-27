@@ -1,0 +1,31 @@
+{
+  "head": "ab9ad5ea7f127c8bdcdd7f39dc46df634aa0dcb0",
+  "merge": "b87215e7f5fc353c8bf4b76d5d1f33e47f74d816",
+  "merged": "2026-10-22T03:49:34Z",
+  "missing_roots": 0,
+  "number": 937,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could we cover this through `ChatAnthropic` instead? The existing `test_chat_anthropic_claude_sonnet_cache_token_details` cassette predates the TTL breakdown. Re-recording it (or adding `\"cache_creation\": {\"ephemeral_5m_input_tokens\": 5, \"ephemeral_1h_input_tokens\": 0}` to its `usage`) makes that test fail on `main` and pass here, with the existing assertions. It also keeps passing on the oldest langchain-anthropic. Then the handler-level cases here wouldn't be needed.",
+      "created": "2026-10-21T04:45:11Z",
+      "hunk": "@@ -1978,6 +1998,27 @@ def test_extract_token_details_cache_write_key():\n     }\n \n \n+def test_extract_token_details_anthropic_ttl_breakdown():\n+    # Shape produced by langchain-anthropic when Anthropic reports\n+    # ``usage.cache_creation`` per cache TTL.\n+    usage = {\n+        \"input_tokens\": 22,\n+        \"output_tokens\": 8,\n+        \"total_tokens\": 30,\n+        \"input_token_details\": {\n+            \"cache_read\": 4,\n+            \"cache_creation\": 0,\n+            \"ephemeral_5m_input_tokens\": 5,\n+            \"ephemeral_1h_input_tokens\": 0,\n+        },\n+    }\n+    details = extract_token_details(usage)\n+    assert details == {\n+        \"cache_write_input_tokens\": 5,\n+        \"cache_read_input_tokens\": 4,\n+    }",
+      "id": "PRRT_kwDOSbspP86uoHNy",
+      "opened": "2026-10-21T04:45:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-10-21T07:28:15Z",
+          "body": "Sure, I also recorded new cassette, thanks! The test now makes two calls (cache write, then read), since the old prompt was too short to trigger caching.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/937#discussion_r4334127089"
+        }
+      ],
+      "reviewed": "dc25c7eeff93cf8e849a2cb7b5844ffca6f56f93",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/937#discussion_r4333121057"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "8f9cd9d87cb7657cabcf75b680889ba98c268e68",
+  "merge": "45939335792131b06f1bdf2d1a85103a5969c23f",
+  "merged": "2026-06-15T18:46:16Z",
+  "missing_roots": 0,
+  "number": 18987,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getter.getDbCollectionName(request)` is invoked twice on span start when both stable and old DB semconv are enabled (once in `onStartCommon()` for `db.collection.name`, and again here for the configured old-semconv collection attribute). For getters that parse requests (e.g., Mongo BSON command inspection), this duplicates work on the hot path. Consider extracting the collection name once and reusing it for both attributes (likely requiring plumbing the precomputed value through `onStartCommon` / callers).",
+      "created": "2026-06-14T02:46:25Z",
+      "hunk": "@@ -83,6 +88,9 @@ public static <REQUEST, RESPONSE> DbClientAttributesExtractorBuilder<REQUEST, RE\n   @Override\n   public void onStart(AttributesBuilder attributes, Context parentContext, REQUEST request) {\n     onStartCommon(attributes, getter, request, captureQueryParameters);\n+    if (emitOldDatabaseSemconv() && oldSemconvCollectionAttribute != null) {\n+      attributes.put(oldSemconvCollectionAttribute, getter.getDbCollectionName(request));\n+    }",
+      "id": "PRRT_kwDODJKVX86JXq8Q",
+      "opened": "2026-06-14T02:46:26Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-15T16:03:27Z",
+          "body": "Good catch. Resolved the collection name once in \\`onStart\\` and reuse it for both \\`db.collection.name\\` (stable) and the configured old-semconv collection attribute, so the getter is invoked at most once per span start instead of twice in dual-emit mode.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18987#discussion_r3414861168"
+        }
+      ],
+      "reviewed": "536afa5514a9e00aea344f68c759891c6c46121c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18987#discussion_r3408921483"
+    }
+  ]
+}

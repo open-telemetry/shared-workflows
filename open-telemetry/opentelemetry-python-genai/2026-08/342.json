@@ -1,0 +1,40 @@
+{
+  "head": "41a79ef72bd7627179796d5c5f2ca17dde3c64d0",
+  "merge": "61db58eb398a936aa025997b11da0869b3dad457",
+  "merged": "2026-08-03T05:13:36Z",
+  "missing_roots": 0,
+  "number": 342,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This pins `fsspec` to an exact version while docs use a minimum version constraint. If the intent is to keep all environments aligned, consider using a shared constraints file (`-c`) so that docs/tests (and any other environments) resolve `fsspec` consistently without needing to update multiple files per bump.",
+      "created": "2026-08-03T00:56:52Z",
+      "hunk": "@@ -1 +1 @@\n-fsspec==2026.6.0\n+fsspec==2026.7.0",
+      "id": "PRRT_kwDOSbspP86V1rY3",
+      "opened": "2026-08-03T00:56:52Z",
+      "path": "util/opentelemetry-util-genai/test-requirements.txt",
+      "replies": [],
+      "reviewed": "41a79ef72bd7627179796d5c5f2ca17dde3c64d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/342#discussion_r3700774876"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `fsspec` version constraint is duplicated across multiple requirements files (docs and util/opentelemetry-util-genai tests). This increases the chance of drift over time. Consider centralizing `fsspec` constraints in a shared constraints file (e.g., `constraints.txt`) and referencing it via `-c`, or factoring shared dependencies into a common requirements file referenced via `-r`.",
+      "created": "2026-08-03T00:56:52Z",
+      "hunk": "@@ -3,7 +3,7 @@ sphinx-rtd-theme==3.1.0\n sphinx-autodoc-typehints==3.12.1\n \n # Required by opentelemetry-util-genai\n-fsspec>=2026.6.0\n+fsspec>=2026.7.0",
+      "id": "PRRT_kwDOSbspP86V1rYb",
+      "opened": "2026-08-03T00:56:52Z",
+      "path": "docs-requirements.txt",
+      "replies": [],
+      "reviewed": "41a79ef72bd7627179796d5c5f2ca17dde3c64d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/342#discussion_r3700774844"
+    }
+  ]
+}

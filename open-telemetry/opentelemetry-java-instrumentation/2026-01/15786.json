@@ -1,0 +1,25 @@
+{
+  "head": "c211ff7d9e4d7cf87049294653959b5773903f65",
+  "merge": "b7c585d5a4c07ab0fa5b9b5d8e4660b7286d8147",
+  "merged": "2026-01-09T16:05:32Z",
+  "missing_roots": 0,
+  "number": 15786,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(or rename config to enduserConfig)\r\n\r\n```suggestion\r\n    String rolePrefix = config.get(\"enduser\").get(\"role\").getString(\"granted_authority_prefix\");\r\n```",
+      "created": "2026-01-08T16:38:17Z",
+      "hunk": "@@ -27,20 +28,15 @@ private static EnduserAttributesCapturer createEndUserAttributesCapturerFromConf\n     capturer.setEnduserRoleEnabled(AgentCommonConfig.get().getEnduserConfig().isRoleEnabled());\n     capturer.setEnduserScopeEnabled(AgentCommonConfig.get().getEnduserConfig().isScopeEnabled());\n \n-    String rolePrefix =\n+    ExtendedDeclarativeConfigProperties config =\n         DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"spring_security\")\n-            .get(\"enduser\")\n-            .get(\"role\")\n-            .getString(\"granted_authority_prefix\");\n+            .get(\"enduser\");\n+    String rolePrefix = config.get(\"role\").getString(\"granted_authority_prefix\");",
+      "id": "PRRT_kwDODJKVX85oj6XA",
+      "opened": "2026-01-08T16:38:48Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/security/config/v6_0/EnduserAttributesCapturerSingletons.java",
+      "replies": [],
+      "reviewed": "8c88c302d4a0c737c4f7f1f6b7b553f1c6994e1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15786#discussion_r2673074167"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0bdf17d83ab4590e956fc90c61d6f3c3776c57f31c4db9fabb4c94372d6fda44",
+  "input_digest": "efa46e797a0e70cfd9ae72fdefff2da27befdb91c4832d204228b4ead837789e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4e30384e3f8bd722f06867d054ad4038f10c7108/tools/runner/src/opentelemetry/conformance/_semconv.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6421afdb594c32f2a6211956efcbe24e11a2114a/tools/runner/src/opentelemetry/conformance/_semconv.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YphrT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4e30384e3f8bd722f06867d054ad4038f10c7108/tools/runner/src/opentelemetry/conformance/_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6421afdb594c32f2a6211956efcbe24e11a2114a/tools/runner/src/opentelemetry/conformance/_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4e30384e3f8bd722f06867d054ad4038f10c7108/tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6421afdb594c32f2a6211956efcbe24e11a2114a/tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4e30384e3f8bd722f06867d054ad4038f10c7108/tools/runner/src/opentelemetry/conformance/_semconv.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6421afdb594c32f2a6211956efcbe24e11a2114a/tools/runner/src/opentelemetry/conformance/_semconv.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Ypj7Z",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

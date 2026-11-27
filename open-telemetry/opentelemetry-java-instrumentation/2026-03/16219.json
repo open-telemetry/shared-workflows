@@ -1,0 +1,67 @@
+{
+  "head": "f3c15afa9eeae8abd8971601850d170812695bc6",
+  "merge": "6098ba755021fae423d6dea1f77491f9b4a65c54",
+  "merged": "2026-03-30T13:34:18Z",
+  "missing_roots": 0,
+  "number": 16219,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should we also handle calling `close` on the returned `ObservableDoubleCounter` and remove the callback from the list so it could be collected immediately?",
+      "created": "2026-03-03T12:51:08Z",
+      "hunk": "@@ -43,7 +43,8 @@ public application.io.opentelemetry.api.metrics.ObservableDoubleCounter buildWit\n       Consumer<application.io.opentelemetry.api.metrics.ObservableDoubleMeasurement>\n           applicationCallback) {\n     return new ApplicationObservableDoubleCounter(\n-        agentBuilder.buildWithCallback(",
+      "id": "PRRT_kwDODJKVX85xzSxE",
+      "opened": "2026-03-03T12:51:08Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/ApplicationDoubleCounterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-03-10T04:18:21Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16219/commits/4c03a99a3a62f97ab14370342ea6aed9eff80f87",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16219#discussion_r2909229376"
+        }
+      ],
+      "reviewed": "b12af46ddc2dc7636e7a247fd2da92d80dc34392",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16219#discussion_r2878083371"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`private static final Collection<Object> callbacks = Collections.newSetFromMap(new ConcurrentHashMap<>());`\nmight be better",
+      "created": "2026-03-03T12:53:46Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics;\n+\n+import io.opentelemetry.javaagent.bootstrap.WeakRefConsumer;\n+import io.opentelemetry.javaagent.bootstrap.WeakRefRunnable;\n+import java.lang.ref.WeakReference;\n+import java.util.List;\n+import java.util.concurrent.CopyOnWriteArrayList;\n+import java.util.function.Consumer;\n+import java.util.function.Function;\n+\n+/**\n+ * Utility for preventing class loader leaks when bridging async instrument callbacks from the\n+ * application to the agent.\n+ *\n+ * <p>When a user creates an async instrument with a callback, the callback is passed over the\n+ * bridge and the agent holds it, which transitively holds the user's class loader preventing it\n+ * from being collected. This is a problem in app servers where apps are undeployed/re-deployed\n+ * without restarting the JVM.\n+ *\n+ * <p>The solution has two parts:\n+ *\n+ * <ol>\n+ *   <li>Anchor the bridging callback to the app class loader via a static field on this helper\n+ *       class (which is injected per class loader). This ties the callback's lifecycle to the class\n+ *       loader's lifecycle.\n+ *   <li>Return a {@link WeakRefConsumer}/{@link WeakRefRunnable} (defined on the bootstrap class\n+ *       loader) that holds only a {@link WeakReference} to the anchored callback. Since the\n+ *       wrapper's class is on the bootstrap class loader, the SDK holding it does not pin the app\n+ *       class loader. When the app is undeployed and the class loader is collected, the anchored\n+ *       callback is collected too, and the weak reference goes null.\n+ * </ol>\n+ */\n+public final class CallbackAnchor {\n+\n+  // Anchors callbacks to this class's lifecycle. Since this class is injected as a helper into each\n+  // application class loader, callbacks are naturally tied to their class loader's lifecycle.\n+  private static final List<Object> callbacks = new CopyOnWriteArrayList<>();",
+      "id": "PRRT_kwDODJKVX85xzVul",
+      "opened": "2026-03-03T12:53:46Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/CallbackAnchor.java",
+      "replies": [
+        {
+          "at": "2026-03-04T14:01:24Z",
+          "body": "just learned that `ConcurrentHashMap.newKeySet()` could be used instead of `Collections.newSetFromMap(new ConcurrentHashMap<>())`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16219#discussion_r2883966905"
+        }
+      ],
+      "reviewed": "b12af46ddc2dc7636e7a247fd2da92d80dc34392",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16219#discussion_r2878098946"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Ideally I think this should be an identity set to guard agains callbacks with weird equals/hashCode. To handle using the same callback for multiple instruments where one of the instruments gets closed it would need to use ref counting. I think we can ignore these for now.",
+      "created": "2026-03-10T17:21:01Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics;\n+\n+import io.opentelemetry.javaagent.bootstrap.WeakRefConsumer;\n+import io.opentelemetry.javaagent.bootstrap.WeakRefRunnable;\n+import java.lang.ref.WeakReference;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.function.Consumer;\n+import java.util.function.Function;\n+\n+/**\n+ * Utility for preventing class loader leaks when bridging async instrument callbacks from the\n+ * application to the agent.\n+ *\n+ * <p>When a user creates an async instrument with a callback, the callback is passed over the\n+ * bridge and the agent holds it, which transitively holds the user's class loader preventing it\n+ * from being collected. This is a problem in app servers where apps are undeployed/re-deployed\n+ * without restarting the JVM.\n+ *\n+ * <p>The solution has two parts:\n+ *\n+ * <ol>\n+ *   <li>Anchor the bridging callback to the app class loader via a static field on this helper\n+ *       class (which is injected per class loader). This ties the callback's lifecycle to the class\n+ *       loader's lifecycle.\n+ *   <li>Return a {@link WeakRefConsumer}/{@link WeakRefRunnable} (defined on the bootstrap class\n+ *       loader) that holds only a {@link WeakReference} to the anchored callback. Since the\n+ *       wrapper's class is on the bootstrap class loader, the SDK holding it does not pin the app\n+ *       class loader. When the app is undeployed and the class loader is collected, the anchored\n+ *       callback is collected too, and the weak reference goes null.\n+ * </ol>\n+ */\n+public final class CallbackAnchor {\n+\n+  // Anchors callbacks to this class's lifecycle. Since this class is injected as a helper into each\n+  // application class loader, callbacks are naturally tied to their class loader's lifecycle.\n+  private static final Set<Object> callbacks = ConcurrentHashMap.newKeySet();",
+      "id": "PRRT_kwDODJKVX85zXxyk",
+      "opened": "2026-03-10T17:21:01Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/CallbackAnchor.java",
+      "replies": [],
+      "reviewed": "4c03a99a3a62f97ab14370342ea6aed9eff80f87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16219#discussion_r2913286426"
+    }
+  ]
+}

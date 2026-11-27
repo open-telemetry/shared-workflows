@@ -1,0 +1,61 @@
+{
+  "head": "89cc5feb6f7b2fba95875f42ccca57cb0cfe5046",
+  "merge": "48ca9d71aaeb4f6cc909edf915e9ece158168c92",
+  "merged": "2026-06-02T15:19:12Z",
+  "missing_roots": 0,
+  "number": 18772,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The renamed Scala project currently has no test sources: the existing Scala executor tests are still under `instrumentation/scala-fork-join-2.8/javaagent/src/test/scala`, which is no longer included by this Gradle project path. Move the `src/test` tree into `instrumentation/scala-forkjoin-2.8` (and update its package/imports as needed) so the existing coverage still runs.\n",
+      "created": "2026-05-18T02:57:58Z",
+      "hunk": "@@ -615,7 +615,7 @@ include(\":instrumentation:rxjava:rxjava-3.1.1:javaagent\")\n include(\":instrumentation:rxjava:rxjava-3.1.1:library\")\n include(\":instrumentation:rxjava:rxjava-common-3.0:library\")\n include(\":instrumentation:rxjava:rxjava-common-3.0:testing\")\n-include(\":instrumentation:scala-fork-join-2.8:javaagent\")\n+include(\":instrumentation:scala-forkjoin-2.8:javaagent\")",
+      "id": "PRRT_kwDODJKVX86CtQ2f",
+      "opened": "2026-05-18T02:57:59Z",
+      "path": "settings.gradle.kts",
+      "replies": [],
+      "reviewed": "20934dd6619a0b5483b4fb39218981ccaf6370e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18772#discussion_r3256084960"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This source path points at `instrumentation/akka/akka-actor-forkjoin-2.5`, but the module metadata is still left at the old `instrumentation/akka/akka-actor-fork-join-2.5/metadata.yaml` path. Move the metadata file with the renamed module; otherwise the docs analysis for the new source path will not load the display name, description, library link, or features from metadata.\n",
+      "created": "2026-05-18T02:57:58Z",
+      "hunk": "@@ -103,16 +103,16 @@ libraries:\n   - com.typesafe.akka:akka-actor_2.11:[2.3,)\n   - com.typesafe.akka:akka-actor_2.12:[2.3,)\n   - com.typesafe.akka:akka-actor_2.13:[2.3,)\n-- name: akka-actor-fork-join-2.5\n+- name: akka-actor-forkjoin-2.5\n   display_name: Akka Actors\n   description: This instrumentation provides context propagation for the Akka Fork-Join\n     Pool, it does not emit any telemetry on its own.\n   library_link: https://doc.akka.io/libraries/akka-core/current/typed/index.html\n   features:\n   - CONTEXT_PROPAGATION\n-  source_path: instrumentation/akka/akka-actor-fork-join-2.5\n+  source_path: instrumentation/akka/akka-actor-forkjoin-2.5",
+      "id": "PRRT_kwDODJKVX86CtQ2q",
+      "opened": "2026-05-18T02:57:59Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "20934dd6619a0b5483b4fb39218981ccaf6370e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18772#discussion_r3256084977"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The fallback for modules using `expandDeprecatedNames(...)` is currently too permissive: it only checks that the file contains `expandDeprecatedNames` and some `\"...|deprecated:` strings anywhere. This can let the check pass even if the module constructor’s `super(...)` call does not actually use `expandDeprecatedNames(...)` to register the expected names (e.g., `expandDeprecatedNames` is used elsewhere in the class).\n\nConsider also verifying that `expandDeprecatedNames(...)` appears in the `super(...)` call before accepting the fallback.\n",
+      "created": "2026-05-26T18:37:05Z",
+      "hunk": "@@ -48,6 +48,12 @@ for file in $(find instrumentation -name \"*Module.java\"); do\n \n   matches=$(perl -0 -ne \"print if /$expected/\" \"$file\" | wc -l)\n   if [ \"$matches\" == 0 ]; then\n+    if grep -q \"expandDeprecatedNames\" \"$file\" \\\n+      && grep -q \"\\\"$simple_module_name|deprecated:\" \"$file\" \\\n+      && { [ \"$module_name\" == \"$simple_module_name\" ] || grep -q \"\\\"$module_name|deprecated:\" \"$file\"; }\n+    then\n+      continue\n+    fi\n     echo \"Expected to find $expected in $file\"\n     exit 1\n   fi",
+      "id": "PRRT_kwDODJKVX86E5A8_",
+      "opened": "2026-05-26T18:37:05Z",
+      "path": ".github/scripts/check-javaagent-suppression-keys.sh",
+      "replies": [
+        {
+          "at": "2026-05-26T19:09:48Z",
+          "body": "no need for extra complexity here",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18772#discussion_r3306240035"
+        }
+      ],
+      "reviewed": "89cc5feb6f7b2fba95875f42ccca57cb0cfe5046",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18772#discussion_r3306042486"
+    }
+  ]
+}

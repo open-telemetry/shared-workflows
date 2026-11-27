@@ -1,0 +1,103 @@
+{
+  "head": "fda1e979ce64407bd15afbf401f69336425ee985",
+  "merge": "92eca42d8718a39b3cf13019977b3c29feeccb74",
+  "merged": "2026-05-11T02:54:42Z",
+  "missing_roots": 0,
+  "number": 131,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is it necessary here given we have a ci check for it?\n",
+      "created": "2026-05-10T19:08:25Z",
+      "hunk": "@@ -0,0 +1,79 @@\n+# Copilot code review instructions\n+\n+These instructions guide GitHub's built-in Copilot code reviewer for PRs in\n+this repository. Keep review comments focused, actionable, and specific to\n+the diff.\n+\n+## Repository overview\n+\n+This repo defines the OpenTelemetry GenAI semantic conventions. Changes flow\n+through several coupled surfaces:\n+\n+- `model/<namespace>/*.yaml` — source of truth for attributes, spans, metrics,\n+  and events. All attributes must be defined in `registry.yaml`.\n+- `docs/gen-ai/` and `docs/registry/` — generated from the model via Weaver\n+  (`make generate-all`). Generated tables and registry pages should not be\n+  hand-edited.\n+- `schema-snapshot/registry.yaml` — committed snapshot, refreshed by\n+  `make generate-all`.\n+- `reference/scenarios/<library>/` — runnable Python reference instrumentation\n+  (`scenario.py`) that proves proposed conventions are capturable.\n+- `CHANGELOG.md` — non-editorial convention changes need an `Unreleased`\n+  entry.\n+\n+## What to flag\n+\n+### Model and docs consistency\n+\n+- Stability, requirement level, brief, or examples that disagree between the\n+  model and the hand-written prose docs under `docs/gen-ai/`.",
+      "id": "PRRT_kwDOSUeMrM6A7Fov",
+      "opened": "2026-05-10T19:12:53Z",
+      "path": ".github/copilot-instructions.md",
+      "replies": [],
+      "reviewed": "472d26aac1375b05abd51b7e5c68371e031cbeee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3215361379"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "i think it's possible to have different guidance for different file patterns https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions#creating-path-specific-custom-instructions",
+      "created": "2026-05-10T19:11:09Z",
+      "hunk": "@@ -0,0 +1,79 @@\n+# Copilot code review instructions\n+\n+These instructions guide GitHub's built-in Copilot code reviewer for PRs in\n+this repository. Keep review comments focused, actionable, and specific to\n+the diff.\n+\n+## Repository overview\n+\n+This repo defines the OpenTelemetry GenAI semantic conventions. Changes flow\n+through several coupled surfaces:\n+\n+- `model/<namespace>/*.yaml` — source of truth for attributes, spans, metrics,\n+  and events. All attributes must be defined in `registry.yaml`.\n+- `docs/gen-ai/` and `docs/registry/` — generated from the model via Weaver\n+  (`make generate-all`). Generated tables and registry pages should not be\n+  hand-edited.\n+- `schema-snapshot/registry.yaml` — committed snapshot, refreshed by\n+  `make generate-all`.\n+- `reference/scenarios/<library>/` — runnable Python reference instrumentation\n+  (`scenario.py`) that proves proposed conventions are capturable.\n+- `CHANGELOG.md` — non-editorial convention changes need an `Unreleased`\n+  entry.\n+\n+## What to flag\n+\n+### Model and docs consistency\n+\n+- Stability, requirement level, brief, or examples that disagree between the\n+  model and the hand-written prose docs under `docs/gen-ai/`.\n+\n+### Changelog and PR scope\n+\n+- Non-editorial convention changes missing a `CHANGELOG.md` `Unreleased`\n+  entry. Editorial-only changes (typos, rewording, tooling) do not need one.\n+- PRs that mix unrelated convention changes; suggest splitting per the\n+  \"Keep PRs small\" guidance in `CONTRIBUTING.md`.\n+\n+### Reference scenarios (`reference/scenarios/**/scenario.py`)",
+      "id": "PRRT_kwDOSUeMrM6A7GTo",
+      "opened": "2026-05-10T19:12:53Z",
+      "path": ".github/copilot-instructions.md",
+      "replies": [
+        {
+          "at": "2026-05-11T02:41:45Z",
+          "body": "for some reason I thought those weren't used by Copilot review (just figured this out in Java too: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18668)",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3216078560"
+        }
+      ],
+      "reviewed": "472d26aac1375b05abd51b7e5c68371e031cbeee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3215364903"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Subject/verb agreement: “Reference scenarios are runnable Python instrumentation that proves …” should be “that prove …” to match the plural subject “scenarios”.\n",
+      "created": "2026-05-11T02:45:03Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+---\n+description: \"Conventions for reference instrumentation under reference/scenarios. Covers inline attribute emission, span boundaries, public-entry-point usage, and what to ignore.\"\n+applyTo: \"reference/scenarios/**/*.py\"\n+---\n+\n+# Reference scenarios\n+\n+Reference scenarios are runnable Python instrumentation that proves proposed",
+      "id": "PRRT_kwDOSUeMrM6A9NO8",
+      "opened": "2026-05-11T02:45:04Z",
+      "path": ".github/instructions/reference-scenarios.instructions.md",
+      "replies": [],
+      "reviewed": "1d53492938ab517ca7048c661103e29281e8c3aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3216091246"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`applyTo` currently targets all Python files under `reference/scenarios/**/*.py`, which will also apply these instrumentation-specific rules to helper scripts (e.g., `reference/scenarios/claude-agent-sdk/mock_cli.py`). If the intent is to scope this guidance to the actual scenario instrumentation entrypoints, consider narrowing the glob back to something like `reference/scenarios/**/scenario.py` (or otherwise excluding non-instrumentation helpers) to avoid noisy/incorrect automated review guidance.\n",
+      "created": "2026-05-11T02:45:03Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+---\n+description: \"Conventions for reference instrumentation under reference/scenarios. Covers inline attribute emission, span boundaries, public-entry-point usage, and what to ignore.\"\n+applyTo: \"reference/scenarios/**/*.py\"",
+      "id": "PRRT_kwDOSUeMrM6A9NOz",
+      "opened": "2026-05-11T02:45:04Z",
+      "path": ".github/instructions/reference-scenarios.instructions.md",
+      "replies": [
+        {
+          "at": "2026-05-11T02:50:43Z",
+          "body": "Narrowed back to `reference/scenarios/**/scenario.py` in https://github.com/open-telemetry/semantic-conventions-genai/pull/131/commits/fda1e979ce64407bd15afbf401f69336425ee985.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3216106365"
+        }
+      ],
+      "reviewed": "1d53492938ab517ca7048c661103e29281e8c3aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3216091235"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This instruction file is scoped to Python scenarios (`applyTo: .../*.py`), but the guidance mentions a “`with` / `using` block”. Since `using` is not a Python construct, consider rewording to Python-only terminology (or explicitly clarifying that this phrasing is cross-language) to avoid confusion for contributors reading these rules in a Python context.\n",
+      "created": "2026-05-11T02:45:04Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+---\n+description: \"Conventions for reference instrumentation under reference/scenarios. Covers inline attribute emission, span boundaries, public-entry-point usage, and what to ignore.\"\n+applyTo: \"reference/scenarios/**/*.py\"\n+---\n+\n+# Reference scenarios\n+\n+Reference scenarios are runnable Python instrumentation that proves proposed\n+GenAI conventions are capturable. They should be easy to scan: a reader\n+should see, at the instrumentation site, exactly what attributes get emitted\n+and where each value comes from.\n+\n+## Attribute and tag emission\n+\n+- Set emitted attributes and tags inline at the instrumentation site. Do not\n+  move emission into helper methods such as `setServerTags`,\n+  `setServerAttributes`, `_set_server_attributes`, or similar wrappers.\n+- If a method owns its own span boundary, set that span's attributes inline\n+  in that method.\n+- Keep base attributes, derived attributes, and result attributes together\n+  in the same span or activity block.\n+- Small local parsing or derivation that exists only to support nearby\n+  emitted attributes is fine; keep it next to the emission.\n+\n+## Attribute values\n+\n+- For attributes whose value is not truly static for the scenario, do not\n+  hardcode the emitted value. Use a local variable or field read from the\n+  current request or response.\n+- Request-side attributes such as `gen_ai.request.model` should come from\n+  the same variable or object field passed into the SDK call.\n+- Response-side attributes such as `gen_ai.response.model`, response ids,\n+  finish reasons, and token counts should come from the current response or\n+  streamed result object, optionally via a small nearby local.\n+- If the same non-static value is needed in both the SDK call and span\n+  attributes, bind it once locally and reuse it. Avoid throwaway forwarding\n+  locals that only mirror an existing constant, argument, or SDK field.\n+\n+## Span boundaries\n+\n+- The span must be open around the library invocation. `sampling_relevant`\n+  request attributes go in the span-start arguments; response attributes are\n+  set from the returned object inside the same `with` / `using` block.",
+      "id": "PRRT_kwDOSUeMrM6A9NO_",
+      "opened": "2026-05-11T02:45:04Z",
+      "path": ".github/instructions/reference-scenarios.instructions.md",
+      "replies": [
+        {
+          "at": "2026-05-11T02:50:44Z",
+          "body": "Reworded to just `with` block in https://github.com/open-telemetry/semantic-conventions-genai/pull/131/commits/fda1e979ce64407bd15afbf401f69336425ee985.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3216106411"
+        }
+      ],
+      "reviewed": "1d53492938ab517ca7048c661103e29281e8c3aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/131#discussion_r3216091252"
+    }
+  ]
+}

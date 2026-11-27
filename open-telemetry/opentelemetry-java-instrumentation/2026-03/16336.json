@@ -1,0 +1,41 @@
+{
+  "head": "4ccb542f2a16262d5b282401d11db44f6f74debd",
+  "merge": "7f81001cfebdd6e8e7e615901a406f529e43e6ec",
+  "merged": "2026-03-03T13:53:40Z",
+  "missing_roots": 0,
+  "number": 16336,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "this is not a newer version",
+      "created": "2026-03-02T13:21:20Z",
+      "hunk": "@@ -11,7 +11,11 @@ muzzle {\n }\n \n dependencies {\n-  library(\"org.apache.geode:geode-core:1.4.0\")\n+  library(\"org.apache.geode:geode-core:1.4.0\") {\n+    // jna 4.0.0 has invalid ZIP64 headers, broken on JDK 23+ (JDK-8313765)\n+    exclude(group = \"net.java.dev.jna\", module = \"jna\")\n+  }\n+  compileOnly(\"net.java.dev.jna:jna:4.1.0\")",
+      "id": "PRRT_kwDODJKVX85xjFWB",
+      "opened": "2026-03-02T13:21:47Z",
+      "path": "instrumentation/geode-1.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-02T13:54:57Z",
+          "body": "4.1.0 is the minimum version that fixes the broken ZIP64 headers, as suggested by @trask in #16280: \"I'd just start trying from 4.1.0 on...\"",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16336#discussion_r2872594321"
+        },
+        {
+          "at": "2026-03-03T12:23:56Z",
+          "body": "do you need to add the jna dependency at all?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16336#discussion_r2877959626"
+        },
+        {
+          "at": "2026-03-03T13:27:52Z",
+          "body": "You're right, it's not needed. Removed it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16336#discussion_r2878274538"
+        }
+      ],
+      "reviewed": "f0859967de5af5d9e03da11639f4140862177e40",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16336#discussion_r2872416322"
+    }
+  ]
+}

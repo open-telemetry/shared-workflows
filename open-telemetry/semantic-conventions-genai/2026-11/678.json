@@ -1,0 +1,613 @@
+{
+  "head": "891f2a7f1356d23a131014753d4d03ea033c2dc9",
+  "merge": "e2f2e2dc19ad97397cdd0dc008a3207fc567c42a",
+  "merged": "2026-11-24T22:59:49Z",
+  "missing_roots": 0,
+  "number": 678,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The instruction to record partial usage without treating it as a final total does not define how consumers can distinguish the two. The early-close reference check records the pre-output count of `0` in `gen_ai.usage.output_tokens` and the per-operation histogram, both defined as operation totals, with no completeness indicator on the histogram. Specify which signals may carry partial counts and how completeness is represented, then align the usage definitions and reference implementation with that rule.",
+      "created": "2026-11-03T00:01:14Z",
+      "hunk": "@@ -216,16 +216,25 @@ attributes:\n \n       Each position SHOULD contain the finish reason for the corresponding\n       choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n+      example because generation failed or a stream ended unexpectedly before\n       the final event, instrumentations SHOULD report `error` for that position\n       instead of omitting it.\n \n       `error` indicates that the generation ended abnormally, whether reported\n       by the provider or inferred by the instrumentation.\n+\n+      If the caller intentionally closes a stream before receiving a finish reason\n+      and no error was observed, instrumentations SHOULD report `cancelled` for\n+      that position. Finish reasons already received from the provider SHOULD be\n+      preserved. Caller-initiated closure alone SHOULD NOT cause `error.type` or\n+      an error span status to be set. Instrumentations SHOULD record information\n+      available at closure, including token usage, without treating partial usage\n+      as the final total.",
+      "id": "PRRT_kwDOSUeMrM6y6wAY",
+      "opened": "2026-11-03T00:01:15Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "9a468a9546415246addfd06e67a4bdc3138b7e3e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4449246773"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Anthropic context-manager exit motivating #594 is not demonstrated in `reference/scenarios/anthropic/scenario.py`, which still uses non-streaming calls. The reference evaluation rules require coverage of affected scenarios, including untouched ones. Add a `client.messages.stream` scenario that exits before the final message, records `cancelled` and available usage, and leaves span status unset without `error.type`.",
+      "created": "2026-11-03T00:01:15Z",
+      "hunk": "@@ -216,16 +216,25 @@ attributes:\n \n       Each position SHOULD contain the finish reason for the corresponding\n       choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n+      example because generation failed or a stream ended unexpectedly before\n       the final event, instrumentations SHOULD report `error` for that position\n       instead of omitting it.\n \n       `error` indicates that the generation ended abnormally, whether reported\n       by the provider or inferred by the instrumentation.\n+\n+      If the caller intentionally closes a stream before receiving a finish reason\n+      and no error was observed, instrumentations SHOULD report `cancelled` for\n+      that position. Finish reasons already received from the provider SHOULD be",
+      "id": "PRRT_kwDOSUeMrM6y6wA_",
+      "opened": "2026-11-03T00:01:15Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "9a468a9546415246addfd06e67a4bdc3138b7e3e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4449246832"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> Omit incomplete token counts from usage attributes and metrics.\n\nwhy? I think current guidance on these metrics suggests to record positive count regardless?",
+      "created": "2026-11-05T22:03:02Z",
+      "hunk": "@@ -0,0 +1 @@\n+Report `cancelled` when a caller intentionally closes a stream before a finish reason arrives and no error was observed. Preserve received finish reasons and known token totals without marking the close as an error. Omit incomplete token counts from usage attributes and metrics.",
+      "id": "PRRT_kwDOSUeMrM60SmUT",
+      "opened": "2026-11-05T22:20:23Z",
+      "path": "changelog.d/+caller-close.clarification.md",
+      "replies": [
+        {
+          "at": "2026-11-05T22:30:27Z",
+          "body": "I was trying to avoid treating partial counts as final totals, but that would discard billable usage, so I removed the restriction.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486843803"
+        }
+      ],
+      "reviewed": "259c5e2e243508fa831577fc8b7f442ff60bb5c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486604720"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "\"Intentionally\" isn't something instrumentation can observe - what it sees is the caller closing/disposing the stream. Maybe describe it that way?\r\n\r\n```suggestion\r\n      If the caller closes a stream before receiving a finish reason\r\n      and no error was observed, instrumentations SHOULD report `cancelled` for\r\n      that position. Finish reasons already received from the provider SHOULD be\r\n      preserved.\r\n```\r\n\r\n\"no error was observed\" is enough of a reason not to set `error.type` - it's already on the corresponding `error.type` notes\r\n",
+      "created": "2026-11-05T22:05:51Z",
+      "hunk": "@@ -219,16 +219,31 @@ attributes:\n \n       Each position SHOULD contain the finish reason for the corresponding\n       choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n+      example because generation failed or a stream ended unexpectedly before\n       the final event, instrumentations SHOULD report `error` for that position\n       instead of omitting it.\n \n       `error` indicates that the generation ended abnormally, whether reported\n       by the provider or inferred by the instrumentation.\n+\n+      If the caller intentionally closes a stream before receiving a finish reason\n+      and no error was observed, instrumentations SHOULD report `cancelled` for\n+      that position. Finish reasons already received from the provider SHOULD be\n+      preserved. Caller-initiated closure alone SHOULD NOT cause `error.type` or\n+      an error span status to be set.",
+      "id": "PRRT_kwDOSUeMrM60SqBj",
+      "opened": "2026-11-05T22:20:23Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-05T22:30:31Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486844424"
+        }
+      ],
+      "reviewed": "259c5e2e243508fa831577fc8b7f442ff60bb5c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486630049"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: the note above already says to use `interrupted` for interrupted generations (just merged in #394. How should consumers tell `cancelled` from `interrupted`? If they mean the same thing (caller stopped the generation), could we reuse `interrupted` instead of adding a second value?",
+      "created": "2026-11-05T22:05:52Z",
+      "hunk": "@@ -219,16 +219,31 @@ attributes:\n \n       Each position SHOULD contain the finish reason for the corresponding\n       choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n+      example because generation failed or a stream ended unexpectedly before\n       the final event, instrumentations SHOULD report `error` for that position\n       instead of omitting it.\n \n       `error` indicates that the generation ended abnormally, whether reported\n       by the provider or inferred by the instrumentation.\n+\n+      If the caller intentionally closes a stream before receiving a finish reason\n+      and no error was observed, instrumentations SHOULD report `cancelled` for",
+      "id": "PRRT_kwDOSUeMrM60SqDb",
+      "opened": "2026-11-05T22:20:23Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-05T22:30:35Z",
+          "body": "I reused `interrupted` for caller-closed streams, so there is no second value to distinguish.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486845087"
+        }
+      ],
+      "reviewed": "259c5e2e243508fa831577fc8b7f442ff60bb5c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486630235"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This drops usage for any stream without all finish reasons, not just caller-closed ones - the `end_reason=None` check on L844 asserts no usage for a stream that ended on its own. \n\nThe spec still says to record failed operations. ",
+      "created": "2026-11-05T22:05:54Z",
+      "hunk": "@@ -647,16 +650,21 @@ def run_chat_streaming_reference(client):\n                     text += choice.delta.content\n                 if choice.finish_reason is not None:\n                     finish_reasons_by_index[choice.index] = choice.finish_reason\n-            if chunk.usage:\n+            if chunk.usage and seen_choice_indexes and seen_choice_indexes <= finish_reasons_by_index.keys():",
+      "id": "PRRT_kwDOSUeMrM60SqHJ",
+      "opened": "2026-11-05T22:20:23Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-05T22:30:38Z",
+          "body": "Fixed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486845558"
+        }
+      ],
+      "reviewed": "259c5e2e243508fa831577fc8b7f442ff60bb5c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486630613"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why is this needed? users are billed for incomplete streams in the same way as they are billed for ones they read to the end",
+      "created": "2026-11-05T22:12:01Z",
+      "hunk": "@@ -213,13 +213,27 @@ provider-reported interruption reason when available and `interrupted` otherwise\n \n Each position SHOULD contain the finish reason for the corresponding\n choice/candidate. If a finish reason was expected but not received, for\n-example because generation failed, was cancelled, or a stream ended before\n+example because generation failed or a stream ended unexpectedly before\n the final event, instrumentations SHOULD report `error` for that position\n instead of omitting it.\n \n `error` indicates that the generation ended abnormally, whether reported\n by the provider or inferred by the instrumentation.\n \n+If the caller intentionally closes a stream before receiving a finish reason\n+and no error was observed, instrumentations SHOULD report `cancelled` for\n+that position. Finish reasons already received from the provider SHOULD be\n+preserved. Caller-initiated closure alone SHOULD NOT cause `error.type` or\n+an error span status to be set.\n+\n+On caller-closed streams, instrumentations SHOULD record usage attributes\n+and token-usage measurements only for token categories whose totals are\n+known. Incomplete counts SHOULD be omitted from both signals, rather than\n+recorded as operation totals. For example, Anthropic reports the input total\n+at `message_start`, but its initial output count is incomplete until\n+`message_delta`. The known input total can be recorded even when the output\n+total is omitted.",
+      "id": "PRRT_kwDOSUeMrM60Sx-V",
+      "opened": "2026-11-05T22:20:23Z",
+      "path": "docs/gen-ai/client-inference.md",
+      "replies": [
+        {
+          "at": "2026-11-05T22:30:42Z",
+          "body": "I agree, I've removed that requirement and kept the available usage.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486846017"
+        }
+      ],
+      "reviewed": "259c5e2e243508fa831577fc8b7f442ff60bb5c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4486683985"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`caller_closed` comes from the scenario's own `break`, which instrumentation can't see. What it sees is `close()`/`__exit__` on the stream before the iterator is exhausted - could the flag be derived from that instead (e.g. by wrapping the stream)? Same in the OpenAI scenario.",
+      "created": "2026-11-06T03:33:51Z",
+      "hunk": "@@ -203,6 +203,50 @@ def run_chat(handler):\n         print(f\"    -> {first_block.type}\")\n \n \n+def run_chat_streaming_close(handler, client):\n+    \"\"\"Scenario: leave the Messages stream context after its first text delta.\"\"\"\n+    print(\"  [chat_streaming_close] caller closes before the final message\")\n+    request_model = \"claude-sonnet-4-20250514\"\n+    messages = [{\"role\": \"user\", \"content\": \"Tell me a story.\"}]\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    with handler.inference(\n+        provider=\"anthropic\",\n+        request_model=request_model,\n+        server_address=host,\n+        server_port=port,\n+    ) as inv:\n+        inv.attributes[\"gen_ai.request.stream\"] = True\n+        inv.input_messages = [InputMessage(role=\"user\", parts=[Text(content=messages[0][\"content\"])])]\n+        caller_closed = False\n+        text = \"\"\n+        with client.messages.stream(model=request_model, max_tokens=100, messages=messages) as stream:\n+            for event in stream:\n+                if event.type == \"message_start\":\n+                    message = event.message\n+                    inv.response_id = message.id\n+                    inv.response_model_name = message.model\n+                    cache_read = message.usage.cache_read_input_tokens or 0\n+                    cache_write = message.usage.cache_creation_input_tokens or 0\n+                    inv.input_tokens = message.usage.input_tokens + cache_read + cache_write\n+                    inv.cache_read_input_tokens = cache_read or None\n+                    if cache_write:\n+                        inv.attributes[\"gen_ai.usage.cache_write.input_tokens\"] = cache_write\n+                    inv.output_tokens = message.usage.output_tokens\n+                elif event.type == \"message_delta\" and event.delta.stop_reason:\n+                    inv.finish_reasons = [event.delta.stop_reason]\n+                    inv.output_tokens = event.usage.output_tokens\n+                elif event.type == \"content_block_delta\" and event.delta.type == \"text_delta\" and event.delta.text:\n+                    text += event.delta.text\n+                    caller_closed = True\n+                    break\n+        if not inv.finish_reasons:\n+            inv.finish_reasons = [\"interrupted\" if caller_closed else \"error\"]",
+      "id": "PRRT_kwDOSUeMrM60XkOc",
+      "opened": "2026-11-06T03:46:13Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-06T05:10:42Z",
+          "body": "Yes, it now comes from closing the stream before the iterator is exhausted.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4489255819"
+        }
+      ],
+      "reviewed": "f74fc4b9ca3388d12ca6ac112b3bab20c7a873a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4488751498"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The fetch-response mapping for `cancelled` also changes from `error` to `interrupted`, which is consumer-visible. The model doesn't change anything about usage, so that part could go.\n\n```suggestion\nReport `interrupted` instead of `error` when a caller closes or disposes a stream before a finish reason arrives, and for fetched responses with `cancelled` status.\n```",
+      "created": "2026-11-06T03:33:51Z",
+      "hunk": "@@ -0,0 +1 @@\n+Report `interrupted` when a caller closes or disposes a stream before a finish reason arrives and no error was observed. Preserve received finish reasons and available usage.",
+      "id": "PRRT_kwDOSUeMrM60XkOg",
+      "opened": "2026-11-06T03:46:13Z",
+      "path": "changelog.d/+caller-close.clarification.md",
+      "replies": [
+        {
+          "at": "2026-11-06T05:10:45Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4489256053"
+        }
+      ],
+      "reviewed": "f74fc4b9ca3388d12ca6ac112b3bab20c7a873a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4488751503"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we go into this level of details for other scenarios in this file? consider removing",
+      "created": "2026-11-06T03:39:40Z",
+      "hunk": "@@ -11,6 +11,10 @@ input messages, output messages, and tool definitions.\n The scenario publishes inference durations from `opentelemetry-util-genai`\n under `gen_ai.client.inference.duration` using an OTel SDK view.\n \n+The streaming example exits `client.messages.stream` after its first text delta.\n+It records `interrupted` and the available usage from `message_start`, and keeps\n+status unset without `error.type`.\n+",
+      "id": "PRRT_kwDOSUeMrM60Xoqr",
+      "opened": "2026-11-06T03:46:13Z",
+      "path": "reference/scenarios/anthropic/README.md",
+      "replies": [
+        {
+          "at": "2026-11-06T05:10:48Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4489256303"
+        }
+      ],
+      "reviewed": "f74fc4b9ca3388d12ca6ac112b3bab20c7a873a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4488781233"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: same but shorter and does not imply that caller ends it. Edge cases: disposed by garbage collection, not caller or server for some reason does not return finish reason.\n\n```suggestion\n      If a stream ends gracefully before receiving a finish reason, instrumentations \n      SHOULD report `interrupted` for that position. Finish reasons already received \n      from the provider SHOULD bepreserved.\n```",
+      "created": "2026-11-06T03:40:54Z",
+      "hunk": "@@ -223,16 +223,22 @@ attributes:\n \n       Each position SHOULD contain the finish reason for the corresponding\n       choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n+      example because generation failed or a stream ended unexpectedly before\n       the final event, instrumentations SHOULD report `error` for that position\n       instead of omitting it.\n \n       `error` indicates that the generation ended abnormally, whether reported\n       by the provider or inferred by the instrumentation.\n+\n+      If the caller closes or disposes a stream before receiving a finish reason\n+      and no error was observed, instrumentations SHOULD report `interrupted` for\n+      that position. Finish reasons already received from the provider SHOULD be\n+      preserved.",
+      "id": "PRRT_kwDOSUeMrM60Xpim",
+      "opened": "2026-11-06T03:46:13Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-06T05:10:51Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4489256579"
+        }
+      ],
+      "reviewed": "f74fc4b9ca3388d12ca6ac112b3bab20c7a873a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4488787207"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> Conveys the outcome of the original generation as recorded on the fetched response,\n          derived from its status\n\nnot sure how `interrupted` applies here. it's not coming from original status. Probably this note needs to be updated more to mention that `interrupted` can happen if fetched stream ends prematurely (without error) and then is not inferred from status",
+      "created": "2026-11-06T03:45:23Z",
+      "hunk": "@@ -681,8 +681,8 @@ spans:\n         note: >\n           Conveys the outcome of the original generation as recorded on the fetched response,\n           derived from its status: a completed generation maps to its stop reason, an incomplete\n-          one to why it was cut short (for example `length` or `content_filter`), and a failed or\n-          cancelled generation to `error`.\n+          one to why it was cut short (for example `length` or `content_filter`), a failed\n+          generation to `error`, and a cancelled generation to `interrupted`.",
+      "id": "PRRT_kwDOSUeMrM60Xs7p",
+      "opened": "2026-11-06T03:46:13Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-06T05:10:54Z",
+          "body": "Yes, `interrupted` can also mean the fetched stream ended without an error before a final status or finish reason arrived.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4489256866"
+        }
+      ],
+      "reviewed": "f74fc4b9ca3388d12ca6ac112b3bab20c7a873a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4488809471"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new rule treats SDK exhaustion without a finish event as `interrupted`, even when no caller close was observed, contrary to the [agreement in #594](https://github.com/open-telemetry/semantic-conventions-genai/issues/594#issuecomment-6591563730) to keep unexpected stream endings as errors. Restrict this exception to an observed caller close or disposal without an error, and retain `error` for unexpected endings. Apply the distinction in `reference/shared/reference_shared.py:178-179` and `reference/scenarios/openai/scenario.py:1456-1458,1467-1468`, then align the model notes and stream-ending checks.",
+      "created": "2026-11-18T00:44:33Z",
+      "hunk": "@@ -222,17 +222,20 @@ attributes:\n       provider-reported interruption reason when available and `interrupted` otherwise.\n \n       Each position SHOULD contain the finish reason for the corresponding\n-      choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n-      the final event, instrumentations SHOULD report `error` for that position\n-      instead of omitting it.\n+      choice/candidate. If generation failed before a finish reason was received,\n+      instrumentations SHOULD report `error` for that position instead of omitting it.\n \n       `error` indicates that the generation ended abnormally, whether reported\n       by the provider or inferred by the instrumentation.\n+\n+      If a stream ends gracefully before receiving a finish reason, instrumentations\n+      SHOULD report `interrupted` for that position. Finish reasons already received",
+      "id": "PRRT_kwDOSUeMrM64udK9",
+      "opened": "2026-11-18T00:44:34Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4607766633"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new streaming scenario passes `max_tokens=100` to the SDK but never sets `inv.max_tokens`, so its span omits `gen_ai.request.max_tokens` even though the value is available. The reference evaluation rules require emitting capturable attributes, and `run_chat` already maps this parameter at line 140. Please record the same request value on this invocation.",
+      "created": "2026-11-18T00:44:33Z",
+      "hunk": "@@ -203,6 +204,53 @@ def run_chat(handler):\n         print(f\"    -> {first_block.type}\")\n \n \n+def run_chat_streaming_close(handler, client, *, close_early=True):\n+    \"\"\"Scenario: leave the Messages stream context after its first text delta.\"\"\"\n+    print(\"  [chat_streaming_close] caller closes before the final message\")\n+    request_model = \"claude-sonnet-4-20250514\"\n+    messages = [{\"role\": \"user\", \"content\": \"Tell me a story.\"}]\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    with handler.inference(\n+        provider=\"anthropic\",\n+        request_model=request_model,\n+        server_address=host,\n+        server_port=port,\n+    ) as inv:\n+        inv.attributes[\"gen_ai.request.stream\"] = True\n+        inv.input_messages = [InputMessage(role=\"user\", parts=[Text(content=messages[0][\"content\"])])]\n+        text = \"\"\n+        stream = ObservedStream(client.messages.stream(model=request_model, max_tokens=100, messages=messages))",
+      "id": "PRRT_kwDOSUeMrM64udLX",
+      "opened": "2026-11-18T00:44:34Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4607766679"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This branch observes the first non-empty SDK text delta but closes the stream without recording `gen_ai.response.time_to_first_chunk` or its inference metric. Both are capturable here, and `model/gen-ai/spans.yaml:333-335` recommends the attribute for streaming requests. Please measure from the start of the Messages operation and record the first content event before breaking, as the OpenAI streaming scenario does. Caller closure should not discard a timing measurement that is already available.",
+      "created": "2026-11-18T00:44:34Z",
+      "hunk": "@@ -203,6 +204,53 @@ def run_chat(handler):\n         print(f\"    -> {first_block.type}\")\n \n \n+def run_chat_streaming_close(handler, client, *, close_early=True):\n+    \"\"\"Scenario: leave the Messages stream context after its first text delta.\"\"\"\n+    print(\"  [chat_streaming_close] caller closes before the final message\")\n+    request_model = \"claude-sonnet-4-20250514\"\n+    messages = [{\"role\": \"user\", \"content\": \"Tell me a story.\"}]\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    with handler.inference(\n+        provider=\"anthropic\",\n+        request_model=request_model,\n+        server_address=host,\n+        server_port=port,\n+    ) as inv:\n+        inv.attributes[\"gen_ai.request.stream\"] = True\n+        inv.input_messages = [InputMessage(role=\"user\", parts=[Text(content=messages[0][\"content\"])])]\n+        text = \"\"\n+        stream = ObservedStream(client.messages.stream(model=request_model, max_tokens=100, messages=messages))\n+        try:\n+            with stream:\n+                for event in stream:\n+                    if event.type == \"message_start\":\n+                        message = event.message\n+                        inv.response_id = message.id\n+                        inv.response_model_name = message.model\n+                        cache_read = message.usage.cache_read_input_tokens or 0\n+                        cache_write = message.usage.cache_creation_input_tokens or 0\n+                        inv.input_tokens = message.usage.input_tokens + cache_read + cache_write\n+                        inv.cache_read_input_tokens = cache_read or None\n+                        if cache_write:\n+                            inv.attributes[\"gen_ai.usage.cache_write.input_tokens\"] = cache_write\n+                        inv.output_tokens = message.usage.output_tokens\n+                    elif event.type == \"message_delta\":\n+                        if event.delta.stop_reason:\n+                            inv.finish_reasons = [event.delta.stop_reason]\n+                        inv.output_tokens = event.usage.output_tokens\n+                    elif event.type == \"content_block_delta\" and event.delta.type == \"text_delta\" and event.delta.text:\n+                        text += event.delta.text\n+                        if close_early:\n+                            break",
+      "id": "PRRT_kwDOSUeMrM64udLp",
+      "opened": "2026-11-18T00:44:34Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-20T09:20:03Z",
+          "body": "It records `gen_ai.response.time_to_first_chunk` and `gen_ai.client.inference.time_to_first_chunk` at the first non-empty text delta now, before the stream closes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4640646235"
+        }
+      ],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4607766708"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "If the caller closes before the usage chunk, `usage` is empty and neither histogram gets a measurement. Can we keep the span attributes and counters unset in that case, but record `0` in the histograms as the current convention recommends?\n\nIf the stream fails after reporting usage, the histograms get the counts but not `error.type`. Can we put the same `error.type` on those histogram measurements as on the span? The histogram convention already requires it on failure. #723 covers adding it to the counters separately.",
+      "created": "2026-11-18T21:40:05Z",
+      "hunk": "@@ -615,61 +620,71 @@ def run_chat_streaming_reference(client):\n         input_tokens = None\n         output_tokens = None\n         first_chunk_received = False\n-        for chunk in stream:\n-            received_at = perf_counter()\n-            model = model or getattr(chunk, \"model\", None)\n-            response_id = response_id or getattr(chunk, \"id\", None)\n-            if not first_chunk_received and any(\n-                choice.delta.content\n-                or choice.delta.refusal\n-                or (choice.delta.audio and (choice.delta.audio.data or choice.delta.audio.transcript))\n-                or (\n-                    choice.delta.function_call\n-                    and (choice.delta.function_call.name or choice.delta.function_call.arguments)\n-                )\n-                or any(\n-                    call.function and (call.function.name or call.function.arguments)\n-                    for call in choice.delta.tool_calls or []\n-                )\n-                for choice in chunk.choices\n-            ):\n-                ttfc = received_at - request_started_at\n-                span.set_attribute(\"gen_ai.response.time_to_first_chunk\", ttfc)\n-                _time_to_first_chunk.record(ttfc, usage_metric_attributes(request_model, model, host, port))\n-                first_chunk_received = True\n-            for choice in chunk.choices:\n-                seen_choice_indexes.add(choice.index)\n-                if choice.index == 0 and choice.delta.content:\n-                    text += choice.delta.content\n-                if choice.finish_reason is not None:\n-                    finish_reasons_by_index[choice.index] = choice.finish_reason\n-            if chunk.usage:\n-                input_tokens = chunk.usage.prompt_tokens\n-                output_tokens = chunk.usage.completion_tokens\n-        if model:\n-            span.set_attribute(\"gen_ai.response.model\", model)\n-        if response_id:\n-            span.set_attribute(\"gen_ai.response.id\", response_id)\n-        if seen_choice_indexes:\n-            finish_reasons = [\n-                finish_reasons_by_index.get(index, \"error\") for index in range(max(seen_choice_indexes) + 1)\n-            ]\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        if text:\n-            output_message = {\n-                \"role\": \"assistant\",\n-                \"parts\": [{\"type\": \"text\", \"content\": text}],\n-            }\n-            span.set_attribute(\"gen_ai.output.messages\", [output_message])\n-        usage = {}\n-        if input_tokens is not None:\n-            usage[\"gen_ai.usage.input_tokens\"] = input_tokens\n-        if output_tokens is not None:\n-            usage[\"gen_ai.usage.output_tokens\"] = output_tokens\n-        for attr, value in usage.items():\n-            span.set_attribute(attr, value)\n-        record_inference_usage(usage, usage_metric_attributes(request_model, model, host, port))\n-        print(f\"    -> {text[:60]}\")\n+        try:\n+            with stream:\n+                for chunk in stream:\n+                    received_at = perf_counter()\n+                    model = model or getattr(chunk, \"model\", None)\n+                    response_id = response_id or getattr(chunk, \"id\", None)\n+                    if not first_chunk_received and any(\n+                        choice.delta.content\n+                        or choice.delta.refusal\n+                        or (choice.delta.audio and (choice.delta.audio.data or choice.delta.audio.transcript))\n+                        or (\n+                            choice.delta.function_call\n+                            and (choice.delta.function_call.name or choice.delta.function_call.arguments)\n+                        )\n+                        or any(\n+                            call.function and (call.function.name or call.function.arguments)\n+                            for call in choice.delta.tool_calls or []\n+                        )\n+                        for choice in chunk.choices\n+                    ):\n+                        ttfc = received_at - request_started_at\n+                        span.set_attribute(\"gen_ai.response.time_to_first_chunk\", ttfc)\n+                        _time_to_first_chunk.record(ttfc, usage_metric_attributes(request_model, model, host, port))\n+                        first_chunk_received = True\n+                    for choice in chunk.choices:\n+                        seen_choice_indexes.add(choice.index)\n+                        if choice.index == 0 and choice.delta.content:\n+                            text += choice.delta.content\n+                        if choice.finish_reason is not None:\n+                            finish_reasons_by_index[choice.index] = choice.finish_reason\n+                    if chunk.usage:\n+                        input_tokens = chunk.usage.prompt_tokens\n+                        output_tokens = chunk.usage.completion_tokens\n+                    if close_early and first_chunk_received:\n+                        stream.close()\n+                        break\n+        finally:\n+            if model:\n+                span.set_attribute(\"gen_ai.response.model\", model)\n+            if response_id:\n+                span.set_attribute(\"gen_ai.response.id\", response_id)\n+            if seen_choice_indexes:\n+                finish_reasons = [\n+                    finish_reasons_by_index.get(index, stream.finish_reason)\n+                    for index in range(max(seen_choice_indexes) + 1)\n+                ]\n+                span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n+            if text:\n+                output_message = {\n+                    \"role\": \"assistant\",\n+                    \"parts\": [{\"type\": \"text\", \"content\": text}],\n+                }\n+                span.set_attribute(\"gen_ai.output.messages\", [output_message])\n+            usage = {}\n+            if input_tokens is not None:\n+                usage[\"gen_ai.usage.input_tokens\"] = input_tokens\n+            if output_tokens is not None:\n+                usage[\"gen_ai.usage.output_tokens\"] = output_tokens\n+            for attr, value in usage.items():\n+                span.set_attribute(attr, value)\n+            record_inference_usage(usage, usage_metric_attributes(request_model, model, host, port))",
+      "id": "PRRT_kwDOSUeMrM65Ntcd",
+      "opened": "2026-11-18T21:42:14Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4621228461"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: `test_scenario.py` isn't run by CI (only `run-scenario`), so the fetched-stream checks here and the Anthropic ending checks never run. Could they go through the `*_checks()` path that `main()` already runs? These two wrappers would then be redundant, since `main()` already calls both.",
+      "created": "2026-11-18T19:55:21Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+\"\"\"Check inference and fetched-stream endings through the OpenAI SDK.\"\"\"\n+\n+import json\n+import os\n+import unittest\n+from unittest.mock import patch\n+\n+import httpx2\n+import openai\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import SimpleSpanProcessor\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter\n+from opentelemetry.trace import StatusCode\n+\n+with patch.dict(os.environ, {\"MOCK_LLM_URL\": \"http://127.0.0.1:9999\"}):\n+    import scenario\n+\n+\n+class StreamingTests(unittest.TestCase):\n+    def test_inference_endings(self):\n+        scenario.run_chat_streaming_ttfc_checks()\n+\n+    def test_cancelled_response(self):\n+        scenario.run_fetch_response_cancelled_checks()",
+      "id": "PRRT_kwDOSUeMrM65KxC9",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "reference/scenarios/openai/test_scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-20T09:20:00Z",
+          "body": "Yes, both scenarios run them from `main()` now, and the two `test_scenario.py` files are gone.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4640645585"
+        }
+      ],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930775"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could be shorter - \"preserve received reasons\" is already covered by \"each position SHOULD contain the finish reason\", and the two missing-reason rules can sit together.\n\n```suggestion\n      Each position SHOULD contain the finish reason for the corresponding\n      choice/candidate. If none was received, instrumentations SHOULD report\n      `interrupted` when the stream ended gracefully and `error` otherwise.\n\n      `error` indicates that the generation ended abnormally, whether reported\n      by the provider or inferred by the instrumentation.\n```",
+      "created": "2026-11-18T19:55:21Z",
+      "hunk": "@@ -222,17 +222,20 @@ attributes:\n       provider-reported interruption reason when available and `interrupted` otherwise.\n \n       Each position SHOULD contain the finish reason for the corresponding\n-      choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n-      the final event, instrumentations SHOULD report `error` for that position\n-      instead of omitting it.\n+      choice/candidate. If generation failed before a finish reason was received,\n+      instrumentations SHOULD report `error` for that position instead of omitting it.\n \n       `error` indicates that the generation ended abnormally, whether reported\n       by the provider or inferred by the instrumentation.\n+\n+      If a stream ends gracefully before receiving a finish reason, instrumentations\n+      SHOULD report `interrupted` for that position. Finish reasons already received\n+      from the provider SHOULD be preserved.",
+      "id": "PRRT_kwDOSUeMrM65KxCA",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T09:19:56Z",
+          "body": "Went with \"the caller closes or disposes of the stream without an error\" instead of \"ended gracefully\". Your [earlier suggestion](https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4488787207) counted a server that never sends a finish reason as graceful, but in [#594](https://github.com/open-telemetry/semantic-conventions-genai/issues/594#issuecomment-6591563730) I said I'd keep unexpected stream endings as errors, so that case records `error`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4640644904"
+        }
+      ],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930673"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The last sentence doesn't tell instrumentations to do anything different, and it reads as contradicting the first sentence (\"outcome of the original generation\").\n\n```suggestion\n          If a fetched stream ends gracefully before a final status arrives,\n          report `interrupted`.\n```",
+      "created": "2026-11-18T19:55:21Z",
+      "hunk": "@@ -684,8 +684,11 @@ spans:\n         note: >\n           Conveys the outcome of the original generation as recorded on the fetched response,\n           derived from its status: a completed generation maps to its stop reason, an incomplete\n-          one to why it was cut short (for example `length` or `content_filter`), and a failed or\n-          cancelled generation to `error`.\n+          one to why it was cut short (for example `length` or `content_filter`), a failed\n+          generation to `error`, and a cancelled generation to `interrupted`.\n+          If a fetched stream ends gracefully before a final status or finish reason\n+          arrives, report `interrupted` for the unfinished generation. This describes\n+          the fetched stream and does not infer the original generation's status.",
+      "id": "PRRT_kwDOSUeMrM65KxCa",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T09:20:06Z",
+          "body": "Same split as the registry note here, `interrupted` for a caller close without an error and `error` for anything unexpected.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4640646646"
+        }
+      ],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930710"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This repeats the generic `gen_ai.fetch_response` note; the refinement only needs the OpenAI status mapping.\n\n```suggestion\n          maps to `length` and `content_filter` to `content_filter`).\n```",
+      "created": "2026-11-18T19:55:21Z",
+      "hunk": "@@ -1126,9 +1129,11 @@ span_refinements:\n         requirement_level: recommended\n         note: >\n           Derived from the fetched response `status`: a `completed` response maps to its stop\n-          reason, a `failed` or `cancelled` response to `error`, and an `incomplete` response to\n-          its `incomplete_details.reason` (for example `max_output_tokens` maps to `length` and\n-          `content_filter` to `content_filter`).\n+          reason, a `failed` response to `error`, a `cancelled` response to `interrupted`, and an\n+          `incomplete` response to its `incomplete_details.reason` (for example `max_output_tokens`\n+          maps to `length` and `content_filter` to `content_filter`). If the fetched\n+          stream ends gracefully before a final status or finish reason arrives,\n+          report `interrupted` without inferring a terminal response status.",
+      "id": "PRRT_kwDOSUeMrM65KxCk",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930729"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same as the Anthropic README - this restates the spec and other scenarios don't go into this detail. Consider dropping.\n\n```suggestion\n```",
+      "created": "2026-11-18T19:55:21Z",
+      "hunk": "@@ -33,3 +33,9 @@ Fetch response exercises the SDK's `NotFoundError` from\n `client.responses.retrieve` using a mock HTTP 404 response. The error handler\n records a correlated `gen_ai.client.fetch_response.exception` WARN log and\n re-raises the exception.\n+\n+The streaming scenario also closes a response early. Missing finish reasons become\n+`interrupted`, received provider reasons are preserved, and the close leaves span\n+status unset without `error.type`.\n+Available token counts are recorded even when the caller closes the stream\n+before the final usage event.",
+      "id": "PRRT_kwDOSUeMrM65KxCu",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "reference/scenarios/openai/README.md",
+      "replies": [],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930747"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: \"gracefully\" already covers close/dispose.\n\n```suggestion\nReport `interrupted` instead of `error` when a stream ends gracefully before a finish reason arrives, and for fetched responses with `cancelled` status.\n```",
+      "created": "2026-11-18T19:55:21Z",
+      "hunk": "@@ -0,0 +1 @@\n+Report `interrupted` instead of `error` when a stream ends gracefully before a finish reason arrives, including when a caller closes or disposes it, and for fetched responses with `cancelled` status.",
+      "id": "PRRT_kwDOSUeMrM65KxDE",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "changelog.d/+caller-close.clarification.md",
+      "replies": [
+        {
+          "at": "2026-11-20T09:19:58Z",
+          "body": "Dropped \"ends gracefully\" instead, so it says \"closed by the caller without an error\" like the registry note.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4640645246"
+        }
+      ],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930784"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `break` already leaves the `with`, which closes the stream - `close()` here is redundant.\n\n```suggestion\n```",
+      "created": "2026-11-18T19:55:21Z",
+      "hunk": "@@ -615,61 +620,71 @@ def run_chat_streaming_reference(client):\n         input_tokens = None\n         output_tokens = None\n         first_chunk_received = False\n-        for chunk in stream:\n-            received_at = perf_counter()\n-            model = model or getattr(chunk, \"model\", None)\n-            response_id = response_id or getattr(chunk, \"id\", None)\n-            if not first_chunk_received and any(\n-                choice.delta.content\n-                or choice.delta.refusal\n-                or (choice.delta.audio and (choice.delta.audio.data or choice.delta.audio.transcript))\n-                or (\n-                    choice.delta.function_call\n-                    and (choice.delta.function_call.name or choice.delta.function_call.arguments)\n-                )\n-                or any(\n-                    call.function and (call.function.name or call.function.arguments)\n-                    for call in choice.delta.tool_calls or []\n-                )\n-                for choice in chunk.choices\n-            ):\n-                ttfc = received_at - request_started_at\n-                span.set_attribute(\"gen_ai.response.time_to_first_chunk\", ttfc)\n-                _time_to_first_chunk.record(ttfc, usage_metric_attributes(request_model, model, host, port))\n-                first_chunk_received = True\n-            for choice in chunk.choices:\n-                seen_choice_indexes.add(choice.index)\n-                if choice.index == 0 and choice.delta.content:\n-                    text += choice.delta.content\n-                if choice.finish_reason is not None:\n-                    finish_reasons_by_index[choice.index] = choice.finish_reason\n-            if chunk.usage:\n-                input_tokens = chunk.usage.prompt_tokens\n-                output_tokens = chunk.usage.completion_tokens\n-        if model:\n-            span.set_attribute(\"gen_ai.response.model\", model)\n-        if response_id:\n-            span.set_attribute(\"gen_ai.response.id\", response_id)\n-        if seen_choice_indexes:\n-            finish_reasons = [\n-                finish_reasons_by_index.get(index, \"error\") for index in range(max(seen_choice_indexes) + 1)\n-            ]\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        if text:\n-            output_message = {\n-                \"role\": \"assistant\",\n-                \"parts\": [{\"type\": \"text\", \"content\": text}],\n-            }\n-            span.set_attribute(\"gen_ai.output.messages\", [output_message])\n-        usage = {}\n-        if input_tokens is not None:\n-            usage[\"gen_ai.usage.input_tokens\"] = input_tokens\n-        if output_tokens is not None:\n-            usage[\"gen_ai.usage.output_tokens\"] = output_tokens\n-        for attr, value in usage.items():\n-            span.set_attribute(attr, value)\n-        record_inference_usage(usage, usage_metric_attributes(request_model, model, host, port))\n-        print(f\"    -> {text[:60]}\")\n+        try:\n+            with stream:\n+                for chunk in stream:\n+                    received_at = perf_counter()\n+                    model = model or getattr(chunk, \"model\", None)\n+                    response_id = response_id or getattr(chunk, \"id\", None)\n+                    if not first_chunk_received and any(\n+                        choice.delta.content\n+                        or choice.delta.refusal\n+                        or (choice.delta.audio and (choice.delta.audio.data or choice.delta.audio.transcript))\n+                        or (\n+                            choice.delta.function_call\n+                            and (choice.delta.function_call.name or choice.delta.function_call.arguments)\n+                        )\n+                        or any(\n+                            call.function and (call.function.name or call.function.arguments)\n+                            for call in choice.delta.tool_calls or []\n+                        )\n+                        for choice in chunk.choices\n+                    ):\n+                        ttfc = received_at - request_started_at\n+                        span.set_attribute(\"gen_ai.response.time_to_first_chunk\", ttfc)\n+                        _time_to_first_chunk.record(ttfc, usage_metric_attributes(request_model, model, host, port))\n+                        first_chunk_received = True\n+                    for choice in chunk.choices:\n+                        seen_choice_indexes.add(choice.index)\n+                        if choice.index == 0 and choice.delta.content:\n+                            text += choice.delta.content\n+                        if choice.finish_reason is not None:\n+                            finish_reasons_by_index[choice.index] = choice.finish_reason\n+                    if chunk.usage:\n+                        input_tokens = chunk.usage.prompt_tokens\n+                        output_tokens = chunk.usage.completion_tokens\n+                    if close_early and first_chunk_received:\n+                        stream.close()",
+      "id": "PRRT_kwDOSUeMrM65KxDS",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930806"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: shorter, and fixes the stray line break.\n\n```suggestion\n      A `queued` or `in_progress` response has no finish reason, unless it was\n      streamed and ended early, then it's `interrupted`. A fetched response whose\n      original generation failed or is incomplete is NOT an error of this fetch,\n      so `error.type`/span status are not set for it.\n```",
+      "created": "2026-11-18T23:38:48Z",
+      "hunk": "@@ -1318,8 +1403,10 @@ def _emit_fetch_response_span(client, response_id, starting_after=None, stream=F\n       (for example `completed` or `failed`), taken from the fetched `status` field.\n     - `gen_ai.response.finish_reasons` conveys the ORIGINAL generation's outcome,\n       derived from the fetched `status`/`incomplete_details` (see helper above).\n-      It is only recorded for terminal statuses; a still-`queued` or `in_progress`\n-      response has no finish reason. A fetched response whose original generation\n+      A streamed fetch that ends gracefully before a terminal status arrives\n+      records `interrupted` without inferring the original generation's status.\n+      A non-streaming `queued` or `in_progress` response has no finish reason.\n+      A fetched response whose original generation\n       failed or is incomplete is NOT an error of this fetch, so `error.type`/span\n       status are not set for it.",
+      "id": "PRRT_kwDOSUeMrM65QWXE",
+      "opened": "2026-11-18T23:45:50Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-20T09:20:01Z",
+          "body": "Left out \"unless it was streamed and ended early\" cause this example reads the whole stream, so if it runs out before a final status it records `error`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4640645885"
+        }
+      ],
+      "reviewed": "3ee2c423690b9c167d8695481316225ab1a7cbda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4622379118"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Following up on [the earlier wording suggestion](https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4619930673). Should we keep \"expected\" so instrumentation doesn't infer an error when the protocol doesn't provide a finish reason?\n\n```suggestion\n      choice/candidate. If an expected finish reason is missing, instrumentations\n      SHOULD report `interrupted` when the caller closes or disposes of the\n      stream without an error, and `error` if generation fails or the stream\n      ends unexpectedly.\n```",
+      "created": "2026-11-20T17:47:06Z",
+      "hunk": "@@ -222,17 +222,17 @@ attributes:\n       provider-reported interruption reason when available and `interrupted` otherwise.\n \n       Each position SHOULD contain the finish reason for the corresponding\n-      choice/candidate. If a finish reason was expected but not received, for\n-      example because generation failed, was cancelled, or a stream ended before\n-      the final event, instrumentations SHOULD report `error` for that position\n-      instead of omitting it.\n+      choice/candidate. If none was received, instrumentations SHOULD report\n+      `interrupted` when the caller closes or disposes of the stream without an error and\n+      `error` if generation fails or the stream ends unexpectedly.",
+      "id": "PRRT_kwDOSUeMrM66Gr2E",
+      "opened": "2026-11-20T17:48:26Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-22T10:01:04Z",
+          "body": "Yes, took your wording in [4c3e062](https://github.com/open-telemetry/semantic-conventions-genai/pull/678/commits/4c3e062169185479b871e5ae9b2bdbe817c8865f).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4657625420"
+        }
+      ],
+      "reviewed": "70edd9f9ea91a359991925e94d7f907e983d58d1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4645789985"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When the SDK stream raises, this finalizer records token usage without `error.type` on either operation-token histogram, grouping failed streams with successful operations. `docs/gen-ai/gen-ai-token-metrics.md:835,976` requires that attribute when an operation fails. Pass `stream.error` to the recorder, attach its error type only to the histogram measurements, and check those attributes in the existing stream checks.",
+      "created": "2026-11-23T04:46:36Z",
+      "hunk": "@@ -203,6 +212,208 @@ def run_chat(handler):\n         print(f\"    -> {first_block.type}\")\n \n \n+def run_chat_streaming_close(handler, client, *, close_early=True):\n+    \"\"\"Scenario: leave the Messages stream context after its first text delta.\"\"\"\n+    print(\"  [chat_streaming_close] caller closes before the final message\")\n+    request_model = \"claude-sonnet-4-20250514\"\n+    request_max_tokens = 100\n+    messages = [{\"role\": \"user\", \"content\": \"Tell me a story.\"}]\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    with handler.inference(\n+        provider=\"anthropic\",\n+        request_model=request_model,\n+        server_address=host,\n+        server_port=port,\n+    ) as inv:\n+        inv.attributes[\"gen_ai.request.stream\"] = True\n+        inv.max_tokens = request_max_tokens\n+        inv.input_messages = [InputMessage(role=\"user\", parts=[Text(content=messages[0][\"content\"])])]\n+        text = \"\"\n+        started_at = perf_counter()\n+        stream = ObservedStream(\n+            client.messages.stream(model=request_model, max_tokens=request_max_tokens, messages=messages)\n+        )\n+        try:\n+            with stream:\n+                for event in stream:\n+                    received_at = perf_counter()\n+                    if event.type == \"message_start\":\n+                        message = event.message\n+                        inv.response_id = message.id\n+                        inv.response_model_name = message.model\n+                        cache_read = message.usage.cache_read_input_tokens or 0\n+                        cache_write = message.usage.cache_creation_input_tokens or 0\n+                        inv.input_tokens = message.usage.input_tokens + cache_read + cache_write\n+                        inv.cache_read_input_tokens = cache_read or None\n+                        if cache_write:\n+                            inv.attributes[\"gen_ai.usage.cache_write.input_tokens\"] = cache_write\n+                        inv.output_tokens = message.usage.output_tokens\n+                    elif event.type == \"message_delta\":\n+                        if event.delta.stop_reason:\n+                            inv.finish_reasons = [event.delta.stop_reason]\n+                        inv.output_tokens = event.usage.output_tokens\n+                    elif event.type == \"content_block_delta\" and event.delta.type == \"text_delta\" and event.delta.text:\n+                        if not text:\n+                            ttfc = received_at - started_at\n+                            inv.attributes[\"gen_ai.response.time_to_first_chunk\"] = ttfc\n+                            _time_to_first_chunk.record(ttfc, usage_metric_attributes(inv, request_model, host, port))\n+                        text += event.delta.text\n+                        if close_early:\n+                            break\n+        finally:\n+            if not inv.finish_reasons:\n+                inv.finish_reasons = [stream.finish_reason]\n+            if text:\n+                inv.output_messages = [OutputMessage(role=\"assistant\", parts=[Text(content=text)])]\n+            record_inference_usage(inv, request_model, host, port)",
+      "id": "PRRT_kwDOSUeMrM66spwe",
+      "opened": "2026-11-23T04:46:37Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T20:58:11Z",
+          "body": "The Anthropic scenario now passes `stream.error` to the usage recorder. The SDK error case checks that both operation-token histograms carry the span's `error.type` and that the counters don't.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4686452603"
+        }
+      ],
+      "reviewed": "4c3e062169185479b871e5ae9b2bdbe817c8865f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4661922704"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If the SDK raises while iterating a fetched stream before a terminal response, the span gets `error.type` and ERROR status but no finish reason, contrary to `model/gen-ai/spans.yaml:570-571`. Record `error` for that ending while preserving any terminal finish reason already received. Update `check_fetch(None, None, stream_error=True)` at line 1761 to expect `error` rather than accepting the omission.",
+      "created": "2026-11-23T04:46:37Z",
+      "hunk": "@@ -1360,10 +1482,14 @@ def _emit_fetch_response_span(client, response_id, starting_after=None, stream=F\n                 retrieve_kwargs = {\"stream\": True}\n                 if starting_after is not None:\n                     retrieve_kwargs[\"starting_after\"] = starting_after\n-                for event in client.responses.retrieve(response_id, **retrieve_kwargs):\n-                    candidate = getattr(event, \"response\", None)\n-                    if candidate is not None:\n-                        fetched = candidate\n+                with client.responses.retrieve(response_id, **retrieve_kwargs) as fetched_stream:\n+                    for event in fetched_stream:",
+      "id": "PRRT_kwDOSUeMrM66spxB",
+      "opened": "2026-11-23T04:46:37Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T20:58:11Z",
+          "body": "At `2b0a159`, a streamed fetch that raises before a terminal reason arrives records `[error]`. If the SDK already delivered a terminal reason, the span keeps it. The fetch checks cover both cases.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4686452585"
+        }
+      ],
+      "reviewed": "4c3e062169185479b871e5ae9b2bdbe817c8865f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4661922754"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario demonstrates this new caller-close behavior for a fetched stream. The OpenAI `caller_close` case only closes a chat-completion stream, `_emit_fetch_response_span` always consumes `responses.retrieve` to exhaustion, and the cancelled-response check exercises a provider status rather than caller closure. Add an SDK-backed streamed-fetch case that closes before a terminal status and records `interrupted` without `error.type` or ERROR status, or defer this fetched-stream rule until that behavior is demonstrated.",
+      "created": "2026-11-23T04:46:37Z",
+      "hunk": "@@ -563,10 +563,12 @@ spans:\n       - ref: gen_ai.response.finish_reasons\n         requirement_level: recommended\n         note: >\n-          Conveys the outcome of the original generation as recorded on the fetched response,\n-          derived from its status: a completed generation maps to its stop reason, an incomplete\n-          one to why it was cut short (for example `length` or `content_filter`), and a failed or\n-          cancelled generation to `error`.\n+          When the fetched response has a final status, the finish reason describes the\n+          original generation. A completed generation maps to its stop reason, an incomplete\n+          one to why it was cut short (for example `length` or `content_filter`), a failed\n+          generation to `error`, and a cancelled generation to `interrupted`.\n+          If a fetched stream ends before a final status arrives, report `interrupted`\n+          for a caller close without an error and `error` for an unexpected ending.",
+      "id": "PRRT_kwDOSUeMrM66spxb",
+      "opened": "2026-11-23T04:46:37Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-24T20:58:11Z",
+          "body": "The SDK-backed `responses.retrieve(stream=True)` case now closes the stream after `in_progress`, before the `completed` event. It asserts `[interrupted]`, unset span status, and no `error.type`, separately from the provider-cancelled case.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4686452600"
+        }
+      ],
+      "reviewed": "4c3e062169185479b871e5ae9b2bdbe817c8865f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4661922799"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This changes the recorded value from `error` to `interrupted`, which affects anyone alerting on `error` finish reasons, so it reads more like a `breaking` (or at least `enhancement`) entry than a clarification. Could you rename it to `678.breaking.md`?",
+      "created": "2026-11-24T00:15:18Z",
+      "hunk": "@@ -0,0 +1 @@\n+Report `interrupted` instead of `error` for streams closed by the caller without an error before a finish reason arrives, and for fetched responses with `cancelled` status.",
+      "id": "PRRT_kwDOSUeMrM67IY0Y",
+      "opened": "2026-11-24T00:42:17Z",
+      "path": "changelog.d/678.breaking.md",
+      "replies": [
+        {
+          "at": "2026-11-24T21:01:25Z",
+          "body": "Renamed the fragment to `changelog.d/678.breaking.md` in 632b9fdc. Existing alerts that match the old `error` finish reason can stop matching these cases.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4686489843"
+        }
+      ],
+      "reviewed": "4c3e062169185479b871e5ae9b2bdbe817c8865f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4673798795"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] The `try`/`except` in `__iter__` is redundant. All three callers iterate inside `with stream:`, so an iteration error always reaches `__exit__`, which already stores it in `self.error`. Removing it means errors are recorded in only one place, and exhaustion and early-close behavior stay the same. The handler in `__enter__` is still needed, because `__exit__` does not run if entering fails.\n\n```suggestion\n    def __iter__(self):\n        yield from self._stream\n        self.exhausted = True\n```",
+      "created": "2026-11-24T21:44:20Z",
+      "hunk": "@@ -126,3 +126,47 @@ def flush_and_shutdown(tp, lp, mp):\n     lp.shutdown()\n     mp.shutdown()\n     print(\"Done.\")\n+\n+\n+class ObservedStream:\n+    \"\"\"Observe SDK iteration and closure without relying on the caller's loop.\"\"\"\n+\n+    def __init__(self, manager):\n+        self._manager = manager\n+        self.exhausted = False\n+        self.closed_early = False\n+        self.error = None\n+\n+    def __enter__(self):\n+        try:\n+            self._stream = self._manager.__enter__()\n+        except Exception as exc:\n+            self.error = exc\n+            raise\n+        return self\n+\n+    def __iter__(self):\n+        try:\n+            yield from self._stream\n+            self.exhausted = True\n+        except Exception as exc:\n+            self.error = exc\n+            raise",
+      "id": "PRRT_kwDOSUeMrM67m4M5",
+      "opened": "2026-11-24T21:44:20Z",
+      "path": "reference/shared/reference_shared.py",
+      "replies": [
+        {
+          "at": "2026-11-24T22:52:55Z",
+          "body": "Removed the catch from `__iter__` in 6c6115bc. All three callers let iteration errors reach `__exit__`, which records them. The `__enter__` catch stays in place because a failed entry doesn't call `__exit__`.\n\n<sub>🤖 AI-authored reply via <a href=\"https://eng.ms/docs/agency/cli/agency-finish-pr\">Agency Finish PR</a>.</sub>",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4687631340"
+        }
+      ],
+      "reviewed": "632b9fdc2be700847260a654f678629e8c69501a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4686967061"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "When the SDK raises during a streamed chat, which the new `stream_error=True` checks exercise, this path sets `error.type`, and the span ends with ERROR status. However, it never emits `gen_ai.client.inference.exception`.\n\nThe model says this event SHOULD be recorded at WARN severity and correlated with the inference span (`model/gen-ai/events.yaml`). The non-streaming path in `run_chat_reference` already does this. The exception event on the span does not replace this log.\n\nEmitting it here, inside the span context, correlates it with the span. The exception still propagates after `finally`. Please also assert the log in the stream-error checks.\n\n```suggestion\n            if stream.error is not None:\n                error = stream.error\n                error_type = f\"{type(error).__module__}.{type(error).__qualname__}\"\n                span.set_attribute(\"error.type\", error_type)\n                reference_event_logger().emit(\n                    event_name=\"gen_ai.client.inference.exception\",\n                    severity_number=SeverityNumber.WARN,\n                    exception=error,\n                )\n```",
+      "created": "2026-11-24T21:44:20Z",
+      "hunk": "@@ -615,61 +623,77 @@ def run_chat_streaming_reference(client):\n         input_tokens = None\n         output_tokens = None\n         first_chunk_received = False\n-        for chunk in stream:\n-            received_at = perf_counter()\n-            model = model or getattr(chunk, \"model\", None)\n-            response_id = response_id or getattr(chunk, \"id\", None)\n-            if not first_chunk_received and any(\n-                choice.delta.content\n-                or choice.delta.refusal\n-                or (choice.delta.audio and (choice.delta.audio.data or choice.delta.audio.transcript))\n-                or (\n-                    choice.delta.function_call\n-                    and (choice.delta.function_call.name or choice.delta.function_call.arguments)\n-                )\n-                or any(\n-                    call.function and (call.function.name or call.function.arguments)\n-                    for call in choice.delta.tool_calls or []\n-                )\n-                for choice in chunk.choices\n-            ):\n-                ttfc = received_at - request_started_at\n-                span.set_attribute(\"gen_ai.response.time_to_first_chunk\", ttfc)\n-                _time_to_first_chunk.record(ttfc, usage_metric_attributes(request_model, model, host, port))\n-                first_chunk_received = True\n-            for choice in chunk.choices:\n-                seen_choice_indexes.add(choice.index)\n-                if choice.index == 0 and choice.delta.content:\n-                    text += choice.delta.content\n-                if choice.finish_reason is not None:\n-                    finish_reasons_by_index[choice.index] = choice.finish_reason\n-            if chunk.usage:\n-                input_tokens = chunk.usage.prompt_tokens\n-                output_tokens = chunk.usage.completion_tokens\n-        if model:\n-            span.set_attribute(\"gen_ai.response.model\", model)\n-        if response_id:\n-            span.set_attribute(\"gen_ai.response.id\", response_id)\n-        if seen_choice_indexes:\n-            finish_reasons = [\n-                finish_reasons_by_index.get(index, \"error\") for index in range(max(seen_choice_indexes) + 1)\n-            ]\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        if text:\n-            output_message = {\n-                \"role\": \"assistant\",\n-                \"parts\": [{\"type\": \"text\", \"content\": text}],\n-            }\n-            span.set_attribute(\"gen_ai.output.messages\", [output_message])\n-        usage = {}\n-        if input_tokens is not None:\n-            usage[\"gen_ai.usage.input_tokens\"] = input_tokens\n-        if output_tokens is not None:\n-            usage[\"gen_ai.usage.output_tokens\"] = output_tokens\n-        for attr, value in usage.items():\n-            span.set_attribute(attr, value)\n-        record_inference_usage(usage, usage_metric_attributes(request_model, model, host, port))\n-        print(f\"    -> {text[:60]}\")\n+        try:\n+            with stream:\n+                for chunk in stream:\n+                    received_at = perf_counter()\n+                    model = model or getattr(chunk, \"model\", None)\n+                    response_id = response_id or getattr(chunk, \"id\", None)\n+                    if not first_chunk_received and any(\n+                        choice.delta.content\n+                        or choice.delta.refusal\n+                        or (choice.delta.audio and (choice.delta.audio.data or choice.delta.audio.transcript))\n+                        or (\n+                            choice.delta.function_call\n+                            and (choice.delta.function_call.name or choice.delta.function_call.arguments)\n+                        )\n+                        or any(\n+                            call.function and (call.function.name or call.function.arguments)\n+                            for call in choice.delta.tool_calls or []\n+                        )\n+                        for choice in chunk.choices\n+                    ):\n+                        ttfc = received_at - request_started_at\n+                        span.set_attribute(\"gen_ai.response.time_to_first_chunk\", ttfc)\n+                        _time_to_first_chunk.record(ttfc, usage_metric_attributes(request_model, model, host, port))\n+                        first_chunk_received = True\n+                    for choice in chunk.choices:\n+                        seen_choice_indexes.add(choice.index)\n+                        if choice.index == 0 and choice.delta.content:\n+                            text += choice.delta.content\n+                        if choice.finish_reason is not None:\n+                            finish_reasons_by_index[choice.index] = choice.finish_reason\n+                    if chunk.usage:\n+                        input_tokens = chunk.usage.prompt_tokens\n+                        output_tokens = chunk.usage.completion_tokens\n+                    if close_early and first_chunk_received:\n+                        break\n+        finally:\n+            if model:\n+                span.set_attribute(\"gen_ai.response.model\", model)\n+            if response_id:\n+                span.set_attribute(\"gen_ai.response.id\", response_id)\n+            if seen_choice_indexes:\n+                finish_reasons = [\n+                    finish_reasons_by_index.get(index, stream.finish_reason)\n+                    for index in range(max(seen_choice_indexes) + 1)\n+                ]\n+                span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n+            if text:\n+                output_message = {\n+                    \"role\": \"assistant\",\n+                    \"parts\": [{\"type\": \"text\", \"content\": text}],\n+                }\n+                span.set_attribute(\"gen_ai.output.messages\", [output_message])\n+            usage = {}\n+            if input_tokens is not None:\n+                usage[\"gen_ai.usage.input_tokens\"] = input_tokens\n+            if output_tokens is not None:\n+                usage[\"gen_ai.usage.output_tokens\"] = output_tokens\n+            for attr, value in usage.items():\n+                span.set_attribute(attr, value)\n+            error_type = None\n+            if stream.error is not None:\n+                error = stream.error\n+                error_type = f\"{type(error).__module__}.{type(error).__qualname__}\"\n+                span.set_attribute(\"error.type\", error_type)",
+      "id": "PRRT_kwDOSUeMrM67m4Mn",
+      "opened": "2026-11-24T21:44:20Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T22:52:55Z",
+          "body": "Fixed in 6e1af292. The streaming chat path emits `gen_ai.client.inference.exception` at WARN while the inference span is active, and the SDK exception still propagates. The scenario asserts that the log has the span's trace and span IDs and that a caller close without an error emits no exception log.\n\n<sub>🤖 AI-authored reply via <a href=\"https://eng.ms/docs/agency/cli/agency-finish-pr\">Agency Finish PR</a>.</sub>",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4687631390"
+        }
+      ],
+      "reviewed": "632b9fdc2be700847260a654f678629e8c69501a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/678#discussion_r4686967032"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "head": "d16a281aebdb5b0ed9305a4e9ab4cbd1619c013a",
+  "merge": "8df8b777b8649b7c69cad568b9c5b5b004329fa8",
+  "merged": "2026-10-15T12:25:05Z",
+  "missing_roots": 0,
+  "number": 20535,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could this be replaced with `registeredObservables.remove(registeredObservable)`?",
+      "created": "2026-10-13T06:01:26Z",
+      "hunk": "@@ -163,10 +173,24 @@ public void onUpdate(ClusterResource clusterResource) {\n   }\n \n   private void closeAllInstruments() {\n+    List<RegisteredObservable> observablesToClose;\n+    synchronized (lock) {\n+      observablesToClose = new ArrayList<>(registeredObservables);\n+    }\n+\n+    for (RegisteredObservable registeredObservable : observablesToClose) {\n+      closeInstrumentAndRemove(registeredObservable);\n+    }\n+  }\n+\n+  private void closeInstrumentAndRemove(RegisteredObservable registeredObservable) {\n+    closeInstrument(registeredObservable.getObservable());\n     synchronized (lock) {\n       for (Iterator<RegisteredObservable> it = registeredObservables.iterator(); it.hasNext(); ) {",
+      "id": "PRRT_kwDODJKVX86ruoe1",
+      "opened": "2026-10-13T06:01:26Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [
+        {
+          "at": "2026-10-13T15:44:10Z",
+          "body": "47f5e2b6e16fa562a2bea4dc5e6ce25fd4c12fd1",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20535#discussion_r4260801778"
+        }
+      ],
+      "reviewed": "5ff0093679bd304d829fffb7795479dbbfe934fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20535#discussion_r4255234376"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Feels inefficient. It needs to loop over `registeredObservables` list to remove each element while previously it looped only once.",
+      "created": "2026-10-13T06:02:49Z",
+      "hunk": "@@ -163,10 +173,24 @@ public void onUpdate(ClusterResource clusterResource) {\n   }\n \n   private void closeAllInstruments() {\n+    List<RegisteredObservable> observablesToClose;\n+    synchronized (lock) {\n+      observablesToClose = new ArrayList<>(registeredObservables);\n+    }\n+\n+    for (RegisteredObservable registeredObservable : observablesToClose) {\n+      closeInstrumentAndRemove(registeredObservable);",
+      "id": "PRRT_kwDODJKVX86rup5s",
+      "opened": "2026-10-13T06:02:49Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [
+        {
+          "at": "2026-10-13T15:44:10Z",
+          "body": "5b2df7c175b1709ea358aebb35703d4ff2cd49a4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20535#discussion_r4260801729"
+        }
+      ],
+      "reviewed": "5ff0093679bd304d829fffb7795479dbbfe934fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20535#discussion_r4255243363"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Keep the whole replacement lifecycle serialized. Releasing the bookkeeping lock before cleanup and then reacquiring it only for this add lets `close()` snapshot and finish in between; the replacement is then registered after reporter shutdown has returned. Overlapping cleanup paths can also snapshot and close the same `AutoCloseable` twice (which is not required to be idempotent). Use a separate lifecycle/cleanup lock or an explicit claim protocol to serialize select → close → remove → add while leaving the bookkeeping lock free during `close()`, and add an overlap test for this interleaving.",
+      "created": "2026-10-13T15:51:20Z",
+      "hunk": "@@ -98,45 +98,55 @@ public void metricChange(KafkaMetric metric) {\n     }\n \n     Set<AttributeKey<?>> attributeKeys = registeredObservable.getAttributes().asMap().keySet();\n+    List<RegisteredObservable> observablesToClose = new ArrayList<>();\n     synchronized (lock) {\n-      for (Iterator<RegisteredObservable> it = registeredObservables.iterator(); it.hasNext(); ) {\n-        RegisteredObservable curRegisteredObservable = it.next();\n+      for (RegisteredObservable curRegisteredObservable : registeredObservables) {\n         Set<AttributeKey<?>> curAttributeKeys =\n             curRegisteredObservable.getAttributes().asMap().keySet();\n         if (curRegisteredObservable.getKafkaMetricName().equals(metric.metricName())) {\n-          logger.log(FINEST, \"Replacing instrument: {0}\", curRegisteredObservable);\n-          closeInstrument(curRegisteredObservable.getObservable());\n-          it.remove();\n+          observablesToClose.add(curRegisteredObservable);\n         } else if (curRegisteredObservable\n                 .getInstrumentDescriptor()\n                 .equals(registeredObservable.getInstrumentDescriptor())\n             && attributeKeys.size() > curAttributeKeys.size()\n             && attributeKeys.containsAll(curAttributeKeys)) {\n-          logger.log(\n-              FINEST,\n-              \"Replacing instrument with higher dimension version: {0}\",\n-              curRegisteredObservable);\n-          closeInstrument(curRegisteredObservable.getObservable());\n-          it.remove();\n+          observablesToClose.add(curRegisteredObservable);\n         }\n       }\n+    }\n+\n+    for (RegisteredObservable curRegisteredObservable : observablesToClose) {\n+      if (curRegisteredObservable.getKafkaMetricName().equals(metric.metricName())) {\n+        logger.log(FINEST, \"Replacing instrument: {0}\", curRegisteredObservable);\n+      } else {\n+        logger.log(\n+            FINEST,\n+            \"Replacing instrument with higher dimension version: {0}\",\n+            curRegisteredObservable);\n+      }\n+      closeInstrumentAndRemove(curRegisteredObservable);\n+    }\n \n+    synchronized (lock) {\n       registeredObservables.add(registeredObservable);",
+      "id": "PRRT_kwDODJKVX86r8aDh",
+      "opened": "2026-10-13T15:51:21Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [
+        {
+          "at": "2026-10-13T17:08:58Z",
+          "body": "Kafka already serializes `metricChange()` and `metricRemoval()` through synchronized methods on its `Metrics` instance. For normal shutdown, the producer joins its sender thread before closing metrics; the classic consumer rejects concurrent operations, and the async consumer joins its network thread before closing metrics. I haven't found a supported replacement-versus-shutdown interleaving that requires another lifecycle lock.\n\nThe observables here are `ObservableDoubleGauge` and `ObservableDoubleCounter`, whose `close()` contracts explicitly state that subsequent calls have no effect. The generic `AutoCloseable` contract isn't the applicable contract.\n\nLeaving the implementation as-is. A concrete Kafka lifecycle path demonstrating overlap would be needed to justify additional synchronization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20535#discussion_r4261686959"
+        }
+      ],
+      "reviewed": "5b2df7c175b1709ea358aebb35703d4ff2cd49a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20535#discussion_r4260884107"
+    }
+  ]
+}

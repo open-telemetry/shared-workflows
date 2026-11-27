@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9cb50f714805d677ea44e39e528970b6f54ad3113ec1ed7a02ea1947be87cf40",
+  "input_digest": "561fd9eb5f28ca7296c5d43ef2166ba004d542fd900869d4fc71ca9767171e1e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa54d1fccd526994ca89fc76d193aa2707709077/instrumentation/servlet/servlet-5.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/v5_0/TestServlet5.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fcc799ea170c252cf78ed27ecc91964d0c70b385/instrumentation/servlet/servlet-5.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/v5_0/TestServlet5.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa54d1fccd526994ca89fc76d193aa2707709077/instrumentation/servlet/servlet-3.0/testing/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/TestServlet3.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fcc799ea170c252cf78ed27ecc91964d0c70b385/instrumentation/servlet/servlet-3.0/testing/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/TestServlet3.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DMFZz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa54d1fccd526994ca89fc76d193aa2707709077/instrumentation/servlet/servlet-3.0/testing/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/TestServlet3.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fcc799ea170c252cf78ed27ecc91964d0c70b385/instrumentation/servlet/servlet-3.0/testing/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/TestServlet3.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DMFai",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

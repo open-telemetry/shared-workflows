@@ -1,0 +1,67 @@
+{
+  "head": "bf93d4b53444c4edc9bb7df80079eaae5d2ff047",
+  "merge": "64f252fabff4c699b736be452c857a46cd7225fd",
+  "merged": "2026-08-24T14:40:04Z",
+  "missing_roots": 0,
+  "number": 19749,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This guard does not cover all synthetic 500s. `ElasticsearchException.status()` returns 500 when unwrapping stops at the exception itself, and also when a transport exception unwraps to a non-status-bearing cause such as `IOException`. Those cases now emit `error.type=\"500\"` despite having no reliable client status, instead of retaining the exception-class fallback. Please distinguish these synthetic results from explicit status overrides (for example `NoNodeAvailableException`) and add regression cases for a plain Elasticsearch exception and a transport exception with a generic cause.",
+      "created": "2026-08-21T17:24:19Z",
+      "hunk": "@@ -34,4 +36,24 @@ public String getDbQueryText(ElasticTransportRequest request) {\n   public String getDbOperationName(ElasticTransportRequest request) {\n     return request.getAction().getClass().getSimpleName();\n   }\n+\n+  @Override\n+  @Nullable\n+  public String getErrorType(\n+      ElasticTransportRequest request,\n+      @Nullable ActionResponse response,\n+      @Nullable Throwable error) {\n+    // TransportException.status() synthesizes 500 when there is no remote cause to unwrap.\n+    if (error instanceof TransportException\n+        && ((TransportException) error).unwrapCause() == error) {\n+      return null;",
+      "id": "PRRT_kwDODJKVX86bPIGM",
+      "opened": "2026-08-21T17:24:19Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-21T17:38:11Z",
+          "body": "Addressed in bb2bca32b9e994d0f4d25f81f4c90a4156b68555.\n\nAnalysis: The `TransportException`-specific guard (`unwrapCause() == error`) was too narrow in one\ndirection and too broad in another. It missed the case where `unwrapCause()` returns a non-ES\ncause (like `IOException`), which causes `TransportException.status()` to return a synthetic 500.\nIt also incorrectly suppressed `NoNodeAvailableException`, which extends `ElasticsearchException`\ndirectly (not `TransportException`) and overrides `status()` to return 503 explicitly. The plain\n`ElasticsearchException` base class also always returns 500 synthetically. The correct fix is to\ncheck the status value directly: 500 is always synthetic for these exception types (no Elasticsearch\nexception explicitly overrides `status()` to return 500), so filtering `statusCode != 500` reliably\nseparates meaningful statuses (e.g. 404, 503) from the synthetic default. Two regression tests are\nadded for a plain `ElasticsearchException` and a `TransportException` wrapping an `IOException`,\nboth of which should fall back to the exception class name.\n\nUpsides: Correct handling of all three synthetic-500 cases without per-subclass special-casing.\n`NoNodeAvailableException` now correctly emits \"503\". Plain `ElasticsearchException` and\n`TransportException` with generic causes now fall back to the exception class name as intended.\nRegression tests prevent recurrence.\n\nDownsides: No material downside identified. Any Elasticsearch exception that explicitly declares\n500 as its status (none exist in practice) would now fall back to the class name rather than\nemitting \"500\", which is the safer behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19749#discussion_r3832374829"
+        }
+      ],
+      "reviewed": "1574a0cb644401e48c3b2f8a5b08b1c723527460",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19749#discussion_r3832287961"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The numeric `statusCode != 500` check also discards reliable, explicitly supplied statuses. For example, `ElasticsearchStatusException` can be constructed with `RestStatus.INTERNAL_SERVER_ERROR`; a transport failure carrying that exception should align with the REST client as `error.type=\"500\"`, but this code falls back to the exception class. Please distinguish the synthetic base/transport fallback from status-bearing exceptions (and cover an explicit-500 case) rather than suppressing every 500.",
+      "created": "2026-08-21T17:46:20Z",
+      "hunk": "@@ -34,4 +35,21 @@ public String getDbQueryText(ElasticTransportRequest request) {\n   public String getDbOperationName(ElasticTransportRequest request) {\n     return request.getAction().getClass().getSimpleName();\n   }\n+\n+  @Override\n+  @Nullable\n+  public String getErrorType(\n+      ElasticTransportRequest request,\n+      @Nullable ActionResponse response,\n+      @Nullable Throwable error) {\n+    if (error instanceof ElasticsearchException) {\n+      int statusCode = ((ElasticsearchException) error).status().getStatus();\n+      // status() returns 500 synthetically for exceptions that have no explicit status override\n+      // (e.g. the base ElasticsearchException class, or TransportException with a non-ES cause)\n+      if (statusCode != 500 && (statusCode >= 400 || statusCode < 100)) {",
+      "id": "PRRT_kwDODJKVX86bPfVa",
+      "opened": "2026-08-21T17:46:20Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-21T17:55:09Z",
+          "body": "Addressed in 1f4fee53ae8e60385004a7047749a9922a8c34d0.\n\nAnalysis: The `!= 500` filter correctly excluded synthetic 500s from the base `ElasticsearchException`\nclass and from `TransportException` with a non-ES cause, but it also incorrectly excluded\n`ElasticsearchStatusException` constructed with `RestStatus.INTERNAL_SERVER_ERROR`, where 500 is\nan explicit and meaningful status. The fix uses reflection on the resolved `status()` method: if\n`getDeclaringClass()` is `ElasticsearchException` itself, the method is inherited and the status is\nsynthetic; if it belongs to any subclass, the status was explicitly declared and should be used.\nFor `TransportException` specifically, the status derives from `unwrapCause()` and is handled first:\nonly trust it when the unwrapped cause is an `ElasticsearchException`. A new regression test covers\n`ElasticsearchStatusException` with `INTERNAL_SERVER_ERROR`.\n\nUpsides: Correctly handles all three cases: synthetic 500 from the base class is excluded, synthetic\n500 from a `TransportException` with a non-ES cause is excluded, and explicit 500 from\n`ElasticsearchStatusException` is included. The reflection check is future-proof against any new\nElasticsearch exception subclasses without needing per-class special-casing.\n\nDownsides: One reflection call per error (not per request), so the performance impact is negligible\nin practice. Any hypothetical `ElasticsearchException` subclass that inherits `status()` but returns\na non-500 status would incorrectly be treated as explicit; no such subclasses exist in Elasticsearch\n5.x, but the pattern could theoretically arise in a fork or extension.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19749#discussion_r3832486202"
+        }
+      ],
+      "reviewed": "bb2bca32b9e994d0f4d25f81f4c90a4156b68555",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19749#discussion_r3832430025"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    // not treat it as a wrapper and unwrapCause() leaves it alone. The transport failure itself is\n    // the most specific description of what went wrong here, so it is reported as-is.\n```",
+      "created": "2026-08-24T08:08:21Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.elasticsearch.transport.common.v5_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import java.io.IOException;\n+import org.elasticsearch.ElasticsearchException;\n+import org.elasticsearch.ElasticsearchStatusException;\n+import org.elasticsearch.action.ActionResponse;\n+import org.elasticsearch.client.transport.NoNodeAvailableException;\n+import org.elasticsearch.index.IndexNotFoundException;\n+import org.elasticsearch.rest.RestStatus;\n+import org.elasticsearch.transport.NodeDisconnectedException;\n+import org.elasticsearch.transport.RemoteTransportException;\n+import org.elasticsearch.transport.TransportException;\n+import org.junit.jupiter.api.Test;\n+\n+class ElasticsearchTransportAttributesGetterTest {\n+\n+  @Test\n+  void nodeDisconnectUsesExceptionClassErrorType() {\n+    NodeDisconnectedException error = new NodeDisconnectedException(null, \"GetAction\");\n+\n+    assertThat(extractEndAttributes(error).get(ERROR_TYPE))\n+        .isEqualTo(emitStableDatabaseSemconv() ? NodeDisconnectedException.class.getName() : null);\n+  }\n+\n+  @Test\n+  void noNodeAvailableUsesExceptionClassErrorType() {\n+    NoNodeAvailableException error = new NoNodeAvailableException(\"no nodes are available\");\n+\n+    assertThat(extractEndAttributes(error).get(ERROR_TYPE))\n+        .isEqualTo(emitStableDatabaseSemconv() ? NoNodeAvailableException.class.getName() : null);\n+  }\n+\n+  @Test\n+  void plainElasticsearchExceptionUsesExceptionClassErrorType() {\n+    ElasticsearchException error = new ElasticsearchException(\"plain error\");\n+\n+    assertThat(extractEndAttributes(error).get(ERROR_TYPE))\n+        .isEqualTo(emitStableDatabaseSemconv() ? ElasticsearchException.class.getName() : null);\n+  }\n+\n+  @Test\n+  void transportExceptionWithGenericCauseUsesExceptionClassErrorType() {\n+    TransportException error =\n+        new TransportException(\"transport error\", new IOException(\"connection refused\"));\n+\n+    // TransportException does not implement ElasticsearchWrapperException, so Elasticsearch does\n+    // not\n+    // treat it as a wrapper and unwrapCause() leaves it alone. The transport failure itself is the\n+    // most specific description of what went wrong here, so it is reported as-is.",
+      "id": "PRRT_kwDODJKVX86bnjFg",
+      "opened": "2026-08-24T08:08:21Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportAttributesGetterTest.java",
+      "replies": [],
+      "reviewed": "a86ba6870c280680a1b57bc1247c8af9cab8e63d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19749#discussion_r3841661548"
+    }
+  ]
+}

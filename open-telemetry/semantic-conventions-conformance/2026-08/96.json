@@ -1,0 +1,70 @@
+{
+  "head": "8c852ce6f600652dcfba0211de165cb1e3015f9a",
+  "merge": "1b2ddaf91cbee9a158ca451a60ca710a958400c3",
+  "merged": "2026-08-28T23:15:40Z",
+  "missing_roots": 0,
+  "number": 96,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this is the only thing that needs to live here, share the rest",
+      "created": "2026-08-25T06:01:07Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Haystack agent run that calls a tool.\n+\n+The tool actually runs, which is the point: an agent framework executes the\n+call itself rather than handing it back, so the tool execution is a span of\n+its own and not just a message in the next request.\n+\"\"\"\n+\n+from haystack import Pipeline\n+from haystack.components.agents import Agent\n+from haystack.components.generators.chat import OpenAIChatGenerator\n+from haystack.dataclasses import ChatMessage\n+from haystack.tools import Tool\n+from haystack_integrations.components.connectors.opentelemetry import (\n+    OpenTelemetryConnector,\n+)\n+\n+\n+def get_current_weather(location: str) -> str:\n+    return f\"70 degrees and sunny in {location}\"\n+\n+\n+WEATHER_TOOL = Tool(\n+    name=\"get_current_weather\",\n+    description=\"Get the current weather in a given location\",\n+    parameters={\n+        \"type\": \"object\",\n+        \"properties\": {\n+            \"location\": {\n+                \"type\": \"string\",\n+                \"description\": \"The city and state, e.g. Boston, MA\",\n+            },\n+        },\n+        \"required\": [\"location\"],\n+    },\n+    function=get_current_weather,\n+)\n+\n+pipeline = Pipeline()\n+pipeline.add_component(\"tracer\", OpenTelemetryConnector())",
+      "id": "PRRT_kwDOTuzK5c6b89ck",
+      "opened": "2026-08-25T06:01:07Z",
+      "path": "scenarios/gen-ai/python/haystack/native/scenarios/automatic_tool_calling.py",
+      "replies": [],
+      "reviewed": "b661b6a4061c4088b57b1b3f6146db9cff29053c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/96#discussion_r3849981907"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Add a second blank line before this module-level function. The repository enables Ruff's pycodestyle `E` rules (`pyproject.toml:10-24`), so the current single blank line triggers E302 and fails lint.",
+      "created": "2026-08-28T06:31:59Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Haystack pipeline, with no agent around it.\n+\n+Shared by every implementation under ``haystack/``, which is what makes their\n+results comparable. Nothing here turns instrumentation on, and nothing here\n+may: naming one would defeat the sharing.\n+\n+A prompt piped into a chat generator is the smallest thing Haystack calls a\n+pipeline, and a pipeline is what the conventions call a workflow. Kept free of\n+tools and agents so the workflow span stands on its own.\n+\"\"\"\n+\n+from haystack import Pipeline\n+from haystack.components.builders import ChatPromptBuilder\n+from haystack.components.generators.chat import OpenAIChatGenerator\n+from haystack.dataclasses import ChatMessage\n+\n+pipeline = Pipeline()\n+pipeline.add_component(\"prompt_builder\", ChatPromptBuilder())\n+pipeline.add_component(\n+    \"llm\",\n+    OpenAIChatGenerator(\n+        model=\"gpt-4o-mini\",\n+        generation_kwargs={\"max_tokens\": 100, \"temperature\": 0.5},\n+    ),\n+)\n+pipeline.connect(\"prompt_builder.prompt\", \"llm.messages\")\n+\n+def run() -> None:",
+      "id": "PRRT_kwDOTuzK5c6dFF5x",
+      "opened": "2026-08-28T06:32:00Z",
+      "path": "scenarios/gen-ai/python/haystack/scenarios/workflow.py",
+      "replies": [],
+      "reviewed": "9ff44d9e79b0944a63a580931f883634e9f59471",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/96#discussion_r3878418855"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Add a second blank line before this module-level function. The repository enables Ruff's pycodestyle `E` rules (`pyproject.toml:10-24`), so the current single blank line triggers E302 and fails lint.",
+      "created": "2026-08-28T06:31:59Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a single Haystack agent run.\n+\n+No tools, so the run is the agent and the model call it makes and nothing\n+else. That is what makes the agent span readable on its own. The agent runs\n+inside a pipeline, which is how Haystack drives one.\n+\"\"\"\n+\n+from haystack import Pipeline\n+from haystack.components.agents import Agent\n+from haystack.components.generators.chat import OpenAIChatGenerator\n+from haystack.dataclasses import ChatMessage\n+\n+pipeline = Pipeline()\n+pipeline.add_component(\n+    \"weather_assistant\",\n+    Agent(\n+        chat_generator=OpenAIChatGenerator(\n+            model=\"gpt-4o-mini\",\n+            generation_kwargs={\"max_tokens\": 100, \"temperature\": 0.5},\n+        ),\n+        system_prompt=\"You are a helpful assistant.\",\n+    ),\n+)\n+\n+def run() -> None:",
+      "id": "PRRT_kwDOTuzK5c6dFF6G",
+      "opened": "2026-08-28T06:32:00Z",
+      "path": "scenarios/gen-ai/python/haystack/scenarios/invoke_agent.py",
+      "replies": [],
+      "reviewed": "9ff44d9e79b0944a63a580931f883634e9f59471",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/96#discussion_r3878418884"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Add a second blank line before this module-level function. The repository enables Ruff's pycodestyle `E` rules (`pyproject.toml:10-24`), so the current single blank line triggers E302 and fails lint.",
+      "created": "2026-08-28T06:31:59Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Haystack agent run that calls a tool.\n+\n+The tool actually runs, which is the point: an agent framework executes the\n+call itself rather than handing it back, so the tool execution is a span of\n+its own and not just a message in the next request.\n+\"\"\"\n+\n+from haystack import Pipeline\n+from haystack.components.agents import Agent\n+from haystack.components.generators.chat import OpenAIChatGenerator\n+from haystack.dataclasses import ChatMessage\n+from haystack.tools import Tool\n+\n+\n+def get_current_weather(location: str) -> str:\n+    return f\"70 degrees and sunny in {location}\"\n+\n+\n+WEATHER_TOOL = Tool(\n+    name=\"get_current_weather\",\n+    description=\"Get the current weather in a given location\",\n+    parameters={\n+        \"type\": \"object\",\n+        \"properties\": {\n+            \"location\": {\n+                \"type\": \"string\",\n+                \"description\": \"The city and state, e.g. Boston, MA\",\n+            },\n+        },\n+        \"required\": [\"location\"],\n+    },\n+    function=get_current_weather,\n+)\n+\n+pipeline = Pipeline()\n+pipeline.add_component(\n+    \"weather_assistant\",\n+    Agent(\n+        chat_generator=OpenAIChatGenerator(\n+            model=\"gpt-4o-mini\",\n+            generation_kwargs={\"max_tokens\": 100, \"temperature\": 0.5},\n+        ),\n+        system_prompt=\"You are a helpful assistant.\",\n+        tools=[WEATHER_TOOL],\n+    ),\n+)\n+\n+def run() -> None:",
+      "id": "PRRT_kwDOTuzK5c6dFF6V",
+      "opened": "2026-08-28T06:32:00Z",
+      "path": "scenarios/gen-ai/python/haystack/scenarios/automatic_tool_calling.py",
+      "replies": [],
+      "reviewed": "9ff44d9e79b0944a63a580931f883634e9f59471",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/96#discussion_r3878418903"
+    }
+  ]
+}

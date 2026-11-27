@@ -1,0 +1,25 @@
+{
+  "head": "6509a8a55e5ce68d5d1a2b55319ca59fc342b1c6",
+  "merge": "f7bfcb336cabf30b3b2dc482c7873c782274c039",
+  "merged": "2026-03-19T01:58:09Z",
+  "missing_roots": 0,
+  "number": 16724,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👍",
+      "created": "2026-03-19T01:57:59Z",
+      "hunk": "@@ -23,7 +23,9 @@ public Resteasy30InstrumentationModule() {\n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n     return hasClassesNamed(\n+        // added in JAX-RS 2.0\n         \"javax.ws.rs.Path\",\n+        // moved to jaxrs subpackage in 3.1.0, moved back in 3.5.0, moved again in 4.0.0\n         \"org.jboss.resteasy.core.interception.PostMatchContainerRequestContext\");",
+      "id": "PRRT_kwDODJKVX851Vf22",
+      "opened": "2026-03-19T01:58:03Z",
+      "path": "instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-resteasy-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v2_0/Resteasy30InstrumentationModule.java",
+      "replies": [],
+      "reviewed": "6509a8a55e5ce68d5d1a2b55319ca59fc342b1c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16724#discussion_r2957299098"
+    }
+  ]
+}

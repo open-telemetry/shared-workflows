@@ -1,0 +1,306 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3512cc34e6b72b568c95ae5dafac512614793ada5c2494dd226d712a3164ff81",
+  "input_digest": "942d3ec2cfc354f378726a2b723b697f464036b63e81387fa1f27f83c96a3ca8",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX857ypwO",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX857ypwp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX857ypwx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5308b5ff04fc1440227278c54e7b786a804e2a6",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java"
+      ],
+      "id": "PRRT_kwDODJKVX857ypxI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5308b5ff04fc1440227278c54e7b786a804e2a6"
+      ],
+      "id": "PRRT_kwDODJKVX857ypx8",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5308b5ff04fc1440227278c54e7b786a804e2a6"
+      ],
+      "id": "PRRT_kwDODJKVX857ypxZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5308b5ff04fc1440227278c54e7b786a804e2a6"
+      ],
+      "id": "PRRT_kwDODJKVX857ypxp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5308b5ff04fc1440227278c54e7b786a804e2a6"
+      ],
+      "id": "PRRT_kwDODJKVX857ypyO",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5308b5ff04fc1440227278c54e7b786a804e2a6"
+      ],
+      "id": "PRRT_kwDODJKVX857ypyj",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirPathInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirPathInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX857ypyr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirRouteHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirRouteHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/68731c3fb0e1be0f8cad9ebd53c1ad9b9e988d7a"
+      ],
+      "id": "PRRT_kwDODJKVX857zwMD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/DirectiveInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/DirectiveInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/68731c3fb0e1be0f8cad9ebd53c1ad9b9e988d7a"
+      ],
+      "id": "PRRT_kwDODJKVX857zwMS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/68731c3fb0e1be0f8cad9ebd53c1ad9b9e988d7a"
+      ],
+      "id": "PRRT_kwDODJKVX857zwMX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/68731c3fb0e1be0f8cad9ebd53c1ad9b9e988d7a"
+      ],
+      "id": "PRRT_kwDODJKVX857zwMd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/68731c3fb0e1be0f8cad9ebd53c1ad9b9e988d7a"
+      ],
+      "id": "PRRT_kwDODJKVX857zwMh",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/180590407cde6d4bc69dd75b96f9d18c1f1b2db1/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java"
+      ],
+      "id": "PRRT_kwDODJKVX857zwMm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5308b5ff04fc1440227278c54e7b786a804e2a6/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/319d72642b0e2b9f4595bdc8417b6b55bb55740a"
+      ],
+      "id": "PRRT_kwDODJKVX858DymV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5308b5ff04fc1440227278c54e7b786a804e2a6/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/319d72642b0e2b9f4595bdc8417b6b55bb55740a"
+      ],
+      "id": "PRRT_kwDODJKVX858DymZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5308b5ff04fc1440227278c54e7b786a804e2a6/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/DirectiveInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/DirectiveInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/319d72642b0e2b9f4595bdc8417b6b55bb55740a"
+      ],
+      "id": "PRRT_kwDODJKVX858Dymb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5308b5ff04fc1440227278c54e7b786a804e2a6/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirPathInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirPathInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/319d72642b0e2b9f4595bdc8417b6b55bb55740a"
+      ],
+      "id": "PRRT_kwDODJKVX858Dymc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/319d72642b0e2b9f4595bdc8417b6b55bb55740a/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/319d72642b0e2b9f4595bdc8417b6b55bb55740a/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/319d72642b0e2b9f4595bdc8417b6b55bb55740a/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoTracingRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f3a6e73383017546babbe43e50cb274757741e3d"
+      ],
+      "id": "PRRT_kwDODJKVX859naaC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/319d72642b0e2b9f4595bdc8417b6b55bb55740a/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX859nbCu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX859nbZk",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX859nbwg",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX859ncMd",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f3a6e73383017546babbe43e50cb274757741e3d/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java"
+      ],
+      "id": "PRRT_kwDODJKVX85_dkmB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

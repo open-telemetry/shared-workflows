@@ -1,0 +1,108 @@
+{
+  "head": "c068bb4bda991e55910171e57e7b7d8366a22cee",
+  "merge": "c56f98b3ed5250b5ae5d8436818ad4f9440d960c",
+  "merged": "2026-11-04T16:12:58Z",
+  "missing_roots": 0,
+  "number": 20120,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An unchecked failure from the application logger escapes `drain()` and permanently terminates the only consumer, while `drainThreadStarted` remains `true`. Every later transformation-time record will then remain queued (and eventually be dropped). Please isolate failures per record, or reset/restart the drain worker in a `finally` block so one application logger failure cannot disable deferred logging for the JVM lifetime.",
+      "created": "2026-09-12T17:13:13Z",
+      "hunk": "@@ -0,0 +1,132 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.logging.application;\n+\n+import io.opentelemetry.javaagent.bootstrap.InternalLogger;\n+import io.opentelemetry.javaagent.bootstrap.internal.InTransformation;\n+import java.util.concurrent.ArrayBlockingQueue;\n+import java.util.concurrent.BlockingQueue;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Wraps the application logger factory so that the agent never calls into the application logging\n+ * system while a class file transformation is in progress on the current thread.\n+ *\n+ * <p>Writing a log record from inside a transformation makes the logging framework load classes,\n+ * and classes loaded in that window are defined without instrumentation - which silently disables\n+ * the instrumentation of the very framework the agent is logging through. Records produced in that\n+ * window are queued instead and emitted from a dedicated thread, where the same class loads are\n+ * instrumented normally.\n+ */\n+final class TransformSafeApplicationLoggerFactory implements InternalLogger.Factory {\n+\n+  private static final int QUEUE_CAPACITY = 1000;\n+\n+  private final InternalLogger.Factory delegate;\n+  private final BlockingQueue<DeferredLog> deferredLogs = new ArrayBlockingQueue<>(QUEUE_CAPACITY);\n+  private final AtomicBoolean drainThreadStarted = new AtomicBoolean();\n+\n+  TransformSafeApplicationLoggerFactory(InternalLogger.Factory delegate) {\n+    this.delegate = delegate;\n+  }\n+\n+  @Override\n+  public InternalLogger create(String name) {\n+    return new TransformSafeLogger(name);\n+  }\n+\n+  private void defer(\n+      String name, InternalLogger.Level level, String message, @Nullable Throwable error) {\n+    // drop the record if the queue is full, same as the in memory log store does\n+    if (deferredLogs.offer(new DeferredLog(name, level, message, error))) {\n+      startDrainThread();\n+    }\n+  }\n+\n+  private void startDrainThread() {\n+    if (drainThreadStarted.compareAndSet(false, true)) {\n+      Thread thread = new Thread(this::drain);\n+      thread.setName(\"otel-javaagent-application-logger\");\n+      thread.setDaemon(true);\n+      thread.setContextClassLoader(null);\n+      thread.start();\n+    }\n+  }\n+\n+  private void drain() {\n+    try {\n+      while (true) {\n+        DeferredLog deferredLog = deferredLogs.take();\n+        delegate\n+            .create(deferredLog.name)\n+            .log(deferredLog.level, deferredLog.message, deferredLog.error);",
+      "id": "PRRT_kwDODJKVX86hx-YC",
+      "opened": "2026-09-12T17:13:13Z",
+      "path": "javaagent-internal-logging-application/src/main/java/io/opentelemetry/javaagent/logging/application/TransformSafeApplicationLoggerFactory.java",
+      "replies": [
+        {
+          "at": "2026-09-12T18:36:18Z",
+          "body": "fixed it! ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3997163914"
+        }
+      ],
+      "reviewed": "c802e6237b9f727a70359a953a69f450f2d3d3a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3996955792"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] The new tests exercise the lock and logger wrapper separately, so they still pass if this wiring is removed or the two halves stop interacting. Please cover the causal path with a real in-process transformation that logs and verifies the class first loaded by the deferred log is transformed; `HelperInjectionTest.helpersInjectedOnBootstrapClassloader()` already installs the real agent this way without reproducing the Spring Boot race.",
+      "created": "2026-09-12T21:01:30Z",
+      "hunk": "@@ -251,7 +252,7 @@ private static AgentBuilder newAgentBuilder(ByteBuddy byteBuddy) {\n     // system property\n     String originalNexusDisabled = System.setProperty(\"net.bytebuddy.nexus.disabled\", \"true\");\n     try {\n-      return new AgentBuilder.Default(byteBuddy);\n+      return new AgentBuilder.Default(byteBuddy).with(new TransformationTrackingCircularityLock());",
+      "id": "PRRT_kwDODJKVX86hzgIa",
+      "opened": "2026-09-12T21:18:56Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-13T02:48:45Z",
+          "body": "Confirmed it's falsifiable with `.with(new TransformationTrackingCircularityLock())` removed from newAgentBuilder it fails, and it passes once restored.\r\n\r\nAdded `TransformationTrackingWiringTest`, using the in-process install pattern you pointed at. It triggers a real transformation, reads `InTransformation.get()` from inside it, and asserts that a class first loaded from a bridged agent log during that window still ends up transformed.\r\n\r\n\r\nEdit:\r\nIt lives in its own `circularityLockWiringTest` suite because it needs its own JVM -- a second in-process agent install brings a second circularity lock, which absorbs the reentrant load and masks the failure. That also keeps the test's `AgentExtension` SPI registration off the main test classpath.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3998454035"
+        }
+      ],
+      "reviewed": "0c64e69d4a699670c93dbfacf755bfea067f1c3d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3997549958"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "what do you think about returning false and dropping them?",
+      "created": "2026-09-12T22:05:17Z",
+      "hunk": "@@ -0,0 +1,137 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.logging.application;\n+\n+import io.opentelemetry.javaagent.bootstrap.InternalLogger;\n+import io.opentelemetry.javaagent.bootstrap.internal.InTransformation;\n+import java.util.concurrent.ArrayBlockingQueue;\n+import java.util.concurrent.BlockingQueue;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Wraps the application logger factory so that the agent never calls into the application logging\n+ * system while a class file transformation is in progress on the current thread.\n+ *\n+ * <p>Writing a log record from inside a transformation makes the logging framework load classes,\n+ * and classes loaded in that window are defined without instrumentation - which silently disables\n+ * the instrumentation of the very framework the agent is logging through. Records produced in that\n+ * window are queued instead and emitted from a dedicated thread, where the same class loads are\n+ * instrumented normally.\n+ */\n+final class TransformSafeApplicationLoggerFactory implements InternalLogger.Factory {\n+\n+  private static final int QUEUE_CAPACITY = 1000;\n+\n+  private final InternalLogger.Factory delegate;\n+  private final BlockingQueue<DeferredLog> deferredLogs = new ArrayBlockingQueue<>(QUEUE_CAPACITY);\n+  private final AtomicBoolean drainThreadStarted = new AtomicBoolean();\n+\n+  TransformSafeApplicationLoggerFactory(InternalLogger.Factory delegate) {\n+    this.delegate = delegate;\n+  }\n+\n+  @Override\n+  public InternalLogger create(String name) {\n+    return new TransformSafeLogger(name);\n+  }\n+\n+  private void defer(\n+      String name, InternalLogger.Level level, String message, @Nullable Throwable error) {\n+    // drop the record if the queue is full, same as the in memory log store does\n+    if (deferredLogs.offer(new DeferredLog(name, level, message, error))) {\n+      startDrainThread();\n+    }\n+  }\n+\n+  private void startDrainThread() {\n+    if (drainThreadStarted.compareAndSet(false, true)) {\n+      Thread thread = new Thread(this::drain);\n+      thread.setName(\"otel-javaagent-application-logger\");\n+      thread.setDaemon(true);\n+      thread.setContextClassLoader(null);\n+      thread.start();\n+    }\n+  }\n+\n+  private void drain() {\n+    try {\n+      while (true) {\n+        DeferredLog deferredLog = deferredLogs.take();\n+        try {\n+          delegate\n+              .create(deferredLog.name)\n+              .log(deferredLog.level, deferredLog.message, deferredLog.error);\n+        } catch (Throwable ignored) {\n+          // a failing application logger must not terminate the only consumer of the queue, that\n+          // would silently drop every record deferred from then on\n+        }\n+      }\n+    } catch (InterruptedException e) {\n+      Thread.currentThread().interrupt();\n+    }\n+  }\n+\n+  private final class TransformSafeLogger implements InternalLogger {\n+\n+    private final String name;\n+    @Nullable private volatile InternalLogger actual;\n+\n+    TransformSafeLogger(String name) {\n+      this.name = name;\n+    }\n+\n+    @Override\n+    public boolean isLoggable(InternalLogger.Level level) {\n+      if (InTransformation.get()) {\n+        // the application logging system can't be consulted here; let the caller build the record\n+        // and decide when it is actually emitted\n+        return true;",
+      "id": "PRRT_kwDODJKVX86h0G3G",
+      "opened": "2026-09-12T22:05:17Z",
+      "path": "javaagent-internal-logging-application/src/main/java/io/opentelemetry/javaagent/logging/application/TransformSafeApplicationLoggerFactory.java",
+      "replies": [
+        {
+          "at": "2026-09-12T22:09:53Z",
+          "body": "that's simpler, dropping avoids a queue and a daemon thread in every instrumented JVM, and it takes the async behavior out of the transfomation path entirely. The cost is that agent records raised during a transformation are lost in application mode  --mostly matcher and muzzle detail, though helper injection warnings would go too; those are still visible with `logging=simple`. \r\n\r\nI'd keep the bridged logger's lazy creation, since create() can also be called during a transformation and instantiating it calls LoggerFactory.getLogger itself.\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3997806577"
+        },
+        {
+          "at": "2026-09-13T04:18:56Z",
+          "body": "Pushed -- dropping now instead of deferring.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3998702433"
+        }
+      ],
+      "reviewed": "0c64e69d4a699670c93dbfacf755bfea067f1c3d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3997795200"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Avoid `withFailMessage(...)` here; the direct AssertJ boolean assertion already reports the unexpected value, and repository test guidance disallows custom failure messages.\n\nThis issue also appears in the following locations of the same file:\n- line 65\n- line 68",
+      "created": "2026-09-13T03:23:31Z",
+      "hunk": "@@ -0,0 +1,74 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.bytebuddy;\n+\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.javaagent.tooling.AgentInstaller;\n+import net.bytebuddy.agent.ByteBuddyAgent;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+\n+/**\n+ * Installs the real agent in-process (same pattern as {@code\n+ * HelperInjectionTest#helpersInjectedOnBootstrapClassloader}) and exercises the causal path the fix\n+ * depends on:\n+ *\n+ * <ol>\n+ *   <li>{@link TransformationTrackingCircularityLock}, wired into {@code\n+ *       AgentInstaller.newAgentBuilder}, is what makes {@link\n+ *       io.opentelemetry.javaagent.bootstrap.internal.InTransformation#get()} observable during a\n+ *       real Byte Buddy transformation.\n+ *   <li>That flag is what lets a bridged agent log (here, {@link WiringTestAgentExtension})\n+ *       recognize it must defer a first class load to a separate thread, instead of letting it\n+ *       happen reentrantly on the transforming thread - where Byte Buddy's own circularity lock\n+ *       would otherwise silently skip instrumenting it, forever.\n+ * </ol>\n+ *\n+ * <p>This test must run alone in its own JVM - see the {@code circularityLockWiringTest} task in\n+ * this module's build.gradle.kts. A second, independent agent installation in the same process\n+ * would bring its own, never-yet-acquired circularity lock, which would happily \"transform\" the\n+ * probe class when loaded reentrantly, masking the very bug this test exists to catch.\n+ */\n+class TransformationTrackingWiringTest {\n+\n+  @BeforeEach\n+  @AfterEach\n+  void resetGlobalOpenTelemetry() {\n+    // installBytebuddyAgent() sets the global OpenTelemetry, which can only be set once per JVM\n+    GlobalOpenTelemetry.resetForTest();\n+  }\n+\n+  @Test\n+  void aClassFirstLoadedFromABridgedLogDuringATransformationStillGetsTransformed()\n+      throws Exception {\n+    ByteBuddyAgent.install();\n+    AgentInstaller.installBytebuddyAgent(\n+        ByteBuddyAgent.getInstrumentation(), getClass().getClassLoader());\n+\n+    // loading the trigger class is itself a real, first-time Byte Buddy transformation;\n+    // WiringTestAgentExtension observes InTransformation.get() from inside it and defers loading\n+    // the probe class accordingly\n+    Class.forName(WiringTestAgentExtension.TRIGGER_CLASS, true, getClass().getClassLoader());\n+\n+    assertThat(WiringTestAgentExtension.inTransformationDuringTrigger.get())\n+        .withFailMessage(\n+            \"InTransformation.get() was false while the trigger class was being transformed\")\n+        .isTrue();",
+      "id": "PRRT_kwDODJKVX86h2Ban",
+      "opened": "2026-09-13T03:23:31Z",
+      "path": "javaagent-tooling/src/circularityLockWiringTest/java/io/opentelemetry/javaagent/tooling/bytebuddy/TransformationTrackingWiringTest.java",
+      "replies": [],
+      "reviewed": "783029d63d44cfd6ea938f855d72f5a7df864463",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r3998562666"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove the entire file `javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/internal/AgentCircularityLockTest.java` from this PR. The user explicitly requested removing this unit test because it mostly tests inherited Byte Buddy behavior. Keep `AgentCircularityLock` and all production code unchanged. Preserve the application-logging tests and the agent-backed transformation regression test; do not replace the deleted test or expand the scope. The intended change is only deletion of `AgentCircularityLockTest.java`.",
+      "created": "2026-10-18T23:40:05Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.internal;\n+\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.util.concurrent.CompletableFuture;\n+import org.junit.jupiter.api.Test;\n+\n+class AgentCircularityLockTest {",
+      "id": "PRRT_kwDODJKVX86tvxgO",
+      "opened": "2026-10-18T23:40:05Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/internal/AgentCircularityLockTest.java",
+      "replies": [],
+      "reviewed": "ed937fd50ce33df63682c3d0dcfbe0570741c1a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20120#discussion_r4309275297"
+    }
+  ]
+}

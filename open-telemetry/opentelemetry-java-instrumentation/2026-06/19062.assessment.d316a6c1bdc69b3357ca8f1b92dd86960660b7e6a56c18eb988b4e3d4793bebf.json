@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "69e5f4320f3a030591a4cfd6070b08d243207547616ab40ff09f53dfd3013c64",
+  "input_digest": "d316a6c1bdc69b3357ca8f1b92dd86960660b7e6a56c18eb988b4e3d4793bebf",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9eba80309475cbdcf1a4915a94a41dd2d552c306/instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ServerAsyncProcessorDecorator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c7e893ad77861f8848b4133bc4f347060cde9d72/instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ServerAsyncProcessorDecorator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8ae40456ccf154a34b8d03975558087d3c189ee9"
+      ],
+      "id": "PRRT_kwDODJKVX86LWnY9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9eba80309475cbdcf1a4915a94a41dd2d552c306/instrumentation/thrift-0.13/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c7e893ad77861f8848b4133bc4f347060cde9d72/instrumentation/thrift-0.13/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8ae40456ccf154a34b8d03975558087d3c189ee9"
+      ],
+      "id": "PRRT_kwDODJKVX86LWnZa",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9eba80309475cbdcf1a4915a94a41dd2d552c306/instrumentation/thrift-0.13/library/src/main/java/org/apache/thrift/AsyncProcessorUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c7e893ad77861f8848b4133bc4f347060cde9d72/instrumentation/thrift-0.13/library/src/main/java/org/apache/thrift/AsyncProcessorUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8ae40456ccf154a34b8d03975558087d3c189ee9"
+      ],
+      "id": "PRRT_kwDODJKVX86LWnZu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

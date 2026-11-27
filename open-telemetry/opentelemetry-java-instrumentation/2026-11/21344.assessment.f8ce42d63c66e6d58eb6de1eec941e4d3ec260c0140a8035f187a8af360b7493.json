@@ -1,0 +1,95 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b535cfabf72c86652dfab068d10ee02014ed4f3e3a79d110e7a383340d8a64a9",
+  "input_digest": "f8ce42d63c66e6d58eb6de1eec941e4d3ec260c0140a8035f187a8af360b7493",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4dd76bacea55442af5242b7aa74d17fb0d1cf249/instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/springcloudgateway/SpringCloudGatewayInstrumentationAutoConfigurationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/springcloudgateway/SpringCloudGatewayInstrumentationAutoConfigurationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX865NIhj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e68177b3fabf43f6226661a1c03d78275ce1189/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/main/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/main/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxServerTelemetry.java"
+      ],
+      "id": "PRRT_kwDODJKVX866PTkP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e68177b3fabf43f6226661a1c03d78275ce1189/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/main/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/main/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/main/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX866PTkR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e68177b3fabf43f6226661a1c03d78275ce1189/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e68177b3fabf43f6226661a1c03d78275ce1189/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-3.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-3.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/docs/supported-libraries.md"
+      ],
+      "id": "PRRT_kwDODJKVX866PTkT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e68177b3fabf43f6226661a1c03d78275ce1189/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-3.0/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX867c_Ov",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e68177b3fabf43f6226661a1c03d78275ce1189/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/test/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilterIntegrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/test/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilterIntegrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e68177b3fabf43f6226661a1c03d78275ce1189/smoke-tests-otel-starter/spring-boot-reactive-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractOtelReactiveSpringStarterSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/smoke-tests-otel-starter/spring-boot-reactive-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractOtelReactiveSpringStarterSmokeTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX867c_PJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f347ff9452d164f28c8a36ed2241164d4d40683d/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-3.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f347ff9452d164f28c8a36ed2241164d4d40683d/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-3.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05a153f92047392b0dc03416e93c04eaf7c13012/instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-3.0/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX8670XQ4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

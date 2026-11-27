@@ -1,0 +1,25 @@
+{
+  "head": "ba7fdf53ae047222cf430763374fc6be0edeb2e2",
+  "merge": "32fd7e02d70c856a9129fcecfd135e3c6b9c7e74",
+  "merged": "2026-10-06T19:35:15Z",
+  "missing_roots": 0,
+  "number": 20400,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\n                    equalTo(DB_NAMESPACE, Db),\n                    equalTo(DB_QUERY_TEXT, \"SELECT 3\"),\n```",
+      "created": "2026-10-06T18:16:50Z",
+      "hunk": "@@ -81,39 +80,18 @@ class SlickTest {\n             new Consumer[SpanDataAssert] {\n               override def accept(span: SpanDataAssert): Unit =\n                 span\n-                  .hasName(\n-                    if (emitStableDatabaseSemconv()) \"SELECT\"\n-                    else s\"SELECT ${Db}\"\n-                  )\n+                  .hasName(\"SELECT\")\n                   .hasKind(SpanKind.CLIENT)\n                   .hasParent(trace.getSpan(0))\n                   .hasAttributesSatisfyingExactly(\n                     equalTo(\n-                      maybeStable(DB_SYSTEM),\n-                      maybeStableDbSystemName(DbSystemIncubatingValues.H2)\n-                    ),\n-                    equalTo(maybeStable(DB_NAME), Db),\n-                    equalTo(\n-                      DB_USER,\n-                      if (emitStableDatabaseSemconv()) null else Username\n-                    ),\n-                    equalTo(\n-                      DB_CONNECTION_STRING,\n-                      if (emitStableDatabaseSemconv()) null else \"h2:mem:\"\n+                      DB_SYSTEM_NAME,\n+                      \"h2database\"\n                     ),\n-                    equalTo(\n-                      maybeStable(DB_STATEMENT),\n-                      if (emitStableDatabaseSemconv()) \"SELECT 3\"\n-                      else \"SELECT ?\"\n-                    ),\n-                    equalTo(\n-                      DB_QUERY_SUMMARY,\n-                      if (emitStableDatabaseSemconv()) \"SELECT\" else null\n-                    ),\n-                    equalTo(\n-                      maybeStable(DB_OPERATION),\n-                      if (emitStableDatabaseSemconv()) null else \"SELECT\"\n-                    )\n+                    equalTo(DB_NAMESPACE, Db),\n+\n+                    equalTo(DB_QUERY_TEXT, \"SELECT 3\"),",
+      "id": "PRRT_kwDODJKVX86pmexP",
+      "opened": "2026-10-06T18:19:10Z",
+      "path": "instrumentation/jdbc/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scalaexecutors/SlickTest.scala",
+      "replies": [],
+      "reviewed": "ba7fdf53ae047222cf430763374fc6be0edeb2e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20400#discussion_r4198917888"
+    }
+  ]
+}

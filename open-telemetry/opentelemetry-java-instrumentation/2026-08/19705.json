@@ -1,0 +1,52 @@
+{
+  "head": "60627db9a84fa423c57f8d3237e80cdcb9787873",
+  "merge": "02d33d5ae01200950e41849688d0e8c9769086c8",
+  "merged": "2026-08-20T00:36:30Z",
+  "missing_roots": 0,
+  "number": 19705,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test code must not add `@Nullable`. Remove this import and the annotations from `createConfig` and both `dbNamespace` helpers.",
+      "created": "2026-08-19T04:53:47Z",
+      "hunk": "@@ -47,6 +50,7 @@\n import java.util.concurrent.atomic.AtomicReference;\n import java.util.function.Consumer;\n import java.util.stream.Stream;\n+import javax.annotation.Nullable;",
+      "id": "PRRT_kwDODJKVX86aWX1c",
+      "opened": "2026-08-19T04:53:48Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-19T05:13:52Z",
+          "body": "Done. Removed the import and the annotations from `createConfig` and both `dbNamespace` helpers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19705#discussion_r3810228457"
+        }
+      ],
+      "reviewed": "b53e9b833d2ecf6c6e5cea8cde1d5e386942f4a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19705#discussion_r3810144732"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test code must not add `@Nullable`. Remove this import and the annotation from `dbNamespace`.",
+      "created": "2026-08-19T04:53:47Z",
+      "hunk": "@@ -39,6 +40,7 @@\n import java.util.concurrent.Callable;\n import java.util.concurrent.CompletionStage;\n import java.util.concurrent.TimeUnit;\n+import javax.annotation.Nullable;",
+      "id": "PRRT_kwDODJKVX86aWX1m",
+      "opened": "2026-08-19T04:53:48Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-19T05:13:52Z",
+          "body": "Done. Removed the import and the annotation from `dbNamespace`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19705#discussion_r3810228452"
+        }
+      ],
+      "reviewed": "b53e9b833d2ecf6c6e5cea8cde1d5e386942f4a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19705#discussion_r3810144748"
+    }
+  ]
+}

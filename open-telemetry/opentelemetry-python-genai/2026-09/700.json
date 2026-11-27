@@ -1,0 +1,55 @@
+{
+  "head": "f9c29f99a951d65cadc7d65e7d50fd5f8ad460b7",
+  "merge": "76cec7124e6f95d2d41be0ba4b54bc6329c2ef5a",
+  "merged": "2026-09-13T22:40:03Z",
+  "missing_roots": 0,
+  "number": 700,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For server-executed `tool_search_call`, this uses the output item's `id`, while `tool_search_output` below uses `call_id`. OpenAI models these as distinct fields, and the pinned semconv requires the response part ID to match the original call, so real call/response parts will not correlate. Prefer `call_id` for the call part when present, falling back to the item ID only for server tools without a call ID.",
+      "created": "2026-09-12T20:00:34Z",
+      "hunk": "@@ -298,6 +302,68 @@ def _extract_reasoning_parts(\n     return parts\n \n \n+_SERVER_TOOL_NAMES = {\n+    \"code_interpreter_call\": \"code_interpreter\",\n+    \"file_search_call\": \"file_search\",\n+    \"image_generation_call\": \"image_generation\",\n+    \"mcp_call\": \"mcp\",\n+    \"mcp_list_tools\": \"mcp_list_tools\",\n+    \"tool_search_call\": \"tool_search\",\n+    \"web_search_call\": \"web_search\",\n+}\n+\n+_SERVER_TOOL_RESPONSE_NAMES = {\n+    \"tool_search_output\": \"tool_search\",\n+}\n+\n+\n+def _extract_server_tool_part(\n+    item: object,\n+) -> ServerToolCallPart | ServerToolCallResponsePart | None:\n+    if ServerToolCallPart is None or ServerToolCallResponsePart is None:\n+        return None\n+\n+    item_type = _get_field(item, \"type\")\n+    if not isinstance(item_type, str):\n+        return None\n+    tool_name = _SERVER_TOOL_NAMES.get(item_type)\n+    response_name = _SERVER_TOOL_RESPONSE_NAMES.get(item_type)\n+    if tool_name is None and response_name is None:\n+        return None\n+    if (\n+        item_type.startswith(\"tool_search_\")\n+        and _get_field(item, \"execution\") != \"server\"\n+    ):\n+        return None\n+\n+    if isinstance(item, Mapping):\n+        payload = dict(item)\n+    else:\n+        model_dump = getattr(item, \"model_dump\", None)\n+        if not callable(model_dump):\n+            return None\n+        payload = model_dump(exclude_none=True, mode=\"json\")\n+\n+    item_id = payload.pop(\"id\", None)\n+    payload.pop(\"type\", None)\n+    name = payload.pop(\"name\", None)\n+    canonical_name = tool_name or response_name\n+    if canonical_name is None:\n+        return None\n+    payload[\"type\"] = canonical_name\n+    if response_name is not None:\n+        call_id = payload.pop(\"call_id\", None)\n+        return ServerToolCallResponsePart(\n+            server_tool_call_response=payload,\n+            id=call_id if isinstance(call_id, str) else None,\n+        )\n+    return ServerToolCallPart(\n+        name=name if isinstance(name, str) else canonical_name,\n+        server_tool_call=payload,\n+        id=item_id if isinstance(item_id, str) else None,\n+    )",
+      "id": "PRRT_kwDOSbspP86hzEYR",
+      "opened": "2026-09-12T20:00:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "2ad11d529dc9b9dc84f1d3527aa077ad739f210f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/700#discussion_r3997382827"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Every recognized server-tool item is marked `stop` regardless of its lifecycle state. OpenAI allows nonterminal states such as `in_progress`, `searching`, `interpreting`, or `generating`, plus `incomplete` and `failed`; this is especially visible when instrumenting `responses.retrieve`. The current branch therefore reports partial/failed tool items as successful output, unlike the existing message and reasoning branches. Derive the finish reason from `status`, skip nonterminal items, and account for status-less MCP list results via their `error` field.",
+      "created": "2026-09-12T20:00:34Z",
+      "hunk": "@@ -448,6 +514,16 @@ def get_output_messages_from_response(\n                         finish_reason=finish_reason,\n                     )\n                 )\n+            continue\n+\n+        if server_tool_part := _extract_server_tool_part(item):\n+            messages.append(\n+                OutputMessage(\n+                    role=Role.ASSISTANT.value,\n+                    parts=[server_tool_part],\n+                    finish_reason=\"stop\",\n+                )\n+            )",
+      "id": "PRRT_kwDOSbspP86hzEYZ",
+      "opened": "2026-09-12T20:00:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "2ad11d529dc9b9dc84f1d3527aa077ad739f210f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/700#discussion_r3997382840"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new mapping claims image generation, MCP tool listing, and server-executed tool search support, but this parameter table exercises none of those call shapes. Add SDK-valid cases for `image_generation_call`, `mcp_list_tools`, and `tool_search_call` with `execution=\"server\"` (including its `call_id`) so their canonical names, payloads, and correlation behavior cannot regress.",
+      "created": "2026-09-12T20:00:34Z",
+      "hunk": "@@ -335,6 +337,144 @@ def test_extract_output_messages_maps_parts_and_finish_reasons(loaded_module):\n     assert messages[3].parts[0].content == \"Thought step\"\n \n \n+@pytest.mark.parametrize(\n+    (\"item\", \"expected_name\", \"expected_payload\"),\n+    [\n+        (\n+            {\n+                \"id\": \"fs_1\",\n+                \"type\": \"file_search_call\",\n+                \"status\": \"completed\",\n+                \"queries\": [\"OpenTelemetry\"],\n+                \"results\": [],\n+            },\n+            \"file_search\",\n+            {\n+                \"type\": \"file_search\",\n+                \"status\": \"completed\",\n+                \"queries\": [\"OpenTelemetry\"],\n+                \"results\": [],\n+            },\n+        ),\n+        (\n+            {\n+                \"id\": \"ws_1\",\n+                \"type\": \"web_search_call\",\n+                \"status\": \"completed\",\n+                \"action\": {\"type\": \"search\", \"query\": \"OpenTelemetry\"},\n+            },\n+            \"web_search\",\n+            {\n+                \"type\": \"web_search\",\n+                \"status\": \"completed\",\n+                \"action\": {\"type\": \"search\", \"query\": \"OpenTelemetry\"},\n+            },\n+        ),\n+        (\n+            {\n+                \"id\": \"ci_1\",\n+                \"type\": \"code_interpreter_call\",\n+                \"status\": \"completed\",\n+                \"code\": \"print(1)\",\n+                \"container_id\": \"container_1\",\n+                \"outputs\": [{\"type\": \"logs\", \"logs\": \"1\"}],\n+            },\n+            \"code_interpreter\",\n+            {\n+                \"type\": \"code_interpreter\",\n+                \"status\": \"completed\",\n+                \"code\": \"print(1)\",\n+                \"container_id\": \"container_1\",\n+                \"outputs\": [{\"type\": \"logs\", \"logs\": \"1\"}],\n+            },\n+        ),\n+        (\n+            {\n+                \"id\": \"mcp_1\",\n+                \"type\": \"mcp_call\",\n+                \"status\": \"completed\",\n+                \"name\": \"get_weather\",\n+                \"server_label\": \"weather\",\n+                \"arguments\": '{\"city\":\"Seattle\"}',\n+                \"output\": \"rain\",\n+            },\n+            \"get_weather\",\n+            {\n+                \"type\": \"mcp\",\n+                \"status\": \"completed\",\n+                \"server_label\": \"weather\",\n+                \"arguments\": '{\"city\":\"Seattle\"}',\n+                \"output\": \"rain\",\n+            },\n+        ),\n+    ],",
+      "id": "PRRT_kwDOSbspP86hzEYm",
+      "opened": "2026-09-12T20:00:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_response_extractors.py",
+      "replies": [],
+      "reviewed": "2ad11d529dc9b9dc84f1d3527aa077ad739f210f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/700#discussion_r3997382858"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "982b357366da54a14c16efdd7173d595a2d5be3c8329537111800ef6cde2fedc",
+  "input_digest": "51a53f129455eb59f268435e5e7c4c35c9bb5bff1cf29723e6520533e6453bb6",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/171f03efeb793d04065deba77d074409d97f6c6f/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/171f03efeb793d04065deba77d074409d97f6c6f/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/14413b9c90a3207585f322a290bb26ab477e7d51/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/14413b9c90a3207585f322a290bb26ab477e7d51/util/opentelemetry-util-genai/src/opentelemetry/util/genai/iterator_capture.py"
+      ],
+      "id": "PRRT_kwDOSbspP86rQHHa",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/171f03efeb793d04065deba77d074409d97f6c6f/.github/instructions/instrumentation.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/14413b9c90a3207585f322a290bb26ab477e7d51/.github/instructions/instrumentation.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/39f021a8ad19cadc43c3024652906d46e8a7d1e2"
+      ],
+      "id": "PRRT_kwDOSbspP86rQHHr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

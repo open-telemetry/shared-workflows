@@ -1,0 +1,61 @@
+{
+  "head": "c60e70fc09f4c2503afca372229a403e9f2a4aaf",
+  "merge": "7f8f6042695d703f68e0a87145383a845bedd76d",
+  "merged": "2026-08-28T15:54:24Z",
+  "missing_roots": 0,
+  "number": 19840,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `hasAttributesSatisfying` silently permits unexpected attributes, so this regression test would not detect accidental extra server-span attributes from the new propagation path. Assert the complete expected server-span attribute set with `hasAttributesSatisfyingExactly(...)`.",
+      "created": "2026-08-27T01:17:26Z",
+      "hunk": "@@ -43,4 +51,62 @@ abstract class AbstractHttpServerInstrumentationTest\n     // instrumentation does not create a span at all\n     options.disableTestNonStandardHttpMethod\n   }\n+\n+  protected def configureRouteServer(options: HttpServerTestOptions): Unit = {\n+    options.setTestException(false)\n+    options.setTestPathParam(true)\n+    options.setHttpAttributes(\n+      new Function[ServerEndpoint, util.Set[AttributeKey[_]]] {\n+        override def apply(v1: ServerEndpoint): util.Set[AttributeKey[_]] =\n+          HttpServerTestOptions.DEFAULT_HTTP_ATTRIBUTES\n+      }\n+    )\n+    options.setExpectedHttpRoute(\n+      new java.util.function.BiFunction[ServerEndpoint, String, String] {\n+        override def apply(\n+            endpoint: ServerEndpoint,\n+            method: String\n+        ): String =\n+          if (endpoint eq ServerEndpoint.PATH_PARAM) \"/path/*/param\"\n+          else expectedHttpRoute(endpoint, method)\n+      }\n+    )\n+  }\n+\n+  protected def assertClientAddressWithoutForwardingHeader(): Unit = {\n+    val socket = new Socket()\n+    socket.connect(new InetSocketAddress(\"localhost\", port))\n+    socket.setSoTimeout(10000)\n+    val response =\n+      try {\n+        val requestPath = \"/\" + SUCCESS.rawPath()\n+        val request =\n+          s\"GET $requestPath HTTP/1.1\\r\\nHost: localhost:$port\\r\\nConnection: close\\r\\n\\r\\n\"\n+        socket.getOutputStream.write(request.getBytes(US_ASCII))\n+        socket.getOutputStream.flush()\n+        scala.io.Source\n+          .fromInputStream(socket.getInputStream, US_ASCII.name())\n+          .mkString\n+      } finally {\n+        socket.close()\n+      }\n+    assertThat(response).contains(\"200 OK\")\n+    assertThat(response).contains(SUCCESS.getBody)\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit =\n+        trace.hasSpansSatisfyingExactly(\n+          new Consumer[SpanDataAssert] {\n+            override def accept(span: SpanDataAssert): Unit =\n+              span.hasAttributesSatisfying(\n+                equalTo(CLIENT_ADDRESS, \"127.0.0.1\")\n+              )",
+      "id": "PRRT_kwDODJKVX86cqmOj",
+      "opened": "2026-08-27T01:17:26Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala",
+      "replies": [
+        {
+          "at": "2026-08-27T01:25:36Z",
+          "body": "Addressed in edb64868309e85556edc56f911cda36047c99092.\n\nAnalysis: The regression test checked only `client.address`, so it accepted any extra attributes on the server span. The test now uses `hasAttributesSatisfyingExactly(...)` for the full expected HTTP, URL, server, client, and network attribute set. It also verifies the span name, kind, and parent.\n\nUpsides: The test now detects unwanted attributes from the remote-address propagation path and documents the complete expected server span.\n\nDownsides: The test must be updated when the expected Akka HTTP server span attributes change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19840#discussion_r3868006927"
+        }
+      ],
+      "reviewed": "e58af548477f0fb50978b73403cac05d1576ff1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19840#discussion_r3867973548"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could also import `BiFunction`",
+      "created": "2026-08-28T14:15:44Z",
+      "hunk": "@@ -43,4 +69,82 @@ abstract class AbstractHttpServerInstrumentationTest\n     // instrumentation does not create a span at all\n     options.disableTestNonStandardHttpMethod\n   }\n+\n+  protected def configureRouteServer(options: HttpServerTestOptions): Unit = {\n+    options.setTestException(false)\n+    options.setTestPathParam(true)\n+    options.setHttpAttributes(\n+      new Function[ServerEndpoint, util.Set[AttributeKey[_]]] {\n+        override def apply(v1: ServerEndpoint): util.Set[AttributeKey[_]] =\n+          HttpServerTestOptions.DEFAULT_HTTP_ATTRIBUTES\n+      }\n+    )\n+    options.setExpectedHttpRoute(\n+      new java.util.function.BiFunction[ServerEndpoint, String, String] {",
+      "id": "PRRT_kwDODJKVX86dMexO",
+      "opened": "2026-08-28T14:15:44Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala",
+      "replies": [],
+      "reviewed": "c602b3afa4fb86c9fde161c7b5be3b6779058b94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19840#discussion_r3881293960"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess this test isn't needed any more since the base class now has `clientWithoutForwardedFor`",
+      "created": "2026-08-28T14:20:43Z",
+      "hunk": "@@ -43,4 +69,82 @@ abstract class AbstractHttpServerInstrumentationTest\n     // instrumentation does not create a span at all\n     options.disableTestNonStandardHttpMethod\n   }\n+\n+  protected def configureRouteServer(options: HttpServerTestOptions): Unit = {\n+    options.setTestException(false)\n+    options.setTestPathParam(true)\n+    options.setHttpAttributes(\n+      new Function[ServerEndpoint, util.Set[AttributeKey[_]]] {\n+        override def apply(v1: ServerEndpoint): util.Set[AttributeKey[_]] =\n+          HttpServerTestOptions.DEFAULT_HTTP_ATTRIBUTES\n+      }\n+    )\n+    options.setExpectedHttpRoute(\n+      new java.util.function.BiFunction[ServerEndpoint, String, String] {\n+        override def apply(\n+            endpoint: ServerEndpoint,\n+            method: String\n+        ): String =\n+          if (endpoint eq ServerEndpoint.PATH_PARAM) \"/path/*/param\"\n+          else expectedHttpRoute(endpoint, method)\n+      }\n+    )\n+  }\n+\n+  protected def assertClientAddressWithoutForwardingHeader(): Unit = {",
+      "id": "PRRT_kwDODJKVX86dMkyX",
+      "opened": "2026-08-28T14:20:43Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala",
+      "replies": [],
+      "reviewed": "c602b3afa4fb86c9fde161c7b5be3b6779058b94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19840#discussion_r3881330734"
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "head": "794ee6fff955295a8aeba811c0aba0a09b3fb832",
+  "merge": "d84fb211418045cd0d3a2d9c59c6803120c34b2d",
+  "merged": "2026-06-25T22:06:59Z",
+  "missing_roots": 0,
+  "number": 19034,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] When `writeOpType` is `WRITE_OP_NONE` (reflection failure for all items) and `batchSize > 0`, the ternary `writeOpType == WRITE_OP_PUT ? \"PutItem\" : \"DeleteItem\"` silently defaults to `\"DeleteItem\"`. This is incorrect — if the type cannot be determined, the operation name should fall back to the raw `\"BatchWriteItem\"` rather than guessing `\"DeleteItem\"`.\n\nWhile this scenario (reflection succeeds for counting but fails for classification) is extremely unlikely in practice, adding a guard for `WRITE_OP_NONE` makes the logic more robust and self-documenting.",
+      "created": "2026-06-18T18:09:37Z",
+      "hunk": "@@ -69,31 +79,32 @@ public void onStart(\n \n   @Nullable\n   private static String getStableOperationName(\n-      @Nullable String operation, @Nullable Long batchSize) {\n-    if (\"BatchGetItem\".equals(operation)) {\n-      return getStableBatchOperationName(batchSize, \"GetItem\", operation);\n-    }\n+      @Nullable String operation, @Nullable Long batchSize, int writeOpType) {\n     if (\"BatchWriteItem\".equals(operation)) {\n-      return getStableBatchOperationName(batchSize, \"WriteItem\", operation);\n+      return getStableWriteOperationName(batchSize, writeOpType);\n     }\n     return operation;\n   }\n \n-  private static String getStableBatchOperationName(\n-      @Nullable Long batchSize, String itemOperation, String batchOperation) {\n+  private static String getStableWriteOperationName(@Nullable Long batchSize, int writeOpType) {\n     if (batchSize == null || batchSize == 0) {\n-      return batchOperation;\n+      return \"BatchWriteItem\";\n     }\n+    String itemOp = writeOpType == WRITE_OP_PUT ? \"PutItem\" : \"DeleteItem\";\n     if (batchSize == 1) {\n-      return itemOperation;\n+      return itemOp;\n+    }\n+    // mixed operations collapse to bare BATCH (consistent with SQL/Cassandra)\n+    if (writeOpType == WRITE_OP_MIXED) {\n+      return \"BATCH\";\n     }\n-    return \"BATCH \" + itemOperation;\n+    return \"BATCH \" + itemOp;",
+      "id": "PRRT_kwDODJKVX86Kov6U",
+      "opened": "2026-06-18T18:09:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-18T18:28:55Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034/commits/1a594d342bf07f1b86b76a30ea433d8485fc908a.\n\nAdded the missing WRITE_OP_NONE fallback so unknown write-operation classification reports BatchWriteItem instead of guessing DeleteItem.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3438078911"
+        }
+      ],
+      "reviewed": "8aa4fb8a2ece9442611b737d1678e1b53e01a4b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3437978002"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Same issue as in the SDK 2.2 extractor: when `writeOpType` is `WRITE_OP_NONE` (reflection failure for all items) and `batchSize > 0`, the ternary defaults to `\"DeleteItem\"` which is incorrect. A `WRITE_OP_NONE` guard should return `\"BatchWriteItem\"` as a safe fallback.",
+      "created": "2026-06-18T18:09:38Z",
+      "hunk": "@@ -96,30 +106,31 @@ private static String getSingleCollectionName(Map<?, ?> requestItems) {\n \n   @Nullable\n   private static String getStableOperationName(\n-      @Nullable String operation, @Nullable Long batchSize) {\n-    if (\"BatchGetItem\".equals(operation)) {\n-      return getStableBatchOperationName(batchSize, \"GetItem\", operation);\n-    }\n+      @Nullable String operation, @Nullable Long batchSize, int writeOpType) {\n     if (\"BatchWriteItem\".equals(operation)) {\n-      return getStableBatchOperationName(batchSize, \"WriteItem\", operation);\n+      return getStableWriteOperationName(batchSize, writeOpType);\n     }\n     return operation;\n   }\n \n-  private static String getStableBatchOperationName(\n-      @Nullable Long batchSize, String itemOperation, String batchOperation) {\n+  private static String getStableWriteOperationName(@Nullable Long batchSize, int writeOpType) {\n     if (batchSize == null || batchSize == 0) {\n-      return batchOperation;\n+      return \"BatchWriteItem\";\n     }\n+    String itemOp = writeOpType == WRITE_OP_PUT ? \"PutItem\" : \"DeleteItem\";\n     if (batchSize == 1) {\n-      return itemOperation;\n+      return itemOp;\n+    }\n+    // mixed operations collapse to bare BATCH (consistent with SQL/Cassandra)\n+    if (writeOpType == WRITE_OP_MIXED) {\n+      return \"BATCH\";\n     }\n-    return \"BATCH \" + itemOperation;\n+    return \"BATCH \" + itemOp;",
+      "id": "PRRT_kwDODJKVX86Kov6x",
+      "opened": "2026-06-18T18:09:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-18T18:34:31Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034/commits/fc2192604c22f1c5bf4277a52f8f3cb8d4cc3351.\n\nAdded the same WRITE_OP_NONE fallback in the SDK 1.11 extractor so unknown write-operation classification reports BatchWriteItem instead of guessing DeleteItem.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3438105670"
+        }
+      ],
+      "reviewed": "8aa4fb8a2ece9442611b737d1678e1b53e01a4b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3437978047"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `writeItemRequest` is only ever called with `count == 0`, making the `count > 0` branch dead code. Its positive-count logic is identical to `putItemsRequest`. Consider simplifying this to only handle the empty case (e.g., rename to `emptyWriteItemRequest()`).",
+      "created": "2026-06-18T18:09:38Z",
+      "hunk": "@@ -97,153 +109,220 @@ void batchGetItemWithMultipleItemsUsesStableBatchAttributes()\n                     maybeStable(DB_SYSTEM), emitStableDatabaseSemconv() ? AWS_DYNAMODB : DYNAMODB),\n                 equalTo(\n                     maybeStable(DB_OPERATION),\n-                    emitStableDatabaseSemconv() ? \"BATCH GetItem\" : \"BatchGetItem\"),\n+                    emitStableDatabaseSemconv() ? scenario.stableOperation : scenario.awsOperation),\n                 equalTo(\n-                    DB_OPERATION_BATCH_SIZE, emitStableDatabaseSemconv() ? Long.valueOf(2) : null),\n-                equalTo(DB_COLLECTION_NAME, emitStableDatabaseSemconv() ? \"sometable\" : null)));\n-\n-    Object response =\n-        client.batchGetItem(\n-            new BatchGetItemRequest()\n-                .withRequestItems(\n-                    singletonMap(\n-                        \"sometable\",\n-                        new KeysAndAttributes()\n-                            .withKeys(\n-                                asList(\n-                                    singletonMap(\"key\", new AttributeValue().withS(\"value\")),\n-                                    singletonMap(\n-                                        \"key\", new AttributeValue().withS(\"anotherValue\")))))));\n-    assertRequestWithMockedResponse(\n-        response, client, \"DynamoDBv2\", \"BatchGetItem\", \"POST\", additionalAttributes);\n+                    DB_OPERATION_BATCH_SIZE,\n+                    emitStableDatabaseSemconv() ? scenario.batchSize : null),\n+                equalTo(\n+                    DB_COLLECTION_NAME,\n+                    emitStableDatabaseSemconv() && scenario.hasCollection ? \"sometable\" : null)));\n \n-    assertDurationMetric(\n-        testing(),\n-        \"io.opentelemetry.aws-sdk-1.11\",\n-        DB_SYSTEM_NAME,\n-        DB_OPERATION_NAME,\n-        DB_COLLECTION_NAME,\n-        SERVER_ADDRESS,\n-        SERVER_PORT);\n+    Object response = scenario.execute.apply(client);\n+    assertRequestWithMockedResponse(\n+        response, client, \"DynamoDBv2\", scenario.awsOperation, \"POST\", additionalAttributes);\n   }\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n-  @Test\n-  void batchGetItemWithSingleItemUsesStableItemOperation() throws ReflectiveOperationException {\n-    AmazonDynamoDB client = createClient();\n-\n-    server.enqueue(HttpResponse.of(HttpStatus.OK, MediaType.PLAIN_TEXT_UTF_8, \"{}\"));\n-\n-    List<AttributeAssertion> additionalAttributes =\n-        new ArrayList<>(\n-            asList(\n-                equalTo(\n-                    maybeStable(DB_SYSTEM), emitStableDatabaseSemconv() ? AWS_DYNAMODB : DYNAMODB),\n-                equalTo(\n-                    maybeStable(DB_OPERATION),\n-                    emitStableDatabaseSemconv() ? \"GetItem\" : \"BatchGetItem\"),\n-                equalTo(DB_COLLECTION_NAME, emitStableDatabaseSemconv() ? \"sometable\" : null)));\n-\n-    Object response =\n-        client.batchGetItem(\n-            new BatchGetItemRequest()\n-                .withRequestItems(\n-                    singletonMap(\n-                        \"sometable\",\n-                        new KeysAndAttributes()\n-                            .withKeys(\n-                                singletonList(\n-                                    singletonMap(\"key\", new AttributeValue().withS(\"value\")))))));\n-    assertRequestWithMockedResponse(\n-        response, client, \"DynamoDBv2\", \"BatchGetItem\", \"POST\", additionalAttributes);\n+  private static Stream<BatchScenario> batchScenarios() {\n+    return Stream.of(\n+        // BatchGetItem entries are keys, not explicit operations, so the stable operation name\n+        // remains the raw batch operation and db.operation.batch.size is not emitted.\n+        BatchScenario.builder(\"getItemEmpty\")\n+            .awsOperation(\"BatchGetItem\")\n+            .execute(client -> client.batchGetItem(getItemRequest(0)))\n+            .stableOperation(\"BatchGetItem\")\n+            .build(),\n+        BatchScenario.builder(\"getItemSingle\")\n+            .awsOperation(\"BatchGetItem\")\n+            .execute(client -> client.batchGetItem(getItemRequest(1)))\n+            .stableOperation(\"BatchGetItem\")\n+            .hasCollection()\n+            .build(),\n+        BatchScenario.builder(\"getItemTwo\")\n+            .awsOperation(\"BatchGetItem\")\n+            .execute(client -> client.batchGetItem(getItemRequest(2)))\n+            .stableOperation(\"BatchGetItem\")\n+            .hasCollection()\n+            .build(),\n+        BatchScenario.builder(\"writeItemEmpty\")\n+            .awsOperation(\"BatchWriteItem\")\n+            .execute(client -> client.batchWriteItem(writeItemRequest(0)))\n+            .stableOperation(\"BatchWriteItem\")\n+            .batchSize(0)\n+            .build(),\n+        // a single put request is reported as PutItem\n+        BatchScenario.builder(\"writeItemSinglePut\")\n+            .awsOperation(\"BatchWriteItem\")\n+            .execute(client -> client.batchWriteItem(putItemsRequest(1)))\n+            .stableOperation(\"PutItem\")\n+            .hasCollection()\n+            .build(),\n+        // a single delete request is reported as DeleteItem\n+        BatchScenario.builder(\"writeItemSingleDelete\")\n+            .awsOperation(\"BatchWriteItem\")\n+            .execute(client -> client.batchWriteItem(deleteItemsRequest(1)))\n+            .stableOperation(\"DeleteItem\")\n+            .hasCollection()\n+            .build(),\n+        // two put requests are reported as BATCH PutItem\n+        BatchScenario.builder(\"writeItemTwoPuts\")\n+            .awsOperation(\"BatchWriteItem\")\n+            .execute(client -> client.batchWriteItem(putItemsRequest(2)))\n+            .stableOperation(\"BATCH PutItem\")\n+            .batchSize(2)\n+            .hasCollection()\n+            .build(),\n+        // two delete requests are reported as BATCH DeleteItem\n+        BatchScenario.builder(\"writeItemTwoDeletes\")\n+            .awsOperation(\"BatchWriteItem\")\n+            .execute(client -> client.batchWriteItem(deleteItemsRequest(2)))\n+            .stableOperation(\"BATCH DeleteItem\")\n+            .batchSize(2)\n+            .hasCollection()\n+            .build(),\n+        // a batch mixing a put and a delete collapses to bare \"BATCH\"\n+        // (consistent with SQL/Cassandra mixed-operation batches)\n+        BatchScenario.builder(\"writeItemMixed\")\n+            .awsOperation(\"BatchWriteItem\")\n+            .execute(client -> client.batchWriteItem(mixedWriteItemRequest()))\n+            .stableOperation(\"BATCH\")\n+            .batchSize(2)\n+            .hasCollection()\n+            .build());\n+  }\n \n-    assertDurationMetric(\n-        testing(),\n-        \"io.opentelemetry.aws-sdk-1.11\",\n-        DB_SYSTEM_NAME,\n-        DB_OPERATION_NAME,\n-        DB_COLLECTION_NAME,\n-        SERVER_ADDRESS,\n-        SERVER_PORT);\n+  private static BatchGetItemRequest getItemRequest(int count) {\n+    if (count == 0) {\n+      return new BatchGetItemRequest().withRequestItems(emptyMap());\n+    }\n+    List<Map<String, AttributeValue>> keys = new ArrayList<>();\n+    for (int i = 0; i < count; i++) {\n+      keys.add(singletonMap(\"key\", new AttributeValue().withS(\"value\" + i)));\n+    }\n+    return new BatchGetItemRequest()\n+        .withRequestItems(singletonMap(\"sometable\", new KeysAndAttributes().withKeys(keys)));\n   }\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n-  @Test\n-  void batchWriteItemWithMultipleItemsUsesStableBatchAttributes()\n-      throws ReflectiveOperationException {\n-    AmazonDynamoDB client = createClient();\n+  private static BatchWriteItemRequest writeItemRequest(int count) {\n+    if (count == 0) {\n+      return new BatchWriteItemRequest().withRequestItems(emptyMap());\n+    }\n+    List<WriteRequest> writes = new ArrayList<>();\n+    for (int i = 0; i < count; i++) {\n+      writes.add(putRequest(\"value\" + i));\n+    }\n+    return new BatchWriteItemRequest().withRequestItems(singletonMap(\"sometable\", writes));\n+  }",
+      "id": "PRRT_kwDODJKVX86Kov7L",
+      "opened": "2026-06-18T18:09:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractDynamoDbClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-18T18:34:34Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034/commits/18d76b95e0c0422af119f2c2c527f3241489a542.\n\nRenamed the helper to emptyWriteItemRequest() and removed the unreachable positive-count branch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3438105956"
+        }
+      ],
+      "reviewed": "8aa4fb8a2ece9442611b737d1678e1b53e01a4b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3437978074"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The `WRITE_OP_NONE` fallback that was fixed in the SDK 2.2 extractor (line 90 of the v2.2 counterpart) is missing here. When `writeOpType` is `WRITE_OP_NONE` (reflection failed to classify the write requests) and `batchSize > 0`, the ternary on line 120 silently defaults to `\"DeleteItem\"` instead of falling back to `\"BatchWriteItem\"`. This is the exact same bug that was reported and fixed in the 2.2 version.",
+      "created": "2026-06-18T18:33:01Z",
+      "hunk": "@@ -96,30 +106,31 @@ private static String getSingleCollectionName(Map<?, ?> requestItems) {\n \n   @Nullable\n   private static String getStableOperationName(\n-      @Nullable String operation, @Nullable Long batchSize) {\n-    if (\"BatchGetItem\".equals(operation)) {\n-      return getStableBatchOperationName(batchSize, \"GetItem\", operation);\n-    }\n+      @Nullable String operation, @Nullable Long batchSize, int writeOpType) {\n     if (\"BatchWriteItem\".equals(operation)) {\n-      return getStableBatchOperationName(batchSize, \"WriteItem\", operation);\n+      return getStableWriteOperationName(batchSize, writeOpType);\n     }\n     return operation;\n   }\n \n-  private static String getStableBatchOperationName(\n-      @Nullable Long batchSize, String itemOperation, String batchOperation) {\n+  private static String getStableWriteOperationName(@Nullable Long batchSize, int writeOpType) {\n     if (batchSize == null || batchSize == 0) {",
+      "id": "PRRT_kwDODJKVX86KpFfI",
+      "opened": "2026-06-18T18:33:01Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-18T18:38:23Z",
+          "body": "No code change needed. This was already fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034/commits/fc2192604c22f1c5bf4277a52f8f3cb8d4cc3351.\n\nThe current PR head includes the WRITE_OP_NONE fallback in the SDK 1.11 extractor, so unknown write-operation classification falls back to BatchWriteItem.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3438125216"
+        }
+      ],
+      "reviewed": "1a594d342bf07f1b86b76a30ea433d8485fc908a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3438097992"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps it would better to make these an enum",
+      "created": "2026-06-19T10:31:03Z",
+      "hunk": "@@ -38,6 +38,12 @@ class DynamoDbAttributesExtractor implements AttributesExtractor<Request<?>, Res\n   // copied from DbIncubatingAttributes.DbSystemNameIncubatingValues\n   private static final String AWS_DYNAMODB = \"aws.dynamodb\";\n \n+  // write operation type classification",
+      "id": "PRRT_kwDODJKVX86Kzg8w",
+      "opened": "2026-06-19T10:31:03Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-19T23:54:28Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034/commits/a7835edeb8248c8677629ea4420d394b7fa8afb4.\n\nReplaced the write-operation-type integer constants with a private WriteOperationType enum in both DynamoDB extractors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3444972542"
+        }
+      ],
+      "reviewed": "18d76b95e0c0422af119f2c2c527f3241489a542",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3441858849"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the BatchGetItem key-counting path removed, `RequestAccess.getKeys(Object)` no longer has any callers (it was previously used only by the deleted `countBatchGetItems`). Its `getKeys` `MethodHandle` field and the `findAccessorOrNull(clz, \"getKeys\", List.class)` initializer in `RequestAccess` are now dead code. Consider removing them to keep the reflection accessors lean.",
+      "created": "2026-06-20T00:00:37Z",
+      "hunk": "@@ -128,36 +134,66 @@ private static Long extractBatchSize(@Nullable String operation, Object request)\n       return null;\n     }\n \n-    long batchSize =\n-        \"BatchGetItem\".equals(operation)\n-            ? countBatchGetItems(requestItems)\n-            : countBatchWriteItems(requestItems);\n-    return batchSize == 0 ? null : batchSize;\n+    long batchSize = countBatchWriteItems(requestItems);\n+    // return the size for every batch request, including an empty batch with size 0\n+    return batchSize;\n   }\n \n-  private static long countBatchGetItems(Map<?, ?> requestItems) {\n+  private static long countBatchWriteItems(Map<?, ?> requestItems) {\n     long count = 0;\n-    for (Object keysAndAttributes : requestItems.values()) {\n-      List<?> keys = RequestAccess.getKeys(keysAndAttributes);\n-      if (keys != null) {\n-        count += keys.size();\n+    for (Object writeRequests : requestItems.values()) {\n+      if (writeRequests instanceof Collection) {\n+        count += ((Collection<?>) writeRequests).size();\n       }\n     }\n     return count;\n   }",
+      "id": "PRRT_kwDODJKVX86K8Yrh",
+      "opened": "2026-06-20T00:00:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:53:28Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034/commits/794ee6fff955295a8aeba811c0aba0a09b3fb832.\n\nRemoved the unused `RequestAccess.getKeys(Object)` method, its `getKeys` `MethodHandle`, the reflective initializer, and the now-unused `List` import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3471572872"
+        }
+      ],
+      "reviewed": "a7835edeb8248c8677629ea4420d394b7fa8afb4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034#discussion_r3444984829"
+    }
+  ]
+}

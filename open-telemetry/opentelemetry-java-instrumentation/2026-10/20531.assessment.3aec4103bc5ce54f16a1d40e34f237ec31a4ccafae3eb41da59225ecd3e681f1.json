@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "647749f0f161f401520ddeec095b5ac98d4d77d3ebe2d236bc3b9bd4eb276e59",
+  "input_digest": "3aec4103bc5ce54f16a1d40e34f237ec31a4ccafae3eb41da59225ecd3e681f1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b5189c493e083483b05bf2b02ceec2cf47a748e/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7f94bc99406b35bda5397e2cf6ed53c8b5a228a6/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/6b5189c493e083483b05bf2b02ceec2cf47a748e...c7ffefb28b880fb38799732251cda264c7540eca",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7f94bc99406b35bda5397e2cf6ed53c8b5a228a6",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/94f80616f4ead60e5e07e0f89b21e2284440c72e"
+      ],
+      "id": "PRRT_kwDODJKVX86rhnP-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/94f80616f4ead60e5e07e0f89b21e2284440c72e/instrumentation/spring/spring-boot-autoconfigure/src/testDeclarativeConfig/java/io/opentelemetry/instrumentation/spring/autoconfigure/DeclarativeConfigTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/94f80616f4ead60e5e07e0f89b21e2284440c72e/instrumentation/spring/spring-boot-autoconfigure/src/testDeclarativeConfig/resources/application.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7f94bc99406b35bda5397e2cf6ed53c8b5a228a6/instrumentation/spring/spring-boot-autoconfigure/src/testDeclarativeConfig/java/io/opentelemetry/instrumentation/spring/autoconfigure/DeclarativeConfigTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7f94bc99406b35bda5397e2cf6ed53c8b5a228a6/instrumentation/spring/spring-boot-autoconfigure/src/testDeclarativeConfig/resources/application.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86rkSBD",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

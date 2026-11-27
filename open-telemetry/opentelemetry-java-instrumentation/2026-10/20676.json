@@ -1,0 +1,52 @@
+{
+  "head": "408cd8746db26dfae028fcd01cf784880a57297e",
+  "merge": "e0f4d76b39c1dd91cd5093942b522e17841cac08",
+  "merged": "2026-10-19T06:32:51Z",
+  "missing_roots": 0,
+  "number": 20676,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify this existing PR only, as explicitly requested by the user.\n\nRevert every change in `instrumentation/jetty-httpclient/jetty-httpclient-12.0/testing/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/AbstractJettyClient12Test.java` relative to this PR's merge base, including the new truncated-response test and its imports. Remove the newly added `instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractorTest.java` entirely. The user does not want that parameterized test, so do not replace or recreate it.\n\nPreserve the production HTTP error.type fix in HttpCommonAttributesExtractor, the HttpCommonAttributesGetter Javadoc clarification, and the UndertowServerTest regression assertions. Keep this PR's existing draft state. Update only stale PR-description claims about the removed shared matrix and Jetty coverage, preserving the repository template.\n\nAcceptance: neither of the two reverted test paths appears in this PR's resulting diff, while the production fix and Undertow regression remain. Do not add the shared AbstractHttpClientTest regression here. That is a separate, dependent stacked-PR deliverable, not part of this assignment. Do not dispatch another task or create an additional PR as part of this assignment.",
+      "created": "2026-10-19T03:15:25Z",
+      "hunk": "@@ -113,6 +134,80 @@ public void sendRequestWithCallback(\n         });\n   }\n \n+  @Test\n+  void responseBodyTruncatedAfterSuccessfulHeaders()",
+      "id": "PRRT_kwDODJKVX86txkba",
+      "opened": "2026-10-19T03:15:25Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-12.0/testing/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/AbstractJettyClient12Test.java",
+      "replies": [
+        {
+          "at": "2026-10-19T03:25:40Z",
+          "body": "Removed both requested test paths and preserved the production fix, getter Javadoc, and Undertow regression in `408cd874`. The PR remains draft. I could not edit the PR body with the available tools; its stale Coverage bullet remains. Suggested replacement: “Retain Undertow server regression assertions for exceptions after successful HTTP 200 responses.”",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20676#discussion_r4310071382"
+        }
+      ],
+      "reviewed": "332133486a3c7933bfc9ec15026cc90e44725773",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20676#discussion_r4310031547"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The Undertow assertion covers exception-name fallback only on a server span. The shared client/server extractor tests pass no response status for exceptions, and the duration-metric tests inject `ERROR_TYPE` directly. They therefore do not protect custom classification after successful headers or propagation of the extracted error into metrics. Please add shared client/server Instrumenter regressions for HTTP 200 plus a terminal exception, asserting the preserved status code and matching `error.type` on exported spans and duration points. Cover custom classification before exception fallback, and an error HTTP status retaining precedence over both.",
+      "created": "2026-10-19T03:35:04Z",
+      "hunk": "@@ -100,11 +100,9 @@ public void onEnd(\n     }\n \n     String errorType = null;\n-    if (statusCode != null && statusCode > 0) {\n-      if (statusCodeConverter.isError(statusCode)) {\n-        errorType = statusCode.toString();\n-      }\n-    } else {\n+    if (statusCode != null && statusCode > 0 && statusCodeConverter.isError(statusCode)) {\n+      errorType = statusCode.toString();\n+    } else if (error != null || statusCode == null || statusCode <= 0) {\n       errorType = getter.getErrorType(request, response, error);",
+      "id": "PRRT_kwDODJKVX86txv1j",
+      "opened": "2026-10-19T03:35:05Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-19T05:01:31Z",
+          "body": "adding more tests in stacked pr",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20676#discussion_r4310470108"
+        }
+      ],
+      "reviewed": "408cd8746db26dfae028fcd01cf784880a57297e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20676#discussion_r4310106517"
+    }
+  ]
+}

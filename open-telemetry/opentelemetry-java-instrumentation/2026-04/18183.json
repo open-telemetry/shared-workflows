@@ -1,0 +1,70 @@
+{
+  "head": "db86ba2499db1189250eb1cfb82f42dda826b08d",
+  "merge": "b9340c50a4a077a83c5e42a7eda8420d6972265a",
+  "merged": "2026-04-23T14:24:41Z",
+  "missing_roots": 0,
+  "number": 18183,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it's all built in to the .py script now, need to force agent to classify the PRs one-by-one in order to get good results",
+      "created": "2026-04-22T20:38:26Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX8586XL-",
+      "opened": "2026-04-22T20:38:26Z",
+      "path": ".github/agents/draft-release-notes.agent.md",
+      "replies": [],
+      "reviewed": "fa8a6b7ebbe19d964faac5134172517ab2ce4b53",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18183#discussion_r3126777854"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this model is the free-tier, but does good at this simple job",
+      "created": "2026-04-22T20:39:12Z",
+      "hunk": "@@ -0,0 +1,419 @@\n+#!/usr/bin/env python3\n+\"\"\"Classify each PR in build/changelog-bundle/prs/ into a CHANGELOG section.\n+\n+For every PR bundle produced by .github/scripts/draft-release-notes/fetch.py,\n+this script writes a per-PR decision artifact. The artifact forces a one-PR-\n+at-a-time diff-based decision before any CHANGELOG text is written, which\n+is the design intent of the draft-release-notes skill.\n+\n+Outputs per PR (under build/changelog-bundle/prs/<N>/):\n+  - prompt.md                 — LLM prompt with the diff embedded\n+  - decision.json             — structured classification (schema below)\n+  - decision.md               — human-readable rendering\n+  - cli-response.jsonl / .txt — raw copilot stdout (forensic; always written\n+                               on non-preclassify runs regardless of outcome)\n+\n+decision.json schema:\n+  {\n+    \"pr\": <int>,\n+    \"decision\": \"include\" | \"omit\",\n+    \"section\": \"breaking\" | \"deprecations\" | \"new-javaagent\"\n+             | \"new-library\" | \"enhancements\" | \"bug-fixes\" | null,\n+    \"surface\": <short phrase>,\n+    \"user_visible_effect\": <one sentence or \"none\">,\n+    \"bullet\": <final CHANGELOG sentence without PR link> | null,\n+    \"evidence\": <2-4 line verbatim quote from the diff>,\n+    \"source\": \"preclassify\" | \"llm\"\n+  }\n+\n+Invokes `copilot` (must be on PATH) per PR. Response is expected on stdout\n+as a JSON object matching the schema above (markdown code fences tolerated).\n+Model is overridable via $CLASSIFY_MODEL (default: gpt-5.4-mini).\n+\n+Run with --jobs N for parallelism (default 4).\n+Idempotent: skips PRs whose decision.json already exists unless --force.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import json\n+import os\n+import re\n+import subprocess\n+import sys\n+from concurrent.futures import ThreadPoolExecutor, as_completed\n+from dataclasses import dataclass\n+from pathlib import Path\n+\n+BUNDLE_ROOT = Path(\"build/changelog-bundle/prs\")\n+RULES_PATH = Path(__file__).resolve().parent / \"rules.md\"\n+# Initial diff cap. The build_prompt() function further trims the diff if the\n+# full prompt would exceed MAX_PROMPT_CHARS.\n+MAX_DIFF_CHARS = 20_000\n+# Hard cap on total prompt length. Windows CreateProcess rejects command\n+# lines longer than 32767 wide chars, and copilot has no stdin/@file prompt\n+# input, so the entire prompt must fit in a single argv token. We leave\n+# headroom for the copilot.exe path, flags, and argv quoting overhead.\n+MAX_PROMPT_CHARS = 24_000\n+\n+\n+VALID_SECTIONS = {\n+    \"breaking\",\n+    \"deprecations\",\n+    \"new-javaagent\",\n+    \"new-library\",\n+    \"enhancements\",\n+    \"bug-fixes\",\n+    None,\n+}\n+\n+PROMPT_TEMPLATE = \"\"\"You are classifying a single PR from the \\\n+opentelemetry-java-instrumentation repository for inclusion in CHANGELOG.md.\n+\n+Apply the classification rules below. Respond with a single JSON object \\\n+matching the schema described in those rules and nothing else (no prose, \\\n+no code fences).\n+\n+---BEGIN RULES---\n+{rules}\n+---END RULES---\n+\n+PR number: {pr}\n+Title (for link bookkeeping only, not evidence): {title}\n+\n+Changed files:\n+{files_summary}\n+\n+---BEGIN DIFF---\n+{diff}\n+---END DIFF---\n+\"\"\"\n+\n+\n+def load_rules() -> str:\n+    try:\n+        return RULES_PATH.read_text(encoding=\"utf-8\")\n+    except FileNotFoundError:\n+        sys.exit(f\"rules file not found: {RULES_PATH}\")\n+\n+\n+@dataclass\n+class PrBundle:\n+    pr: int\n+    dir: Path\n+    meta: dict\n+    diff: str\n+\n+\n+def iter_bundles() -> list[PrBundle]:\n+    if not BUNDLE_ROOT.is_dir():\n+        sys.exit(f\"{BUNDLE_ROOT} not found; run .github/scripts/draft-release-notes/fetch.py first\")\n+    out = []\n+    for d in sorted(BUNDLE_ROOT.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else 0):\n+        if not d.is_dir() or not d.name.isdigit():\n+            continue\n+        meta_path = d / \"meta.json\"\n+        diff_path = d / \"patch.diff\"\n+        if not meta_path.exists() or not diff_path.exists():\n+            continue\n+        meta = json.loads(meta_path.read_text(encoding=\"utf-8\"))\n+        diff = diff_path.read_text(encoding=\"utf-8\", errors=\"replace\")\n+        out.append(PrBundle(pr=int(d.name), dir=d, meta=meta, diff=diff))\n+    return out\n+\n+\n+# --- preclassifier ---------------------------------------------------------\n+\n+\n+def preclassify(bundle: PrBundle) -> dict | None:\n+    \"\"\"Return a decision dict if we can decide without the LLM, else None.\"\"\"\n+    if not bundle.meta.get(\"touches_src_main\"):\n+        files = [f[\"path\"] for f in bundle.meta.get(\"files\", [])]\n+        return {\n+            \"decision\": \"omit\",\n+            \"section\": None,\n+            \"surface\": \"test/build/docs only\",\n+            \"user_visible_effect\": \"none\",\n+            \"bullet\": None,\n+            \"evidence\": \"no changed paths are user-facing /src/main/: \"\n+            + \", \".join(files[:5])\n+            + (\"...\" if len(files) > 5 else \"\"),\n+            \"source\": \"preclassify\",\n+        }\n+    return None\n+\n+\n+# --- prompt + invocation ---------------------------------------------------\n+\n+def build_prompt(bundle: PrBundle, rules: str) -> str:\n+    diff = bundle.diff\n+    truncated = False\n+    if len(diff) > MAX_DIFF_CHARS:\n+        diff = diff[:MAX_DIFF_CHARS] + \"\\n...[diff truncated for length]...\\n\"\n+        truncated = True\n+    files = bundle.meta.get(\"files\", [])\n+    files_summary = \"\\n\".join(\n+        f\"  - {f['path']} (+{f.get('additions', 0)}/-{f.get('deletions', 0)})\"\n+        for f in files[:50]\n+    )\n+    if len(files) > 50:\n+        files_summary += f\"\\n  ... and {len(files) - 50} more\"\n+    if truncated:\n+        files_summary += \"\\n  (diff truncated; changed files list above is authoritative)\"\n+    prompt = PROMPT_TEMPLATE.format(\n+        rules=rules,\n+        pr=bundle.pr,\n+        title=bundle.meta.get(\"title\", \"\"),\n+        files_summary=files_summary,\n+        diff=diff,\n+    )\n+    # Enforce hard total cap. Oversized prompts come almost entirely from\n+    # pathological diffs (e.g. generated files, large snapshots); trim the\n+    # diff further and rebuild.\n+    if len(prompt) > MAX_PROMPT_CHARS:\n+        overshoot = len(prompt) - MAX_PROMPT_CHARS\n+        new_diff_len = max(1000, len(diff) - overshoot - 200)\n+        diff = diff[:new_diff_len] + \"\\n...[diff truncated for length]...\\n\"\n+        prompt = PROMPT_TEMPLATE.format(\n+            rules=rules,\n+            pr=bundle.pr,\n+            title=bundle.meta.get(\"title\", \"\"),\n+            files_summary=files_summary,\n+            diff=diff,\n+        )\n+    return prompt\n+\n+\n+def invoke_cli(prompt_text: str, timeout: int) -> tuple[int, str, str]:\n+    \"\"\"Run `copilot -p` with the prompt as a single argv token.\n+\n+    --output-format json emits JSONL whose final `result` event carries\n+    premiumRequests, which we record in decision.json.\n+    --allow-all-tools is required in non-interactive mode.\n+    Model is overridable via $CLASSIFY_MODEL.\n+    \"\"\"\n+    model = os.environ.get(\"CLASSIFY_MODEL\", \"gpt-5.4-mini\")",
+      "id": "PRRT_kwDODJKVX8586X2N",
+      "opened": "2026-04-22T20:39:12Z",
+      "path": ".github/scripts/draft-release-notes/classify.py",
+      "replies": [],
+      "reviewed": "fa8a6b7ebbe19d964faac5134172517ab2ce4b53",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18183#discussion_r3126781472"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "reverted this back to earlier simple script, keeping it around at least for now just as a backup. maybe we can turn generating release notes into an action in the future so anyone can run it even if they don't have copilot",
+      "created": "2026-04-22T20:40:04Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX8586Yn5",
+      "opened": "2026-04-22T20:40:04Z",
+      "path": ".github/scripts/draft-change-log-entries.sh",
+      "replies": [],
+      "reviewed": "fa8a6b7ebbe19d964faac5134172517ab2ce4b53",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18183#discussion_r3126785657"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I don't think we need to do the deprecation / breaking change labeling any more, will think about this more during the next release cycle and may delete that workflow then",
+      "created": "2026-04-22T20:42:06Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX8586agl",
+      "opened": "2026-04-22T20:42:06Z",
+      "path": ".github/scripts/extract-labeled-prs.sh",
+      "replies": [],
+      "reviewed": "fa8a6b7ebbe19d964faac5134172517ab2ce4b53",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18183#discussion_r3126795949"
+    }
+  ]
+}

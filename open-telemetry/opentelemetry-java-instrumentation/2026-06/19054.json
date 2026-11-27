@@ -1,0 +1,1321 @@
+{
+  "head": "d8c3f150dedc7d7cf814c2db869b49a30f9a5081",
+  "merge": "53595be2c6a93e52eda00317a140068f28059797",
+  "merged": "2026-06-25T21:37:47Z",
+  "missing_roots": 0,
+  "number": 19054,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `setSocket(null)` call is a no-op: `JedisRequest.setSocket` only updates `remoteSocketAddress` when the argument is non-null (the aggregate's address is already set in `createPipeline` from `first.getRemoteSocketAddress()`). The sibling `SyncAdvice.end` in jedis-1.4 and jedis-3.0 don't make this call. It can be removed to avoid the misleading dead line.",
+      "created": "2026-06-19T23:46:23Z",
+      "hunk": "@@ -0,0 +1,108 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v4_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jedis.common.v1_4.JedisPipelineContext;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\"redis.clients.jedis.Pipeline\", \"redis.clients.jedis.PipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"appendCommand\"), getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object pipeline) {\n+      JedisPipelineContext.enter(pipeline);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void stopCollecting() {\n+      JedisPipelineContext.exit();\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SyncAdvice {\n+\n+    public static class AdviceScope {\n+      private final Context context;\n+      private final Scope scope;\n+      private final JedisRequest request;\n+\n+      private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+        this.context = context;\n+        this.scope = scope;\n+        this.request = request;\n+      }\n+\n+      @Nullable\n+      public static AdviceScope start(Object pipeline) {\n+        List<Object> capturedRequests = JedisPipelineContext.drain(pipeline);\n+        if (capturedRequests.isEmpty()) {\n+          return null;\n+        }\n+        List<JedisRequest> requests = new ArrayList<>(capturedRequests.size());\n+        for (Object capturedRequest : capturedRequests) {\n+          requests.add((JedisRequest) capturedRequest);\n+        }\n+        JedisRequest request = JedisRequest.createPipeline(requests);\n+        Context parentContext = currentContext();\n+        if (!instrumenter().shouldStart(parentContext, request)) {\n+          return null;\n+        }\n+        Context context = instrumenter().start(parentContext, request);\n+        return new AdviceScope(context, context.makeCurrent(), request);\n+      }\n+\n+      public void end(@Nullable Throwable throwable) {\n+        scope.close();\n+        request.setSocket(null);",
+      "id": "PRRT_kwDODJKVX86K8TDP",
+      "opened": "2026-06-19T23:46:24Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-20T00:08:39Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/61bcbcdb04.\n\nRemoved the no-op socket reset from the Jedis 4 pipeline span cleanup path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3445001286"
+        }
+      ],
+      "reviewed": "a7d19779be96d702de06a8feb815dd1836b68d37",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3444954639"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This method builds an intermediate `queryTexts` list and iterates over the requests twice, whereas the equivalent `pipelineQueryText` in jedis-1.4 and jedis-4.0 collects directly into the `StringJoiner` in a single pass. Consider simplifying to a single loop for consistency (and then removing the now-unused `java.util.ArrayList` import on line 15).",
+      "created": "2026-06-19T23:46:24Z",
+      "hunk": "@@ -25,27 +29,80 @@ public abstract class JedisRequest {\n \n   public static JedisRequest create(\n       Connection connection, ProtocolCommand command, List<byte[]> args) {\n-    return new AutoValue_JedisRequest(connection, command, args);\n+    return new AutoValue_JedisRequest(connection, command, args, null, null, null);\n+  }\n+\n+  public static JedisRequest createPipeline(List<JedisRequest> requests) {\n+    JedisRequest first = requests.get(0);\n+    return new AutoValue_JedisRequest(\n+        first.getConnection(),\n+        null,\n+        emptyList(),\n+        pipelineOperationName(requests),\n+        pipelineQueryText(requests),\n+        requests.size() > 1 ? (long) requests.size() : null);\n   }\n \n   public abstract Connection getConnection();\n \n+  @Nullable\n   public abstract ProtocolCommand getCommand();\n \n   public abstract List<byte[]> getArgs();\n \n+  @Nullable\n+  abstract String getOperationNameOverride();\n+\n+  @Nullable\n+  abstract String getQueryTextOverride();\n+\n+  @Nullable\n+  public abstract Long getBatchSize();\n+\n   public String getOperationName() {\n+    String operationName = getOperationNameOverride();\n+    if (operationName != null) {\n+      return operationName;\n+    }\n     ProtocolCommand command = getCommand();\n     if (command instanceof Protocol.Command) {\n       return ((Protocol.Command) command).name();\n-    } else {\n-      // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n-      // us if that changes\n-      return new String(command.getRaw(), UTF_8);\n     }\n+    // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n+    // us if that changes\n+    return new String(command.getRaw(), UTF_8);\n   }\n \n   public String getQueryText() {\n+    String queryText = getQueryTextOverride();\n+    if (queryText != null) {\n+      return queryText;\n+    }\n     return sanitizer.sanitize(getOperationName(), getArgs());\n   }\n+\n+  private static String pipelineOperationName(List<JedisRequest> requests) {\n+    if (requests.size() == 1) {\n+      return requests.get(0).getOperationName();\n+    }\n+    String commonOperationName = requests.get(0).getOperationName();\n+    for (int i = 1; i < requests.size(); i++) {\n+      if (!commonOperationName.equals(requests.get(i).getOperationName())) {\n+        return \"PIPELINE\";\n+      }\n+    }\n+    return \"PIPELINE \" + commonOperationName;\n+  }\n+\n+  private static String pipelineQueryText(List<JedisRequest> requests) {\n+    StringJoiner joiner = new StringJoiner(\";\");\n+    List<String> queryTexts = new ArrayList<>(requests.size());\n+    for (JedisRequest request : requests) {\n+      queryTexts.add(request.getQueryText());\n+    }\n+    for (String queryText : queryTexts) {\n+      joiner.add(queryText);\n+    }",
+      "id": "PRRT_kwDODJKVX86K8TDg",
+      "opened": "2026-06-19T23:46:24Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-20T00:08:40Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1d051dede4.\n\nSimplified Jedis 3 pipeline query text generation to add each query directly to the StringJoiner.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3445001340"
+        }
+      ],
+      "reviewed": "a7d19779be96d702de06a8feb815dd1836b68d37",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3444954658"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add comment here explaining",
+      "created": "2026-06-21T01:00:57Z",
+      "hunk": "@@ -60,6 +61,9 @@ public static AdviceScope start(\n           Connection connection, ProtocolCommand command, byte[][] args) {\n         Context parentContext = currentContext();\n         JedisRequest request = JedisRequest.create(connection, command, asList(args));\n+        if (JedisPipelineContext.capture(request)) {\n+          return null;",
+      "id": "PRRT_kwDODJKVX86LDpI8",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:47Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4e6724debbf1413c5a991464b6adf415affee94a.\n\nAdded a short comment explaining that pipeline commands are captured for the batch span instead of creating individual command spans.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453902818"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447733031"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add comment explaining why this needs to be in a separate top-level class",
+      "created": "2026-06-21T01:01:27Z",
+      "hunk": "@@ -0,0 +1,37 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis;\n+\n+import redis.clients.jedis.Jedis;\n+import redis.clients.jedis.JedisPipeline;\n+\n+class Jedis14PipelineRunner extends JedisPipeline {",
+      "id": "PRRT_kwDODJKVX86LDpN7",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-1.4/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/Jedis14PipelineRunner.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:48Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4f9f6774132900e36473f00bf10d1e0abefcfeb5.\n\nDocumented why the Jedis 1.4 pipeline runner has to stay outside the shared test shape.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453902938"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447733446"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "requests.size != 1\n\nsee https://github.com/open-telemetry/semantic-conventions/pull/3811",
+      "created": "2026-06-21T01:02:51Z",
+      "hunk": "@@ -8,25 +8,68 @@\n import static java.util.Collections.emptyList;\n \n import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n import redis.clients.jedis.Connection;\n import redis.clients.jedis.Protocol;\n \n @AutoValue\n public abstract class JedisRequest {\n+  private static final RedisCommandSanitizer sanitizer =\n+      RedisCommandSanitizer.create(\n+          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"jedis\"));\n \n   public static JedisRequest create(Connection connection, Protocol.Command command) {\n-    return new AutoValue_JedisRequest(connection, command, emptyList());\n+    return create(connection, command, emptyList());\n   }\n \n   public static JedisRequest create(\n       Connection connection, Protocol.Command command, List<byte[]> args) {\n-    return new AutoValue_JedisRequest(connection, command, args);\n+    String operationName = command.name();\n+    return new AutoValue_JedisRequest(\n+        connection, operationName, sanitizer.sanitize(operationName, args), null);\n+  }\n+\n+  public static JedisRequest createPipeline(List<JedisRequest> requests) {\n+    JedisRequest first = requests.get(0);\n+    return new AutoValue_JedisRequest(\n+        first.getConnection(),\n+        pipelineOperationName(requests),\n+        pipelineQueryText(requests),\n+        requests.size() > 1 ? (long) requests.size() : null);",
+      "id": "PRRT_kwDODJKVX86LDpbe",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:50Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2593d04bac8fbf6bf83f711be021bde185412ac8.\n\nChanged the Jedis pipeline batch-size condition to use requests.size() != 1 across the supported versions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453903092"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447734517"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "these feel vague, it's hard to understand what methods they apply to",
+      "created": "2026-06-21T01:04:26Z",
+      "hunk": "@@ -0,0 +1,133 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v1_4.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jedis.common.v1_4.JedisPipelineContext;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Jedis\",\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"pipelined\").and(takesArgument(0, named(\"redis.clients.jedis.JedisPipeline\"))),\n+        getClass().getName() + \"$PipelinedAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");",
+      "id": "PRRT_kwDODJKVX86LDprD",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:52Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/19e250abc95112e7d6efda18f86c746a33e361e9.\n\nSplit the 1.4 callback-style pipeline handling away from the object-style pipeline matcher and documented the different coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453903258"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447735776"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add short comment explaining",
+      "created": "2026-06-21T01:05:13Z",
+      "hunk": "@@ -72,6 +77,9 @@ private AdviceScope(Context context, Scope scope, JedisRequest request) {\n     @Nullable\n     public static AdviceScope start(JedisRequest request) {\n       Context parentContext = currentContext();\n+      if (JedisPipelineContext.capture(request)) {\n+        return null;",
+      "id": "PRRT_kwDODJKVX86LDpw9",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:54Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/79fd4fc658099373a2eb4aad7eac01697c1d6ec7.\n\nAdded a short comment explaining the 1.4 pipeline capture branch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453903410"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447736320"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add short comment explaining",
+      "created": "2026-06-21T01:09:20Z",
+      "hunk": "@@ -66,8 +67,12 @@ private AdviceScope(Context context, Scope scope, JedisRequest request) {\n     }\n \n     @Nullable\n-    public static AdviceScope start(JedisRequest request) {\n+    public static AdviceScope start(JedisRequest request, @Nullable Socket socket) {\n       Context parentContext = currentContext();\n+      request.setSocket(socket);\n+      if (JedisPipelineContext.capture(request)) {\n+        return null;",
+      "id": "PRRT_kwDODJKVX86LDqaH",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:55Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9b23c3f774f0c2762ba4709c2ed69ea105a70774.\n\nAdded a short comment explaining the 4.0 pipeline capture branch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453903539"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447739715"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this change related to the pipelining?",
+      "created": "2026-06-21T01:09:53Z",
+      "hunk": "@@ -66,8 +67,12 @@ private AdviceScope(Context context, Scope scope, JedisRequest request) {\n     }\n \n     @Nullable\n-    public static AdviceScope start(JedisRequest request) {\n+    public static AdviceScope start(JedisRequest request, @Nullable Socket socket) {\n       Context parentContext = currentContext();\n+      request.setSocket(socket);",
+      "id": "PRRT_kwDODJKVX86LDqff",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:57Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/877207fd8dfe3d74f1f8efb51b818a69f59d2481.\n\nChanged the 4.0 send-command advice so pipeline-captured requests still reach method exit and can capture the post-send socket.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453903691"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447740163"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we get method name(s) here to make easier to follow?",
+      "created": "2026-06-21T01:14:07Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jedis.common.v1_4.JedisPipelineContext;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");",
+      "id": "PRRT_kwDODJKVX86LDrME",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:34:59Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f39b5eb126f5562182ec259f998fcc99aacfbabc.\n\nAdded comments naming the 3.0 queued-command matcher and sync matcher method groups.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453903838"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447743657"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why not capture the command here? this is a bit hard to follow since it relies on other instrumentation gettin called inside of this method",
+      "created": "2026-06-21T01:15:49Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jedis.common.v1_4.JedisPipelineContext;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object pipeline) {\n+      JedisPipelineContext.enter(pipeline);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void stopCollecting() {\n+      JedisPipelineContext.exit();\n+    }",
+      "id": "PRRT_kwDODJKVX86LDrcX",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:35:00Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1675978770a67f842dc1fd3e0bfe88b35848c213.\n\nExplained the thread-local handoff where nested Connection.sendCommand advice attaches captured requests for sync() to build the batch span.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453903978"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447745002"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is there a more direct way to implement this by using VirtualField to store the captured requests?",
+      "created": "2026-06-21T01:17:02Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jedis.common.v1_4.JedisPipelineContext;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object pipeline) {\n+      JedisPipelineContext.enter(pipeline);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void stopCollecting() {\n+      JedisPipelineContext.exit();\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SyncAdvice {\n+\n+    public static class AdviceScope {\n+      private final Context context;\n+      private final Scope scope;\n+      private final JedisRequest request;\n+\n+      private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+        this.context = context;\n+        this.scope = scope;\n+        this.request = request;\n+      }\n+\n+      @Nullable\n+      public static AdviceScope start(Object pipeline) {\n+        List<Object> capturedRequests = JedisPipelineContext.drain(pipeline);",
+      "id": "PRRT_kwDODJKVX86LDroM",
+      "opened": "2026-06-21T01:17:07Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T16:35:02Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2.\n\nSplit out a dedicated jedis-2.0 module and replaced the shared weak-map pipeline request store with version-local VirtualField-backed storage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453904168"
+        }
+      ],
+      "reviewed": "65aa7b64779876ba72c08d8807ba9e02d296b8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3447745925"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The public `currentPipeline()` accessor is never called anywhere in this module (verified across the jedis instrumentation). It is dead code — note the jedis-2.0 `JedisPipelineContext` was written without it. Consider removing this method (and the now-unused `javax.annotation.Nullable` import on line 13, which is only referenced here) to keep the helper minimal and consistent across the four modules.",
+      "created": "2026-06-22T16:45:24Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import redis.clients.jedis.PipelineBase;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<PipelineBase, CapturedRequests> requestsByPipeline =\n+      VirtualField.find(PipelineBase.class, CapturedRequests.class);\n+\n+  public static void enter(Object pipeline) {\n+    currentPipeline.set((PipelineBase) pipeline);\n+  }\n+\n+  public static void exit() {\n+    currentPipeline.remove();\n+  }\n+\n+  public static boolean capture(Object request) {\n+    PipelineBase pipeline = currentPipeline.get();\n+    if (pipeline == null) {\n+      return false;\n+    }\n+    CapturedRequests requests = requestsByPipeline.get(pipeline);\n+    if (requests == null) {\n+      requests = new CapturedRequests();\n+      requestsByPipeline.set(pipeline, requests);\n+    }\n+    requests.add(request);\n+    return true;\n+  }\n+\n+  public static List<Object> getAndClearCapturedRequests(Object pipeline) {\n+    CapturedRequests requests = requestsByPipeline.get((PipelineBase) pipeline);\n+    requestsByPipeline.set((PipelineBase) pipeline, null);\n+    return requests != null ? requests.requests() : emptyList();\n+  }\n+\n+  @Nullable\n+  public static Object currentPipeline() {\n+    return currentPipeline.get();\n+  }",
+      "id": "PRRT_kwDODJKVX86LVV12",
+      "opened": "2026-06-22T16:45:25Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:07:04Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6c24d661a42c70a1990f8a41f346118dc895f19f.\n\nRemoved the dead currentPipeline() method and the now-unused Nullable import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454082150"
+        }
+      ],
+      "reviewed": "d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453962467"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The public `currentPipeline()` accessor is never called anywhere in this module (verified across the jedis instrumentation). It is dead code — note the jedis-2.0 `JedisPipelineContext` was written without it. Consider removing this method (and the now-unused `javax.annotation.Nullable` import on line 13, which is only referenced here) to keep the helper minimal and consistent across the four modules.",
+      "created": "2026-06-22T16:45:24Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import redis.clients.jedis.PipelineBase;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<PipelineBase, CapturedRequests> requestsByPipeline =\n+      VirtualField.find(PipelineBase.class, CapturedRequests.class);\n+\n+  public static void enter(Object pipeline) {\n+    currentPipeline.set((PipelineBase) pipeline);\n+  }\n+\n+  public static void exit() {\n+    currentPipeline.remove();\n+  }\n+\n+  public static boolean capture(Object request) {\n+    PipelineBase pipeline = currentPipeline.get();\n+    if (pipeline == null) {\n+      return false;\n+    }\n+    CapturedRequests requests = requestsByPipeline.get(pipeline);\n+    if (requests == null) {\n+      requests = new CapturedRequests();\n+      requestsByPipeline.set(pipeline, requests);\n+    }\n+    requests.add(request);\n+    return true;\n+  }\n+\n+  public static List<Object> getAndClearCapturedRequests(Object pipeline) {\n+    CapturedRequests requests = requestsByPipeline.get((PipelineBase) pipeline);\n+    requestsByPipeline.set((PipelineBase) pipeline, null);\n+    return requests != null ? requests.requests() : emptyList();\n+  }\n+\n+  @Nullable\n+  public static Object currentPipeline() {\n+    return currentPipeline.get();\n+  }",
+      "id": "PRRT_kwDODJKVX86LVV2R",
+      "opened": "2026-06-22T16:45:25Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:07:06Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5289b67fef3d2d347c8acc3da21d4a2bdb51fdd6.\n\nRemoved the dead currentPipeline() method and the now-unused Nullable import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454082285"
+        }
+      ],
+      "reviewed": "d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453962499"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `socket` parameter added to `start` is never used in the method body — the socket is captured separately at method exit via the `@Advice.FieldValue(\"socket\")` parameters of the `stopSpan` methods (lines 120/143) and applied in `end`. As a result the `@Advice.FieldValue(\"socket\")` reads in both `onEnter` methods (lines 114/137) and the value passed at the call sites (lines 115/138) are also dead. Consider reverting `start` to take only the `JedisRequest` and dropping the unused `socket` reads from `onEnter`, so the entry-time socket no longer appears to be used.",
+      "created": "2026-06-22T16:45:24Z",
+      "hunk": "@@ -55,19 +55,24 @@ public void transform(TypeTransformer transformer) {\n   }\n \n   public static class AdviceScope {\n-    private final Context context;\n-    private final Scope scope;\n+    @Nullable private final Context context;\n+    @Nullable private final Scope scope;\n     private final JedisRequest request;\n \n-    private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+    private AdviceScope(@Nullable Context context, @Nullable Scope scope, JedisRequest request) {\n       this.context = context;\n       this.scope = scope;\n       this.request = request;\n     }\n \n     @Nullable\n-    public static AdviceScope start(JedisRequest request) {\n+    public static AdviceScope start(JedisRequest request, @Nullable Socket socket) {",
+      "id": "PRRT_kwDODJKVX86LVV2d",
+      "opened": "2026-06-22T16:45:25Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:07:07Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bc2078978eef5fd90c90f6c384a0dc250e71cd7a.\n\nReverted start() to take only the JedisRequest and dropped the unused entry-time socket reads from both onEnter methods.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454082447"
+        }
+      ],
+      "reviewed": "d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453962522"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description states it adds pipeline instrumentation for \"Jedis 1.4, 3.0, and 4.0\", but the changes also introduce an entirely new `jedis-2.0` javaagent module (this include, plus a full set of new source/test files) and narrow the existing `jedis-1.4` muzzle/classloader range from `[1.4.0, 3.0.0)` to `[1.4.0, 2.0.0)`. The new `jedis-2.0` module is also absent from the validation command list in the description. Consider updating the description so reviewers are aware of the new module and confirm its tests were exercised.",
+      "created": "2026-06-22T16:45:25Z",
+      "hunk": "@@ -395,7 +395,7 @@ include(\":instrumentation:jdbc:javaagent\")\n include(\":instrumentation:jdbc:library\")\n include(\":instrumentation:jdbc:testing\")\n include(\":instrumentation:jedis:jedis-1.4:javaagent\")\n-include(\":instrumentation:jedis:jedis-1.4:testing\")\n+include(\":instrumentation:jedis:jedis-2.0:javaagent\")",
+      "id": "PRRT_kwDODJKVX86LVV2x",
+      "opened": "2026-06-22T16:45:25Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-22T17:07:09Z",
+          "body": "Thanks — updating the PR description to call out the new jedis-2.0 module, the jedis-1.4 muzzle narrowing to [1.4.0, 2.0.0), and to add jedis-2.0 to the validation commands. No code change needed for this comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454082592"
+        }
+      ],
+      "reviewed": "d00d4c9f070b875d0bd5d5e7d230d8eb9ed090b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3453962545"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Narrowing the muzzle range to `[1.4.0,2.0.0)` while removing the `latestDepTestLibrary(\"redis.clients:jedis:2.+\")` line leaves this module with no latest-dep version cap. When `-PtestLatestDeps=true`, the `library(\"redis.clients:jedis:1.4.0\")` dependency is rewritten to `latest.release` (see `conventions/.../io.opentelemetry.instrumentation.base.gradle.kts`), so the latestDeps build of this module would resolve the newest Jedis (5.x/6.x). That version no longer ships `redis.clients.jedis.JedisPipeline` (used by this module's test) and is outside the module's muzzle range, so the latestDeps test would break. The sibling modules keep a cap (`jedis-2.0` → `2.+`, `jedis-3.0` → `3.+`); this module should cap at `1.+` to match the new range.",
+      "created": "2026-06-22T17:27:32Z",
+      "hunk": "@@ -19,23 +19,12 @@ dependencies {\n \n   implementation(project(\":instrumentation:jedis:jedis-common-1.4:javaagent\"))\n \n-  testImplementation(project(\":instrumentation:jedis:jedis-1.4:testing\"))\n+  testImplementation(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n+  testImplementation(\"org.testcontainers:testcontainers\")\n \n+  testInstrumentation(project(\":instrumentation:jedis:jedis-2.0:javaagent\"))\n   testInstrumentation(project(\":instrumentation:jedis:jedis-3.0:javaagent\"))\n   testInstrumentation(project(\":instrumentation:jedis:jedis-4.0:javaagent\"))",
+      "id": "PRRT_kwDODJKVX86LV-Rr",
+      "opened": "2026-06-22T17:27:33Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-22T18:30:06Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bd58eead2a8285907493106ab483e70ee261260c.\n\nAdded `latestDepTestLibrary(\"redis.clients:jedis:1.+\")` so the latestDeps build stays within the 1.x range.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454575574"
+        }
+      ],
+      "reviewed": "bc2078978eef5fd90c90f6c384a0dc250e71cd7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454189290"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new `jedis-2.0` module appears to be missing two pieces of the new-module setup that the sibling Jedis modules have:\n1. There is no `instrumentation/jedis/jedis-2.0/metadata.yaml`, whereas `jedis-1.4`, `jedis-3.0`, and `jedis-4.0` each have one at their module root.\n2. Its `test` / `testStableSemconv` tasks are not registered in `.github/scripts/instrumentations.sh` (the other Jedis modules are listed there, e.g. `jedis:jedis-1.4:javaagent:test`/`testStableSemconv`), so this module's telemetry metadata will not be collected by the docs/metadata tooling.\n\nConsider adding the `metadata.yaml` and the `jedis:jedis-2.0:javaagent:test` and `jedis:jedis-2.0:javaagent:testStableSemconv` entries so the module is consistent with its siblings.",
+      "created": "2026-06-22T17:27:33Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"redis.clients\")\n+    module.set(\"jedis\")\n+    versions.set(\"[2.0.0,3.0.0)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+dependencies {\n+  library(\"redis.clients:jedis:2.0.0\")\n+\n+  compileOnly(\"com.google.auto.value:auto-value-annotations\")\n+  annotationProcessor(\"com.google.auto.value:auto-value\")\n+\n+  implementation(project(\":instrumentation:jedis:jedis-common-1.4:javaagent\"))\n+\n+  testImplementation(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n+  testImplementation(\"org.testcontainers:testcontainers\")\n+\n+  testInstrumentation(project(\":instrumentation:jedis:jedis-1.4:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:jedis:jedis-3.0:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:jedis:jedis-4.0:javaagent\"))\n+\n+  latestDepTestLibrary(\"redis.clients:jedis:2.+\") // see jedis-3.0 module\n+}\n+\n+tasks {\n+  withType<Test>().configureEach {\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+  }\n+\n+  val testStableSemconv by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=database,service.peer\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database,service.peer\")\n+  }",
+      "id": "PRRT_kwDODJKVX86LV-SX",
+      "opened": "2026-06-22T17:27:33Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-22T18:30:15Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/674db3b4d76950c57ff63b0da0d32672957cfc23.\n\nAdded `instrumentation/jedis/jedis-2.0/metadata.yaml` (matching the sibling modules) and registered `jedis:jedis-2.0:javaagent:test`/`testStableSemconv` in `.github/scripts/instrumentations.sh`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454576698"
+        }
+      ],
+      "reviewed": "bc2078978eef5fd90c90f6c384a0dc250e71cd7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454189349"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `typeMatcher` includes `MultiKeyPipelineBase`, and the `QueueCommandAdvice` is applied to every public method returning `Response`. In Jedis 3.x, `Transaction` also extends `MultiKeyPipelineBase` and inherits those `Response`-returning command methods from the base classes, so issuing commands inside a `MULTI`/`EXEC` transaction will call `JedisPipelineContext.enter(...)` and have each command captured by `JedisPipelineContext.capture(...)` — which suppresses the per-command span. However, `Transaction` is completed via `exec()`/`discard()`, not `sync()`/`syncAndReturnAll()`, so the `SyncAdvice` never fires and no aggregated batch span is ever produced. The net effect is that transaction command spans, which were previously emitted by the `Connection.sendCommand` instrumentation, would be silently dropped. Please verify the transaction path; the `jedis-2.0` and `jedis-4.0` modules use the same capture approach and should be checked as well (note `jedis-2.0` casts to `Pipeline`, which behaves differently for `Transaction`).",
+      "created": "2026-06-22T17:27:33Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }",
+      "id": "PRRT_kwDODJKVX86LV-Sp",
+      "opened": "2026-06-22T17:27:33Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T18:30:26Z",
+          "body": "Good catch — fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b2a0061374fa87c2ddb6a6f1662fefc57ef268b0.\n\nVerified all three modules:\n- **jedis-3.0**: real bug. The context casts to `PipelineBase`, and a 3.x `Transaction` is a `PipelineBase`, so its commands were captured but never flushed (no `sync()`), dropping the spans. Now `enter()` is gated on `pipeline instanceof Pipeline`, so transaction commands keep their per-command spans.\n- **jedis-2.0**: was functional but only because the `(Pipeline)` cast in `enter()` threw a `ClassCastException` that `suppress = Throwable.class` swallowed on every transaction command. Added the same `instanceof Pipeline` guard so it no longer relies on a thrown/suppressed exception.\n- **jedis-4.0**: unaffected — its matcher only targets `Pipeline`/`PipelineBase` and instruments `appendCommand`; a 4.x `Transaction` (extends `TransactionBase`) is never matched.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454577846"
+        }
+      ],
+      "reviewed": "bc2078978eef5fd90c90f6c384a0dc250e71cd7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3454189378"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // added in 2.0\n```",
+      "created": "2026-06-22T21:20:30Z",
+      "hunk": "@@ -24,8 +24,8 @@ public JedisInstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    // added in 3.0\n-    return not(hasClassesNamed(\"redis.clients.jedis.commands.ProtocolCommand\"));\n+    // Response was added in 2.0",
+      "id": "PRRT_kwDODJKVX86LZpmV",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:24Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/10cdbf3709.\n\nSimplified the comment to `// added in 2.0`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455773234"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455511565"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "other than `return not(hasClassesNamed(\"redis.clients.jedis.Response\"));`\n\ndo we need any of these other changes to 1.4 module?",
+      "created": "2026-06-22T21:21:59Z",
+      "hunk": "@@ -5,19 +5,12 @@\n \n package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n \n-import io.opentelemetry.api.GlobalOpenTelemetry;\n-import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n import io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues;\n import javax.annotation.Nullable;\n \n final class JedisDbAttributesGetter implements DbClientAttributesGetter<JedisRequest, Void> {\n \n-  private static final RedisCommandSanitizer sanitizer =\n-      RedisCommandSanitizer.create(\n-          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"jedis\"));\n-",
+      "id": "PRRT_kwDODJKVX86LZqvE",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:18Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/088bf0ee91.\n\nReverted the JedisRequest/JedisDbAttributesGetter changes to main; jedis-1.4 source now differs from main only by the classLoaderMatcher.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455772510"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455517823"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        if (JedisPipelineContext.capture(request)) {\n          // Capture pipeline commands for the batch span instead of starting an individual span.\n```",
+      "created": "2026-06-22T21:23:32Z",
+      "hunk": "@@ -60,6 +60,10 @@ public static AdviceScope start(\n           Connection connection, ProtocolCommand command, byte[][] args) {\n         Context parentContext = currentContext();\n         JedisRequest request = JedisRequest.create(connection, command, asList(args));\n+        // Capture pipeline commands for the batch span instead of starting an individual span.\n+        if (JedisPipelineContext.capture(request)) {",
+      "id": "PRRT_kwDODJKVX86LZsEW",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:22Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7d4674f68e.\n\nMoved the comment inside the if block.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455773016"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455525352"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "better name for this field, see naming convention for VirtualFields",
+      "created": "2026-06-22T21:24:29Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import redis.clients.jedis.Pipeline;\n+import redis.clients.jedis.PipelineBase;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<PipelineBase, CapturedRequests> requestsByPipeline =",
+      "id": "PRRT_kwDODJKVX86LZszb",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:14Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ad702987da.\n\nRenamed the VirtualField to the constant CAPTURED_REQUESTS.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455772097"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455529552"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is Object needed throughout this class, or can this be better typed throughout?",
+      "created": "2026-06-22T21:25:00Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import redis.clients.jedis.Pipeline;\n+import redis.clients.jedis.PipelineBase;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<PipelineBase, CapturedRequests> requestsByPipeline =\n+      VirtualField.find(PipelineBase.class, CapturedRequests.class);\n+\n+  public static void enter(Object pipeline) {",
+      "id": "PRRT_kwDODJKVX86LZtUp",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:21Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e82f9cda4f.\n\nTyped it throughout: PipelineBase for the pipeline and JedisRequest for the captured requests (advices now use @Advice.This PipelineBase), removing the Object casts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455772861"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455532300"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "reprhase\n\nAttaches thread-local which is used by ...",
+      "created": "2026-06-22T21:26:02Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // Queued pipeline command methods return Response.\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object pipeline) {\n+      // The nested Connection.sendCommand advice uses this thread-local pipeline to attach\n+      // captured requests, which sync() consumes to construct the batch span.",
+      "id": "PRRT_kwDODJKVX86LZuFc",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:26Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b39d8feee8.\n\nRephrased the comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455773390"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455536573"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this an empty batch? why not capture as empty batch (https://github.com/open-telemetry/semantic-conventions/pull/3811)?",
+      "created": "2026-06-22T21:27:02Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // Queued pipeline command methods return Response.\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object pipeline) {\n+      // The nested Connection.sendCommand advice uses this thread-local pipeline to attach\n+      // captured requests, which sync() consumes to construct the batch span.\n+      JedisPipelineContext.enter(pipeline);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void stopCollecting() {\n+      JedisPipelineContext.exit();\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SyncAdvice {\n+\n+    public static class AdviceScope {\n+      private final Context context;\n+      private final Scope scope;\n+      private final JedisRequest request;\n+\n+      private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+        this.context = context;\n+        this.scope = scope;\n+        this.request = request;\n+      }\n+\n+      @Nullable\n+      public static AdviceScope start(Object pipeline) {\n+        List<Object> capturedRequests = JedisPipelineContext.getAndClearCapturedRequests(pipeline);\n+        if (capturedRequests.isEmpty()) {\n+          return null;",
+      "id": "PRRT_kwDODJKVX86LZu5K",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:27Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7b831253ce.\n\nAn empty pipeline does no I/O and has no captured request to source the connection (server attributes) from, so it is not reported as a batch span; documented this across the 2.0/3.0/4.0 modules.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455773526"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455541071"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think we cleaned this up elsewhere to only have getOperationName, and pre-populate, and don't need command/args?",
+      "created": "2026-06-22T21:27:50Z",
+      "hunk": "@@ -25,27 +28,76 @@ public abstract class JedisRequest {\n \n   public static JedisRequest create(\n       Connection connection, ProtocolCommand command, List<byte[]> args) {\n-    return new AutoValue_JedisRequest(connection, command, args);\n+    return new AutoValue_JedisRequest(connection, command, args, null, null, null);\n+  }\n+\n+  public static JedisRequest createPipeline(List<JedisRequest> requests) {\n+    JedisRequest first = requests.get(0);\n+    return new AutoValue_JedisRequest(\n+        first.getConnection(),\n+        null,\n+        emptyList(),\n+        pipelineOperationName(requests),\n+        pipelineQueryText(requests),\n+        requests.size() != 1 ? (long) requests.size() : null);\n   }\n \n   public abstract Connection getConnection();\n \n+  @Nullable\n   public abstract ProtocolCommand getCommand();\n \n   public abstract List<byte[]> getArgs();\n \n+  @Nullable\n+  abstract String getOperationNameOverride();",
+      "id": "PRRT_kwDODJKVX86LZvhG",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:23Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/234816dfbe.\n\nJedisRequest now precomputes operationName/queryText at create() and no longer stores command/args or override fields.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455773143"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455544604"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "revert this diff (just to keep diff reduced in this pr",
+      "created": "2026-06-22T21:28:10Z",
+      "hunk": "@@ -25,27 +28,76 @@ public abstract class JedisRequest {\n \n   public static JedisRequest create(\n       Connection connection, ProtocolCommand command, List<byte[]> args) {\n-    return new AutoValue_JedisRequest(connection, command, args);\n+    return new AutoValue_JedisRequest(connection, command, args, null, null, null);\n+  }\n+\n+  public static JedisRequest createPipeline(List<JedisRequest> requests) {\n+    JedisRequest first = requests.get(0);\n+    return new AutoValue_JedisRequest(\n+        first.getConnection(),\n+        null,\n+        emptyList(),\n+        pipelineOperationName(requests),\n+        pipelineQueryText(requests),\n+        requests.size() != 1 ? (long) requests.size() : null);\n   }\n \n   public abstract Connection getConnection();\n \n+  @Nullable\n   public abstract ProtocolCommand getCommand();\n \n   public abstract List<byte[]> getArgs();\n \n+  @Nullable\n+  abstract String getOperationNameOverride();\n+\n+  @Nullable\n+  abstract String getQueryTextOverride();\n+\n+  @Nullable\n+  public abstract Long getBatchSize();\n+\n   public String getOperationName() {\n+    String operationName = getOperationNameOverride();\n+    if (operationName != null) {\n+      return operationName;\n+    }\n     ProtocolCommand command = getCommand();\n     if (command instanceof Protocol.Command) {\n       return ((Protocol.Command) command).name();\n-    } else {\n-      // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n-      // us if that changes\n-      return new String(command.getRaw(), UTF_8);\n     }\n+    // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n+    // us if that changes\n+    return new String(command.getRaw(), UTF_8);",
+      "id": "PRRT_kwDODJKVX86LZvx2",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:29Z",
+          "body": "No code change needed here \\u2014 the override-based getOperationName() this flagged was removed entirely in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/234816dfbe (JedisRequest now precomputes operation name/query text).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455773662"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455546029"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-06-22T21:28:46Z",
+      "hunk": "@@ -23,6 +23,7 @@ dependencies {\n   // ensures jedis-1.4 instrumentation does not load with jedis 3.0+ by failing\n   // the tests in the event it does. The tests will end up with double spans",
+      "id": "PRRT_kwDODJKVX86LZwMH",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:16Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9de66206d9.\n\nRemoved the stale double-spans comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455772353"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455548399"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "similar to earlier comment, better field name here",
+      "created": "2026-06-22T21:29:13Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import redis.clients.jedis.Pipeline;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<Pipeline> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<Pipeline, CapturedRequests> requestsByPipeline =\n+      VirtualField.find(Pipeline.class, CapturedRequests.class);",
+      "id": "PRRT_kwDODJKVX86LZwlM",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:15Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7ebff145b1.\n\nRenamed the VirtualField to the constant CAPTURED_REQUESTS, matching jedis-3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455772241"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455550510"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "same here about simplifying, precalc and just expose getOperationName/getQueryText",
+      "created": "2026-06-22T21:30:06Z",
+      "hunk": "@@ -85,21 +107,58 @@ private static JedisConnectionInfo getConnectionInfo(@Nullable Object connection\n   @Nullable\n   public abstract Long getDatabaseIndex();\n \n+  @Nullable\n+  abstract String getOperationNameOverride();\n+\n+  @Nullable\n+  abstract String getQueryTextOverride();",
+      "id": "PRRT_kwDODJKVX86LZxWQ",
+      "opened": "2026-06-22T21:30:22Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:17:19Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/795aa64f6b.\n\nSame precompute cleanup as jedis-3.0 applied to jedis-4.0 JedisRequest.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455772711"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455554791"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description states it \"add[s] pipeline instrumentation for Jedis 1.4, 2.0, 3.0, and 4.0\", but the `jedis-1.4` module does not receive pipeline span aggregation in this change. It is rescoped to `[1.4.0,2.0.0)` (versions without `redis.clients.jedis.Response`), and there is no `JedisPipelineInstrumentation`/`JedisPipelineContext` here, nor any `createPipeline`/`getBatchSize` support in its `JedisRequest`. Pipeline aggregation is only added to the `jedis-2.0`, `jedis-3.0`, and `jedis-4.0` modules. Consider updating the description to list only `Jedis 2.0, 3.0, and 4.0` to avoid implying 1.x pipelines are aggregated.",
+      "created": "2026-06-22T21:31:29Z",
+      "hunk": "@@ -6,7 +6,7 @@ muzzle {\n   pass {\n     group.set(\"redis.clients\")\n     module.set(\"jedis\")\n-    versions.set(\"[1.4.0,3.0.0)\")\n+    versions.set(\"[1.4.0,2.0.0)\")",
+      "id": "PRRT_kwDODJKVX86LZyaL",
+      "opened": "2026-06-22T21:31:29Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-22T22:46:34Z",
+          "body": "Good catch - the code is intentionally scoped (jedis-1.4 has no pipeline aggregation). Updated the PR description to list pipeline instrumentation for Jedis 2.0, 3.0, and 4.0 only.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455904234"
+        }
+      ],
+      "reviewed": "1a07c7b0e838b6a9e2c308e5726a6201e2dec4a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455560836"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says it adds \"pipeline instrumentation for Jedis 1.4, 2.0, 3.0, and 4.0\", but the `jedis-1.4` module does not actually gain pipeline aggregation in this PR — no `JedisPipelineInstrumentation`/`JedisPipelineContext` is added under `v1_4`, and the capture approach relies on `redis.clients.jedis.Response`, which (as this very `classLoaderMatcher` change notes) only exists in 2.0+. The `jedis-1.4` changes here are scope-narrowing (muzzle/classloader to `[1.4.0,2.0.0)`) and the test rewrite, not pipeline support. Consider correcting the description so reviewers/users don't expect 1.x pipeline aggregation (the code is correct; the description wording is what's inaccurate).",
+      "created": "2026-06-22T22:30:02Z",
+      "hunk": "@@ -24,8 +24,8 @@ public JedisInstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    // added in 3.0\n-    return not(hasClassesNamed(\"redis.clients.jedis.commands.ProtocolCommand\"));\n+    // added in 2.0\n+    return not(hasClassesNamed(\"redis.clients.jedis.Response\"));",
+      "id": "PRRT_kwDODJKVX86Lah4-",
+      "opened": "2026-06-22T22:30:02Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:46:35Z",
+          "body": "Good catch - the code is intentionally scoped (jedis-1.4 has no pipeline aggregation). Updated the PR description to list pipeline instrumentation for Jedis 2.0, 3.0, and 4.0 only.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455904314"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455831476"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "revert this change to reduce PR diff",
+      "created": "2026-06-22T22:53:37Z",
+      "hunk": "@@ -85,19 +98,41 @@ private static JedisConnectionInfo getConnectionInfo(@Nullable Object connection\n   @Nullable\n   public abstract Long getDatabaseIndex();\n \n-  public String getOperationName() {\n-    ProtocolCommand command = getCommand();\n+  public abstract String getOperationName();\n+\n+  public abstract String getQueryText();\n+\n+  @Nullable\n+  public abstract Long getBatchSize();\n+\n+  private static String operationName(ProtocolCommand command) {\n     if (command instanceof Protocol.Command) {\n       return ((Protocol.Command) command).name();\n-    } else {\n-      // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n-      // us if that changes\n-      return new String(command.getRaw(), UTF_8);\n     }\n+    // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n+    // us if that changes\n+    return new String(command.getRaw(), UTF_8);",
+      "id": "PRRT_kwDODJKVX86La0LJ",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:45Z",
+          "body": "Done — restored the `} else {` block, keeping the precompute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456135769"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455938001"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is Object needed here?",
+      "created": "2026-06-22T22:54:20Z",
+      "hunk": "@@ -0,0 +1,108 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v4_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\"redis.clients.jedis.Pipeline\", \"redis.clients.jedis.PipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"appendCommand\"), getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object pipeline) {\n+      JedisPipelineContext.enter(pipeline);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void stopCollecting() {\n+      JedisPipelineContext.exit();\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SyncAdvice {\n+\n+    public static class AdviceScope {\n+      private final Context context;\n+      private final Scope scope;\n+      private final JedisRequest request;\n+\n+      private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+        this.context = context;\n+        this.scope = scope;\n+        this.request = request;\n+      }\n+\n+      @Nullable\n+      public static AdviceScope start(Object pipeline) {",
+      "id": "PRRT_kwDODJKVX86La02s",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:46Z",
+          "body": "Done — typed both advices to `redis.clients.jedis.Pipeline`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456135824"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455941941"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is Object needed throughout?",
+      "created": "2026-06-22T22:54:43Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import redis.clients.jedis.Pipeline;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<Pipeline> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<Pipeline, CapturedRequests> CAPTURED_REQUESTS =\n+      VirtualField.find(Pipeline.class, CapturedRequests.class);\n+\n+  public static void enter(Object pipeline) {",
+      "id": "PRRT_kwDODJKVX86La1MK",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:48Z",
+          "body": "Done — typed the context to `Pipeline`/`JedisRequest` and dropped the casts + copy-loop.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456135905"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455943958"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "revert this style change to reduce PR diff",
+      "created": "2026-06-22T22:56:22Z",
+      "hunk": "@@ -25,27 +27,56 @@ public abstract class JedisRequest {\n \n   public static JedisRequest create(\n       Connection connection, ProtocolCommand command, List<byte[]> args) {\n-    return new AutoValue_JedisRequest(connection, command, args);\n+    String operationName = operationName(command);\n+    return new AutoValue_JedisRequest(\n+        connection, operationName, sanitizer.sanitize(operationName, args), null);\n+  }\n+\n+  public static JedisRequest createPipeline(List<JedisRequest> requests) {\n+    JedisRequest first = requests.get(0);\n+    return new AutoValue_JedisRequest(\n+        first.getConnection(),\n+        pipelineOperationName(requests),\n+        pipelineQueryText(requests),\n+        requests.size() != 1 ? (long) requests.size() : null);\n   }\n \n   public abstract Connection getConnection();\n \n-  public abstract ProtocolCommand getCommand();\n+  public abstract String getOperationName();\n \n-  public abstract List<byte[]> getArgs();\n+  public abstract String getQueryText();\n \n-  public String getOperationName() {\n-    ProtocolCommand command = getCommand();\n+  @Nullable\n+  public abstract Long getBatchSize();\n+\n+  private static String operationName(ProtocolCommand command) {\n     if (command instanceof Protocol.Command) {\n       return ((Protocol.Command) command).name();\n-    } else {\n-      // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n-      // us if that changes\n-      return new String(command.getRaw(), UTF_8);\n     }\n+    // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n+    // us if that changes\n+    return new String(command.getRaw(), UTF_8);",
+      "id": "PRRT_kwDODJKVX86La2u8",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:49Z",
+          "body": "Done — restored the `} else {` block.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456135964"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455953382"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "apply this comment to the other versions too",
+      "created": "2026-06-22T22:56:53Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.PipelineBase;\n+\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // Queued pipeline command methods return Response.\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This PipelineBase pipeline) {\n+      // Attaches a thread-local pipeline that the nested Connection.sendCommand advice uses to\n+      // collect captured requests; sync() then consumes them to build the batch span.",
+      "id": "PRRT_kwDODJKVX86La3S1",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:50Z",
+          "body": "Done — applied the comment to the 2.0 and 4.0 `QueueCommandAdvice.onEnter` too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456136015"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455956804"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "move this comment inside of the if, I prefer",
+      "created": "2026-06-22T22:57:41Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import redis.clients.jedis.Pipeline;\n+import redis.clients.jedis.PipelineBase;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<PipelineBase, CapturedRequests> CAPTURED_REQUESTS =\n+      VirtualField.find(PipelineBase.class, CapturedRequests.class);\n+\n+  public static void enter(PipelineBase pipeline) {\n+    // Only aggregate real pipelines. Transaction also extends MultiKeyPipelineBase but completes\n+    // via exec()/discard() (not sync()), so its captured commands would never be flushed into a\n+    // batch span; leaving them uncaptured keeps the per-command spans.",
+      "id": "PRRT_kwDODJKVX86La4EF",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:52Z",
+          "body": "Done — moved the comment inside the `if` (also did the same in 2.0).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456136083"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455961704"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "improve this comment",
+      "created": "2026-06-22T22:58:12Z",
+      "hunk": "@@ -60,6 +60,10 @@ public static AdviceScope start(\n           Connection connection, ProtocolCommand command, byte[][] args) {\n         Context parentContext = currentContext();\n         JedisRequest request = JedisRequest.create(connection, command, asList(args));\n+        if (JedisPipelineContext.capture(request)) {\n+          // Capture pipeline commands for the batch span instead of starting an individual span.",
+      "id": "PRRT_kwDODJKVX86La4d6",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:53Z",
+          "body": "Done — reworded across 2.0/3.0/4.0 and moved it inside the `if`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456136137"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455964144"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is generic Object necessary?",
+      "created": "2026-06-22T22:59:07Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+// Handles Jedis 2.x object-style pipelines.\n+class JedisPipelineInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.Pipeline\",\n+        \"redis.clients.jedis.PipelineBase\",\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class QueueCommandAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object pipeline) {\n+      JedisPipelineContext.enter(pipeline);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void stopCollecting() {\n+      JedisPipelineContext.exit();\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SyncAdvice {\n+\n+    public static class AdviceScope {\n+      private final Context context;\n+      private final Scope scope;\n+      private final JedisRequest request;\n+\n+      private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+        this.context = context;\n+        this.scope = scope;\n+        this.request = request;\n+      }\n+\n+      @Nullable\n+      public static AdviceScope start(Object pipeline) {",
+      "id": "PRRT_kwDODJKVX86La5KX",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:48:08Z",
+          "body": "`Object` is necessary here. In jedis 2.x the `Response`-returning queue methods are declared on `PipelineBase`, so `QueueCommandAdvice` is woven into `PipelineBase` — which is not assignable to `Pipeline`, and isn't even on the compile classpath (the module's `library(\"redis.clients:jedis:2.0.0\")` floor only has `Pipeline`). So `@Advice.This` has to be a supertype of both `Pipeline` (2.0.0) and `PipelineBase` (2.1+), i.e. `Object`; the `instanceof Pipeline` guard in `enter(...)` does the runtime narrowing. (4.0 can use `Pipeline` because `appendCommand` is declared on `Pipeline` itself; 3.0 can use `PipelineBase` since it compiles against 3.x.)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456136797"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455967969"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-06-22T22:59:34Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+// Handles Jedis 2.x object-style pipelines.",
+      "id": "PRRT_kwDODJKVX86La5no",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:55Z",
+          "body": "Done — removed the line.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456136215"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455970443"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we do better than Object throughout this class?",
+      "created": "2026-06-22T23:00:00Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import redis.clients.jedis.Pipeline;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<Pipeline> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<Pipeline, CapturedRequests> requestsByPipeline =\n+      VirtualField.find(Pipeline.class, CapturedRequests.class);\n+\n+  public static void enter(Object pipeline) {\n+    // Only aggregate real pipelines. Transaction also extends MultiKeyPipelineBase but completes\n+    // via exec()/discard() (not sync()), so its captured commands would never be flushed into a\n+    // batch span; leaving them uncaptured keeps the per-command spans.\n+    if (pipeline instanceof Pipeline) {\n+      currentPipeline.set((Pipeline) pipeline);\n+    }\n+  }\n+\n+  public static void exit() {\n+    currentPipeline.remove();\n+  }\n+\n+  public static boolean capture(Object request) {\n+    Pipeline pipeline = currentPipeline.get();\n+    if (pipeline == null) {\n+      return false;\n+    }\n+    CapturedRequests requests = requestsByPipeline.get(pipeline);\n+    if (requests == null) {\n+      requests = new CapturedRequests();\n+      requestsByPipeline.set(pipeline, requests);\n+    }\n+    requests.add(request);\n+    return true;\n+  }\n+\n+  public static List<Object> getAndClearCapturedRequests(Object pipeline) {\n+    CapturedRequests requests = requestsByPipeline.get((Pipeline) pipeline);\n+    requestsByPipeline.set((Pipeline) pipeline, null);\n+    return requests != null ? requests.requests() : emptyList();\n+  }\n+\n+  private static class CapturedRequests {\n+    private final List<Object> requests = new ArrayList<>();",
+      "id": "PRRT_kwDODJKVX86La58z",
+      "opened": "2026-06-22T23:00:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T23:47:56Z",
+          "body": "Typed the captured requests to `JedisRequest` and renamed the field to `CAPTURED_REQUESTS`. Kept the pipeline params as `Object` for the same weaving reason as the advice `@Advice.This` — see the other thread.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456136272"
+        }
+      ],
+      "reviewed": "795aa64f6bc61ca73c1bb49af2f3e2f06bb23ac6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3455972532"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This module registers no custom `JvmTestSuite`, so `testing.suites` here only resolves to the default `test` suite, which `check` already depends on — making this reference redundant. It appears to be a leftover from copying the old `jedis-1.4` build (which had the `version272` suite). The sibling modules use just `dependsOn(testStableSemconv)` (see `jedis-1.4/javaagent/build.gradle.kts:47`, `jedis-3.0/javaagent/build.gradle.kts:45`, `jedis-4.0/javaagent/build.gradle.kts:44`). Consider matching them for consistency.",
+      "created": "2026-06-23T00:00:13Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"redis.clients\")\n+    module.set(\"jedis\")\n+    versions.set(\"[2.0.0,3.0.0)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+dependencies {\n+  library(\"redis.clients:jedis:2.0.0\")\n+\n+  compileOnly(\"com.google.auto.value:auto-value-annotations\")\n+  annotationProcessor(\"com.google.auto.value:auto-value\")\n+\n+  implementation(project(\":instrumentation:jedis:jedis-common-1.4:javaagent\"))\n+\n+  testImplementation(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n+  testImplementation(\"org.testcontainers:testcontainers\")\n+\n+  testInstrumentation(project(\":instrumentation:jedis:jedis-1.4:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:jedis:jedis-3.0:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:jedis:jedis-4.0:javaagent\"))\n+\n+  latestDepTestLibrary(\"redis.clients:jedis:2.+\") // see jedis-3.0 module\n+}\n+\n+tasks {\n+  withType<Test>().configureEach {\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+  }\n+\n+  val testStableSemconv by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=database,service.peer\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database,service.peer\")\n+  }\n+\n+  check {\n+    dependsOn(testing.suites, testStableSemconv)",
+      "id": "PRRT_kwDODJKVX86LbdUy",
+      "opened": "2026-06-23T00:00:14Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-23T03:06:37Z",
+          "body": "Done — dropped the redundant `testing.suites` reference; jedis-2.0 now uses `check { dependsOn(testStableSemconv) }` to match the sibling modules (fa5ea6c1bf).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456756374"
+        }
+      ],
+      "reviewed": "95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456171773"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `instanceof Pipeline` guard intentionally excludes `Transaction` (which also extends `MultiKeyPipelineBase`) so that transaction commands keep their per-command spans instead of being captured and silently dropped (since a transaction completes via `exec()`/`discard()`, never `sync()`). This was a real regression fixed during review, yet there is no test exercising the transaction path. Consider adding a regression test that issues commands inside a `multi()`/`exec()` transaction and asserts the per-command spans are still emitted, so a future refactor can't reintroduce the dropped-span bug. The same gap applies to the `jedis-2.0` module's equivalent guard.",
+      "created": "2026-06-23T00:00:14Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import redis.clients.jedis.Pipeline;\n+import redis.clients.jedis.PipelineBase;\n+\n+public final class JedisPipelineContext {\n+  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n+  private static final VirtualField<PipelineBase, CapturedRequests> CAPTURED_REQUESTS =\n+      VirtualField.find(PipelineBase.class, CapturedRequests.class);\n+\n+  public static void enter(PipelineBase pipeline) {\n+    if (pipeline instanceof Pipeline) {\n+      // Only aggregate real pipelines. Transaction also extends MultiKeyPipelineBase but completes\n+      // via exec()/discard() (not sync()), so its captured commands would never be flushed into a\n+      // batch span; leaving them uncaptured keeps the per-command spans.\n+      currentPipeline.set(pipeline);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86LbdU_",
+      "opened": "2026-06-23T00:00:14Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+      "replies": [
+        {
+          "at": "2026-06-23T03:06:46Z",
+          "body": "The transaction path is now covered: jedis-2.0/3.0/4.0 each have a parameterized `transactionCommand` test that issues commands inside `multi()`/`exec()`. Note the behavior intentionally changed in this PR — per the Redis semconv, a transaction is now emitted as a single `MULTI` / `MULTI <CMD>` batch span (symmetric to pipeline `PIPELINE` batching) rather than per-command spans. The guard no longer excludes `Transaction`; transaction commands are captured and flushed as the batch span at `exec()` (dropped on `discard()`), which also removes the original dropped-span risk (fa5ea6c1bf).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456756810"
+        }
+      ],
+      "reviewed": "95b1a92c0c18b63c46ba8dae2cb1fe264f4d808b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456171790"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `DiscardAdvice` path (drop captured commands, suppress the framing DISCARD span) is not exercised by any test in this PR. The parameterized transaction tests only call `multi()`/`exec()`, never `discard()`, so a regression here (e.g. a stray DISCARD span, or captured commands leaking) would go unnoticed. The same untested gap exists in the jedis-3.0 and jedis-4.0 `DiscardAdvice` classes. Consider adding a transaction scenario that issues commands and then calls `discard()`, asserting no spans are emitted.",
+      "created": "2026-06-23T03:17:59Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisTransactionInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    // exec()/discard() are declared on BinaryTransaction in jedis 2.0.x and on Transaction in later\n+    // 2.x; match both so they are instrumented across the range.\n+    return namedOneOf(\"redis.clients.jedis.Transaction\", \"redis.clients.jedis.BinaryTransaction\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(named(\"exec\"), getClass().getName() + \"$ExecAdvice\");\n+    transformer.applyAdviceToMethod(named(\"discard\"), getClass().getName() + \"$DiscardAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ExecAdvice {\n+\n+    public static class AdviceScope {\n+      @Nullable private final Context context;\n+      @Nullable private final Scope scope;\n+      @Nullable private final JedisRequest request;\n+\n+      private AdviceScope(\n+          @Nullable Context context, @Nullable Scope scope, @Nullable JedisRequest request) {\n+        this.context = context;\n+        this.scope = scope;\n+        this.request = request;\n+      }\n+\n+      public static AdviceScope start(Object transaction) {\n+        List<JedisRequest> requests = JedisPipelineContext.getAndClearCapturedRequests(transaction);\n+        // Suppress the EXEC framing command's own span; the transaction is reported as a single\n+        // batch span here.\n+        JedisPipelineContext.enterTransactionFraming();\n+        if (requests.isEmpty()) {\n+          // An empty transaction sends nothing for the batch, and with no captured request there\n+          // is no connection to derive server attributes from, so it is not reported as a batch\n+          // span.\n+          return new AdviceScope(null, null, null);\n+        }\n+        JedisRequest request = JedisRequest.createTransaction(requests);\n+        Context parentContext = currentContext();\n+        if (!instrumenter().shouldStart(parentContext, request)) {\n+          return new AdviceScope(null, null, null);\n+        }\n+        Context context = instrumenter().start(parentContext, request);\n+        return new AdviceScope(context, context.makeCurrent(), request);\n+      }\n+\n+      public void end(@Nullable Throwable throwable) {\n+        JedisPipelineContext.exitTransactionFraming();\n+        if (scope != null) {\n+          scope.close();\n+          instrumenter().end(context, request, null, throwable);\n+        }\n+      }\n+    }\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter(@Advice.This Object transaction) {\n+      return AdviceScope.start(transaction);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void stopSpan(\n+        @Advice.Thrown @Nullable Throwable throwable, @Advice.Enter AdviceScope adviceScope) {\n+      adviceScope.end(throwable);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class DiscardAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.This Object transaction) {\n+      // A discarded transaction is abandoned, so drop its captured commands without reporting a\n+      // batch span, and suppress the DISCARD framing command's own span.\n+      JedisPipelineContext.getAndClearCapturedRequests(transaction);\n+      JedisPipelineContext.enterTransactionFraming();\n+    }",
+      "id": "PRRT_kwDODJKVX86LdIJ4",
+      "opened": "2026-06-23T03:17:59Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisTransactionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-23T15:06:51Z",
+          "body": "Added `transactionDiscardEmitsNoSpans` to jedis-2.0/3.0/4.0: issues commands inside `multi()`, calls `discard()`, and asserts no spans are emitted (queued commands dropped, framing MULTI/DISCARD spans suppressed). Framing/command spans end synchronously within `discard()`/`appendCommand`, so a stray span would already be present at assert time. Verified on floor and 4.0 latestDeps (jedis 7.x) (3bc21f1564).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3460783920"
+        }
+      ],
+      "reviewed": "fa5ea6c1bff4fe1f8d0a78f9fbeff46f4f9067cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3456789590"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisInstrumentationModule.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisInstrumentationModule.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisInstrumentationModule.java\n@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n import static java.util.Arrays.asList;\n@@ -19,15 +19,15 @@ import net.bytebuddy.matcher.ElementMatcher;\n public class JedisInstrumentationModule extends InstrumentationModule {\n \n   public JedisInstrumentationModule() {\n-    super(\"jedis\", \"jedis-3.0\");\n+    super(\"jedis\", \"jedis-2.0\");\n   }\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    // added in 3.0\n-    return hasClassesNamed(\"redis.clients.jedis.commands.BasicCommands\")\n-        // added in 4.0\n-        .and(not(hasClassesNamed(\"redis.clients.jedis.CommandArguments\")));\n+    // Response was added in 2.0\n+    return hasClassesNamed(\"redis.clients.jedis.Response\")\n+        // added in 3.0\n+        .and(not(hasClassesNamed(\"redis.clients.jedis.commands.ProtocolCommand\")));\n   }\n \n   @Override\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7R1",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753608"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisSingletons.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisSingletons.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisSingletons.java\n@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import static io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbExceptionEventExtractors.setDbClientExceptionEventExtractor;\n \n@@ -17,7 +17,7 @@ import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n \n class JedisSingletons {\n-  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.jedis-1.4\";\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.jedis-2.0\";\n \n   private static final Instrumenter<JedisRequest, Void> instrumenter;\n \n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7R5",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisSingletons.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753612"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-1.4/metadata.yaml`\n\n````diff\n\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,17 @@\n+display_name: Jedis",
+      "id": "PRRT_kwDODJKVX86Lq7R6",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753613"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisRequest.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java\n@@ -3,9 +3,9 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n-import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Collections.emptyList;\n \n import com.google.auto.value.AutoValue;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n@@ -16,18 +16,20 @@ import java.util.StringJoiner;\n import javax.annotation.Nullable;\n import redis.clients.jedis.Connection;\n import redis.clients.jedis.Protocol;\n-import redis.clients.jedis.commands.ProtocolCommand;\n \n @AutoValue\n public abstract class JedisRequest {\n-\n   private static final RedisCommandSanitizer sanitizer =\n       RedisCommandSanitizer.create(\n           DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"jedis\"));\n \n+  public static JedisRequest create(Connection connection, Protocol.Command command) {\n+    return create(connection, command, emptyList());\n+  }\n+\n   public static JedisRequest create(\n-      Connection connection, ProtocolCommand command, List<byte[]> args) {\n-    String operationName = operationName(command);\n+      Connection connection, Protocol.Command command, List<byte[]> args) {\n+    String operationName = command.name();\n     return new AutoValue_JedisRequest(\n         connection, operationName, sanitizer.sanitize(operationName, args), null);\n   }\n@@ -58,16 +60,6 @@ public abstract class JedisRequest {\n   @Nullable\n   public abstract Long getBatchSize();\n \n-  private static String operationName(ProtocolCommand command) {\n-    if (command instanceof Protocol.Command) {\n-      return ((Protocol.Command) command).name();\n-    } else {\n-      // Protocol.Command is the only implementation in the Jedis lib as of 3.1 but this will save\n-      // us if that changes\n-      return new String(command.getRaw(), UTF_8);\n-    }\n-  }\n-\n   private static String batchOperationName(List<JedisRequest> requests, String prefix) {\n     if (requests.size() == 1) {\n       return requests.get(0).getOperationName();\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7R7",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753614"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-1.4/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/AbstractJedisTest.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-1.4/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/AbstractJedisTest.java\n+++ b/instrumentation/jedis/jedis-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisClientTest.java\n@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n \n import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n import static io.opentelemetry.instrumentation.testing.junit.db.DbClientMetricsTestUtil.assertDurationMetric;\n@@ -32,7 +32,7 @@ import org.testcontainers.containers.GenericContainer;\n import redis.clients.jedis.Jedis;\n \n @SuppressWarnings(\"deprecation\") // using deprecated semconv\n-public abstract class AbstractJedisTest {\n+class JedisClientTest {\n   @RegisterExtension\n   private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n \n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -5,6 +5,161 @@\n ",
+      "id": "PRRT_kwDODJKVX86Lq7Rc",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisClientTest.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753578"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/build.gradle.kts`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/build.gradle.kts\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts\n@@ -6,25 +6,27 @@ muzzle {\n   pass {\n     group.set(\"redis.clients\")\n     module.set(\"jedis\")\n-    versions.set(\"[3.0.0,4)\")\n-    skip(\"jedis-3.6.2\")\n+    versions.set(\"[2.0.0,3.0.0)\")\n     assertInverse.set(true)\n   }\n }\n \n dependencies {\n-  library(\"redis.clients:jedis:3.0.0\")\n+  library(\"redis.clients:jedis:2.0.0\")\n \n   compileOnly(\"com.google.auto.value:auto-value-annotations\")\n   annotationProcessor(\"com.google.auto.value:auto-value\")\n \n   implementation(project(\":instrumentation:jedis:jedis-common-1.4:javaagent\"))\n \n+  testImplementation(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n+  testImplementation(\"org.testcontainers:testcontainers\")\n+\n   testInstrumentation(project(\":instrumentation:jedis:jedis-1.4:javaagent\"))\n-  testInstrumentation(project(\":instrumentation:jedis:jedis-2.0:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:jedis:jedis-3.0:javaagent\"))\n   testInstrumentation(project(\":instrumentation:jedis:jedis-4.0:javaagent\"))\n \n-  latestDepTestLibrary(\"redis.clients:jedis:3.+\") // see jedis-4.0 module\n+  latestDepTestLibrary(\"redis.clients:jedis:2.+\") // see jedis-3.0 module\n }\n \n tasks {\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+plugins {",
+      "id": "PRRT_kwDODJKVX86Lq7Rm",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753587"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisConnectionInstrumentation.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisConnectionInstrumentation.java\n@@ -3,10 +3,10 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n-import static io.opentelemetry.javaagent.instrumentation.jedis.v1_4.JedisSingletons.instrumenter;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.instrumenter;\n import static java.util.Arrays.asList;\n import static net.bytebuddy.matcher.ElementMatchers.is;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n@@ -71,7 +71,17 @@ class JedisConnectionInstrumentation implements TypeInstrumentation {\n \n     @Nullable\n     public static AdviceScope start(JedisRequest request) {\n+      if (JedisPipelineContext.inTransactionFraming()) {\n+        // MULTI/EXEC/DISCARD frame a batched transaction; they are represented by the MULTI batch\n+        // span rather than getting their own spans.\n+        return null;\n+      }\n       Context parentContext = currentContext();\n+      if (JedisPipelineContext.capture(request)) {\n+        // A pipeline or transaction is active, so this command is captured and aggregated into the\n+        // batch span created at sync()/exec() rather than getting its own span.\n+        return null;\n+      }\n       if (!instrumenter().shouldStart(parentContext, request)) {\n         return null;\n       }\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,142 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7Rq",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisConnectionInstrumentation.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753593"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisDbAttributesGetter.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisDbAttributesGetter.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisDbAttributesGetter.java\n@@ -3,12 +3,10 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;\n import io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues;\n-import java.net.InetSocketAddress;\n-import java.net.Socket;\n import javax.annotation.Nullable;\n \n final class JedisDbAttributesGetter implements DbClientAttributesGetter<JedisRequest, Void> {\n@@ -49,15 +47,4 @@ final class JedisDbAttributesGetter implements DbClientAttributesGetter<JedisReq\n   public Integer getServerPort(JedisRequest request) {\n     return request.getConnection().getPort();\n   }\n-\n-  @Override\n-  @Nullable\n-  public InetSocketAddress getNetworkPeerInetSocketAddress(\n-      JedisRequest request, @Nullable Void unused) {\n-    Socket socket = request.getConnection().getSocket();\n-    if (socket != null && socket.getRemoteSocketAddress() instanceof InetSocketAddress) {\n-      return (InetSocketAddress) socket.getRemoteSocketAddress();\n-    }\n-    return null;\n-  }\n }\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7Rt",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisDbAttributesGetter.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753597"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisInstrumentation.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisInstrumentation.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisInstrumentation.java\n@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n@@ -44,10 +44,7 @@ class JedisInstrumentation implements TypeInstrumentation {\n                         \"resetState\",\n                         \"getClient\",\n                         \"disconnect\",\n-                        \"getConnection\",\n-                        \"isBroken\",\n-                        \"multi\",\n-                        \"toString\"))),\n+                        \"multi\"))),\n         getClass().getName() + \"$JedisMethodAdvice\");\n     transformer.applyAdviceToMethod(\n         named(\"multi\").and(takesArguments(0)), getClass().getName() + \"$MultiAdvice\");\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,86 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7Rz",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisInstrumentation.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineContext.java\n@@ -3,7 +3,7 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import static java.util.Collections.emptyList;\n \n@@ -11,27 +11,26 @@ import io.opentelemetry.instrumentation.api.util.VirtualField;\n import java.util.ArrayList;\n import java.util.List;\n import redis.clients.jedis.Pipeline;\n-import redis.clients.jedis.PipelineBase;\n+import redis.clients.jedis.Queable;\n import redis.clients.jedis.Transaction;\n \n public final class JedisPipelineContext {\n-  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n+  private static final ThreadLocal<Queable> currentBatch = new ThreadLocal<>();\n   private static final ThreadLocal<Boolean> inTransactionFraming = new ThreadLocal<>();\n-  private static final VirtualField<PipelineBase, CapturedRequests> CAPTURED_REQUESTS =\n-      VirtualField.find(PipelineBase.class, CapturedRequests.class);\n+  private static final VirtualField<Queable, CapturedRequests> CAPTURED_REQUESTS =\n+      VirtualField.find(Queable.class, CapturedRequests.class);\n \n-  public static void enter(PipelineBase pipeline) {\n-    // Pipeline aggregates at sync(), Transaction at exec(); both capture their queued commands\n-    // here.\n-    // Other MultiKeyPipelineBase subtypes have no flush point, so leaving them uncaptured keeps\n-    // their per-command spans.\n-    if (pipeline instanceof Pipeline || pipeline instanceof Transaction) {\n-      currentPipeline.set(pipeline);\n+  public static void enter(Object batch) {\n+    // Pipeline aggregates at sync() and Transaction at exec(); both capture their queued commands\n+    // here. Other Queable subtypes have no flush point, so leaving them uncaptured keeps their\n+    // per-command spans.\n+    if (batch instanceof Pipeline || batch instanceof Transaction) {\n+      currentBatch.set((Queable) batch);\n     }\n   }\n \n   public static void exit() {\n-    currentPipeline.remove();\n+    currentBatch.remove();\n   }\n \n   public static void enterTransactionFraming() {\n@@ -47,22 +46,22 @@ public final class JedisPipelineContext {\n   }\n \n   public static boolean capture(JedisRequest request) {\n-    PipelineBase pipeline = currentPipeline.get();\n-    if (pipeline == null) {\n+    Queable batch = currentBatch.get();\n+    if (batch == null) {\n       return false;\n     }\n-    CapturedRequests requests = CAPTURED_REQUESTS.get(pipeline);\n+    CapturedRequests requests = CAPTURED_REQUESTS.get(batch);\n     if (requests == null) {\n       requests = new CapturedRequests();\n-      CAPTURED_REQUESTS.set(pipeline, requests);\n+      CAPTURED_REQUESTS.set(batch, requests);\n     }\n     requests.add(request);\n     return true;\n   }\n \n-  public static List<JedisRequest> getAndClearCapturedRequests(PipelineBase pipeline) {\n-    CapturedRequests requests = CAPTURED_REQUESTS.get(pipeline);\n-    CAPTURED_REQUESTS.set(pipeline, null);\n+  public static List<JedisRequest> getAndClearCapturedRequests(Object batch) {\n+    CapturedRequests requests = CAPTURED_REQUESTS.get((Queable) batch);\n+    CAPTURED_REQUESTS.set((Queable) batch, null);\n     return requests != null ? requests.requests() : emptyList();\n   }\n \n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,81 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7SC",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineContext.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753622"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java\n@@ -3,10 +3,10 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n-import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.instrumenter;\n import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n@@ -22,20 +22,22 @@ import javax.annotation.Nullable;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n-import redis.clients.jedis.PipelineBase;\n \n class JedisPipelineInstrumentation implements TypeInstrumentation {\n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n+    // Transaction/BinaryTransaction declare the queued command methods directly in jedis 2.0.x\n+    // (where they do not yet extend MultiKeyPipelineBase).\n     return namedOneOf(\n         \"redis.clients.jedis.Pipeline\",\n         \"redis.clients.jedis.PipelineBase\",\n-        \"redis.clients.jedis.MultiKeyPipelineBase\");\n+        \"redis.clients.jedis.MultiKeyPipelineBase\",\n+        \"redis.clients.jedis.Transaction\",\n+        \"redis.clients.jedis.BinaryTransaction\");\n   }\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    // Queued pipeline command methods return Response.\n     transformer.applyAdviceToMethod(\n         isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n         getClass().getName() + \"$QueueCommandAdvice\");\n@@ -47,7 +49,7 @@ class JedisPipelineInstrumentation implements TypeInstrumentation {\n   public static class QueueCommandAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter(@Advice.This PipelineBase pipeline) {\n+    public static void onEnter(@Advice.This Object pipeline) {\n       // Attaches a thread-local pipeline that the nested Connection.sendCommand advice uses to\n       // collect captured requests; sync() then consumes them to build the batch span.\n       JedisPipelineContext.enter(pipeline);\n@@ -74,7 +76,7 @@ class JedisPipelineInstrumentation implements TypeInstrumentation {\n       }\n \n       @Nullable\n-      public static AdviceScope start(PipelineBase pipeline) {\n+      public static AdviceScope start(Object pipeline) {\n         List<JedisRequest> requests = JedisPipelineContext.getAndClearCapturedRequests(pipeline);\n         if (requests.isEmpty()) {\n           // An empty pipeline sends nothing to the server, and with no captured request there is no\n@@ -98,7 +100,7 @@ class JedisPipelineInstrumentation implements TypeInstrumentation {\n \n     @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static AdviceScope onEnter(@Advice.This PipelineBase pipeline) {\n+    public static AdviceScope onEnter(@Advice.This Object pipeline) {\n       return AdviceScope.start(pipeline);\n     }\n \n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7SF",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisPipelineInstrumentation.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753624"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisTransactionInstrumentation.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisTransactionInstrumentation.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisTransactionInstrumentation.java\n@@ -3,10 +3,10 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n-import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.instrumenter;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n \n@@ -19,18 +19,18 @@ import javax.annotation.Nullable;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n-import redis.clients.jedis.Transaction;\n \n class JedisTransactionInstrumentation implements TypeInstrumentation {\n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    return named(\"redis.clients.jedis.Transaction\");\n+    // exec()/discard() are declared on BinaryTransaction in jedis 2.0.x and on Transaction in later\n+    // 2.x; match both so they are instrumented across the range.\n+    return namedOneOf(\"redis.clients.jedis.Transaction\", \"redis.clients.jedis.BinaryTransaction\");\n   }\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(\n-        namedOneOf(\"exec\", \"execGetResponse\"), getClass().getName() + \"$ExecAdvice\");\n+    transformer.applyAdviceToMethod(named(\"exec\"), getClass().getName() + \"$ExecAdvice\");\n     transformer.applyAdviceToMethod(named(\"discard\"), getClass().getName() + \"$DiscardAdvice\");\n   }\n \n@@ -49,7 +49,7 @@ class JedisTransactionInstrumentation implements TypeInstrumentation {\n         this.request = request;\n       }\n \n-      public static AdviceScope start(Transaction transaction) {\n+      public static AdviceScope start(Object transaction) {\n         List<JedisRequest> requests = JedisPipelineContext.getAndClearCapturedRequests(transaction);\n         // Suppress the EXEC framing command's own span; the transaction is reported as a single\n         // batch span here.\n@@ -79,7 +79,7 @@ class JedisTransactionInstrumentation implements TypeInstrumentation {\n     }\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static AdviceScope onEnter(@Advice.This Transaction transaction) {\n+    public static AdviceScope onEnter(@Advice.This Object transaction) {\n       return AdviceScope.start(transaction);\n     }\n \n@@ -94,7 +94,7 @@ class JedisTransactionInstrumentation implements TypeInstrumentation {\n   public static class DiscardAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter(@Advice.This Transaction transaction) {\n+    public static void onEnter(@Advice.This Object transaction) {\n       // A discarded transaction is abandoned, so drop its captured commands without reporting a\n       // batch span, and suppress the DISCARD framing command's own span.\n       JedisPipelineContext.getAndClearCapturedRequests(transaction);\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7SK",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisTransactionInstrumentation.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753629"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/Jedis30ClientTest.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/Jedis30ClientTest.java\n+++ b/instrumentation/jedis/jedis-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClientTest.java\n@@ -3,27 +3,21 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n \n-import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitOldDatabaseSemconv;\n import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n import static io.opentelemetry.instrumentation.testing.junit.db.DbClientMetricsTestUtil.assertDurationMetric;\n import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n import static io.opentelemetry.instrumentation.testing.junit.service.SemconvServiceStabilityUtil.maybeStablePeerService;\n import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n-import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;\n import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_BATCH_SIZE;\n-import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n-import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n-import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_ADDRESS;\n-import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_PORT;\n-import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_TYPE;\n-import static io.opentelemetry.semconv.NetworkAttributes.NetworkTypeValues.IPV4;\n import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION_NAME;\n import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM_NAME;\n import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.REDIS;\n import static org.assertj.core.api.Assertions.assertThat;\n \n@@ -31,11 +25,8 @@ import io.opentelemetry.api.trace.SpanKind;\n import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n-import java.net.InetAddress;\n-import java.net.UnknownHostException;\n import java.util.function.Consumer;\n import java.util.stream.Stream;\n-import org.assertj.core.api.AbstractLongAssert;\n import org.junit.jupiter.api.BeforeAll;\n import org.junit.jupiter.api.BeforeEach;\n import org.junit.jupiter.api.Test;\n@@ -49,7 +40,7 @@ import redis.clients.jedis.Pipeline;\n import redis.clients.jedis.Transaction;\n \n @SuppressWarnings(\"deprecation\") // using deprecated semconv\n-class Jedis30ClientTest {\n+class JedisClientTest {\n   @RegisterExtension\n   private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n \n@@ -61,21 +52,18 @@ class Jedis30ClientTest {\n \n   private static String host;\n \n-  private static String ip;\n-\n   private static int port;\n \n   private static Jedis jedis;\n \n   @BeforeAll\n-  static void setup() throws UnknownHostException {\n+  static void setup() {\n     redisServer.start();\n     cleanup.deferAfterAll(redisServer::stop);\n     host = redisServer.getHost();\n-    ip = InetAddress.getByName(host).getHostAddress();\n     port = redisServer.getMappedPort(6379);\n     jedis = new Jedis(host, port);\n-    cleanup.deferAfterAll(jedis);\n+    cleanup.deferAfterAll(jedis::disconnect);\n   }\n \n   @BeforeEach\n@@ -101,20 +89,15 @@ class Jedis30ClientTest {\n                             equalTo(maybeStable(DB_OPERATION), \"SET\"),\n                             equalTo(maybeStablePeerService(), \"test-peer-service\"),\n                             equalTo(SERVER_ADDRESS, host),\n-                            equalTo(SERVER_PORT, port),\n-                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n-                            equalTo(NETWORK_PEER_ADDRESS, ip),\n-                            satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative))));\n+                            equalTo(SERVER_PORT, port))));\n \n     assertDurationMetric(\n         testing,\n-        \"io.opentelemetry.jedis-3.0\",\n-        DB_OPERATION_NAME,\n+        \"io.opentelemetry.jedis-2.0\",\n         DB_SYSTEM_NAME,\n+        DB_OPERATION_NAME,\n         SERVER_ADDRESS,\n-        SERVER_PORT,\n-        NETWORK_PEER_ADDRESS,\n-        NETWORK_PEER_PORT);\n+        SERVER_PORT);\n   }\n \n   @Test\n@@ -136,10 +119,7 @@ class Jedis30ClientTest {\n                             equalTo(maybeStable(DB_OPERATION), \"SET\"),\n                             equalTo(maybeStablePeerService(), \"test-peer-service\"),\n                             equalTo(SERVER_ADDRESS, host),\n-                            equalTo(SERVER_PORT, port),\n-                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n-                            equalTo(NETWORK_PEER_ADDRESS, ip),\n-                            satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative))),\n+                            equalTo(SERVER_PORT, port))),\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n@@ -151,10 +131,7 @@ class Jedis30ClientTest {\n                             equalTo(maybeStable(DB_OPERATION), \"GET\"),\n                             equalTo(maybeStablePeerService(), \"test-peer-service\"),\n                             equalTo(SERVER_ADDRESS, host),\n-                            equalTo(SERVER_PORT, port),\n-                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n-                            equalTo(NETWORK_PEER_ADDRESS, ip),\n-                            satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative))));\n+                            equalTo(SERVER_PORT, port))));\n   }\n \n   @Test\n@@ -176,10 +153,7 @@ class Jedis30ClientTest {\n                             equalTo(maybeStable(DB_OPERATION), \"SET\"),\n                             equalTo(maybeStablePeerService(), \"test-peer-service\"),\n                             equalTo(SERVER_ADDRESS, host),\n-                            equalTo(SERVER_PORT, port),\n-                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n-                            equalTo(NETWORK_PEER_ADDRESS, ip),\n-                            satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative))),\n+                            equalTo(SERVER_PORT, port))),\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n@@ -194,10 +168,7 @@ class Jedis30ClientTest {\n                             equalTo(maybeStable(DB_OPERATION), \"RANDOMKEY\"),\n                             equalTo(maybeStablePeerService(), \"test-peer-service\"),\n                             equalTo(SERVER_ADDRESS, host),\n-                            equalTo(SERVER_PORT, port),\n-                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n-                            equalTo(NETWORK_PEER_ADDRESS, ip),\n-                            satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative))));\n+                            equalTo(SERVER_PORT, port))));\n   }\n \n   @ParameterizedTest\n@@ -230,10 +201,7 @@ class Jedis30ClientTest {\n                                 emitStableDatabaseSemconv() ? scenario.batchSize : null),\n                             equalTo(maybeStablePeerService(), \"test-peer-service\"),\n                             equalTo(SERVER_ADDRESS, host),\n-                            equalTo(SERVER_PORT, port),\n-                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n-                            equalTo(NETWORK_PEER_ADDRESS, ip),\n-                            satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative))));\n+                            equalTo(SERVER_PORT, port))));\n   }\n \n   @ParameterizedTest\n@@ -269,10 +237,7 @@ class Jedis30ClientTest {\n                                 emitStableDatabaseSemconv() ? scenario.batchSize : null),\n                             equalTo(maybeStablePeerService(), \"test-peer-service\"),\n                             equalTo(SERVER_ADDRESS, host),\n-                            equalTo(SERVER_PORT, port),\n-                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n-                            equalTo(NETWORK_PEER_ADDRESS, ip),\n-                            satisfies(NETWORK_PEER_PORT, AbstractLongAssert::isNotNegative))));\n+                            equalTo(SERVER_PORT, port))));\n   }\n \n   @Test\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,365 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7SO",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClientTest.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753634"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineContext.java\n+++ b/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java\n@@ -3,38 +3,35 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n \n import static java.util.Collections.emptyList;\n \n import io.opentelemetry.instrumentation.api.util.VirtualField;\n import java.util.ArrayList;\n import java.util.List;\n-import javax.annotation.Nullable;\n import redis.clients.jedis.Pipeline;\n+import redis.clients.jedis.PipelineBase;\n import redis.clients.jedis.Transaction;\n \n public final class JedisPipelineContext {\n-  // Pipeline and Transaction have no common supertype across the supported jedis range (Queable was\n-  // removed in 5.0), so captured requests are keyed on each concrete type separately.\n-  private static final ThreadLocal<Object> currentBatch = new ThreadLocal<>();\n+  private static final ThreadLocal<PipelineBase> currentPipeline = new ThreadLocal<>();\n   private static final ThreadLocal<Boolean> inTransactionFraming = new ThreadLocal<>();\n-  private static final VirtualField<Pipeline, CapturedRequests> PIPELINE_REQUESTS =\n-      VirtualField.find(Pipeline.class, CapturedRequests.class);\n-  private static final VirtualField<Transaction, CapturedRequests> TRANSACTION_REQUESTS =\n-      VirtualField.find(Transaction.class, CapturedRequests.class);\n-\n-  public static void enter(Object batch) {\n-    // Pipeline aggregates at sync() and Transaction at exec(); both capture their queued commands\n-    // here. Other batch subtypes have no flush point, so leaving them uncaptured keeps their\n-    // per-command spans.\n-    if (batch instanceof Pipeline || batch instanceof Transaction) {\n-      currentBatch.set(batch);\n+  private static final VirtualField<PipelineBase, CapturedRequests> CAPTURED_REQUESTS =\n+      VirtualField.find(PipelineBase.class, CapturedRequests.class);\n+\n+  public static void enter(PipelineBase pipeline) {\n+    // Pipeline aggregates at sync(), Transaction at exec(); both capture their queued commands\n+    // here.\n+    // Other MultiKeyPipelineBase subtypes have no flush point, so leaving them uncaptured keeps\n+    // their per-command spans.\n+    if (pipeline instanceof Pipeline || pipeline instanceof Transaction) {\n+      currentPipeline.set(pipeline);\n     }\n   }\n \n   public static void exit() {\n-    currentBatch.remove();\n+    currentPipeline.remove();\n   }\n \n   public static void enterTransactionFraming() {\n@@ -50,51 +47,23 @@ public final class JedisPipelineContext {\n   }\n \n   public static boolean capture(JedisRequest request) {\n-    CapturedRequests requests = getOrCreateCapturedRequests(currentBatch.get());\n-    if (requests == null) {\n+    PipelineBase pipeline = currentPipeline.get();\n+    if (pipeline == null) {\n       return false;\n     }\n+    CapturedRequests requests = CAPTURED_REQUESTS.get(pipeline);\n+    if (requests == null) {\n+      requests = new CapturedRequests();\n+      CAPTURED_REQUESTS.set(pipeline, requests);\n+    }\n     requests.add(request);\n     return true;\n   }\n \n-  @Nullable\n-  private static CapturedRequests getOrCreateCapturedRequests(@Nullable Object batch) {\n-    if (batch instanceof Pipeline) {\n-      Pipeline pipeline = (Pipeline) batch;\n-      CapturedRequests requests = PIPELINE_REQUESTS.get(pipeline);\n-      if (requests == null) {\n-        requests = new CapturedRequests();\n-        PIPELINE_REQUESTS.set(pipeline, requests);\n-      }\n-      return requests;\n-    }\n-    if (batch instanceof Transaction) {\n-      Transaction transaction = (Transaction) batch;\n-      CapturedRequests requests = TRANSACTION_REQUESTS.get(transaction);\n-      if (requests == null) {\n-        requests = new CapturedRequests();\n-        TRANSACTION_REQUESTS.set(transaction, requests);\n-      }\n-      return requests;\n-    }\n-    return null;\n-  }\n-\n-  public static List<JedisRequest> getAndClearCapturedRequests(Object batch) {\n-    if (batch instanceof Pipeline) {\n-      Pipeline pipeline = (Pipeline) batch;\n-      CapturedRequests requests = PIPELINE_REQUESTS.get(pipeline);\n-      PIPELINE_REQUESTS.set(pipeline, null);\n-      return requests != null ? requests.requests() : emptyList();\n-    }\n-    if (batch instanceof Transaction) {\n-      Transaction transaction = (Transaction) batch;\n-      CapturedRequests requests = TRANSACTION_REQUESTS.get(transaction);\n-      TRANSACTION_REQUESTS.set(transaction, null);\n-      return requests != null ? requests.requests() : emptyList();\n-    }\n-    return emptyList();\n+  public static List<JedisRequest> getAndClearCapturedRequests(PipelineBase pipeline) {\n+    CapturedRequests requests = CAPTURED_REQUESTS.get(pipeline);\n+    CAPTURED_REQUESTS.set(pipeline, null);\n+    return requests != null ? requests.requests() : emptyList();\n   }\n \n   private static class CapturedRequests {\n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7SW",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineContext.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753641"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisPipelineInstrumentation.java\n+++ b/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java\n@@ -3,12 +3,15 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n \n import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n-import static io.opentelemetry.javaagent.instrumentation.jedis.v4_0.JedisSingletons.instrumenter;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n \n import io.opentelemetry.context.Context;\n import io.opentelemetry.context.Scope;\n@@ -19,26 +22,23 @@ import javax.annotation.Nullable;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.PipelineBase;\n \n class JedisPipelineInstrumentation implements TypeInstrumentation {\n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    // appendCommand is declared on different pipeline/transaction base types across the supported\n-    // jedis range (the names churn between 4.x, 5.x, and 7.x); match all of them so both pipelines\n-    // and transactions are captured.\n     return namedOneOf(\n         \"redis.clients.jedis.Pipeline\",\n         \"redis.clients.jedis.PipelineBase\",\n-        \"redis.clients.jedis.Transaction\",\n-        \"redis.clients.jedis.PipelinedTransactionBase\",\n-        \"redis.clients.jedis.TransactionBase\",\n-        \"redis.clients.jedis.PipeliningBase\");\n+        \"redis.clients.jedis.MultiKeyPipelineBase\");\n   }\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n+    // Queued pipeline command methods return Response.\n     transformer.applyAdviceToMethod(\n-        named(\"appendCommand\"), getClass().getName() + \"$QueueCommandAdvice\");\n+        isPublic().and(isMethod()).and(returns(named(\"redis.clients.jedis.Response\"))),\n+        getClass().getName() + \"$QueueCommandAdvice\");\n     transformer.applyAdviceToMethod(\n         namedOneOf(\"sync\", \"syncAndReturnAll\"), getClass().getName() + \"$SyncAdvice\");\n   }\n@@ -47,7 +47,7 @@ class JedisPipelineInstrumentation implements TypeInstrumentation {\n   public static class QueueCommandAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter(@Advice.This Object pipeline) {\n+    public static void onEnter(@Advice.This PipelineBase pipeline) {\n       // Attaches a thread-local pipeline that the nested Connection.sendCommand advice uses to\n       // collect captured requests; sync() then consumes them to build the batch span.\n       JedisPipelineContext.enter(pipeline);\n@@ -74,7 +74,7 @@ class JedisPipelineInstrumentation implements TypeInstrumentation {\n       }\n \n       @Nullable\n-      public static AdviceScope start(Object pipeline) {\n+      public static AdviceScope start(PipelineBase pipeline) {\n         List<JedisRequest> requests = JedisPipelineContext.getAndClearCapturedRequests(pipeline);\n         if (requests.isEmpty()) {\n           // An empty pipeline sends nothing to the server, and with no captured request there is no\n@@ -98,7 +98,7 @@ class JedisPipelineInstrumentation implements TypeInstrumentation {\n \n     @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static AdviceScope onEnter(@Advice.This Object pipeline) {\n+    public static AdviceScope onEnter(@Advice.This PipelineBase pipeline) {\n       return AdviceScope.start(pipeline);\n     }\n \n````",
+      "created": "2026-06-23T17:42:22Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7Sa",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisPipelineInstrumentation.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753647"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Copied from `instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisTransactionInstrumentation.java`\n\n````diff\n--- a/instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisTransactionInstrumentation.java\n+++ b/instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisTransactionInstrumentation.java\n@@ -3,10 +3,10 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n \n import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n-import static io.opentelemetry.javaagent.instrumentation.jedis.v4_0.JedisSingletons.instrumenter;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v3_0.JedisSingletons.instrumenter;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n \n@@ -19,21 +19,18 @@ import javax.annotation.Nullable;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.Transaction;\n \n class JedisTransactionInstrumentation implements TypeInstrumentation {\n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    // exec()/discard() are declared on different transaction base types across the jedis range.\n-    return namedOneOf(\n-        \"redis.clients.jedis.Transaction\",\n-        \"redis.clients.jedis.PipelinedTransactionBase\",\n-        \"redis.clients.jedis.TransactionBase\",\n-        \"redis.clients.jedis.AbstractTransaction\");\n+    return named(\"redis.clients.jedis.Transaction\");\n   }\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(named(\"exec\"), getClass().getName() + \"$ExecAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"exec\", \"execGetResponse\"), getClass().getName() + \"$ExecAdvice\");\n     transformer.applyAdviceToMethod(named(\"discard\"), getClass().getName() + \"$DiscardAdvice\");\n   }\n \n@@ -52,7 +49,7 @@ class JedisTransactionInstrumentation implements TypeInstrumentation {\n         this.request = request;\n       }\n \n-      public static AdviceScope start(Object transaction) {\n+      public static AdviceScope start(Transaction transaction) {\n         List<JedisRequest> requests = JedisPipelineContext.getAndClearCapturedRequests(transaction);\n         // Suppress the EXEC framing command's own span; the transaction is reported as a single\n         // batch span here.\n@@ -82,7 +79,7 @@ class JedisTransactionInstrumentation implements TypeInstrumentation {\n     }\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static AdviceScope onEnter(@Advice.This Object transaction) {\n+    public static AdviceScope onEnter(@Advice.This Transaction transaction) {\n       return AdviceScope.start(transaction);\n     }\n \n@@ -97,7 +94,7 @@ class JedisTransactionInstrumentation implements TypeInstrumentation {\n   public static class DiscardAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter(@Advice.This Object transaction) {\n+    public static void onEnter(@Advice.This Transaction transaction) {\n       // A discarded transaction is abandoned, so drop its captured commands without reporting a\n       // batch span, and suppress the DISCARD framing command's own span.\n       JedisPipelineContext.getAndClearCapturedRequests(transaction);\n````",
+      "created": "2026-06-23T17:42:23Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+/*",
+      "id": "PRRT_kwDODJKVX86Lq7Sd",
+      "opened": "2026-06-23T17:49:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisTransactionInstrumentation.java",
+      "replies": [],
+      "reviewed": "7b37832a89b75266e968dbd61cdcca83e8f246ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3461753650"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we could skip adding `@Deprecated`, but guess it doesn't hurt either",
+      "created": "2026-06-25T11:34:55Z",
+      "hunk": "@@ -10,22 +10,30 @@\n import static net.bytebuddy.matcher.ElementMatchers.not;\n \n import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import java.util.List;\n import net.bytebuddy.matcher.ElementMatcher;\n \n+@Deprecated // disabled under v3-preview; to be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86MM5tj",
+      "opened": "2026-06-25T11:34:55Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-06-25T20:07:45Z",
+          "body": "Thanks, I'm going to keep `@Deprecated` here since the module is intentionally disabled under v3-preview and marked for removal in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3477329332"
+        }
+      ],
+      "reviewed": "e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3474041021"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "hopefully we'll remember to update the supported frameworks doc",
+      "created": "2026-06-25T11:35:25Z",
+      "hunk": "@@ -10,22 +10,30 @@\n import static net.bytebuddy.matcher.ElementMatchers.not;\n \n import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import java.util.List;\n import net.bytebuddy.matcher.ElementMatcher;\n \n+@Deprecated // disabled under v3-preview; to be removed in 3.0\n @AutoService(InstrumentationModule.class)\n public class JedisInstrumentationModule extends InstrumentationModule {\n \n   public JedisInstrumentationModule() {\n     super(\"jedis\", \"jedis-1.4\");\n   }\n \n+  @Override\n+  public boolean defaultEnabled() {\n+    // disabled under v3-preview, where jedis 1.x is no longer supported",
+      "id": "PRRT_kwDODJKVX86MM6LJ",
+      "opened": "2026-06-25T11:35:25Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-06-25T20:07:45Z",
+          "body": "Updated in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/52dbebe781.\n\nAdded a supported-libraries footnote that Jedis instrumentation supports 2.0+ when `otel.instrumentation.common.v3-preview` is enabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3477329333"
+        }
+      ],
+      "reviewed": "e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3474043527"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should we limit the query text length for batch?",
+      "created": "2026-06-25T11:57:11Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+import redis.clients.jedis.Connection;\n+import redis.clients.jedis.Protocol;\n+\n+@AutoValue\n+public abstract class JedisRequest {\n+  private static final RedisCommandSanitizer sanitizer =\n+      RedisCommandSanitizer.create(\n+          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"jedis\"));\n+\n+  public static JedisRequest create(Connection connection, Protocol.Command command) {\n+    return create(connection, command, emptyList());\n+  }\n+\n+  public static JedisRequest create(\n+      Connection connection, Protocol.Command command, List<byte[]> args) {\n+    String operationName = command.name();\n+    return new AutoValue_JedisRequest(\n+        connection, operationName, sanitizer.sanitize(operationName, args), null);\n+  }\n+\n+  public static JedisRequest createPipeline(List<JedisRequest> requests) {\n+    return createBatch(requests, \"PIPELINE\");\n+  }\n+\n+  public static JedisRequest createTransaction(List<JedisRequest> requests) {\n+    return createBatch(requests, \"MULTI\");\n+  }\n+\n+  private static JedisRequest createBatch(List<JedisRequest> requests, String prefix) {\n+    JedisRequest first = requests.get(0);\n+    return new AutoValue_JedisRequest(\n+        first.getConnection(),\n+        batchOperationName(requests, prefix),\n+        pipelineQueryText(requests),\n+        requests.size() != 1 ? (long) requests.size() : null);\n+  }\n+\n+  public abstract Connection getConnection();\n+\n+  public abstract String getOperationName();\n+\n+  public abstract String getQueryText();\n+\n+  @Nullable\n+  public abstract Long getBatchSize();\n+\n+  private static String batchOperationName(List<JedisRequest> requests, String prefix) {\n+    if (requests.size() == 1) {\n+      return requests.get(0).getOperationName();\n+    }\n+    String commonOperationName = requests.get(0).getOperationName();\n+    for (int i = 1; i < requests.size(); i++) {\n+      if (!commonOperationName.equals(requests.get(i).getOperationName())) {\n+        return prefix;\n+      }\n+    }\n+    return prefix + \" \" + commonOperationName;\n+  }\n+\n+  private static String pipelineQueryText(List<JedisRequest> requests) {\n+    StringJoiner joiner = new StringJoiner(\";\");",
+      "id": "PRRT_kwDODJKVX86MNP7O",
+      "opened": "2026-06-25T11:57:10Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-25T20:07:44Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/52dbebe781.\n\nThe batch query text now follows the Lettuce pattern: it appends complete command query texts until the next one would exceed the 32 KiB limit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3477329303"
+        }
+      ],
+      "reviewed": "e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3474164745"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think these should be already added automatically by `otel.javaagent-instrumentation`",
+      "created": "2026-06-25T12:06:18Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"redis.clients\")\n+    module.set(\"jedis\")\n+    versions.set(\"[2.0.0,3.0.0)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+dependencies {\n+  library(\"redis.clients:jedis:2.0.0\")\n+\n+  compileOnly(\"com.google.auto.value:auto-value-annotations\")\n+  annotationProcessor(\"com.google.auto.value:auto-value\")\n+\n+  implementation(project(\":instrumentation:jedis:jedis-common-1.4:javaagent\"))\n+\n+  testImplementation(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n+  testImplementation(\"org.testcontainers:testcontainers\")",
+      "id": "PRRT_kwDODJKVX86MNY4n",
+      "opened": "2026-06-25T12:06:18Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-25T20:07:45Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/52dbebe781.\n\nRemoved the redundant `opentelemetry-testing-common` and `org.testcontainers:testcontainers` test dependencies since they are already provided by the `otel.javaagent-instrumentation` plugin chain.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3477329331"
+        }
+      ],
+      "reviewed": "e93a80ca2e2a54cb6931488f6e1b2349e4cbccb9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3474214501"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The batch query-text builder here caps the concatenated text at a 32&nbsp;KB `LIMIT` and stops appending once the limit would be exceeded, but the equivalent `pipelineQueryText` added in the `jedis-3.0` and `jedis-4.0` modules uses an unbounded `StringJoiner` with no limit at all. As a result, a large pipeline/transaction produces a truncated `db.query.text` in the 2.0 module but an unbounded one in 3.0/4.0. In addition, when truncation does occur here, `db.operation.batch.size` (set from `requests.size()` in `createBatch`) still reflects the full command count, so the two attributes disagree about how many commands the batch contains. Consider aligning the three implementations — apply the same bound (and ideally the same `StringJoiner`-style code) in all modules, or drop it from this one — so the behavior is consistent across versions.",
+      "created": "2026-06-25T20:15:26Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import redis.clients.jedis.Connection;\n+import redis.clients.jedis.Protocol;\n+\n+@AutoValue\n+public abstract class JedisRequest {\n+  private static final RedisCommandSanitizer sanitizer =\n+      RedisCommandSanitizer.create(\n+          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"jedis\"));\n+  private static final int LIMIT = 32 * 1024;\n+\n+  public static JedisRequest create(Connection connection, Protocol.Command command) {\n+    return create(connection, command, emptyList());\n+  }\n+\n+  public static JedisRequest create(\n+      Connection connection, Protocol.Command command, List<byte[]> args) {\n+    String operationName = command.name();\n+    return new AutoValue_JedisRequest(\n+        connection, operationName, sanitizer.sanitize(operationName, args), null);\n+  }\n+\n+  public static JedisRequest createPipeline(List<JedisRequest> requests) {\n+    return createBatch(requests, \"PIPELINE\");\n+  }\n+\n+  public static JedisRequest createTransaction(List<JedisRequest> requests) {\n+    return createBatch(requests, \"MULTI\");\n+  }\n+\n+  private static JedisRequest createBatch(List<JedisRequest> requests, String prefix) {\n+    JedisRequest first = requests.get(0);\n+    return new AutoValue_JedisRequest(\n+        first.getConnection(),\n+        batchOperationName(requests, prefix),\n+        pipelineQueryText(requests),\n+        requests.size() != 1 ? (long) requests.size() : null);\n+  }\n+\n+  public abstract Connection getConnection();\n+\n+  public abstract String getOperationName();\n+\n+  public abstract String getQueryText();\n+\n+  @Nullable\n+  public abstract Long getBatchSize();\n+\n+  private static String batchOperationName(List<JedisRequest> requests, String prefix) {\n+    if (requests.size() == 1) {\n+      return requests.get(0).getOperationName();\n+    }\n+    String commonOperationName = requests.get(0).getOperationName();\n+    for (int i = 1; i < requests.size(); i++) {\n+      if (!commonOperationName.equals(requests.get(i).getOperationName())) {\n+        return prefix;\n+      }\n+    }\n+    return prefix + \" \" + commonOperationName;\n+  }\n+\n+  private static String pipelineQueryText(List<JedisRequest> requests) {\n+    StringBuilder builder = new StringBuilder();\n+    for (JedisRequest request : requests) {\n+      String queryText = request.getQueryText();\n+      String separator = builder.length() == 0 ? \"\" : \";\";\n+      if (builder.length() + separator.length() + queryText.length() > LIMIT) {\n+        break;\n+      }\n+      builder.append(separator).append(queryText);\n+    }\n+    return builder.toString();\n+  }",
+      "id": "PRRT_kwDODJKVX86MWCk7",
+      "opened": "2026-06-25T20:15:26Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-25T20:38:27Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f863cf1b40.\n\nAligned the Jedis 3.0 and 4.0 batch query text builders with the same 32 KiB pre-append limit pattern used by the Jedis 2.0 module.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3477501458"
+        }
+      ],
+      "reviewed": "52dbebe7812d380806b42cdb2155b616b19370f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054#discussion_r3477370280"
+    }
+  ]
+}

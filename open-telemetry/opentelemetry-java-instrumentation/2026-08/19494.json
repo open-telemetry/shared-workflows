@@ -1,0 +1,73 @@
+{
+  "head": "f1d18937f1424012c59eac84bde28245f8eae725",
+  "merge": "ab5ded40f44c7395b3e826c4c3492199fc28b51d",
+  "merged": "2026-08-12T21:17:20Z",
+  "missing_roots": 0,
+  "number": 19494,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] An empty `IncludeExclude` carries no configuration, but this path treats it as active. Because an empty selector's `matches()` method matches every value, calling either new builder setter with `IncludeExclude.builder().build()` captures all request metadata instead of capturing nothing. Normalize empty selectors to the absent state here.",
+      "created": "2026-08-11T01:47:10Z",
+      "hunk": "@@ -26,14 +32,30 @@ final class GrpcAttributesExtractor implements AttributesExtractor<GrpcRequest,\n       AttributeKey.longKey(\"rpc.grpc.status_code\");\n   private static final AttributeKey<String> RPC_RESPONSE_STATUS_CODE =\n       AttributeKey.stringKey(\"rpc.response.status_code\");\n-\n   private final GrpcRpcAttributesGetter getter;\n-  private final List<String> capturedRequestMetadata;\n+  @Nullable private final IncludeExclude requestMetadata;\n+\n+  // Only literal included names are stored here. We intentionally do not cache wildcard or\n+  // exclude-only matches, even in a bounded cache: peer-controlled names could churn its entries,\n+  // making allocation behavior depend on prior traffic. Creating those attribute keys on demand\n+  // provides a fixed per-capture cost with no peer-controlled retained state, while literal\n+  // configured keys remain allocation-free.\n+  private final Map<String, AttributeKey<List<String>>> literalRequestAttributeKeys;\n+  private final Map<String, AttributeKey<List<String>>> literalStableRequestAttributeKeys;\n \n   GrpcAttributesExtractor(\n-      GrpcRpcAttributesGetter getter, List<String> requestMetadataValuesToCapture) {\n+      GrpcRpcAttributesGetter getter, @Nullable IncludeExclude requestMetadata) {\n     this.getter = getter;\n-    this.capturedRequestMetadata = lowercase(requestMetadataValuesToCapture);\n+    if (requestMetadata == null) {",
+      "id": "PRRT_kwDODJKVX86YFzfI",
+      "opened": "2026-08-11T01:47:11Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-11T03:32:44Z",
+          "body": "Addressed in d95871d90771c95cb78a9e00b2b52c497eea06c1.\n\nAnalysis: Programmatic builder callers can pass an empty selector directly, bypassing the declarative configuration normalization. Treating null and empty selectors identically in the extractor constructor prevents the empty selector's match-all behavior from capturing metadata.\n\nUpsides: Empty selectors consistently capture nothing across declarative and programmatic configuration, and the focused regression test covers a valid metadata key.\n\nDownsides: Adds one inexpensive isEmpty() check when constructing the extractor.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19494#discussion_r3755051001"
+        }
+      ],
+      "reviewed": "5136de8958b321834e1b5fb8dfde6e2d136e05f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19494#discussion_r3754711154"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This no-argument lookup reads the globally initialized preview flag instead of the configuration carried by the `openTelemetry` argument. If that instance enables `java.common.v3_preview`, deprecated `capture_metadata` aliases can remain active. Resolve preview mode from the same instance, as the other configuration readers do.",
+      "created": "2026-08-11T01:47:11Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class GrpcConfig {\n+\n+  private static final Logger logger = Logger.getLogger(GrpcConfig.class.getName());\n+  private static final Set<String> warnedDeprecatedProperties = ConcurrentHashMap.newKeySet();\n+\n+  private static final String DEPRECATED_CLIENT_REQUEST_METADATA =\n+      \"otel.instrumentation.grpc.capture-metadata.client.request\";\n+  private static final String DEPRECATED_SERVER_REQUEST_METADATA =\n+      \"otel.instrumentation.grpc.capture-metadata.server.request\";\n+  private static final String CLIENT_REQUEST_METADATA_INCLUDED =\n+      \"otel.instrumentation.grpc.client.request-metadata.included\";\n+  private static final String SERVER_REQUEST_METADATA_INCLUDED =\n+      \"otel.instrumentation.grpc.server.request-metadata.included\";\n+\n+  @Nullable private final IncludeExclude clientRequestMetadata;\n+  @Nullable private final IncludeExclude serverRequestMetadata;\n+\n+  public static GrpcConfig create(OpenTelemetry openTelemetry) {\n+    return new GrpcConfig(\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"grpc\"),\n+        SemconvStability.v3Preview());",
+      "id": "PRRT_kwDODJKVX86YFzff",
+      "opened": "2026-08-11T01:47:11Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcConfig.java",
+      "replies": [
+        {
+          "at": "2026-08-11T03:32:45Z",
+          "body": "Addressed in 80542a332b869aeacce9c7ad92448e63284d7074.\n\nAnalysis: The no-argument preview accessor is initialized from GlobalOpenTelemetry and can disagree with the OpenTelemetry instance passed to GrpcConfig.create(). Resolving preview mode with that instance keeps the gRPC configuration tree and common preview flag in the same configuration context.\n\nUpsides: Deprecated metadata aliases are reliably disabled for instance-scoped v3 preview configuration, including library users that do not configure GlobalOpenTelemetry.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19494#discussion_r3755051080"
+        }
+      ],
+      "reviewed": "5136de8958b321834e1b5fb8dfde6e2d136e05f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19494#discussion_r3754711185"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "File manipulation tasks in java build tools use just `include` and `exclude`",
+      "created": "2026-08-11T09:55:34Z",
+      "hunk": "@@ -400,19 +400,35 @@ definitions:\n       name: otel.instrumentation.grpc.capture-metadata.client.request\n       declarative_name: java.grpc.capture_metadata.client.request\n       description: |\n-        A comma-separated list of request metadata keys. gRPC client instrumentation will capture metadata values corresponding to configured keys as span attributes.\n+        Deprecated: use `otel.instrumentation.grpc.client.request-metadata.included` instead. A comma-separated list of request metadata keys to capture on client spans.\n       type: list\n       default: ''\n-      examples:\n-      - custom-request-header\n-      - my-metadata-key,another-metadata-key\n     otel.instrumentation.grpc.capture-metadata.server.request:\n       name: otel.instrumentation.grpc.capture-metadata.server.request\n       declarative_name: java.grpc.capture_metadata.server.request\n       description: |\n-        A comma-separated list of request metadata keys. gRPC server instrumentation will capture metadata values corresponding to configured keys as span attributes.\n+        Deprecated: use `otel.instrumentation.grpc.server.request-metadata.included` instead. A comma-separated list of request metadata keys to capture on server spans.\n+      type: list\n+      default: ''\n+    otel.instrumentation.grpc.client.request-metadata.excluded:",
+      "id": "PRRT_kwDODJKVX86YLnkl",
+      "opened": "2026-08-11T09:55:34Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-08-11T13:44:18Z",
+          "body": "yeah, this naming is following declarative configuration: https://github.com/open-telemetry/opentelemetry-configuration/blob/52c265e8a59fbf25348be7dfd2cb5c432801358d/schema/common.yaml#L1-L27",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19494#discussion_r3758482937"
+        }
+      ],
+      "reviewed": "ce758a830670a4f3d62f14b670cbf5f5c1bf3585",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19494#discussion_r3756917703"
+    }
+  ]
+}

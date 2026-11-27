@@ -1,0 +1,25 @@
+{
+  "head": "e9490d8283156d5bdbfee300bb1512c7771b3456",
+  "merge": "06e0e00c2603aa2f1972ca83f5923e49eda2ff15",
+  "merged": "2026-03-21T15:27:56Z",
+  "missing_roots": 0,
+  "number": 16891,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // TODO: assertInverse after completing instrumentation\n```",
+      "created": "2026-03-21T15:03:24Z",
+      "hunk": "@@ -7,7 +7,7 @@ muzzle {\n     group.set(\"com.openai\")\n     module.set(\"openai-java\")\n     versions.set(\"[1.1.0,3)\")\n-    // TODO: assertInverse after completing instrumentation\n+    assertInverse.set(true)",
+      "id": "PRRT_kwDODJKVX851496R",
+      "opened": "2026-03-21T15:03:29Z",
+      "path": "instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c4afbc7057af4a51b0483dfa37ce15ba60e165aa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16891#discussion_r2969684876"
+    }
+  ]
+}

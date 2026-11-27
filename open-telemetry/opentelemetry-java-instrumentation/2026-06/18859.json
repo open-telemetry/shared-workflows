@@ -1,0 +1,189 @@
+{
+  "head": "b80bbe898301d6f03d6456bfedef1d105e302b25",
+  "merge": "5496a578744edd226db74511425e7aa4041839de",
+  "merged": "2026-06-29T15:46:40Z",
+  "missing_roots": 0,
+  "number": 18859,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`extensionsInstrumentationClassLoaders` is stored as a `ClassLoaderValue` on the *extension* class loader and then maps `instrumentedClassLoader -> InstrumentationModuleClassLoader`. Since `InstrumentationModuleClassLoader` holds a strong reference to `instrumentedCl`, this creates a strong reachability path from the long-lived extension class loader to each instrumented class loader, preventing those application class loaders from being garbage-collected (class loader leak on redeploy / short-lived app CLs). Consider attaching this mapping to the *instrumented* class loader instead (e.g., `ClassLoaderValue<Map<ExtensionClassLoader, InstrumentationModuleClassLoader>>` keyed by instrumented CL), so the extension-specific loader is collected when the instrumented CL is collected.",
+      "created": "2026-05-28T13:47:12Z",
+      "hunk": "@@ -25,15 +28,22 @@ private IndyModuleRegistry() {}\n \n   /**\n    * Weakly references the {@link InstrumentationModuleClassLoader}s for a given application class\n-   * loader. The {@link InstrumentationModuleClassLoader} are kept alive by a strong reference from\n-   * the instrumented class loader realized via {@link ClassLoaderValue}.\n-   *\n-   * <p>The keys of the contained map are the instrumentation module group names, see {@link\n-   * ExperimentalInstrumentationModule#getModuleGroup()};\n+   * loader for the internal instrumentation. The {@link InstrumentationModuleClassLoader} are kept\n+   * alive by a strong reference from the instrumented class loader realized via {@link\n+   * ClassLoaderValue}.\n    */\n-  private static final ClassLoaderValue<Map<String, InstrumentationModuleClassLoader>>\n+  private static final ClassLoaderValue<InstrumentationModuleClassLoader>\n       instrumentationClassLoaders = new ClassLoaderValue<>();\n \n+  /**\n+   * Weakly references the {@link InstrumentationModuleClassLoader}s for a given extension class\n+   * loader with application class loader as key. The {@link InstrumentationModuleClassLoader} are\n+   * kept alive by a strong reference from the instrumented class loader realized via {@link\n+   * ClassLoaderValue}.\n+   */\n+  private static final ClassLoaderValue<Map<ClassLoader, InstrumentationModuleClassLoader>>\n+      extensionsInstrumentationClassLoaders = new ClassLoaderValue<>();\n+",
+      "id": "PRRT_kwDODJKVX86Fajos",
+      "opened": "2026-05-28T13:47:14Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyModuleRegistry.java",
+      "replies": [],
+      "reviewed": "a0250e66051d31783bdfb522889220090b98310e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3318213028"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inner map for extension loaders is created as a plain `HashMap` and then mutated/read from ByteBuddy transformation callbacks, which can run concurrently. This can lead to races and map corruption. Using a thread-safe map here (and/or moving the map to be stored per-instrumented class loader where a `ConcurrentHashMap` can be used with non-null keys) would avoid concurrency issues.",
+      "created": "2026-05-28T13:47:13Z",
+      "hunk": "@@ -124,23 +139,25 @@ private static void initializeModuleLoaderForClassLoader(\n       InstrumentationModule module, ClassLoader classLoader) {\n \n     ClassLoader agentOrExtensionCl = module.getClass().getClassLoader();\n-\n-    String groupName = getModuleGroup(module);\n-\n-    InstrumentationModuleClassLoader moduleCl =\n-        instrumentationClassLoaders\n-            .computeIfAbsent(classLoader, ConcurrentHashMap::new)\n-            .computeIfAbsent(\n-                groupName,\n-                unused -> new InstrumentationModuleClassLoader(classLoader, agentOrExtensionCl));\n+    InstrumentationModuleClassLoader moduleCl;\n+    if (!(agentOrExtensionCl instanceof ExtensionClassLoader)) {\n+      // non-extension modules are loaded in a common InstrumentationModuleClassLoader per\n+      // instrumented CL\n+      moduleCl =\n+          instrumentationClassLoaders.computeIfAbsent(\n+              classLoader,\n+              () -> new InstrumentationModuleClassLoader(classLoader, agentOrExtensionCl));\n+    } else {\n+      // extension modules are loaded in a common InstrumentationModuleCLassLoader per extension and\n+      // instrumented CL\n+      moduleCl =\n+          extensionsInstrumentationClassLoaders\n+              .computeIfAbsent(agentOrExtensionCl, HashMap::new)\n+              .computeIfAbsent(\n+                  classLoader,\n+                  k -> new InstrumentationModuleClassLoader(classLoader, agentOrExtensionCl));",
+      "id": "PRRT_kwDODJKVX86Fajpw",
+      "opened": "2026-05-28T13:47:14Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyModuleRegistry.java",
+      "replies": [],
+      "reviewed": "a0250e66051d31783bdfb522889220090b98310e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3318213116"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `getModuleGroup()` Javadoc still says modules are \"by default ... loaded by an isolated classloader\", but the new deprecation note below says internal instrumentation is now loaded in a common class loader. Updating the description (or shortening it since the method is deprecated) would prevent confusion for extension authors.",
+      "created": "2026-05-28T13:47:13Z",
+      "hunk": "@@ -34,7 +34,11 @@ default List<String> injectedClassNames() {\n    * <p>Sometimes this is not desired, e.g. when instrumenting modular libraries such as the AWS\n    * SDK. In such cases the {@link InstrumentationModule}s which want to share a classloader can\n    * return the same group name from this method.\n+   *\n+   * @deprecated to be removed in 3.0, instrumentation modules are automatically loaded in a common\n+   *     class-loader for internal instrumentation and one class-loader per extension.",
+      "id": "PRRT_kwDODJKVX86Fajq1",
+      "opened": "2026-05-28T13:47:14Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/ExperimentalInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "a0250e66051d31783bdfb522889220090b98310e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3318213203"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo in comment: `InstrumentationModuleCLassLoader` should be `InstrumentationModuleClassLoader`.",
+      "created": "2026-05-28T13:47:13Z",
+      "hunk": "@@ -124,23 +139,25 @@ private static void initializeModuleLoaderForClassLoader(\n       InstrumentationModule module, ClassLoader classLoader) {\n \n     ClassLoader agentOrExtensionCl = module.getClass().getClassLoader();\n-\n-    String groupName = getModuleGroup(module);\n-\n-    InstrumentationModuleClassLoader moduleCl =\n-        instrumentationClassLoaders\n-            .computeIfAbsent(classLoader, ConcurrentHashMap::new)\n-            .computeIfAbsent(\n-                groupName,\n-                unused -> new InstrumentationModuleClassLoader(classLoader, agentOrExtensionCl));\n+    InstrumentationModuleClassLoader moduleCl;\n+    if (!(agentOrExtensionCl instanceof ExtensionClassLoader)) {\n+      // non-extension modules are loaded in a common InstrumentationModuleClassLoader per\n+      // instrumented CL\n+      moduleCl =\n+          instrumentationClassLoaders.computeIfAbsent(\n+              classLoader,\n+              () -> new InstrumentationModuleClassLoader(classLoader, agentOrExtensionCl));\n+    } else {\n+      // extension modules are loaded in a common InstrumentationModuleCLassLoader per extension and\n+      // instrumented CL",
+      "id": "PRRT_kwDODJKVX86FajqU",
+      "opened": "2026-05-28T13:47:14Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyModuleRegistry.java",
+      "replies": [],
+      "reviewed": "a0250e66051d31783bdfb522889220090b98310e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3318213165"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we can delete this without doing a deprecation cycle.",
+      "created": "2026-06-01T13:47:03Z",
+      "hunk": "@@ -28,13 +27,13 @@ default List<String> injectedClassNames() {\n   }\n \n   /**\n-   * By default every InstrumentationModule is loaded by an isolated classloader, even if multiple\n-   * modules instrument the same application classloader.\n+   * Deprecated method previously used to define a common class-loader when using shared\n+   * instrumentation classes across instrumentation modules.\n    *\n-   * <p>Sometimes this is not desired, e.g. when instrumenting modular libraries such as the AWS\n-   * SDK. In such cases the {@link InstrumentationModule}s which want to share a classloader can\n-   * return the same group name from this method.\n+   * @deprecated to be removed in 3.0, instrumentation modules are automatically loaded in a common\n+   *     class-loader for internal instrumentation and one class-loader per extension.\n    */\n+  @Deprecated",
+      "id": "PRRT_kwDODJKVX86GIuBo",
+      "opened": "2026-06-01T13:47:03Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/ExperimentalInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-06-02T13:52:22Z",
+          "body": "fixed in f66c1b1",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3341694309"
+        }
+      ],
+      "reviewed": "29a1818817a62e7bdd2fd4e16b351017a6ab2434",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3334601381"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why do we need special handling for extensions?",
+      "created": "2026-06-01T13:49:55Z",
+      "hunk": "@@ -90,10 +89,25 @@ public static InstrumentationModuleClassLoader getInstrumentationClassLoader(\n     return loader;\n   }\n \n+  @Nullable\n+  private static InstrumentationModuleClassLoader lookupInstrumentationClassLoader(\n+      ClassLoader instrumentedClassLoader, ClassLoader moduleCl) {\n+    if (!(moduleCl instanceof ExtensionClassLoader)) {\n+      // internal instrumentation is using one CL per instrumented CL.\n+      return instrumentationClassLoaders.get(instrumentedClassLoader);\n+    }\n+    // extension module needs to use a common CL per extension and instrumented CL.",
+      "id": "PRRT_kwDODJKVX86GIxjb",
+      "opened": "2026-06-01T13:49:54Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyModuleRegistry.java",
+      "replies": [
+        {
+          "at": "2026-06-02T13:51:42Z",
+          "body": "Without this, running `./gradlew :instrumentation:jboss-logmanager:jboss-logmanager-appender-1.1:javaagent:test -PtestIndy=true -PdenyUnsafe=true` will produce errors like below because the `InstrumentationModule` is being loaded by the `AgentClassLoader`:\r\n\r\n```\r\njava.lang.IllegalArgumentException: io.opentelemetry.javaagent.testing.instrumentation.DenyUnsafeInstrumentationModule is not loaded by io.opentelemetry.javaagent.bootstrap.AgentClassLoader@5cb0d902 but is loaded by io.opentelemetry.javaagent.tooling.ExtensionClassLoader@2f410acf\r\n\tat io.opentelemetry.javaagent.tooling.instrumentation.indy.InstrumentationModuleClassLoader.installModule(InstrumentationModuleClassLoader.java:154)\r\n\tat io.opentelemetry.javaagent.tooling.instrumentation.indy.InstrumentationModuleClassLoader.installModule(InstrumentationModuleClassLoader.java:147)\r\n\tat io.opentelemetry.javaagent.tooling.instrumentation.indy.IndyModuleRegistry.initializeModuleLoaderForClassLoader(IndyModuleRegistry.java:160)\r\n```\r\n\r\nPreviously, the extensions were isolated on a per `InstrumentationModule` class name, so the isolation is still less strict than it used to be when using indy.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3341689715"
+        }
+      ],
+      "reviewed": "29a1818817a62e7bdd2fd4e16b351017a6ab2434",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3334620717"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "A bit confusing, is there one shared class loader or a separate shared class loader for each class loader in the app?",
+      "created": "2026-06-25T15:22:21Z",
+      "hunk": "@@ -420,12 +420,13 @@ to `true` and make it non-experimental.\n \n ### Shared classes and common classloader\n \n-By default, all the advices of an instrumentation module will be loaded into isolated classloaders,\n-one per instrumentation module. Some instrumentations require to use a common classloader in order\n-to preserve the semantics of `static` fields and to share classes.\n+All the advices are loaded into a shared classloader:",
+      "id": "PRRT_kwDODJKVX86MRHC9",
+      "opened": "2026-06-25T15:22:21Z",
+      "path": "docs/contributing/writing-instrumentation-module.md",
+      "replies": [
+        {
+          "at": "2026-06-25T15:35:27Z",
+          "body": "Would rephrasing like this make it more clear ?\r\n\r\n```\r\nFor each application classloader, all the advices are loaded into a shared classloader per application classloader.\r\n\r\n- one common classloader for internal instrumentation modules\r\n- one common classloader per extension\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3475644240"
+        }
+      ],
+      "reviewed": "527de401748b2fd5b421822d7a9bc00d4f5811b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3475553348"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "If you'd key the map by `ClassLoader` instead of `ExtensionClassLoader` you could probably remove `instrumentationClassLoaders` `ClassLoaderValue` and use this one for both extensions and bundled instrumentations.",
+      "created": "2026-06-26T08:15:46Z",
+      "hunk": "@@ -25,15 +27,22 @@ private IndyModuleRegistry() {}\n \n   /**\n    * Weakly references the {@link InstrumentationModuleClassLoader}s for a given application class\n-   * loader. The {@link InstrumentationModuleClassLoader} are kept alive by a strong reference from\n-   * the instrumented class loader realized via {@link ClassLoaderValue}.\n-   *\n-   * <p>The keys of the contained map are the instrumentation module group names, see {@link\n-   * ExperimentalInstrumentationModule#getModuleGroup()};\n+   * loader for the internal instrumentation. The {@link InstrumentationModuleClassLoader} are kept\n+   * alive by a strong reference from the instrumented class loader realized via {@link\n+   * ClassLoaderValue}.\n    */\n-  private static final ClassLoaderValue<Map<String, InstrumentationModuleClassLoader>>\n+  private static final ClassLoaderValue<InstrumentationModuleClassLoader>\n       instrumentationClassLoaders = new ClassLoaderValue<>();\n \n+  /**\n+   * Weakly references the {@link InstrumentationModuleClassLoader}s for a given application class\n+   * loader with extension class loader as key. The {@link InstrumentationModuleClassLoader} are\n+   * kept alive by a strong reference from the instrumented class loader realized via {@link\n+   * ClassLoaderValue}.\n+   */\n+  private static final ClassLoaderValue<Map<ExtensionClassLoader, InstrumentationModuleClassLoader>>",
+      "id": "PRRT_kwDODJKVX86MdYqE",
+      "opened": "2026-06-26T08:15:46Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyModuleRegistry.java",
+      "replies": [],
+      "reviewed": "6bbb2708cff9f632b2a6452e313d06c73c3180e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3480061466"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess this comment could use an update since there are no more module groups",
+      "created": "2026-06-26T08:20:46Z",
+      "hunk": "@@ -90,10 +89,25 @@ public static InstrumentationModuleClassLoader getInstrumentationClassLoader(\n     return loader;\n   }\n \n+  @Nullable\n+  private static InstrumentationModuleClassLoader lookupInstrumentationClassLoader(\n+      ClassLoader instrumentedClassLoader, ClassLoader moduleCl) {\n+    if (!(moduleCl instanceof ExtensionClassLoader)) {\n+      // internal instrumentation is using one CL per instrumented CL.\n+      return instrumentationClassLoaders.get(instrumentedClassLoader);\n+    }\n+    // extension module needs to use a common CL per extension and instrumented CL.\n+    Map<ExtensionClassLoader, InstrumentationModuleClassLoader> map =\n+        extensionsInstrumentationClassLoaders.get(instrumentedClassLoader);\n+    if (map != null) {\n+      return map.get(moduleCl);\n+    }\n+    return null;\n+  }\n+\n   /**\n    * Returns a newly created class loader containing only the provided module. Note that other\n-   * modules from the same module group (see {@link #getModuleGroup(InstrumentationModule)}) will\n-   * not be installed in this class loader.\n+   * modules from the same module group will not be installed in this class loader.",
+      "id": "PRRT_kwDODJKVX86MddJE",
+      "opened": "2026-06-26T08:20:46Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyModuleRegistry.java",
+      "replies": [],
+      "reviewed": "6bbb2708cff9f632b2a6452e313d06c73c3180e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3480086910"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "can't you use `moduleCl` here too?",
+      "created": "2026-06-26T15:57:37Z",
+      "hunk": "@@ -92,7 +96,7 @@ private static InstrumentationModuleClassLoader lookupInstrumentationClassLoader\n     ClassLoader classLoaderKey;\n     if (!(moduleCl instanceof ExtensionClassLoader)) {\n       // internal instrumentation is using one CL per instrumented CL.\n-      classLoaderKey = instrumentedClassLoader;\n+      classLoaderKey = INTERNAL_INSTRUMENTATION_CLASSLOADER_KEY;",
+      "id": "PRRT_kwDODJKVX86MkdDF",
+      "opened": "2026-06-26T15:57:37Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyModuleRegistry.java",
+      "replies": [
+        {
+          "at": "2026-06-29T13:09:00Z",
+          "body": "yes we can, we can even completely remove this static key.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3491919792"
+        },
+        {
+          "at": "2026-06-29T13:38:17Z",
+          "body": "fixed in [b80bbe8](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859/commits/b80bbe898301d6f03d6456bfedef1d105e302b25)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3492106513"
+        }
+      ],
+      "reviewed": "983d4e562253106bcd50a46b1df0d38740e6df8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859#discussion_r3482595642"
+    }
+  ]
+}

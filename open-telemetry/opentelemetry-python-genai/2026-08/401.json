@@ -1,0 +1,25 @@
+{
+  "head": "20fb324be3b73791e597abffd2e46ebaacbe623d",
+  "merge": "3e1b86047da24593e109a7bf55a66f44c3237e49",
+  "merged": "2026-08-19T04:52:28Z",
+  "missing_roots": 0,
+  "number": 401,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The minimum `anthropic` version is duplicated across multiple requirements files (examples + docs). To reduce drift and make future bumps less error-prone, consider centralizing this constraint (e.g., a shared `constraints.txt` or a common `requirements-base.txt` referenced via `-c` / `-r` from these files).",
+      "created": "2026-08-17T04:34:44Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-anthropic>=0.121.0\n+anthropic>=0.122.0\n opentelemetry-sdk~=1.43.0\n opentelemetry-distro~=0.64b0\n opentelemetry-instrumentation-genai-anthropic~=1.0b0",
+      "id": "PRRT_kwDOSbspP86ZsPvr",
+      "opened": "2026-08-17T04:34:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "20fb324be3b73791e597abffd2e46ebaacbe623d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/401#discussion_r3793829355"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a82005df493c05bfe597ec47cdace71df3edfe7bb0a1aade736015a63bb824fe",
+  "input_digest": "7e11638ad7eaa83ec8812326a5eb7b904a16187c058b28c8d9745fd64141293a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb7c0ef714c4f39f13bad593f50c75d2397127e6/gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleSliceFunctionalTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleSliceFunctionalTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f43d602870874a6b34272268f16cb332e7fbecc2"
+      ],
+      "id": "PRRT_kwDODJKVX86y7q10",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb7c0ef714c4f39f13bad593f50c75d2397127e6/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb7c0ef714c4f39f13bad593f50c75d2397127e6/gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleSliceFunctionalTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleSliceFunctionalTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f43d602870874a6b34272268f16cb332e7fbecc2"
+      ],
+      "id": "PRRT_kwDODJKVX86y7q1F",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb7c0ef714c4f39f13bad593f50c75d2397127e6/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb7c0ef714c4f39f13bad593f50c75d2397127e6/gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleSliceFunctionalTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleSliceFunctionalTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f43d602870874a6b34272268f16cb332e7fbecc2"
+      ],
+      "id": "PRRT_kwDODJKVX86y7tp0",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f43d602870874a6b34272268f16cb332e7fbecc2/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1f2bef12e26bab4e5ab18f6677c6e0c7bc5d0238"
+      ],
+      "id": "PRRT_kwDODJKVX86y7_Hw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f43d602870874a6b34272268f16cb332e7fbecc2/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1f2bef12e26bab4e5ab18f6677c6e0c7bc5d0238"
+      ],
+      "id": "PRRT_kwDODJKVX86y8A7m",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f2bef12e26bab4e5ab18f6677c6e0c7bc5d0238/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2e35482e32b4d01775bf989535ef81e68dc916f/gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/1f2bef12e26bab4e5ab18f6677c6e0c7bc5d0238...0c24c31971fe540d05c2fde6ea62652f7da68397",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4db1f5e83cb889f158551d135fe05d5eee991f53"
+      ],
+      "id": "PRRT_kwDODJKVX86y8brq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

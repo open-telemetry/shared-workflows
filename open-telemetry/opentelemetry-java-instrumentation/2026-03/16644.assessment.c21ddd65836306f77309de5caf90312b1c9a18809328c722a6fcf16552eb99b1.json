@@ -1,0 +1,31 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e078b7acaa2215fdf1f327827aa7d3cdc5dc98d487fd789117c4267a5cd28553",
+  "input_digest": "c21ddd65836306f77309de5caf90312b1c9a18809328c722a6fcf16552eb99b1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX8508aiD",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX850-paj",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/42c006795282f14b852370115ed984861eee92e2/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1InstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad3bcc2b431d4f4aa9150d8d09dcbc32cdbabe59/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1InstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ac8db487f441af06fd5d5ae3b26a204d44740a15"
+      ],
+      "id": "PRRT_kwDODJKVX851w0Rm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

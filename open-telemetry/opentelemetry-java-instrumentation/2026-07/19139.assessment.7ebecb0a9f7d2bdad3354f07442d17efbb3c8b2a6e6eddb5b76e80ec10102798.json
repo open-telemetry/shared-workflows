@@ -1,0 +1,248 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "91ee2446c59a4dcd757970a71da86a6752cb55e067d4cdd42633abc8318db360",
+  "input_digest": "7ebecb0a9f7d2bdad3354f07442d17efbb3c8b2a6e6eddb5b76e80ec10102798",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ff2d0b1adf4d4cb5dfe8e3585714c52bec8e48/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86PKmIg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83ff2d0b1adf4d4cb5dfe8e3585714c52bec8e48/instrumentation/jmx-metrics/library/src/test/resources/jmx/registry/test-common.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/resources/jmx/registry/test-common.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/09936668ce878bbdd44d3a5ae9bc2331015afed4"
+      ],
+      "id": "PRRT_kwDODJKVX86PKmIw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de360e0a4aee41d94f74166a2569e86cd0b437f3/instrumentation/jmx-metrics/library/src/test/resources/jmx/registry/test-common.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/resources/jmx/registry/test-common.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7a2a20fc2f20dd30b6330f44352b0167b2632dee"
+      ],
+      "id": "PRRT_kwDODJKVX86PuKNX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/model/manifest.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/JvmTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/model/jvm.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/model/manifest.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/51e7cbf7d43e0a9a850c9472d634f14f52c08e3a"
+      ],
+      "id": "PRRT_kwDODJKVX86P-WhF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/51e7cbf7d43e0a9a850c9472d634f14f52c08e3a"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Whc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Whs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/607124c9ef8cb199e6e91cfde30afcb90597dc4b"
+      ],
+      "id": "PRRT_kwDODJKVX86P-WiE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Wi7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86P-Wif",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86PKmIg",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-WjV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Wjq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Wj5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-WkQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Wkl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Wk5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-WlH",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-WlZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Wlk",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fe425f9a9e1039ed4a7ff46b1ee8d182b694edd/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/607124c9ef8cb199e6e91cfde30afcb90597dc4b",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-Wlz",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d9c24afb07434deb3259bbf98c8400a832337fb/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d9c24afb07434deb3259bbf98c8400a832337fb/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d9c24afb07434deb3259bbf98c8400a832337fb/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/JvmTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6641530d1e07fad16d5d0190a59356da057db7d2/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/JvmTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d326832b8242339fb4478545f986da01ebe12a63"
+      ],
+      "id": "PRRT_kwDODJKVX86RLUOx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86RLUPP",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86P-Wi7",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86RgRyX",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86P-Wi7",
+      "status": "duplicate"
+    }
+  ]
+}

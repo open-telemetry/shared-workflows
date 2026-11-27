@@ -1,0 +1,31 @@
+{
+  "head": "527673444ace6ed211fa504e0014541e35f0af28",
+  "merge": "b88768dfaf4d1aa30d0c438d5fe448821611e11a",
+  "merged": "2026-06-08T16:44:17Z",
+  "missing_roots": 0,
+  "number": 261,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The follow-up timing check now relies on the early return for `(now - last_notified) < REVIEWER_FOLLOW_UP_SECONDS`. This makes the control flow harder to read and easier to accidentally break if the logic is reordered later. Consider computing the elapsed seconds once, applying the cooldown only to the refreshed `waiting_since` (initial) case, and keeping the follow-up threshold explicit.",
+      "created": "2026-06-08T03:44:11Z",
+      "hunk": "@@ -99,9 +99,11 @@ def pending_notification_kind(\n     last_notified = parse_ts(previous_pr_state.get(\"last_notified_at\") or \"\")\n     if last_notified is None:\n         return \"initial\"\n+    if (now - last_notified).total_seconds() < REVIEWER_FOLLOW_UP_SECONDS:\n+        return None\n     if current_waiting_since > last_notified:\n         return \"initial\"\n-    if now.weekday() < 5 and (now - last_notified).total_seconds() >= REVIEWER_FOLLOW_UP_SECONDS:\n+    if now.weekday() < 5:",
+      "id": "PRRT_kwDOSUeMrM6Ht0Wx",
+      "opened": "2026-06-08T03:44:11Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-08T04:03:58Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/5276734.\n\nComputed elapsed_seconds once, applied the cooldown only to the refreshed waiting_since initial case, and kept the follow-up threshold explicit.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/261#discussion_r3370753569"
+        }
+      ],
+      "reviewed": "df92a203f7fceb4a4b005215a9b1b13884ec4758",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/261#discussion_r3370703728"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "e3ef938b6a7ee76ee9b91034adbffca3fb5e4715",
+  "merge": "48db5402efcc878fda6cc5ba447e52369e855a53",
+  "merged": "2026-08-17T13:30:00Z",
+  "missing_roots": 0,
+  "number": 19649,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This collapses the established `ClassLoaders` word boundary into `Classloaders`, unlike `registerForAllClassLoaders` below and `HelperResource#allClassLoaders`. Rename the field and both references to `allClassLoadersResources` for consistent lower-camel naming.",
+      "created": "2026-08-16T21:12:11Z",
+      "hunk": "@@ -24,8 +24,7 @@\n public final class HelperResources {\n \n   private static final Cache<ClassLoader, Map<String, List<URL>>> RESOURCES = Cache.weak();\n-  private static final Map<String, List<URL>> ALL_CLASSLOADERS_RESOURCES =\n-      new ConcurrentHashMap<>();\n+  private static final Map<String, List<URL>> allClassloadersResources = new ConcurrentHashMap<>();",
+      "id": "PRRT_kwDODJKVX86ZpnOz",
+      "opened": "2026-08-16T21:12:11Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/HelperResources.java",
+      "replies": [
+        {
+          "at": "2026-08-16T21:51:48Z",
+          "body": "Addressed in d6b44fe51955657232eaf2863555029ede50fc75.\n\nAnalysis: The field describes resources registered for all class loaders. Existing method and model names preserve `ClassLoaders` as two words, so `allClassLoadersResources` is the consistent lower-camel form.\n\nUpsides: The field now matches nearby APIs and keeps the `ClassLoader` type name readable.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19649#discussion_r3792909324"
+        }
+      ],
+      "reviewed": "2dd377fa2672a92e31fb01cd7f9aa072dcb707b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19649#discussion_r3792830227"
+    }
+  ]
+}

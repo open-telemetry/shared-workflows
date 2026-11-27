@@ -1,0 +1,104 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9eda23374a4203d0854390d6110b82528a1813e34e2b549bf6dd43507e66f934",
+  "input_digest": "06fd5b3a1723e191f34c652e0e8b09dde6e5995ab0e8155f18740ed8de0fbe11",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd78c4066430c782568271c3b93a74da7b6632a2/instrumentation/servlet/servlet-3.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/servlet/servlet-3.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd78c4066430c782568271c3b93a74da7b6632a2/instrumentation/servlet/servlet-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/servlet/servlet-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd78c4066430c782568271c3b93a74da7b6632a2/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/CHANGELOG.md"
+      ],
+      "id": "PRRT_kwDODJKVX86vCdDk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d516dc90c8fd5c4637b042c13fade74aac84a3e1/instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d516dc90c8fd5c4637b042c13fade74aac84a3e1/instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/AttributesExtractorAdapter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/AttributesExtractorAdapter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vCsCC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/807aba0aa698ca0d1ffce36be2ffab50b040083f/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerHeaderSelectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerHeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vC1we",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8dddff2a686e421f2aa147b4b4f4254fc18fe47/instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8dddff2a686e421f2aa147b4b4f4254fc18fe47/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerHeaderSelectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerHeaderSelectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8dddff2a686e421f2aa147b4b4f4254fc18fe47/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/Netty41ServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/Netty41ServerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vC9nC",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8dddff2a686e421f2aa147b4b4f4254fc18fe47/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8fd8dea2ad6ca913fffb956fead315c3729ed700"
+      ],
+      "id": "PRRT_kwDODJKVX86vC9nS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8dddff2a686e421f2aa147b4b4f4254fc18fe47/instrumentation/servlet/servlet-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/instrumentation/servlet/servlet-3.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86vDAKo",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9c251387c68352a99e583704a9914b0e1de19ea7/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fd8dea2ad6ca913fffb956fead315c3729ed700/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8fd8dea2ad6ca913fffb956fead315c3729ed700"
+      ],
+      "id": "PRRT_kwDODJKVX86vDoRk",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vDqWe",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vDoRk",
+      "status": "duplicate"
+    }
+  ]
+}

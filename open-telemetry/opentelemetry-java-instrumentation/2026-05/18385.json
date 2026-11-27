@@ -1,0 +1,88 @@
+{
+  "head": "2ed4d385be79fe6b7b8bedc8f27a08a58c100158",
+  "merge": "2a4fb49faa553cacda26ec080c66ed2b94b6468d",
+  "merged": "2026-05-04T02:55:39Z",
+  "missing_roots": 0,
+  "number": 18385,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getManifest(JarFile, JarEntry)` now propagates `IOException` up to `forUrl()`, which can cause the entire jar to be skipped if the embedded jar is missing/corrupt or the manifest can't be read. Previously, the embedded-jar manifest read swallowed `IOException` and returned `null` (matching the non-embedded `getManifest(JarFile)` behavior). Consider catching `IOException` here (or at the call site) and returning `null` to preserve the previous behavior and avoid failing metadata extraction due to a best-effort field.\n```suggestion\n  private static Manifest getManifest(JarFile jarFile, JarEntry jarEntry) {\n    try (JarInputStream jarInputStream = new JarInputStream(jarFile.getInputStream(jarEntry))) {\n      return jarInputStream.getManifest();\n    } catch (IOException ignored) {\n      return null;\n```",
+      "created": "2026-04-29T00:04:04Z",
+      "hunk": "@@ -196,29 +211,28 @@ private static String computeDigest(InputStream inputStream, MessageDigest md)\n     return String.format(Locale.ROOT, \"%040x\", new BigInteger(1, digest));\n   }\n \n-  /**\n-   * Returns An open input stream for the associated url. It is the caller's responsibility to close\n-   * the stream on completion.\n-   */\n-  protected InputStream getInputStream() throws IOException {\n-    return url.openStream();\n-  }\n-\n   @Nullable\n-  protected Manifest getManifest() {\n+  private static Manifest getManifest(JarFile jarFile) {\n     try {\n       return jarFile.getManifest();\n-    } catch (IOException e) {\n+    } catch (IOException ignored) {\n       return null;\n     }\n   }\n \n+  @Nullable\n+  private static Manifest getManifest(JarFile jarFile, JarEntry jarEntry) throws IOException {\n+    try (JarInputStream jarInputStream = new JarInputStream(jarFile.getInputStream(jarEntry))) {\n+      return jarInputStream.getManifest();",
+      "id": "PRRT_kwDODJKVX85-S4jm",
+      "opened": "2026-04-29T00:04:04Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [
+        {
+          "at": "2026-04-29T00:13:38Z",
+          "body": "`getPom(jarFile, jarEntry)` runs before `getManifest(jarFile, jarEntry)` in `forUrl`, and both start by opening the same `new JarInputStream(jarFile.getInputStream(jarEntry))` — whose constructor is what parses the manifest. Any `IOException` from a missing/corrupt embedded jar or unreadable manifest is thrown by `getPom` first, so `getManifest` is never reached. Swallowing here vs. propagating produces the same outcome in practice; leaving it as-is.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18385#discussion_r3157942742"
+        }
+      ],
+      "reviewed": "ef471ad661046f35c59c628b25ef21294cc4aafa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18385#discussion_r3157918310"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This won't work for paths with spaces since in url space is encoded with `%20`. For ideas see https://github.com/spring-projects/spring-framework/blob/3184eb3acc8e2e6e95623c43e979ef6c256887ed/spring-core/src/main/java/org/springframework/util/ResourceUtils.java#L324\nThis can be annoyingly complicated since the urls can be malformed. For example as far as I remember websphere by default doesn't encode spaces to `%20`.",
+      "created": "2026-04-29T12:19:09Z",
+      "hunk": "@@ -75,18 +74,27 @@ static JarDetails forUrl(URL url) throws IOException {\n         int index = urlLower.indexOf(entry.getKey());\n         if (index > 0) {\n           String targetEntry = urlString.substring(index + entry.getKey().length());\n-          JarFile jarFile =\n+          try (JarFile jarFile =\n               new JarFile(\n-                  urlString.substring(\"jar:file:\".length(), index + 1 + entry.getValue().length()));\n-          JarEntry jarEntry = jarFile.getJarEntry(targetEntry);\n-          if (jarEntry == null) {\n-            throw new IOException(\"Embedded jar entry not found: \" + targetEntry);\n+                  urlString.substring(\n+                      \"jar:file:\".length(), index + 1 + entry.getValue().length()))) {",
+      "id": "PRRT_kwDODJKVX85-bR4n",
+      "opened": "2026-04-29T12:19:09Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [
+        {
+          "at": "2026-04-29T14:27:54Z",
+          "body": "added support for spaces (and a test)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18385#discussion_r3161764725"
+        }
+      ],
+      "reviewed": "ef471ad661046f35c59c628b25ef21294cc4aafa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18385#discussion_r3160898180"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "See https://github.com/spring-projects/spring-framework/blob/3184eb3acc8e2e6e95623c43e979ef6c256887ed/spring-core/src/main/java/org/springframework/util/ResourceUtils.java#L223 for ideas",
+      "created": "2026-04-29T12:21:40Z",
+      "hunk": "@@ -75,18 +74,27 @@ static JarDetails forUrl(URL url) throws IOException {\n         int index = urlLower.indexOf(entry.getKey());\n         if (index > 0) {\n           String targetEntry = urlString.substring(index + entry.getKey().length());\n-          JarFile jarFile =\n+          try (JarFile jarFile =\n               new JarFile(\n-                  urlString.substring(\"jar:file:\".length(), index + 1 + entry.getValue().length()));\n-          JarEntry jarEntry = jarFile.getJarEntry(targetEntry);\n-          if (jarEntry == null) {\n-            throw new IOException(\"Embedded jar entry not found: \" + targetEntry);\n+                  urlString.substring(\n+                      \"jar:file:\".length(), index + 1 + entry.getValue().length()))) {\n+            JarEntry jarEntry = jarFile.getJarEntry(targetEntry);\n+            if (jarEntry == null) {\n+              throw new IOException(\"Embedded jar entry not found: \" + targetEntry);\n+            }\n+            return new JarDetails(\n+                url,\n+                getPom(jarFile, jarEntry),\n+                getManifest(jarFile, jarEntry),\n+                computeDigest(jarFile, jarEntry, SHA1.get()));\n           }\n-          return new EmbeddedJarDetails(url, jarFile, jarEntry);\n         }\n       }\n     }\n-    return new JarDetails(url, new JarFile(url.getFile()));\n+    try (JarFile jarFile = new JarFile(url.getFile())) {",
+      "id": "PRRT_kwDODJKVX85-bUWW",
+      "opened": "2026-04-29T12:21:40Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [],
+      "reviewed": "ef471ad661046f35c59c628b25ef21294cc4aafa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18385#discussion_r3160911852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Tests don't seem to hit this block. Is this for handling nested jars like when you have one jar inside another jar?",
+      "created": "2026-04-29T12:50:58Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85-b1Z8",
+      "opened": "2026-04-29T12:50:58Z",
+      "path": "instrumentation/runtime-telemetry/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimetelemetry/JarDetails.java",
+      "replies": [
+        {
+          "at": "2026-04-29T14:26:55Z",
+          "body": "yeah, added a test for it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18385#discussion_r3161757719"
+        }
+      ],
+      "reviewed": "ef471ad661046f35c59c628b25ef21294cc4aafa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18385#discussion_r3161097040"
+    }
+  ]
+}

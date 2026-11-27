@@ -1,0 +1,52 @@
+{
+  "head": "cd56cb45a9f75b709997e30bc03e302c962d8993",
+  "merge": "e4c59581e1cb27d352d7ff77bc1a2b6e5d60b95b",
+  "merged": "2026-07-11T15:29:42Z",
+  "missing_roots": 0,
+  "number": 19185,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The stated coverage of scheduled workflows is incomplete: `.github/workflows/module-cleanup.lock.yml` also has an hourly `schedule` trigger but no failure-notification job. Failures in that workflow therefore remain invisible to the team; add the notification to its source `.github/workflows/module-cleanup.md` and regenerate the lock file.",
+      "created": "2026-07-10T19:33:12Z",
+      "hunk": "@@ -89,3 +89,13 @@ jobs:\n                          --body \"$body\" \\\n                          --base main\n           fi\n+\n+  workflow-notification:\n+    permissions:\n+      issues: write\n+    needs:\n+      - update-latest-dep-versions\n+    if: always()\n+    uses: open-telemetry/shared-workflows/.github/workflows/workflow-failure-issue.yml@7c49790392da7de86fdb4bb968446f9cb8461eb8 # v0.3.1",
+      "id": "PRRT_kwDODJKVX86P_jN3",
+      "opened": "2026-07-10T19:33:12Z",
+      "path": ".github/workflows/update-latest-dep-versions.yml",
+      "replies": [
+        {
+          "at": "2026-07-10T22:46:36Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e834c3f1315abe5bfe8f287d04af9a4f4163bef6.\n\nAdded skip-aware failure notification coverage to the module-cleanup workflow source and regenerated its lock file with the pinned compiler.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19185#discussion_r3562382568"
+        }
+      ],
+      "reviewed": "0bca293dbbe0d5b33fd63bb2124e36804ca72cb6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19185#discussion_r3561510374"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This reports success before all generated jobs have completed. In the lock file, `safe_outputs` can still fail independently, and `conclusion` explicitly waits for `workflow-notification` (`module-cleanup.lock.yml:883-1012`), yet neither result is represented here. A run can therefore fail after this call has reported success (and may even close an existing failure issue). Please move this workflow's reporting to a `workflow_run` observer, or otherwise arrange for it to execute after every generated job and derive success from all of them.",
+      "created": "2026-07-11T02:56:41Z",
+      "hunk": "@@ -180,6 +180,18 @@ jobs:\n           WORKFLOW_FILE: module-cleanup.lock.yml\n         run: gh workflow run \"$WORKFLOW_FILE\" --repo \"$GITHUB_REPOSITORY\"\n \n+  workflow-notification:\n+    permissions:\n+      issues: write\n+    needs:\n+      - dispatch\n+      - agent\n+      - finalize\n+    if: always()\n+    uses: open-telemetry/shared-workflows/.github/workflows/workflow-failure-issue.yml@7c49790392da7de86fdb4bb968446f9cb8461eb8 # v0.3.1\n+    with:\n+      success: ${{ needs.dispatch.result == 'success' && (needs.agent.result == 'success' || needs.agent.result == 'skipped') && (needs.finalize.result == 'success' || needs.finalize.result == 'skipped') }}",
+      "id": "PRRT_kwDODJKVX86QDls9",
+      "opened": "2026-07-11T02:56:42Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [
+        {
+          "at": "2026-07-11T03:04:37Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cd56cb45a9. Removed failure notification from Module Cleanup entirely, so it can no longer report success before the generated jobs finish.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19185#discussion_r3563003527"
+        }
+      ],
+      "reviewed": "acaff48764821933d3d579a508c7ba87cea4df49",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19185#discussion_r3562987783"
+    }
+  ]
+}

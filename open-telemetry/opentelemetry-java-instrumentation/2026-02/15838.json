@@ -1,0 +1,136 @@
+{
+  "head": "d4c60924c399ba98510366405bc83d78559bf7fc",
+  "merge": "34edf998e557f15bad981a8800032738b1db330d",
+  "merged": "2026-02-22T22:02:07Z",
+  "missing_roots": 0,
+  "number": 15838,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "library instrumentations should not depend on incubating semconv (using it in tests is fine and encouraged)",
+      "created": "2026-01-22T12:39:52Z",
+      "hunk": "@@ -8,6 +8,8 @@ dependencies {\n \n   implementation(project(\":instrumentation:lettuce:lettuce-common:library\"))\n \n+  compileOnly(\"io.opentelemetry.semconv:opentelemetry-semconv-incubating\")",
+      "id": "PRRT_kwDODJKVX85qitI-",
+      "opened": "2026-01-22T12:39:52Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "4a353bb02634ac20336b749a0387e551bcd29f5f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2716746065"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "in library instrumentation we usually we copy the constant from the incubating semconv like in\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5611d981d48b69990da752ac97b0b75ccb394292/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java#L50-L51",
+      "created": "2026-02-11T14:27:21Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+\n+final class LettuceDbAttributesGetter implements DbClientAttributesGetter<LettuceRequest, Void> {\n+\n+  @Override\n+  public String getDbSystemName(LettuceRequest request) {\n+    return \"redis\";",
+      "id": "PRRT_kwDODJKVX85t_271",
+      "opened": "2026-02-11T14:27:21Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceDbAttributesGetter.java",
+      "replies": [],
+      "reviewed": "9b930f3ae039869dec5752d303e6dd218d6a358a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2793601167"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why do these need to be volatile?",
+      "created": "2026-02-11T14:53:14Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1;\n+\n+import static io.opentelemetry.instrumentation.lettuce.common.LettuceArgSplitter.splitArgs;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+final class LettuceRequest {\n+\n+  private final RedisCommandSanitizer sanitizer;\n+  @Nullable private volatile String command;",
+      "id": "PRRT_kwDODJKVX85uAQuw",
+      "opened": "2026-02-11T14:53:14Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceRequest.java",
+      "replies": [],
+      "reviewed": "9b930f3ae039869dec5752d303e6dd218d6a358a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2793737036"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this actually used? or is it always called before the span is careated?",
+      "created": "2026-02-11T15:13:28Z",
+      "hunk": "@@ -196,49 +155,34 @@ private OpenTelemetrySpan nextSpan(Context context) {\n   // reducing synchronization but the impact should be minimal.\n   private static class OpenTelemetrySpan extends Tracer.Span {\n \n-    private final Context context;\n-    private final SpanBuilder spanBuilder;\n-    private final RedisCommandSanitizer sanitizer;\n-    private final OperationListener metrics;\n+    private final Context parentContext;\n+    private final Instrumenter<LettuceRequest, Void> instrumenter;\n     private final boolean encodingEventsEnabled;\n+    private final LettuceRequest request;\n \n-    @Nullable private String name;\n     @Nullable private List<Object> events;\n     @Nullable private Throwable error;\n-    @Nullable private Span span;\n-    private long spanStartNanos;\n-    private final AttributesBuilder attributesBuilder;\n-    @Nullable private List<String> argsList;\n-    @Nullable private String argsString;\n+    @Nullable private Context context;\n \n     OpenTelemetrySpan(\n-        Context context,\n-        SpanBuilder spanBuilder,\n+        Context parentContext,\n+        Instrumenter<LettuceRequest, Void> instrumenter,\n         RedisCommandSanitizer sanitizer,\n-        OperationListener metrics,\n         boolean encodingEventsEnabled) {\n-      this.context = context;\n-      this.spanBuilder = spanBuilder;\n-      this.sanitizer = sanitizer;\n-      this.metrics = metrics;\n-      this.attributesBuilder = Attributes.builder();\n+      this.parentContext = parentContext;\n+      this.instrumenter = instrumenter;\n       this.encodingEventsEnabled = encodingEventsEnabled;\n-      if (SemconvStability.emitStableDatabaseSemconv()) {\n-        attributesBuilder.put(DB_SYSTEM_NAME, REDIS);\n-      }\n-      if (SemconvStability.emitOldDatabaseSemconv()) {\n-        attributesBuilder.put(DB_SYSTEM, REDIS);\n-      }\n+      this.request = new LettuceRequest(sanitizer);\n     }\n \n     @Override\n     @CanIgnoreReturnValue\n     public synchronized Tracer.Span name(String name) {\n-      if (span != null) {\n-        span.updateName(name);\n-      }\n+      request.setCommand(name);\n \n-      this.name = name;\n+      if (context != null) {\n+        Span.fromContext(context).updateName(name);",
+      "id": "PRRT_kwDODJKVX85uAlfA",
+      "opened": "2026-02-11T15:13:28Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [
+        {
+          "at": "2026-02-12T10:36:57Z",
+          "body": "Thanks! the logic is always called before span creation no matter in 5.1.x, 6.5.x or 7.x, I think we can delete it here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2798078435"
+        }
+      ],
+      "reviewed": "9b930f3ae039869dec5752d303e6dd218d6a358a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2793847970"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this needed?",
+      "created": "2026-02-11T15:18:15Z",
+      "hunk": "@@ -247,43 +191,32 @@ public synchronized Tracer.Span name(String name) {\n     @CanIgnoreReturnValue\n     public synchronized Tracer.Span remoteEndpoint(Endpoint endpoint) {\n       if (endpoint instanceof OpenTelemetryEndpoint) {\n-        fillEndpoint((OpenTelemetryEndpoint) endpoint);\n+        OpenTelemetryEndpoint openTelemetryEndpoint = (OpenTelemetryEndpoint) endpoint;\n+        if (openTelemetryEndpoint.address != null) {\n+          request.setAddress(openTelemetryEndpoint.address);\n+        }\n       }\n       return this;\n     }\n \n-    private void fillEndpoint(OpenTelemetryEndpoint endpoint) {\n-      AttributesBuilder attributesBuilder = Attributes.builder();\n-      Context currentContext = span == null ? context : context.with(span);\n-      serverAttributesExtractor.onStart(attributesBuilder, currentContext, endpoint);\n-      networkAttributesExtractor.onEnd(attributesBuilder, currentContext, endpoint, null, null);\n-      Attributes attributes = attributesBuilder.build();\n-      if (span != null) {\n-        span.setAllAttributes(attributes);\n-      } else {\n-        spanBuilder.setAllAttributes(attributes);\n-      }\n-      this.attributesBuilder.putAll(attributes);\n-    }\n-\n     // Added and called in 6.0+\n     // @Override\n     @CanIgnoreReturnValue\n     @SuppressWarnings({\"UnusedMethod\", \"EffectivelyPrivate\"})\n     public synchronized Tracer.Span start(RedisCommand<?, ?, ?> command) {\n       // Extract args BEFORE calling start() so db.statement can include them\n-      // when it's set on SpanBuilder (making it available to samplers)\n       if (command.getArgs() != null) {\n-        argsList = OtelCommandArgsUtil.getCommandArgs(command.getArgs());\n+        request.setArgsList(OtelCommandArgsUtil.getCommandArgs(command.getArgs()));\n       }\n \n       start();\n-      long startNanos = System.nanoTime();\n \n-      Span span = this.span;\n-      if (span == null) {\n-        throw new IllegalStateException(\"Span started but null, this is a programming error.\");\n+      Context currentContext = context;\n+      if (currentContext == null) {\n+        return this;\n       }\n+\n+      Span span = Span.fromContext(currentContext);\n       span.updateName(command.getType().toString());",
+      "id": "PRRT_kwDODJKVX85uAqjB",
+      "opened": "2026-02-11T15:18:14Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [],
+      "reviewed": "9b930f3ae039869dec5752d303e6dd218d6a358a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2793875012"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps you should pass the output or error message to `finish` and use it as the response and define a `SpanStatusExtractor`",
+      "created": "2026-02-11T15:21:46Z",
+      "hunk": "@@ -296,13 +229,13 @@ public synchronized Tracer.Span start(RedisCommand<?, ?, ?> command) {\n \n               CommandOutput<?, ?, ?> output = command.getOutput();\n               if (output != null) {\n-                String error = output.getError();\n-                if (error != null) {\n+                String errorMsg = output.getError();\n+                if (errorMsg != null) {\n                   span.setStatus(StatusCode.ERROR);\n                 }\n               }\n \n-              finish(span, startNanos);\n+              finish();",
+      "id": "PRRT_kwDODJKVX85uAuOw",
+      "opened": "2026-02-11T15:21:46Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [],
+      "reviewed": "9b930f3ae039869dec5752d303e6dd218d6a358a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2793894528"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps it should passed to the instrumenter end method instead",
+      "created": "2026-02-11T15:30:23Z",
+      "hunk": "@@ -313,42 +246,29 @@ public synchronized Tracer.Span start(RedisCommand<?, ?, ?> command) {\n     @Override\n     @CanIgnoreReturnValue\n     public synchronized Tracer.Span start() {\n-      // Set db.statement on SpanBuilder before starting span so it's available to samplers\n-      if (name != null) {\n-        String statement =\n-            sanitizer.sanitize(name, argsList != null ? argsList : splitArgs(argsString));\n-        if (statement != null) {\n-          if (SemconvStability.emitStableDatabaseSemconv()) {\n-            spanBuilder.setAttribute(DB_QUERY_TEXT, statement);\n-            attributesBuilder.put(DB_QUERY_TEXT, statement);\n-          }\n-          if (SemconvStability.emitOldDatabaseSemconv()) {\n-            spanBuilder.setAttribute(DB_STATEMENT, statement);\n-            attributesBuilder.put(DB_STATEMENT, statement);\n-          }\n-        }\n-      }\n+      if (instrumenter.shouldStart(parentContext, request)) {\n+        context = instrumenter.start(parentContext, request);\n+        Span span = Span.fromContext(context);\n \n-      span = spanBuilder.startSpan();\n-      spanStartNanos = System.nanoTime();\n-      // Note: Span name cannot be set on SpanBuilder because it's set during\n-      // tracer.spanBuilder(name) call in nextSpan(), and we don't know the actual command name at\n-      // that point. We have to update the name after the span starts.\n-      if (name != null) {\n-        span.updateName(name);\n-      }\n+        // Update span name if command was set before start\n+        if (request.getCommand() != null) {\n+          span.updateName(request.getCommand());\n+        }\n \n-      if (events != null) {\n-        for (int i = 0; i < events.size(); i += 2) {\n-          span.addEvent((String) events.get(i), (Instant) events.get(i + 1));\n+        // Apply buffered events\n+        if (events != null) {\n+          for (int i = 0; i < events.size(); i += 2) {\n+            span.addEvent((String) events.get(i), (Instant) events.get(i + 1));\n+          }\n+          events = null;\n         }\n-        events = null;\n-      }\n \n-      if (error != null) {\n-        span.setStatus(StatusCode.ERROR);\n-        span.recordException(error);\n-        error = null;\n+        // Apply buffered error",
+      "id": "PRRT_kwDODJKVX85uA3Ba",
+      "opened": "2026-02-11T15:30:23Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [],
+      "reviewed": "9b930f3ae039869dec5752d303e6dd218d6a358a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2793941983"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "The attributes added here aren't part of semantic conventions, perhaps we should ignore them? If there is something interesting then we should add a check for the key, like we have for the attributes above, and store it in the request (or response).",
+      "created": "2026-02-11T15:44:20Z",
+      "hunk": "@@ -381,54 +301,35 @@ public synchronized Tracer.Span tag(String key, String value) {\n         return this;\n       }\n       if (key.equals(\"redis.args\")) {\n-        argsString = value;\n+        request.setArgsString(value);\n         return this;\n       }\n-      if (key.equals(\"db.namespace\") && SemconvStability.emitOldDatabaseSemconv()) {\n-        // map backwards into db.redis.database.index\n-        long val = Long.parseLong(value);\n-        if (span != null) {\n-          span.setAttribute(DB_REDIS_DATABASE_INDEX, val);\n-        } else {\n-          spanBuilder.setAttribute(DB_REDIS_DATABASE_INDEX, val);\n+      if (key.equals(\"db.namespace\")) {\n+        try {\n+          request.setDatabaseIndex(Long.parseLong(value));\n+        } catch (NumberFormatException ignored) {\n+          // ignore invalid values\n         }\n         return this;\n       }\n-      if (span != null) {\n-        span.setAttribute(key, value);\n-      } else {\n-        spanBuilder.setAttribute(key, value);\n+      if (context != null) {\n+        Span.fromContext(context).setAttribute(key, value);",
+      "id": "PRRT_kwDODJKVX85uBFJX",
+      "opened": "2026-02-11T15:44:20Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [],
+      "reviewed": "9b930f3ae039869dec5752d303e6dd218d6a358a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838#discussion_r2794016787"
+    }
+  ]
+}

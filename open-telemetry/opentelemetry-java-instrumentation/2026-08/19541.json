@@ -1,0 +1,115 @@
+{
+  "head": "de900f6901e580867bb0136b88c717b72630cc51",
+  "merge": "d0305d9d91dfc220e1b8a1110463eff4b8db1b49",
+  "merged": "2026-08-13T13:24:40Z",
+  "missing_roots": 0,
+  "number": 19541,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Use the final composite membership rather than `throwable == null` to update the tracker. Micrometer inserts the registry into its identity set before rebinding existing meters; that rebinding can throw after membership changed. This path currently skips the update and leaves visibility stale despite the registry being present.\n\nThis issue also appears on line 73 of the same file.",
+      "created": "2026-08-12T19:29:37Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.boot.actuator.autoconfigure.v2_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.micrometer.core.instrument.MeterRegistry;\n+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.micrometer.v1_5.MicrometerSingletons;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CompositeMeterRegistryInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.micrometer.core.instrument.composite.CompositeMeterRegistry\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isMethod().and(named(\"add\")).and(takesArguments(1)), getClass().getName() + \"$AddAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isMethod().and(named(\"remove\")).and(takesArguments(1)),\n+        getClass().getName() + \"$RemoveAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class AddAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class)\n+    public static boolean onEnter() {\n+      return MicrometerSingletons.beginMeterRegistryChange();\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)\n+    public static void onExit(\n+        @Advice.This CompositeMeterRegistry compositeMeterRegistry,\n+        @Advice.Argument(0) MeterRegistry meterRegistry,\n+        @Advice.Enter boolean locked,\n+        @Advice.Thrown Throwable throwable) {\n+      if (locked) {\n+        MicrometerSingletons.endMeterRegistryChange(\n+            compositeMeterRegistry, meterRegistry, throwable == null, true);",
+      "id": "PRRT_kwDODJKVX86Ys07-",
+      "opened": "2026-08-12T19:29:38Z",
+      "path": "instrumentation/spring/spring-boot-actuator-autoconfigure-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/boot/actuator/autoconfigure/v2_0/CompositeMeterRegistryInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-12T22:12:51Z",
+          "body": "Addressed in 871c4e3e777d700dff431a4e02b963839d021968.\n\nAnalysis: Micrometer mutates composite membership before rebinding or unbinding meters, so method completion status cannot determine the final topology. Exit advice now snapshots getRegistries() on both normal and exceptional paths while still releasing the shared lock.\n\nUpsides: Visibility follows actual membership after partial add and remove operations, and a regression test proves the exceptional add path updates the snapshot.\n\nDownsides: Each composite mutation now copies the affected registry membership instead of applying a constant-time delta.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3770727435"
+        }
+      ],
+      "reviewed": "f852dca09a8526e7e93440cb08f25240a17ca6bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3769683990"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This treats every registry other than the global instance as readable, but another `OpenTelemetryMeterRegistry` is write-only too. A user-defined OTel registry can suppress Boot's simple fallback; after the global registry joins the composite, this map has size 2 and meters are hidden even though the context is still OTel-only. Determine whether each composite has a genuinely readable member (at minimum, exclude all `OpenTelemetryMeterRegistry` instances) instead of relying on the identity-map size.",
+      "created": "2026-08-12T19:29:37Z",
+      "hunk": "@@ -30,13 +38,126 @@ public class MicrometerSingletons {\n             .setBaseTimeUnit(TimeUnitParser.parseConfigValue(config.getString(\"base_time_unit\")));\n     Experimental.setMicrometerHistogramGaugesEnabled(\n         builder, config.get(\"histogram_gauges\").getBoolean(\"enabled\", false));\n-    meterRegistry = builder.build();\n+    meterRegistry = (OpenTelemetryMeterRegistry) builder.build();\n   }\n \n   public static MeterRegistry meterRegistry() {\n     return meterRegistry;\n   }\n \n+  public static void registerMeterRegistryContext(\n+      Object context, List<CompositeMeterRegistry> compositeMeterRegistries) {\n+    registryChangeLock.lock();\n+    try {\n+      synchronized (registryContexts) {\n+        registryContexts.put(context, new RegistryContext(compositeMeterRegistries));\n+        updateMetersHiddenFromSearch();\n+      }\n+    } finally {\n+      registryChangeLock.unlock();\n+    }\n+  }\n+\n+  public static void unregisterMeterRegistryContext(Object context) {\n+    registryChangeLock.lock();\n+    try {\n+      synchronized (registryContexts) {\n+        registryContexts.remove(context);\n+        updateMetersHiddenFromSearch();\n+      }\n+    } finally {\n+      registryChangeLock.unlock();\n+    }\n+  }\n+\n+  public static boolean beginMeterRegistryChange() {\n+    registryChangeLock.lock();\n+    return true;\n+  }\n+\n+  public static void endMeterRegistryChange(\n+      CompositeMeterRegistry compositeMeterRegistry,\n+      MeterRegistry meterRegistry,\n+      boolean successful,\n+      boolean added) {\n+    try {\n+      if (successful) {\n+        synchronized (registryContexts) {\n+          for (RegistryContext context : registryContexts.values()) {\n+            if (added) {\n+              context.add(compositeMeterRegistry, meterRegistry);\n+            } else {\n+              context.remove(compositeMeterRegistry, meterRegistry);\n+            }\n+          }\n+          updateMetersHiddenFromSearch();\n+        }\n+      }\n+    } finally {\n+      registryChangeLock.unlock();\n+    }\n+  }\n+\n+  private static void updateMetersHiddenFromSearch() {\n+    // The registry is JVM-global while Spring's registry topology is per application context.\n+    // Keep meters visible if any active context has no readable sibling; hiding them there would\n+    // make the metrics unavailable entirely.\n+    boolean metersHiddenFromSearch = !registryContexts.isEmpty();\n+    for (RegistryContext context : registryContexts.values()) {\n+      if (!context.hasReadableSibling()) {\n+        metersHiddenFromSearch = false;\n+        break;\n+      }\n+    }\n+    Internal.setMetersHiddenFromSearch(meterRegistry, metersHiddenFromSearch);\n+  }\n+\n+  private static class RegistryContext {\n+\n+    private final IdentityHashMap<CompositeMeterRegistry, IdentityHashMap<MeterRegistry, Boolean>>\n+        compositeMeterRegistries = new IdentityHashMap<>();\n+\n+    RegistryContext(List<CompositeMeterRegistry> compositeMeterRegistries) {\n+      for (CompositeMeterRegistry compositeMeterRegistry : compositeMeterRegistries) {\n+        IdentityHashMap<MeterRegistry, Boolean> registries = new IdentityHashMap<>();\n+        for (MeterRegistry registry : compositeMeterRegistry.getRegistries()) {\n+          registries.put(registry, true);\n+        }\n+        if (registries.containsKey(meterRegistry)) {\n+          this.compositeMeterRegistries.put(compositeMeterRegistry, registries);\n+        }\n+      }\n+    }\n+\n+    void add(CompositeMeterRegistry compositeMeterRegistry, MeterRegistry meterRegistry) {\n+      IdentityHashMap<MeterRegistry, Boolean> registries =\n+          compositeMeterRegistries.get(compositeMeterRegistry);\n+      if (registries != null) {\n+        registries.put(meterRegistry, true);\n+      }\n+    }\n+\n+    void remove(CompositeMeterRegistry compositeMeterRegistry, MeterRegistry meterRegistry) {\n+      IdentityHashMap<MeterRegistry, Boolean> registries =\n+          compositeMeterRegistries.get(compositeMeterRegistry);\n+      if (registries != null) {\n+        registries.remove(meterRegistry);\n+      }\n+    }\n+\n+    boolean hasReadableSibling() {\n+      if (compositeMeterRegistries.isEmpty()) {\n+        return false;\n+      }\n+      for (IdentityHashMap<MeterRegistry, Boolean> registries : compositeMeterRegistries.values()) {\n+        if (registries.size() == 1 && registries.containsKey(meterRegistry)) {\n+          return false;",
+      "id": "PRRT_kwDODJKVX86Ys07f",
+      "opened": "2026-08-12T19:29:38Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/micrometer/v1_5/MicrometerSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-12T22:12:50Z",
+          "body": "Addressed in 07aa4baa03e6759f2dfe06a63a4b3a37bc448d17.\n\nAnalysis: Registry count does not describe readability because every OpenTelemetryMeterRegistry intentionally hides its meters from readers. Inspecting each member's type keeps the global registry visible until a non-OpenTelemetry registry can serve actuator reads.\n\nUpsides: User-defined OpenTelemetry registries no longer make actuator metrics disappear, and the regression test covers the javaagent's shaded registry type.\n\nDownsides: Readability is currently defined by excluding OpenTelemetryMeterRegistry; a future write-only registry type would also need classification.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3770727292"
+        }
+      ],
+      "reviewed": "f852dca09a8526e7e93440cb08f25240a17ca6bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3769683949"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Registering an empty placeholder immediately unhides the JVM-global registry for every existing context until this new context reaches `afterSingletonsInstantiated()`. Thus, while any additional context is starting, already-running actuator endpoints again see the write-only registry and can return empty measurements according to the composite's identity-hash iteration order. Avoid publishing the context as OTel-only before its topology is known (for example, register it only with the post-initialization snapshot).",
+      "created": "2026-08-12T19:29:38Z",
+      "hunk": "@@ -49,29 +51,36 @@ public MeterRegistry otelMeterRegistry() {\n   }\n \n   @Bean\n-  // static to avoid \"is not eligible for getting processed by all BeanPostProcessors\" warning\n-  static BeanPostProcessor postProcessCompositeMeterRegistry() {\n-    return new BeanPostProcessor() {\n-      @Override\n-      public Object postProcessAfterInitialization(Object bean, String beanName) {\n-        if (bean instanceof CompositeMeterRegistry) {\n-          CompositeMeterRegistry original = (CompositeMeterRegistry) bean;\n-          List<MeterRegistry> list = new ArrayList<>(original.getRegistries());\n-          // sort otel registry last since it doesn't support reading metric values\n-          // and the actuator endpoint reads metrics from the first registry\n-          list.sort(\n-              Comparator.comparingInt(\n-                  value -> value == MicrometerSingletons.meterRegistry() ? 1 : 0));\n-          Set<MeterRegistry> registries = new LinkedHashSet<>(list);\n-          return new CompositeMeterRegistry(original.config().clock(), singletonList(original)) {\n-            @Override\n-            public Set<MeterRegistry> getRegistries() {\n-              return registries;\n-            }\n-          };\n+  static MeterRegistryVisibility configureMeterRegistryVisibility() {\n+    return new MeterRegistryVisibility();\n+  }\n+\n+  static class MeterRegistryVisibility\n+      implements BeanFactoryPostProcessor, SmartInitializingSingleton, DisposableBean {\n+\n+    @Nullable private ConfigurableListableBeanFactory beanFactory;\n+\n+    @Override\n+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {\n+      this.beanFactory = beanFactory;\n+      MicrometerSingletons.registerMeterRegistryContext(this, emptyList());",
+      "id": "PRRT_kwDODJKVX86Ys08N",
+      "opened": "2026-08-12T19:29:38Z",
+      "path": "instrumentation/spring/spring-boot-actuator-autoconfigure-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/boot/actuator/autoconfigure/v2_0/OpenTelemetryMeterRegistryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-08-12T22:12:53Z",
+          "body": "Addressed in 6b061b091472ada17f6a39510b236ce7e3a4e26a.\n\nAnalysis: The BeanFactoryPostProcessor hook exposed a context before its registry topology existed. Injecting the bean factory into the visibility bean removes that early lifecycle hook and registers the context only from afterSingletonsInstantiated().\n\nUpsides: Starting an additional application context no longer transiently changes meter visibility for already-running contexts.\n\nDownsides: The visibility bean now depends on constructor injection of ConfigurableListableBeanFactory, which Spring provides as a resolvable dependency.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3770727539"
+        }
+      ],
+      "reviewed": "f852dca09a8526e7e93440cb08f25240a17ca6bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3769684015"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This copy changes Micrometer's identity-set semantics: two distinct registries that compare equal can both belong to the composite, but `LinkedHashSet` collapses them (and may even omit the agent registry when another registry compares equal to it). Preserve identity-based membership while providing the desired iteration order.",
+      "created": "2026-08-12T23:20:42Z",
+      "hunk": "@@ -37,6 +40,23 @@ public static MeterRegistry meterRegistry() {\n     return meterRegistry;\n   }\n \n+  // called from CompositeMeterRegistryInstrumentation\n+  // the actuator metrics endpoint reads meters from the first registry that has a match, so the\n+  // otel registry is sorted last since it does not support reading metric values\n+  public static Set<MeterRegistry> sortOtelMeterRegistryLast(Set<MeterRegistry> registries) {\n+    if (registries.size() < 2 || !registries.contains(meterRegistry)) {\n+      return registries;\n+    }\n+    Set<MeterRegistry> sorted = new LinkedHashSet<>();",
+      "id": "PRRT_kwDODJKVX86YwhC9",
+      "opened": "2026-08-12T23:20:42Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/micrometer/v1_5/MicrometerSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-12T23:40:39Z",
+          "body": "Addressed in bec9726ed1ad063331428277d108ab50f0734659.\n\nAnalysis: The copied LinkedHashSet discarded Micrometer's identity membership and detached the result from later composite updates. The replacement is an unmodifiable backed view that delegates membership, equality, hash code, and size to Micrometer's set while reordering only iteration so the OpenTelemetry registry remains last. The regression test retains one returned set across add and remove operations and adds two equal-but-distinct registries.\n\nUpsides: Preserves Micrometer's live-view and identity-set behavior while retaining actuator-compatible iteration order, with direct regression coverage for both failure modes.\n\nDownsides: Adds small view and iterator helpers and allocates one view per instrumented getRegistries() call.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3771183311"
+        }
+      ],
+      "reviewed": "828fb19e282fcc4aa35f1a472782a0c27351c607",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3771097311"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Actually I misremembered that this was for spring starter. Wondering whether we need to come up with a way to sort the registries for the starter too.",
+      "created": "2026-08-13T12:53:04Z",
+      "hunk": "@@ -47,31 +38,4 @@ public class OpenTelemetryMeterRegistryAutoConfiguration {\n   public MeterRegistry otelMeterRegistry() {\n     return MicrometerSingletons.meterRegistry();\n   }\n-\n-  @Bean\n-  // static to avoid \"is not eligible for getting processed by all BeanPostProcessors\" warning\n-  static BeanPostProcessor postProcessCompositeMeterRegistry() {",
+      "id": "PRRT_kwDODJKVX86Y7701",
+      "opened": "2026-08-13T12:53:04Z",
+      "path": "instrumentation/spring/spring-boot-actuator-autoconfigure-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/boot/actuator/autoconfigure/v2_0/OpenTelemetryMeterRegistryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-08-13T13:10:38Z",
+          "body": "The underlying problem is handled in the starter by #19515 (via hiding rather than sorting). I couldn't find a way to unify the approach between starter and javaagent without it getting much larger.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3775621205"
+        }
+      ],
+      "reviewed": "de900f6901e580867bb0136b88c717b72630cc51",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19541#discussion_r3775487948"
+    }
+  ]
+}

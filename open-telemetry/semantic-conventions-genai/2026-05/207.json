@@ -1,0 +1,109 @@
+{
+  "head": "4f51507dd0d97c0092a2e12aff97d28fe945ad1d",
+  "merge": "2dc24e06709b655c2b31306f00b36a00f2526e3f",
+  "merged": "2026-05-28T21:46:16Z",
+  "missing_roots": 0,
+  "number": 207,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description and comments indicate this workflow is for issues awaiting author feedback, but the job is also granted `pull-requests: write` and configures `stale-pr-*` messages/labels, so it will operate on PRs with the label as well. Either restrict the stale action to issues only (and drop PR permissions/messages) or update the PR/workflow docs to explicitly state PRs are included.",
+      "created": "2026-05-28T17:03:27Z",
+      "hunk": "@@ -0,0 +1,37 @@\n+name: Issue management - run stale action\n+\n+on:\n+  schedule:\n+    # daily at 09:47 UTC\n+    - cron: \"47 9 * * *\"\n+  workflow_dispatch:\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  stale:\n+    permissions:\n+      contents: read\n+      actions: write # because actions/stale deletes its old cache before saving new one\n+      issues: write  # for actions/stale to close stale issues\n+      pull-requests: write  # for actions/stale to close stale PRs",
+      "id": "PRRT_kwDOSUeMrM6FeBFE",
+      "opened": "2026-05-28T17:03:28Z",
+      "path": ".github/workflows/issue-management-stale-action.yml",
+      "replies": [
+        {
+          "at": "2026-05-28T17:24:20Z",
+          "body": "updated PR description",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319566787"
+        }
+      ],
+      "reviewed": "d03efe8722ffea462152632346a2b0391bec849e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319458500"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pull-requests: write` looks unnecessary here: the workflow only runs `gh issue edit` to remove labels, and label edits for PRs also go through the Issues API. Consider dropping `pull-requests: write` to follow least-privilege permissions.\n",
+      "created": "2026-05-28T17:03:27Z",
+      "hunk": "@@ -0,0 +1,29 @@\n+name: Issue management - remove labels as needed\n+\n+on:\n+  issue_comment:\n+    types: [created]\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  issue_comment:\n+    permissions:\n+      contents: read\n+      issues: write\n+      pull-requests: write",
+      "id": "PRRT_kwDOSUeMrM6FeBG1",
+      "opened": "2026-05-28T17:03:28Z",
+      "path": ".github/workflows/issue-management-feedback-label.yml",
+      "replies": [
+        {
+          "at": "2026-05-28T17:28:50Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207/commits/8463c0257d978ff87915339efc7bd82ef99fa007",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319592515"
+        }
+      ],
+      "reviewed": "d03efe8722ffea462152632346a2b0391bec849e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319458632"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This scheduled workflow can be triggered both by `schedule` and `workflow_dispatch` but has no `concurrency` guard. Adding a concurrency group helps prevent overlapping runs that could double-comment/close or contend on the stale action cache.\n",
+      "created": "2026-05-28T17:03:27Z",
+      "hunk": "@@ -0,0 +1,37 @@\n+name: Issue management - run stale action\n+\n+on:\n+  schedule:\n+    # daily at 09:47 UTC\n+    - cron: \"47 9 * * *\"\n+  workflow_dispatch:\n+\n+permissions:\n+  contents: read\n+",
+      "id": "PRRT_kwDOSUeMrM6FeBGV",
+      "opened": "2026-05-28T17:03:28Z",
+      "path": ".github/workflows/issue-management-stale-action.yml",
+      "replies": [
+        {
+          "at": "2026-05-28T17:25:46Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207/commits/52b444f75a60e369a76386b6165493cfd8a55183",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319575004"
+        }
+      ],
+      "reviewed": "d03efe8722ffea462152632346a2b0391bec849e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319458598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `actions/checkout` step isn’t used by any subsequent step (the workflow only calls `gh issue edit`). Removing it will reduce runtime and token surface area.\n",
+      "created": "2026-05-28T17:03:28Z",
+      "hunk": "@@ -0,0 +1,29 @@\n+name: Issue management - remove labels as needed\n+\n+on:\n+  issue_comment:\n+    types: [created]\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  issue_comment:\n+    permissions:\n+      contents: read\n+      issues: write\n+      pull-requests: write\n+    if: >\n+      contains(github.event.issue.labels.*.name, 'needs author feedback') &&\n+      github.event.comment.user.login == github.event.issue.user.login\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+\n+      - name: Remove labels",
+      "id": "PRRT_kwDOSUeMrM6FeBHK",
+      "opened": "2026-05-28T17:03:28Z",
+      "path": ".github/workflows/issue-management-feedback-label.yml",
+      "replies": [
+        {
+          "at": "2026-05-28T17:27:36Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207/commits/baac8502071099a43897fd7e604266618b59ac04",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319586487"
+        }
+      ],
+      "reviewed": "d03efe8722ffea462152632346a2b0391bec849e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319458658"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`concurrency` block indentation is inconsistent with the rest of this repo’s workflow YAMLs (they use 2-space indentation). While YAML will likely still parse, aligning indentation improves readability and avoids style churn in future edits.\n",
+      "created": "2026-05-28T17:31:10Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+name: Issue management - run stale action\n+\n+on:\n+  schedule:\n+    # daily at 09:47 UTC\n+    - cron: \"47 9 * * *\"\n+  workflow_dispatch:\n+\n+concurrency:\n+   group: ${{ github.workflow }}\n+   cancel-in-progress: false",
+      "id": "PRRT_kwDOSUeMrM6FebDf",
+      "opened": "2026-05-28T17:31:11Z",
+      "path": ".github/workflows/issue-management-stale-action.yml",
+      "replies": [],
+      "reviewed": "8463c0257d978ff87915339efc7bd82ef99fa007",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/207#discussion_r3319604931"
+    }
+  ]
+}

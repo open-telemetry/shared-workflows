@@ -1,0 +1,61 @@
+{
+  "head": "3860d8f75ca4af90e97e9e511e2febcba4c2f4c7",
+  "merge": "b952e372c1b606bfdfe0eeb3d28407eb749c36fc",
+  "merged": "2026-08-20T04:38:15Z",
+  "missing_roots": 0,
+  "number": 412,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This concurrency key won’t reliably cancel runs created by GitHub merge queue (`merge_group`) attempts, because those runs typically have no `pull_request.number`, and `github.ref` is often a unique queue ref per attempt (so each attempt ends up in a different concurrency group). If these workflows run on merge queue events (as implied by the PR description), consider extending the group expression to also derive a stable identifier from the `merge_group` payload (e.g., a PR number from the merge group’s pull requests list) so newer attempts can cancel older ones.",
+      "created": "2026-08-19T15:59:53Z",
+      "hunk": "@@ -12,7 +12,7 @@ permissions:\n   contents: read\n \n concurrency:\n-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}\n+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}",
+      "id": "PRRT_kwDOSbspP86ah7Ey",
+      "opened": "2026-08-19T15:59:54Z",
+      "path": ".github/workflows/ci.yml",
+      "replies": [],
+      "reviewed": "ff3a7945fe9ea0e12974c42a58d931fc9abbebed",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/412#discussion_r3814618909"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `changelog.yml` is triggered by merge queue (`merge_group`) events, the same issue applies: falling back to `github.ref` may create a different concurrency group per queue attempt, so older attempts won’t be canceled. Consider incorporating a stable identifier from the merge group event payload so cancellation works as described in the PR.",
+      "created": "2026-08-19T15:59:54Z",
+      "hunk": "@@ -14,6 +14,10 @@ on:\n permissions:\n   contents: read\n \n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}",
+      "id": "PRRT_kwDOSbspP86ah7F5",
+      "opened": "2026-08-19T15:59:54Z",
+      "path": ".github/workflows/changelog.yml",
+      "replies": [
+        {
+          "at": "2026-08-20T03:54:46Z",
+          "body": "it does not run in merge queue",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/412#discussion_r3818489304"
+        }
+      ],
+      "reviewed": "ff3a7945fe9ea0e12974c42a58d931fc9abbebed",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/412#discussion_r3814619022"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as `ci.yml`: if `check-links` runs for merge queue (`merge_group`) events, `github.ref` may differ for each merge-queue attempt, preventing cancellation of the prior attempt. Consider including a stable merge-queue identifier in the group (e.g., based on PR number(s) from the merge group payload) to achieve the intended runner savings for merge queue churn.",
+      "created": "2026-08-19T15:59:54Z",
+      "hunk": "@@ -18,7 +18,7 @@ permissions:\n   contents: read\n \n concurrency:\n-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}\n+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}\n   cancel-in-progress: true",
+      "id": "PRRT_kwDOSbspP86ah7Ff",
+      "opened": "2026-08-19T15:59:54Z",
+      "path": ".github/workflows/check-links.yml",
+      "replies": [],
+      "reviewed": "ff3a7945fe9ea0e12974c42a58d931fc9abbebed",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/412#discussion_r3814618980"
+    }
+  ]
+}

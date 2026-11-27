@@ -1,0 +1,61 @@
+{
+  "head": "2e6f0a876e91cd8d29a873b15576dcda694169a1",
+  "merge": "8ff8bbe4633a8ce8f3241b5afba04eeb5831908b",
+  "merged": "2026-09-26T21:27:30Z",
+  "missing_roots": 0,
+  "number": 20262,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] “GraphQL schema URL” is misleading because this URL identifies the OpenTelemetry telemetry schema attached to the instrumentation scope, not the application's GraphQL schema. Please name it explicitly as the OpenTelemetry schema URL to avoid conflating these concepts.",
+      "created": "2026-09-25T21:04:31Z",
+      "hunk": "@@ -8,6 +8,11 @@\n | `otel.instrumentation.graphql.operation-name-in-span-name.enabled` | Boolean | `false` | Whether GraphQL operation name is added to the span name. <p>**WARNING**: GraphQL operation name is provided by the client and can have high cardinality. Use only when the server is not exposed to malicious clients. |\n | `otel.instrumentation.graphql.capture-query`                       | Boolean | `true`  | Whether to capture the query in `graphql.document` span attribute.                                                                                                                                                      |\n \n+With `otel.instrumentation.common.v3-preview=true`, GraphQL operation spans have `SERVER` kind\n+and the [v1.44.0 GraphQL schema URL](https://opentelemetry.io/schemas/1.44.0).",
+      "id": "PRRT_kwDODJKVX86mJ9dh",
+      "opened": "2026-09-25T21:04:31Z",
+      "path": "instrumentation/graphql-java/README.md",
+      "replies": [
+        {
+          "at": "2026-09-26T02:36:06Z",
+          "body": "Addressed in 612046943cfdfe8cc877cdf86bd3fc7e05b01b58.\n\nFixed in the verified source changes 612046943cfdfe8cc877cdf86bd3fc7e05b01b58.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20262#discussion_r4109902238"
+        }
+      ],
+      "reviewed": "9bb7de247015ea70a27cb28901761b1fd09a0630",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20262#discussion_r4108623170"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "It feels like a change log entry, I'd change it a bit so that it would just describe the state as it is\n```suggestion\n[v1.44.0 OpenTelemetry schema URL](https://opentelemetry.io/schemas/1.44.0) and `INTERNAL`\nkind. The convention recommends `SERVER` kind, but GraphQL execution can run beneath an HTTP server\nor controller span, where a nested `SERVER` span could be suppressed. GraphQL 20 data-fetcher spans\nare `INTERNAL` and have no OpenTelemetry schema URL.\n```",
+      "created": "2026-09-26T16:17:25Z",
+      "hunk": "@@ -8,6 +8,12 @@\n | `otel.instrumentation.graphql.operation-name-in-span-name.enabled` | Boolean | `false` | Whether GraphQL operation name is added to the span name. <p>**WARNING**: GraphQL operation name is provided by the client and can have high cardinality. Use only when the server is not exposed to malicious clients. |\n | `otel.instrumentation.graphql.capture-query`                       | Boolean | `true`  | Whether to capture the query in `graphql.document` span attribute.                                                                                                                                                      |\n \n+GraphQL operation spans use the\n+[v1.44.0 OpenTelemetry schema URL](https://opentelemetry.io/schemas/1.44.0) and retain `INTERNAL`\n+kind. The convention recommends `SERVER` kind, but GraphQL execution can run beneath an HTTP server\n+or controller span, where a nested `SERVER` span could be suppressed. GraphQL 20 data-fetcher spans\n+remain `INTERNAL` and have no OpenTelemetry schema URL.",
+      "id": "PRRT_kwDODJKVX86mSENs",
+      "opened": "2026-09-26T16:17:25Z",
+      "path": "instrumentation/graphql-java/README.md",
+      "replies": [],
+      "reviewed": "612046943cfdfe8cc877cdf86bd3fc7e05b01b58",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20262#discussion_r4111951033"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-26T17:26:44Z",
+      "hunk": "@@ -8,6 +8,10 @@\n | `otel.instrumentation.graphql.operation-name-in-span-name.enabled` | Boolean | `false` | Whether GraphQL operation name is added to the span name. <p>**WARNING**: GraphQL operation name is provided by the client and can have high cardinality. Use only when the server is not exposed to malicious clients. |\n | `otel.instrumentation.graphql.capture-query`                       | Boolean | `true`  | Whether to capture the query in `graphql.document` span attribute.                                                                                                                                                      |\n \n+GraphQL operation spans use the\n+[v1.44.0 OpenTelemetry schema URL](https://opentelemetry.io/schemas/1.44.0). GraphQL 20\n+data-fetcher spans have no OpenTelemetry schema URL.\n+",
+      "id": "PRRT_kwDODJKVX86mSjQL",
+      "opened": "2026-09-26T17:26:44Z",
+      "path": "instrumentation/graphql-java/README.md",
+      "replies": [],
+      "reviewed": "0c3859b5a51f9cc67543df969b715146899b77ac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20262#discussion_r4112147555"
+    }
+  ]
+}

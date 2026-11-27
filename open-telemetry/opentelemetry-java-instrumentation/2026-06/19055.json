@@ -1,0 +1,946 @@
+{
+  "head": "280372d077148008baa488426bfcc3bceab8c94f",
+  "merge": "d5ebfa2513b666105f43553dbb4289c1289f5564",
+  "merged": "2026-06-25T19:56:37Z",
+  "missing_roots": 0,
+  "number": 19055,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`BatchState`'s `commands`/`asyncCommands` lists (plain `ArrayList`s) and its `parentContext` field are mutated in `add()` during command dispatch and read/drained in `start()`/`drainCommands()`/`drainAsyncCommands()` during flush, all without synchronization. A Lettuce connection is thread-safe and applications may issue commands from multiple threads while auto-flush is disabled, so concurrent `add()` calls, or `add()` racing with the drain on flush, can corrupt the list state or throw `ConcurrentModificationException`. The analogous `BatchState` in the lettuce-5.1 library (`OpenTelemetryTracing.BatchState`) synchronizes its access; consider applying the same protection here (e.g. synchronize the `add`/drain methods and perform the \"drain if non-empty\" check atomically).",
+      "created": "2026-06-19T23:48:20Z",
+      "hunk": "@@ -0,0 +1,148 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.batchInstrumenter;\n+\n+import com.lambdaworks.redis.protocol.AsyncCommand;\n+import com.lambdaworks.redis.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.WeakHashMap;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import javax.annotation.Nullable;\n+\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final Map<Object, BatchState> states =\n+      Collections.synchronizedMap(new WeakHashMap<>());\n+\n+  public static void setCollecting(Object commands, boolean collecting) {\n+    if (collecting) {\n+      states.put(commands, new BatchState());\n+    } else {\n+      states.remove(commands);\n+    }\n+  }\n+\n+  public static boolean isCollecting(Object commands) {\n+    return states.containsKey(commands);\n+  }\n+\n+  public static boolean capture(\n+      Object commands,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = states.get(commands);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope start(Object commands) {\n+    BatchState state = states.get(commands);\n+    if (state == null || state.commands.isEmpty()) {\n+      return null;\n+    }\n+    return BatchScope.start(state.drainCommands(), state.drainAsyncCommands(), state.parentContext);\n+  }\n+\n+  private LettuceBatchContext() {}\n+\n+  public static final class BatchScope {\n+    private final Context context;\n+    private final LettuceBatchRequest request;\n+    private final AtomicInteger remaining;\n+\n+    private BatchScope(Context context, LettuceBatchRequest request, int remaining) {\n+      this.context = context;\n+      this.request = request;\n+      this.remaining = new AtomicInteger(remaining);\n+    }\n+\n+    @Nullable\n+    private static BatchScope start(\n+        List<RedisCommand<?, ?, ?>> commands,\n+        List<AsyncCommand<?, ?, ?>> asyncCommands,\n+        @Nullable Context capturedParentContext) {\n+      LettuceBatchRequest request = LettuceBatchRequest.create(commands);\n+      Context parentContext =\n+          capturedParentContext == null ? currentContext() : capturedParentContext;\n+      if (!batchInstrumenter().shouldStart(parentContext, request)) {\n+        return null;\n+      }\n+      Context context = batchInstrumenter().start(parentContext, request);\n+      if (asyncCommands.isEmpty()) {\n+        batchInstrumenter().end(context, request, null, null);\n+        return null;\n+      }\n+      BatchScope scope = new BatchScope(context, request, asyncCommands.size());\n+      for (AsyncCommand<?, ?, ?> asyncCommand : asyncCommands) {\n+        asyncCommand.handleAsync(\n+            (value, throwable) -> {\n+              scope.endOne(throwable);\n+              return null;\n+            });\n+      }\n+      return scope;\n+    }\n+\n+    public void endOne(@Nullable Throwable throwable) {\n+      if (throwable instanceof CancellationException) {\n+        if (CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n+          Span.fromContext(context).setAttribute(\"lettuce.command.cancelled\", true);\n+        }\n+        throwable = null;\n+      }\n+      if (remaining.getAndDecrement() == 1) {\n+        batchInstrumenter().end(context, request, null, throwable);\n+      }\n+    }\n+  }\n+\n+  private static final class BatchState {\n+    private final List<RedisCommand<?, ?, ?>> commands = new ArrayList<>();\n+    private final List<AsyncCommand<?, ?, ?>> asyncCommands = new ArrayList<>();\n+    @Nullable private Context parentContext;",
+      "id": "PRRT_kwDODJKVX86K8Tq0",
+      "opened": "2026-06-19T23:48:20Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-20T00:51:22Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/dff6ad6a94f4327d82622d0686cc551ee38a8017.\n\nApplied the same documented manual-flush threading assumption and batch-state cleanup to the Lettuce 4.0 implementation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3445099379"
+        }
+      ],
+      "reviewed": "5408fd77ccf06318a8baba34995af3829eff371b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3444958057"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This method builds an intermediate `queryTexts` list and then iterates it again only to feed a `StringJoiner`, which is redundant. The first loop can join directly, dropping the temporary list and the second loop. (Note: removing the intermediate list also makes the `java.util.ArrayList` import unused, so that import should be removed as well.) Since `create()` is only ever called with a non-empty command list, the `isEmpty()` null path is effectively unreachable, but it can be preserved by checking `commands.isEmpty()` up front if desired.",
+      "created": "2026-06-19T23:48:20Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import io.opentelemetry.instrumentation.lettuce.common.LettuceArgSplitter;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+\n+final class LettuceBatchRequest {\n+  private static final RedisCommandSanitizer sanitizer =\n+      RedisCommandSanitizer.create(\n+          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"lettuce\"));\n+\n+  private final String operationName;\n+  @Nullable private final String queryText;\n+  @Nullable private final Long batchSize;\n+\n+  private LettuceBatchRequest(\n+      String operationName, @Nullable String queryText, @Nullable Long batchSize) {\n+    this.operationName = operationName;\n+    this.queryText = queryText;\n+    this.batchSize = batchSize;\n+  }\n+\n+  static LettuceBatchRequest create(List<RedisCommand<?, ?, ?>> commands) {\n+    return new LettuceBatchRequest(\n+        operationName(commands),\n+        queryText(commands),\n+        commands.size() > 1 ? (long) commands.size() : null);\n+  }\n+\n+  String getOperationName() {\n+    return operationName;\n+  }\n+\n+  @Nullable\n+  String getQueryText() {\n+    return queryText;\n+  }\n+\n+  @Nullable\n+  Long getBatchSize() {\n+    return batchSize;\n+  }\n+\n+  private static String operationName(List<RedisCommand<?, ?, ?>> commands) {\n+    if (commands.size() == 1) {\n+      return LettuceInstrumentationUtil.getCommandName(commands.get(0));\n+    }\n+    String operationName = LettuceInstrumentationUtil.getCommandName(commands.get(0));\n+    for (int i = 1; i < commands.size(); i++) {\n+      if (!operationName.equals(LettuceInstrumentationUtil.getCommandName(commands.get(i)))) {\n+        return \"PIPELINE\";\n+      }\n+    }\n+    return \"PIPELINE \" + operationName;\n+  }\n+\n+  @Nullable\n+  private static String queryText(List<RedisCommand<?, ?, ?>> commands) {\n+    StringJoiner joiner = new StringJoiner(\";\");\n+    List<String> queryTexts = new ArrayList<>(commands.size());\n+    for (RedisCommand<?, ?, ?> command : commands) {\n+      queryTexts.add(queryText(command));\n+    }\n+    if (queryTexts.isEmpty()) {\n+      return null;\n+    }\n+    for (String queryText : queryTexts) {\n+      joiner.add(queryText);\n+    }\n+    return joiner.toString();\n+  }",
+      "id": "PRRT_kwDODJKVX86K8Tq5",
+      "opened": "2026-06-19T23:48:20Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-20T00:51:23Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bfe0e04ea71e5df099dec5cd3bf04f44581f4d9b.\n\nRemoved the intermediate query text list and now add sanitized command text directly to the joiner.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3445099412"
+        }
+      ],
+      "reviewed": "5408fd77ccf06318a8baba34995af3829eff371b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3444958062"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`BatchState`'s `commands`/`asyncCommands` lists (plain `ArrayList`s) and its `parentContext` field are mutated in `add()` during command dispatch and read/drained in `start()`/`drainCommands()`/`drainAsyncCommands()` during flush, all without synchronization. A Lettuce connection is thread-safe and applications may issue commands from multiple threads while auto-flush is disabled, so concurrent `add()` calls, or `add()` racing with the drain on flush, can corrupt the list state or throw `ConcurrentModificationException`. The analogous `BatchState` in the lettuce-5.1 library (`OpenTelemetryTracing.BatchState`) synchronizes `capture()`/`start()`; consider applying the same protection here (e.g. synchronize the `add`/drain methods and perform the \"drain if non-empty\" check atomically).",
+      "created": "2026-06-19T23:48:20Z",
+      "hunk": "@@ -0,0 +1,148 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.batchInstrumenter;\n+\n+import io.lettuce.core.protocol.AsyncCommand;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.WeakHashMap;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import javax.annotation.Nullable;\n+\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final Map<Object, BatchState> states =\n+      Collections.synchronizedMap(new WeakHashMap<>());\n+\n+  public static void setCollecting(Object commands, boolean collecting) {\n+    if (collecting) {\n+      states.put(commands, new BatchState());\n+    } else {\n+      states.remove(commands);\n+    }\n+  }\n+\n+  public static boolean isCollecting(Object commands) {\n+    return states.containsKey(commands);\n+  }\n+\n+  public static boolean capture(\n+      Object commands,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = states.get(commands);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope start(Object commands) {\n+    BatchState state = states.get(commands);\n+    if (state == null || state.commands.isEmpty()) {\n+      return null;\n+    }\n+    return BatchScope.start(state.drainCommands(), state.drainAsyncCommands(), state.parentContext);\n+  }\n+\n+  private LettuceBatchContext() {}\n+\n+  public static final class BatchScope {\n+    private final Context context;\n+    private final LettuceBatchRequest request;\n+    private final AtomicInteger remaining;\n+\n+    private BatchScope(Context context, LettuceBatchRequest request, int remaining) {\n+      this.context = context;\n+      this.request = request;\n+      this.remaining = new AtomicInteger(remaining);\n+    }\n+\n+    @Nullable\n+    private static BatchScope start(\n+        List<RedisCommand<?, ?, ?>> commands,\n+        List<AsyncCommand<?, ?, ?>> asyncCommands,\n+        @Nullable Context capturedParentContext) {\n+      LettuceBatchRequest request = LettuceBatchRequest.create(commands);\n+      Context parentContext =\n+          capturedParentContext == null ? currentContext() : capturedParentContext;\n+      if (!batchInstrumenter().shouldStart(parentContext, request)) {\n+        return null;\n+      }\n+      Context context = batchInstrumenter().start(parentContext, request);\n+      if (asyncCommands.isEmpty()) {\n+        batchInstrumenter().end(context, request, null, null);\n+        return null;\n+      }\n+      BatchScope scope = new BatchScope(context, request, asyncCommands.size());\n+      for (AsyncCommand<?, ?, ?> asyncCommand : asyncCommands) {\n+        asyncCommand.handleAsync(\n+            (value, throwable) -> {\n+              scope.endOne(throwable);\n+              return null;\n+            });\n+      }\n+      return scope;\n+    }\n+\n+    public void endOne(@Nullable Throwable throwable) {\n+      if (throwable instanceof CancellationException) {\n+        if (CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n+          Span.fromContext(context).setAttribute(\"lettuce.command.cancelled\", true);\n+        }\n+        throwable = null;\n+      }\n+      if (remaining.getAndDecrement() == 1) {\n+        batchInstrumenter().end(context, request, null, throwable);\n+      }\n+    }\n+  }\n+\n+  private static final class BatchState {\n+    private final List<RedisCommand<?, ?, ?>> commands = new ArrayList<>();\n+    private final List<AsyncCommand<?, ?, ?>> asyncCommands = new ArrayList<>();\n+    @Nullable private Context parentContext;",
+      "id": "PRRT_kwDODJKVX86K8Tqu",
+      "opened": "2026-06-19T23:48:20Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-20T00:51:20Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/88a0d85907c00c924312e7b29ea0fa773e45edcf.\n\nDocumented the Lettuce manual-flush threading assumption and kept batch state encapsulated without adding internal locking.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3445099342"
+        }
+      ],
+      "reviewed": "5408fd77ccf06318a8baba34995af3829eff371b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3444958051"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These six new methods (`setAutoFlushCommands`, `capture`, `startBatch`, `finishBatch`, `startCommand`, `endCommand`) are javaagent-only bridges, yet they are added to the public, stable `LettuceTelemetry` entrypoint. This permanently expands the library's public API surface with internal batch machinery that uses untyped `Object` parameters and an `Object` return value, which is confusing for library consumers who call `LettuceTelemetry` directly.\n\nThe established convention in this repo is to keep javaagent-shared/internal helpers in a `...v5_1.internal` package marked \"This class is internal and is hence not for public use\" (e.g. `io.opentelemetry.instrumentation.r2dbc.v1_0.internal.Experimental`), so they are excluded from API-stability guarantees. Consider moving these bridge methods into such an internal class rather than exposing them on the stable entrypoint.",
+      "created": "2026-06-20T01:02:40Z",
+      "hunk": "@@ -30,6 +32,37 @@ public static LettuceTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     return new LettuceTelemetryBuilder(openTelemetry);\n   }\n \n+  /** Used by the javaagent to track Lettuce auto-flush batches. */\n+  public static void setAutoFlushCommands(Object commands, boolean autoFlush) {\n+    OpenTelemetryTracing.setAutoFlushCommands(commands, autoFlush);\n+  }\n+\n+  /** Used by the javaagent to capture commands while Lettuce auto-flush is disabled. */\n+  public static void capture(Object commands, RedisCommand<?, ?, ?> command) {\n+    OpenTelemetryTracing.capture(commands, command);\n+  }\n+\n+  /** Used by the javaagent to start an aggregate span for a flushed Lettuce batch. */\n+  @Nullable\n+  public static Object startBatch(Object commands) {\n+    return OpenTelemetryTracing.startBatch(commands);\n+  }\n+\n+  /** Used by the javaagent to clear the active flushed batch and end it on synchronous failure. */\n+  public static void finishBatch(Object batch, @Nullable Throwable throwable) {\n+    OpenTelemetryTracing.finishBatch(batch, throwable);\n+  }\n+\n+  /** Used by the javaagent to activate batch suppression while Lettuce writes a command. */\n+  public static void startCommand(RedisCommand<?, ?, ?> command) {\n+    OpenTelemetryTracing.startCommand(command);\n+  }\n+\n+  /** Used by the javaagent to clear the active command write batch suppression. */\n+  public static void endCommand() {\n+    OpenTelemetryTracing.endCommand();\n+  }",
+      "id": "PRRT_kwDODJKVX86K8wrn",
+      "opened": "2026-06-20T01:02:40Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-06-21T00:00:07Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/063ee3c8e0eba3bc6a4cd708916c27dc07653d4c.\n\nMoved the javaagent-only batch span bridge into `v5_1.internal.LettuceBatchSpans` and removed it from the stable `LettuceTelemetry` API.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3447679638"
+        }
+      ],
+      "reviewed": "bfe0e04ea71e5df099dec5cd3bf04f44581f4d9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3445116358"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "remove temp var?",
+      "created": "2026-06-22T16:45:28Z",
+      "hunk": "@@ -379,6 +390,208 @@ NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n             });\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(BatchScenario scenario) throws Exception {\n+    StatefulRedisConnection<String, String> statefulConnection =\n+        asyncCommands.getStatefulConnection();\n+    statefulConnection.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> statefulConnection.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = new ArrayList<>();\n+    for (BatchCommand command : scenario.commands) {\n+      futures.add(command.run(asyncCommands));\n+    }\n+    statefulConnection.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      future.get(10, SECONDS);\n+    }\n+\n+    if (scenario.isEmpty()) {\n+      assertThat(testing().spans()).isEmpty();\n+      return;\n+    }\n+\n+    if (deferredFlushSpanMode() == DeferredFlushSpanMode.BATCH) {\n+      testing()\n+          .waitAndAssertTraces(\n+              trace ->\n+                  trace.hasSpansSatisfyingExactly(\n+                      span ->\n+                          span.hasName(spanName(scenario.operationName))\n+                              .hasKind(SpanKind.CLIENT)\n+                              .hasAttributesSatisfyingExactly(\n+                                  addExtraAttributes(\n+                                      equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n+                                      equalTo(NETWORK_PEER_ADDRESS, ip),\n+                                      equalTo(NETWORK_PEER_PORT, port),\n+                                      equalTo(SERVER_ADDRESS, host),\n+                                      equalTo(SERVER_PORT, port),\n+                                      equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                                      equalTo(maybeStable(DB_STATEMENT), scenario.queryText),\n+                                      equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                                      equalTo(\n+                                          DB_OPERATION_BATCH_SIZE,\n+                                          emitStableDatabaseSemconv()\n+                                              ? scenario.batchSize\n+                                              : null)))));\n+      return;\n+    }\n+\n+    // PER_COMMAND is the span mode emitted by library instrumentation: Lettuce's tracing API\n+    // starts each command span as the command is written, so auto-flush batches cannot be\n+    // represented as a single aggregate span there. This is not the ideal shape, but documents the\n+    // current library behavior.\n+    List<Consumer<TraceAssert>> assertions = new ArrayList<>();\n+    for (OldExpectedCommand command : scenario.oldExpectedCommands) {\n+      OldExpectedCommand expected = command;",
+      "id": "PRRT_kwDODJKVX86LVV7X",
+      "opened": "2026-06-22T16:52:27Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:11:35Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/f31635d00fdedc868763bafdcf6386e4b80600d4.\n\nRemoved the forwarding local and capture the loop variable directly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454106581"
+        }
+      ],
+      "reviewed": "4d67bfe71eff3016693c56812b209f7817c6c6c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3453962928"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we simplify API?\n```suggestion\n                .addOldExpectedCommand(\"SET\", \"SET batch1 ?\")\n```",
+      "created": "2026-06-22T16:46:25Z",
+      "hunk": "@@ -379,6 +390,208 @@ NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n             });\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(BatchScenario scenario) throws Exception {\n+    StatefulRedisConnection<String, String> statefulConnection =\n+        asyncCommands.getStatefulConnection();\n+    statefulConnection.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> statefulConnection.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = new ArrayList<>();\n+    for (BatchCommand command : scenario.commands) {\n+      futures.add(command.run(asyncCommands));\n+    }\n+    statefulConnection.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      future.get(10, SECONDS);\n+    }\n+\n+    if (scenario.isEmpty()) {\n+      assertThat(testing().spans()).isEmpty();\n+      return;\n+    }\n+\n+    if (deferredFlushSpanMode() == DeferredFlushSpanMode.BATCH) {\n+      testing()\n+          .waitAndAssertTraces(\n+              trace ->\n+                  trace.hasSpansSatisfyingExactly(\n+                      span ->\n+                          span.hasName(spanName(scenario.operationName))\n+                              .hasKind(SpanKind.CLIENT)\n+                              .hasAttributesSatisfyingExactly(\n+                                  addExtraAttributes(\n+                                      equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n+                                      equalTo(NETWORK_PEER_ADDRESS, ip),\n+                                      equalTo(NETWORK_PEER_PORT, port),\n+                                      equalTo(SERVER_ADDRESS, host),\n+                                      equalTo(SERVER_PORT, port),\n+                                      equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                                      equalTo(maybeStable(DB_STATEMENT), scenario.queryText),\n+                                      equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                                      equalTo(\n+                                          DB_OPERATION_BATCH_SIZE,\n+                                          emitStableDatabaseSemconv()\n+                                              ? scenario.batchSize\n+                                              : null)))));\n+      return;\n+    }\n+\n+    // PER_COMMAND is the span mode emitted by library instrumentation: Lettuce's tracing API\n+    // starts each command span as the command is written, so auto-flush batches cannot be\n+    // represented as a single aggregate span there. This is not the ideal shape, but documents the\n+    // current library behavior.\n+    List<Consumer<TraceAssert>> assertions = new ArrayList<>();\n+    for (OldExpectedCommand command : scenario.oldExpectedCommands) {\n+      OldExpectedCommand expected = command;\n+      assertions.add(\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span ->\n+                      span.hasName(spanName(expected.operationName))\n+                          .hasKind(SpanKind.CLIENT)\n+                          .hasAttributesSatisfyingExactly(\n+                              addExtraAttributes(\n+                                  equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n+                                  equalTo(NETWORK_PEER_ADDRESS, ip),\n+                                  equalTo(NETWORK_PEER_PORT, port),\n+                                  equalTo(SERVER_ADDRESS, host),\n+                                  equalTo(SERVER_PORT, port),\n+                                  equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                                  equalTo(maybeStable(DB_STATEMENT), expected.queryText),\n+                                  equalTo(maybeStable(DB_OPERATION), expected.operationName),\n+                                  equalTo(DB_OPERATION_BATCH_SIZE, null)))\n+                          .satisfies(AbstractLettuceClientTest::assertCommandEncodeEvents)));\n+    }\n+    testing().waitAndAssertTraces(assertions);\n+  }\n+\n+  private static Stream<Arguments> deferredFlushScenarios() {\n+    return Stream.of(\n+        Arguments.argumentSet(\"empty\", BatchScenario.builder().build()),\n+        Arguments.argumentSet(\n+            \"single\",\n+            BatchScenario.builder()\n+                .addCommand(commands -> commands.set(\"batch1\", \"v1\"))\n+                .operationName(\"SET\")\n+                .queryText(\"SET batch1 ?\")\n+                .addOldExpectedCommand(oldExpectedCommand(\"SET\", \"SET batch1 ?\"))",
+      "id": "PRRT_kwDODJKVX86LVW3X",
+      "opened": "2026-06-22T16:52:27Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:11:36Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/977619e612a367f31a5db660388c82e0d604732e.\n\nSimplified the builder API so expected commands can be added with operation name and query text directly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454106771"
+        }
+      ],
+      "reviewed": "4d67bfe71eff3016693c56812b209f7817c6c6c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3453968187"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why are these merged into one typeinstrumentation?",
+      "created": "2026-06-22T16:49:41Z",
+      "hunk": "@@ -0,0 +1,84 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_1;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.instrumentation.lettuce.v5_1.internal.LettuceBatchSupport;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceAsyncCommandsInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.lettuce.core.AbstractRedisAsyncCommands\")\n+        .or(named(\"io.lettuce.core.protocol.DefaultEndpoint\"));",
+      "id": "PRRT_kwDODJKVX86LVaEJ",
+      "opened": "2026-06-22T16:52:27Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/LettuceAsyncCommandsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:11:38Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/dd14db0e4dc796bac1390e9662689b11daac7fdc.\n\nSplit DefaultEndpoint.write into its own TypeInstrumentation and registered it separately.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454106964"
+        }
+      ],
+      "reviewed": "4d67bfe71eff3016693c56812b209f7817c6c6c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3453985985"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "change to new BatchScenario(this) pattern",
+      "created": "2026-06-22T16:50:58Z",
+      "hunk": "@@ -484,6 +489,130 @@ void testCancelCommandBeforeItFinishes() {\n                         .hasParent(trace.getSpan(0))));\n   }\n \n+  // Lettuce auto-flush batching is traced as one aggregate span from flush through completion.\n+  @ParameterizedTest\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(BatchScenario scenario) throws Exception {\n+    asyncCommands.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> asyncCommands.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = new ArrayList<>();\n+    for (BatchCommand command : scenario.commands) {\n+      futures.add(command.run(asyncCommands));\n+    }\n+    asyncCommands.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      future.get(10, SECONDS);\n+    }\n+\n+    if (scenario.isEmpty()) {\n+      assertThat(testing.spans()).isEmpty();\n+      return;\n+    }\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(scenario.operationName)\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), scenario.queryText),\n+                            equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                            equalTo(\n+                                DB_OPERATION_BATCH_SIZE,\n+                                emitStableDatabaseSemconv() ? scenario.batchSize : null))));\n+  }\n+\n+  private static Stream<Arguments> deferredFlushScenarios() {\n+    return Stream.of(\n+        Arguments.argumentSet(\"empty\", BatchScenario.builder().build()),\n+        Arguments.argumentSet(\n+            \"single\",\n+            BatchScenario.builder()\n+                .addCommand(commands -> commands.set(\"batch1\", \"v1\"))\n+                .operationName(\"SET\")\n+                .queryText(\"SET batch1 ?\")\n+                .build()),\n+        Arguments.argumentSet(\n+            \"twoSameOperation\",\n+            BatchScenario.builder()\n+                .addCommand(commands -> commands.set(\"batch1\", \"v1\"))\n+                .addCommand(commands -> commands.set(\"batch2\", \"v2\"))\n+                .operationName(\"PIPELINE SET\")\n+                .queryText(\"SET batch1 ?;SET batch2 ?\")\n+                .batchSize(2)\n+                .build()),\n+        Arguments.argumentSet(\n+            \"twoDifferentOperations\",\n+            BatchScenario.builder()\n+                .addCommand(commands -> commands.set(\"batch1\", \"v1\"))\n+                .addCommand(commands -> commands.get(\"batch1\"))\n+                .operationName(\"PIPELINE\")\n+                .queryText(\"SET batch1 ?;GET batch1\")\n+                .batchSize(2)\n+                .build()));\n+  }\n+\n+  private static class BatchScenario {\n+    private final List<BatchCommand> commands;\n+    private final String operationName;\n+    private final String queryText;\n+    private final Long batchSize;\n+\n+    private BatchScenario(\n+        List<BatchCommand> commands, String operationName, String queryText, Long batchSize) {\n+      this.commands = commands;\n+      this.operationName = operationName;\n+      this.queryText = queryText;\n+      this.batchSize = batchSize;\n+    }\n+\n+    private static Builder builder() {\n+      return new Builder();\n+    }\n+\n+    private boolean isEmpty() {\n+      return commands.isEmpty();\n+    }\n+\n+    private static class Builder {\n+      private final List<BatchCommand> commands = new ArrayList<>();\n+      private String operationName;\n+      private String queryText;\n+      private Long batchSize;\n+\n+      private Builder addCommand(BatchCommand command) {\n+        commands.add(command);\n+        return this;\n+      }\n+\n+      private Builder operationName(String operationName) {\n+        this.operationName = operationName;\n+        return this;\n+      }\n+\n+      private Builder queryText(String queryText) {\n+        this.queryText = queryText;\n+        return this;\n+      }\n+\n+      private Builder batchSize(long batchSize) {\n+        this.batchSize = batchSize;\n+        return this;\n+      }\n+\n+      private BatchScenario build() {\n+        return new BatchScenario(commands, operationName, queryText, batchSize);",
+      "id": "PRRT_kwDODJKVX86LVbdN",
+      "opened": "2026-06-22T16:52:27Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:11:40Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/1e53e47b736b762132337e1a1c3b5e737af2b902.\n\nChanged BatchScenario to copy fields from its builder.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454107174"
+        }
+      ],
+      "reviewed": "4d67bfe71eff3016693c56812b209f7817c6c6c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3453993559"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this used?",
+      "created": "2026-06-22T16:52:23Z",
+      "hunk": "@@ -154,17 +160,21 @@ private OpenTelemetrySpan nextSpan(Context parentContext) {\n   // defined. We go ahead and buffer all data until we know we have a span. This implementation is\n   // particularly safe, synchronizing all accesses. Relying on implementation details would allow\n   // reducing synchronization but the impact should be minimal.\n-  private static class OpenTelemetrySpan extends Tracer.Span {\n+  static class OpenTelemetrySpan extends Tracer.Span {\n \n     private final Context parentContext;\n     private final Instrumenter<LettuceRequest, LettuceResponse> instrumenter;\n+    private final RedisCommandSanitizer sanitizer;",
+      "id": "PRRT_kwDODJKVX86LVdFy",
+      "opened": "2026-06-22T16:52:27Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/internal/OpenTelemetryTracing.java",
+      "replies": [
+        {
+          "at": "2026-06-22T17:11:42Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/af8fe91f12b8cab5a155a6242f072b73c1d7863d.\n\nRemoved the span sanitizer carrier field and moved pipeline request copying into LettuceRequest.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454107396"
+        }
+      ],
+      "reviewed": "4d67bfe71eff3016693c56812b209f7817c6c6c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454002665"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`capture(endpoint, command)` here passes the `DefaultEndpoint` instance as the batch-state key, but `LettuceBatchSupport.batchStates` is only ever populated by `setAutoFlushCommands(commands, ...)`, whose key is the `AbstractRedisAsyncCommands` instance (`SetAutoFlushAdvice` matches `io.lettuce.core.AbstractRedisAsyncCommands`). Since the `DefaultEndpoint` is never registered as a key, `batchStates.get(endpoint)` is always `null` and this capture is a no-op, making `LettuceDefaultEndpointInstrumentation` effectively dead.\n\nEvery command is already captured via `LettuceAsyncCommandsInstrumentation.DispatchAdvice` (which keys on the same `AbstractRedisAsyncCommands` instance as `setAutoFlushCommands`), so this instrumentation appears redundant and can likely be removed (along with its registration in `LettuceInstrumentationModule`). If it was instead intended to capture commands written through a path that bypasses `dispatch`, the endpoint would need to be registered as its own batch-state key — but note that keying it the same as `dispatch` would double-count commands.",
+      "created": "2026-06-22T17:22:44Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_1;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.instrumentation.lettuce.v5_1.internal.LettuceBatchSupport;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceDefaultEndpointInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.lettuce.core.protocol.DefaultEndpoint\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"write\").and(takesArgument(0, named(\"io.lettuce.core.protocol.RedisCommand\"))),\n+        getClass().getName() + \"$WriteAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class WriteAdvice {\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This Object endpoint,\n+        @Advice.Argument(0) RedisCommand<?, ?, ?> command,\n+        @Advice.Thrown @Nullable Throwable throwable) {\n+      if (throwable == null) {\n+        LettuceBatchSupport.capture(endpoint, command);\n+      }",
+      "id": "PRRT_kwDODJKVX86LV528",
+      "opened": "2026-06-22T17:22:44Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/LettuceDefaultEndpointInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T18:24:39Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/a8123456887b5f4f0a7380ad3a0d9dda1b6bd6d4.\n\nRemoved the redundant DefaultEndpoint instrumentation and its registration because batch state is keyed by AbstractRedisAsyncCommands and dispatch already captures the commands.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454539250"
+        }
+      ],
+      "reviewed": "af8fe91f12b8cab5a155a6242f072b73c1d7863d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454164700"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The batch span's error is taken only from the throwable of whichever command completes last (the call that decrements `remaining` to 0). Because `endOne` is invoked once per command completion via `handleAsync`, and Redis command errors are per-command, an earlier command in the pipeline can complete exceptionally while the last command succeeds. In that case the earlier failure is silently dropped and the aggregate batch span is recorded as successful.\n\nThe sibling lettuce-5.1 implementation handles this by accumulating the first non-null error across all commands (`BatchScope.finishOne` in `OpenTelemetryTracing`). Consider accumulating the error here as well (e.g. store the first non-null throwable in a field and pass it at `end`), so failures from non-last commands aren't lost.",
+      "created": "2026-06-22T18:35:36Z",
+      "hunk": "@@ -0,0 +1,150 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.batchInstrumenter;\n+\n+import io.lettuce.core.protocol.AsyncCommand;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.WeakHashMap;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import javax.annotation.Nullable;\n+\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final Map<Object, BatchState> states =\n+      Collections.synchronizedMap(new WeakHashMap<>());\n+\n+  public static void setCollecting(Object commands, boolean collecting) {\n+    if (collecting) {\n+      states.put(commands, new BatchState());\n+    } else {\n+      states.remove(commands);\n+    }\n+  }\n+\n+  public static boolean isCollecting(Object commands) {\n+    return states.containsKey(commands);\n+  }\n+\n+  public static boolean capture(\n+      Object commands,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = states.get(commands);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope start(Object commands) {\n+    BatchState state = states.get(commands);\n+    return state == null ? null : state.start();\n+  }\n+\n+  private LettuceBatchContext() {}\n+\n+  public static final class BatchScope {\n+    private final Context context;\n+    private final LettuceBatchRequest request;\n+    private final AtomicInteger remaining;\n+\n+    private BatchScope(Context context, LettuceBatchRequest request, int remaining) {\n+      this.context = context;\n+      this.request = request;\n+      this.remaining = new AtomicInteger(remaining);\n+    }\n+\n+    @Nullable\n+    private static BatchScope start(\n+        List<RedisCommand<?, ?, ?>> commands,\n+        List<AsyncCommand<?, ?, ?>> asyncCommands,\n+        @Nullable Context capturedParentContext) {\n+      LettuceBatchRequest request = LettuceBatchRequest.create(commands);\n+      Context parentContext =\n+          capturedParentContext == null ? currentContext() : capturedParentContext;\n+      if (!batchInstrumenter().shouldStart(parentContext, request)) {\n+        return null;\n+      }\n+      Context context = batchInstrumenter().start(parentContext, request);\n+      if (asyncCommands.isEmpty()) {\n+        batchInstrumenter().end(context, request, null, null);\n+        return null;\n+      }\n+      BatchScope scope = new BatchScope(context, request, asyncCommands.size());\n+      for (AsyncCommand<?, ?, ?> asyncCommand : asyncCommands) {\n+        asyncCommand.handleAsync(\n+            (value, throwable) -> {\n+              scope.endOne(throwable);\n+              return null;\n+            });\n+      }\n+      return scope;\n+    }\n+\n+    public void endOne(@Nullable Throwable throwable) {\n+      if (throwable instanceof CancellationException) {\n+        if (CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n+          Span.fromContext(context).setAttribute(\"lettuce.command.cancelled\", true);\n+        }\n+        throwable = null;\n+      }\n+      if (remaining.getAndDecrement() == 1) {\n+        batchInstrumenter().end(context, request, null, throwable);\n+      }",
+      "id": "PRRT_kwDODJKVX86LXKCy",
+      "opened": "2026-06-22T18:35:36Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T21:19:27Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/677a372833ddea8e88b9c35dcade48262c0464e3.\n\nLettuce 5.0 batch spans now keep the first non-cancellation command error, with the error case folded into the deferred flush scenario matrix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455506823"
+        }
+      ],
+      "reviewed": "a8123456887b5f4f0a7380ad3a0d9dda1b6bd6d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454611664"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The batch span's error is taken only from the throwable of whichever command completes last (the call that decrements `remaining` to 0). Because `endOne` is invoked once per command completion via `handleAsync`, and Redis command errors are per-command, an earlier command in the pipeline can complete exceptionally while the last command succeeds. In that case the earlier failure is silently dropped and the aggregate batch span is recorded as successful.\n\nThe sibling lettuce-5.1 implementation handles this by accumulating the first non-null error across all commands (`BatchScope.finishOne` in `OpenTelemetryTracing`). Consider accumulating the error here as well (e.g. store the first non-null throwable in a field and pass it at `end`), so failures from non-last commands aren't lost.",
+      "created": "2026-06-22T18:35:36Z",
+      "hunk": "@@ -0,0 +1,150 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.batchInstrumenter;\n+\n+import com.lambdaworks.redis.protocol.AsyncCommand;\n+import com.lambdaworks.redis.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.WeakHashMap;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import javax.annotation.Nullable;\n+\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final Map<Object, BatchState> states =\n+      Collections.synchronizedMap(new WeakHashMap<>());\n+\n+  public static void setCollecting(Object commands, boolean collecting) {\n+    if (collecting) {\n+      states.put(commands, new BatchState());\n+    } else {\n+      states.remove(commands);\n+    }\n+  }\n+\n+  public static boolean isCollecting(Object commands) {\n+    return states.containsKey(commands);\n+  }\n+\n+  public static boolean capture(\n+      Object commands,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = states.get(commands);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope start(Object commands) {\n+    BatchState state = states.get(commands);\n+    return state == null ? null : state.start();\n+  }\n+\n+  private LettuceBatchContext() {}\n+\n+  public static final class BatchScope {\n+    private final Context context;\n+    private final LettuceBatchRequest request;\n+    private final AtomicInteger remaining;\n+\n+    private BatchScope(Context context, LettuceBatchRequest request, int remaining) {\n+      this.context = context;\n+      this.request = request;\n+      this.remaining = new AtomicInteger(remaining);\n+    }\n+\n+    @Nullable\n+    private static BatchScope start(\n+        List<RedisCommand<?, ?, ?>> commands,\n+        List<AsyncCommand<?, ?, ?>> asyncCommands,\n+        @Nullable Context capturedParentContext) {\n+      LettuceBatchRequest request = LettuceBatchRequest.create(commands);\n+      Context parentContext =\n+          capturedParentContext == null ? currentContext() : capturedParentContext;\n+      if (!batchInstrumenter().shouldStart(parentContext, request)) {\n+        return null;\n+      }\n+      Context context = batchInstrumenter().start(parentContext, request);\n+      if (asyncCommands.isEmpty()) {\n+        batchInstrumenter().end(context, request, null, null);\n+        return null;\n+      }\n+      BatchScope scope = new BatchScope(context, request, asyncCommands.size());\n+      for (AsyncCommand<?, ?, ?> asyncCommand : asyncCommands) {\n+        asyncCommand.handleAsync(\n+            (value, throwable) -> {\n+              scope.endOne(throwable);\n+              return null;\n+            });\n+      }\n+      return scope;\n+    }\n+\n+    public void endOne(@Nullable Throwable throwable) {\n+      if (throwable instanceof CancellationException) {\n+        if (CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n+          Span.fromContext(context).setAttribute(\"lettuce.command.cancelled\", true);\n+        }\n+        throwable = null;\n+      }\n+      if (remaining.getAndDecrement() == 1) {\n+        batchInstrumenter().end(context, request, null, throwable);\n+      }",
+      "id": "PRRT_kwDODJKVX86LXKDi",
+      "opened": "2026-06-22T18:35:36Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-22T21:19:29Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/677a372833ddea8e88b9c35dcade48262c0464e3.\n\nLettuce 4.0 batch spans now keep the first non-cancellation command error, with the error case folded into the deferred flush scenario matrix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455506934"
+        }
+      ],
+      "reviewed": "a8123456887b5f4f0a7380ad3a0d9dda1b6bd6d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3454611722"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new batch error-aggregation logic here (`finishOne` accumulating `errorMessage`/`error` from each command, plus `getBatchErrorMessage()` in `OpenTelemetryTracing` and the new `tag(\"error\", ...)` handling) is only exercised by happy-path scenarios — all `deferredFlushScenarios` (`single`, `twoSameOperation`, `twoDifferentOperations`) issue commands that succeed. Consider adding a deferred-flush scenario where one queued command fails (e.g. a wrong-type operation) so the aggregate span's error status/message propagation is verified. This is optional, but the error path is otherwise unverified.",
+      "created": "2026-06-22T20:11:35Z",
+      "hunk": "@@ -0,0 +1,179 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1.internal;\n+\n+import io.lettuce.core.RedisChannelWriter;\n+import io.lettuce.core.protocol.CommandWrapper;\n+import io.lettuce.core.protocol.RedisCommand;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.WeakHashMap;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Javaagent bridge for aggregating commands written while Lettuce auto-flush is disabled.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LettuceBatchSupport {\n+  private static final BatchStates<RedisChannelWriter> writerBatchStates = new BatchStates<>();\n+  private static final Map<RedisCommand<?, ?, ?>, BatchScope> activeBatchCommands =\n+      Collections.synchronizedMap(new WeakHashMap<>());\n+  private static final ThreadLocal<BatchScope> currentBatchScope = new ThreadLocal<>();\n+\n+  public static void setAutoFlushCommands(RedisChannelWriter writer, boolean autoFlush) {\n+    writerBatchStates.setAutoFlushCommands(writer, autoFlush);\n+  }\n+\n+  public static void capture(RedisChannelWriter writer, RedisCommand<?, ?, ?> command) {\n+    writerBatchStates.capture(writer, command);\n+  }\n+\n+  @Nullable\n+  public static BatchScope startBatch(RedisChannelWriter writer) {\n+    return writerBatchStates.startBatch(writer);\n+  }\n+\n+  public static void finishBatch(BatchScope batch, @Nullable Throwable throwable) {\n+    currentBatchScope.remove();\n+    if (throwable != null) {\n+      batch.finish(throwable);\n+    }\n+  }\n+\n+  public static void startCommand(RedisCommand<?, ?, ?> command) {\n+    BatchScope batchScope = activeBatchCommands.get(command);\n+    if (batchScope == null) {\n+      batchScope = activeBatchCommands.get(CommandWrapper.unwrap(command));\n+    }\n+    if (batchScope != null) {\n+      currentBatchScope.set(batchScope);\n+    }\n+  }\n+\n+  public static void endCommand() {\n+    currentBatchScope.remove();\n+  }\n+\n+  @Nullable\n+  static BatchScope captureCurrent(OpenTelemetryTracing.OpenTelemetrySpan span) {\n+    BatchScope batchScope = currentBatchScope.get();\n+    if (batchScope == null) {\n+      return null;\n+    }\n+    batchScope.capture(span);\n+    return batchScope;\n+  }\n+\n+  private static final class BatchStates<K> {\n+    private final Map<K, BatchState> batchStates = Collections.synchronizedMap(new WeakHashMap<>());\n+\n+    private void setAutoFlushCommands(K key, boolean autoFlush) {\n+      if (autoFlush) {\n+        batchStates.remove(key);\n+      } else {\n+        batchStates.put(key, new BatchState());\n+      }\n+    }\n+\n+    private void capture(K key, RedisCommand<?, ?, ?> command) {\n+      BatchState batchState = batchStates.get(key);\n+      if (batchState != null) {\n+        batchState.capture(command);\n+      }\n+    }\n+\n+    @Nullable\n+    private BatchScope startBatch(K key) {\n+      BatchState batchState = batchStates.get(key);\n+      if (batchState == null) {\n+        return null;\n+      }\n+      return batchState.start();\n+    }\n+  }\n+\n+  private static final class BatchState {\n+    private final List<RedisCommand<?, ?, ?>> commands = new ArrayList<>();\n+\n+    private synchronized void capture(RedisCommand<?, ?, ?> command) {\n+      commands.add(command);\n+    }\n+\n+    @Nullable\n+    private synchronized BatchScope start() {\n+      if (commands.isEmpty()) {\n+        return null;\n+      }\n+\n+      List<RedisCommand<?, ?, ?>> batchCommands = new ArrayList<>(commands);\n+      commands.clear();\n+      return new BatchScope(batchCommands);\n+    }\n+  }\n+\n+  /**\n+   * Active Lettuce batch span scope.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static final class BatchScope {\n+    private final List<RedisCommand<?, ?, ?>> commands;\n+    private final AtomicInteger remaining;\n+    @Nullable private OpenTelemetryTracing.OpenTelemetrySpan aggregateSpan;\n+    @Nullable private Throwable error;\n+    @Nullable private String errorMessage;\n+\n+    private BatchScope(List<RedisCommand<?, ?, ?>> commands) {\n+      this.commands = commands;\n+      this.remaining = new AtomicInteger(commands.size());\n+      for (RedisCommand<?, ?, ?> command : commands) {\n+        activeBatchCommands.put(command, this);\n+      }\n+    }\n+\n+    private synchronized void capture(OpenTelemetryTracing.OpenTelemetrySpan span) {\n+      if (aggregateSpan == null) {\n+        aggregateSpan = span.createAggregateSpan(commands);\n+      }\n+    }\n+\n+    synchronized void finishOne(OpenTelemetryTracing.OpenTelemetrySpan span) {\n+      if (span.getBatchErrorMessage() != null && errorMessage == null) {\n+        errorMessage = span.getBatchErrorMessage();\n+      }\n+      if (span.getError() != null && error == null) {\n+        error = span.getError();\n+      }",
+      "id": "PRRT_kwDODJKVX86LYosC",
+      "opened": "2026-06-22T20:11:35Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/LettuceBatchSupport.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:50:11Z",
+          "body": "Addressed in d308a02742e6001fb0017ccfacb397f96d179579 — added an `earlierFailure` deferred-flush scenario that queues a failing `CONFIG SET` ahead of a succeeding `SET` and asserts `ERROR_TYPE` on the aggregate (BATCH) span, so `finishOne`'s error/errorMessage folding, `getBatchErrorMessage()`, and the aggregate error status are now exercised.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455920911"
+        }
+      ],
+      "reviewed": "e91efe969fedfe11068e7a61cc547778d0a22219",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455146327"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The deferred-flush scenarios here drive both the javaagent `BATCH` path and the library `PER_COMMAND` path, but none of them produces a command error. As a result, the new batch error-accumulation logic added for 5.1 is never exercised: `OpenTelemetrySpan.getBatchErrorMessage()`/`getError()`, the error/errorMessage folding in `LettuceBatchSupport.BatchScope.finishOne()`, and the aggregate span's resulting error status all go untested. The sibling lettuce-5.0 and lettuce-4.0 tests added an `earlierFailure` scenario (asserting `ERROR_TYPE`) specifically to cover this path. Consider adding an analogous error scenario here and asserting the error attributes on the aggregate (`BATCH`) span so the 5.1 batch error handling is covered as well.",
+      "created": "2026-06-22T21:32:43Z",
+      "hunk": "@@ -379,6 +390,203 @@ NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n             });\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(BatchScenario scenario) throws Exception {\n+    StatefulRedisConnection<String, String> statefulConnection =\n+        asyncCommands.getStatefulConnection();\n+    statefulConnection.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> statefulConnection.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = new ArrayList<>();\n+    for (BatchCommand command : scenario.commands) {\n+      futures.add(command.run(asyncCommands));\n+    }\n+    statefulConnection.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      future.get(10, SECONDS);\n+    }\n+\n+    if (scenario.isEmpty()) {\n+      assertThat(testing().spans()).isEmpty();\n+      return;\n+    }\n+\n+    if (deferredFlushSpanMode() == DeferredFlushSpanMode.BATCH) {\n+      testing()\n+          .waitAndAssertTraces(\n+              trace ->\n+                  trace.hasSpansSatisfyingExactly(\n+                      span ->\n+                          span.hasName(spanName(scenario.operationName))\n+                              .hasKind(SpanKind.CLIENT)\n+                              .hasAttributesSatisfyingExactly(\n+                                  addExtraAttributes(\n+                                      equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n+                                      equalTo(NETWORK_PEER_ADDRESS, ip),\n+                                      equalTo(NETWORK_PEER_PORT, port),\n+                                      equalTo(SERVER_ADDRESS, host),\n+                                      equalTo(SERVER_PORT, port),\n+                                      equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                                      equalTo(maybeStable(DB_STATEMENT), scenario.queryText),\n+                                      equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                                      equalTo(\n+                                          DB_OPERATION_BATCH_SIZE,\n+                                          emitStableDatabaseSemconv()\n+                                              ? scenario.batchSize\n+                                              : null)))));\n+      return;\n+    }\n+\n+    // PER_COMMAND is the span mode emitted by library instrumentation: Lettuce's tracing API\n+    // starts each command span as the command is written, so auto-flush batches cannot be\n+    // represented as a single aggregate span there. This is not the ideal shape, but documents the\n+    // current library behavior.\n+    List<Consumer<TraceAssert>> assertions = new ArrayList<>();\n+    for (OldExpectedCommand command : scenario.oldExpectedCommands) {\n+      assertions.add(\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span ->\n+                      span.hasName(spanName(command.operationName))\n+                          .hasKind(SpanKind.CLIENT)\n+                          .hasAttributesSatisfyingExactly(\n+                              addExtraAttributes(\n+                                  equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n+                                  equalTo(NETWORK_PEER_ADDRESS, ip),\n+                                  equalTo(NETWORK_PEER_PORT, port),\n+                                  equalTo(SERVER_ADDRESS, host),\n+                                  equalTo(SERVER_PORT, port),\n+                                  equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                                  equalTo(maybeStable(DB_STATEMENT), command.queryText),\n+                                  equalTo(maybeStable(DB_OPERATION), command.operationName),\n+                                  equalTo(DB_OPERATION_BATCH_SIZE, null)))\n+                          .satisfies(AbstractLettuceClientTest::assertCommandEncodeEvents)));\n+    }\n+    testing().waitAndAssertTraces(assertions);\n+  }\n+\n+  private static Stream<Arguments> deferredFlushScenarios() {\n+    return Stream.of(\n+        Arguments.argumentSet(\"empty\", BatchScenario.builder().build()),\n+        Arguments.argumentSet(\n+            \"single\",\n+            BatchScenario.builder()\n+                .addCommand(commands -> commands.set(\"batch1\", \"v1\"))\n+                .operationName(\"SET\")\n+                .queryText(\"SET batch1 ?\")\n+                .addOldExpectedCommand(\"SET\", \"SET batch1 ?\")\n+                .build()),\n+        Arguments.argumentSet(\n+            \"twoSameOperation\",\n+            BatchScenario.builder()\n+                .addCommand(commands -> commands.set(\"batch1\", \"v1\"))\n+                .addCommand(commands -> commands.set(\"batch2\", \"v2\"))\n+                .operationName(\"PIPELINE SET\")\n+                .queryText(\"SET batch1 ?;SET batch2 ?\")\n+                .batchSize(2)\n+                .addOldExpectedCommand(\"SET\", \"SET batch1 ?\")\n+                .addOldExpectedCommand(\"SET\", \"SET batch2 ?\")\n+                .build()),\n+        Arguments.argumentSet(\n+            \"twoDifferentOperations\",\n+            BatchScenario.builder()\n+                .addCommand(commands -> commands.set(\"batch1\", \"v1\"))\n+                .addCommand(commands -> commands.get(\"batch1\"))\n+                .operationName(\"PIPELINE\")\n+                .queryText(\"SET batch1 ?;GET batch1\")\n+                .batchSize(2)\n+                .addOldExpectedCommand(\"SET\", \"SET batch1 ?\")\n+                .addOldExpectedCommand(\"GET\", \"GET batch1\")\n+                .build()));\n+  }",
+      "id": "PRRT_kwDODJKVX86LZzb2",
+      "opened": "2026-06-22T21:32:44Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:43:55Z",
+          "body": "Added an `earlierFailure` deferred-flush scenario that drives a failing `CONFIG SET` through the batch and asserts `ERROR_TYPE` on the aggregate (BATCH) span, so the new 5.1 batch error accumulation (`getBatchErrorMessage()`/`getError()`, the folding in `BatchScope.finishOne()`, and the aggregate error status) is now exercised. (In library PER_COMMAND mode the per-command error span shape is version/semconv-dependent and already covered by dedicated library error tests, so that mode skips the per-command error assertions.) Fixed in d308a02742e6001fb0017ccfacb397f96d179579.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455892109"
+        }
+      ],
+      "reviewed": "677a372833ddea8e88b9c35dcade48262c0464e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455566425"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`startCommand` runs for every Redis command (it is invoked from the newly instrumented `CommandHandler.writeSingleCommand`), and the companion `capture` runs for every `DefaultEndpoint.write`. Both perform lookups against the global `Collections.synchronizedMap(WeakHashMap)` instances (`activeBatchCommands` here, `writerBatchStates`'s inner map in `capture`). This monitor acquisition is paid on the command hot path even when deferred flush is never used, so under high-throughput, multi-threaded workloads these shared monitors can become a contention point that serializes command writes across connections. Consider a cheap fast path — e.g. a `volatile` counter/flag tracking whether any batch is currently active — so `startCommand`/`capture` can return immediately without touching the synchronized maps when no batch state exists. This is optional; the impact is typically small relative to Redis I/O.",
+      "created": "2026-06-22T21:32:44Z",
+      "hunk": "@@ -0,0 +1,179 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1.internal;\n+\n+import io.lettuce.core.RedisChannelWriter;\n+import io.lettuce.core.protocol.CommandWrapper;\n+import io.lettuce.core.protocol.RedisCommand;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.WeakHashMap;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Javaagent bridge for aggregating commands written while Lettuce auto-flush is disabled.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LettuceBatchSupport {\n+  private static final BatchStates<RedisChannelWriter> writerBatchStates = new BatchStates<>();\n+  private static final Map<RedisCommand<?, ?, ?>, BatchScope> activeBatchCommands =\n+      Collections.synchronizedMap(new WeakHashMap<>());\n+  private static final ThreadLocal<BatchScope> currentBatchScope = new ThreadLocal<>();\n+\n+  public static void setAutoFlushCommands(RedisChannelWriter writer, boolean autoFlush) {\n+    writerBatchStates.setAutoFlushCommands(writer, autoFlush);\n+  }\n+\n+  public static void capture(RedisChannelWriter writer, RedisCommand<?, ?, ?> command) {\n+    writerBatchStates.capture(writer, command);\n+  }\n+\n+  @Nullable\n+  public static BatchScope startBatch(RedisChannelWriter writer) {\n+    return writerBatchStates.startBatch(writer);\n+  }\n+\n+  public static void finishBatch(BatchScope batch, @Nullable Throwable throwable) {\n+    currentBatchScope.remove();\n+    if (throwable != null) {\n+      batch.finish(throwable);\n+    }\n+  }\n+\n+  public static void startCommand(RedisCommand<?, ?, ?> command) {\n+    BatchScope batchScope = activeBatchCommands.get(command);\n+    if (batchScope == null) {\n+      batchScope = activeBatchCommands.get(CommandWrapper.unwrap(command));\n+    }\n+    if (batchScope != null) {\n+      currentBatchScope.set(batchScope);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86LZzck",
+      "opened": "2026-06-22T21:32:44Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_1/LettuceBatchSupport.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:44:04Z",
+          "body": "Good call. Replaced the `Collections.synchronizedMap(WeakHashMap)` lookups with `VirtualField` (per-connection and per-command state), so `startCommand`/`capture` are now lock-free per-object reads with no shared monitor on the command hot path. While doing this I also flipped the module dependency: the `VirtualField`-backed implementation now lives in the javaagent module behind a new `LettuceBatching` SPI seam in the library, so the library no longer references agent-only APIs. Fixed in d308a02742e6001fb0017ccfacb397f96d179579.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455892887"
+        }
+      ],
+      "reviewed": "677a372833ddea8e88b9c35dcade48262c0464e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3455566479"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "no need to assign to local vars, this isn't multithreaded safe anyways",
+      "created": "2026-06-22T23:23:32Z",
+      "hunk": "@@ -0,0 +1,137 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1.internal;\n+\n+import static io.opentelemetry.instrumentation.lettuce.common.LettuceArgSplitter.splitArgs;\n+import static java.util.Collections.emptyList;\n+\n+import io.lettuce.core.protocol.OtelCommandArgsUtil;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Lettuce request data captured for telemetry.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LettuceRequest {\n+\n+  private final RedisCommandSanitizer sanitizer;\n+  @Nullable private String command;\n+  @Nullable private List<String> argsList;\n+  @Nullable private String argsString;\n+  @Nullable private InetSocketAddress address;\n+  @Nullable private Long databaseIndex;\n+  @Nullable private Long batchSize;\n+  private boolean pipeline;\n+\n+  LettuceRequest(RedisCommandSanitizer sanitizer) {\n+    this.sanitizer = sanitizer;\n+  }\n+\n+  void setCommand(String command) {\n+    this.command = command;\n+  }\n+\n+  @Nullable\n+  String getCommand() {\n+    return command;\n+  }\n+\n+  void setArgsList(List<String> argsList) {\n+    this.argsList = argsList;\n+  }\n+\n+  void setArgsString(String argsString) {\n+    this.argsString = argsString;\n+  }\n+\n+  void setAddress(InetSocketAddress address) {\n+    this.address = address;\n+  }\n+\n+  @Nullable\n+  InetSocketAddress getAddress() {\n+    return address;\n+  }\n+\n+  void setDatabaseIndex(long databaseIndex) {\n+    this.databaseIndex = databaseIndex;\n+  }\n+\n+  private void setPipeline(List<RedisCommand<?, ?, ?>> commands) {\n+    command = pipelineOperationName(commands);\n+    argsList = null;\n+    argsString = pipelineStatement(commands);\n+    batchSize = commands.size() > 1 ? (long) commands.size() : null;\n+    pipeline = true;\n+  }\n+\n+  @Nullable\n+  Long getDatabaseIndex() {\n+    return databaseIndex;\n+  }\n+\n+  @Nullable\n+  Long getBatchSize() {\n+    return batchSize;\n+  }\n+\n+  LettuceRequest copyAsPipeline(List<RedisCommand<?, ?, ?>> commands) {\n+    LettuceRequest request = new LettuceRequest(sanitizer);\n+    request.setPipeline(commands);\n+    request.address = address;\n+    request.databaseIndex = databaseIndex;\n+    return request;\n+  }\n+\n+  @Nullable\n+  String getStatement() {\n+    String cmd = command;\n+    if (cmd == null) {\n+      return null;\n+    }\n+    if (pipeline) {\n+      return argsString;\n+    }\n+    List<String> args = argsList;\n+    if (args == null) {\n+      args = splitArgs(argsString);\n+    }\n+    return sanitizer.sanitize(cmd, args);",
+      "id": "PRRT_kwDODJKVX86LbJN3",
+      "opened": "2026-06-22T23:26:17Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/internal/LettuceRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T16:32:18Z",
+          "body": "The 5.1 library no longer contains batch code — the `internal/` package was removed and the library is back to upstream's per-command SPI (zero diff vs upstream). Batching now lives only in the advice-based 5.0/4.0 javaagents, so this is resolved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3461338433"
+        }
+      ],
+      "reviewed": "6250371b569977a3802f710faa430da45f07ace2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3456058642"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    batchSize = commands.size() != 1 ? (long) commands.size() : null;\n```",
+      "created": "2026-06-22T23:23:41Z",
+      "hunk": "@@ -0,0 +1,137 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1.internal;\n+\n+import static io.opentelemetry.instrumentation.lettuce.common.LettuceArgSplitter.splitArgs;\n+import static java.util.Collections.emptyList;\n+\n+import io.lettuce.core.protocol.OtelCommandArgsUtil;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Lettuce request data captured for telemetry.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LettuceRequest {\n+\n+  private final RedisCommandSanitizer sanitizer;\n+  @Nullable private String command;\n+  @Nullable private List<String> argsList;\n+  @Nullable private String argsString;\n+  @Nullable private InetSocketAddress address;\n+  @Nullable private Long databaseIndex;\n+  @Nullable private Long batchSize;\n+  private boolean pipeline;\n+\n+  LettuceRequest(RedisCommandSanitizer sanitizer) {\n+    this.sanitizer = sanitizer;\n+  }\n+\n+  void setCommand(String command) {\n+    this.command = command;\n+  }\n+\n+  @Nullable\n+  String getCommand() {\n+    return command;\n+  }\n+\n+  void setArgsList(List<String> argsList) {\n+    this.argsList = argsList;\n+  }\n+\n+  void setArgsString(String argsString) {\n+    this.argsString = argsString;\n+  }\n+\n+  void setAddress(InetSocketAddress address) {\n+    this.address = address;\n+  }\n+\n+  @Nullable\n+  InetSocketAddress getAddress() {\n+    return address;\n+  }\n+\n+  void setDatabaseIndex(long databaseIndex) {\n+    this.databaseIndex = databaseIndex;\n+  }\n+\n+  private void setPipeline(List<RedisCommand<?, ?, ?>> commands) {\n+    command = pipelineOperationName(commands);\n+    argsList = null;\n+    argsString = pipelineStatement(commands);\n+    batchSize = commands.size() > 1 ? (long) commands.size() : null;",
+      "id": "PRRT_kwDODJKVX86LbJSr",
+      "opened": "2026-06-22T23:26:17Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/internal/LettuceRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T16:32:19Z",
+          "body": "The 5.1 library no longer contains batch code — the `internal/` package was removed and the library is back to upstream's per-command SPI (zero diff vs upstream). Batching now lives only in the advice-based 5.0/4.0 javaagents, so this is resolved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3461338566"
+        }
+      ],
+      "reviewed": "6250371b569977a3802f710faa430da45f07ace2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3456059063"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we improve this class the way we did other request classes, by precomputing operationName and queryText, and then removing unnecessary fields?",
+      "created": "2026-06-22T23:24:41Z",
+      "hunk": "@@ -0,0 +1,137 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1.internal;\n+\n+import static io.opentelemetry.instrumentation.lettuce.common.LettuceArgSplitter.splitArgs;\n+import static java.util.Collections.emptyList;\n+\n+import io.lettuce.core.protocol.OtelCommandArgsUtil;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Lettuce request data captured for telemetry.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LettuceRequest {",
+      "id": "PRRT_kwDODJKVX86LbJ16",
+      "opened": "2026-06-22T23:26:17Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/internal/LettuceRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T16:32:21Z",
+          "body": "The 5.1 library no longer contains batch code — the `internal/` package was removed and the library is back to upstream's per-command SPI (zero diff vs upstream). Batching now lives only in the advice-based 5.0/4.0 javaagents, so this is resolved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3461338752"
+        }
+      ],
+      "reviewed": "6250371b569977a3802f710faa430da45f07ace2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3456062242"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "check the pattern used elsewhere in the repo for required static initializer-time dependency injections (see experimental telemetry classes I think)",
+      "created": "2026-06-22T23:26:06Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1.internal;\n+\n+import io.lettuce.core.protocol.RedisCommand;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Seam that lets the javaagent contribute Lettuce auto-flush batch aggregation without the library\n+ * module depending on agent-only APIs such as {@code VirtualField}. The agent registers a {@link\n+ * BatchHook} when its instrumentation loads; in library-only usage no hook is registered and\n+ * batching is inert.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LettuceBatching {\n+\n+  @Nullable private static volatile BatchHook hook;\n+\n+  public static void setHook(BatchHook batchHook) {\n+    hook = batchHook;\n+  }",
+      "id": "PRRT_kwDODJKVX86LbKn1",
+      "opened": "2026-06-22T23:26:17Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/internal/LettuceBatching.java",
+      "replies": [
+        {
+          "at": "2026-06-23T16:32:23Z",
+          "body": "The `LettuceBatching` seam was removed entirely; the 5.1 javaagent no longer does batching, so there's no injection point to refine. Resolved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3461338934"
+        }
+      ],
+      "reviewed": "6250371b569977a3802f710faa430da45f07ace2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3456066629"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // digest computes a SHA locally without contacting redis, so it must not produce a span\n```",
+      "created": "2026-06-23T18:25:31Z",
+      "hunk": "@@ -251,7 +251,9 @@ void testCommandCancelAfter2OnFluxPublisher() {\n \n   @Test\n   void testNonReactiveCommandShouldNotProduceSpan() {\n-    String res = reactiveCommands.digest(null);\n+    // digest computes a SHA locally without contacting redis, so it must not produce a span;\n+    // a non-null script is required because newer lettuce validates the argument",
+      "id": "PRRT_kwDODJKVX86Lro4T",
+      "opened": "2026-06-23T18:30:10Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceReactiveClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:08:58Z",
+          "body": "Done — dropped the trailing semicolon.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462265332"
+        }
+      ],
+      "reviewed": "f38906a5fee09c80f3ec7f8ba262f420f0c0caeb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462008710"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "if thrown != null, assertThat(thrown...\n\nI think I did this somewhere else?",
+      "created": "2026-06-23T18:28:24Z",
+      "hunk": "@@ -484,6 +490,153 @@ void testCancelCommandBeforeItFinishes() {\n                         .hasParent(trace.getSpan(0))));\n   }\n \n+  // Lettuce auto-flush batching is traced as one aggregate span from flush through completion.\n+  @ParameterizedTest\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(BatchScenario scenario) throws Exception {\n+    connection.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> connection.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = new ArrayList<>();\n+    for (BatchCommand command : scenario.commands) {\n+      futures.add(command.run(asyncCommands));\n+    }\n+    connection.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      Throwable thrown = catchThrowable(() -> future.get(10, SECONDS));\n+      if (scenario.errorType == null) {\n+        assertThat(thrown).isNull();\n+      }",
+      "id": "PRRT_kwDODJKVX86LrrsL",
+      "opened": "2026-06-23T18:30:10Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:09:00Z",
+          "body": "Done — now asserts the thrown cause class name matches `scenario.errorType` (applied here and in the lettuce-4.0 test).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462265453"
+        }
+      ],
+      "reviewed": "f38906a5fee09c80f3ec7f8ba262f420f0c0caeb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462024827"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we use VirtualField instead? (and in 4.0)",
+      "created": "2026-06-23T18:30:05Z",
+      "hunk": "@@ -0,0 +1,155 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.batchInstrumenter;\n+\n+import io.lettuce.core.protocol.AsyncCommand;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.WeakHashMap;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.concurrent.atomic.AtomicReference;\n+import javax.annotation.Nullable;\n+\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final Map<Object, BatchState> states =\n+      Collections.synchronizedMap(new WeakHashMap<>());",
+      "id": "PRRT_kwDODJKVX86LrtTP",
+      "opened": "2026-06-23T18:30:10Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:09:01Z",
+          "body": "Done — switched both modules to a `VirtualField` (`BATCH_STATE`) keyed on the instrumented type instead of the `WeakHashMap`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462265616"
+        }
+      ],
+      "reviewed": "f38906a5fee09c80f3ec7f8ba262f420f0c0caeb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462033916"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        commands.size() != 1 ? (long) commands.size() : null);\n```",
+      "created": "2026-06-23T19:19:34Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import io.opentelemetry.instrumentation.lettuce.common.LettuceArgSplitter;\n+import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+\n+final class LettuceBatchRequest {\n+  private static final RedisCommandSanitizer sanitizer =\n+      RedisCommandSanitizer.create(\n+          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"lettuce\"));\n+\n+  private final String operationName;\n+  @Nullable private final String queryText;\n+  @Nullable private final Long batchSize;\n+\n+  private LettuceBatchRequest(\n+      String operationName, @Nullable String queryText, @Nullable Long batchSize) {\n+    this.operationName = operationName;\n+    this.queryText = queryText;\n+    this.batchSize = batchSize;\n+  }\n+\n+  static LettuceBatchRequest create(List<RedisCommand<?, ?, ?>> commands) {\n+    return new LettuceBatchRequest(\n+        operationName(commands),\n+        queryText(commands),\n+        commands.size() > 1 ? (long) commands.size() : null);",
+      "id": "PRRT_kwDODJKVX86Lshj3",
+      "opened": "2026-06-23T19:24:07Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:50:26Z",
+          "body": "Done — changed to `commands.size() != 1`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462522735"
+        }
+      ],
+      "reviewed": "e13635ef3df277e5ae2b37f88c859cc55b603558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462330108"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        operationName(commands), commands.size() != 1 ? (long) commands.size() : null);\n```",
+      "created": "2026-06-23T19:19:45Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import com.lambdaworks.redis.protocol.RedisCommand;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+final class LettuceBatchRequest {\n+  private final String operationName;\n+  @Nullable private final Long batchSize;\n+\n+  private LettuceBatchRequest(String operationName, @Nullable Long batchSize) {\n+    this.operationName = operationName;\n+    this.batchSize = batchSize;\n+  }\n+\n+  static LettuceBatchRequest create(List<RedisCommand<?, ?, ?>> commands) {\n+    return new LettuceBatchRequest(\n+        operationName(commands), commands.size() > 1 ? (long) commands.size() : null);",
+      "id": "PRRT_kwDODJKVX86Lsh0A",
+      "opened": "2026-06-23T19:24:07Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:50:28Z",
+          "body": "Done — changed to `commands.size() != 1` (matching 5.0).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462522874"
+        }
+      ],
+      "reviewed": "e13635ef3df277e5ae2b37f88c859cc55b603558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462331549"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "what changed, why is this needed now?",
+      "created": "2026-06-23T19:20:07Z",
+      "hunk": "@@ -456,7 +461,7 @@ void testCommandBeforeItFinished() {\n     await().untilAsserted(() -> assertThat(cancelSuccess).isTrue());\n     testing.waitAndAssertTraces(\n         trace ->\n-            trace.hasSpansSatisfyingExactly(\n+            trace.hasSpansSatisfyingExactlyInAnyOrder(",
+      "id": "PRRT_kwDODJKVX86LsiRg",
+      "opened": "2026-06-23T19:24:07Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:50:29Z",
+          "body": "The command span now starts at flush and ends asynchronously on cancellation — the same event that triggers the user callback span — so the two sibling spans can start in either order. Before this PR the command span was started synchronously at dispatch (inside the parent span), so the order was deterministic. Added a comment documenting this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462523013"
+        }
+      ],
+      "reviewed": "e13635ef3df277e5ae2b37f88c859cc55b603558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462334382"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(and here)",
+      "created": "2026-06-23T19:20:18Z",
+      "hunk": "@@ -458,12 +464,12 @@ void testCancelCommandBeforeItFinishes() {\n                 }));\n \n     boolean cancelSuccess = redisFuture.cancel(true);\n-    asyncCommands.flushCommands();\n+    connection.flushCommands();\n \n     await().untilAsserted(() -> assertThat(cancelSuccess).isTrue());\n     testing.waitAndAssertTraces(\n         trace ->\n-            trace.hasSpansSatisfyingExactly(\n+            trace.hasSpansSatisfyingExactlyInAnyOrder(",
+      "id": "PRRT_kwDODJKVX86Lsihk",
+      "opened": "2026-06-23T19:24:07Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:50:31Z",
+          "body": "Same as the 4.0 case — added the matching comment here too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462523176"
+        }
+      ],
+      "reviewed": "e13635ef3df277e5ae2b37f88c859cc55b603558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462335824"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add similar comment here as elsewhere about using toString instead of name (if true)",
+      "created": "2026-06-23T19:22:00Z",
+      "hunk": "@@ -47,6 +47,6 @@ public String getDbQueryText(RedisCommand<?, ?, ?> request) {\n \n   @Override\n   public String getDbOperationName(RedisCommand<?, ?, ?> request) {\n-    return request.getType().name();\n+    return request.getType().toString();",
+      "id": "PRRT_kwDODJKVX86Lskjz",
+      "opened": "2026-06-23T19:24:07Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:50:33Z",
+          "body": "Done — added the same comment used in LettuceInstrumentationUtil (toString() not name(), for lettuce 6.5+ where ProtocolKeyword dropped name()).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462523311"
+        }
+      ],
+      "reviewed": "e13635ef3df277e5ae2b37f88c859cc55b603558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462347959"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "comment better at class level?",
+      "created": "2026-06-23T19:22:29Z",
+      "hunk": "@@ -0,0 +1,150 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.batchInstrumenter;\n+\n+import io.lettuce.core.protocol.AsyncCommand;\n+import io.lettuce.core.protocol.DefaultEndpoint;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.concurrent.atomic.AtomicReference;\n+import javax.annotation.Nullable;\n+\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final VirtualField<DefaultEndpoint, BatchState> BATCH_STATE =\n+      VirtualField.find(DefaultEndpoint.class, BatchState.class);\n+\n+  public static void setCollecting(DefaultEndpoint endpoint, boolean collecting) {\n+    BATCH_STATE.set(endpoint, collecting ? new BatchState() : null);\n+  }\n+\n+  public static boolean isCollecting(DefaultEndpoint endpoint) {\n+    return BATCH_STATE.get(endpoint) != null;\n+  }\n+\n+  public static boolean capture(\n+      DefaultEndpoint endpoint,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = BATCH_STATE.get(endpoint);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope start(DefaultEndpoint endpoint) {\n+    BatchState state = BATCH_STATE.get(endpoint);\n+    return state == null ? null : state.start();\n+  }\n+\n+  private LettuceBatchContext() {}\n+\n+  public static final class BatchScope {\n+    private final Context context;\n+    private final LettuceBatchRequest request;\n+    private final AtomicInteger remaining;\n+    private final AtomicReference<Throwable> error = new AtomicReference<>();\n+\n+    private BatchScope(Context context, LettuceBatchRequest request, int remaining) {\n+      this.context = context;\n+      this.request = request;\n+      this.remaining = new AtomicInteger(remaining);\n+    }\n+\n+    @Nullable\n+    private static BatchScope start(\n+        List<RedisCommand<?, ?, ?>> commands,\n+        List<AsyncCommand<?, ?, ?>> asyncCommands,\n+        @Nullable Context capturedParentContext) {\n+      LettuceBatchRequest request = LettuceBatchRequest.create(commands);\n+      Context parentContext =\n+          capturedParentContext == null ? currentContext() : capturedParentContext;\n+      if (!batchInstrumenter().shouldStart(parentContext, request)) {\n+        return null;\n+      }\n+      Context context = batchInstrumenter().start(parentContext, request);\n+      if (asyncCommands.isEmpty()) {\n+        batchInstrumenter().end(context, request, null, null);\n+        return null;\n+      }\n+      BatchScope scope = new BatchScope(context, request, asyncCommands.size());\n+      for (AsyncCommand<?, ?, ?> asyncCommand : asyncCommands) {\n+        asyncCommand.handleAsync(\n+            (value, throwable) -> {\n+              scope.endOne(throwable);\n+              return null;\n+            });\n+      }\n+      return scope;\n+    }\n+\n+    public void endOne(@Nullable Throwable throwable) {\n+      if (throwable instanceof CancellationException) {\n+        if (CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n+          Span.fromContext(context).setAttribute(\"lettuce.command.cancelled\", true);\n+        }\n+        throwable = null;\n+      }\n+      if (throwable != null) {\n+        error.compareAndSet(null, throwable);\n+      }\n+      if (remaining.getAndDecrement() == 1) {\n+        batchInstrumenter().end(context, request, null, error.get());\n+      }\n+    }\n+  }\n+\n+  private static final class BatchState {\n+    private final List<RedisCommand<?, ?, ?>> commands = new ArrayList<>();\n+    private final List<AsyncCommand<?, ?, ?>> asyncCommands = new ArrayList<>();\n+    @Nullable private Context parentContext;\n+\n+    // Lettuce documents manual flushing as reliable only for single-threaded use or with external\n+    // synchronization, so this state follows the same assumption.",
+      "id": "PRRT_kwDODJKVX86LslIP",
+      "opened": "2026-06-23T19:24:07Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:50:34Z",
+          "body": "Done — moved it to a class-level comment (and did the same in 4.0).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462523469"
+        }
+      ],
+      "reviewed": "e13635ef3df277e5ae2b37f88c859cc55b603558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462351311"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "what are pros and cons to having 2 getters (one for reg and one for batch)?",
+      "created": "2026-06-23T19:24:05Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;\n+import io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues;\n+import javax.annotation.Nullable;\n+\n+final class LettuceBatchAttributesGetter",
+      "id": "PRRT_kwDODJKVX86Lsm66",
+      "opened": "2026-06-23T19:24:07Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-23T19:50:49Z",
+          "body": "Keeping the two getters. They're parameterized on different request types (`RedisCommand` for per-command spans, the precomputed `LettuceBatchRequest` snapshot for batch spans), and one class can't implement `DbClientAttributesGetter` for both; the batch getter also supplies `getDbOperationBatchSize`. Unifying into one request type is feasible but would force wrapping every single command in a request object (extra allocation + eager operationName/queryText compute) on the hot path, purely to satisfy the batch snapshot — which exists only because the command list is cleared at flush. The only shared code is a couple of trivial constant methods, so the duplication isn't worth that cost.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462524837"
+        }
+      ],
+      "reviewed": "e13635ef3df277e5ae2b37f88c859cc55b603558",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3462361626"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-06-23T21:26:13Z",
+      "hunk": "@@ -476,6 +483,140 @@ void testCommandBeforeItFinished() {\n                         .hasParent(trace.getSpan(0))));\n   }\n \n+  // Lettuce auto-flush batching is traced as one aggregate span from flush through completion.",
+      "id": "PRRT_kwDODJKVX86LudyQ",
+      "opened": "2026-06-23T21:42:25Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "31e21a7cd773ccaae77de3b1549d84880f3f1fde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463035101"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-06-23T21:26:36Z",
+      "hunk": "@@ -484,6 +492,153 @@ void testCancelCommandBeforeItFinishes() {\n                         .hasParent(trace.getSpan(0))));\n   }\n \n+  // Lettuce auto-flush batching is traced as one aggregate span from flush through completion.",
+      "id": "PRRT_kwDODJKVX86LueIJ",
+      "opened": "2026-06-23T21:42:25Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "31e21a7cd773ccaae77de3b1549d84880f3f1fde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463036954"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // digest computes a SHA locally without contacting redis\n```",
+      "created": "2026-06-23T21:26:52Z",
+      "hunk": "@@ -251,7 +251,8 @@ void testCommandCancelAfter2OnFluxPublisher() {\n \n   @Test\n   void testNonReactiveCommandShouldNotProduceSpan() {\n-    String res = reactiveCommands.digest(null);\n+    // digest computes a SHA locally without contacting redis, so it must not produce a span",
+      "id": "PRRT_kwDODJKVX86LueVB",
+      "opened": "2026-06-23T21:42:25Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceReactiveClientTest.java",
+      "replies": [],
+      "reviewed": "31e21a7cd773ccaae77de3b1549d84880f3f1fde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463038123"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        // empty batch doesn't produce any span\n        Arguments.argumentSet(\"empty\", BatchScenario.builder().build()),\n```",
+      "created": "2026-06-23T21:51:57Z",
+      "hunk": "@@ -484,6 +492,152 @@ void testCancelCommandBeforeItFinishes() {\n                         .hasParent(trace.getSpan(0))));\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(BatchScenario scenario) throws Exception {\n+    connection.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> connection.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = new ArrayList<>();\n+    for (BatchCommand command : scenario.commands) {\n+      futures.add(command.run(asyncCommands));\n+    }\n+    connection.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      Throwable thrown = catchThrowable(() -> future.get(10, SECONDS));\n+      if (thrown != null) {\n+        assertThat(thrown.getCause().getClass().getName()).isEqualTo(scenario.errorType);\n+      }\n+    }\n+\n+    if (scenario.isEmpty()) {\n+      assertThat(testing.spans()).isEmpty();\n+      return;\n+    }\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(scenario.operationName)\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), scenario.queryText),\n+                            equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                            equalTo(\n+                                DB_OPERATION_BATCH_SIZE,\n+                                emitStableDatabaseSemconv() ? scenario.batchSize : null),\n+                            equalTo(\n+                                ERROR_TYPE,\n+                                emitStableDatabaseSemconv() ? scenario.errorType : null))));\n+  }\n+\n+  private static Stream<Arguments> deferredFlushScenarios() {\n+    return Stream.of(\n+        Arguments.argumentSet(\"empty\", BatchScenario.builder().build()),",
+      "id": "PRRT_kwDODJKVX86Luz8p",
+      "opened": "2026-06-23T21:56:25Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "6beb3257cd34320014a15bebc9927c218613164b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463163244"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        // empty batch doesn't produce any span\n        Arguments.argumentSet(\"empty\", BatchScenario.builder().build()),\n```",
+      "created": "2026-06-23T21:52:11Z",
+      "hunk": "@@ -476,6 +483,139 @@ void testCommandBeforeItFinished() {\n                         .hasParent(trace.getSpan(0))));\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"deferredFlushScenarios\")\n+  void deferredFlushCommand(BatchScenario scenario) throws Exception {\n+    asyncCommands.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> asyncCommands.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<?>> futures = new ArrayList<>();\n+    for (BatchCommand command : scenario.commands) {\n+      futures.add(command.run(asyncCommands));\n+    }\n+    asyncCommands.flushCommands();\n+    for (RedisFuture<?> future : futures) {\n+      Throwable thrown = catchThrowable(() -> future.get(10, SECONDS));\n+      if (thrown != null) {\n+        assertThat(thrown.getCause().getClass().getName()).isEqualTo(scenario.errorType);\n+      }\n+    }\n+\n+    if (scenario.isEmpty()) {\n+      assertThat(testing.spans()).isEmpty();\n+      return;\n+    }\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(scenario.operationName)\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                            equalTo(\n+                                DB_OPERATION_BATCH_SIZE,\n+                                emitStableDatabaseSemconv() ? scenario.batchSize : null),\n+                            equalTo(\n+                                ERROR_TYPE,\n+                                emitStableDatabaseSemconv() ? scenario.errorType : null))));\n+  }\n+\n+  private static Stream<Arguments> deferredFlushScenarios() {\n+    return Stream.of(\n+        Arguments.argumentSet(\"empty\", BatchScenario.builder().build()),",
+      "id": "PRRT_kwDODJKVX86Lu0Iz",
+      "opened": "2026-06-23T21:56:25Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "6beb3257cd34320014a15bebc9927c218613164b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463164312"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add a comment explaining where batch is (normally) ended",
+      "created": "2026-06-23T22:16:40Z",
+      "hunk": "@@ -84,4 +123,35 @@ public static void onExit(\n       }\n     }\n   }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SetAutoFlushAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This AbstractRedisAsyncCommands<?, ?> commands,\n+        @Advice.Argument(0) boolean autoFlush) {\n+      LettuceBatchContext.setCollecting(commands, !autoFlush);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class FlushAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Nullable\n+    public static LettuceBatchContext.BatchScope onEnter(\n+        @Advice.This AbstractRedisAsyncCommands<?, ?> commands) {\n+      return LettuceBatchContext.flush(commands);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.Thrown @Nullable Throwable throwable,\n+        @Advice.Enter @Nullable LettuceBatchContext.BatchScope batchScope) {\n+      if (throwable != null && batchScope != null) {\n+        batchScope.endOne(throwable);\n+      }",
+      "id": "PRRT_kwDODJKVX86LvHYN",
+      "opened": "2026-06-23T22:20:00Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncCommandsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-23T22:56:21Z",
+          "body": "Added a comment noting the batch span is normally ended once all its commands complete (BatchScope.endOne), and that this onExit only ends it early when flushCommands() itself throws (same in 5.0).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463433420"
+        }
+      ],
+      "reviewed": "c03378652ea2407da58b444ef2255832d9b9c8f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463273379"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\"captured\" terminology is not clear",
+      "created": "2026-06-23T22:18:09Z",
+      "hunk": "@@ -35,32 +37,69 @@ public void transform(TypeTransformer transformer) {\n         named(\"dispatch\")\n             .and(takesArgument(0, named(\"com.lambdaworks.redis.protocol.RedisCommand\"))),\n         getClass().getName() + \"$DispatchAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"setAutoFlushCommands\").and(takesArguments(1)),\n+        getClass().getName() + \"$SetAutoFlushAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"flushCommands\").and(takesArguments(0)), getClass().getName() + \"$FlushAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class DispatchAdvice {\n \n     public static class AdviceScope {\n-      private final Context context;\n-      private final Scope scope;\n+      private final AbstractRedisAsyncCommands<?, ?> commands;\n+      @Nullable private final Context context;\n+      @Nullable private final Scope scope;\n+      private final boolean captured;\n \n-      public AdviceScope(Context context, Scope scope) {\n+      public AdviceScope(\n+          AbstractRedisAsyncCommands<?, ?> commands,\n+          @Nullable Context context,\n+          @Nullable Scope scope,\n+          boolean captured) {",
+      "id": "PRRT_kwDODJKVX86LvIb4",
+      "opened": "2026-06-23T22:20:00Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncCommandsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-23T22:56:23Z",
+          "body": "Renamed to `batching` and extended the vocabulary through the API: `setBatching`/`isBatching` (the connection is collecting, this dispatch is batching).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463433509"
+        }
+      ],
+      "reviewed": "c03378652ea2407da58b444ef2255832d9b9c8f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463279445"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we simplify this method wrt scope.close()?",
+      "created": "2026-06-23T22:19:14Z",
+      "hunk": "@@ -35,32 +37,69 @@ public void transform(TypeTransformer transformer) {\n         named(\"dispatch\")\n             .and(takesArgument(0, named(\"com.lambdaworks.redis.protocol.RedisCommand\"))),\n         getClass().getName() + \"$DispatchAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"setAutoFlushCommands\").and(takesArguments(1)),\n+        getClass().getName() + \"$SetAutoFlushAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"flushCommands\").and(takesArguments(0)), getClass().getName() + \"$FlushAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class DispatchAdvice {\n \n     public static class AdviceScope {\n-      private final Context context;\n-      private final Scope scope;\n+      private final AbstractRedisAsyncCommands<?, ?> commands;\n+      @Nullable private final Context context;\n+      @Nullable private final Scope scope;\n+      private final boolean captured;\n \n-      public AdviceScope(Context context, Scope scope) {\n+      public AdviceScope(\n+          AbstractRedisAsyncCommands<?, ?> commands,\n+          @Nullable Context context,\n+          @Nullable Scope scope,\n+          boolean captured) {\n+        this.commands = commands;\n         this.context = context;\n         this.scope = scope;\n+        this.captured = captured;\n+      }\n+\n+      public static AdviceScope captured(AbstractRedisAsyncCommands<?, ?> commands) {\n+        Context parentContext = currentContext();\n+        Context context = parentContext.with(COMMAND_CONTEXT_KEY, parentContext);\n+        return new AdviceScope(commands, null, context.makeCurrent(), true);\n       }\n \n       public void end(\n           @Nullable Throwable throwable,\n           RedisCommand<?, ?, ?> command,\n           @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+        if (captured) {\n+          try {\n+            LettuceBatchContext.capture(commands, command, asyncCommand);\n+          } finally {\n+            if (scope != null) {\n+              scope.close();\n+            }\n+          }",
+      "id": "PRRT_kwDODJKVX86LvJbz",
+      "opened": "2026-06-23T22:20:00Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncCommandsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-23T22:56:24Z",
+          "body": "Simplified — close the scope once up front, then branch. The scope only needs to be open during dispatch() (so the constructed AsyncCommand captures the context), which has already returned by the time end() runs, so closing first drops the try/finally and stays leak-safe.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463433587"
+        }
+      ],
+      "reviewed": "c03378652ea2407da58b444ef2255832d9b9c8f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3463285607"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add a brief comment here\n\n```suggestion\n        // \n        return AdviceScope.batching(commands);\n```",
+      "created": "2026-06-25T01:29:07Z",
+      "hunk": "@@ -35,32 +37,62 @@ public void transform(TypeTransformer transformer) {\n         named(\"dispatch\")\n             .and(takesArgument(0, named(\"com.lambdaworks.redis.protocol.RedisCommand\"))),\n         getClass().getName() + \"$DispatchAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"setAutoFlushCommands\").and(takesArguments(1)),\n+        getClass().getName() + \"$SetAutoFlushAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"flushCommands\").and(takesArguments(0)), getClass().getName() + \"$FlushAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class DispatchAdvice {\n \n     public static class AdviceScope {\n-      private final Context context;\n-      private final Scope scope;\n+      private final AbstractRedisAsyncCommands<?, ?> commands;\n+      @Nullable private final Context context;\n+      @Nullable private final Scope scope;\n+      private final boolean batching;\n \n-      public AdviceScope(Context context, Scope scope) {\n+      public AdviceScope(\n+          AbstractRedisAsyncCommands<?, ?> commands,\n+          @Nullable Context context,\n+          @Nullable Scope scope,\n+          boolean batching) {\n+        this.commands = commands;\n         this.context = context;\n         this.scope = scope;\n+        this.batching = batching;\n+      }\n+\n+      public static AdviceScope batching(AbstractRedisAsyncCommands<?, ?> commands) {\n+        Context parentContext = currentContext();\n+        Context context = parentContext.with(COMMAND_CONTEXT_KEY, parentContext);\n+        return new AdviceScope(commands, null, context.makeCurrent(), true);\n       }\n \n       public void end(\n           @Nullable Throwable throwable,\n           RedisCommand<?, ?, ?> command,\n           @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n-        scope.close();\n-        InstrumentationPoints.afterCommand(command, context, throwable, asyncCommand);\n+        if (scope != null) {\n+          scope.close();\n+        }\n+        if (batching) {\n+          LettuceBatchContext.capture(commands, command, asyncCommand);\n+        } else if (context != null) {\n+          InstrumentationPoints.afterCommand(command, context, throwable, asyncCommand);\n+        }\n       }\n     }\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n     @Nullable\n-    public static AdviceScope onEnter(@Advice.Argument(0) RedisCommand<?, ?, ?> command) {\n+    public static AdviceScope onEnter(\n+        @Advice.This AbstractRedisAsyncCommands<?, ?> commands,\n+        @Advice.Argument(0) RedisCommand<?, ?, ?> command) {\n+      if (LettuceBatchContext.isBatching(commands)) {\n+        return AdviceScope.batching(commands);",
+      "id": "PRRT_kwDODJKVX86MFTyU",
+      "opened": "2026-06-25T01:39:15Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncCommandsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:23:44Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de1197502648ae7c35c9525d7fdbccf60480e6cb.\n\nAdded a comment explaining that batch spans start on flush while AsyncCommand construction still needs the dispatch caller context for callbacks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471480894"
+        }
+      ],
+      "reviewed": "afde6a2233ad1b2f86a64dd523ff9e7f383698f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471304136"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can the dual path nature of AdviceScope (batchnig / non-batching) be made clearer\n\nwithout splitting into 2 classes, because that could be bad for JIT compiler",
+      "created": "2026-06-25T01:31:33Z",
+      "hunk": "@@ -35,32 +37,62 @@ public void transform(TypeTransformer transformer) {\n         named(\"dispatch\")\n             .and(takesArgument(0, named(\"com.lambdaworks.redis.protocol.RedisCommand\"))),\n         getClass().getName() + \"$DispatchAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"setAutoFlushCommands\").and(takesArguments(1)),\n+        getClass().getName() + \"$SetAutoFlushAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"flushCommands\").and(takesArguments(0)), getClass().getName() + \"$FlushAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class DispatchAdvice {\n \n     public static class AdviceScope {",
+      "id": "PRRT_kwDODJKVX86MFU6M",
+      "opened": "2026-06-25T01:39:15Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncCommandsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:23:45Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de1197502648ae7c35c9525d7fdbccf60480e6cb.\n\nMade AdviceScope modes explicit with captureForBatching(...) and startCommandSpan(...), while keeping a single helper class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471480940"
+        }
+      ],
+      "reviewed": "afde6a2233ad1b2f86a64dd523ff9e7f383698f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471310575"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why not set it to null?",
+      "created": "2026-06-25T01:33:33Z",
+      "hunk": "@@ -0,0 +1,145 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.batchInstrumenter;\n+\n+import com.lambdaworks.redis.AbstractRedisAsyncCommands;\n+import com.lambdaworks.redis.protocol.AsyncCommand;\n+import com.lambdaworks.redis.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.concurrent.atomic.AtomicReference;\n+import javax.annotation.Nullable;\n+\n+// Lettuce documents manual flushing as reliable only for single-threaded use or with external\n+// synchronization, so the batch state tracked here follows the same assumption and is not\n+// synchronized.\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final VirtualField<AbstractRedisAsyncCommands<?, ?>, BatchState> BATCH_STATE =\n+      VirtualField.find(AbstractRedisAsyncCommands.class, BatchState.class);\n+\n+  public static void setBatching(AbstractRedisAsyncCommands<?, ?> commands, boolean batching) {\n+    BATCH_STATE.set(commands, batching ? new BatchState() : null);\n+  }\n+\n+  public static boolean isBatching(AbstractRedisAsyncCommands<?, ?> commands) {\n+    return BATCH_STATE.get(commands) != null;\n+  }\n+\n+  public static boolean capture(\n+      AbstractRedisAsyncCommands<?, ?> commands,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = BATCH_STATE.get(commands);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope flush(AbstractRedisAsyncCommands<?, ?> commands) {\n+    BatchState state = BATCH_STATE.get(commands);\n+    if (state == null || state.isEmpty()) {\n+      return null;\n+    }\n+    // hand off the collected commands and install a fresh buffer for the next flush\n+    BATCH_STATE.set(commands, new BatchState());",
+      "id": "PRRT_kwDODJKVX86MFV21",
+      "opened": "2026-06-25T01:39:15Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:23:46Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de1197502648ae7c35c9525d7fdbccf60480e6cb.\n\nClarified that flushCommands() keeps auto-flush disabled, so the batch state is replaced with a fresh buffer instead of null.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471480981"
+        }
+      ],
+      "reviewed": "afde6a2233ad1b2f86a64dd523ff9e7f383698f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471315795"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this correct for batch? or partially cancelled?",
+      "created": "2026-06-25T01:35:25Z",
+      "hunk": "@@ -0,0 +1,145 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.batchInstrumenter;\n+\n+import com.lambdaworks.redis.AbstractRedisAsyncCommands;\n+import com.lambdaworks.redis.protocol.AsyncCommand;\n+import com.lambdaworks.redis.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.concurrent.atomic.AtomicReference;\n+import javax.annotation.Nullable;\n+\n+// Lettuce documents manual flushing as reliable only for single-threaded use or with external\n+// synchronization, so the batch state tracked here follows the same assumption and is not\n+// synchronized.\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final VirtualField<AbstractRedisAsyncCommands<?, ?>, BatchState> BATCH_STATE =\n+      VirtualField.find(AbstractRedisAsyncCommands.class, BatchState.class);\n+\n+  public static void setBatching(AbstractRedisAsyncCommands<?, ?> commands, boolean batching) {\n+    BATCH_STATE.set(commands, batching ? new BatchState() : null);\n+  }\n+\n+  public static boolean isBatching(AbstractRedisAsyncCommands<?, ?> commands) {\n+    return BATCH_STATE.get(commands) != null;\n+  }\n+\n+  public static boolean capture(\n+      AbstractRedisAsyncCommands<?, ?> commands,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = BATCH_STATE.get(commands);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope flush(AbstractRedisAsyncCommands<?, ?> commands) {\n+    BatchState state = BATCH_STATE.get(commands);\n+    if (state == null || state.isEmpty()) {\n+      return null;\n+    }\n+    // hand off the collected commands and install a fresh buffer for the next flush\n+    BATCH_STATE.set(commands, new BatchState());\n+    return BatchScope.start(state.commands, state.asyncCommands, state.parentContext);\n+  }\n+\n+  private LettuceBatchContext() {}\n+\n+  public static final class BatchScope {\n+    private final Context context;\n+    private final LettuceBatchRequest request;\n+    private final AtomicInteger remaining;\n+    private final AtomicReference<Throwable> error = new AtomicReference<>();\n+\n+    private BatchScope(Context context, LettuceBatchRequest request, int remaining) {\n+      this.context = context;\n+      this.request = request;\n+      this.remaining = new AtomicInteger(remaining);\n+    }\n+\n+    @Nullable\n+    private static BatchScope start(\n+        List<RedisCommand<?, ?, ?>> commands,\n+        List<AsyncCommand<?, ?, ?>> asyncCommands,\n+        @Nullable Context capturedParentContext) {\n+      LettuceBatchRequest request = LettuceBatchRequest.create(commands);\n+      Context parentContext =\n+          capturedParentContext == null ? currentContext() : capturedParentContext;\n+      if (!batchInstrumenter().shouldStart(parentContext, request)) {\n+        return null;\n+      }\n+      Context context = batchInstrumenter().start(parentContext, request);\n+      if (asyncCommands.isEmpty()) {\n+        batchInstrumenter().end(context, request, null, null);\n+        return null;\n+      }\n+      BatchScope scope = new BatchScope(context, request, asyncCommands.size());\n+      for (AsyncCommand<?, ?, ?> asyncCommand : asyncCommands) {\n+        asyncCommand.handleAsync(\n+            (value, throwable) -> {\n+              scope.endOne(throwable);\n+              return null;\n+            });\n+      }\n+      return scope;\n+    }\n+\n+    public void endOne(@Nullable Throwable throwable) {\n+      if (throwable instanceof CancellationException) {\n+        if (CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES) {\n+          Span.fromContext(context).setAttribute(\"lettuce.command.cancelled\", true);\n+        }",
+      "id": "PRRT_kwDODJKVX86MFW3d",
+      "opened": "2026-06-25T01:39:15Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:23:48Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de1197502648ae7c35c9525d7fdbccf60480e6cb.\n\nClarified that on a batch span, lettuce.command.cancelled means at least one command in the batch was cancelled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471481030"
+        }
+      ],
+      "reviewed": "afde6a2233ad1b2f86a64dd523ff9e7f383698f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471321329"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we do better than calling endOne on every? is it b/c order non-deterministic? may need comment here",
+      "created": "2026-06-25T01:36:24Z",
+      "hunk": "@@ -0,0 +1,145 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v4_0.LettuceSingletons.batchInstrumenter;\n+\n+import com.lambdaworks.redis.AbstractRedisAsyncCommands;\n+import com.lambdaworks.redis.protocol.AsyncCommand;\n+import com.lambdaworks.redis.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.CancellationException;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.concurrent.atomic.AtomicReference;\n+import javax.annotation.Nullable;\n+\n+// Lettuce documents manual flushing as reliable only for single-threaded use or with external\n+// synchronization, so the batch state tracked here follows the same assumption and is not\n+// synchronized.\n+public final class LettuceBatchContext {\n+  private static final boolean CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"lettuce\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private static final VirtualField<AbstractRedisAsyncCommands<?, ?>, BatchState> BATCH_STATE =\n+      VirtualField.find(AbstractRedisAsyncCommands.class, BatchState.class);\n+\n+  public static void setBatching(AbstractRedisAsyncCommands<?, ?> commands, boolean batching) {\n+    BATCH_STATE.set(commands, batching ? new BatchState() : null);\n+  }\n+\n+  public static boolean isBatching(AbstractRedisAsyncCommands<?, ?> commands) {\n+    return BATCH_STATE.get(commands) != null;\n+  }\n+\n+  public static boolean capture(\n+      AbstractRedisAsyncCommands<?, ?> commands,\n+      RedisCommand<?, ?, ?> command,\n+      @Nullable AsyncCommand<?, ?, ?> asyncCommand) {\n+    BatchState state = BATCH_STATE.get(commands);\n+    if (state == null) {\n+      return false;\n+    }\n+    state.add(command, asyncCommand);\n+    return true;\n+  }\n+\n+  @Nullable\n+  public static BatchScope flush(AbstractRedisAsyncCommands<?, ?> commands) {\n+    BatchState state = BATCH_STATE.get(commands);\n+    if (state == null || state.isEmpty()) {\n+      return null;\n+    }\n+    // hand off the collected commands and install a fresh buffer for the next flush\n+    BATCH_STATE.set(commands, new BatchState());\n+    return BatchScope.start(state.commands, state.asyncCommands, state.parentContext);\n+  }\n+\n+  private LettuceBatchContext() {}\n+\n+  public static final class BatchScope {\n+    private final Context context;\n+    private final LettuceBatchRequest request;\n+    private final AtomicInteger remaining;\n+    private final AtomicReference<Throwable> error = new AtomicReference<>();\n+\n+    private BatchScope(Context context, LettuceBatchRequest request, int remaining) {\n+      this.context = context;\n+      this.request = request;\n+      this.remaining = new AtomicInteger(remaining);\n+    }\n+\n+    @Nullable\n+    private static BatchScope start(\n+        List<RedisCommand<?, ?, ?>> commands,\n+        List<AsyncCommand<?, ?, ?>> asyncCommands,\n+        @Nullable Context capturedParentContext) {\n+      LettuceBatchRequest request = LettuceBatchRequest.create(commands);\n+      Context parentContext =\n+          capturedParentContext == null ? currentContext() : capturedParentContext;\n+      if (!batchInstrumenter().shouldStart(parentContext, request)) {\n+        return null;\n+      }\n+      Context context = batchInstrumenter().start(parentContext, request);\n+      if (asyncCommands.isEmpty()) {\n+        batchInstrumenter().end(context, request, null, null);\n+        return null;\n+      }\n+      BatchScope scope = new BatchScope(context, request, asyncCommands.size());\n+      for (AsyncCommand<?, ?, ?> asyncCommand : asyncCommands) {\n+        asyncCommand.handleAsync(\n+            (value, throwable) -> {\n+              scope.endOne(throwable);\n+              return null;\n+            });",
+      "id": "PRRT_kwDODJKVX86MFXWV",
+      "opened": "2026-06-25T01:39:15Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceBatchContext.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:23:49Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de1197502648ae7c35c9525d7fdbccf60480e6cb.\n\nAdded a comment explaining why every async command future is observed: futures can complete in a different order, and any one can carry failure or cancellation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471481091"
+        }
+      ],
+      "reviewed": "afde6a2233ad1b2f86a64dd523ff9e7f383698f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471324005"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "fix wrapping",
+      "created": "2026-06-25T02:34:58Z",
+      "hunk": "@@ -0,0 +1,139 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceInstrumentationUtil.expectsResponse;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.lettuce.core.protocol.AsyncCommand;\n+import io.lettuce.core.protocol.CommandWrapper;\n+import io.lettuce.core.protocol.DefaultEndpoint;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments {@code DefaultEndpoint} (the {@code RedisChannelWriter}), the single point where\n+ * every command is written regardless of whether the application drives auto-flush through the\n+ * commands object (older lettuce) or the connection (newer lettuce). Per-command spans and\n+ * auto-flush batch aggregation are both decided here so they work across the whole supported\n+ * version range.\n+ */\n+class LettuceEndpointInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.lettuce.core.protocol.DefaultEndpoint\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"write\").and(takesArgument(0, named(\"io.lettuce.core.protocol.RedisCommand\"))),\n+        getClass().getName() + \"$WriteAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"setAutoFlushCommands\").and(takesArguments(1)),\n+        getClass().getName() + \"$SetAutoFlushAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"flushCommands\").and(takesArguments(0)), getClass().getName() + \"$FlushAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class WriteAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This DefaultEndpoint endpoint, @Advice.Argument(0) RedisCommand<?, ?, ?> command) {\n+      AsyncCommand<?, ?, ?> asyncCommand = asAsyncCommand(command);\n+\n+      if (LettuceBatchContext.isBatching(endpoint)) {\n+        LettuceBatchContext.capture(endpoint, command, asyncCommand);\n+        return;\n+      }\n+\n+      // Reactive commands are not backed by an AsyncCommand future and are traced by\n+      // LettuceReactiveCommandsInstrumentation; only async/sync commands (backed by an\n+      // AsyncCommand)\n+      // get their span created here, to avoid a duplicate span for reactive commands.",
+      "id": "PRRT_kwDODJKVX86MF4sc",
+      "opened": "2026-06-25T02:37:12Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceEndpointInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:45:50Z",
+          "body": "Fixed in 4e58de9d90.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471550570"
+        }
+      ],
+      "reviewed": "de1197502648ae7c35c9525d7fdbccf60480e6cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471513995"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this comment is confusing\n\n(BatchScope.endOne)\n\nbecause that's also what's called below",
+      "created": "2026-06-25T02:35:58Z",
+      "hunk": "@@ -0,0 +1,139 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge.currentContext;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceInstrumentationUtil.expectsResponse;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.instrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.lettuce.core.protocol.AsyncCommand;\n+import io.lettuce.core.protocol.CommandWrapper;\n+import io.lettuce.core.protocol.DefaultEndpoint;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments {@code DefaultEndpoint} (the {@code RedisChannelWriter}), the single point where\n+ * every command is written regardless of whether the application drives auto-flush through the\n+ * commands object (older lettuce) or the connection (newer lettuce). Per-command spans and\n+ * auto-flush batch aggregation are both decided here so they work across the whole supported\n+ * version range.\n+ */\n+class LettuceEndpointInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.lettuce.core.protocol.DefaultEndpoint\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"write\").and(takesArgument(0, named(\"io.lettuce.core.protocol.RedisCommand\"))),\n+        getClass().getName() + \"$WriteAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"setAutoFlushCommands\").and(takesArguments(1)),\n+        getClass().getName() + \"$SetAutoFlushAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"flushCommands\").and(takesArguments(0)), getClass().getName() + \"$FlushAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class WriteAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This DefaultEndpoint endpoint, @Advice.Argument(0) RedisCommand<?, ?, ?> command) {\n+      AsyncCommand<?, ?, ?> asyncCommand = asAsyncCommand(command);\n+\n+      if (LettuceBatchContext.isBatching(endpoint)) {\n+        LettuceBatchContext.capture(endpoint, command, asyncCommand);\n+        return;\n+      }\n+\n+      // Reactive commands are not backed by an AsyncCommand future and are traced by\n+      // LettuceReactiveCommandsInstrumentation; only async/sync commands (backed by an\n+      // AsyncCommand)\n+      // get their span created here, to avoid a duplicate span for reactive commands.\n+      if (asyncCommand == null) {\n+        return;\n+      }\n+\n+      // parent context captured when the AsyncCommand was constructed during dispatch\n+      Context parentContext = CONTEXT.get(asyncCommand);\n+      if (parentContext == null) {\n+        parentContext = currentContext();\n+      }\n+      if (!instrumenter().shouldStart(parentContext, command)) {\n+        return;\n+      }\n+      Context context = instrumenter().start(parentContext, command);\n+      if (expectsResponse(command)) {\n+        asyncCommand.handleAsync(new EndCommandAsyncBiFunction<>(context, command));\n+      } else {\n+        instrumenter().end(context, command, null, null);\n+      }\n+    }\n+\n+    @Nullable\n+    public static AsyncCommand<?, ?, ?> asAsyncCommand(RedisCommand<?, ?, ?> command) {\n+      // AsyncCommand itself is a CommandWrapper, so CommandWrapper.unwrap would strip past it to\n+      // the inner command. Walk the wrapper chain instead and stop at the AsyncCommand layer.\n+      RedisCommand<?, ?, ?> current = command;\n+      while (current != null) {\n+        if (current instanceof AsyncCommand) {\n+          return (AsyncCommand<?, ?, ?>) current;\n+        }\n+        if (current instanceof CommandWrapper) {\n+          current = ((CommandWrapper<?, ?, ?>) current).getDelegate();\n+        } else {\n+          break;\n+        }\n+      }\n+      return null;\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SetAutoFlushAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This DefaultEndpoint endpoint, @Advice.Argument(0) boolean autoFlush) {\n+      LettuceBatchContext.setBatching(endpoint, !autoFlush);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class FlushAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Nullable\n+    public static LettuceBatchContext.BatchScope onEnter(@Advice.This DefaultEndpoint endpoint) {\n+      return LettuceBatchContext.flush(endpoint);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.Thrown @Nullable Throwable throwable,\n+        @Advice.Enter @Nullable LettuceBatchContext.BatchScope batchScope) {\n+      // the batch span is normally ended once all of its commands complete (BatchScope.endOne)",
+      "id": "PRRT_kwDODJKVX86MF5Qi",
+      "opened": "2026-06-25T02:37:12Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceEndpointInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:45:52Z",
+          "body": "Clarified the comment to point at the normal callback path: BatchScope.start attaches callbacks to the command futures, which report completion to the batch scope.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471550639"
+        }
+      ],
+      "reviewed": "de1197502648ae7c35c9525d7fdbccf60480e6cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471517072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "same here",
+      "created": "2026-06-25T02:36:45Z",
+      "hunk": "@@ -84,4 +119,37 @@ public static void onExit(\n       }\n     }\n   }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SetAutoFlushAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This AbstractRedisAsyncCommands<?, ?> commands,\n+        @Advice.Argument(0) boolean autoFlush) {\n+      LettuceBatchContext.setBatching(commands, !autoFlush);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class FlushAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Nullable\n+    public static LettuceBatchContext.BatchScope onEnter(\n+        @Advice.This AbstractRedisAsyncCommands<?, ?> commands) {\n+      return LettuceBatchContext.flush(commands);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.Thrown @Nullable Throwable throwable,\n+        @Advice.Enter @Nullable LettuceBatchContext.BatchScope batchScope) {\n+      // the batch span is normally ended once all of its commands complete (BatchScope.endOne);\n+      // end the batch early here if flushCommands() itself throws",
+      "id": "PRRT_kwDODJKVX86MF5xz",
+      "opened": "2026-06-25T02:37:12Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncCommandsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-25T02:45:53Z",
+          "body": "Applied the same clarification in the lettuce 4 instrumentation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471550702"
+        }
+      ],
+      "reviewed": "de1197502648ae7c35c9525d7fdbccf60480e6cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3471520291"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "for redisson we limit the length of the batch query text https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18744",
+      "created": "2026-06-25T08:30:19Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.RedisCommandSanitizer;\n+import io.opentelemetry.instrumentation.lettuce.common.LettuceArgSplitter;\n+import java.util.List;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+\n+final class LettuceBatchRequest {\n+  private static final RedisCommandSanitizer sanitizer =\n+      RedisCommandSanitizer.create(\n+          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"lettuce\"));\n+\n+  private final String operationName;\n+  @Nullable private final String queryText;\n+  @Nullable private final Long batchSize;\n+\n+  private LettuceBatchRequest(\n+      String operationName, @Nullable String queryText, @Nullable Long batchSize) {\n+    this.operationName = operationName;\n+    this.queryText = queryText;\n+    this.batchSize = batchSize;\n+  }\n+\n+  static LettuceBatchRequest create(List<RedisCommand<?, ?, ?>> commands) {\n+    return new LettuceBatchRequest(\n+        operationName(commands),\n+        queryText(commands),\n+        commands.size() != 1 ? (long) commands.size() : null);\n+  }\n+\n+  String getOperationName() {\n+    return operationName;\n+  }\n+\n+  @Nullable\n+  String getQueryText() {\n+    return queryText;\n+  }\n+\n+  @Nullable\n+  Long getBatchSize() {\n+    return batchSize;\n+  }\n+\n+  private static String operationName(List<RedisCommand<?, ?, ?>> commands) {\n+    if (commands.size() == 1) {\n+      return LettuceInstrumentationUtil.getCommandName(commands.get(0));\n+    }\n+    String operationName = LettuceInstrumentationUtil.getCommandName(commands.get(0));\n+    for (int i = 1; i < commands.size(); i++) {\n+      if (!operationName.equals(LettuceInstrumentationUtil.getCommandName(commands.get(i)))) {\n+        return \"PIPELINE\";\n+      }\n+    }\n+    return \"PIPELINE \" + operationName;\n+  }\n+\n+  @Nullable\n+  private static String queryText(List<RedisCommand<?, ?, ?>> commands) {\n+    if (commands.isEmpty()) {\n+      return null;\n+    }\n+\n+    StringJoiner joiner = new StringJoiner(\";\");",
+      "id": "PRRT_kwDODJKVX86MJ3Su",
+      "opened": "2026-06-25T08:30:19Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-25T19:37:53Z",
+          "body": "**Review Comment Result**\n\nAdded a Lettuce batch query text limit matching the Redisson behavior. The implementation now builds the joined query text with `StringBuilder` and stops before appending a command that would exceed the limit, including semicolon separators in the length check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3477161433"
+        }
+      ],
+      "reviewed": "4e58de9d903ffc253213b6c535d8f5de68acd823",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055#discussion_r3472952541"
+    }
+  ]
+}

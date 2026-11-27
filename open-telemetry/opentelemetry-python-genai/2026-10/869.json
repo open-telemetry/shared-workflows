@@ -1,0 +1,25 @@
+{
+  "head": "143e42e8c2c37bedef4f652bff1eca75f2a884b1",
+  "merge": "dab38021234273ed5302f4ff97d95f08fcdd495a",
+  "merged": "2026-10-11T17:27:04Z",
+  "missing_roots": 0,
+  "number": 869,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The regression test never exercises `_previous_processors`. Parameterize replacement mode and assert that the original processors are restored after re-instantiation.\n\n```suggestion\n@pytest.mark.parametrize(\"disable_openai_trace_export\", [False, True])\ndef test_uninstrument_after_reinstantiation(\n    disable_openai_trace_export: bool,\n) -> None:\n    baseline = _registered_processors()\n    instrumentor = OpenAIAgentsInstrumentor()\n    instrumentor.instrument(\n        disable_openai_trace_export=disable_openai_trace_export,\n    )\n    try:\n        assert len(_our_processors()) == 1\n    finally:\n        OpenAIAgentsInstrumentor().uninstrument()\n    assert len(_our_processors()) == 0\n    assert _registered_processors() == baseline\n```",
+      "created": "2026-10-11T04:42:59Z",
+      "hunk": "@@ -59,6 +59,17 @@ def test_instrument_adds_processor_alongside_default() -> None:\n     assert len(_our_processors()) == 0\n \n \n+def test_uninstrument_after_reinstantiation() -> None:\n+    instrumentor = OpenAIAgentsInstrumentor()\n+    instrumentor.instrument()\n+    try:\n+        assert len(_our_processors()) == 1\n+    finally:\n+        # Re-instantiate the singleton: __init__ should not reset _processor\n+        OpenAIAgentsInstrumentor().uninstrument()\n+    assert len(_our_processors()) == 0\n+",
+      "id": "PRRT_kwDOSbspP86rKYpZ",
+      "opened": "2026-10-11T04:42:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "33ed16b80881c20a0a43b6ddb02b49a4ea99d6c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/869#discussion_r4240286737"
+    }
+  ]
+}

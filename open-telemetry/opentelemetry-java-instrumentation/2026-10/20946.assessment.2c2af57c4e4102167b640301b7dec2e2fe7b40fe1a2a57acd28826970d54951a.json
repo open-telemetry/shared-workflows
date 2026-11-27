@@ -1,0 +1,56 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b10cf9ea2cb2a29988c4966d58b023612a864a197875acfe555ec3ff9789c454",
+  "input_digest": "2c2af57c4e4102167b640301b7dec2e2fe7b40fe1a2a57acd28826970d54951a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ed11e934b5e877c11ab257ec7aedaf8477273327/instrumentation/zio/zio-http-3.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/ziohttp/v3_0/ZioHttpTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/zio/zio-http-3.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/ziohttp/v3_0/ZioHttpTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX86v7K5A",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f472e1e92b7bce8ea9c43dfb3f1ee707b61e306/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f472e1e92b7bce8ea9c43dfb3f1ee707b61e306/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactivePropagationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f472e1e92b7bce8ea9c43dfb3f1ee707b61e306/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version41Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f472e1e92b7bce8ea9c43dfb3f1ee707b61e306/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version5Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactivePropagationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version41Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version5Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6d37cfb9b7aa60363c02cfda591baadb1fbac2fc"
+      ],
+      "id": "PRRT_kwDODJKVX86v7n2T",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d37cfb9b7aa60363c02cfda591baadb1fbac2fc/instrumentation/akka/akka-http-10.0/javaagent/src/javaRouteTest/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/akka/akka-http-10.0/javaagent/src/javaRouteTest/java/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AkkaHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d37cfb9b7aa60363c02cfda591baadb1fbac2fc/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerJavaRouteTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d37cfb9b7aa60363c02cfda591baadb1fbac2fc/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactivePropagationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactivePropagationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d37cfb9b7aa60363c02cfda591baadb1fbac2fc/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e0f1459eb018a2c13938c1615c532563cfd479b/instrumentation/vertx/vertx-rx-java-3.5/javaagent/src/version35Test/java/io/opentelemetry/javaagent/instrumentation/vertx/rx/v3_5/server/VertxReactiveWebServer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/dc5f2a12c937e9ba9cb6cb41c87c784f28cf982f"
+      ],
+      "id": "PRRT_kwDODJKVX86v71Dz",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

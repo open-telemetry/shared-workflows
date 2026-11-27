@@ -1,0 +1,118 @@
+{
+  "head": "511e9580481ed0c0bd4e410ecc55b45df4b89316",
+  "merge": "8484f22ff8069267f37cb1be54bcebbf1972b682",
+  "merged": "2026-08-01T19:16:30Z",
+  "missing_roots": 0,
+  "number": 400,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.inference.client` already defines `name.note` (including the additional guidance lines). Adding a `name.note` override in this refinement duplicates (and slightly diverges from) the base span-name guidance, which undermines the goal of removing duplicated text and makes future edits error-prone. Prefer inheriting the base span's `name` unless the provider truly needs a different naming rule.\n\nThis issue also appears on line 709 of the same file.",
+      "created": "2026-07-24T21:10:48Z",
+      "hunk": "@@ -642,13 +615,14 @@ spans:\n span_refinements:\n   - id: openai.inference.client\n     ref: gen_ai.inference.client\n+    name:\n+      note: >\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.request.model}`.",
+      "id": "PRRT_kwDOSUeMrM6TqvEN",
+      "opened": "2026-07-24T21:10:48Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-24T21:21:27Z",
+          "body": "out of scope. and not right.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3648229300"
+        }
+      ],
+      "reviewed": "5e3a6a85d60a08a2c96281c563f80efebf2176a2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3648175541"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Fine by me if this is the accepted cost of dropping the workaround, but flagging the trade explicitly: there's no caching left here at all. Weaver clones a remote vdir into a `TempDir` under `~/.weaver/vdir_cache` and deletes it when the `VirtualDirectory` is dropped (`create_tmp_repo` in `weaver_common/src/vdir.rs`), so nothing is reused between runs, local weaver or Docker -- the container mounts only `$(CURDIR):/workspace`. `make check-policies` now clones the policy pack from GitHub on every invocation and can't run offline, where the stamped `.build/weaver-policies` checkout it replaces was fetched once per `POLICY_REPO_REF`.",
+      "created": "2026-07-31T02:14:45Z",
+      "hunk": "@@ -129,12 +113,12 @@ $(SC_UPSTREAM_STAMP): $(VERSION_PINS_FILE)\n \n filter-upstream: $(SC_UPSTREAM_STAMP)\n \n-# Validate the model and run shared policies\n-check-policies: $(LOCAL_POLICY_STAMP) $(SC_UPSTREAM_STAMP)\n+# Validate the model and run shared policies from otel-weaver-packages.\n+check-policies: $(SC_UPSTREAM_STAMP)\n \t$(WEAVER) registry check \\\n \t\t-r ./model \\\n \t\t--v2 \\\n-\t\t--policy $(LOCAL_POLICIES)/policies/check \\\n+\t\t--policy '$(POLICY_REPO_URL)@$(POLICY_REPO_REF)[policies/check]' \\",
+      "id": "PRRT_kwDOSUeMrM6VTDE1",
+      "opened": "2026-07-31T02:16:17Z",
+      "path": "Makefile",
+      "replies": [
+        {
+          "at": "2026-08-01T19:14:32Z",
+          "body": "weaver can start caching, simplicity outweights tiny perf concern  ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3696413332"
+        }
+      ],
+      "reviewed": "c7cbe29887db78b4050595b5df2e7fff6a058864",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3687578599"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This same fix already landed on main in #405, as `attribute.provenance.path` -- that's what the conflict is. Suggest taking main's form so the only delta left here is your (clearer) comment above.\n\nRelated, and worth checking before merge: #405 also widened the in-sync check from `git diff --exit-code -- ./docs/registry` to `-- ./docs`, and this branch's base predates that commit. So the green `generated-docs` run here never verified `docs/gen-ai/*.md` -- exactly the files this PR regenerates. Worth re-running `make generate-all` after merging main.\n\n```suggestion\n[`{{ name(attribute) | trim }}`]({% if attribute.provenance.path %}{{ attribute_registry_base_url }}/{{ ns_id | kebab_case }}.md{% else %}{{ upstream_docs_base }}/docs/registry/attributes/{{ ns_id | kebab_case }}.md{% endif %})\n```",
+      "created": "2026-07-31T02:14:45Z",
+      "hunk": "@@ -23,13 +23,14 @@\n {{ group_id | split_id | join(\" \") | title_case | acronym }} Attributes\n {%- endmacro %}\n \n-{# v2 link rendering: attribute.provenance is set for locally-defined attributes\n-   (their YAML file lives under ./model/) and is null for attributes imported\n-   from a dependency. Local attributes link to /docs/registry/attributes/<ns>.md;\n-   imported attributes link to the pinned upstream registry page. #}\n+{# v2 link rendering: locally-defined attributes (their YAML file lives under\n+   ./model/) carry `provenance.path`, while attributes imported from a dependency\n+   carry `provenance.source` (the upstream schema URL). Local attributes link to\n+   /docs/registry/attributes/<ns>.md; imported attributes link to the pinned\n+   upstream registry page. #}\n {% macro name_with_link(attribute, attribute_registry_base_url, upstream_docs_base) -%}\n {%- set ns_id = name(attribute) | trim | split_id | first -%}\n-[`{{ name(attribute) | trim }}`]({% if attribute.provenance %}{{ attribute_registry_base_url }}/{{ ns_id | kebab_case }}.md{% else %}{{ upstream_docs_base }}/docs/registry/attributes/{{ ns_id | kebab_case }}.md{% endif %})\n+[`{{ name(attribute) | trim }}`]({% if attribute.provenance and attribute.provenance.path %}{{ attribute_registry_base_url }}/{{ ns_id | kebab_case }}.md{% else %}{{ upstream_docs_base }}/docs/registry/attributes/{{ ns_id | kebab_case }}.md{% endif %})",
+      "id": "PRRT_kwDOSUeMrM6VTDEq",
+      "opened": "2026-07-31T02:16:17Z",
+      "path": "templates/registry/markdown/attribute_macros.j2",
+      "replies": [],
+      "reviewed": "c7cbe29887db78b4050595b5df2e7fff6a058864",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3687578584"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Now that refinements inherit `name` from the base span, this override is the duplication the PR is removing. `azure.ai.inference.client` and `aws.bedrock.inference.client` have no `name` and fall through to the base note -- which is why aws-bedrock.md and azure-ai-inference.md gained the guidance in this PR.\n\nKeeping the override leaves openai/anthropic with the one-line wording and bedrock/azure with the full three-sentence one, for the same span, in sibling docs. The first sentence is identical to the base anyway; the override only drops the \"MAY specify different span name format\" and \"MUST follow the overall guidelines\" sentences.\n\nDeleting it means openai.md picks up the base text, so this needs a `make generate-all`.\n\n```suggestion\n```",
+      "created": "2026-07-31T02:14:45Z",
+      "hunk": "@@ -642,13 +615,14 @@ spans:\n span_refinements:\n   - id: openai.inference.client\n     ref: gen_ai.inference.client\n+    name:\n+      note: >\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.request.model}`.",
+      "id": "PRRT_kwDOSUeMrM6VTDEt",
+      "opened": "2026-07-31T02:16:17Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "c7cbe29887db78b4050595b5df2e7fff6a058864",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3687578589"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same as the openai refinement above -- this drops to the base `name.note` if removed, which is what bedrock and azure already do. Needs a `make generate-all` along with it.\n\n```suggestion\n```",
+      "created": "2026-07-31T02:14:45Z",
+      "hunk": "@@ -734,13 +708,14 @@ span_refinements:\n \n   - id: anthropic.inference.client\n     ref: gen_ai.inference.client\n+    name:\n+      note: >\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.request.model}`.",
+      "id": "PRRT_kwDOSUeMrM6VTDEv",
+      "opened": "2026-07-31T02:16:17Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "c7cbe29887db78b4050595b5df2e7fff6a058864",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3687578591"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The `**Span kind`/`**Span status` guards below let a span inline that prose in its `note` instead. When it does, the prose renders as part of `note` -- ahead of the span name -- and the generated line is suppressed. So the span name lands in a different spot per span:\n\n- `gen_ai.inference.client` (inlines kind): kind -> **Span name** -> status\n- `mcp.server` (inlines status): status -> **Span name** -> kind\n- `invoke_agent` (inlines neither): **Span name** -> kind -> status\n\nEmitting `name.note` before `note` puts it in the same place everywhere. Needs a `make generate-all`.\n\n```suggestion\n{%- if span.name and span.name.note %}\n\n{{ span.name.note | trim }}{% endif %}\n{%- if span.note %}\n\n{{ span.note | trim }}{% endif %}\n{%- if \"**Span kind\" not in (span.note or \"\") %}\n\n**Span kind** SHOULD be `{{ span.kind | upper }}`.{% endif %}\n```",
+      "created": "2026-07-31T02:14:45Z",
+      "hunk": "@@ -5,21 +5,19 @@\n {% import 'stability.j2' as stability %}\n {% import 'signal_requirement_level.j2' as sr %}\n \n-{# Span-name rendering is disabled until weaver PR 1401 ships:\n-   https://github.com/open-telemetry/weaver/pull/1401\n-   Until then `span.name.note` collapses to the span's id instead of the\n-   model-defined markdown, so the output would be wrong. Re-enable the\n-   `if span.name and span.name.note` block below once weaver is upgraded. #}\n+{# Span-name guidance is rendered from `span.name.note`. Refinements and imported\n+   spans inherit the base span's `name` (weaver PR 1403), so provider docs get it\n+   without repeating it in their own `note`. #}\n {% macro header(span) -%}\n **Status:** {{ stability.badge(span.stability, span.deprecated) }}\n \n {{ span.brief | trim }}\n {%- if span.note %}\n \n {{ span.note | trim }}{% endif %}\n-{#- if span.name and span.name.note %}\n+{%- if span.name and span.name.note %}\n \n-**Span name** SHOULD be {{ span.name.note | trim }}.{% endif #}\n+{{ span.name.note | trim }}{% endif %}\n {%- if \"**Span kind\" not in (span.note or \"\") %}\n \n **Span kind** SHOULD be `{{ span.kind | upper }}`.{% endif %}",
+      "id": "PRRT_kwDOSUeMrM6VTDEx",
+      "opened": "2026-07-31T02:16:17Z",
+      "path": "templates/registry/markdown/span_macros.j2",
+      "replies": [
+        {
+          "at": "2026-08-01T19:13:40Z",
+          "body": "i'll push back on this one. This would put free-form text for span.note under free-form text about span name resulting in something like \n\n> **Span name** SHOULD be `invoke_agent {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\nWhen `gen_ai.agent.name` is not available, it SHOULD be `invoke_agent`.\nSemantic conventions for individual GenAI systems and frameworks MAY specify different span name format.\n>\n> Examples: LangChain agents, CrewAI agent\n\n\"Examples: LangChain agents, CrewAI agent\" is a span note that has nothing to do with span name, but reads as a part of it.\n\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3696411251"
+        }
+      ],
+      "reviewed": "c7cbe29887db78b4050595b5df2e7fff6a058864",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/400#discussion_r3687578593"
+    }
+  ]
+}

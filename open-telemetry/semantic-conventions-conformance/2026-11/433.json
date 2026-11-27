@@ -1,0 +1,31 @@
+{
+  "head": "b7adf75ab9b445643b6328ecac74f668fd5c651a",
+  "merge": "1c153be0fc72a71afa4d053cc7ab9da6a49f80fd",
+  "merged": "2026-11-21T02:44:19Z",
+  "missing_roots": 0,
+  "number": 433,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Rediscala project relies on compiler-classpath inference, but the pinned Gradle 9.8.2 recognizes Scala 3 through `scala3-library_3`, not this unified `scala-library` dependency. With this bump, inference requests the sources JAR for `scala3-sbt-bridge:3.10.0` where Zinc needs a compiled bridge, breaking `compileScala` before the Redis scenarios can run. Retain `2.13.18` until the Scala 3 compiler/toolchain configuration is explicitly migrated and validated.",
+      "created": "2026-11-02T06:12:24Z",
+      "hunk": "@@ -16,7 +16,7 @@ opentelemetry-instrumentation-alpha = \"2.33.1-alpha\"\n postgresql = \"42.7.14\"\n rediscala = \"1.17.0\"\n redisson = \"4.8.0\"\n-scala = \"2.13.18\"\n+scala = \"3.10.0\"",
+      "id": "PRRT_kwDOTuzK5c6yjWPr",
+      "opened": "2026-11-02T06:12:25Z",
+      "path": "scenarios/database/java/gradle/libs.versions.toml",
+      "replies": [
+        {
+          "at": "2026-11-21T02:24:52Z",
+          "body": "Fixed in `b7adf75`. The catalog now declares `scala3-library_3` directly, so Gradle picks the compiled Scala 3 bridge. The Rediscala scenario compiles and still produces the same Redis coverage.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/433#discussion_r4649986107"
+        }
+      ],
+      "reviewed": "4d6f4b3acd90620c7f74a2511ed99a95348fed67",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/433#discussion_r4439402279"
+    }
+  ]
+}

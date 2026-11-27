@@ -1,0 +1,120 @@
+{
+  "head": "a4c3f6044b0de785206241dde352e2e9d57cb0a8",
+  "merge": "b2860a61263ce2f61c9f170f515dfb07e978611c",
+  "merged": "2026-11-05T21:12:00Z",
+  "missing_roots": 0,
+  "number": 446,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Metric observations are keyed by their emitted name, but the model now also contains refinement IDs as keys. A metric emitted as `demo.skill.duration` therefore gets recorded as refinement coverage even though that refinement declares the metric name `demo.duration`, without any explicit refinement selection. Check the definition's actual name before retaining the observation so a metric name that merely matches a refinement ID is not counted.",
+      "created": "2026-11-03T16:05:15Z",
+      "hunk": "@@ -81,7 +81,11 @@ def _signals(\n     for name, carried in sorted(observed.items()):\n         if name not in declared:\n             continue\n-        present = sorted(declared[name][\"attributes\"].keys() & carried)\n+        definition = declared[name]",
+      "id": "PRRT_kwDOTuzK5c6zNsLW",
+      "opened": "2026-11-03T16:05:16Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_semconv.py",
+      "replies": [
+        {
+          "at": "2026-11-04T23:40:50Z",
+          "body": "The `definition.get(\"name\", name) != name` guard in 25b52c33 fixes this. The underlying cause is that `model[\"metrics\"]` now mixes refinement ids in with metric names, so every consumer has to know to skip them (`signal_coverage` in the report gets away with it only because the data never contains those keys). Since base metrics already carry their refinements under `refinements`, could the template drop the separate refinement entries from `metrics`, or move them to their own map? The guard would then be unnecessary. Happy either way; if you keep it, a short comment on the guard explaining why would help.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4474733464"
+        },
+        {
+          "at": "2026-11-05T00:26:26Z",
+          "body": "Metrics are keyed by name now, so the guard is gone.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4475085475"
+        }
+      ],
+      "reviewed": "78341ab82d0086651e2be4650e46fe95f32a4750",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4457220533"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Minor and not reachable with today's data, since no signal is reported by more than one runner. Still, this widens the conflict check: two runners whose pins agree on a signal's base attributes but differ in its refinements would now throw \"Conflicting declarations\", and the whole page fails to render. Comparing `declared?.attributes` here as before, and merging refinements only for display, would keep the check about real declaration conflicts.",
+      "created": "2026-11-04T23:36:49Z",
+      "hunk": "@@ -195,13 +199,13 @@ function index(report) {\n           type: signal.type,\n           kind: declared?.kind ?? null,\n           runner: target.runner,\n-          attributes: declared?.attributes ?? null,\n+          attributes: displayAttributes(declared),\n           rows: [],\n         };\n         signals.set(key, entry);\n       } else if (\n         entry.kind !== (declared?.kind ?? null) ||\n-        !sameAttributes(entry.attributes, declared?.attributes ?? null)\n+        !sameAttributes(entry.attributes, displayAttributes(declared))",
+      "id": "PRRT_kwDOTuzK5c6z2sK1",
+      "opened": "2026-11-04T23:40:50Z",
+      "path": "docs/assets/data.js",
+      "replies": [
+        {
+          "at": "2026-11-05T00:26:32Z",
+          "body": "The conflict check compares base attributes again.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4475086154"
+        }
+      ],
+      "reviewed": "54a7ad7ee0576a6c4902f9bcbed8fb46829f5166",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4474733164"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "`LEVELS` is documented as \"Requirement levels from the registry\", but `refinement` records where an attribute came from, not a level the registry assigns. Adding it here means `rank()`, `levelLegend()` and the signals \"all levels\" filter all treat it as a level. That works today, but anything later that maps `LEVELS` to registry semantics will pick it up silently. Would it be cleaner to keep the real level and carry a separate `refinementAttributes` set on the signal entry? Not blocking if you'd rather keep it simple.",
+      "created": "2026-11-04T23:36:49Z",
+      "hunk": "@@ -14,6 +14,7 @@ export const LEVELS = [\n   \"recommended\",\n   \"recommended_conditional\",\n   \"opt_in\",\n+  \"refinement\",",
+      "id": "PRRT_kwDOTuzK5c6z2sKs",
+      "opened": "2026-11-04T23:40:50Z",
+      "path": "docs/assets/data.js",
+      "replies": [
+        {
+          "at": "2026-11-05T00:26:28Z",
+          "body": "`refinementAttributes` is separate now, and `LEVELS` only has registry levels.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4475085710"
+        }
+      ],
+      "reviewed": "54a7ad7ee0576a6c4902f9bcbed8fb46829f5166",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4474733150"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "This reuses the colour of `recommended_conditional`, so on a signal that has both groups the legend and heatmap header show two identical swatches. Could the unscored group get its own token (or a muted/neutral one, since it isn't scored)?",
+      "created": "2026-11-04T23:36:49Z",
+      "hunk": "@@ -30,6 +32,7 @@ const LEVEL_VAR = {\n   recommended: \"--recommended\",\n   recommended_conditional: \"--conditional\",\n   opt_in: \"--optin\",\n+  refinement: \"--conditional\",",
+      "id": "PRRT_kwDOTuzK5c6z2sKy",
+      "opened": "2026-11-04T23:40:50Z",
+      "path": "docs/assets/data.js",
+      "replies": [
+        {
+          "at": "2026-11-05T00:26:30Z",
+          "body": "Added a separate muted colour for refinements.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4475085924"
+        }
+      ],
+      "reviewed": "54a7ad7ee0576a6c4902f9bcbed8fb46829f5166",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4474733158"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`refinementAttributes` merges declarations from every runner, so if only runner B declares `vendor.response` in a refinement, runner A's page also treats an emitted `vendor.response` as declared and removes it from “Not in the registry.” Derive this set from `data.report.registry[found.runner]` so the target is compared against its own registry, while keeping the union for the comparison heatmap.",
+      "created": "2026-11-05T20:18:20Z",
+      "hunk": "@@ -181,23 +183,30 @@ function model(data, found) {\n     const key = signalKey(signal.type, signal.name);\n     const declaration = data.signals.get(key);\n     const levels = declaration?.attributes ?? {};\n+    const refined = declaration?.refinementAttributes ?? new Set();",
+      "id": "PRRT_kwDOTuzK5c60QKeh",
+      "opened": "2026-11-05T20:18:21Z",
+      "path": "docs/assets/views/target.js",
+      "replies": [
+        {
+          "at": "2026-11-05T21:08:04Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4486081455"
+        }
+      ],
+      "reviewed": "6ae171631f7ac6136c8496072ff1fc02268afb44",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/446#discussion_r4485563085"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5efa0a27bf9c8e6a59047d112ea0fb126676d0e025e57a2a326ea1b04e12f024",
+  "input_digest": "fdc9f8cf0706ad9e477865f1c6793f98f8b0f002f1f5601a397ab1d1fd9c3a8a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c354efd70a522ab8bce5767810b7ca1e138ab238/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c354efd70a522ab8bce5767810b7ca1e138ab238/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f7b662fdb784b755a8ed3c1bfd9a0ceac7477fe4"
+      ],
+      "id": "PRRT_kwDODJKVX86tVfa1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7b662fdb784b755a8ed3c1bfd9a0ceac7477fe4/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9ed505ec7f199807e8da7d1697adb329e29dcdbb"
+      ],
+      "id": "PRRT_kwDODJKVX86tafbf",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9ed505ec7f199807e8da7d1697adb329e29dcdbb/instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9ed505ec7f199807e8da7d1697adb329e29dcdbb/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsBaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsBaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9ed505ec7f199807e8da7d1697adb329e29dcdbb/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2ClientRecordHttpErrorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2ClientRecordHttpErrorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9ed505ec7f199807e8da7d1697adb329e29dcdbb/instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/SqsTracingTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9ed505ec7f199807e8da7d1697adb329e29dcdbb/instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/Aws2ClientRecordHttpErrorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/Aws2ClientRecordHttpErrorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9ed505ec7f199807e8da7d1697adb329e29dcdbb/instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/Aws2SqsTracingTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/Aws2SqsTracingTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ta3pJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0436f00dd1f35b05d608262ca5197d1c385dd87d/instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3e597c69a6f92ab8b07fc791fb11b4f34adba59f"
+      ],
+      "id": "PRRT_kwDODJKVX86tbquf",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0436f00dd1f35b05d608262ca5197d1c385dd87d/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3e597c69a6f92ab8b07fc791fb11b4f34adba59f"
+      ],
+      "id": "PRRT_kwDODJKVX86tbqu5",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0436f00dd1f35b05d608262ca5197d1c385dd87d/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3e597c69a6f92ab8b07fc791fb11b4f34adba59f"
+      ],
+      "id": "PRRT_kwDODJKVX86tbquo",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3e597c69a6f92ab8b07fc791fb11b4f34adba59f/instrumentation-docs/readme.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation-docs/readme.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3e597c69a6f92ab8b07fc791fb11b4f34adba59f/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3e597c69a6f92ab8b07fc791fb11b4f34adba59f/instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86tcZDd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a16073ad22b029b79b2b1dcc19e11d127c1bab0a/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a16073ad22b029b79b2b1dcc19e11d127c1bab0a/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e66dc6757ce7d6eb338591ecb187d914749f0bda/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4e03c8012edb9b56b3dcda96c8f9d4fc52a8a4a7"
+      ],
+      "id": "PRRT_kwDODJKVX86tchrw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86t7kjN",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

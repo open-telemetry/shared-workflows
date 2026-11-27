@@ -1,0 +1,31 @@
+{
+  "head": "da250114b00781b3bfb5ce4849b1fc09aad93e68",
+  "merge": "e6430e8e8f2f3c65a035feace997913254470624",
+  "merged": "2026-04-25T16:55:25Z",
+  "missing_roots": 0,
+  "number": 18276,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Need to check if this should be used",
+      "created": "2026-04-25T05:27:36Z",
+      "hunk": "@@ -1,42 +0,0 @@\n-/*\n- * Copyright The OpenTelemetry Authors\n- * SPDX-License-Identifier: Apache-2.0\n- */\n-\n-package io.opentelemetry.javaagent.instrumentation.spring.webflux.v5_0.server;\n-\n-import io.opentelemetry.api.common.AttributeKey;\n-import io.opentelemetry.api.common.AttributesBuilder;\n-import io.opentelemetry.context.Context;\n-import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n-import javax.annotation.Nullable;\n-import org.springframework.web.method.HandlerMethod;\n-\n-public class ExperimentalAttributesExtractor implements AttributesExtractor<Object, Void> {",
+      "id": "PRRT_kwDODJKVX859kCxl",
+      "opened": "2026-04-25T05:27:44Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/server/ExperimentalAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-04-25T16:55:08Z",
+          "body": "This was intentionally removed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/12887, just missed removing the file",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18276#discussion_r3142273179"
+        }
+      ],
+      "reviewed": "da250114b00781b3bfb5ce4849b1fc09aad93e68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18276#discussion_r3141513928"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ac0035b4ad5b18ccaa0d9eb7355d4ee481b1c5844e8034165a39880da51b153c",
+  "input_digest": "4d1926a4d016b7e5bb48f90abed3e5228b559b89292ffa6b04903ec744587dee",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86dZhXJ",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9561a0172b686017da90ff4f30fdbf9d0735e13/instrumentation/openai/openai-java-1.1/library/src/test/java/io/opentelemetry/instrumentation/openai/v1_1/ChatTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/523c42815293f6e696d8e49d9d8e555438ec617e/instrumentation/openai/openai-java-1.1/library/src/test/java/io/opentelemetry/instrumentation/openai/v1_1/ChatTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dZjT2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9561a0172b686017da90ff4f30fdbf9d0735e13/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/ChatCompletionRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/523c42815293f6e696d8e49d9d8e555438ec617e/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/ChatCompletionRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9561a0172b686017da90ff4f30fdbf9d0735e13/instrumentation/openai/openai-java-1.1/library/src/test/java/io/opentelemetry/instrumentation/openai/v1_1/ChatCompletionRequestTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/523c42815293f6e696d8e49d9d8e555438ec617e/instrumentation/openai/openai-java-1.1/library/src/test/java/io/opentelemetry/instrumentation/openai/v1_1/ChatCompletionRequestTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dZj3T",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "head": "efa11ebb65170fbcc3021d2118da6108ec30f942",
+  "merge": "831ffdcec90cd5c2e3a62c7123374ff0bca9128f",
+  "merged": "2026-10-26T07:58:58Z",
+  "missing_roots": 0,
+  "number": 20902,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please revert this generated-catalog edit. `.github/instructions/instrumentation-list.instructions.md:7-8` explicitly reserves updates to this file for the nightly metadata workflow. Keep the Muzzle range change and let that workflow regenerate the supported-version entry.",
+      "created": "2026-10-23T16:45:36Z",
+      "hunk": "@@ -17096,7 +17096,7 @@ libraries:\n   has_standalone_library: true\n   has_javaagent: true\n   javaagent_target_versions:\n-  - io.r2dbc:r2dbc-spi:[0.9.0.RELEASE,)\n+  - io.r2dbc:r2dbc-spi:[1.0.0.RELEASE,)",
+      "id": "PRRT_kwDODJKVX86vsVBH",
+      "opened": "2026-10-23T16:45:36Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-23T16:53:52Z",
+          "body": "Reverted the catalog edit in e7de52c59811c36855bf4ea657e4e47fafe21993. The file is no longer in this PR's diff; the nightly metadata workflow will regenerate it from the updated Muzzle range.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4362086411"
+        }
+      ],
+      "reviewed": "4a84fcb9d37b1679e50337351d53a53708bf1d4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4362010516"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to address the verified Copilot finding at discussion_r4362010516. Revert only this PR's change to docs/instrumentation-list.yaml so that file has no diff against the PR base. The repository rule in .github/instructions/instrumentation-list.instructions.md reserves this generated catalog for the nightly metadata workflow. Keep the SPI 1.0 dependency declarations, Muzzle minimum and inverse exclusions, breaking-change changelog entry, filtered-update regression coverage, and removal of obsolete compatibility commentary unchanged. The intended baseline remains SPI 1.0 only, with no SPI 0.9 compatibility path. No additional functionality or naming changes are needed. Do not edit PR title or description, post review replies, or resolve review threads. Verify the generated file is absent from the final PR diff.",
+      "created": "2026-10-23T16:47:36Z",
+      "hunk": "@@ -17096,7 +17096,7 @@ libraries:\n   has_standalone_library: true\n   has_javaagent: true\n   javaagent_target_versions:\n-  - io.r2dbc:r2dbc-spi:[0.9.0.RELEASE,)\n+  - io.r2dbc:r2dbc-spi:[1.0.0.RELEASE,)",
+      "id": "PRRT_kwDODJKVX86vsXrX",
+      "opened": "2026-10-23T16:47:35Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "4a84fcb9d37b1679e50337351d53a53708bf1d4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4362028512"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly for the user's revised decision: keep R2DBC Proxy 1.1.7.RELEASE and establish real R2DBC SPI 0.9 compatibility coverage alongside SPI 1.0, instead of dropping SPI 0.9 support. This supersedes the earlier request to require SPI 1.0. Do not downgrade the proxy, bundle an old second proxy, or create another PR.\n\nRestore the supported SPI minimum to 0.9.0.RELEASE if verified. Remove this PR's SPI-1.0-only Muzzle range, the skip(\"0.9.0.RELEASE\", \"0.9.1.RELEASE\") exception and its comment, and the breaking-change changelog entry for dropping 0.9. Keep assertInverse and make the supported range truthful. Preserve the existing r2dbc-1.0 module/artifact/package/scope names and normal enablement aliases; no gratuitous naming migration or runtime version gate is requested. Do not edit docs/instrumentation-list.yaml: it is generated nightly.\n\nAdd isolated, persistent test coverage for SPI 0.9 in both javaagent and standalone library integration paths while retaining SPI 1.0 coverage and existing database fixtures. The current shared testing project pulls H2 1.0.0.RELEASE, MariaDB 1.1.3 and PostgreSQL 1.0.7.RELEASE, all of which request SPI 1.0. r2dbc-proxy 1.1.7 also requests SPI 1.0. Ensure the 0.9 suite actually compiles and runs against SPI 0.9.0.RELEASE rather than being silently upgraded. An H2-only isolated suite using io.r2dbc:r2dbc-h2:0.9.0.RELEASE is a promising small approach: its POM requests SPI 0.9.0.RELEASE, it supports filter/flatMap, and it needs no Docker. Reuse repository JvmTestSuite and shared-fixture patterns; wire additional suites into check. Verify effective dependency graphs with dependencyInsight or equivalent evidence, not new module-specific runtime version-assertion infrastructure. Keep existing 1.0 behavior and coverage intact.\n\nCover ordinary query consumption, filtered-result consumption via flatMap, map(Function), and plain and filtered update counts with proper query-span completion. SPI 0.9 must preserve Integer counts and SPI 1.0 Long counts without conversion or ClassCastException. Include focused error/cancellation coverage where needed for the affected completion paths, reusing existing helpers. Source investigation found the SPI Result method descriptors are identical after generic erasure; RowMetadata.getColumnNames was removed in 1.0 but is not used by the proxy. Proxy 1.1.7 uses dynamic proxies and Object result forwarding; no concrete SPI 0.9 incompatibility has been identified. Its upstream compatibility table only documents SPI 1.0, so tests must establish our actual behavior rather than assume it. The current FilterAwareResult implements Publisher<Long> getRowsUpdated because the effective compile classpath was already SPI 1.0; account for that when choosing baseline compilation without unchecked element conversion or version-specific production forks unless genuinely necessary.\n\nFor the standalone library, ensure the published dependency graph can really coexist with SPI 0.9 instead of r2dbc-proxy's transitive SPI 1.0 silently upgrading consumers. Inspect how library(...) is compileOnly/test-only in repository conventions and choose the smallest correct dependency declaration/exclusion that preserves the intended SPI availability for consumers. Verify the publication metadata as well as test configurations. Preserve shading and Spring starter behavior; avoid unrelated Spring baseline changes. Update relevant handwritten supported-version usage docs only to reflect verified support, without migration history or telemetry inventories. Keep current proxy bug fixes and filtered-result completion behavior.\n\nRun narrow formatting, targeted 0.9 and 1.0 javaagent/library tests, and relevant Muzzle checks. Report exact evidence and genuine blockers. If a substantive incompatibility appears, report the concrete failure rather than silently downgrading the proxy, skipping the failing scenario, reverting to dropping 0.9, or adding a broad workaround. Do not edit the PR title or description, reply to human reviewers, resolve threads, merge, or wait for CI. The coordinator will update PR metadata after inspecting delivery.",
+      "created": "2026-10-23T18:51:21Z",
+      "hunk": "@@ -8,8 +8,10 @@ muzzle {\n   pass {\n     group.set(\"io.r2dbc\")\n     module.set(\"r2dbc-spi\")\n-    versions.set(\"[0.9.0.RELEASE,)\")\n+    versions.set(\"[1.0.0.RELEASE,)\")\n     assertInverse.set(true)\n+    // SPI 0.9 is unsupported, but its Integer update counts erase to the same signature as 1.0's Long.\n+    skip(\"0.9.0.RELEASE\", \"0.9.1.RELEASE\")",
+      "id": "PRRT_kwDODJKVX86vvAxV",
+      "opened": "2026-10-23T18:51:20Z",
+      "path": "instrumentation/r2dbc-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e7de52c59811c36855bf4ea657e4e47fafe21993",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363152821"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Raising `library(...)` leaves the Muzzle pass at `[0.9.0.RELEASE,)`, with no 0.9 skips. The declared compatibility range therefore still includes 0.9, contrary to this PR's stated 1.0 minimum, and the nightly catalog will retain that older baseline. Update the pass to start at `1.0.0.RELEASE` and add the described 0.9 inverse-check skips while retaining `assertInverse`; leave the generated catalog to the nightly workflow.",
+      "created": "2026-10-23T19:17:19Z",
+      "hunk": "@@ -25,26 +25,48 @@ sourceSets {\n }\n \n dependencies {\n-  library(\"io.r2dbc:r2dbc-spi:0.9.0.RELEASE\")\n+  library(\"io.r2dbc:r2dbc-spi:1.0.0.RELEASE\")",
+      "id": "PRRT_kwDODJKVX86vvf1Y",
+      "opened": "2026-10-23T19:17:20Z",
+      "path": "instrumentation/r2dbc-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T19:18:15Z",
+          "body": "The scope changed after the original SPI 1.0-only proposal. This PR now intentionally retains SPI 0.9 support with proxy 1.1.7 and adds isolated `testSpi09` suites for both javaagent and standalone library paths. The 0.9 Muzzle range is intentional; adding inverse skips would contradict the revised request. The PR title and description now reflect that scope.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363373330"
+        }
+      ],
+      "reviewed": "d3f60a01aae6a18c30b9a78a358da71bc7c575f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363361003"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This table now advertises 0.9+, contrary to the intended SPI 1.0 minimum and the updated baseline dependencies. The nightly generated-catalog update will not correct this hand-maintained reference. Keep the entry at 1.0+ so users receive the correct supported minimum.",
+      "created": "2026-10-23T19:17:19Z",
+      "hunk": "@@ -129,7 +129,7 @@ These are the supported libraries and frameworks:\n | [PowerJob](http://www.powerjob.tech/)                                                                                                       | 4.0.0+                                             | N/A                                                                                                                                                                                                                                                                                                                                                                                     | none                                                                                                                                              |\n | [Quarkus Resteasy Reactive](https://quarkus.io/extensions/io.quarkus/quarkus-resteasy-reactive/)                                            | 2.16.7+                                            | N/A                                                                                                                                                                                                                                                                                                                                                                                     | Provides `http.route` [2]                                                                                                                         |\n | [Quartz](https://www.quartz-scheduler.org/)                                                                                                 | 2.0+                                               | [opentelemetry-quartz-2.0](../instrumentation/quartz-2.0/library)                                                                                                                                                                                                                                                                                                                       | none                                                                                                                                              |\n-| [R2DBC](https://r2dbc.io/)                                                                                                                  | 1.0+                                               | [opentelemetry-r2dbc-1.0](../instrumentation/r2dbc-1.0/library)                                                                                                                                                                                                                                                                                                                         | [Database Client Spans], [Database Client Metrics]&nbsp;[6]                                                                                       |\n+| [R2DBC](https://r2dbc.io/)                                                                                                                  | 0.9+                                               | [opentelemetry-r2dbc-1.0](../instrumentation/r2dbc-1.0/library)                                                                                                                                                                                                                                                                                                                         | [Database Client Spans], [Database Client Metrics]&nbsp;[6]                                                                                       |",
+      "id": "PRRT_kwDODJKVX86vvf2n",
+      "opened": "2026-10-23T19:17:20Z",
+      "path": "docs/supported-libraries.md",
+      "replies": [
+        {
+          "at": "2026-10-23T19:18:15Z",
+          "body": "The intended minimum is now SPI 0.9. The revised request retains proxy 1.1.7 and adds isolated 0.9 coverage alongside 1.0, rather than dropping 0.9. The table matches that scope; the PR title and description have also been corrected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363373334"
+        }
+      ],
+      "reviewed": "d3f60a01aae6a18c30b9a78a358da71bc7c575f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363361110"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This heading lowers the documented minimum to 0.9, although the PR requires SPI 1.0 and raises the library baseline to `1.0.0.RELEASE`. Standalone-library users would be told that the dependency combination being dropped is still supported. Keep the documented minimum at 1.0.",
+      "created": "2026-10-23T19:17:20Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-# Library Instrumentation for R2dbc version 1.0 and higher\n+# Library Instrumentation for R2dbc version 0.9 and higher",
+      "id": "PRRT_kwDODJKVX86vvf3M",
+      "opened": "2026-10-23T19:17:20Z",
+      "path": "instrumentation/r2dbc-1.0/library/README.md",
+      "replies": [
+        {
+          "at": "2026-10-23T19:18:14Z",
+          "body": "SPI 0.9 support is intentionally retained under the revised request. The standalone library now has an isolated SPI 0.9 test suite and excludes the proxy's transitive SPI 1.0 dependency. The heading matches that supported minimum. The PR title and description no longer describe dropping 0.9.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363373297"
+        }
+      ],
+      "reviewed": "d3f60a01aae6a18c30b9a78a358da71bc7c575f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363361156"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify the R2DBC compatibility tests as requested by the user. Keep proxy 1.1.7.RELEASE and real SPI 0.9 plus 1.0 coverage in both javaagent and standalone-library paths. This is a test refactor, not a return to the superseded SPI-1.0-only proposal.\n\nReplace the separate 244-line AbstractR2dbcSpi09Test and the PR's 117-line addition of equivalent SPI 1.0 tests with one compact shared H2 result-consumption test group used by both runtime suites. Parameterize query consumption across map(BiFunction), map(Function), and filtered flatMap; parameterize update-count consumption across plain and filtered results. Keep one mapping-error and one cancellation case, shared across versions. Every case must still check its result or expected failure and query-span completion. Assert the actual update-count type and value, preserving Integer on SPI 0.9 and Long on SPI 1.0 without conversions that hide a mismatch. Share connection setup, cleanup, and span assertions instead of repeating whole methods, but avoid building a generic scenario framework or deep inheritance hierarchy merely to save lines.\n\nMove the existing H2 filtered-result regression from AbstractR2dbcStatementTest into this shared group so coverage is not duplicated. Keep the existing multi-database tests and fixtures otherwise unchanged. Reuse the same small agent/library test setup across runtime variants where practical. Preserve isolated runtime configurations and check wiring: the 0.9 suites must not inherit the modern-driver fixture graph or the proxy's transitive SPI 1.0. Keep the standalone publication's SPI exclusion, current Muzzle range and assertInverse, production behavior, names, and current documented support unchanged. Do not edit the generated docs/instrumentation-list.yaml. The goal is materially less code and duplication without deleting the requested behavioral coverage.\n\nRun narrow formatting and the shared H2 tests for both SPI runtimes in both instrumentation paths. Verify resolved SPI versions with dependencyInsight or equivalent output and verify the standalone generated publication metadata retains the exclusion. Keep exact command results, test counts, and dependency/publication evidence available in the coding session completion report; if execution is blocked, report the precise blocker and do not claim passing compatibility tests. Do not add committed validation-report files or runtime version-assertion infrastructure. Do not edit PR title or description, create another PR, reply to review comments, resolve threads, merge, or wait for CI. The coordinator handles metadata and reviews.",
+      "created": "2026-10-23T20:03:55Z",
+      "hunk": "@@ -0,0 +1,244 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.r2dbc.v1_0;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.r2dbc.spi.Connection;\n+import io.r2dbc.spi.ConnectionFactory;\n+import io.r2dbc.spi.ConnectionFactoryOptions;\n+import io.r2dbc.spi.Result;\n+import java.time.Duration;\n+import java.util.List;\n+import java.util.UUID;\n+import java.util.function.Consumer;\n+import org.junit.jupiter.api.Test;\n+import reactor.core.publisher.Flux;\n+import reactor.core.publisher.Mono;\n+\n+abstract class AbstractR2dbcSpi09Test {",
+      "id": "PRRT_kwDODJKVX86vwX39",
+      "opened": "2026-10-23T20:03:55Z",
+      "path": "instrumentation/r2dbc-1.0/testing/src/testSpi09/java/io/opentelemetry/instrumentation/r2dbc/v1_0/AbstractR2dbcSpi09Test.java",
+      "replies": [],
+      "reviewed": "d3f60a01aae6a18c30b9a78a358da71bc7c575f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4363738920"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove only the extra filteredUpdateResultConsumptionFinishesQuerySpan test added by this PR in instrumentation/r2dbc-1.0/testing/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/AbstractR2dbcStatementTest.java. The user wants this baseline-alignment PR kept minimal. Preserve the pre-existing filteredResultConsumptionFinishesQuerySpan test and all other existing tests. The shared AbstractR2dbcStatementTest.java should have no diff against the PR base afterward; do not replace the removed test with new helpers or other coverage.\n\nKeep the SPI 1.0 dependency declarations, current proxy 1.1.7, concise changelog entry, and the Muzzle range [0.9.0.RELEASE,) with its explanatory comment and assertInverse unchanged. The Muzzle range deliberately describes erased reference matching, not the supported/tested minimum of SPI 1.0. Do not restore SPI 0.9 compatibility suites, add inverse skips or a runtime gate, change production behavior, or edit generated documentation.\n\nApply narrow formatting and run the existing filtered-result H2 regression in both javaagent and library paths when feasible. Report exact results or blockers. Verify the removed test is absent and the shared test file is absent from the final PR diff. Do not edit the PR title or description, create another PR, post review replies, resolve threads, merge, or wait for CI. The coordinator handles metadata and review.",
+      "created": "2026-10-23T23:12:46Z",
+      "hunk": "@@ -242,6 +242,45 @@ void filteredResultConsumptionFinishesQuerySpan() {\n                             .hasParent(trace.getSpan(0))));\n   }\n \n+  @Test\n+  void filteredUpdateResultConsumptionFinishesQuerySpan() {",
+      "id": "PRRT_kwDODJKVX86vzQLu",
+      "opened": "2026-10-23T23:12:46Z",
+      "path": "instrumentation/r2dbc-1.0/testing/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/AbstractR2dbcStatementTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T23:22:11Z",
+          "body": "Removed only the added test; the existing filtered-result regression remains. The shared test file has no diff against the PR base. Focused javaagent and library tests passed. Commit: `efa11ebb`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4365028677"
+        }
+      ],
+      "reviewed": "ccfb8e968cc7152205fa391b5b188303b8b7f6b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20902#discussion_r4364985219"
+    }
+  ]
+}

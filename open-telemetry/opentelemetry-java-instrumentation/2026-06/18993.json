@@ -1,0 +1,52 @@
+{
+  "head": "415d48e22cb8d939049aadfefc5f80fa22d81c5d",
+  "merge": "a170a10d09de36a58d22a866cc391362aab8411d",
+  "merged": "2026-06-15T16:27:42Z",
+  "missing_roots": 0,
+  "number": 18993,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new Javadoc says \"DO NOT USE OR OVERRIDE THIS METHOD\" for `getDbOperationName`, but this interface is explicitly meant to be implemented by instrumentations and there are already in-repo implementations that override it to provide an explicit operation name (e.g., `InfluxDbAttributesGetter#getDbOperationName` at instrumentation/influxdb-2.4/...:35-39). This wording is misleading and discourages a supported/necessary use case when the operation name can’t be derived from SQL text.",
+      "created": "2026-06-14T02:28:02Z",
+      "hunk": "@@ -23,8 +23,11 @@ public interface SqlClientAttributesGetter<REQUEST, RESPONSE>\n     extends DbClientAttributesGetter<REQUEST, RESPONSE> {\n \n   /**\n-   * SqlClientAttributesExtractor will try to populate db.operation.name based on {@link\n-   * #getRawQueryTexts(REQUEST)}, but this can be used to explicitly provide the operation name.\n+   * DO NOT USE OR OVERRIDE THIS METHOD.\n+   *\n+   * <p>{@link SqlClientAttributesExtractor} will try to populate {@code db.operation.name} based on\n+   * {@link #getRawQueryTexts(REQUEST)} when {@link\n+   * SqlClientAttributesExtractorBuilder#setSingleOperationAndCollection(boolean)} is enabled.",
+      "id": "PRRT_kwDODJKVX86JXoGG",
+      "opened": "2026-06-14T02:28:02Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-15T00:52:29Z",
+          "body": "addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18993#discussion_r3410556068"
+        }
+      ],
+      "reviewed": "6452e5f5cbda31e958c95dda231a2f8c15fd4d32",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18993#discussion_r3408906676"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Similarly, the Javadoc for `getDbCollectionName` says \"DO NOT USE OR OVERRIDE THIS METHOD\" even though this is the extension point for instrumentations to provide an explicit `db.collection.name` (and `DbClientSpanNameExtractor` now prefers it over namespace for stable span names). The current wording is likely to confuse instrumentation authors and suggests they should not implement the attribute at all.",
+      "created": "2026-06-14T02:28:02Z",
+      "hunk": "@@ -52,6 +55,19 @@ default String getDbQuerySummary(REQUEST request) {\n     return null;\n   }\n \n+  /**\n+   * DO NOT USE OR OVERRIDE THIS METHOD.\n+   *\n+   * <p>{@link SqlClientAttributesExtractor} will try to populate {@code db.collection.name} based\n+   * on {@link #getRawQueryTexts(REQUEST)} when {@link\n+   * SqlClientAttributesExtractorBuilder#setSingleOperationAndCollection(boolean)} is enabled.\n+   */",
+      "id": "PRRT_kwDODJKVX86JXoGH",
+      "opened": "2026-06-14T02:28:02Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-15T00:50:52Z",
+          "body": "addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18993#discussion_r3410552347"
+        }
+      ],
+      "reviewed": "6452e5f5cbda31e958c95dda231a2f8c15fd4d32",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18993#discussion_r3408906677"
+    }
+  ]
+}

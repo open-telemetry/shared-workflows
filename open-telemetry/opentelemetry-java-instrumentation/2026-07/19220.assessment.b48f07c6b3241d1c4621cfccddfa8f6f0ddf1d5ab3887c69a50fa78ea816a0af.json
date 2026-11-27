@@ -1,0 +1,131 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4a1e20a7943e77f4918a92b98603edb07232bafdb4e4c4ac0ee0d98d3cf22c42",
+  "input_digest": "b48f07c6b3241d1c4621cfccddfa8f6f0ddf1d5ab3887c69a50fa78ea816a0af",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bc16847a18dbf8ea20b836b5dace0e77236d543/declarative-config-bridge/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05d197291836c64716f5652e75fc7de383368210"
+      ],
+      "id": "PRRT_kwDODJKVX86QrEow",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bc16847a18dbf8ea20b836b5dace0e77236d543/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Qsp0x",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c825e84f06d4b302722a69a92673769822dcb112/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/55f9e56a11b1ef206f3b3d02faed55caf30f632e"
+      ],
+      "id": "PRRT_kwDODJKVX86Q2Xdc",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/264b8bdbf04b9c0327b79ffd49298a821c10bc0a/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigPropertiesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1aabda1f7d6e3dbc23ba3fdb8e75e714a2f1572b"
+      ],
+      "id": "PRRT_kwDODJKVX86SXEv4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/264b8bdbf04b9c0327b79ffd49298a821c10bc0a/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedConfigProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedConfigProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/264b8bdbf04b9c0327b79ffd49298a821c10bc0a/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java"
+      ],
+      "id": "PRRT_kwDODJKVX86SXEvk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/264b8bdbf04b9c0327b79ffd49298a821c10bc0a/declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedConfigProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedConfigProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e8b277faf60019b20fc2965fd87f7ea331a383de"
+      ],
+      "id": "PRRT_kwDODJKVX86SXEwO",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1aabda1f7d6e3dbc23ba3fdb8e75e714a2f1572b/declarative-config-bridge/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/174e6598487d77351575f7f996c65d9078c41bb7"
+      ],
+      "id": "PRRT_kwDODJKVX86SXzaS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/174e6598487d77351575f7f996c65d9078c41bb7/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/10fda2745bdad810a5c587cbdd18d6bda4b0322b"
+      ],
+      "id": "PRRT_kwDODJKVX86SX8oc",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10fda2745bdad810a5c587cbdd18d6bda4b0322b/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/10fda2745bdad810a5c587cbdd18d6bda4b0322b/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigBridge.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5920f40550c63075735a2836e68d4a284aa373b8"
+      ],
+      "id": "PRRT_kwDODJKVX86SYF-0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c61aa3fdc8119d8199ac584e2b2b502758d31bd/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61bc2025df2192304829df1a3ef44e7371d36719/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java"
+      ],
+      "id": "PRRT_kwDODJKVX86SYYjq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

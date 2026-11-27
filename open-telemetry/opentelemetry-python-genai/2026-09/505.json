@@ -1,0 +1,88 @@
+{
+  "head": "76ba48ca22d5b479fc80975cadcc341f05acedde",
+  "merge": "79c2d34efec812c3112994170ffa49eef59e8c18",
+  "merged": "2026-09-02T00:36:24Z",
+  "missing_roots": 0,
+  "number": 505,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment claims both `gen_ai.response.model` and `gen_ai.response.id` are recorded on streamed spans. The PR description/tests indicate `gen_ai.response.id` still remains unset for common streamed paths (e.g., streamed Chat Completions) unless a provider surfaces an id, so this line is likely overstating the behavior.",
+      "created": "2026-08-31T02:35:59Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record gen_ai.response.model and gen_ai.response.id on streamed spans",
+      "id": "PRRT_kwDOSbspP86dmIa3",
+      "opened": "2026-08-31T02:35:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/505.fixed",
+      "replies": [
+        {
+          "at": "2026-08-31T02:43:45Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/505#discussion_r3891371849"
+        }
+      ],
+      "reviewed": "098310a90ae449fd690e1e0024e38be385b4d678",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/505#discussion_r3891347692"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring references a test name that doesn't exist in this package (\"test_chat_openai_streamed_response_model_and_role\"). This makes the test guidance misleading for future maintainers; it should point at the actual end-to-end streamed test that performs the LangChain `generation_info` → `response_metadata` copy.",
+      "created": "2026-08-31T02:35:59Z",
+      "hunk": "@@ -1764,3 +1772,128 @@ def test_empty_header_value_ignored(self):\n         handler.on_llm_end(response=response, run_id=run_id)\n \n         assert llm_inv.response_model_name == \"gpt-4o\"\n+\n+\n+# ---------------------------------------------------------------------------\n+# on_llm_end – streamed responses\n+#\n+# Streaming reaches on_llm_end with an LLMResult that LangChain assembles from\n+# the merged chunks alone, so ``llm_output`` — the usual source of\n+# ``gen_ai.response.model`` and ``gen_ai.response.id`` — is never populated.\n+# ---------------------------------------------------------------------------\n+\n+\n+class TestOnLlmEndStreamedResponse:\n+    def test_model_and_id_from_response_metadata(self):\n+        \"\"\"Both fields are read off the message's ``response_metadata``.\n+\n+        LangChain fills it with the union of ``generation_info`` and whatever\n+        the provider wrote onto the message, so this is the one place that\n+        covers every provider. The ``generation_info`` half of that union is\n+        covered end to end by\n+        ``test_chat_openai_streamed_response_model_and_role``, which drives a\n+        real ``.stream()`` so LangChain performs the copy.",
+      "id": "PRRT_kwDOSbspP86dmIat",
+      "opened": "2026-08-31T02:35:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [],
+      "reviewed": "098310a90ae449fd690e1e0024e38be385b4d678",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/505#discussion_r3891347675"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we check in generation_info too and test it?\n\n```python\ndef test_model_from_generation_info(self):\n    run_id = _run_id()\n    handler, _, llm_inv = _make_handler_with_llm_invocation(run_id)\n    gen = ChatGenerationChunk(\n        message=AIMessageChunk(content=\"hello\"),\n        generation_info={\"model_name\": \"claude-sonnet-4-5\"},\n    )\n    handler.on_llm_end(\n        response=LLMResult(generations=[[gen]]), run_id=run_id\n    )\n    # Fails: llm_inv.response_model_name is None because response_fields_from_generation\n    # only inspects message.response_metadata and ignores generation_info.\n    assert llm_inv.response_model_name == \"claude-sonnet-4-5\"\n```",
+      "created": "2026-08-31T23:30:25Z",
+      "hunk": "@@ -383,6 +383,64 @@ def serialize(obj: Any) -> str | None:\n         return None\n \n \n+def _first_string(*values: Any) -> str | None:\n+    for value in values:\n+        if isinstance(value, str) and value:\n+            return value\n+    return None\n+\n+\n+def response_fields_from_generation(\n+    chat_generation: Any,\n+) -> tuple[str | None, str | None]:\n+    \"\"\"Return the ``(response_model, response_id)`` a generation carries.\"\"\"\n+    message = getattr(chat_generation, \"message\", None)\n+    response_metadata: Mapping[str, Any] = (\n+        getattr(message, \"response_metadata\", None) or {}\n+    )\n+\n+    response_model = _first_string(\n+        response_metadata.get(\"model_name\"),\n+        response_metadata.get(\"model\"),\n+    )\n+    response_id = _first_string(response_metadata.get(\"id\"))\n+    return response_model, response_id",
+      "id": "PRRT_kwDOSbspP86d6dlh",
+      "opened": "2026-08-31T23:30:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-01T22:24:08Z",
+          "body": "Thanks! It was initially dropped because LangChain merges `generation_info` into `response_metadata` before `on_llm_end` sees it. But thinking it reading `generation_info` too can help avoid depending on that internal. Added it as a fallback with this test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/505#discussion_r3908954196"
+        }
+      ],
+      "reviewed": "b2277f09083a2ed50b457788a499b310351c706d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/505#discussion_r3899345872"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please add test coverage for async streaming (`.astream()`).",
+      "created": "2026-09-01T19:38:39Z",
+      "hunk": "@@ -991,3 +994,50 @@ def test_chat_anthropic_claude_sonnet_cache_token_details(\n     assert (\n         span.attributes.get(gen_ai_attributes.GEN_AI_USAGE_INPUT_TOKENS) == 22\n     )\n+\n+\n+def test_chat_openai_streamed_response_model(",
+      "id": "PRRT_kwDOSbspP86eP5ku",
+      "opened": "2026-09-01T19:39:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [
+        {
+          "at": "2026-09-01T22:24:43Z",
+          "body": "thanks, added `test_chat_openai_astreamed_response_model`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/505#discussion_r3908957588"
+        }
+      ],
+      "reviewed": "b2277f09083a2ed50b457788a499b310351c706d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/505#discussion_r3907728599"
+    }
+  ]
+}

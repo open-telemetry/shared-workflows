@@ -1,0 +1,119 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ccfda2f83dfbfdabd573fd6a91eadfda96feed68c44d34630114a0182635533e",
+  "input_digest": "6b752fd7f31a889890a9a3d9deeeb8eb28e235c38ffe2eb051b790906e8d27b5",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd0d529ccd0a58e9786951cebc1ad1a25cca25d0/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd0d529ccd0a58e9786951cebc1ad1a25cca25d0/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpPoolNameTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3c3414dbdba2df431cdcd69a7cc6cea872cb2e29"
+      ],
+      "id": "PRRT_kwDODJKVX86bHICA",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd0d529ccd0a58e9786951cebc1ad1a25cca25d0/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3c3414dbdba2df431cdcd69a7cc6cea872cb2e29"
+      ],
+      "id": "PRRT_kwDODJKVX86bHICf",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c3414dbdba2df431cdcd69a7cc6cea872cb2e29/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/PoolDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/PoolDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/689ebe2076ea2e794afb21cce8eb3aa712088f7b"
+      ],
+      "id": "PRRT_kwDODJKVX86b1p8L",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c3414dbdba2df431cdcd69a7cc6cea872cb2e29/instrumentation/oracle-ucp-11.2/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/689ebe2076ea2e794afb21cce8eb3aa712088f7b"
+      ],
+      "id": "PRRT_kwDODJKVX86b1p8W",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/689ebe2076ea2e794afb21cce8eb3aa712088f7b/instrumentation/oracle-ucp-11.2/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eefc01bd7b20acf1f5845a97a1fe85afa622ef68"
+      ],
+      "id": "PRRT_kwDODJKVX86cFYZj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/689ebe2076ea2e794afb21cce8eb3aa712088f7b/instrumentation/oracle-ucp-11.2/testing/src/main/java/io/opentelemetry/instrumentation/oracleucp/AbstractOracleUcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/testing/src/main/java/io/opentelemetry/instrumentation/oracleucp/AbstractOracleUcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eefc01bd7b20acf1f5845a97a1fe85afa622ef68"
+      ],
+      "id": "PRRT_kwDODJKVX86cFYZ1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eefc01bd7b20acf1f5845a97a1fe85afa622ef68/instrumentation/oracle-ucp-11.2/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fa47a84ea0a38f82d0e30e891f6308dfa8f34723"
+      ],
+      "id": "PRRT_kwDODJKVX86cg0We",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa47a84ea0a38f82d0e30e891f6308dfa8f34723/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f15ecee24d22bdffd7461b115e1cbcddb841c630"
+      ],
+      "id": "PRRT_kwDODJKVX86csHLJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f15ecee24d22bdffd7461b115e1cbcddb841c630/instrumentation/oracle-ucp-11.2/library/src/main/java/io/opentelemetry/instrumentation/oracleucp/v11_2/OracleUcpTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/58fe5f1dc8f95b69c8b64adfa43c9eca71973998/instrumentation/oracle-ucp-11.2/library/src/main/java/io/opentelemetry/instrumentation/oracleucp/v11_2/OracleUcpTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9f4c8a8b9abb9eeeaba2696c79b4c33bb04ceb73"
+      ],
+      "id": "PRRT_kwDODJKVX86duMf0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

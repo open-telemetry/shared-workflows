@@ -1,0 +1,52 @@
+{
+  "head": "e446ac1267474e46f88806f6dc96308c453c96ce",
+  "merge": "65b73f0b02c3d4cb05a6ee69148adbf20fc548b0",
+  "merged": "2026-10-27T06:55:48Z",
+  "missing_roots": 0,
+  "number": 20990,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to satisfy the original preview-gating requirement. Preserve the main base, draft state, existing spans and exception behavior, RPC preview flag, shared metric implementation, and dual-emission method customization. Do not create another PR or edit the PR title or description.\n\nThe original assignment explicitly required preserving the absence of GWT RPC metrics with preview disabled. The current GwtSingletons adds RpcServerMetrics.get() unconditionally, which makes the shared listener emit rpc.server.duration in legacy-only mode. GwtTest now expects this unintended new default telemetry. Copilot review 5659795117 has no findings, but this full-diff compatibility issue remains actionable.\n\nGate both operation-metric registration and the associated dual-emission context customizer on RpcSemconvSelection.Selection.emitPreview(), following the existing preview-gated Java RMI or Spring RMI pattern. Reuse the selection for the schema URL where appropriate. Preview rpc must emit the seconds rpc.server.call.duration histogram; rpc/dup must retain the shared helper's correct old/new metric method dimensions. Legacy-only mode must register and emit no GWT-scoped RPC metrics, exactly as before this PR.\n\nKeep the existing actual successful/failed GWT integration calls and replace the default-mode positive metric assertions with explicit absence assertions for scope io.opentelemetry.gwt-2.0. Assert the preview histogram's standard bucket boundaries inline: 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100. Keep seconds units, one observation per call, logical method/system/error dimensions, and appropriate dual-mode legacy metric coverage. Update the metadata description to make the preview opt-in requirement clear while retaining RPC_SERVER_METRICS. No client instrumentation, unrelated metrics, configuration, or method-recognition changes. Run the narrowest relevant spotlessApply directly before the existing default/preview/dual behavior tests; preserve caches and report actual blockers.",
+      "created": "2026-10-26T22:16:52Z",
+      "hunk": "@@ -38,7 +42,10 @@ public class GwtSingletons {\n             .setSchemaUrl(\n                 RpcSemconvSelection.Selection.forOpenTelemetry(GlobalOpenTelemetry.get())\n                     .schemaUrl())\n-            .addAttributesExtractor(RpcServerAttributesExtractor.create(rpcAttributesGetter));\n+            .addAttributesExtractor(RpcServerAttributesExtractor.create(rpcAttributesGetter))\n+            .addOperationMetrics(RpcServerMetrics.get())",
+      "id": "PRRT_kwDODJKVX86wehkF",
+      "opened": "2026-10-26T22:16:52Z",
+      "path": "instrumentation/gwt-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-26T22:31:22Z",
+          "body": "Gated GWT RPC metrics and dual-emission customization on RPC preview selection, added the requested default absence and histogram-boundary assertions, and clarified metadata. Commit: `515c85f4`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20990#discussion_r4383228764"
+        }
+      ],
+      "reviewed": "0dbe886d51265e235f8b95caf2dde083d5d9a228",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20990#discussion_r4383121996"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove the redundant histogram bucket-boundary assertion from assertDurationMetrics in instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtTest.java. Remove the .satisfies(...) block that calls pointData.getBoundaries() and compares the explicit bucket list. The shared RpcServerMetricsTest already covers the default boundaries, and GWT registers RpcServerMetrics.get() without customization, so this test should focus on GWT-specific behavior. Preserve all remaining metric assertions, including emission modes, names, units, count, positive duration, and attributes for successful and failed calls. Leave production code, metadata, and the shared metrics tests unchanged. Do not replace the removed check with hasBucketBoundaries or another boundary assertion. Run the narrowest relevant spotlessApply directly before the relevant existing GWT tests, and report any validation blockers. Do not create another PR or edit this PR's title or description.",
+      "created": "2026-10-27T00:05:03Z",
+      "hunk": "@@ -228,4 +230,64 @@ void testGwt() {\n                   .hasException(new IOException()));\n     }\n   }\n+\n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  private static void assertDurationMetrics(String errorType) {\n+    if (!emitPreviewRpcSemconv()) {\n+      assertThat(testing.metrics())\n+          .noneMatch(\n+              metric ->\n+                  metric\n+                      .getInstrumentationScopeInfo()\n+                      .getName()\n+                      .equals(\"io.opentelemetry.gwt-2.0\"));\n+      return;\n+    }\n+    if (emitOldRpcSemconv()) {\n+      testing.waitAndAssertMetrics(\n+          \"io.opentelemetry.gwt-2.0\",\n+          metric ->\n+              metric\n+                  .hasName(\"rpc.server.duration\")\n+                  .hasUnit(\"ms\")\n+                  .hasHistogramSatisfying(\n+                      histogram ->\n+                          histogram.hasPointsSatisfying(\n+                              point ->\n+                                  point\n+                                      .hasCount(1)\n+                                      .hasSumGreaterThan(0)\n+                                      .hasAttributesSatisfyingExactly(\n+                                          equalTo(RPC_SYSTEM, \"gwt\"),\n+                                          equalTo(RPC_SERVICE, \"test.gwt.shared.MessageService\"),\n+                                          equalTo(RPC_METHOD, \"sendMessage\")))));\n+    }\n+    if (emitPreviewRpcSemconv()) {\n+      testing.waitAndAssertMetrics(\n+          \"io.opentelemetry.gwt-2.0\",\n+          metric ->\n+              metric\n+                  .hasName(\"rpc.server.call.duration\")\n+                  .hasUnit(\"s\")\n+                  .hasHistogramSatisfying(\n+                      histogram ->\n+                          histogram.hasPointsSatisfying(\n+                              point ->\n+                                  point\n+                                      .hasCount(1)\n+                                      .hasSumGreaterThan(0)\n+                                      .hasAttributesSatisfyingExactly(\n+                                          equalTo(RPC_SYSTEM_NAME, \"gwt\"),\n+                                          equalTo(\n+                                              RPC_METHOD,\n+                                              \"test.gwt.shared.MessageService/sendMessage\"),\n+                                          equalTo(ERROR_TYPE, errorType))\n+                                      .satisfies(\n+                                          pointData ->\n+                                              assertThat(pointData.getBoundaries())",
+      "id": "PRRT_kwDODJKVX86wgIZ5",
+      "opened": "2026-10-27T00:05:03Z",
+      "path": "instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtTest.java",
+      "replies": [
+        {
+          "at": "2026-10-27T00:15:22Z",
+          "body": "Removed the redundant GWT bucket-boundary assertion; all remaining GWT metric assertions are unchanged. Commit: `cadfee7f`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20990#discussion_r4383871514"
+        }
+      ],
+      "reviewed": "515c85f4f6799bbd2b5ae4815a618d3a289e4bd5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20990#discussion_r4383816661"
+    }
+  ]
+}

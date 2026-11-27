@@ -1,0 +1,25 @@
+{
+  "head": "6f568173101d028dd32e1d2f00508dca2009733c",
+  "merge": "12afa2c0e1da5754d2b7b4c7c66e52e4b898f2d7",
+  "merged": "2026-10-02T01:11:08Z",
+  "missing_roots": 0,
+  "number": 20343,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only strips links whose URL is followed immediately by `)`. Valid Markdown links may include a title, e.g. `[run #27828265164](https://github.com/.../actions/runs/27828265164 \"workflow run\")`; that label remains intact, so the Actions run number is still treated as an issue reference. Normalize links with optional Markdown titles (or parse link destinations) before scanning, and add this form to the extraction test.",
+      "created": "2026-10-01T17:26:49Z",
+      "hunk": "@@ -407,6 +420,7 @@ def render_discussion_markdown(title: str, items: Any, item_type: str) -> str:\n def extract_reference_numbers(texts: list[str], excluded_numbers: set[int]) -> list[int]:\n     references: set[int] = set()\n     for text in texts:\n+        text = re.sub(r\"\\[[^\\]]*\\]\\((https?://[^\\s)]+)\\)\", r\"\\1\", text)",
+      "id": "PRRT_kwDODJKVX86oDtfR",
+      "opened": "2026-10-01T17:26:50Z",
+      "path": ".github/scripts/draft-release-notes/fetch.py",
+      "replies": [],
+      "reviewed": "6f568173101d028dd32e1d2f00508dca2009733c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20343#discussion_r4158408268"
+    }
+  ]
+}

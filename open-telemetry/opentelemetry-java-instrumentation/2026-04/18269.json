@@ -1,0 +1,25 @@
+{
+  "head": "f24a85a69a89e8feedfa2a29ebdc801e9e794931",
+  "merge": "f6545a4b64a00443025b2a874481b18ec4484b48",
+  "merged": "2026-04-25T20:16:58Z",
+  "missing_roots": 0,
+  "number": 18269,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  private static String parseNameFromProcessArgs(String[] args) {\n```",
+      "created": "2026-04-24T23:18:03Z",
+      "hunk": "@@ -276,7 +276,10 @@ private static String parseNameFromCommandLine(@Nullable String commandLine) {\n   }\n \n   @Nullable\n-  private static String parseNameFromProcessArgs(String[] args) {\n+  private static String parseNameFromProcessArgs(@Nullable String[] args) {\n+    if (args == null) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX859h6E_",
+      "opened": "2026-04-24T23:18:02Z",
+      "path": "instrumentation/spring/spring-boot-resources/javaagent/src/main/java/io/opentelemetry/instrumentation/spring/resources/SpringBootServiceNameDetector.java",
+      "replies": [],
+      "reviewed": "16509974ab12d84aa92cfbd20310c6b1a7433282",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18269#discussion_r3140742563"
+    }
+  ]
+}

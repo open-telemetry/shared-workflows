@@ -1,0 +1,52 @@
+{
+  "head": "14e3d896423d9943c822f079c79b314649a44ca8",
+  "merge": "bece3eb904a56f372002919d530ee1978fef81fa",
+  "merged": "2026-09-08T01:56:42Z",
+  "missing_roots": 0,
+  "number": 19998,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Please also add this topic to the review checklist in `.github/agents/knowledge/general-rules.md`. That file says to load the listed knowledge file before reviewing a category (`general-rules.md:12`), and its Javaagent rows route every other specialized topic (`general-rules.md:24-28`); without a locking row, reviews driven by the always-loaded checklist will not discover this new guidance.",
+      "created": "2026-09-05T21:09:33Z",
+      "hunk": "@@ -17,6 +17,7 @@ Load only files relevant to the current scope to reduce noise and avoid over-con\n | `javaagent-module-patterns.md`     | `InstrumentationModule`, `TypeInstrumentation`, `CallDepth`                                                                                                                                                 |\n | `javaagent-singletons-patterns.md` | `*Singletons`, `*SpanNaming`, and similar holder classes; singleton accessors; callers of singleton accessors/fields                                                                                        |\n | `javaagent-virtual-fields.md`      | `VirtualField`; javaagent or shared bootstrap state associated with third-party object instances; weak references, weak-key caches/maps, identity registries, or `Object`-keyed side tables                 |\n+| `javaagent-locking.md`             | Synchronization around shared javaagent instrumentation state; private lock ownership, bounded critical sections, and external calls or callbacks near locks                                                |",
+      "id": "PRRT_kwDODJKVX86fm666",
+      "opened": "2026-09-05T21:09:33Z",
+      "path": ".github/agents/knowledge/README.md",
+      "replies": [
+        {
+          "at": "2026-09-07T19:05:07Z",
+          "body": "Addressed in 2136e28c0536cf18a90d36cbc342abe94b7f3325.\n\nAnalysis: The always-loaded checklist must link each specialized knowledge file. The new locking guidance only appeared in the knowledge index, so review agents could miss it.\n\nUpsides: Reviews now load the locking guidance when synchronization protects instrumentation state.\n\nDownsides: The checklist gains one row.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19998#discussion_r3952120787"
+        }
+      ],
+      "reviewed": "05e04ddae91b071b9ff465951c3f0e00bfed8424",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19998#discussion_r3942063815"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Immutable replacement alone does not safely publish a new reference to other threads, so presenting it as an alternative to `volatile` leaves the documented visibility guarantee unmet. Require a safely published reference (for example, a volatile field) while noting that the referenced value can be immutable.\n\nThis issue also appears on line 48 of the same file.",
+      "created": "2026-09-07T17:56:44Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+# [Javaagent and Library] Locking Instrumentation State\n+\n+Use this guidance when synchronization protects state added by javaagent or library\n+instrumentation.\n+\n+## Establish the Supported Lifecycle\n+\n+Before adding or removing synchronization, trace the actual supported instrumentation callbacks:\n+\n+- Can initialization, completion, cancellation, retries, nested calls, or callbacks overlap?\n+- Can the instrumented object or library object be reused?\n+- Does the library already handle the operation one at a time or provide a context that survives an\n+  asynchronous handoff?\n+- Can subclasses, custom implementations, fallback storage, or disabled or skipped advice change\n+  the ordering?\n+- Does the state need exact metadata, or is omission or staleness explicitly acceptable?\n+\n+Preserve existing initialization, state visibility, context, cleanup, and reuse guarantees. Do not\n+assume that calls stay on one thread based on a helper, mock, or one-shot future when instrumentation\n+can run once per attempted operation.\n+\n+## Prefer the Existing Lifecycle\n+\n+Prefer the library's ordering or an operation context over a new handoff protocol. Use `VirtualField`\n+for javaagent state attached to third-party objects; keep the related updates safe as one unit.\n+\n+For shared mutable state:\n+\n+- use immutable replacement or `volatile` for one independently replaceable value;",
+      "id": "PRRT_kwDODJKVX86f_xq1",
+      "opened": "2026-09-07T17:56:45Z",
+      "path": ".github/agents/knowledge/javaagent-locking.md",
+      "replies": [
+        {
+          "at": "2026-09-07T19:05:08Z",
+          "body": "Addressed in ee600059f50687cd001d2987cd9d093b29d06c04.\n\nAnalysis: Immutable state prevents mutation after construction, but it does not publish a replacement reference. The guidance now requires safe publication and states that the value replaced through that reference can be immutable. It also describes the snapshot used after unlocking as a local value rather than a shared replacement.\n\nUpsides: The guidance now preserves Java Memory Model visibility and avoids suggesting that immutability alone publishes a new reference.\n\nDownsides: The guidance names `volatile` as an example, so readers still need to choose another valid publication mechanism when their lifecycle uses one.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19998#discussion_r3952120885"
+        }
+      ],
+      "reviewed": "cf390e57a47da9484f0a30afe03b70881875fa94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19998#discussion_r3951840202"
+    }
+  ]
+}

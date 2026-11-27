@@ -1,0 +1,88 @@
+{
+  "head": "9f8e39e542a98ebf9ddd30d680f3a0ecb50244b0",
+  "merge": "3ca0102ff0e72dc1b1eeeeff2286052128d138c7",
+  "merged": "2026-01-21T22:17:35Z",
+  "missing_roots": 0,
+  "number": 15944,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot need to keep getUser and getConnectionString everywhere for now for old semconv support",
+      "created": "2026-01-20T02:23:45Z",
+      "hunk": "@@ -20,33 +20,17 @@ public final class JdbcAttributesGetter implements SqlClientAttributesGetter<DbR\n \n   public static final JdbcAttributesGetter INSTANCE = new JdbcAttributesGetter();\n \n-  @Nullable\n   @Override\n   public String getDbSystemName(DbRequest request) {\n     return request.getDbInfo().getSystem();\n   }\n \n-  @Deprecated\n-  @Nullable\n-  @Override\n-  public String getUser(DbRequest request) {\n-    return request.getDbInfo().getUser();\n-  }\n-\n-  @Nullable\n   @Override\n   public String getDbNamespace(DbRequest request) {\n     DbInfo dbInfo = request.getDbInfo();\n     return dbInfo.getName() == null ? dbInfo.getDb() : dbInfo.getName();\n   }\n \n-  @Deprecated\n-  @Nullable\n-  @Override\n-  public String getConnectionString(DbRequest request) {\n-    return request.getDbInfo().getShortUrl();\n-  }\n-",
+      "id": "PRRT_kwDODJKVX85qE-Ob",
+      "opened": "2026-01-20T02:24:25Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-01-20T02:31:06Z",
+          "body": "Restored `getUser()` and `getConnectionString()` in JDBC, MongoDB, R2DBC, Vert.x Redis Client, and Vert.x SQL Client for old semconv support. (4531a24)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15944#discussion_r2706540514"
+        }
+      ],
+      "reviewed": "11bdea7848fb5fb57af64fb970f914d5c6762b65",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15944#discussion_r2706529902"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot need to keep this for old semconv support",
+      "created": "2026-01-20T02:24:22Z",
+      "hunk": "@@ -26,17 +24,6 @@ public final class SqlClientAttributesExtractorBuilder<REQUEST, RESPONSE> {\n     this.getter = getter;\n   }\n \n-  /**\n-   * @deprecated not needed anymore since the new semantic conventions always use db.collection.name\n-   */\n-  @CanIgnoreReturnValue\n-  @Deprecated\n-  public SqlClientAttributesExtractorBuilder<REQUEST, RESPONSE> setTableAttribute(\n-      AttributeKey<String> oldSemconvTableAttribute) {\n-    this.oldSemconvTableAttribute = requireNonNull(oldSemconvTableAttribute);\n-    return this;\n-  }\n-",
+      "id": "PRRT_kwDODJKVX85qE-Z2",
+      "opened": "2026-01-20T02:24:25Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesExtractorBuilder.java",
+      "replies": [
+        {
+          "at": "2026-01-20T02:31:06Z",
+          "body": "Restored `setTableAttribute()` method and its test for old semconv support. (4531a24)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15944#discussion_r2706540517"
+        }
+      ],
+      "reviewed": "11bdea7848fb5fb57af64fb970f914d5c6762b65",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15944#discussion_r2706530861"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this method and `getConnectionString` were pulled down into this interface from the deleted `DbClientCommonAttributesGetter`",
+      "created": "2026-01-20T02:33:47Z",
+      "hunk": "@@ -49,39 +37,44 @@ default String getDbQuerySummary(REQUEST request) {\n     return null;\n   }\n \n-  /**\n-   * @deprecated Use {@link #getDbOperationName(REQUEST)} instead.\n-   */\n-  @Deprecated\n+  // TODO: make this required to implement\n   @Nullable\n-  default String getOperation(REQUEST request) {\n+  default String getDbOperationName(REQUEST request) {\n     return null;\n   }\n \n   // TODO: make this required to implement\n+  String getDbSystemName(REQUEST request);\n+\n   @Nullable\n-  default String getDbOperationName(REQUEST request) {\n-    return getOperation(request);\n-  }\n+  String getDbNamespace(REQUEST request);\n \n-  // TODO: make this required to implement\n-  default String getDbSystemName(REQUEST request) {\n-    return getDbSystem(request);\n+  /**\n+   * Returns the database user name. This is only used for old semantic conventions.\n+   *\n+   * @deprecated There is no replacement at this time.\n+   */\n+  @Deprecated\n+  @Nullable\n+  default String getUser(REQUEST request) {",
+      "id": "PRRT_kwDODJKVX85qFBA6",
+      "opened": "2026-01-20T02:33:47Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [],
+      "reviewed": "4531a24c60054839d23e3b5fb437fb1e3d928a76",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15944#discussion_r2706544619"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we could consider making this required. The removal of `getStatement` would most likely break compilation of code that implements that method anyway (if it uses the `@Overrides`).",
+      "created": "2026-01-20T08:17:21Z",
+      "hunk": "@@ -22,25 +22,13 @@\n  * from the attribute methods, but implement as many as possible for best compliance with the\n  * OpenTelemetry specification.\n  */\n-@SuppressWarnings(\"deprecation\") // until DbClientCommonAttributesGetter is removed\n public interface DbClientAttributesGetter<REQUEST, RESPONSE>\n-    extends DbClientCommonAttributesGetter<REQUEST, RESPONSE>,\n-        NetworkAttributesGetter<REQUEST, RESPONSE>,\n-        ServerAttributesGetter<REQUEST> {\n-\n-  /**\n-   * @deprecated Use {@link #getDbQueryText(REQUEST)} instead.\n-   */\n-  @Deprecated\n-  @Nullable\n-  default String getStatement(REQUEST request) {\n-    return null;\n-  }\n+    extends NetworkAttributesGetter<REQUEST, RESPONSE>, ServerAttributesGetter<REQUEST> {\n \n   // TODO: make this required to implement\n   @Nullable\n   default String getDbQueryText(REQUEST request) {",
+      "id": "PRRT_kwDODJKVX85qHFNA",
+      "opened": "2026-01-20T08:17:21Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-01-21T22:17:30Z",
+          "body": "I'll send follow-up PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15944#discussion_r2714551674"
+        }
+      ],
+      "reviewed": "4531a24c60054839d23e3b5fb437fb1e3d928a76",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15944#discussion_r2707250326"
+    }
+  ]
+}

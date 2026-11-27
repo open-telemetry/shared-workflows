@@ -1,0 +1,36 @@
+{
+  "head": "cf1006cb1a6640e8f27a26e86c39155bfeb482a7",
+  "merge": "07794021bfe46e1c241408b6f55cb4354bd28318",
+  "merged": "2026-10-14T11:59:22Z",
+  "missing_roots": 0,
+  "number": 598,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The compatibility migration is incomplete: `model/gen-ai/entities.yaml:23` still sets `requirement_level: required` on the identity attribute. Weaver PR #1813 now ignores that field and emits an `InvalidAttributeWarning`, so this repository will retain a deprecated no-op setting even though this template assumes the new schema. Remove the model field as part of this update.",
+      "created": "2026-10-13T12:23:41Z",
+      "hunk": "@@ -36,7 +36,7 @@\n \n {#- Render a single row on the entity table. -#}\n {% macro attribute_row(attribute, attribute_registry_base_url, upstream_docs_base, notes, role) -%}\n-| {{ role_tag(role) | trim }} | {{ attrs.name_with_link(attribute, attribute_registry_base_url, upstream_docs_base) }} | {{ stability.badge(attribute.stability, attribute.deprecated, attribute.brief) | trim }} | {{ requirement.render({\"level\": attribute.requirement_level, \"name\": attrs.name(attribute)}, notes) | trim }} | {{ attrs.type(attribute) }} | {{ attribute.brief | trim }}{{ notes.add({\"note\": attribute.note, \"name\": attrs.name(attribute)}) }} | {{ examples.format(attribute) }}|\n+| {{ role_tag(role) | trim }} | {{ attrs.name_with_link(attribute, attribute_registry_base_url, upstream_docs_base) }} | {{ stability.badge(attribute.stability, attribute.deprecated, attribute.brief) | trim }} | {{ requirement.render({\"level\": (\"required\" if role == \"identity\" else attribute.requirement_level), \"name\": attrs.name(attribute)}, notes) | trim }} | {{ attrs.type(attribute) }} | {{ attribute.brief | trim }}{{ notes.add({\"note\": attribute.note, \"name\": attrs.name(attribute)}) }} | {{ examples.format(attribute) }}|",
+      "id": "PRRT_kwDOSUeMrM6r2wRB",
+      "opened": "2026-10-13T12:23:41Z",
+      "path": "templates/registry/markdown/entity_macros.j2",
+      "replies": [
+        {
+          "at": "2026-10-13T15:34:27Z",
+          "body": "@jsuereth  mind removing it ?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/598#discussion_r4260697049"
+        },
+        {
+          "at": "2026-10-14T11:58:02Z",
+          "body": "We can't do that yet, until weaver is released.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/598#discussion_r4270435206"
+        }
+      ],
+      "reviewed": "cf1006cb1a6640e8f27a26e86c39155bfeb482a7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/598#discussion_r4258561996"
+    }
+  ]
+}

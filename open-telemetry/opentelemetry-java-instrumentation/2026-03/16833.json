@@ -1,0 +1,46 @@
+{
+  "head": "d799cf9080f6c020f44a4b5ea6f708a8b56e5a77",
+  "merge": "75e82bfc060563308d14b8168ca091d5c55076dd",
+  "merged": "2026-03-20T20:11:40Z",
+  "missing_roots": 0,
+  "number": 16833,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot add the remaining attributes to make the test pass",
+      "created": "2026-03-20T19:14:31Z",
+      "hunk": "@@ -108,10 +108,10 @@ abstract class AbstractKtorServerMetricsTest : AbstractHttpServerUsingTest<Embed\n           .hasLongSumSatisfying { sum ->\n             sum.hasPointsSatisfying({ point ->\n               point.hasValue(0)\n-                .hasAttributesSatisfying {\n-                  equalTo(HttpAttributes.HTTP_REQUEST_METHOD, \"GET\")\n-                  equalTo(UrlAttributes.URL_PATH, endpoint.path)\n-                }\n+                .hasAttributesSatisfyingExactly(\n+                  equalTo(HttpAttributes.HTTP_REQUEST_METHOD, \"GET\"),\n+                  equalTo(UrlAttributes.URL_PATH, endpoint.path),\n+                )",
+      "id": "PRRT_kwDODJKVX851y2ZG",
+      "opened": "2026-03-20T19:14:31Z",
+      "path": "instrumentation/ktor/ktor-3.0/testing/src/main/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/AbstractKtorServerMetricsTest.kt",
+      "replies": [
+        {
+          "at": "2026-03-20T19:37:22Z",
+          "body": "wait... how was this test passing before... (`url.path` shouldn't be an attribute on metrics)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16833#discussion_r2967633402"
+        }
+      ],
+      "reviewed": "d8af60fcb3ba51a394a76b6b89ee837686a28fee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16833#discussion_r2967541027"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this was passing before (even though `url.path` metric attribute doesn't exist) because Kotlin's trailing lambda syntax silently binds to Consumer<T> functional interfaces instead of varargs",
+      "created": "2026-03-20T19:44:11Z",
+      "hunk": "@@ -108,10 +108,10 @@ abstract class AbstractKtorServerMetricsTest : AbstractHttpServerUsingTest<Embed\n           .hasLongSumSatisfying { sum ->\n             sum.hasPointsSatisfying({ point ->\n               point.hasValue(0)\n-                .hasAttributesSatisfying {\n-                  equalTo(HttpAttributes.HTTP_REQUEST_METHOD, \"GET\")\n-                  equalTo(UrlAttributes.URL_PATH, endpoint.path)",
+      "id": "PRRT_kwDODJKVX851zNsi",
+      "opened": "2026-03-20T19:44:11Z",
+      "path": "instrumentation/ktor/ktor-3.0/testing/src/main/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/AbstractKtorServerMetricsTest.kt",
+      "replies": [],
+      "reviewed": "d799cf9080f6c020f44a4b5ea6f708a8b56e5a77",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16833#discussion_r2967668994"
+    }
+  ]
+}

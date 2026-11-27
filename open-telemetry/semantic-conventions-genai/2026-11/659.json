@@ -1,0 +1,46 @@
+{
+  "head": "92669b1f8f5e952c4ad39130600fdce8b5d4a0f5",
+  "merge": "58c793182bb676e4faadec8b87b43299f46fe476",
+  "merged": "2026-11-05T02:17:22Z",
+  "missing_roots": 0,
+  "number": 659,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The embeddings error handlers in `aws-bedrock`, `azure-ai-inference`, `azure-openai`, `cohere`, `google-genai`, `litellm`, and `mistralai` record span/metric errors but omit this event. They have access to the SDK exception details, so this leaves capturable signals uncovered under `.github/instructions/evaluate-reference.instructions.md:40`. Add SDK failure cases and correlated WARN exception logs to these scenarios, then refresh their coverage data and READMEs.",
+      "created": "2026-10-30T23:55:24Z",
+      "hunk": "@@ -73,19 +73,39 @@ events:\n   - name: gen_ai.client.operation.exception\n     requirement_level: recommended\n     brief: >\n-      This event represents an exception that occurred during a Generative AI client operation other than inference,\n+      This event represents an exception that occurred during a Generative AI client operation other than inference or embeddings,\n       such as API errors, rate limiting, model errors, timeouts, or other errors that prevent\n       the operation from completing successfully.\n     note: >\n-      This event SHOULD be recorded when an exception occurs during Generative AI client operations other than inference.\n+      This event SHOULD be recorded when an exception occurs during Generative AI client operations other than inference or embeddings.\n \n       For inference operations, instrumentations SHOULD record `gen_ai.client.inference.exception`\n       instead of this event.\n \n+      For embeddings operations, instrumentations SHOULD record `gen_ai.client.embeddings.exception`\n+      instead of this event.\n+\n       Instrumentations SHOULD set the severity to WARN (severity number 13) when recording this event.\n \n       Instrumentations MAY provide a configuration option to populate exception events\n       with the attributes captured on the corresponding Generative AI client span.\n     stability: development\n     attributes:\n       - ref_group: attributes.gen_ai.exception\n+\n+  - name: gen_ai.client.embeddings.exception",
+      "id": "PRRT_kwDOSUeMrM6yLbLG",
+      "opened": "2026-10-30T23:55:24Z",
+      "path": "model/gen-ai/events.yaml",
+      "replies": [
+        {
+          "at": "2026-10-31T00:25:43Z",
+          "body": "Added correlated WARN exception logs to all seven existing embeddings error handlers in [ac25c1b](https://github.com/open-telemetry/semantic-conventions-genai/commit/ac25c1b6affa627b6ac3e3e1292136434a49b382), preserving metrics and rethrow behavior. The READMEs note that these paths aren't exercised. Keeping the existing OpenAI failure proof without adding per-library failure cases.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/659#discussion_r4429583878"
+        }
+      ],
+      "reviewed": "e75e6af24c9789492b60fd11505f87637a676eac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/659#discussion_r4429455714"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`Logger.emit` takes the exception object directly (opentelemetry-api 1.45.1), and the SDK fills `exception.type`/`message`/`stacktrace` from it. Would be nice to use it here and in the other scenarios (then `traceback` import can go too):\n\n```suggestion\n                exception=error,\n```",
+      "created": "2026-10-31T02:15:06Z",
+      "hunk": "@@ -1028,10 +1028,19 @@ def run_embeddings_reference(client):\n                 span.set_attribute(\"gen_ai.usage.input_tokens\", resp.usage.prompt_tokens)\n                 input_token_count = resp.usage.prompt_tokens\n             print(f\"    -> embedding dim: {len(resp.data[0].embedding)}\")\n-        except Exception as e:\n-            span.set_status(StatusCode.ERROR, str(e))\n-            span.set_attribute(\"error.type\", type(e).__qualname__)\n-            metric_attributes[\"error.type\"] = type(e).__qualname__\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", type(error).__qualname__)\n+            metric_attributes[\"error.type\"] = type(error).__qualname__\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.embeddings.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                attributes={\n+                    \"exception.type\": f\"{type(error).__module__}.{type(error).__qualname__}\",\n+                    \"exception.message\": str(error),\n+                    \"exception.stacktrace\": \"\".join(traceback.format_exception(error)),\n+                },",
+      "id": "PRRT_kwDOSUeMrM6yMkIc",
+      "opened": "2026-10-31T02:37:58Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "ac25c1b6affa627b6ac3e3e1292136434a49b382",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/659#discussion_r4429943261"
+    }
+  ]
+}

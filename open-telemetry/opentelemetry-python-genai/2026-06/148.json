@@ -1,0 +1,70 @@
+{
+  "head": "dd3094a49a26778f5e7510be3a5f2c79e3ce206b",
+  "merge": "5462d9ea4310aa0f716d210f6343d238a433b9bc",
+  "merged": "2026-06-19T23:00:00Z",
+  "missing_roots": 0,
+  "number": 148,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_process_chunk()` exceptions are no longer swallowed, so an instrumentation bug will now break user iteration (and this repo’s `test_stream.py` currently asserts process-chunk errors are ignored). This also risks leaving streams partially-consumed due to unexpected exceptions.\n\nWrap `_process_chunk()` in a broad try/except and only debug-log on failure, so stream consumption behavior stays stable while still surfacing telemetry bugs via logs.",
+      "created": "2026-06-18T01:24:14Z",
+      "hunk": "@@ -111,15 +111,12 @@ def __next__(self) -> ChunkT:\n         try:\n             chunk = next(self._self_iterator)\n         except StopIteration:\n-            self._safe_finalize_success()\n+            self._finalize_success()\n             raise\n         except Exception as error:\n-            self._safe_finalize_failure(error)\n+            self._finalize_failure(error)\n             raise\n-        try:\n-            self._process_chunk(chunk)\n-        except Exception as error:  # pylint: disable=broad-exception-caught\n-            self._handle_process_chunk_error(error)\n+        self._process_chunk(chunk)",
+      "id": "PRRT_kwDOSbspP86KZckN",
+      "opened": "2026-06-18T01:24:15Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "f423bfdd5ec6357f5bbb082f0c6ba588c602dde1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/148#discussion_r3432432733"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_on_stream_error()` exceptions can now escape from `_finalize_failure()`, which can mask the *original* stream error or user exception (e.g., during `__exit__`/`__aexit__`) and violates the expectation that instrumentation never changes the exception surfaced to the caller.\n\nCatch and debug-log exceptions from `_on_stream_error()` inside `_finalize_failure()` so the original error is preserved.",
+      "created": "2026-06-18T01:24:15Z",
+      "hunk": "@@ -134,24 +131,6 @@ def _finalize_failure(self, error: BaseException) -> None:\n         self._self_finalized = True\n         self._on_stream_error(error)",
+      "id": "PRRT_kwDOSbspP86KZckT",
+      "opened": "2026-06-18T01:24:15Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "f423bfdd5ec6357f5bbb082f0c6ba588c602dde1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/148#discussion_r3432432748"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_process_chunk()` exceptions are no longer swallowed in async iteration, so an instrumentation bug can now break user `async for` loops (and the existing stream wrapper tests assert process-chunk errors are ignored).\n\nWrap `_process_chunk()` in try/except and debug-log failures to keep stream semantics stable.",
+      "created": "2026-06-18T01:24:15Z",
+      "hunk": "@@ -240,15 +216,13 @@ async def __anext__(self) -> ChunkT:\n         try:\n             chunk = await anext(self._self_aiter)\n         except StopAsyncIteration:\n-            self._safe_finalize_success()\n+            self._finalize_success()\n             raise\n         except Exception as error:\n-            self._safe_finalize_failure(error)\n+            self._finalize_failure(error)\n             raise\n-        try:\n-            self._process_chunk(chunk)\n-        except Exception as error:  # pylint: disable=broad-exception-caught\n-            self._handle_process_chunk_error(error)\n+\n+        self._process_chunk(chunk)",
+      "id": "PRRT_kwDOSbspP86KZcka",
+      "opened": "2026-06-18T01:24:15Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "f423bfdd5ec6357f5bbb082f0c6ba588c602dde1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/148#discussion_r3432432757"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Async `_finalize_failure()` now directly calls `_on_stream_error(error)`; if the instrumentation hook raises, it can mask the original stream/user exception being handled by `__aexit__`, `__anext__`, or `close()`.\n\nCatch and debug-log exceptions from `_on_stream_error()` inside `_finalize_failure()` so the original error remains the one propagated to the caller.",
+      "created": "2026-06-18T01:24:15Z",
+      "hunk": "@@ -263,24 +237,6 @@ def _finalize_failure(self, error: BaseException) -> None:\n         self._self_finalized = True\n         self._on_stream_error(error)",
+      "id": "PRRT_kwDOSbspP86KZcki",
+      "opened": "2026-06-18T01:24:15Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "f423bfdd5ec6357f5bbb082f0c6ba588c602dde1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/148#discussion_r3432432772"
+    }
+  ]
+}

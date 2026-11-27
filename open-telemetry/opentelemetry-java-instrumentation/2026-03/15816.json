@@ -1,0 +1,55 @@
+{
+  "head": "c4b0d0ec269e6315f979ae1bd698e9294a2d6b84",
+  "merge": "9a9f92ed9f4b24d2f6ab45508e0f796492589fb8",
+  "merged": "2026-03-16T16:27:04Z",
+  "missing_roots": 0,
+  "number": 15816,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "You also need to update `.github/scripts/update-sdk-version.sh` as the gradle build file name has changed.",
+      "created": "2026-01-12T09:10:49Z",
+      "hunk": "@@ -10,30 +12,28 @@ plugins {\n   into a single jar.\n   See https://imperceptiblethoughts.com/shadow/ for more details about Shadow plugin.\n    */\n-  id \"com.gradleup.shadow\" version \"9.3.1\"\n-  id \"com.diffplug.spotless\" version \"8.1.0\"\n+  id(\"com.gradleup.shadow\") version \"9.3.1\"\n+  id(\"com.diffplug.spotless\") version \"8.1.0\"\n \n-  id \"io.opentelemetry.instrumentation.muzzle-generation\" version \"2.24.0-alpha-SNAPSHOT\"\n-  id \"io.opentelemetry.instrumentation.muzzle-check\" version \"2.24.0-alpha-SNAPSHOT\"\n+  id(\"io.opentelemetry.instrumentation.muzzle-generation\") version \"2.24.0-alpha-SNAPSHOT\"\n+  id(\"io.opentelemetry.instrumentation.muzzle-check\") version \"2.24.0-alpha-SNAPSHOT\"\n }\n \n-group 'io.opentelemetry.example'\n-version '1.0'\n+group = \"io.opentelemetry.example\"\n+version = \"1.0\"\n \n-ext {",
+      "id": "PRRT_kwDODJKVX85o8V0D",
+      "opened": "2026-01-12T09:10:49Z",
+      "path": "examples/extension/build.gradle.kts",
+      "replies": [],
+      "reviewed": "50941ae333ca5a89fd07119c2f3f9fdd856ca723",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15816#discussion_r2681399977"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think the regex needs to be updated to match kotlin dsl",
+      "created": "2026-03-15T22:10:57Z",
+      "hunk": "@@ -16,10 +16,10 @@ sed -Ei \"s/(opentelemetryJavaagentAlpha *: )\\\"[^\\\"]*\\\"/\\1\\\"$alpha_version\\\"/\" ex\n \n sed -Ei \"s/(classpath \\\"io.opentelemetry.instrumentation:gradle-plugins:)[^\\\"]*\\\"/\\1$alpha_version\\\"/\" examples/distro/build.gradle\n \n-sed -Ei \"s/(opentelemetryJavaagent *: )\\\"[^\\\"]*\\\"/\\1\\\"$version\\\"/\" examples/extension/build.gradle\n-sed -Ei \"s/(opentelemetryJavaagentAlpha *: )\\\"[^\\\"]*\\\"/\\1\\\"$alpha_version\\\"/\" examples/extension/build.gradle\n+sed -Ei \"s/(\\\"opentelemetryJavaagent\\\" to )\\\"[^\\\"]*\\\"/\\1\\\"$version\\\"/\" examples/extension/build.gradle.kts\n+sed -Ei \"s/(\\\"opentelemetryJavaagentAlpha\\\" to )\\\"[^\\\"]*\\\"/\\1\\\"$alpha_version\\\"/\" examples/extension/build.gradle.kts\n \n-sed -Ei \"s/(io.opentelemetry.instrumentation.muzzle-generation\\\" version )\\\"[^\\\"]*\\\"/\\1\\\"$alpha_version\\\"/\" examples/extension/build.gradle\n-sed -Ei \"s/(io.opentelemetry.instrumentation.muzzle-check\\\" version )\\\"[^\\\"]*\\\"/\\1\\\"$alpha_version\\\"/\" examples/extension/build.gradle\n+sed -Ei \"s/(io.opentelemetry.instrumentation.muzzle-generation\\\" version )\\\"[^\\\"]*\\\"/\\1\\\"$alpha_version\\\"/\" examples/extension/build.gradle.kts\n+sed -Ei \"s/(io.opentelemetry.instrumentation.muzzle-check\\\" version )\\\"[^\\\"]*\\\"/\\1\\\"$alpha_version\\\"/\" examples/extension/build.gradle.kts",
+      "id": "PRRT_kwDODJKVX850caKA",
+      "opened": "2026-03-15T22:12:07Z",
+      "path": ".github/scripts/update-version.sh",
+      "replies": [],
+      "reviewed": "4cdfd0bcd8db03d03c84c4d17e01d2b52b66cbc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15816#discussion_r2937427128"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "AI tells me to consider this to fail loudly on missing dep\n```suggestion\n  deps.getValue(\"autoservice\").let\n```",
+      "created": "2026-03-15T22:11:43Z",
+      "hunk": "@@ -77,8 +77,10 @@ dependencies {\n   compileOnly(\"io.opentelemetry.javaagent:opentelemetry-javaagent-extension-api\")\n \n   //Provides @AutoService annotation that makes registration of our SPI implementations much easier\n-  compileOnly deps.autoservice\n-  annotationProcessor deps.autoservice\n+  deps[\"autoservice\"]?.let {",
+      "id": "PRRT_kwDODJKVX850caUf",
+      "opened": "2026-03-15T22:12:07Z",
+      "path": "examples/extension/build.gradle.kts",
+      "replies": [],
+      "reviewed": "4cdfd0bcd8db03d03c84c4d17e01d2b52b66cbc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15816#discussion_r2937427985"
+    }
+  ]
+}

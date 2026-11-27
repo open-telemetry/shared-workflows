@@ -1,0 +1,120 @@
+{
+  "head": "98f1a5aa0edb6dcd068b71f0ef1808f144bc69db",
+  "merge": "7e22bd1efea1ac2546d3adb1e34ba0f751988308",
+  "merged": "2026-11-25T19:20:57Z",
+  "missing_roots": 0,
+  "number": 723,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This call records `error.type` on all five usage counters, but their committed attribute lists in `reference/scenarios/openai/data.json:152-195` still omit it. The snapshot therefore lacks evidence for the new convention, and a successful scenario run will fail CI's unchanged-file check in `.github/workflows/ci.yml:179-191`. From `reference/`, run `uv run run-scenario openai --strict`, then `uv run update-reports`, and commit the generated changes as required by `reference/CONTRIBUTING.md:96-97`.",
+      "created": "2026-11-17T23:52:29Z",
+      "hunk": "@@ -385,6 +385,111 @@ def run_chat_error_reference():\n             raise AssertionError(\"Expected the SDK to reject the inference request\")\n \n \n+def run_chat_parse_error_reference():\n+    \"\"\"Exercise a non-streaming parsing error whose SDK exception retains usage.\"\"\"\n+    import httpx2\n+    import openai\n+    from pydantic import BaseModel\n+\n+    class Answer(BaseModel):\n+        answer: str\n+\n+    request_model = \"gpt-5.6-sol\"\n+    request_max_tokens = 32\n+    messages = [\n+        {\n+            \"role\": \"user\",\n+            \"content\": \"Summarize these notes as JSON:\\n\" + \"Reference note. \" * 1024,\n+        }\n+    ]\n+    transport = httpx2.MockTransport(\n+        lambda request: httpx2.Response(\n+            200,\n+            json={\n+                \"id\": \"chatcmpl-parse-error\",\n+                \"object\": \"chat.completion\",\n+                \"created\": 1730000000,\n+                \"model\": request_model,\n+                \"choices\": [\n+                    {\n+                        \"index\": 0,\n+                        \"message\": {\"role\": \"assistant\", \"content\": '{\"answer\":\"The summary is'},\n+                        \"finish_reason\": \"length\",\n+                    }\n+                ],\n+                \"usage\": {\n+                    \"prompt_tokens\": 4096,\n+                    \"completion_tokens\": 32,\n+                    \"total_tokens\": 4128,\n+                    \"prompt_tokens_details\": {\"cached_tokens\": 2048, \"cache_write_tokens\": 1024},\n+                    \"completion_tokens_details\": {\"reasoning_tokens\": 16},\n+                },\n+            },\n+        )\n+    )\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = usage_metric_attributes(request_model, None, host, port)\n+    with (\n+        openai.OpenAI(\n+            base_url=MOCK_BASE_URL,\n+            api_key=\"mock-key\",\n+            max_retries=0,\n+            http_client=httpx2.Client(transport=transport),\n+        ) as client,\n+        _reference_tracer.start_as_current_span(\n+            f\"chat {request_model}\", kind=SpanKind.CLIENT, attributes=span_attributes, record_exception=False\n+        ) as span,\n+    ):\n+        span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n+        span.set_attribute(\n+            \"gen_ai.input.messages\",\n+            [\n+                {\"role\": message[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": message[\"content\"]}]}\n+                for message in messages\n+            ],\n+        )\n+        try:\n+            client.chat.completions.parse(\n+                model=request_model,\n+                messages=messages,\n+                max_completion_tokens=request_max_tokens,\n+                response_format=Answer,\n+            )\n+        except openai.LengthFinishReasonError as error:\n+            completion = error.completion\n+            error_type = f\"{type(error).__module__}.{type(error).__qualname__}\"\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", error_type)\n+            span.set_attribute(\"gen_ai.response.id\", completion.id)\n+            span.set_attribute(\"gen_ai.response.model\", completion.model)\n+            span.set_attribute(\"gen_ai.response.finish_reasons\", chat_finish_reasons(completion.choices))\n+            usage = {}\n+            if completion.usage is not None:\n+                usage[\"gen_ai.usage.input_tokens\"] = completion.usage.prompt_tokens\n+                usage[\"gen_ai.usage.output_tokens\"] = completion.usage.completion_tokens\n+                prompt_details = completion.usage.prompt_tokens_details\n+                if prompt_details is not None:\n+                    if prompt_details.cached_tokens is not None:\n+                        usage[\"gen_ai.usage.cache_read.input_tokens\"] = prompt_details.cached_tokens\n+                    if prompt_details.cache_write_tokens is not None:\n+                        usage[\"gen_ai.usage.cache_write.input_tokens\"] = prompt_details.cache_write_tokens\n+                completion_details = completion.usage.completion_tokens_details\n+                if completion_details is not None and completion_details.reasoning_tokens is not None:\n+                    usage[\"gen_ai.usage.reasoning.output_tokens\"] = completion_details.reasoning_tokens\n+            for attribute, value in usage.items():\n+                span.set_attribute(attribute, value)\n+            metric_attributes = usage_metric_attributes(request_model, completion.model, host, port)\n+            metric_attributes[\"error.type\"] = error_type\n+            record_inference_usage(usage, metric_attributes)",
+      "id": "PRRT_kwDOSUeMrM64tjlw",
+      "opened": "2026-11-17T23:52:29Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-18T00:29:41Z",
+          "body": "Fixed in d45116758e6c68c1d53ecefeaca85ac12d545631. Committed the five `error.type` additions to the OpenAI snapshot, matching the output from the successful CI scenario run. Regenerated the reference reports locally; they were unchanged.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4607662780"
+        }
+      ],
+      "reviewed": "bed0e7e6b42dc84dd6772a2e3d6265e13632367b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4607379843"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: commenting here, but it's probably for the metric description - should we say to record 'known' usage at the time when operation ends? \n\nthis answers if partial counts should be recorded (e.g. Anthropic chunks include usage and instrumentation can accumulate and report them on failure even before final response is received); it also hints that usage should be reported when operation ends, not when the usage is received ",
+      "created": "2026-11-18T18:33:37Z",
+      "hunk": "@@ -40,6 +40,7 @@ metrics:\n         metric_value_type: int\n     attributes:\n       - ref_group: metric_attributes.gen_ai.inference_usage\n+      - ref_group: attributes.gen_ai.error",
+      "id": "PRRT_kwDOSUeMrM65IhSs",
+      "opened": "2026-11-18T18:44:06Z",
+      "path": "model/gen-ai/token-metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T21:48:15Z",
+          "body": "Clarifying in #726, moving this PR to draft for now",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4621316604"
+        },
+        {
+          "at": "2026-11-25T18:33:23Z",
+          "body": "resolving, I think the two PRs can go in parallel",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4699217756"
+        }
+      ],
+      "reviewed": "d45116758e6c68c1d53ecefeaca85ac12d545631",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4618950309"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] `usage` is already a flat dict of attribute names to values, so you can pass it straight to the bulk API and drop the loop. Other reference scenarios already call `span.set_attributes` (for example, `a2a-python`).\n\n```suggestion\n            span.set_attributes(usage)\n```",
+      "created": "2026-11-23T21:12:49Z",
+      "hunk": "@@ -385,6 +385,111 @@ def run_chat_error_reference():\n             raise AssertionError(\"Expected the SDK to reject the inference request\")\n \n \n+def run_chat_parse_error_reference():\n+    \"\"\"Exercise a non-streaming parsing error whose SDK exception retains usage.\"\"\"\n+    import httpx2\n+    import openai\n+    from pydantic import BaseModel\n+\n+    class Answer(BaseModel):\n+        answer: str\n+\n+    request_model = \"gpt-5.6-sol\"\n+    request_max_tokens = 32\n+    messages = [\n+        {\n+            \"role\": \"user\",\n+            \"content\": \"Summarize these notes as JSON:\\n\" + \"Reference note. \" * 1024,\n+        }\n+    ]\n+    transport = httpx2.MockTransport(\n+        lambda request: httpx2.Response(\n+            200,\n+            json={\n+                \"id\": \"chatcmpl-parse-error\",\n+                \"object\": \"chat.completion\",\n+                \"created\": 1730000000,\n+                \"model\": request_model,\n+                \"choices\": [\n+                    {\n+                        \"index\": 0,\n+                        \"message\": {\"role\": \"assistant\", \"content\": '{\"answer\":\"The summary is'},\n+                        \"finish_reason\": \"length\",\n+                    }\n+                ],\n+                \"usage\": {\n+                    \"prompt_tokens\": 4096,\n+                    \"completion_tokens\": 32,\n+                    \"total_tokens\": 4128,\n+                    \"prompt_tokens_details\": {\"cached_tokens\": 2048, \"cache_write_tokens\": 1024},\n+                    \"completion_tokens_details\": {\"reasoning_tokens\": 16},\n+                },\n+            },\n+        )\n+    )\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = usage_metric_attributes(request_model, None, host, port)\n+    with (\n+        openai.OpenAI(\n+            base_url=MOCK_BASE_URL,\n+            api_key=\"mock-key\",\n+            max_retries=0,\n+            http_client=httpx2.Client(transport=transport),\n+        ) as client,\n+        _reference_tracer.start_as_current_span(\n+            f\"chat {request_model}\", kind=SpanKind.CLIENT, attributes=span_attributes, record_exception=False\n+        ) as span,\n+    ):\n+        span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n+        span.set_attribute(\n+            \"gen_ai.input.messages\",\n+            [\n+                {\"role\": message[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": message[\"content\"]}]}\n+                for message in messages\n+            ],\n+        )\n+        try:\n+            client.chat.completions.parse(\n+                model=request_model,\n+                messages=messages,\n+                max_completion_tokens=request_max_tokens,\n+                response_format=Answer,\n+            )\n+        except openai.LengthFinishReasonError as error:\n+            completion = error.completion\n+            error_type = f\"{type(error).__module__}.{type(error).__qualname__}\"\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", error_type)\n+            span.set_attribute(\"gen_ai.response.id\", completion.id)\n+            span.set_attribute(\"gen_ai.response.model\", completion.model)\n+            span.set_attribute(\"gen_ai.response.finish_reasons\", chat_finish_reasons(completion.choices))\n+            usage = {}\n+            if completion.usage is not None:\n+                usage[\"gen_ai.usage.input_tokens\"] = completion.usage.prompt_tokens\n+                usage[\"gen_ai.usage.output_tokens\"] = completion.usage.completion_tokens\n+                prompt_details = completion.usage.prompt_tokens_details\n+                if prompt_details is not None:\n+                    if prompt_details.cached_tokens is not None:\n+                        usage[\"gen_ai.usage.cache_read.input_tokens\"] = prompt_details.cached_tokens\n+                    if prompt_details.cache_write_tokens is not None:\n+                        usage[\"gen_ai.usage.cache_write.input_tokens\"] = prompt_details.cache_write_tokens\n+                completion_details = completion.usage.completion_tokens_details\n+                if completion_details is not None and completion_details.reasoning_tokens is not None:\n+                    usage[\"gen_ai.usage.reasoning.output_tokens\"] = completion_details.reasoning_tokens\n+            for attribute, value in usage.items():\n+                span.set_attribute(attribute, value)",
+      "id": "PRRT_kwDOSUeMrM67Edt0",
+      "opened": "2026-11-23T21:12:49Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-25T18:27:31Z",
+          "body": "Done in 36843341. The scenario now passes the usage dict directly to `span.set_attributes(usage)`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4699155918"
+        }
+      ],
+      "reviewed": "d45116758e6c68c1d53ecefeaca85ac12d545631",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4672092655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "Set `gen_ai.output.type` on this span. `response_format=Answer` asks for structured JSON output. For inference spans, `gen_ai.output.type` is conditionally required \"if the request includes an output format\", and that applies even when parsing later fails. Without it, this reference span doesn't conform and the snapshot doesn't cover structured output. After this change, regenerate `reference/scenarios/openai/data.json` so `gen_ai.client.inference` lists `gen_ai.output.type`.\n\n```suggestion\n        span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n        span.set_attribute(\"gen_ai.output.type\", \"json\")\n```",
+      "created": "2026-11-23T21:12:49Z",
+      "hunk": "@@ -385,6 +385,111 @@ def run_chat_error_reference():\n             raise AssertionError(\"Expected the SDK to reject the inference request\")\n \n \n+def run_chat_parse_error_reference():\n+    \"\"\"Exercise a non-streaming parsing error whose SDK exception retains usage.\"\"\"\n+    import httpx2\n+    import openai\n+    from pydantic import BaseModel\n+\n+    class Answer(BaseModel):\n+        answer: str\n+\n+    request_model = \"gpt-5.6-sol\"\n+    request_max_tokens = 32\n+    messages = [\n+        {\n+            \"role\": \"user\",\n+            \"content\": \"Summarize these notes as JSON:\\n\" + \"Reference note. \" * 1024,\n+        }\n+    ]\n+    transport = httpx2.MockTransport(\n+        lambda request: httpx2.Response(\n+            200,\n+            json={\n+                \"id\": \"chatcmpl-parse-error\",\n+                \"object\": \"chat.completion\",\n+                \"created\": 1730000000,\n+                \"model\": request_model,\n+                \"choices\": [\n+                    {\n+                        \"index\": 0,\n+                        \"message\": {\"role\": \"assistant\", \"content\": '{\"answer\":\"The summary is'},\n+                        \"finish_reason\": \"length\",\n+                    }\n+                ],\n+                \"usage\": {\n+                    \"prompt_tokens\": 4096,\n+                    \"completion_tokens\": 32,\n+                    \"total_tokens\": 4128,\n+                    \"prompt_tokens_details\": {\"cached_tokens\": 2048, \"cache_write_tokens\": 1024},\n+                    \"completion_tokens_details\": {\"reasoning_tokens\": 16},\n+                },\n+            },\n+        )\n+    )\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = usage_metric_attributes(request_model, None, host, port)\n+    with (\n+        openai.OpenAI(\n+            base_url=MOCK_BASE_URL,\n+            api_key=\"mock-key\",\n+            max_retries=0,\n+            http_client=httpx2.Client(transport=transport),\n+        ) as client,\n+        _reference_tracer.start_as_current_span(\n+            f\"chat {request_model}\", kind=SpanKind.CLIENT, attributes=span_attributes, record_exception=False\n+        ) as span,\n+    ):\n+        span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)",
+      "id": "PRRT_kwDOSUeMrM67Edth",
+      "opened": "2026-11-23T21:12:49Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-25T18:27:31Z",
+          "body": "Fixed in 36843341. The span now records `gen_ai.output.type=\"json\"` before `parse()`, so it describes the requested format even when parsing fails. I updated the OpenAI snapshot and regenerated the inference coverage report.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4699155966"
+        }
+      ],
+      "reviewed": "d45116758e6c68c1d53ecefeaca85ac12d545631",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4672092629"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Existing streaming failures with reported usage still produce counters without `error.type`, grouping failed token consumption with successful usage despite this new requirement. OpenAI and Anthropic add the error only to histogram attributes in `reference/scenarios/openai/scenario.py:137` and `reference/scenarios/anthropic/scenario.py:109-113`; Groq explicitly removes it in `reference/scenarios/groq/scenario.py:275`. Preserve the error on counter attributes in all three scenarios, update the inline assertions that expect unlabeled counters, and refresh affected snapshots.",
+      "created": "2026-11-25T18:39:28Z",
+      "hunk": "@@ -31,6 +31,7 @@ metrics:\n         examples: [\"chat\", \"generate_content\"]\n       - ref: gen_ai.token.modality\n         requirement_level: required\n+      - ref_group: attributes.gen_ai.error",
+      "id": "PRRT_kwDOSUeMrM68DVQ6",
+      "opened": "2026-11-25T18:39:28Z",
+      "path": "model/gen-ai/token-metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-25T18:49:55Z",
+          "body": "Fixed in `98f1a5aa`. OpenAI, Anthropic, and Groq now preserve the span's `error.type` on counters for usage already reported when a stream fails. The OpenAI and Anthropic assertions check the label, and the Groq snapshot now expects it on all four counters the fixture emits. Local conformance was blocked by dependency-download TLS errors, so CI still needs to confirm the snapshot.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4699413164"
+        }
+      ],
+      "reviewed": "0cd0f9baa0bbda5163b97e6545bb07249e37944f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/723#discussion_r4699285878"
+    }
+  ]
+}

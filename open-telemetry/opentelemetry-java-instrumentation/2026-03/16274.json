@@ -1,0 +1,46 @@
+{
+  "head": "2b0951008de0a865b8597b9f586c59242a8999fd",
+  "merge": "8380d7ba02d10d676a0f5d507a598c67e58542f8",
+  "merged": "2026-03-09T10:22:40Z",
+  "missing_roots": 0,
+  "number": 16274,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could also use\n`ThreadLocalRandom.current().nextLong(min, max)`",
+      "created": "2026-03-05T10:39:40Z",
+      "hunk": "@@ -28,7 +30,9 @@ public void configure() throws Exception {\n         .process(\n             exchange -> {\n               try {\n-                Thread.sleep(10 + ThreadLocalRandom.current().nextLong(100));\n+                Thread.sleep(\n+                    DEFAULT_EXCHANGE_DELAY_MS\n+                        + ThreadLocalRandom.current().nextLong(MAXIMUM_EXCHANGE_DELAY_DELTA));",
+      "id": "PRRT_kwDODJKVX85yTA4k",
+      "opened": "2026-03-05T10:39:39Z",
+      "path": "instrumentation/jmx-metrics/testing-apps/camel-testing-app/src/main/java/io/opentelemetry/instrumentation/jmx/cameltest/CamelTestRouter.java",
+      "replies": [],
+      "reviewed": "ff7c452540d0eb6700c763bbf9e168794abc1ee8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16274#discussion_r2889162890"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "It is a bit strange that jmx metrics have their own custom assertions. I guess when the jmx tests were added it might have been easier to do it this way but now you could use https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/smoke-tests/src/main/java/io/opentelemetry/smoketest/SmokeTestInstrumentationExtension.java to pull data from the fake backend and assert it the same way as other test do. I think ideally we should try to move towards using https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk/testing/src/main/java/io/opentelemetry/sdk/testing/assertj/MetricAssert.java here too. Keeping the api used in jmx assertions the same as in sdk assertions could make moving back to sdk assertions easier.\nAnyway this was just something to consider for future work, not relevant for this pr.",
+      "created": "2026-03-05T10:50:15Z",
+      "hunk": "@@ -98,6 +102,7 @@ private static MetricsVerifier createMetricsVerifier() {\n                     .hasDescription(\n                         \"Indicates the number of routes started successfully since context start-up or the last reset operation.\")\n                     .hasUnit(\"{route}\")\n+                    .hasDataPointsWithIntValues(value -> value.isEqualTo(numberOfTestRoutes))",
+      "id": "PRRT_kwDODJKVX85yTLKM",
+      "opened": "2026-03-05T10:50:15Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/CamelTest.java",
+      "replies": [
+        {
+          "at": "2026-03-06T16:23:28Z",
+          "body": "I agree, replacing those assertions with standard SDK test assertions or making them at least rely on the SDK assertions is something to consider as a future improvement, this was a shortcut taken when we migrated this code from the contrib repository.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16274#discussion_r2896669540"
+        }
+      ],
+      "reviewed": "ff7c452540d0eb6700c763bbf9e168794abc1ee8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16274#discussion_r2889220844"
+    }
+  ]
+}

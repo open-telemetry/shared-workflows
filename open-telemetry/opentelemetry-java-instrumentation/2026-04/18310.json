@@ -1,0 +1,40 @@
+{
+  "head": "8afef49e82a0cb262991efb9f3e5188cc04151c5",
+  "merge": "34d101b217b7524a8ac3dd6d1b06066e619c1030",
+  "merged": "2026-04-26T15:53:34Z",
+  "missing_roots": 0,
+  "number": 18310,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // \"String literals must be enclosed in single quotes.\n    // Double quotes are not supported.\"\n```",
+      "created": "2026-04-26T15:36:44Z",
+      "hunk": "@@ -36,9 +36,9 @@ public String getDbSystemName(ClickHouseDbRequest request) {\n \n   @Override\n   public SqlDialect getSqlDialect(ClickHouseDbRequest request) {\n-    // \"String literals must be enclosed in single quotes.\n-    // Double quotes are not supported.\"\n+    // ClickHouse uses single quotes for string literals and double quotes for quoted identifiers.",
+      "id": "PRRT_kwDODJKVX859qwqb",
+      "opened": "2026-04-26T15:36:44Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/common/ClickHouseAttributesGetter.java",
+      "replies": [],
+      "reviewed": "d4034359cf21a4f07b6771d0e086dd5712af478a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18310#discussion_r3143716541"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-26T15:36:57Z",
+      "hunk": "@@ -39,6 +39,7 @@ public SqlDialect getSqlDialect(ClickHouseDbRequest request) {\n     // \"String literals must be enclosed in single quotes.\n     // Double quotes are not supported.\"\n     // https://clickhouse.com/docs/en/sql-reference/syntax#string\n+    // https://clickhouse.com/docs/en/sql-reference/syntax#identifiers",
+      "id": "PRRT_kwDODJKVX859qwuL",
+      "opened": "2026-04-26T15:36:57Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/common/ClickHouseAttributesGetter.java",
+      "replies": [],
+      "reviewed": "ef693926a06d7fd73fea92532967d029f9e35dee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18310#discussion_r3143716861"
+    }
+  ]
+}

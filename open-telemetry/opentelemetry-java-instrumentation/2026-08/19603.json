@@ -1,0 +1,199 @@
+{
+  "head": "757e46c2338c143d177d6e96a7a1e0baee389bac",
+  "merge": "f1d2a72b638085ead3053a1c2a128405bf779d84",
+  "merged": "2026-08-18T13:06:30Z",
+  "missing_roots": 0,
+  "number": 19603,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Phase 3 of the linked issue explicitly applies the 2.x compatibility and 3.0 removal policy, so saying this setter may disappear in the next minor release incorrectly permits removal during 2.x. Document the 3.0 timeline instead.\n\nThis issue also appears on line 95 of the same file.",
+      "created": "2026-08-15T00:40:42Z",
+      "hunk": "@@ -44,27 +45,61 @@ public JettyClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JettyClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86ZcxW6",
+      "opened": "2026-08-15T00:40:44Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:41:09Z",
+          "body": "Keeping `may be removed in the next minor release` here. The removal timeline follows the stability of the publishing artifact rather than how the class looks, and this builder ships from an `-alpha` artifact: `instrumentation/jetty-httpclient/jetty-httpclient-9.2/library` has no `gradle.properties` at all, so it never sets `otel.stable=true`, while `instrumentation-api/gradle.properties` does.\n\n`.github/agents/knowledge/api-deprecation-policy.md` addresses this case directly. It names `*TelemetryBuilder` in `instrumentation/**/library` as a class that looks like supported public API but is published only from `-alpha` artifacts, it says \"Do not schedule an alpha-only deprecation for 3.0 — it does not have to wait for a major version\", and it lists \"`to be removed in 3.0` on an alpha-only symbol\" as a review flag whose remedy is exactly this wording.\n\nThe 3.0 language in #19444 applies to the stable `instrumentation-api` extractor builders, `HttpClientAttributesExtractorBuilder` and `HttpServerAttributesExtractorBuilder`, whose deprecated setters do say \"To be removed in 3.0\". This PR only touches alpha library builders.\n\nI did revise the tag for a different reason, to warn that the replacement matches glob patterns rather than literal header names, so anyone migrating a `\"*\"` value sees the behavior change at the point of migration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788391205"
+        }
+      ],
+      "reviewed": "d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3787996679"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Phase 3 of the linked issue explicitly applies the 2.x compatibility and 3.0 removal policy, so saying this setter may disappear in the next minor release incorrectly permits removal during 2.x. Document the 3.0 timeline instead.\n\nThis issue also appears on line 94 of the same file.",
+      "created": "2026-08-15T00:40:43Z",
+      "hunk": "@@ -43,27 +44,61 @@ public JettyClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JettyClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86ZcxXB",
+      "opened": "2026-08-15T00:40:44Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:41:28Z",
+          "body": "Keeping `may be removed in the next minor release` here. The removal timeline follows the stability of the publishing artifact rather than how the class looks, and this builder ships from an `-alpha` artifact: `instrumentation/jetty-httpclient/jetty-httpclient-12.0/library` has no `gradle.properties` at all, so it never sets `otel.stable=true`, while `instrumentation-api/gradle.properties` does.\n\n`.github/agents/knowledge/api-deprecation-policy.md` addresses this case directly. It names `*TelemetryBuilder` in `instrumentation/**/library` as a class that looks like supported public API but is published only from `-alpha` artifacts, it says \"Do not schedule an alpha-only deprecation for 3.0 — it does not have to wait for a major version\", and it lists \"`to be removed in 3.0` on an alpha-only symbol\" as a review flag whose remedy is exactly this wording.\n\nThe 3.0 language in #19444 applies to the stable `instrumentation-api` extractor builders, `HttpClientAttributesExtractorBuilder` and `HttpServerAttributesExtractorBuilder`, whose deprecated setters do say \"To be removed in 3.0\". This PR only touches alpha library builders.\n\nI did revise the tag for a different reason, to warn that the replacement matches glob patterns rather than literal header names, so anyone migrating a `\"*\"` value sees the behavior change at the point of migration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788391780"
+        }
+      ],
+      "reviewed": "d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3787996693"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Phase 3 of the linked issue explicitly applies the 2.x compatibility and 3.0 removal policy, so saying this setter may disappear in the next minor release incorrectly permits removal during 2.x. Document the 3.0 timeline instead.\n\nThis issue also appears on line 107 of the same file.",
+      "created": "2026-08-15T00:40:43Z",
+      "hunk": "@@ -55,28 +56,62 @@ public ArmeriaServerTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public ArmeriaServerTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86ZcxXJ",
+      "opened": "2026-08-15T00:40:44Z",
+      "path": "instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaServerTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:41:48Z",
+          "body": "Keeping `may be removed in the next minor release` here. The removal timeline follows the stability of the publishing artifact rather than how the class looks, and this builder ships from an `-alpha` artifact: `instrumentation/armeria/armeria-1.3/library` has no `gradle.properties` at all, so it never sets `otel.stable=true`, while `instrumentation-api/gradle.properties` does.\n\n`.github/agents/knowledge/api-deprecation-policy.md` addresses this case directly. It names `*TelemetryBuilder` in `instrumentation/**/library` as a class that looks like supported public API but is published only from `-alpha` artifacts, it says \"Do not schedule an alpha-only deprecation for 3.0 — it does not have to wait for a major version\", and it lists \"`to be removed in 3.0` on an alpha-only symbol\" as a review flag whose remedy is exactly this wording.\n\nThe 3.0 language in #19444 applies to the stable `instrumentation-api` extractor builders, `HttpClientAttributesExtractorBuilder` and `HttpServerAttributesExtractorBuilder`, whose deprecated setters do say \"To be removed in 3.0\". This PR only touches alpha library builders.\n\nI did revise the tag for a different reason, to warn that the replacement matches glob patterns rather than literal header names, so anyone migrating a `\"*\"` value sees the behavior change at the point of migration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788392577"
+        }
+      ],
+      "reviewed": "d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3787996704"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Phase 3 of the linked issue explicitly applies the 2.x compatibility and 3.0 removal policy, so saying this setter may disappear in the next minor release incorrectly permits removal during 2.x. Document the 3.0 timeline instead.\n\nThis issue also appears on line 106 of the same file.",
+      "created": "2026-08-15T00:40:43Z",
+      "hunk": "@@ -54,28 +55,62 @@ public ArmeriaClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public ArmeriaClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86ZcxXY",
+      "opened": "2026-08-15T00:40:44Z",
+      "path": "instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:42:03Z",
+          "body": "Keeping `may be removed in the next minor release` here. The removal timeline follows the stability of the publishing artifact rather than how the class looks, and this builder ships from an `-alpha` artifact: `instrumentation/armeria/armeria-1.3/library` has no `gradle.properties` at all, so it never sets `otel.stable=true`, while `instrumentation-api/gradle.properties` does.\n\n`.github/agents/knowledge/api-deprecation-policy.md` addresses this case directly. It names `*TelemetryBuilder` in `instrumentation/**/library` as a class that looks like supported public API but is published only from `-alpha` artifacts, it says \"Do not schedule an alpha-only deprecation for 3.0 — it does not have to wait for a major version\", and it lists \"`to be removed in 3.0` on an alpha-only symbol\" as a review flag whose remedy is exactly this wording.\n\nThe 3.0 language in #19444 applies to the stable `instrumentation-api` extractor builders, `HttpClientAttributesExtractorBuilder` and `HttpServerAttributesExtractorBuilder`, whose deprecated setters do say \"To be removed in 3.0\". This PR only touches alpha library builders.\n\nI did revise the tag for a different reason, to warn that the replacement matches glob patterns rather than literal header names, so anyone migrating a `\"*\"` value sees the behavior change at the point of migration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788393043"
+        }
+      ],
+      "reviewed": "d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3787996723"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This compatibility claim is not implemented: the deprecated request and response setters still call `DefaultHttpClientInstrumenterBuilder#setCaptured*Headers`, which builds an `IncludeExclude` selector. With the new header-name enumeration, `*` and `?` are therefore evaluated as globs; for example, `?` can capture any one-character header instead of a header literally named `?`. Route both deprecated setters through a true exact-name path to avoid unexpectedly capturing sensitive headers.",
+      "created": "2026-08-15T04:09:13Z",
+      "hunk": "@@ -44,22 +45,66 @@ public JettyClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JettyClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd93K",
+      "opened": "2026-08-15T04:09:14Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:37:41Z",
+          "body": "I verified this rather than dismissing it, because a stale base and a genuine widening produce identical symptoms here.\n\nYou're right about what this branch does *in isolation*, and wrong about what merges. `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` no longer converts to an `IncludeExclude`: base commit `1572a0077b` routes it through `CapturedHttpHeaders.createExact`, which stores the names as a literal set and never builds a selector. That commit is on the base branch `trask/http-header-selectors-api`, not in this PR's diff, so a review of the head branch alone reads the pre-fix version — which is exactly the globbing you quote, and exactly why `HttpHeadersTest.java:169` still shows the old expectation on this ref.\n\nThe measurement, using `deprecatedSettersMatchHeaderNamesLiterally` in `JettyHttpClient9HeaderSelectorTest`, which passes `\"*\"` through the deprecated setters and asserts nothing is captured:\n\n- On head `ed305c31dc` alone: **fails**, with `http.request.header.accept-encoding` on the span. That is the widening you describe.\n- On the merge ref `685943908c` (`git fetch origin refs/pull/19603/merge`, parents `1572a0077b` + `ed305c31dc`): **passes**, `BUILD SUCCESSFUL`.\n\nCI builds `refs/pull/N/merge`, so the green run is the one that reflects what would land. I'm deliberately not rebasing to make this visible to a head-only review; that would cost a force-push and clear the review check run without changing any merged behavior.\n\nResolving as a stale-base false positive, with the caveat that the regression test above is now permanent — if anyone reintroduces the selector conversion on either side, it fails loudly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788499952"
+        }
+      ],
+      "reviewed": "1560d221ec2b3d45164573d1920b08eb6e0ecb05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788450179"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This compatibility claim is not implemented: the deprecated request and response setters still call `DefaultHttpClientInstrumenterBuilder#setCaptured*Headers`, which builds an `IncludeExclude` selector. With the new header-name enumeration, `*` and `?` are therefore evaluated as globs; for example, `?` can capture any one-character header instead of a header literally named `?`. Route both deprecated setters through a true exact-name path to avoid unexpectedly capturing sensitive headers.",
+      "created": "2026-08-15T04:09:13Z",
+      "hunk": "@@ -43,22 +44,66 @@ public JettyClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JettyClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd93X",
+      "opened": "2026-08-15T04:09:14Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:37:53Z",
+          "body": "Verified rather than dismissed, since a stale base and a real widening look identical from the outside.\n\nThe claim holds on the merged result. `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` stopped converting to an `IncludeExclude` in base commit `1572a0077b`, which routes it through `CapturedHttpHeaders.createExact` — a literal name set, no selector construction. That commit lives on the base branch `trask/http-header-selectors-api` rather than in this PR's diff, so reviewing the head branch alone surfaces the pre-fix code you quote, and the same reason explains why `HttpHeadersTest.java:169` still carries the old `*`-captures-everything expectation on this ref.\n\nMeasured both ways with `deprecatedSettersMatchHeaderNamesLiterally` in `JettyHttpClient12HeaderSelectorTest`, which pushes `\"*\"` through the deprecated setters and asserts no header attributes appear:\n\n- Head `ed305c31dc` alone: **fails**, span carrying `http.request.header.x-ignored-request`, `http.request.header.user-agent` and `http.request.header.accept-encoding` — every header, the widening.\n- Merge ref `685943908c` (parents `1572a0077b` + `ed305c31dc`): **passes**, `BUILD SUCCESSFUL`.\n\nCI builds `refs/pull/N/merge`, so the passing run describes what would actually land. I'm not rebasing purely to make the fix visible to a head-only review, since that costs a force-push and clears the review check run without changing merged behavior.\n\nResolving as a stale-base false positive. The regression test stays, so a reintroduced selector conversion on either side fails immediately.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788500241"
+        }
+      ],
+      "reviewed": "1560d221ec2b3d45164573d1920b08eb6e0ecb05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788450195"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This compatibility claim is not implemented: the deprecated request and response setters still call `DefaultHttpClientInstrumenterBuilder#setCaptured*Headers`, which builds an `IncludeExclude` selector. With the new header-name enumeration, `*` and `?` are therefore evaluated as globs; for example, `?` can capture any one-character header instead of a header literally named `?`. Route both deprecated setters through a true exact-name path to avoid unexpectedly capturing sensitive headers.",
+      "created": "2026-08-15T04:09:13Z",
+      "hunk": "@@ -54,23 +55,67 @@ public ArmeriaClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public ArmeriaClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd93d",
+      "opened": "2026-08-15T04:09:14Z",
+      "path": "instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:38:05Z",
+          "body": "Checked this against a build rather than assuming, because a stale base and an actual widening are indistinguishable from the comment text alone.\n\n`DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` no longer builds an `IncludeExclude`. Base commit `1572a0077b` changed it to go through `CapturedHttpHeaders.createExact`, which keeps the names as a literal set and never constructs a selector. That commit is on the base branch `trask/http-header-selectors-api` and therefore outside this PR's diff, so a head-only review sees the pre-fix implementation you quote — the same reason `HttpHeadersTest.java:169` still shows the old `*`-captures-everything assertion on this ref.\n\nEvidence from `clientDeprecatedSettersMatchHeaderNamesLiterally` in `ArmeriaHeaderSelectorTest`, which passes `\"*\"` through the deprecated setters and asserts nothing is captured:\n\n- Head `ed305c31dc` alone: **fails**, with `http.request.header.x-test-request`, `http.request.header.x-ignored-request` and `http.response.header.x-ignored-response` on the span.\n- Merge ref `685943908c` (parents `1572a0077b` + `ed305c31dc`): **passes**, `BUILD SUCCESSFUL`.\n\nCI builds `refs/pull/N/merge`, so the second run is the one that reflects the landed behavior. Rebasing only to expose the base fix to a head-only review would require a force-push and clear the review check run without changing anything that merges, so I'm leaving the branch as is.\n\nResolving as a stale-base false positive; the regression test remains as a permanent guard against the globbing path returning.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788500458"
+        }
+      ],
+      "reviewed": "1560d221ec2b3d45164573d1920b08eb6e0ecb05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788450205"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This compatibility claim is not implemented: the deprecated request and response setters still call `DefaultHttpServerInstrumenterBuilder#setCaptured*Headers`, which builds an `IncludeExclude` selector. With the new header-name enumeration, `*` and `?` are therefore evaluated as globs; for example, `?` can capture any one-character header instead of a header literally named `?`. Route both deprecated setters through a true exact-name path to avoid unexpectedly capturing sensitive headers.",
+      "created": "2026-08-15T04:09:13Z",
+      "hunk": "@@ -55,23 +56,67 @@ public ArmeriaServerTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public ArmeriaServerTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd93o",
+      "opened": "2026-08-15T04:09:14Z",
+      "path": "instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaServerTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:38:17Z",
+          "body": "Verified against a build before replying, since a stale base and a genuine widening read exactly the same.\n\n`DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` no longer converts to an `IncludeExclude`: base commit `1572a0077b` routes it through `CapturedHttpHeaders.createExact`, which stores literal names and never builds a selector. That commit sits on the base branch `trask/http-header-selectors-api`, outside this PR's diff, so a head-only review reads the pre-fix code you quote — and likewise still sees the old `*`-captures-everything expectation at `HttpHeadersTest.java:169`.\n\nFrom `serverDeprecatedSettersMatchHeaderNamesLiterally` in `ArmeriaHeaderSelectorTest`, which sends `\"*\"` through the deprecated setters and asserts no header attributes are recorded:\n\n- Head `ed305c31dc` alone: **fails**, span carrying `http.request.header.user-agent`, `http.request.header.x-ignored-request` and `http.response.header.x-ignored-response`.\n- Merge ref `685943908c` (parents `1572a0077b` + `ed305c31dc`): **passes**, `BUILD SUCCESSFUL`.\n\nCI builds `refs/pull/N/merge`, so the passing run is the authoritative one for what lands. I'm not rebasing to make the base fix visible to a head-only review — it costs a force-push and clears the review check run while changing no merged behavior.\n\nResolving as a stale-base false positive. The regression test is permanent, so reintroducing the selector conversion anywhere in this chain fails the build.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788500691"
+        }
+      ],
+      "reviewed": "1560d221ec2b3d45164573d1920b08eb6e0ecb05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3788450219"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider using `AutoCleanupExtension` and registering the cleanup in `startServer`, but this is fine too",
+      "created": "2026-08-17T11:42:20Z",
+      "hunk": "@@ -0,0 +1,255 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.armeria.v1_3;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringArrayKey;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.linecorp.armeria.client.WebClient;\n+import com.linecorp.armeria.common.AggregatedHttpResponse;\n+import com.linecorp.armeria.common.HttpData;\n+import com.linecorp.armeria.common.HttpMethod;\n+import com.linecorp.armeria.common.HttpResponse;\n+import com.linecorp.armeria.common.HttpStatus;\n+import com.linecorp.armeria.common.RequestHeaders;\n+import com.linecorp.armeria.common.ResponseHeaders;\n+import com.linecorp.armeria.server.Server;\n+import com.linecorp.armeria.server.ServerBuilder;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import java.util.function.UnaryOperator;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class ArmeriaHeaderSelectorTest {\n+\n+  @RegisterExtension\n+  static final LibraryInstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  private Server server;\n+\n+  @AfterEach\n+  void stopServer() {\n+    if (server != null) {\n+      server.stop().join();\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86ZyChX",
+      "opened": "2026-08-17T11:42:20Z",
+      "path": "instrumentation/armeria/armeria-1.3/library/src/test/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaHeaderSelectorTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T13:05:37Z",
+          "body": "Will bundle into a follow-up PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3804296043"
+        }
+      ],
+      "reviewed": "140d496d3507214a04cb919a94b10ea42ba01797",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19603#discussion_r3796020515"
+    }
+  ]
+}

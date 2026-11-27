@@ -1,0 +1,70 @@
+{
+  "head": "eedae596bdcefa62533007001d536859e269220c",
+  "merge": "dbe5c09ae9a2ab4709bdc2a87b1c90c1edd7b0d6",
+  "merged": "2026-08-20T20:06:23Z",
+  "missing_roots": 0,
+  "number": 19701,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This new definition drops `messaging.destination.subscription.name`, although consumer operations still record it: `MessagingMetricsAdvice` includes the key in the client-operation duration advice, and `MessagingConsumerMetrics` records the merged operation attributes. `MetaDataCollector.java:197-209` only inspects the first metric point, so choosing a producer point under-reports the valid consumer attributes here. Preserve the subscription attribute and update collection to union attributes across points before regenerating the definition ID and reference.",
+      "created": "2026-08-19T03:07:23Z",
+      "hunk": "@@ -2417,7 +2417,7 @@ definitions:\n         type: STRING\n       - name: messaging.system\n         type: STRING\n-    messaging.client.operation.duration-df200871:\n+    messaging.client.operation.duration-dab7c60a:",
+      "id": "PRRT_kwDODJKVX86aVXrl",
+      "opened": "2026-08-19T03:07:24Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "17634c0091354a8f0b5b9b66309fbdf9f382b99e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19701#discussion_r3809750932"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This declarative setting is a YAML sequence (`excluded: []`) consumed through `getScalarList`, not a comma-separated scalar. Calling it comma-separated can lead users to provide one combined glob or an invalid scalar. Render this as “List of ...” in the declarative example while retaining flat-property wording where applicable.\n\nThis issue also appears in the following locations of the same file:\n- line 563\n- line 585\n- line 606",
+      "created": "2026-08-19T03:07:23Z",
+      "hunk": "@@ -511,6 +538,92 @@ instrumentation/development:\n \n       # Enables the capture of experimental log attributes, including thread name and thread ID.\n       experimental_log_attributes/development: false\n+      key_value_pair_attributes/development:\n+        # Comma-separated list of case-sensitive glob patterns for Logback key value pair keys not",
+      "id": "PRRT_kwDODJKVX86aVXrs",
+      "opened": "2026-08-19T03:07:24Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [],
+      "reviewed": "17634c0091354a8f0b5b9b66309fbdf9f382b99e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19701#discussion_r3809750941"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This declarative setting is a YAML sequence (`included: []`) consumed through `getScalarList`, not a comma-separated scalar. Calling it comma-separated can lead users to provide one combined glob or an invalid scalar. Render this as “List of ...” in the declarative example while retaining flat-property wording where applicable.\n\nThis issue also appears in the following locations of the same file:\n- line 574\n- line 595\n- line 617",
+      "created": "2026-08-19T03:07:24Z",
+      "hunk": "@@ -511,6 +538,92 @@ instrumentation/development:\n \n       # Enables the capture of experimental log attributes, including thread name and thread ID.\n       experimental_log_attributes/development: false\n+      key_value_pair_attributes/development:\n+        # Comma-separated list of case-sensitive glob patterns for Logback key value pair keys not\n+        # to capture as log attributes. \"*\" matches any number of characters and \"?\" matches one\n+        # character. Excluded patterns take precedence over included patterns. No key value pair\n+        # attributes are captured unless an included pattern, an excluded pattern, or the deprecated\n+        # otel.instrumentation.logback-appender.experimental.capture-key-value-pair-attributes\n+        # setting is configured; configuring only excluded patterns captures all key value pair\n+        # attributes that do not match them. Captured key value pair attributes may contain\n+        # sensitive information.\n+        excluded: []\n+\n+        # Comma-separated list of case-sensitive glob patterns for Logback key value pair keys to",
+      "id": "PRRT_kwDODJKVX86aVXry",
+      "opened": "2026-08-19T03:07:24Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [],
+      "reviewed": "17634c0091354a8f0b5b9b66309fbdf9f382b99e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19701#discussion_r3809750951"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "We haven't typically been adding these general enabled flags, PR to remove it here: #19723",
+      "created": "2026-08-20T11:00:49Z",
+      "hunk": "@@ -39,6 +39,9 @@ instrumentation/development:\n     # Stable semantic conventions will become the default in version 3.0 of the agent.\n     stability_opt_in_list: ''\n   java:\n+    apache_commons_pool:\n+      # Enables the Apache Commons Pool instrumentation.\n+      enabled: false",
+      "id": "PRRT_kwDODJKVX86ax_jR",
+      "opened": "2026-08-20T11:00:49Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [],
+      "reviewed": "eedae596bdcefa62533007001d536859e269220c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19701#discussion_r3820912859"
+    }
+  ]
+}

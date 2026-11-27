@@ -1,0 +1,31 @@
+{
+  "head": "0c381e687ef0f9bf0e8d4f404ceba5f410e109b8",
+  "merge": "b9d751e2360e3abc344b90ca3dca24fe92d88e63",
+  "merged": "2026-08-04T11:48:38Z",
+  "missing_roots": 0,
+  "number": 19378,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Accessing `Configuration.baggageEnabled` here initializes the entire nested `Configuration`, including `contextDataKeys`. Because this SPI runs for every Log4j event, an ordinary no-span/no-baggage log emitted before `GlobalOpenTelemetry` is installed now permanently computes both fields from the no-op instance; later declarative baggage or custom logging-key configuration is then ignored. Preserve the holder's lazy initialization by checking the current baggage for emptiness before touching `Configuration`, and gate baggage insertion separately.",
+      "created": "2026-08-03T20:40:42Z",
+      "hunk": "@@ -57,16 +57,17 @@ private static boolean isConfiguredResourceAttributeAccessible() {\n   }\n \n   /**\n-   * Returns context from the current span when available.\n+   * Returns context from the current span and baggage when available.\n    *\n-   * @return A map containing string versions of the traceId, spanId, and traceFlags, which can then\n-   *     be accessed from layout components\n+   * @return A map containing string versions of the traceId, spanId, traceFlags and baggage entries,\n+   *     which can then be accessed from layout components\n    */\n   @Override\n   public Map<String, String> supplyContextData() {\n     Context context = Context.current();\n-    Span currentSpan = Span.fromContext(context);\n-    if (!currentSpan.getSpanContext().isValid()) {\n+    SpanContext spanContext = Span.fromContext(context).getSpanContext();\n+    Baggage baggage = Configuration.baggageEnabled ? Baggage.fromContext(context) : Baggage.empty();\n+    if (!spanContext.isValid() && baggage.isEmpty()) {",
+      "id": "PRRT_kwDODJKVX86WHbSU",
+      "opened": "2026-08-03T20:40:42Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/OpenTelemetryContextDataProvider.java",
+      "replies": [
+        {
+          "at": "2026-08-03T21:01:18Z",
+          "body": "Good catch, fixed in 018e4ac. `Baggage.fromContext` doesn't need any config, so the early return no longer touches `Configuration`, and `baggageEnabled` is read at the insertion site instead. Lazy init is back to what it was before this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19378#discussion_r3707648479"
+        }
+      ],
+      "reviewed": "ef5c08d6bba181071659d9da820c0308e3937824",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19378#discussion_r3707520159"
+    }
+  ]
+}

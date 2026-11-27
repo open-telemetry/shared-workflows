@@ -1,0 +1,61 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "95c19a4fb81cb29d99d0b9cd00df0423ad863de736662521c55b2d3c65345811",
+  "input_digest": "776802a23481790b52386b403403307ff0544f75fe6bcc41fd5546d545bec23c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0fe0b066cf30f225a449e6f2ac2cde77e06edbb9/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0fe0b066cf30f225a449e6f2ac2cde77e06edbb9/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburDbcpDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec16bbbd68aa8e2d72831d87e6cf62b9b5e6cb7a/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec16bbbd68aa8e2d72831d87e6cf62b9b5e6cb7a/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburConfigInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec16bbbd68aa8e2d72831d87e6cf62b9b5e6cb7a/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburDbcpDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/67a549799b450a3edd518de5813eedce102589d2"
+      ],
+      "id": "PRRT_kwDODJKVX86XwgkT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67a549799b450a3edd518de5813eedce102589d2/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec16bbbd68aa8e2d72831d87e6cf62b9b5e6cb7a/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7af57716947bba3f5c1c105f0c1efc0537c709f0"
+      ],
+      "id": "PRRT_kwDODJKVX86X5ndo",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67a549799b450a3edd518de5813eedce102589d2/instrumentation/vibur-dbcp-11.0/library/src/main/java/io/opentelemetry/instrumentation/viburdbcp/v11_0/ViburTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67a549799b450a3edd518de5813eedce102589d2/instrumentation/vibur-dbcp-11.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec16bbbd68aa8e2d72831d87e6cf62b9b5e6cb7a/instrumentation/vibur-dbcp-11.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7af57716947bba3f5c1c105f0c1efc0537c709f0"
+      ],
+      "id": "PRRT_kwDODJKVX86X5nds",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7af57716947bba3f5c1c105f0c1efc0537c709f0/instrumentation/vibur-dbcp-11.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec16bbbd68aa8e2d72831d87e6cf62b9b5e6cb7a/instrumentation/vibur-dbcp-11.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c7eca2dce65e2acb1f8675858394256c31f34078"
+      ],
+      "id": "PRRT_kwDODJKVX86Y_j8Y",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

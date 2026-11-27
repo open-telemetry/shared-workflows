@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "82eb6489963f2ec01ba52c97cda2c1c9f3b382b86f30d553b4d210ce71700a85",
+  "input_digest": "e70b3d3ea38e9a749a9366e9fdb6273abc9006c4ed0a5736825a68df5b724951",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/057257308a345ee5b4f1f2487bc9425ed8b44168/instrumentation/jmx-metrics/model/cassandra.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81226bdafd90f4e285d2f421cacb22034fe0ec1e/instrumentation/jmx-metrics/model/cassandra.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86Z2AQO",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/057257308a345ee5b4f1f2487bc9425ed8b44168/instrumentation/jmx-metrics/model/cassandra.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/057257308a345ee5b4f1f2487bc9425ed8b44168/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/CassandraTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81226bdafd90f4e285d2f421cacb22034fe0ec1e/instrumentation/jmx-metrics/model/cassandra.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81226bdafd90f4e285d2f421cacb22034fe0ec1e/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/CassandraTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Z2AQz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/057257308a345ee5b4f1f2487bc9425ed8b44168/instrumentation/jmx-metrics/model/cassandra.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81226bdafd90f4e285d2f421cacb22034fe0ec1e/instrumentation/jmx-metrics/model/cassandra.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bcfd20f338f0a67aa2f0cec9c86bd0e03ebc05ed"
+      ],
+      "id": "PRRT_kwDODJKVX86aIEwP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

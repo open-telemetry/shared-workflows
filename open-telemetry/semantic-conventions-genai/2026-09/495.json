@@ -1,0 +1,25 @@
+{
+  "head": "2ef042d8c631086046a6906c23ad4862540fe603",
+  "merge": "b06f7a2c840ceeacd8478acd3443e697ce390f96",
+  "merged": "2026-09-10T02:22:21Z",
+  "missing_roots": 0,
+  "number": 495,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The cited `execute_tool` scenarios do not demonstrate this timing requirement. `google-adk/scenario.py:147-151`, `openai-agents/scenario.py:30-35`, and `pydantic-ai/scenario.py:49-54` all add `gen_ai.agent.name` after the span starts, so a sampler cannot read it. Move the library-derived agent name into the attributes passed to `start_as_current_span` in the affected reference scenarios.\n\nThis issue also appears on line 698 of the same file.",
+      "created": "2026-09-02T22:09:43Z",
+      "hunk": "@@ -606,6 +606,8 @@ spans:\n           recommended: If available.\n       - ref: gen_ai.tool.type\n         sampling_relevant: true\n+      - ref: gen_ai.agent.name\n+        sampling_relevant: true",
+      "id": "PRRT_kwDOSUeMrM6es024",
+      "opened": "2026-09-02T22:09:43Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "75668020639687dee1a21782b5b5d72a3909e099",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/495#discussion_r3919137349"
+    }
+  ]
+}

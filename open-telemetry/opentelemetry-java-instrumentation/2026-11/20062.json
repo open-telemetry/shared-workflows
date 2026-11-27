@@ -1,0 +1,854 @@
+{
+  "head": "abe37e021c374a8ec2aa557f27d88eefefef4a10",
+  "merge": "d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45",
+  "merged": "2026-11-04T06:34:51Z",
+  "missing_roots": 0,
+  "number": 20062,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The test recreates known MCP and GenAI semantic-convention keys with `stringKey`. Import `MCP_METHOD_NAME`, `GEN_AI_OPERATION_NAME`, and `GEN_AI_TOOL_NAME` from the incubating semconv classes and use them in the assertions so the test tracks the canonical names and key types.",
+      "created": "2026-09-10T00:47:41Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;",
+      "id": "PRRT_kwDODJKVX86g45jy",
+      "opened": "2026-09-10T00:47:42Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-09-10T01:07:19Z",
+          "body": "Updated the unit assertions to use the canonical MCP_METHOD_NAME, GEN_AI_OPERATION_NAME, and GEN_AI_TOOL_NAME constants. The deprecated MCP semconv use is suppressed only on the test method.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3974562274"
+        }
+      ],
+      "reviewed": "2f42d34652e30bcbec6b0f14db877935b9fc485c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3974442556"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] These semantic-convention keys are already provided by the pinned incubating semconv artifact (`McpIncubatingAttributes.MCP_METHOD_NAME` and `GenAiIncubatingAttributes.GEN_AI_*`). Reuse those constants rather than maintaining local copies, so their names and types cannot drift; scope the required `deprecation` suppression to `onStart`.\n\nThis issue also appears on line 43 of the same file.",
+      "created": "2026-09-10T00:47:42Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.JsonrpcIncubatingAttributes.JSONRPC_REQUEST_ID;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_RESPONSE_STATUS_CODE;\n+\n+import io.modelcontextprotocol.spec.McpError;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+\n+final class McpToolCallAttributesExtractor\n+    implements AttributesExtractor<McpToolCallRequest, McpSchema.CallToolResult> {\n+  private static final AttributeKey<String> MCP_METHOD_NAME = stringKey(\"mcp.method.name\");\n+  private static final AttributeKey<String> GEN_AI_OPERATION_NAME =\n+      stringKey(\"gen_ai.operation.name\");\n+  private static final AttributeKey<String> GEN_AI_TOOL_NAME = stringKey(\"gen_ai.tool.name\");\n+\n+  @Override\n+  public void onStart(\n+      AttributesBuilder attributes, Context parentContext, McpToolCallRequest request) {",
+      "id": "PRRT_kwDODJKVX86g45kR",
+      "opened": "2026-09-10T00:47:42Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-10T01:07:21Z",
+          "body": "Updated the extractor to reuse the pinned incubating semconv constants and scoped the deprecation suppression to onStart. I also removed the redundant request-ID null guard; AttributesBuilder.put handles the nullable value.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3974562348"
+        }
+      ],
+      "reviewed": "2f42d34652e30bcbec6b0f14db877935b9fc485c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3974442608"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The test recreates known MCP and GenAI semantic-convention keys with `stringKey`. Import `MCP_METHOD_NAME`, `GEN_AI_OPERATION_NAME`, and `GEN_AI_TOOL_NAME` from the incubating semconv classes and use them in all three assertion blocks so the test tracks the canonical names and key types.",
+      "created": "2026-09-10T00:47:42Z",
+      "hunk": "@@ -0,0 +1,220 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;",
+      "id": "PRRT_kwDODJKVX86g45kq",
+      "opened": "2026-09-10T00:47:42Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-09-10T01:07:22Z",
+          "body": "Updated all three integration-test assertion blocks to use the canonical MCP and GenAI attribute-key constants, with suppression scoped to the affected test methods.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3974562416"
+        }
+      ],
+      "reviewed": "2f42d34652e30bcbec6b0f14db877935b9fc485c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3974442646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The new module is missing from `docs/supported-libraries.md` and `.github/scripts/instrumentations.sh`. Add its catalog row and `mcp:mcp-java-sdk-0.14:javaagent:test` entry so users can find the instrumentation and metadata collection exercises it.",
+      "created": "2026-09-10T21:38:23Z",
+      "hunk": "@@ -0,0 +1,5 @@\n+display_name: MCP Java SDK",
+      "id": "PRRT_kwDODJKVX86hQV6O",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-10T23:04:53Z",
+          "body": "Added the supported libraries row and metadata collection task.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264006"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727074"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] `McpClientSession` already exists in SDK 0.14.0, so this matcher does not establish the declared 0.14.1 floor. Remove the override and its imports; muzzle already handles the version boundary.",
+      "created": "2026-09-10T21:38:23Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Collections.singletonList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+@AutoService(InstrumentationModule.class)\n+public class McpJavaSdkInstrumentationModule extends InstrumentationModule {\n+\n+  public McpJavaSdkInstrumentationModule() {\n+    super(\"mcp-java-sdk\", \"mcp-java-sdk-0.14\");\n+  }\n+\n+  @Override\n+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    return hasClassesNamed(\"io.modelcontextprotocol.spec.McpClientSession\");",
+      "id": "PRRT_kwDODJKVX86hQV6R",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpJavaSdkInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-10T23:04:54Z",
+          "body": "Removed the class loader matcher. Muzzle now defines the version boundary.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264101"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727080"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] These catches suppress ordinary instrumentation failures without any diagnostics. Keep the fallbacks, but log each caught `Throwable` at `FINE` with a local JUL logger, including the catches in `McpToolCallMono`.",
+      "created": "2026-09-10T21:38:23Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final ThreadLocal<McpToolCallState> currentState = new ThreadLocal<>();\n+\n+  private final McpToolCallRequest request;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private final McpToolCallState previousState;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(String method, Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());\n+      McpToolCallState state =\n+          new McpToolCallState(\n+              new McpToolCallRequest(callToolRequest.name()),\n+              new McpSchema.CallToolRequest(\n+                  callToolRequest.name(), callToolRequest.arguments(), meta),\n+              meta,\n+              currentState.get());\n+      currentState.set(state);\n+      return state;\n+    } catch (Throwable ignored) {",
+      "id": "PRRT_kwDODJKVX86hQV6V",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+      "replies": [
+        {
+          "at": "2026-09-10T23:04:56Z",
+          "body": "Added FINE logging for every suppressed instrumentation failure in both classes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264190"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727085"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Build] This module has no custom `Test` task, and `latestDepTest` does not count as one. The repository requires `collectMetadata` on the default test task here.\n```suggestion\ntasks {\n  test {\n    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n  }\n}\n```",
+      "created": "2026-09-10T21:38:23Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"io.modelcontextprotocol.sdk\")\n+    module.set(\"mcp-core\")\n+    versions.set(\"[0.14.1,)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+// MCP Java SDK's minimum supported Java version is 17.\n+otelJava {\n+  minJavaVersionSupported.set(JavaVersion.VERSION_17)\n+}\n+\n+dependencies {\n+  compileOnly(project(\":instrumentation-annotations-support\"))\n+  implementation(project(\":instrumentation:reactor:reactor-3.1:library\"))\n+\n+  library(\"io.modelcontextprotocol.sdk:mcp-core:0.14.1\")\n+  testLibrary(\"io.modelcontextprotocol.sdk:mcp-json-jackson2:0.14.1\")\n+  latestDepTestLibrary(\"io.modelcontextprotocol.sdk:mcp-core:latest.release\")\n+  latestDepTestLibrary(\"io.modelcontextprotocol.sdk:mcp-json-jackson2:latest.release\")\n+}\n+\n+tasks {\n+  withType<Test>().configureEach {\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+  }\n+}",
+      "id": "PRRT_kwDODJKVX86hQV6Z",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-10T23:04:57Z",
+          "body": "Scoped collectMetadata to the default test task.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264307"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727089"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] The Reactor hook is not active in this test module, so every current test gets the parent from `Context.current()` and never exercises the subscriber-context branch. Add `reactor-3.1:javaagent` as `testInstrumentation` and cover subscription after the parent scope closes.",
+      "created": "2026-09-10T21:38:24Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"io.modelcontextprotocol.sdk\")\n+    module.set(\"mcp-core\")\n+    versions.set(\"[0.14.1,)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+// MCP Java SDK's minimum supported Java version is 17.\n+otelJava {\n+  minJavaVersionSupported.set(JavaVersion.VERSION_17)\n+}\n+\n+dependencies {\n+  compileOnly(project(\":instrumentation-annotations-support\"))\n+  implementation(project(\":instrumentation:reactor:reactor-3.1:library\"))",
+      "id": "PRRT_kwDODJKVX86hQV64",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-10T23:05:03Z",
+          "body": "Added Reactor test instrumentation and a regression test that subscribes after the parent scope closes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264817"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727133"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Naming] `ignored` already belongs to the enclosing catch, so the repository catch-name rule uses `ignore` for this nested unused value.\n```suggestion\n              } catch (Throwable ignore) {\n```",
+      "created": "2026-09-10T21:38:24Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.instrumenter;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ReactorAsyncOperationEndStrategy;\n+import reactor.core.publisher.Mono;\n+\n+final class McpToolCallMono {\n+  private static final ReactorAsyncOperationEndStrategy endStrategy =\n+      ReactorAsyncOperationEndStrategy.create();\n+\n+  static Mono<?> wrap(Mono<?> publisher, McpToolCallState state) {\n+    return Mono.deferContextual(\n+        reactorContext -> {\n+          try {\n+            Context parentContext =\n+                ContextPropagationOperator.getOpenTelemetryContextFromContextView(\n+                    reactorContext, Context.current());\n+            if (!instrumenter().shouldStart(parentContext, state.getRequest())) {\n+              return publisher;\n+            }\n+\n+            Context context = instrumenter().start(parentContext, state.getRequest());\n+            state.inject(context);\n+            try {\n+              return (Mono<?>)\n+                  endStrategy.end(\n+                      instrumenter(),\n+                      context,\n+                      state.getRequest(),\n+                      publisher,\n+                      McpSchema.CallToolResult.class);\n+            } catch (Throwable ignored) {\n+              try {\n+                instrumenter().end(context, state.getRequest(), null, null);\n+              } catch (Throwable ignoredEnd) {",
+      "id": "PRRT_kwDODJKVX86hQV67",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+      "replies": [
+        {
+          "at": "2026-09-10T23:05:04Z",
+          "body": "Renamed the nested catch variable to ignore.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264906"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727137"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `requestParameters` is nullable: the ping path passes `null`, and `prepare()` already handles it. Add `@Nullable` here and to `McpToolCallState.prepare`.",
+      "created": "2026-09-10T21:38:24Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import reactor.core.publisher.Mono;\n+\n+class McpClientSessionInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.modelcontextprotocol.spec.McpClientSession\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"sendRequest\")\n+            .and(takesArgument(0, String.class))\n+            .and(takesArgument(1, Object.class))\n+            .and(takesArgument(2, named(\"io.modelcontextprotocol.json.TypeRef\")))\n+            .and(returns(named(\"reactor.core.publisher.Mono\"))),\n+        getClass().getName() + \"$SendRequestAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"generateRequestId\").and(takesNoArguments()).and(returns(String.class)),\n+        getClass().getName() + \"$GenerateRequestIdAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SendRequestAdvice {\n+\n+    @AssignReturned.ToArguments(@ToArgument(value = 1, index = 0))\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(\n+        @Advice.Argument(0) String method, @Advice.Argument(1) Object requestParameters) {",
+      "id": "PRRT_kwDODJKVX86hQV6o",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T23:04:59Z",
+          "body": "Marked requestParameters nullable in the advice and state factory.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264448"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727110"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Build] The new entries break the required alphabetical order because `mcp` sorts before `methods`.\n```suggestion\ninclude(\":instrumentation:mcp:mcp-java-sdk-0.14:javaagent\")\ninclude(\":instrumentation:mcp:mcp-java-sdk-0.14:javaagent-unit-tests\")\ninclude(\":instrumentation:methods:javaagent\")\n```",
+      "created": "2026-09-10T21:38:24Z",
+      "hunk": "@@ -503,6 +503,8 @@ include(\":instrumentation:logback:logback-mdc-1.0:javaagent\")\n include(\":instrumentation:logback:logback-mdc-1.0:library\")\n include(\":instrumentation:logback:logback-mdc-1.0:testing\")\n include(\":instrumentation:methods:javaagent\")\n+include(\":instrumentation:mcp:mcp-java-sdk-0.14:javaagent\")\n+include(\":instrumentation:mcp:mcp-java-sdk-0.14:javaagent-unit-tests\")",
+      "id": "PRRT_kwDODJKVX86hQV6r",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-10T23:05:00Z",
+          "body": "Moved the MCP includes before methods.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264573"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727115"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] `propagators()` directly returns a stored singleton. Static-import it and call it unqualified, matching the repository singleton-accessor rule and this module's `instrumenter()` calls.",
+      "created": "2026-09-10T21:38:24Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final ThreadLocal<McpToolCallState> currentState = new ThreadLocal<>();\n+\n+  private final McpToolCallRequest request;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private final McpToolCallState previousState;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(String method, Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());\n+      McpToolCallState state =\n+          new McpToolCallState(\n+              new McpToolCallRequest(callToolRequest.name()),\n+              new McpSchema.CallToolRequest(\n+                  callToolRequest.name(), callToolRequest.arguments(), meta),\n+              meta,\n+              currentState.get());\n+      currentState.set(state);\n+      return state;\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  public static void captureRequestId(String requestId) {\n+    McpToolCallState state = currentState.get();\n+    if (state != null) {\n+      state.request.setRequestId(requestId);\n+    }\n+  }\n+\n+  private McpToolCallState(\n+      McpToolCallRequest request,\n+      McpSchema.CallToolRequest requestParameters,\n+      Map<String, Object> propagationMeta,\n+      @Nullable McpToolCallState previousState) {\n+    this.request = request;\n+    this.requestParameters = requestParameters;\n+    this.propagationMeta = propagationMeta;\n+    this.previousState = previousState;\n+  }\n+\n+  public Object getRequestParameters() {\n+    return requestParameters;\n+  }\n+\n+  McpToolCallRequest getRequest() {\n+    return request;\n+  }\n+\n+  void inject(Context context) {\n+    try {\n+      McpSingletons.propagators()",
+      "id": "PRRT_kwDODJKVX86hQV6z",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+      "replies": [
+        {
+          "at": "2026-09-10T23:05:02Z",
+          "body": "Static imported and directly called propagators().",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984264729"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727127"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] A peer can omit the boxed JSON-RPC error code. This dereference then throws from the Reactor error hook before the span ends and replaces the application's `McpError`.\n```suggestion\n      McpSchema.JSONRPCResponse.JSONRPCError jsonRpcError = mcpError.getJsonRpcError();\n      if (jsonRpcError != null && jsonRpcError.code() != null) {\n        String code = jsonRpcError.code().toString();\n        attributes.put(ERROR_TYPE, code);\n        attributes.put(RPC_RESPONSE_STATUS_CODE, code);\n        return;\n      }\n```",
+      "created": "2026-09-10T21:38:24Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_TOOL_NAME;\n+import static io.opentelemetry.semconv.incubating.JsonrpcIncubatingAttributes.JSONRPC_REQUEST_ID;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_METHOD_NAME;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_RESPONSE_STATUS_CODE;\n+\n+import io.modelcontextprotocol.spec.McpError;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+\n+final class McpToolCallAttributesExtractor\n+    implements AttributesExtractor<McpToolCallRequest, McpSchema.CallToolResult> {\n+  @Override\n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  public void onStart(\n+      AttributesBuilder attributes, Context parentContext, McpToolCallRequest request) {\n+    attributes.put(MCP_METHOD_NAME, McpSchema.METHOD_TOOLS_CALL);\n+    attributes.put(GEN_AI_OPERATION_NAME, \"execute_tool\");\n+    attributes.put(GEN_AI_TOOL_NAME, request.getToolName());\n+  }\n+\n+  @Override\n+  public void onEnd(\n+      AttributesBuilder attributes,\n+      Context context,\n+      McpToolCallRequest request,\n+      @Nullable McpSchema.CallToolResult response,\n+      @Nullable Throwable error) {\n+    attributes.put(JSONRPC_REQUEST_ID, request.getRequestId());\n+\n+    if (response != null && Boolean.TRUE.equals(response.isError())) {\n+      attributes.put(ERROR_TYPE, \"tool_error\");\n+      return;\n+    }\n+\n+    if (error instanceof McpError mcpError) {\n+      McpSchema.JSONRPCResponse.JSONRPCError jsonRpcError = mcpError.getJsonRpcError();\n+      if (jsonRpcError != null) {\n+        String code = jsonRpcError.code().toString();\n+        attributes.put(ERROR_TYPE, code);\n+        attributes.put(RPC_RESPONSE_STATUS_CODE, code);\n+        return;\n+      }",
+      "id": "PRRT_kwDODJKVX86hQV7A",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-10T23:05:06Z",
+          "body": "Guarded the JSON RPC error and its nullable code, with a regression test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984265050"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727143"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `captureRequestId()` splits the static factory from its constructor; move it below the constructor. The same member-order rule puts `TestMcpClientTransport.ToolResponse` after that class's methods.",
+      "created": "2026-09-10T21:38:24Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final ThreadLocal<McpToolCallState> currentState = new ThreadLocal<>();\n+\n+  private final McpToolCallRequest request;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private final McpToolCallState previousState;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(String method, Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());\n+      McpToolCallState state =\n+          new McpToolCallState(\n+              new McpToolCallRequest(callToolRequest.name()),\n+              new McpSchema.CallToolRequest(\n+                  callToolRequest.name(), callToolRequest.arguments(), meta),\n+              meta,\n+              currentState.get());\n+      currentState.set(state);\n+      return state;\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  public static void captureRequestId(String requestId) {",
+      "id": "PRRT_kwDODJKVX86hQV7F",
+      "opened": "2026-09-10T21:41:26Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+      "replies": [
+        {
+          "at": "2026-09-10T23:05:07Z",
+          "body": "Moved captureRequestId below the constructor and ToolResponse below the methods.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984265157"
+        }
+      ],
+      "reviewed": "80d6ca343b3c6a16b754c1ff10802b25bc89e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3983727149"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] Both caught `Throwable` values in this nested recovery path are logged, so `ignored`/`ignore` incorrectly mark them as unused. Rename the used catch variables according to the repository convention; extracting the inner cleanup can avoid the nested-name collision.\n\nThis issue also appears on line 53 of the same file.",
+      "created": "2026-09-10T23:52:44Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.instrumenter;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ReactorAsyncOperationEndStrategy;\n+import java.util.logging.Logger;\n+import reactor.core.publisher.Mono;\n+\n+final class McpToolCallMono {\n+  private static final Logger logger = Logger.getLogger(McpToolCallMono.class.getName());\n+  private static final ReactorAsyncOperationEndStrategy endStrategy =\n+      ReactorAsyncOperationEndStrategy.create();\n+\n+  static Mono<?> wrap(Mono<?> publisher, McpToolCallState state) {\n+    return Mono.deferContextual(\n+        reactorContext -> {\n+          try {\n+            Context parentContext =\n+                ContextPropagationOperator.getOpenTelemetryContextFromContextView(\n+                    reactorContext, Context.current());\n+            if (!instrumenter().shouldStart(parentContext, state.getRequest())) {\n+              return publisher;\n+            }\n+\n+            Context context = instrumenter().start(parentContext, state.getRequest());\n+            state.inject(context);\n+            try {\n+              return (Mono<?>)\n+                  endStrategy.end(\n+                      instrumenter(),\n+                      context,\n+                      state.getRequest(),\n+                      publisher,\n+                      McpSchema.CallToolResult.class);\n+            } catch (Throwable ignored) {\n+              logger.log(FINE, \"Failed to wrap MCP tool call publisher\", ignored);\n+              try {\n+                instrumenter().end(context, state.getRequest(), null, null);\n+              } catch (Throwable ignore) {",
+      "id": "PRRT_kwDODJKVX86hSaNU",
+      "opened": "2026-09-10T23:52:45Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+      "replies": [
+        {
+          "at": "2026-09-11T20:27:20Z",
+          "body": "Renamed the logged throwables to `t` and extracted span cleanup so the nested recovery path follows the convention.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3993130731"
+        }
+      ],
+      "reviewed": "db03f3a14cda56d366b67c3f46419648e016dc79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984559301"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This caught `Throwable` is logged, so it is not intentionally unused. Rename it to `t` per the repository catch-variable convention.\n\nThis issue also appears on line 84 of the same file.",
+      "created": "2026-09-10T23:52:45Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.propagators;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final Logger logger = Logger.getLogger(McpToolCallState.class.getName());\n+  private static final ThreadLocal<McpToolCallState> currentState = new ThreadLocal<>();\n+\n+  private final McpToolCallRequest request;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private final McpToolCallState previousState;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(String method, @Nullable Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());\n+      McpToolCallState state =\n+          new McpToolCallState(\n+              new McpToolCallRequest(callToolRequest.name()),\n+              new McpSchema.CallToolRequest(\n+                  callToolRequest.name(), callToolRequest.arguments(), meta),\n+              meta,\n+              currentState.get());\n+      currentState.set(state);\n+      return state;\n+    } catch (Throwable ignored) {\n+      logger.log(FINE, \"Failed to prepare MCP tool call instrumentation\", ignored);",
+      "id": "PRRT_kwDODJKVX86hSaNn",
+      "opened": "2026-09-10T23:52:45Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+      "replies": [
+        {
+          "at": "2026-09-11T20:27:19Z",
+          "body": "Renamed both logged throwables to `t`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3993130684"
+        }
+      ],
+      "reviewed": "db03f3a14cda56d366b67c3f46419648e016dc79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r3984559344"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could we add the `mcp.client.operation.duration` metric to this instrumenter?",
+      "created": "2026-09-13T19:23:44Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import io.modelcontextprotocol.spec.McpError;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.StatusCode;\n+import io.opentelemetry.context.propagation.ContextPropagators;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusExtractor;\n+\n+final class McpSingletons {\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.mcp-java-sdk-0.14\";\n+\n+  private static final Instrumenter<McpToolCallRequest, McpSchema.CallToolResult> instrumenter =\n+      Instrumenter.<McpToolCallRequest, McpSchema.CallToolResult>builder(\n+              GlobalOpenTelemetry.get(),\n+              INSTRUMENTATION_NAME,\n+              request -> McpSchema.METHOD_TOOLS_CALL + \" \" + request.getToolName())\n+          .addAttributesExtractor(new McpToolCallAttributesExtractor())",
+      "id": "PRRT_kwDODJKVX86h7T2p",
+      "opened": "2026-09-13T19:57:13Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-13T20:56:51Z",
+          "body": "Added mcp.client.operation.duration with the recommended histogram boundaries and tool call attributes, plus integration coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4000872765"
+        }
+      ],
+      "reviewed": "932ec4746af9ca14175cd72d8b934f6f68c27a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4000612163"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could you check if it's possible to capture `mcp.protocol.version`?",
+      "created": "2026-09-13T19:23:44Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_TOOL_NAME;\n+import static io.opentelemetry.semconv.incubating.JsonrpcIncubatingAttributes.JSONRPC_REQUEST_ID;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_METHOD_NAME;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_RESPONSE_STATUS_CODE;\n+\n+import io.modelcontextprotocol.spec.McpError;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+\n+final class McpToolCallAttributesExtractor\n+    implements AttributesExtractor<McpToolCallRequest, McpSchema.CallToolResult> {\n+  @Override\n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  public void onStart(\n+      AttributesBuilder attributes, Context parentContext, McpToolCallRequest request) {\n+    attributes.put(MCP_METHOD_NAME, McpSchema.METHOD_TOOLS_CALL);\n+    attributes.put(GEN_AI_OPERATION_NAME, \"execute_tool\");\n+    attributes.put(GEN_AI_TOOL_NAME, request.getToolName());\n+  }",
+      "id": "PRRT_kwDODJKVX86h7T2r",
+      "opened": "2026-09-13T19:57:13Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-13T20:56:49Z",
+          "body": "Captured the negotiated protocol version from the initialize response and associated it with the MCP session. Tool call spans and metrics now include mcp.protocol.version.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4000872657"
+        }
+      ],
+      "reviewed": "932ec4746af9ca14175cd72d8b934f6f68c27a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4000612165"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The negotiated protocol version is snapshotted when `sendRequest` creates the cold tool-call `Mono`, but initialize only stores that version when its publisher emits. A common composition such as `client.initialize().then(client.callTool(...))` constructs the tool publisher before initialization completes, so the later tool span and metric permanently omit `mcp.protocol.version`. Resolve the session's protocol version inside the deferred subscription path (before `instrumenter().start`) instead of during `prepare`, and cover this composed initialization/tool-call flow.",
+      "created": "2026-09-20T02:39:49Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.propagators;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpClientSession;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final Logger logger = Logger.getLogger(McpToolCallState.class.getName());\n+  private static final ThreadLocal<McpToolCallState> currentState = new ThreadLocal<>();\n+\n+  private final McpToolCallRequest request;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private final McpToolCallState previousState;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(\n+      McpClientSession session, String method, @Nullable Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());\n+      McpToolCallState state =\n+          new McpToolCallState(\n+              new McpToolCallRequest(callToolRequest.name(), McpProtocolVersionState.get(session)),",
+      "id": "PRRT_kwDODJKVX86kGRSI",
+      "opened": "2026-09-20T02:39:50Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+      "replies": [
+        {
+          "at": "2026-09-20T16:25:33Z",
+          "body": "Good catch. I moved the protocol-version lookup into the deferred subscription path immediately before `instrumenter().shouldStart/start`, while preserving a per-subscription request snapshot. I also added regression coverage for `initialize().then(callTool(...))` at both the public async-client E2E level and the session span/metric level. Fixed in 2adb03c4.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4057418876"
+        }
+      ],
+      "reviewed": "eb0868270cc5c9542b2772034508e5bd0d56685b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4055846762"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] This new project is only needed to test javaagent helpers directly. New helper tests should use a `unitTests` `JvmTestSuite` in the `javaagent` project (for example, `instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts:29-38`) rather than adding a separate `javaagent-unit-tests` subproject; move the test under `src/unitTests` and wire that suite into `check`. This avoids permanent settings/project wiring for a class-loader workaround the javaagent test convention already handles.",
+      "created": "2026-09-20T16:26:44Z",
+      "hunk": "@@ -0,0 +1,13 @@\n+plugins {\n+  id(\"otel.java-conventions\")\n+}",
+      "id": "PRRT_kwDODJKVX86kKVxl",
+      "opened": "2026-09-20T16:26:44Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent-unit-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-03T18:18:17Z",
+          "body": "Moved the helper test unchanged into `javaagent/src/unitTests`, registered a `unitTests` `JvmTestSuite` in the Javaagent project, wired it into `check`, and removed the standalone project/settings entry in adf886c8. `:instrumentation:mcp-java-sdk-0.14:javaagent:unitTests` and the full Javaagent `check` both pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4174294031"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4057421628"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we'd add `mcp-java-sdk-0.14` straight under `instrumentation` without creating an extra `mcp` directory if it only has one subdirectory",
+      "created": "2026-09-22T11:55:32Z",
+      "hunk": "@@ -500,6 +500,8 @@ include(\":instrumentation:logback:logback-appender-1.0:testing\")\n include(\":instrumentation:logback:logback-mdc-1.0:javaagent\")\n include(\":instrumentation:logback:logback-mdc-1.0:library\")\n include(\":instrumentation:logback:logback-mdc-1.0:testing\")\n+include(\":instrumentation:mcp:mcp-java-sdk-0.14:javaagent\")",
+      "id": "PRRT_kwDODJKVX86ktoSl",
+      "opened": "2026-09-22T13:42:46Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-22T16:00:17Z",
+          "body": "Moved the module to `instrumentation/mcp-java-sdk-0.14` and updated the Gradle project paths plus generated documentation and FOSSA references in ef906e2e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4073691701"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4071307136"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Sometimes if we don't wish to bother with 0.x versions we use 1.0 as the first supported version although the instrumentation could work with earlier versions. One option is just to use a wider range for muzzle another is to artificially restrict the instrumentation so it would not apply to earlier versions by adding\n```java\n  @Override\n  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n    // added in 1.0\n    return hasClassesNamed(\"class.added.in.1.0\");\n  }\n```\nto the instrumentation module. Do you see value in supporting versions before 1.0?",
+      "created": "2026-09-22T12:00:59Z",
+      "hunk": "@@ -113,6 +113,7 @@ These are the supported libraries and frameworks:\n | [Log4j 1](https://logging.apache.org/log4j/1.2/)                                                                                            | 1.2+                               | N/A                                                                                                                                                                                                                                                                                                                                                                                     | none                                                                                                                                              |\n | [Log4j 2](https://logging.apache.org/log4j/2.x/)                                                                                            | 2.11+                              | [opentelemetry-log4j-appender-2.17](../instrumentation/log4j/log4j-appender-2.17/library),<br>[opentelemetry-log4j-context-data-2.17-autoconfigure](../instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure)                                                                                                                                          | none                                                                                                                                              |\n | [Logback](https://logback.qos.ch/)                                                                                                          | 1.0+                               | [opentelemetry-logback-appender-1.0](../instrumentation/logback/logback-appender-1.0/library),<br>[opentelemetry-logback-mdc-1.0](../instrumentation/logback/logback-mdc-1.0/library)                                                                                                                                                                                                   | none                                                                                                                                              |\n+| [MCP Java SDK](https://github.com/modelcontextprotocol/java-sdk)                                                                            | 0.14.1+                            | N/A                                                                                                                                                                                                                                                                                                                                                                                     | [GenAI Client Spans]                                                                                                                              |",
+      "id": "PRRT_kwDODJKVX86ktwrg",
+      "opened": "2026-09-22T13:42:46Z",
+      "path": "docs/supported-libraries.md",
+      "replies": [
+        {
+          "at": "2026-09-22T16:00:31Z",
+          "body": "Yes, I think there is value in supporting the compatible 0.x line: 0.14.1 is the first release accepted by Muzzle, and users can adopt this instrumentation before migrating to 1.x. I’ve kept the range at `[0.14.1,)` and am relying on Muzzle rather than adding a classloader matcher whose only purpose would be to exclude otherwise-compatible versions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4073693829"
+        },
+        {
+          "at": "2026-10-07T14:25:14Z",
+          "body": "@trask do you have an opinion on this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4208108339"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4071359112"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`docs/supported-libraries.md‎` and metadata only have `[GenAI Client Spans]` should it also include `[GenAI Client Metrics]`?",
+      "created": "2026-09-22T12:16:28Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_TOOL_NAME;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_METHOD_NAME;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_PROTOCOL_VERSION;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingMetrics.MCP_CLIENT_OPERATION_DURATION_DESCRIPTION;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingMetrics.MCP_CLIENT_OPERATION_DURATION_NAME;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingMetrics.MCP_CLIENT_OPERATION_DURATION_UNIT;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_RESPONSE_STATUS_CODE;\n+import static java.util.Arrays.asList;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static java.util.logging.Level.FINE;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.api.incubator.metrics.ExtendedDoubleHistogramBuilder;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationListener;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationMetrics;\n+import io.opentelemetry.instrumentation.api.internal.OperationMetricsUtil;\n+import java.util.logging.Logger;\n+\n+final class McpClientMetrics implements OperationListener {",
+      "id": "PRRT_kwDODJKVX86kuFSZ",
+      "opened": "2026-09-22T13:42:46Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpClientMetrics.java",
+      "replies": [
+        {
+          "at": "2026-09-22T16:00:37Z",
+          "body": "Good catch. Added `GENAI_CLIENT_METRICS` to `metadata.yaml` and `[GenAI Client Metrics]` to the supported-libraries row in ef906e2e. The generated instrumentation catalog now includes `mcp.client.operation.duration` as well.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4073694768"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4071485263"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/mcp.md#metric-mcpclientoperationduration lists more conditionally required and recommended attributes are these omitted because this instrumentation does not emit them?",
+      "created": "2026-09-22T12:21:38Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_TOOL_NAME;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_METHOD_NAME;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_PROTOCOL_VERSION;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingMetrics.MCP_CLIENT_OPERATION_DURATION_DESCRIPTION;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingMetrics.MCP_CLIENT_OPERATION_DURATION_NAME;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingMetrics.MCP_CLIENT_OPERATION_DURATION_UNIT;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_RESPONSE_STATUS_CODE;\n+import static java.util.Arrays.asList;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static java.util.logging.Level.FINE;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.api.incubator.metrics.ExtendedDoubleHistogramBuilder;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationListener;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationMetrics;\n+import io.opentelemetry.instrumentation.api.internal.OperationMetricsUtil;\n+import java.util.logging.Logger;\n+\n+final class McpClientMetrics implements OperationListener {\n+  private static final double NANOS_PER_S = SECONDS.toNanos(1);\n+  private static final ContextKey<State> STATE_KEY = ContextKey.named(\"mcp-client-metrics-state\");\n+  private static final Logger logger = Logger.getLogger(McpClientMetrics.class.getName());\n+\n+  static OperationMetrics get() {\n+    return OperationMetricsUtil.create(\"mcp client\", McpClientMetrics::new);\n+  }\n+\n+  private final DoubleHistogram operationDuration;\n+\n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  private McpClientMetrics(Meter meter) {\n+    DoubleHistogramBuilder builder =\n+        meter\n+            .histogramBuilder(MCP_CLIENT_OPERATION_DURATION_NAME)\n+            .setUnit(MCP_CLIENT_OPERATION_DURATION_UNIT)\n+            .setDescription(MCP_CLIENT_OPERATION_DURATION_DESCRIPTION)\n+            .setExplicitBucketBoundariesAdvice(\n+                asList(\n+                    0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0,\n+                    300.0));\n+    if (builder instanceof ExtendedDoubleHistogramBuilder extendedBuilder) {\n+      extendedBuilder.setAttributesAdvice(\n+          asList(\n+              MCP_METHOD_NAME,",
+      "id": "PRRT_kwDODJKVX86kuMWG",
+      "opened": "2026-09-22T13:42:46Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpClientMetrics.java",
+      "replies": [
+        {
+          "at": "2026-09-22T16:00:43Z",
+          "body": "Yes. This instrumentation covers `tools/call` at the shared `McpClientSession.sendRequest` layer and includes every applicable attribute it currently emits. Prompt/resource attributes are not applicable to `tools/call`; `jsonrpc.protocol.version` is omitted because this SDK uses JSON-RPC 2.0 (the convention recommends it only when the value is not 2.0); and transport/network/server attributes are unavailable at this shared session layer without coupling the instrumentation to individual transports.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4073695875"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4071528337"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "are these needed?",
+      "created": "2026-09-22T13:01:42Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"io.modelcontextprotocol.sdk\")\n+    module.set(\"mcp-core\")\n+    versions.set(\"[0.14.1,)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+// MCP Java SDK's minimum supported Java version is 17.\n+otelJava {\n+  minJavaVersionSupported.set(JavaVersion.VERSION_17)\n+}\n+\n+dependencies {\n+  compileOnly(project(\":instrumentation-annotations-support\"))\n+  implementation(project(\":instrumentation:reactor:reactor-3.1:library\"))\n+\n+  library(\"io.modelcontextprotocol.sdk:mcp-core:0.14.1\")\n+  testLibrary(\"io.modelcontextprotocol.sdk:mcp-json-jackson2:0.14.1\")\n+  testInstrumentation(project(\":instrumentation:reactor:reactor-3.1:javaagent\"))\n+  latestDepTestLibrary(\"io.modelcontextprotocol.sdk:mcp-core:latest.release\")\n+  latestDepTestLibrary(\"io.modelcontextprotocol.sdk:mcp-json-jackson2:latest.release\")",
+      "id": "PRRT_kwDODJKVX86kvFfM",
+      "opened": "2026-09-22T13:42:46Z",
+      "path": "instrumentation/mcp/mcp-java-sdk-0.14/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-22T16:00:50Z",
+          "body": "No. The repository's `library` and `testLibrary` helpers already resolve the pinned latest releases under `-PtestLatestDeps=true`, so the two `latestDepTestLibrary` declarations were redundant. Removed them in ef906e2e and verified `./gradlew -PtestLatestDeps=true :instrumentation:mcp-java-sdk-0.14:javaagent:test` still passes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4073696888"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4071881797"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not sure this is better than just orphaning the span",
+      "created": "2026-09-22T13:39:11Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.instrumenter;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ReactorAsyncOperationEndStrategy;\n+import java.util.logging.Logger;\n+import reactor.core.publisher.Mono;\n+\n+final class McpToolCallMono {\n+  private static final Logger logger = Logger.getLogger(McpToolCallMono.class.getName());\n+  private static final ReactorAsyncOperationEndStrategy endStrategy =\n+      ReactorAsyncOperationEndStrategy.create();\n+\n+  static Mono<?> wrap(Mono<?> publisher, McpToolCallState state) {\n+    return Mono.deferContextual(\n+        reactorContext -> {\n+          try {\n+            Context parentContext =\n+                ContextPropagationOperator.getOpenTelemetryContextFromContextView(\n+                    reactorContext, Context.current());\n+            McpToolCallRequest request = state.createRequest();\n+            if (!instrumenter().shouldStart(parentContext, request)) {\n+              return publisher;\n+            }\n+\n+            Context context = instrumenter().start(parentContext, request);\n+            state.inject(context);\n+            try {\n+              return (Mono<?>)\n+                  endStrategy.end(\n+                      instrumenter(), context, request, publisher, McpSchema.CallToolResult.class);\n+            } catch (Throwable t) {\n+              logger.log(FINE, \"Failed to wrap MCP tool call publisher\", t);\n+              endSpan(context, request);\n+            }",
+      "id": "PRRT_kwDODJKVX86kwDbt",
+      "opened": "2026-09-22T13:42:46Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+      "replies": [
+        {
+          "at": "2026-10-16T14:51:54Z",
+          "body": "Lets remove this try-catch. We don't expect the `ReactorAsyncOperationEndStrategy.end` call to fail.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4295961786"
+        },
+        {
+          "at": "2026-10-16T23:36:27Z",
+          "body": "Removed the inner `try`/`catch` and the fallback `endSpan` path in 61e06fdc. `ReactorAsyncOperationEndStrategy.end(...)` is now returned directly; the module test suite passes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300256216"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4072266342"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we don't guard against such instrumentations failures. Did an ai add this or are you trying to make sure that no matter what the instrumentation exceptions won't propagate to the app?",
+      "created": "2026-09-22T13:42:42Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpClientSession;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpProtocolVersionState {\n+  private static final Logger logger = Logger.getLogger(McpProtocolVersionState.class.getName());\n+  private static final VirtualField<McpClientSession, McpProtocolVersionState>\n+      SESSION_PROTOCOL_VERSION =\n+          VirtualField.find(McpClientSession.class, McpProtocolVersionState.class);\n+\n+  private final String protocolVersion;\n+\n+  @Nullable\n+  public static String get(McpClientSession session) {\n+    McpProtocolVersionState state = SESSION_PROTOCOL_VERSION.get(session);\n+    return state == null ? null : state.protocolVersion;\n+  }\n+\n+  @Nullable\n+  public static Mono<?> capture(\n+      McpClientSession session, String method, @Nullable Mono<?> publisher) {\n+    if (!McpSchema.METHOD_INITIALIZE.equals(method) || publisher == null) {\n+      return publisher;\n+    }\n+    return publisher.doOnNext(\n+        result -> {\n+          try {\n+            if (result instanceof McpSchema.InitializeResult initializeResult\n+                && initializeResult.protocolVersion() != null) {\n+              SESSION_PROTOCOL_VERSION.set(\n+                  session, new McpProtocolVersionState(initializeResult.protocolVersion()));\n+            }\n+          } catch (Throwable t) {",
+      "id": "PRRT_kwDODJKVX86kwJVp",
+      "opened": "2026-09-22T13:42:46Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpProtocolVersionState.java",
+      "replies": [
+        {
+          "at": "2026-09-22T15:34:10Z",
+          "body": "This is a result of addressing a previous comment where we want to log error when there is an error. Logging all the errors can be overwhelming, and I don't have a good judge right now on which error to log versus not across Otel.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4073441066"
+        }
+      ],
+      "reviewed": "2adb03c4328e54cb7994d88bc0c125a97c6c0abc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4072302354"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "> When the status is set to Error by Instrumentation Libraries, the Description SHOULD be documented and predictable. The status code should only be set to Error according to the rules defined within the semantic conventions. For operations not covered by the semantic conventions, Instrumentation Libraries SHOULD publish their own conventions, including possible values of Description and what they mean.\n\n@trask is using the exception message as span status description fine. I know this is not the first time this has come up, but I don't remember what the conclusion was last time.\n\n",
+      "created": "2026-10-07T13:59:03Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import io.modelcontextprotocol.spec.McpError;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.StatusCode;\n+import io.opentelemetry.context.propagation.ContextPropagators;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusExtractor;\n+\n+final class McpSingletons {\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.mcp-java-sdk-0.14\";\n+\n+  private static final Instrumenter<McpToolCallRequest, McpSchema.CallToolResult> instrumenter =\n+      Instrumenter.<McpToolCallRequest, McpSchema.CallToolResult>builder(\n+              GlobalOpenTelemetry.get(),\n+              INSTRUMENTATION_NAME,\n+              request -> McpSchema.METHOD_TOOLS_CALL + \" \" + request.getToolName())\n+          .addAttributesExtractor(new McpToolCallAttributesExtractor())\n+          .addOperationMetrics(McpClientMetrics.get())\n+          .setSpanStatusExtractor(\n+              (spanStatusBuilder, request, response, error) -> {\n+                if (response != null && Boolean.TRUE.equals(response.isError())) {\n+                  spanStatusBuilder.setStatus(StatusCode.ERROR);\n+                } else if (error instanceof McpError && error.getMessage() != null) {\n+                  spanStatusBuilder.setStatus(StatusCode.ERROR, error.getMessage());",
+      "id": "PRRT_kwDODJKVX86p8EQE",
+      "opened": "2026-10-07T13:59:03Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:31Z",
+          "body": "Removed the `McpError` special case that used the exception message as the span status description in 61e06fdc. Errors now use the default status extractor (ERROR with no dynamic description), while the exception event still carries the diagnostic exception.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300256520"
+        }
+      ],
+      "reviewed": "8708d05376a4e2ed298b65bda7997ccb22ffb498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4207815759"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "the preferred order changed\n```suggestion\n    super(\"mcp-java-sdk-0.14\", \"mcp-java-sdk\");\n```",
+      "created": "2026-10-07T14:00:29Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static java.util.Collections.singletonList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+\n+@AutoService(InstrumentationModule.class)\n+public class McpJavaSdkInstrumentationModule extends InstrumentationModule {\n+\n+  public McpJavaSdkInstrumentationModule() {\n+    super(\"mcp-java-sdk\", \"mcp-java-sdk-0.14\");",
+      "id": "PRRT_kwDODJKVX86p8Gwo",
+      "opened": "2026-10-07T14:00:29Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpJavaSdkInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:34Z",
+          "body": "Updated the alias order to `super(\"mcp-java-sdk-0.14\", \"mcp-java-sdk\")` in 61e06fdc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300256761"
+        }
+      ],
+      "reviewed": "8708d05376a4e2ed298b65bda7997ccb22ffb498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4207831673"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think it is best to leave this file unchanged. There is a workflow that will automatically update this file after the PR is merged.",
+      "created": "2026-10-16T14:45:20Z",
+      "hunk": "@@ -5355,6 +5355,26 @@ definitions:\n         type: STRING\n       - name: messaging.kafka.cluster.id\n         type: STRING\n+    mcp.client.operation.duration-3691ba75:",
+      "id": "PRRT_kwDODJKVX86tP-Hx",
+      "opened": "2026-10-16T14:45:20Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:41Z",
+          "body": "Agreed. I dropped `docs/instrumentation-list.yaml` while rebasing, so it is absent from the current PR diff and can be updated by the post-merge workflow.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300257549"
+        }
+      ],
+      "reviewed": "8708d05376a4e2ed298b65bda7997ccb22ffb498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4295895740"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `GenAiIncubatingAttributes.GenAiOperationNameIncubatingValues.EXECUTE_TOOL`",
+      "created": "2026-10-16T14:59:02Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.GenAiIncubatingAttributes.GEN_AI_TOOL_NAME;\n+import static io.opentelemetry.semconv.incubating.JsonrpcIncubatingAttributes.JSONRPC_REQUEST_ID;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_METHOD_NAME;\n+import static io.opentelemetry.semconv.incubating.McpIncubatingAttributes.MCP_PROTOCOL_VERSION;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_RESPONSE_STATUS_CODE;\n+\n+import io.modelcontextprotocol.spec.McpError;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+\n+final class McpToolCallAttributesExtractor\n+    implements AttributesExtractor<McpToolCallRequest, McpSchema.CallToolResult> {\n+  @Override\n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  public void onStart(\n+      AttributesBuilder attributes, Context parentContext, McpToolCallRequest request) {\n+    attributes.put(MCP_METHOD_NAME, McpSchema.METHOD_TOOLS_CALL);\n+    attributes.put(MCP_PROTOCOL_VERSION, request.getProtocolVersion());\n+    attributes.put(GEN_AI_OPERATION_NAME, \"execute_tool\");",
+      "id": "PRRT_kwDODJKVX86tQTDo",
+      "opened": "2026-10-16T14:59:02Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:48Z",
+          "body": "Updated the extractor and its assertions to use `GenAiOperationNameIncubatingValues.EXECUTE_TOOL` in 61e06fdc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300258146"
+        }
+      ],
+      "reviewed": "8708d05376a4e2ed298b65bda7997ccb22ffb498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4296032021"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since the caller already catches exceptions do you need to catch it here too?",
+      "created": "2026-10-16T15:00:26Z",
+      "hunk": "@@ -0,0 +1,111 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.propagators;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpClientSession;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final Logger logger = Logger.getLogger(McpToolCallState.class.getName());\n+  private static final ThreadLocal<McpToolCallState> currentState = new ThreadLocal<>();\n+\n+  private final McpClientSession session;\n+  private final String toolName;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private final McpToolCallState previousState;\n+  @Nullable private volatile String requestId;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(\n+      McpClientSession session, String method, @Nullable Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());\n+      McpToolCallState state =\n+          new McpToolCallState(\n+              session,\n+              callToolRequest.name(),\n+              new McpSchema.CallToolRequest(\n+                  callToolRequest.name(), callToolRequest.arguments(), meta),\n+              meta,\n+              currentState.get());\n+      currentState.set(state);\n+      return state;\n+    } catch (Throwable t) {\n+      logger.log(FINE, \"Failed to prepare MCP tool call instrumentation\", t);\n+      return null;\n+    }\n+  }\n+\n+  private McpToolCallState(\n+      McpClientSession session,\n+      String toolName,\n+      McpSchema.CallToolRequest requestParameters,\n+      Map<String, Object> propagationMeta,\n+      @Nullable McpToolCallState previousState) {\n+    this.session = session;\n+    this.toolName = toolName;\n+    this.requestParameters = requestParameters;\n+    this.propagationMeta = propagationMeta;\n+    this.previousState = previousState;\n+  }\n+\n+  public static void captureRequestId(String requestId) {\n+    McpToolCallState state = currentState.get();\n+    if (state != null) {\n+      state.requestId = requestId;\n+    }\n+  }\n+\n+  public Object getRequestParameters() {\n+    return requestParameters;\n+  }\n+\n+  McpToolCallRequest createRequest() {\n+    McpToolCallRequest request =\n+        new McpToolCallRequest(toolName, McpProtocolVersionState.get(session));\n+    if (requestId != null) {\n+      request.setRequestId(requestId);\n+    }\n+    return request;\n+  }\n+\n+  void inject(Context context) {\n+    try {",
+      "id": "PRRT_kwDODJKVX86tQVCC",
+      "opened": "2026-10-16T15:00:26Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:38Z",
+          "body": "Removed the redundant catch from `McpToolCallState.inject` in 61e06fdc. Injection failures now reach the existing outer instrumentation boundary, which logs at FINE and preserves the application publisher.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300257175"
+        }
+      ],
+      "reviewed": "8708d05376a4e2ed298b65bda7997ccb22ffb498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4296044821"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I found the thread local usage a bit hard to follow. Perhaps using https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/ScopedThreadValue.java https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/.github/agents/knowledge/javaagent-thread-local-state.md describes how to use it",
+      "created": "2026-10-16T15:47:28Z",
+      "hunk": "@@ -0,0 +1,111 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.propagators;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpClientSession;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final Logger logger = Logger.getLogger(McpToolCallState.class.getName());\n+  private static final ThreadLocal<McpToolCallState> currentState = new ThreadLocal<>();\n+\n+  private final McpClientSession session;\n+  private final String toolName;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private final McpToolCallState previousState;\n+  @Nullable private volatile String requestId;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(\n+      McpClientSession session, String method, @Nullable Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());\n+      McpToolCallState state =\n+          new McpToolCallState(\n+              session,\n+              callToolRequest.name(),\n+              new McpSchema.CallToolRequest(\n+                  callToolRequest.name(), callToolRequest.arguments(), meta),\n+              meta,\n+              currentState.get());\n+      currentState.set(state);",
+      "id": "PRRT_kwDODJKVX86tRcgJ",
+      "opened": "2026-10-16T15:47:28Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:51Z",
+          "body": "Replaced the manually managed `ThreadLocal` with the repository's `ScopedThreadValue` pattern in 61e06fdc. The holder lives in `McpSingletons`, advice sets/restores the previous value around `sendRequest`, and request-ID advice reads the current state. The full module check passes; an initial placement in the matcher-bearing class was caught by the Javaagent test and corrected to avoid application-classloader linkage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300258433"
+        }
+      ],
+      "reviewed": "8708d05376a4e2ed298b65bda7997ccb22ffb498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4296508240"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is there a test that verifies that context was propagated?",
+      "created": "2026-10-16T17:31:19Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.instrumenter;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ReactorAsyncOperationEndStrategy;\n+import java.util.logging.Logger;\n+import reactor.core.publisher.Mono;\n+\n+final class McpToolCallMono {\n+  private static final Logger logger = Logger.getLogger(McpToolCallMono.class.getName());\n+  private static final ReactorAsyncOperationEndStrategy endStrategy =\n+      ReactorAsyncOperationEndStrategy.create();\n+\n+  static Mono<?> wrap(Mono<?> publisher, McpToolCallState state) {\n+    return Mono.deferContextual(\n+        reactorContext -> {\n+          try {\n+            Context parentContext =\n+                ContextPropagationOperator.getOpenTelemetryContextFromContextView(\n+                    reactorContext, Context.current());\n+            McpToolCallRequest request = state.createRequest();\n+            if (!instrumenter().shouldStart(parentContext, request)) {\n+              return publisher;\n+            }\n+\n+            Context context = instrumenter().start(parentContext, request);\n+            state.inject(context);",
+      "id": "PRRT_kwDODJKVX86tTqCD",
+      "opened": "2026-10-16T17:31:19Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:36:45Z",
+          "body": "Added `propagatesToolCallContextThroughReactorPublisher` in 61e06fdc. The test captures `Context.current()` when the underlying transport publisher executes and verifies its trace ID and span ID match the exported `tools/call` span. The focused session test and full module check pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300257832"
+        }
+      ],
+      "reviewed": "8708d05376a4e2ed298b65bda7997ccb22ffb498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4297437493"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This `_meta` copy is shared by every subscription of the returned Mono, but propagation is injected on each subscription. If one subscription has W3C baggage and a later subscription has none, the baggage propagator writes nothing on the later injection. The earlier baggage remains in the outgoing request, leaking context between operations. Preserve an untouched application-metadata snapshot and give each subscription its own request and propagation carrier. Add a regression test that resubscribes with different baggage contexts.",
+      "created": "2026-10-16T23:44:31Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.propagators;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpClientSession;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import reactor.core.publisher.Mono;\n+\n+public final class McpToolCallState {\n+  private static final Logger logger = Logger.getLogger(McpToolCallState.class.getName());\n+\n+  private final McpClientSession session;\n+  private final String toolName;\n+  private final McpSchema.CallToolRequest requestParameters;\n+  private final Map<String, Object> propagationMeta;\n+  @Nullable private volatile String requestId;\n+\n+  @Nullable\n+  public static McpToolCallState prepare(\n+      McpClientSession session, String method, @Nullable Object requestParameters) {\n+    try {\n+      if (!McpSchema.METHOD_TOOLS_CALL.equals(method)\n+          || !(requestParameters instanceof McpSchema.CallToolRequest callToolRequest)) {\n+        return null;\n+      }\n+\n+      Map<String, Object> meta =\n+          callToolRequest.meta() == null ? new HashMap<>() : new HashMap<>(callToolRequest.meta());",
+      "id": "PRRT_kwDODJKVX86tae22",
+      "opened": "2026-10-16T23:44:32Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallState.java",
+      "replies": [],
+      "reviewed": "61e06fdc1b229d9add57eded140bc0cc2d75a847",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300298261"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] If a configured propagator throws here, the span has already started but its completion handlers have not been installed. The outer catch returns the original publisher, so the span never ends and its duration metric is lost even if the tool call succeeds. Catch injection failures locally and continue installing the completion handlers. Add coverage with a throwing propagator to verify that the application result and telemetry completion are preserved.",
+      "created": "2026-10-16T23:44:32Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcp.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcp.v0_14.McpSingletons.instrumenter;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ReactorAsyncOperationEndStrategy;\n+import java.util.logging.Logger;\n+import reactor.core.publisher.Mono;\n+\n+final class McpToolCallMono {\n+  private static final Logger logger = Logger.getLogger(McpToolCallMono.class.getName());\n+  private static final ReactorAsyncOperationEndStrategy endStrategy =\n+      ReactorAsyncOperationEndStrategy.create();\n+\n+  static Mono<?> wrap(Mono<?> publisher, McpToolCallState state) {\n+    return Mono.deferContextual(\n+        reactorContext -> {\n+          try {\n+            Context parentContext =\n+                ContextPropagationOperator.getOpenTelemetryContextFromContextView(\n+                    reactorContext, Context.current());\n+            McpToolCallRequest request = state.createRequest();\n+            if (!instrumenter().shouldStart(parentContext, request)) {\n+              return publisher;\n+            }\n+\n+            Context context = instrumenter().start(parentContext, request);\n+            state.inject(context);",
+      "id": "PRRT_kwDODJKVX86tae3N",
+      "opened": "2026-10-16T23:44:32Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+      "replies": [
+        {
+          "at": "2026-10-22T14:06:24Z",
+          "body": "I think this is fine, we don't expect the propagators to throw",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4349314471"
+        }
+      ],
+      "reviewed": "61e06fdc1b229d9add57eded140bc0cc2d75a847",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4300298300"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] In SDK 0.14.1, `HttpClientStreamableHttpTransport.sendMessage()` invokes the application request customizer inside this propagated MCP CLIENT context. Independent outgoing work started by the customizer therefore inherits the tool-call span instead of the caller context. Capture the caller context separately and restore it around customizer invocation and its returned publisher, retaining the outgoing context for SDK execution and propagation; cover this with the real HTTP transport.",
+      "created": "2026-11-04T01:11:05Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcpsdk.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcpsdk.v0_14.McpSingletons.instrumenter;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpClientSession;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ReactorAsyncOperationEndStrategy;\n+import java.util.logging.Logger;\n+import reactor.core.CoreSubscriber;\n+import reactor.core.publisher.Mono;\n+\n+final class McpToolCallMono {\n+  private static final Logger logger = Logger.getLogger(McpToolCallMono.class.getName());\n+  private static final ReactorAsyncOperationEndStrategy endStrategy =\n+      ReactorAsyncOperationEndStrategy.create();\n+\n+  static Mono<?> wrap(\n+      McpClientSession session, McpSchema.CallToolRequest requestParameters, Mono<?> publisher) {\n+    return Mono.deferContextual(\n+        reactorContext -> {\n+          try {\n+            Context parentContext =\n+                ContextPropagationOperator.getOpenTelemetryContextFromContextView(\n+                    reactorContext, Context.current());\n+            McpToolCallState state = new McpToolCallState(session, requestParameters);\n+            McpToolCallRequest request = state.getRequest();\n+            if (!instrumenter().shouldStart(parentContext, request)) {\n+              return publisher;\n+            }\n+\n+            Context context = state.storeInContext(instrumenter().start(parentContext, request));\n+            return (Mono<?>)\n+                endStrategy.end(\n+                    instrumenter(),\n+                    context,\n+                    request,\n+                    new SubscriptionContextMono(publisher, context),\n+                    McpSchema.CallToolResult.class);\n+          } catch (Throwable t) {\n+            logger.log(FINE, \"Failed to trace MCP tool call\", t);\n+            // Ignore instrumentation failures to preserve application behavior.\n+          }\n+          return publisher;\n+        });\n+  }\n+\n+  private static final class SubscriptionContextMono extends Mono<Object> {\n+    private final Mono<?> publisher;\n+    private final Context context;\n+\n+    private SubscriptionContextMono(Mono<?> publisher, Context context) {\n+      this.publisher = publisher;\n+      this.context = context;\n+    }\n+\n+    @Override\n+    public void subscribe(CoreSubscriber<? super Object> actual) {\n+      // Mono.create invokes its callback outside subscriber signal scopes.\n+      try (Scope ignored = context.makeCurrent()) {\n+        publisher.subscribe(actual);",
+      "id": "PRRT_kwDODJKVX86zZyr7",
+      "opened": "2026-11-04T01:11:06Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java",
+      "replies": [
+        {
+          "at": "2026-11-04T02:49:17Z",
+          "body": "f931d9031c8b47a3a4f570a81d718cb6c828d6dc",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4463005650"
+        }
+      ],
+      "reviewed": "0ba5711d48ebf73298c6c87fb566e1a733afb036",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4462407607"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] With `Context.root()` as the caller context, synchronous downstream callbacks can run under this MCP CLIENT scope because Reactor's `TracingSubscriber` skips restoring root. Another tool call started in `doOnNext` or `onErrorResume` can therefore inherit the ended CLIENT span or be suppressed. Explicitly restore the captured caller context at downstream signal boundaries, including root, while preserving the outgoing context for SDK execution; cover a callback that starts another tool call without an ambient parent.",
+      "created": "2026-11-04T01:11:05Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcpsdk.v0_14;\n+\n+import static io.opentelemetry.javaagent.instrumentation.mcpsdk.v0_14.McpSingletons.instrumenter;\n+import static java.util.logging.Level.FINE;\n+\n+import io.modelcontextprotocol.spec.McpClientSession;\n+import io.modelcontextprotocol.spec.McpSchema;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ReactorAsyncOperationEndStrategy;\n+import java.util.logging.Logger;\n+import reactor.core.CoreSubscriber;\n+import reactor.core.publisher.Mono;\n+\n+final class McpToolCallMono {\n+  private static final Logger logger = Logger.getLogger(McpToolCallMono.class.getName());\n+  private static final ReactorAsyncOperationEndStrategy endStrategy =\n+      ReactorAsyncOperationEndStrategy.create();\n+\n+  static Mono<?> wrap(\n+      McpClientSession session, McpSchema.CallToolRequest requestParameters, Mono<?> publisher) {\n+    return Mono.deferContextual(\n+        reactorContext -> {\n+          try {\n+            Context parentContext =\n+                ContextPropagationOperator.getOpenTelemetryContextFromContextView(\n+                    reactorContext, Context.current());\n+            McpToolCallState state = new McpToolCallState(session, requestParameters);\n+            McpToolCallRequest request = state.getRequest();\n+            if (!instrumenter().shouldStart(parentContext, request)) {\n+              return publisher;\n+            }\n+\n+            Context context = state.storeInContext(instrumenter().start(parentContext, request));\n+            return (Mono<?>)\n+                endStrategy.end(\n+                    instrumenter(),\n+                    context,\n+                    request,\n+                    new SubscriptionContextMono(publisher, context),\n+                    McpSchema.CallToolResult.class);\n+          } catch (Throwable t) {\n+            logger.log(FINE, \"Failed to trace MCP tool call\", t);\n+            // Ignore instrumentation failures to preserve application behavior.\n+          }\n+          return publisher;\n+        });\n+  }\n+\n+  private static final class SubscriptionContextMono extends Mono<Object> {\n+    private final Mono<?> publisher;\n+    private final Context context;\n+\n+    private SubscriptionContextMono(Mono<?> publisher, Context context) {\n+      this.publisher = publisher;\n+      this.context = context;\n+    }\n+\n+    @Override\n+    public void subscribe(CoreSubscriber<? super Object> actual) {\n+      // Mono.create invokes its callback outside subscriber signal scopes.\n+      try (Scope ignored = context.makeCurrent()) {\n+        publisher.subscribe(actual);",
+      "id": "PRRT_kwDODJKVX86zZysc",
+      "opened": "2026-11-04T01:11:06Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java",
+      "replies": [
+        {
+          "at": "2026-11-04T02:49:17Z",
+          "body": "9c423e31f8dae65a66a91bea9ea68c3454dc6754",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4463005651"
+        }
+      ],
+      "reviewed": "0ba5711d48ebf73298c6c87fb566e1a733afb036",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4462407656"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new SSE builder advice has no installed-agent coverage: all real-HTTP customizer tests use `HttpClientStreamableHttpTransport`. Add an SSE tool-call test covering metadata propagation, caller context in customizers and response callbacks, and parenting of the tool-call HTTP POST span to the MCP span. This exercises the separate SSE response stream and POST sender that the current tests do not cover.",
+      "created": "2026-11-04T02:58:09Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mcpsdk.v0_14;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.modelcontextprotocol.client.transport.customizer.McpAsyncHttpClientRequestCustomizer;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class McpHttpTransportBuilderInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport$Builder\",\n+        \"io.modelcontextprotocol.client.transport.HttpClientSseClientTransport$Builder\");",
+      "id": "PRRT_kwDODJKVX86zbTdA",
+      "opened": "2026-11-04T02:58:10Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpHttpTransportBuilderInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-04T03:45:31Z",
+          "body": "8324d438a87722fb9206d28149cca24839c1176e",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4463340170"
+        }
+      ],
+      "reviewed": "940b79a3f6410da24204ff42304ab9a70e2a51b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4463058909"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `GENAI_CLIENT_METRICS` points users to `gen_ai.client.operation.duration`, but this module emits only `mcp.client.operation.duration`. Remove this classification; the MCP histogram is already documented under `additional_telemetry`. Also remove or replace the corresponding `[GenAI Client Metrics]` link in `docs/supported-libraries.md:117`.",
+      "created": "2026-11-04T02:58:10Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+display_name: MCP Java SDK\n+description: This instrumentation enables MCP client spans and metrics for tool calls made with the Model Context Protocol Java SDK 0.14.1 and later.\n+semantic_conventions:\n+  - GENAI_CLIENT_SPANS\n+  - GENAI_CLIENT_METRICS",
+      "id": "PRRT_kwDODJKVX86zbTdm",
+      "opened": "2026-11-04T02:58:10Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-11-04T03:45:31Z",
+          "body": "abe37e021c374a8ec2aa557f27d88eefefef4a10",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4463340209"
+        }
+      ],
+      "reviewed": "940b79a3f6410da24204ff42304ab9a70e2a51b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20062#discussion_r4463058960"
+    }
+  ]
+}

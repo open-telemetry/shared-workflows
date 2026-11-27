@@ -1,0 +1,31 @@
+{
+  "head": "609bdcc3270edfed36b616f1666d9fe8dac341ff",
+  "merge": "5738482a0ded9a667f6b324d93893a5589dffc42",
+  "merged": "2026-08-18T18:22:49Z",
+  "missing_roots": 0,
+  "number": 19664,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `code > 0` boundary is not covered for `code == 0`: these cases would still pass if the implementation regressed to `code != 0`, reintroducing the meaningless `\"0\"` error type. Add a zero-code case to lock down the non-positive fallback behavior.",
+      "created": "2026-08-17T23:44:21Z",
+      "hunk": "@@ -91,6 +99,31 @@ void shouldTruncateArray() {\n         .isIn(\"{\\\"cmd\\\": \\\"c\\\", \\\"f1\\\": [\\\"?\\\", \\\"?\", \"{\\\"cmd\\\": \\\"c\\\", \\\"f1\\\": [\\\"?\\\",\");\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"errorTypes\")\n+  void getErrorTypeReturnsServerCodeOrFallsBack(Throwable error, String expectedErrorType) {\n+    MongoDbAttributesGetter getter =\n+        new MongoDbAttributesGetter(true, DEFAULT_MAX_NORMALIZED_QUERY_LENGTH);\n+\n+    assertThat(getter.getErrorType(null, null, error)).isEqualTo(expectedErrorType);\n+  }\n+\n+  private static Stream<Arguments> errorTypes() {\n+    return Stream.of(\n+        argumentSet(\"server error code\", new MongoException(11000, \"duplicate key\"), \"11000\"),",
+      "id": "PRRT_kwDODJKVX86Z7XPk",
+      "opened": "2026-08-17T23:44:21Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T00:07:35Z",
+          "body": "Good call. Added a `code == 0` case: `argumentSet(\"zero code falls back\", new MongoException(0, \"boom\"), null)`. That pins the exact boundary between `code > 0` and `code >= 0`, so a regression to `code >= 0` (which would reintroduce a `\"0\"` error type) is now caught. This mirrors the zero-code handling in #19623.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19664#discussion_r3799778045"
+        }
+      ],
+      "reviewed": "77ee326be046d5b7c80a8519774f204a1386d00e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19664#discussion_r3799613087"
+    }
+  ]
+}

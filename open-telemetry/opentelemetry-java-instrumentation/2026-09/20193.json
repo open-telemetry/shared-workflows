@@ -1,0 +1,262 @@
+{
+  "head": "72d44a0053f54fd58b0385f309d98f5a62f38f9d",
+  "merge": "e720fed700f8992f874e20bfb8a4e46fd8030a9b",
+  "merged": "2026-09-28T16:42:42Z",
+  "missing_roots": 0,
+  "number": 20193,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Concurrency] `withDeliveryAccounting` only snapshots the current unrecorded count; the delivery is not marked until `onEnd`. If two processing attempts overlap on the same retained message, both can capture `1` and each emit `messaging.client.consumed.messages`. This is reachable with asynchronous completion because callbacks attached after the instrumentation callback may run first and synchronously start another attempt. Atomically claim each delivery at operation start, store the claimed count in the context, and record only that claim at end.",
+      "created": "2026-09-20T05:19:16Z",
+      "hunk": "@@ -275,6 +317,13 @@ public Instrumenter<SqsProcessRequest, Response> consumerProcessInstrumenter() {\n     return builder.buildInstrumenter(SpanKindExtractor.alwaysConsumer());\n   }\n \n+  private static Context withDeliveryAccounting(\n+      Context context, AbstractSqsRequest request, Attributes startAttributes) {\n+    return context\n+        .with(DELIVERY_ACCOUNTING_REQUEST, request)\n+        .with(UNRECORDED_MESSAGE_COUNT, request.getUnrecordedMessageCount());",
+      "id": "PRRT_kwDODJKVX86kHLSS",
+      "opened": "2026-09-20T05:19:17Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-09-22T19:25:51Z",
+          "body": "Addressed in 8b6a95b976c0eb0c455c936abef5e74aad30641a.\n\nFixed in the verified source changes 8b6a95b976c0eb0c455c936abef5e74aad30641a.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075561809"
+        }
+      ],
+      "reviewed": "a3d49fb2f996e03559c88c07adcec3265f71d87c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4056197747"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `Spliterators.spliterator(iterator(), ...)` does not match `TracingIterator`'s lifecycle. The iterator starts a process span in `next()` and closes it only on a later `hasNext()`/`next()` call, so a short-circuiting stream such as `findFirst()` leaves the selected span and scope open. Parallel traversal is also unsafe because splitting drains iterator elements before the stream actions run, ending their spans too early and potentially leaving the last scope open. Use a dedicated spliterator that brackets each action with span start/end and has defined split behavior, and reuse it for `TracingListView`.",
+      "created": "2026-09-20T05:19:16Z",
+      "hunk": "@@ -52,27 +61,42 @@ private TracingList(\n     this.response = response;\n     this.config = config;\n     this.processParentContext = processParentContext;\n+    this.tracingMessages = new IdentityHashMap<>();\n+    for (int i = 0; i < messages.size(); i++) {\n+      this.tracingMessages.put(messages.get(i), tracingMessages.get(i));\n+    }\n   }\n \n-  public void disableTracing() {\n-    // only the first call to iterator() is traced\n-    firstIterator = false;\n+  public void selectListenerProcessing() {\n+    processingSelected = true;\n   }\n \n   @Override\n   public Iterator<Message> iterator() {\n-    Iterator<Message> it;\n+    return tracingIterator(super.iterator());\n+  }\n+\n+  @Override\n+  public Spliterator<Message> spliterator() {\n+    return Spliterators.spliterator(iterator(), size(), Spliterator.ORDERED);",
+      "id": "PRRT_kwDODJKVX86kHLSg",
+      "opened": "2026-09-20T05:19:17Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-22T19:25:53Z",
+          "body": "No code change.\n\nThis is already addressed by TracingSpliterator, which brackets each callback and is reused by TracingListView.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075562063"
+        }
+      ],
+      "reviewed": "a3d49fb2f996e03559c88c07adcec3265f71d87c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4056197762"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new sublist view preserves tracing through `iterator()`, but inherited `listIterator()` and `listIterator(int)` use `AbstractList`'s index-based implementation and never reach this override. Traversing a sublist with either API therefore skips the SDK process span and stable consumed-message accounting. Override both list-iterator paths with a tracing `ListIterator` wrapper so the new view preserves the fallback consistently.",
+      "created": "2026-09-20T05:19:16Z",
+      "hunk": "@@ -98,8 +122,63 @@ public TracingExecutionInterceptor getConfig() {\n     return config;\n   }\n \n+  @Nullable\n+  public SqsMessage getTracingMessage(Message message) {\n+    return tracingMessages.get(message);\n+  }\n+\n   @Nullable\n   public Context getProcessParentContext() {\n     return processParentContext;\n   }\n+\n+  private static final class TracingListView extends AbstractList<Message> {\n+    private final List<Message> delegate;\n+    private final TracingList tracingList;\n+\n+    private TracingListView(List<Message> delegate, TracingList tracingList) {\n+      this.delegate = delegate;\n+      this.tracingList = tracingList;\n+    }\n+\n+    @Override\n+    public Message get(int index) {\n+      return delegate.get(index);\n+    }\n+\n+    @Override\n+    public int size() {\n+      return delegate.size();\n+    }\n+\n+    @Override\n+    public Message set(int index, Message element) {\n+      return delegate.set(index, element);\n+    }\n+\n+    @Override\n+    public void add(int index, Message element) {\n+      delegate.add(index, element);\n+    }\n+\n+    @Override\n+    public Message remove(int index) {\n+      return delegate.remove(index);\n+    }\n+\n+    @Override\n+    public Iterator<Message> iterator() {\n+      return tracingList.tracingIterator(delegate.iterator());\n+    }",
+      "id": "PRRT_kwDODJKVX86kHLSp",
+      "opened": "2026-09-20T05:19:17Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-22T19:25:54Z",
+          "body": "Addressed in 8b6a95b976c0eb0c455c936abef5e74aad30641a.\n\nFixed in the verified source changes 8b6a95b976c0eb0c455c936abef5e74aad30641a.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075562300"
+        }
+      ],
+      "reviewed": "a3d49fb2f996e03559c88c07adcec3265f71d87c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4056197775"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Completing `messageFuture` only proves that the listener body ran; Spring performs automatic SQS acknowledgement afterward. The test can therefore return while the delete operation is still in flight, allowing the extension's lifecycle clear to race with span export and leak telemetry into the next test. Wait until the mode-specific delete span has been exported before branching or returning.",
+      "created": "2026-09-20T05:19:17Z",
+      "hunk": "@@ -234,6 +250,113 @@ MESSAGING_SYSTEM, emitStableMessagingSemconv() ? AWS_SQS : null),\n                                 emitStableMessagingSemconv() ? Long.valueOf(1) : null),\n                             satisfies(AWS_REQUEST_ID, val -> val.isInstanceOf(String.class)))));\n     assertConsumedMessages();\n+\n+    if (emitStableMessagingSemconv()) {\n+      testing.clearData();\n+      AwsSqsTestApplication.messageHandler = null;\n+\n+      Message<String> retainedMessage = MessageHeaderUtils.addHeaderIfAbsent(result, \"retry\", true);\n+      RetriedMessageHandler handler = new RetriedMessageHandler();\n+      Method method = RetriedMessageHandler.class.getDeclaredMethod(\"handle\");\n+      new MessagingMessageListenerAdapter<String>(new InvocableHandlerMethod(handler, method))\n+          .onMessage(retainedMessage);\n+\n+      assertThat(handler.invoked).isTrue();\n+      await()\n+          .untilAsserted(\n+              () ->\n+                  assertThat(testing.spans())\n+                      .singleElement()\n+                      .satisfies(\n+                          span ->\n+                              assertThat(span)\n+                                  .hasName(\"process test-queue\")\n+                                  .hasKind(SpanKind.CONSUMER)\n+                                  .hasAttributesSatisfyingExactly(\n+                                      equalTo(RPC_SYSTEM, \"aws-api\"),\n+                                      equalTo(RPC_METHOD, \"ReceiveMessage\"),\n+                                      equalTo(RPC_SERVICE, \"Sqs\"),\n+                                      equalTo(HTTP_REQUEST_METHOD, POST),\n+                                      equalTo(HTTP_RESPONSE_STATUS_CODE, 200),\n+                                      equalTo(SERVER_ADDRESS, \"localhost\"),\n+                                      equalTo(SERVER_PORT, AwsSqsTestApplication.sqsPort),\n+                                      satisfies(\n+                                          URL_FULL,\n+                                          val ->\n+                                              val.startsWith(\n+                                                  \"http://localhost:\"\n+                                                      + AwsSqsTestApplication.sqsPort)),\n+                                      equalTo(MESSAGING_SYSTEM, AWS_SQS),\n+                                      satisfies(\n+                                          MESSAGING_MESSAGE_ID, AbstractStringAssert::isNotBlank),\n+                                      equalTo(\n+                                          MESSAGING_OPERATION,\n+                                          emitOldMessagingSemconv() ? \"process\" : null),\n+                                      equalTo(MESSAGING_OPERATION_NAME, \"process\"),\n+                                      equalTo(MESSAGING_OPERATION_TYPE, \"process\"),\n+                                      equalTo(MESSAGING_DESTINATION_NAME, \"test-queue\"))));\n+      testing.waitAndAssertMetrics(\n+          \"io.opentelemetry.aws-sdk-2.2\",\n+          \"messaging.process.duration\",\n+          metrics -> metrics.hasSize(1));\n+      assertThat(testing.metrics())\n+          .filteredOn(\n+              metric ->\n+                  metric\n+                          .getInstrumentationScopeInfo()\n+                          .getName()\n+                          .equals(\"io.opentelemetry.aws-sdk-2.2\")\n+                      && metric.getName().equals(\"messaging.client.consumed.messages\"))\n+          .isEmpty();\n+\n+      assertAsyncCompletion(retainedMessage, AsyncCompletion.SUCCESS);\n+      assertAsyncCompletion(retainedMessage, AsyncCompletion.ERROR);\n+      assertAsyncCompletion(retainedMessage, AsyncCompletion.CANCELLATION);\n+    }\n+  }\n+\n+  @Test\n+  void batchListenerKeepsSdkProcessingFallback() throws Exception {\n+    CompletableFuture<List<String>> messageFuture = new CompletableFuture<>();\n+    AwsSqsTestApplication.batchMessageHandler = messageFuture::complete;\n+\n+    sqsTemplate.send(\"batch-queue\", \"hello\");\n+\n+    assertThat(messageFuture.get(10, SECONDS)).containsExactly(\"hello\");\n+    assertThat(testing.spans())\n+        .filteredOn(\n+            span ->\n+                span.getName()\n+                    .equals(\n+                        emitStableMessagingSemconv()\n+                            ? \"process batch-queue\"\n+                            : \"batch-queue process\"))\n+        .hasSize(1);",
+      "id": "PRRT_kwDODJKVX86kHLSx",
+      "opened": "2026-09-20T05:19:17Z",
+      "path": "instrumentation/spring/spring-cloud-aws-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/cloud/aws/v3_0/AwsSqsTest.java",
+      "replies": [
+        {
+          "at": "2026-09-22T19:25:56Z",
+          "body": "Addressed in 8b6a95b976c0eb0c455c936abef5e74aad30641a.\n\nFixed in the verified source changes 8b6a95b976c0eb0c455c936abef5e74aad30641a.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075562558"
+        }
+      ],
+      "reviewed": "a3d49fb2f996e03559c88c07adcec3265f71d87c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4056197787"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] A `Consumer` can still propagate a checked throwable via sneaky-throw (for example, Lombok `@SneakyThrows`). This multi-catch lets that failure escape while `error` remains null, so the processing span and duration are ended as successful. Catch and rethrow `Throwable` so every callback failure is attributed.",
+      "created": "2026-09-22T19:32:26Z",
+      "hunk": "@@ -77,6 +87,61 @@ private void closeScopeAndEndSpan() {\n     }\n   }\n \n+  static void processCallback(\n+      TracingList tracingList, Message message, Consumer<? super Message> action) {\n+    requireNonNull(action);\n+    if (message == null || tracingList.isListenerProcessingSelected()) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    SqsMessage sqsMessage = tracingList.getTracingMessage(message);\n+    if (sqsMessage == null) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    Context parentContext = tracingList.getProcessParentContext();\n+    if (parentContext == null) {\n+      parentContext = sqsMessage.getCreationContext();\n+    }\n+    SqsProcessRequest request = SqsProcessRequest.create(tracingList.getRequest(), sqsMessage);\n+    if (!shouldStartProcessing(tracingList, parentContext, request)) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    Context context = tracingList.getInstrumenter().start(parentContext, request);\n+    Throwable error = null;\n+    try (Scope ignored = context.makeCurrent()) {\n+      action.accept(message);\n+    } catch (RuntimeException | Error e) {\n+      error = e;\n+      throw e;",
+      "id": "PRRT_kwDODJKVX86k4kD-",
+      "opened": "2026-09-22T19:32:27Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingIterator.java",
+      "replies": [
+        {
+          "at": "2026-09-22T19:46:14Z",
+          "body": "Addressed in ea074dcbf88af6cf801a9b7979a44a50ad076082, c043086fa0ead52447d83ec69a6aa96b66ac0e4b.\n\nFixed in the verified source changes ea074dcbf88af6cf801a9b7979a44a50ad076082, c043086fa0ead52447d83ec69a6aa96b66ac0e4b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075749720"
+        }
+      ],
+      "reviewed": "8b6a95b976c0eb0c455c936abef5e74aad30641a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075629724"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] This wrapper strips the `RandomAccess` marker that `ArrayList.subList()` normally preserves, even though indexed access remains constant-time. JDK collection algorithms use that marker to choose indexed implementations, so instrumented SQS response sublists can take slower iterator paths solely because instrumentation is active. Preserve `RandomAccess` on the view.",
+      "created": "2026-09-22T19:32:26Z",
+      "hunk": "@@ -98,8 +161,78 @@ public TracingExecutionInterceptor getConfig() {\n     return config;\n   }\n \n+  @Nullable\n+  public SqsMessage getTracingMessage(Message message) {\n+    return tracingMessages.get(message);\n+  }\n+\n   @Nullable\n   public Context getProcessParentContext() {\n     return processParentContext;\n   }\n+\n+  private static final class TracingListView extends AbstractList<Message> {",
+      "id": "PRRT_kwDODJKVX86k4kEr",
+      "opened": "2026-09-22T19:32:27Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-22T19:46:16Z",
+          "body": "Addressed in ea074dcbf88af6cf801a9b7979a44a50ad076082, c043086fa0ead52447d83ec69a6aa96b66ac0e4b.\n\nFixed in the verified source changes ea074dcbf88af6cf801a9b7979a44a50ad076082, c043086fa0ead52447d83ec69a6aa96b66ac0e4b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075749966"
+        }
+      ],
+      "reviewed": "8b6a95b976c0eb0c455c936abef5e74aad30641a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4075629795"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This view inherits `AbstractCollection.contains()` and `AbstractList.indexOf()`/`lastIndexOf()`, which short-circuit immediately after `iterator().next()` finds a match. Because this class routes those methods through the tracing iterator, the selected message's scope is never closed and its process span never ends, leaving that consumer context current after the list method returns. Override the short-circuiting collection methods to delegate directly (or otherwise bracket their traversal) instead of letting them use the lifecycle-based iterator.",
+      "created": "2026-09-24T02:59:59Z",
+      "hunk": "@@ -98,8 +162,78 @@ public TracingExecutionInterceptor getConfig() {\n     return config;\n   }\n \n+  @Nullable\n+  public SqsMessage getTracingMessage(Message message) {\n+    return tracingMessages.get(message);\n+  }\n+\n   @Nullable\n   public Context getProcessParentContext() {\n     return processParentContext;\n   }\n+\n+  private static final class TracingListView extends AbstractList<Message> implements RandomAccess {",
+      "id": "PRRT_kwDODJKVX86lahQq",
+      "opened": "2026-09-24T03:00:00Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-24T03:15:52Z",
+          "body": "Addressed in 14f6ec7226fb632277fc6580bfc23182e01150d9.\n\nFixed in the verified source changes 14f6ec7226fb632277fc6580bfc23182e01150d9.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4089415452"
+        }
+      ],
+      "reviewed": "399dceedaf6e44254f8018507b73feb382ad60d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4089330331"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `TracingListView` inherits `AbstractList.equals`, which traverses via this overridden `listIterator()`. On the first unequal element, `equals` returns immediately after `next()` started a processing span, without another `hasNext()`/`next()` call to close it; this leaks the processing scope and leaves the span open merely from comparing a sublist. Override equality to compare through a non-tracing delegate (and similarly avoid tracing for `hashCode`) rather than routing lookup operations through the lifecycle iterator.",
+      "created": "2026-09-24T03:21:03Z",
+      "hunk": "@@ -98,8 +162,93 @@ public TracingExecutionInterceptor getConfig() {\n     return config;\n   }\n \n+  @Nullable\n+  public SqsMessage getTracingMessage(Message message) {\n+    return tracingMessages.get(message);\n+  }\n+\n   @Nullable\n   public Context getProcessParentContext() {\n     return processParentContext;\n   }\n+\n+  private static final class TracingListView extends AbstractList<Message> implements RandomAccess {\n+    private final List<Message> delegate;\n+    private final TracingList tracingList;\n+\n+    private TracingListView(List<Message> delegate, TracingList tracingList) {\n+      this.delegate = delegate;\n+      this.tracingList = tracingList;\n+    }\n+\n+    @Override\n+    public Message get(int index) {\n+      return delegate.get(index);\n+    }\n+\n+    @Override\n+    public int size() {\n+      return delegate.size();\n+    }\n+\n+    @Override\n+    public boolean contains(Object object) {\n+      return delegate.contains(object);\n+    }\n+\n+    @Override\n+    public int indexOf(Object object) {\n+      return delegate.indexOf(object);\n+    }\n+\n+    @Override\n+    public int lastIndexOf(Object object) {\n+      return delegate.lastIndexOf(object);\n+    }\n+\n+    @Override\n+    public Message set(int index, Message element) {\n+      return delegate.set(index, element);\n+    }\n+\n+    @Override\n+    public void add(int index, Message element) {\n+      delegate.add(index, element);\n+    }\n+\n+    @Override\n+    public Message remove(int index) {\n+      return delegate.remove(index);\n+    }\n+\n+    @Override\n+    public Iterator<Message> iterator() {\n+      return tracingList.tracingIterator(delegate.iterator());\n+    }\n+\n+    @Override\n+    public ListIterator<Message> listIterator() {\n+      return tracingList.tracingListIterator(delegate.listIterator());\n+    }",
+      "id": "PRRT_kwDODJKVX86la2Qr",
+      "opened": "2026-09-24T03:21:03Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-24T03:47:59Z",
+          "body": "Addressed in ee5e3ff3861c6bba7219f3d2819ce72dff8c8ce9, ada12f380a0ad0d584e243d60ae0711ca067a7a3.\n\nFixed in the verified source changes ee5e3ff3861c6bba7219f3d2819ce72dff8c8ce9, ada12f380a0ad0d584e243d60ae0711ca067a7a3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4089675471"
+        }
+      ],
+      "reviewed": "14f6ec7226fb632277fc6580bfc23182e01150d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4089456816"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only bypasses tracing when the other operand is another `TracingListView`. Comparing a view with its owning `TracingList` in either direction still makes the JDK equality implementation iterate the traced operand. An equal comparison consumes the one allowed traced traversal, while an unequal comparison can return immediately after `next()` and leave the process scope open. Handle root/view equality through non-tracing element access so collection comparison cannot become the processing boundary.",
+      "created": "2026-09-24T03:53:18Z",
+      "hunk": "@@ -98,8 +162,106 @@ public TracingExecutionInterceptor getConfig() {\n     return config;\n   }\n \n+  @Nullable\n+  public SqsMessage getTracingMessage(Message message) {\n+    return tracingMessages.get(message);\n+  }\n+\n   @Nullable\n   public Context getProcessParentContext() {\n     return processParentContext;\n   }\n+\n+  private static final class TracingListView extends AbstractList<Message> implements RandomAccess {\n+    private final List<Message> delegate;\n+    private final TracingList tracingList;\n+\n+    private TracingListView(List<Message> delegate, TracingList tracingList) {\n+      this.delegate = delegate;\n+      this.tracingList = tracingList;\n+    }\n+\n+    @Override\n+    public Message get(int index) {\n+      return delegate.get(index);\n+    }\n+\n+    @Override\n+    public int size() {\n+      return delegate.size();\n+    }\n+\n+    @Override\n+    public boolean contains(Object object) {\n+      return delegate.contains(object);\n+    }\n+\n+    @Override\n+    public int indexOf(Object object) {\n+      return delegate.indexOf(object);\n+    }\n+\n+    @Override\n+    public int lastIndexOf(Object object) {\n+      return delegate.lastIndexOf(object);\n+    }\n+\n+    @Override\n+    public boolean equals(Object object) {\n+      if (object instanceof TracingListView) {\n+        object = ((TracingListView) object).delegate;\n+      }\n+      return delegate.equals(object);",
+      "id": "PRRT_kwDODJKVX86lbhZs",
+      "opened": "2026-09-24T03:53:18Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-24T04:10:01Z",
+          "body": "Addressed in 356e9f450fd8c0c72542a22852f394f9031dc952.\n\nFixed in the verified source changes 356e9f450fd8c0c72542a22852f394f9031dc952.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4089824169"
+        }
+      ],
+      "reviewed": "ada12f380a0ad0d584e243d60ae0711ca067a7a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4089716607"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] On Java 8, `ArrayList` inherits `equals` and `hashCode` from `AbstractList`, and those implementations call the virtual `listIterator()`. This fallback therefore still turns `tracingList.equals(anOrdinaryList)` into the one traced traversal (and may leave a scope open on the first mismatch); the inherited root `hashCode()` does the same. Compare all `List` operands by indexed access and override `hashCode()` similarly so these object methods cannot consume processing ownership.",
+      "created": "2026-09-24T04:38:24Z",
+      "hunk": "@@ -52,34 +65,110 @@ private TracingList(\n     this.response = response;\n     this.config = config;\n     this.processParentContext = processParentContext;\n+    this.tracingMessages = new IdentityHashMap<>();\n+    for (int i = 0; i < messages.size(); i++) {\n+      this.tracingMessages.put(messages.get(i), tracingMessages.get(i));\n+    }\n   }\n \n-  public void disableTracing() {\n-    // only the first call to iterator() is traced\n-    firstIterator = false;\n+  public void markProcessingOwnedOutsideSqsSdk() {\n+    processingOwnedOutsideSqsSdk = true;\n+  }\n+\n+  boolean isProcessingOwnedOutsideSqsSdk() {\n+    return processingOwnedOutsideSqsSdk;\n   }\n \n   @Override\n   public Iterator<Message> iterator() {\n-    Iterator<Message> it;\n-    // We should only return one iterator with tracing.\n+    return tracingIterator(super.iterator());\n+  }\n+\n+  @Override\n+  public ListIterator<Message> listIterator() {\n+    return tracingListIterator(super.listIterator());\n+  }\n+\n+  @Override\n+  public ListIterator<Message> listIterator(int index) {\n+    return tracingListIterator(super.listIterator(index));\n+  }\n+\n+  @Override\n+  public Spliterator<Message> spliterator() {\n+    return tracingSpliterator(super.spliterator());\n+  }\n+\n+  @Override\n+  public List<Message> subList(int fromIndex, int toIndex) {\n+    return new TracingListView(super.subList(fromIndex, toIndex), this);\n+  }\n+\n+  @Override\n+  public boolean equals(Object object) {\n+    if (object instanceof TracingList || object instanceof TracingListView) {\n+      return equalsWithoutTracing(this, (List<?>) object);\n+    }\n+    return super.equals(object);\n+  }",
+      "id": "PRRT_kwDODJKVX86lcOYj",
+      "opened": "2026-09-24T04:38:24Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingList.java",
+      "replies": [
+        {
+          "at": "2026-09-24T04:53:18Z",
+          "body": "Addressed in fbc46b7bdc4d1d5789468a8a7c5532d0abcc1daa, c373faa754976454386f4e297a9df79bbd361f47.\n\nFixed in the verified source changes fbc46b7bdc4d1d5789468a8a7c5532d0abcc1daa, c373faa754976454386f4e297a9df79bbd361f47.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4090064952"
+        }
+      ],
+      "reviewed": "7afb58cd534a3bb61855ebd945aa0afc3bf41f18",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4089993046"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`throw t;` should work too (I believe this was introduced in java 7 as precise rethrow)",
+      "created": "2026-09-25T10:07:09Z",
+      "hunk": "@@ -77,6 +87,67 @@ private void closeScopeAndEndSpan() {\n     }\n   }\n \n+  static void processCallback(\n+      TracingList tracingList, Message message, Consumer<? super Message> action) {\n+    requireNonNull(action);\n+    if (message == null || tracingList.isProcessingOwnedOutsideSqsSdk()) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    SqsMessage sqsMessage = tracingList.getTracingMessage(message);\n+    if (sqsMessage == null) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    Context parentContext = tracingList.getProcessParentContext();\n+    if (parentContext == null) {\n+      parentContext = sqsMessage.getCreationContext();\n+    }\n+    SqsProcessRequest request = SqsProcessRequest.create(tracingList.getRequest(), sqsMessage);\n+    if (!shouldStartProcessing(tracingList, parentContext, request)) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    Context context = tracingList.getInstrumenter().start(parentContext, request);\n+    Throwable error = null;\n+    try (Scope ignored = context.makeCurrent()) {\n+      action.accept(message);\n+    } catch (Throwable t) {\n+      error = t;\n+      throw sneakyThrow(t);",
+      "id": "PRRT_kwDODJKVX86l9QqQ",
+      "opened": "2026-09-25T10:07:09Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingIterator.java",
+      "replies": [
+        {
+          "at": "2026-09-25T15:55:28Z",
+          "body": "6e7347c25f222e697b282f7bba740497401553a5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4106267639"
+        }
+      ],
+      "reviewed": "42e3fcbd7ed7e3e5dcb2685895a1c418943e6747",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4103459442"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "can this ever be `true`?",
+      "created": "2026-09-25T10:07:59Z",
+      "hunk": "@@ -77,6 +87,67 @@ private void closeScopeAndEndSpan() {\n     }\n   }\n \n+  static void processCallback(\n+      TracingList tracingList, Message message, Consumer<? super Message> action) {\n+    requireNonNull(action);\n+    if (message == null || tracingList.isProcessingOwnedOutsideSqsSdk()) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    SqsMessage sqsMessage = tracingList.getTracingMessage(message);\n+    if (sqsMessage == null) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    Context parentContext = tracingList.getProcessParentContext();\n+    if (parentContext == null) {\n+      parentContext = sqsMessage.getCreationContext();\n+    }\n+    SqsProcessRequest request = SqsProcessRequest.create(tracingList.getRequest(), sqsMessage);\n+    if (!shouldStartProcessing(tracingList, parentContext, request)) {\n+      action.accept(message);\n+      return;\n+    }\n+\n+    Context context = tracingList.getInstrumenter().start(parentContext, request);\n+    Throwable error = null;\n+    try (Scope ignored = context.makeCurrent()) {\n+      action.accept(message);\n+    } catch (Throwable t) {\n+      error = t;\n+      throw sneakyThrow(t);\n+    } finally {\n+      tracingList.getInstrumenter().end(context, request, tracingList.getResponse(), error);\n+    }\n+  }\n+\n+  // The unchecked cast preserves callback failures that use a sneaky throw.\n+  @SuppressWarnings({\"TypeParameterUnusedInFormals\", \"unchecked\"})\n+  private static <T extends Throwable> T sneakyThrow(Throwable t) throws T {\n+    throw (T) t;\n+  }\n+\n+  private static boolean shouldStartProcessing(\n+      TracingList tracingList, Context parentContext, SqsProcessRequest request) {\n+    if (InstrumentationUtil.shouldSuppressInstrumentation(Context.current())) {",
+      "id": "PRRT_kwDODJKVX86l9R4m",
+      "opened": "2026-09-25T10:07:59Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingIterator.java",
+      "replies": [
+        {
+          "at": "2026-09-26T04:23:30Z",
+          "body": "nope, removed: https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/13a0f1ff659ecf88561b18ffe3eff7c1f126149d",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4110161132"
+        }
+      ],
+      "reviewed": "42e3fcbd7ed7e3e5dcb2685895a1c418943e6747",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20193#discussion_r4103467481"
+    }
+  ]
+}

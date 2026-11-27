@@ -1,0 +1,161 @@
+{
+  "head": "32976911d68e7e1c7eec266f7bd36d0333f0752e",
+  "merge": "2141aea09049e522f06a836efaff2d21a4c5b30a",
+  "merged": "2026-11-03T22:55:38Z",
+  "missing_roots": 0,
+  "number": 20497,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This variant inherits `collectMetadata` from `withType<Test>()`, but without `metadataConfig` its `testNewServerAt=true` telemetry is recorded as the default mode and becomes indistinguishable from the ordinary test run. Label the non-default JVM setting explicitly.",
+      "created": "2026-10-10T14:48:24Z",
+      "hunk": "@@ -123,8 +171,17 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n+  // the test suite binds servers with the bindAndHandle* methods that pekko-http 2.x removed, run\n+  // it again binding with newServerAt, the api that replaced them\n+  val testNewServerAt = register<Test>(\"testNewServerAt\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"testNewServerAt\", true)",
+      "id": "PRRT_kwDODJKVX86rE4gQ",
+      "opened": "2026-10-10T14:48:24Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-10T14:55:58Z",
+          "body": "`metadataConfig` labels agent configuration that changes telemetry (it becomes the `when` key in the generated metadata). `testNewServerAt` only changes how the test server binds — the telemetry is expected to be identical to the default run, which is what this task verifies — so recording it as `default` is intentional. Labeling it would publish a non-existent config option in the instrumentation docs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4238030105"
+        }
+      ],
+      "reviewed": "6290171e93f5249cab69b19118d378867d66b2da",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4238001247"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // connection, whose handlers would then run as children of this request\n```",
+      "created": "2026-10-25T20:07:20Z",
+      "hunk": "@@ -94,28 +96,44 @@ public Future<HttpResponse> apply(HttpRequest request) {\n       return null;\n     }\n \n-    return responseFuture.transform(new EndSpanHandler(tracingRequest), executionContext);\n+    // the response future is completed by application code, with the context of this request\n+    // current, completing the future that is handed back to pekko with that context still current\n+    // would let it flow into the stream callbacks that dispatch the next requests of the\n+    // connection,\n+    // whose handlers would then run as children of this request",
+      "id": "PRRT_kwDODJKVX86wEixA",
+      "opened": "2026-10-25T20:59:42Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [],
+      "reviewed": "729fca89e09ea8afbb9ebdce16d4c2457e55a613",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4372215983"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we use `CallDepth` which is basically a `ThreadLocal` to skip nested instrumentation",
+      "created": "2026-10-30T13:43:01Z",
+      "hunk": "@@ -30,6 +33,14 @@ public void transform(TypeTransformer transformer) {\n         named(\"bindAndHandle\")\n             .and(takesArgument(0, named(\"org.apache.pekko.stream.scaladsl.Flow\"))),\n         getClass().getName() + \"$PekkoBindAndHandleAdvice\");\n+    // pekko-http 2.x removed bindAndHandle, newServerAt binds through bindAndHandleImpl, which in\n+    // pekko-http 1.x delegates to bindAndHandle, so only advise it when bindAndHandle is gone to\n+    // avoid wrapping the handler twice\n+    transformer.applyAdviceToMethod(",
+      "id": "PRRT_kwDODJKVX86x_NBW",
+      "opened": "2026-10-30T13:43:01Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/HttpExtServerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-30T14:20:02Z",
+          "body": "Thanks, switched to `CallDepth` in 6cb97416b5. `bindAndHandleImpl` is now advised unconditionally, and the advice only wraps the handler when it is the outermost bind call, so on 1.x the nested `bindAndHandle` call leaves the already wrapped flow alone.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4424631066"
+        }
+      ],
+      "reviewed": "8f49c6ecbf20c0bebc5786eac88e78fee1cd8290",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4424251363"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new `BadRequest` pass-through path is not exercised by the reused tests: `PekkoHttpServerParsingErrorTest` sends HTTP/1.1 requests, and the HTTP/2 suite only exercises successfully parsed requests. Please add a 2.x installed-agent test that triggers an HTTP/2 parsing rejection, asserts Pekko's 400 response, then sends a valid request on the same connection and checks its telemetry. This verifies that returning a non-request parsing result unchanged neither closes the connection nor disrupts subsequent request tracing.",
+      "created": "2026-11-03T19:08:14Z",
+      "hunk": "@@ -41,15 +47,31 @@ public static Function1<Object, HttpRequest> wrap(\n   }\n \n   private PekkoHttp2RequestParsingWrapper(\n-      Function1<Object, HttpRequest> parseRequest, InetSocketAddress remoteAddress) {\n+      Function1<Object, Object> parseRequest, InetSocketAddress remoteAddress) {\n     this.parseRequest = parseRequest;\n     this.remoteAddress = remoteAddress;\n   }\n \n   @Override\n-  public HttpRequest apply(Object subStream) {\n-    HttpRequest request = parseRequest.apply(subStream);\n-    HTTP_REQUEST_PEER_ADDRESS.set(request, remoteAddress);\n-    return request;\n+  public Object apply(Object subStream) {\n+    Object result = parseRequest.apply(subStream);\n+    HttpRequest request = getRequest(result);\n+    if (request != null) {\n+      HTTP_REQUEST_PEER_ADDRESS.set(request, remoteAddress);\n+    }\n+    return result;",
+      "id": "PRRT_kwDODJKVX86zSdUg",
+      "opened": "2026-11-03T19:08:15Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttp2RequestParsingWrapper.java",
+      "replies": [
+        {
+          "at": "2026-11-03T19:52:32Z",
+          "body": "Added `testHttp2ParsingError` in 2c1efc019d. It sends an http/2 request with more headers than the default `max-header-count`, asserts that pekko-http answers it with 400, then sends a valid request on the same client and asserts that its server and controller spans are traced as usual.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4459715868"
+        }
+      ],
+      "reviewed": "3544ff546950e6ecd430a2e897fb236028615a5b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4459248233"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The HTTP/2 fixture completes responses through `system.dispatcher`, so it does not cover the new completion-context boundary when application code completes a response on a separate executor. Add an installed-agent test that completes response promises on that executor with each request's context current, while requests with distinct parents overlap on one connection. Assert that each request retains its own server and controller spans, without inheriting another request's context.",
+      "created": "2026-11-03T19:08:15Z",
+      "hunk": "@@ -99,28 +101,43 @@ public Future<HttpResponse> apply(HttpRequest request) {\n       return null;\n     }\n \n-    return responseFuture.transform(new EndSpanHandler(tracingRequest), executionContext);\n+    // the response future is completed by application code, with the context of this request\n+    // current, completing the future that is handed back to pekko with that context still current\n+    // would let it flow into the stream callbacks that dispatch the next requests of the\n+    // connection, whose handlers would then run as children of this request\n+    Promise<HttpResponse> promise = Promise$.MODULE$.apply();\n+    responseFuture.onComplete(new EndSpanHandler(tracingRequest, promise), executionContext);\n+    return promise.future();\n   }\n \n   private static boolean isHttp2(HttpRequest request) {\n     return request.getAttribute(Http2$.MODULE$.streamId()).isPresent();\n   }\n \n-  private static class EndSpanHandler\n-      extends AbstractFunction1<Try<HttpResponse>, Try<HttpResponse>> {\n+  private static class EndSpanHandler extends AbstractFunction1<Try<HttpResponse>, Object> {\n     private final PekkoTracingRequest tracingRequest;\n+    private final Promise<HttpResponse> promise;\n \n-    EndSpanHandler(PekkoTracingRequest tracingRequest) {\n+    EndSpanHandler(PekkoTracingRequest tracingRequest, Promise<HttpResponse> promise) {\n       this.tracingRequest = tracingRequest;\n+      this.promise = promise;\n     }\n \n     @Override\n-    public Try<HttpResponse> apply(Try<HttpResponse> result) {\n-      if (result.isSuccess()) {\n-        return new Success<>(PekkoHttpServerSingletons.endSpan(tracingRequest, result.get()));\n+    public Object apply(Try<HttpResponse> result) {\n+      Try<HttpResponse> response = result;\n+      try {\n+        if (result.isSuccess()) {\n+          response = new Success<>(PekkoHttpServerSingletons.endSpan(tracingRequest, result.get()));\n+        } else {\n+          PekkoHttpServerSingletons.endSpanWithError(tracingRequest, result.failed().get());\n+        }\n+      } finally {\n+        try (Scope ignored = Context.root().makeCurrent()) {\n+          promise.complete(response);",
+      "id": "PRRT_kwDODJKVX86zSdV9",
+      "opened": "2026-11-03T19:08:15Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-11-03T19:52:35Z",
+          "body": "Added `testResponsesCompletedOnSeparateExecutor` in 2c1efc019d. A new fixture endpoint completes its responses after a random delay on a separate scheduled executor, with the request context current. The test sends 20 overlapping requests on one http/2 connection and asserts that each one is its own trace: a server span with no parent plus its controller span. The requests deliberately carry no `traceparent`. An extracted remote parent would override a leaked context and hide the leak, while without one a leaked context shows up as a server span parented to another request.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4459716386"
+        },
+        {
+          "at": "2026-11-03T21:26:00Z",
+          "body": "5f6aad7da807114a4bf1ec91853ed496b05cbb99",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4460626178"
+        }
+      ],
+      "reviewed": "3544ff546950e6ecd430a2e897fb236028615a5b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4459248367"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This shutdown is never reached: `PekkoHttpServerInstrumentationTestHttp2.setupServer()` returns `null`, so `AbstractHttpServerUsingTest.cleanupServer()` skips `stopServer()`. The new scheduled executor therefore leaves its non-daemon worker threads alive after the test class finishes. Return `PekkoHttpTestHttp2WebServer` instead of `null` from `setupServer()` so the inherited teardown calls `stop()`.",
+      "created": "2026-11-03T20:03:50Z",
+      "hunk": "@@ -62,6 +108,7 @@ object PekkoHttpTestHttp2WebServer {\n     if (binding != null) {\n       binding.unbind()\n       system.terminate()\n+      completionExecutor.shutdown()",
+      "id": "PRRT_kwDODJKVX86zTzqf",
+      "opened": "2026-11-03T20:03:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpTestHttp2WebServer.scala",
+      "replies": [
+        {
+          "at": "2026-11-03T20:52:46Z",
+          "body": "Fixed in 681ea5913e: `setupServer()` now returns `PekkoHttpTestHttp2WebServer`, so the inherited teardown calls `stopServer()` and the completion executor is shut down.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4460305254"
+        },
+        {
+          "at": "2026-11-03T21:26:00Z",
+          "body": "4f65d606d0eadd53750f55c73f3b04fedebf06f3",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4460626135"
+        }
+      ],
+      "reviewed": "2c1efc019dcdb7734b3efd847f884cefd54b7647",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4459828636"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Both new suites configure the Agrona JVM argument through `targets.all` instead of the required suite-owned `executions.configureEach` API (`.github/instructions/instrumentation-gradle.instructions.md:119–125`). Move this setting into `executions { configureEach { ... } }` and import `io.opentelemetry.instrumentation.gradle.executions` so it applies to both default and registered variant executions. Apply the same change to `pekko2Scala3Test` at line 78.",
+      "created": "2026-11-03T21:48:44Z",
+      "hunk": "@@ -57,16 +57,59 @@ testing {\n         }\n       }\n     }\n+\n+    // pekko 2.x has only milestone releases so far, which latest dep testing skips, run the tests\n+    // against them explicitly, pekko 2.x requires java 17 and has no scala 2.12 artifacts\n+    register<JvmTestSuite>(\"pekko2Test\") {\n+      targets.all {\n+        testTask.configure {",
+      "id": "PRRT_kwDODJKVX86zWKUl",
+      "opened": "2026-11-03T21:48:45Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T22:07:06Z",
+          "body": "Fixed in 32976911d6: both suites now set the Agrona argument through `executions { configureEach { ... } }`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4461017308"
+        }
+      ],
+      "reviewed": "582699cb68b96a08de7c8ea098e1b9e26cc2a358",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20497#discussion_r4460842446"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "76e42b884aa4acda91a4b425f303211fa1b38a68",
+  "merge": "52f73068ebeb0240b7db3ab12606bfea6fc98132",
+  "merged": "2026-08-13T13:48:17Z",
+  "missing_roots": 0,
+  "number": 19559,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This class-wide assumption also aborts `absentSelectorKeepsJfrDisabled` and `emptySelectorKeepsJfrDisabled`. Those two paths intentionally build without a JFR selector, so `RuntimeTelemetryBuilder` never starts JFR and they remain valid—especially on a runtime without JFR, where they verify that the library can stay disabled cleanly. Please scope the availability assumption to `starPatternSelectsAll` and `exclusionsWinOverShorthandAndLegacySelections` instead of skipping all four tests.",
+      "created": "2026-08-13T11:33:09Z",
+      "hunk": "@@ -18,13 +18,26 @@\n import io.opentelemetry.instrumentation.runtimetelemetry.internal.Internal;\n import io.opentelemetry.instrumentation.runtimetelemetry.internal.JfrConfig;\n import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import jdk.jfr.FlightRecorder;\n+import org.junit.jupiter.api.Assumptions;\n+import org.junit.jupiter.api.BeforeEach;\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n class InternalJfrConfigTest {\n \n   @RegisterExtension final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n \n+  @BeforeEach\n+  void setup() {",
+      "id": "PRRT_kwDODJKVX86Y6gv8",
+      "opened": "2026-08-13T11:33:10Z",
+      "path": "instrumentation/runtime-telemetry/library/src/testJava17/java/io/opentelemetry/instrumentation/runtimetelemetry/InternalJfrConfigTest.java",
+      "replies": [],
+      "reviewed": "6274df27e839c7554843c970e5fda403bfc8fa99",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19559#discussion_r3774946567"
+    }
+  ]
+}

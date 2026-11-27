@@ -1,0 +1,119 @@
+{
+  "head": "6b2b7e927c3fc1e8460adc3033897b4614689847",
+  "merge": "fcd4af0ae5376e16d55f40f16090d44bf14a4497",
+  "merged": "2026-09-03T19:00:17Z",
+  "missing_roots": 0,
+  "number": 511,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`to_system_instruction()` consumes `messages` via `list(messages)` inside the `try`, then re-iterates `messages` in the `except`. If the caller passes a one-shot iterator (not a list/tuple) and `convert_to_messages(...)` raises, the fallback will see an exhausted iterator and silently drop all content.\n\nThis issue also appears on line 244 of the same file.",
+      "created": "2026-08-31T08:44:31Z",
+      "hunk": "@@ -217,6 +218,43 @@ def to_input_messages(\n     return result\n \n \n+def to_system_instruction(\n+    messages: Iterable[Any],\n+) -> list[MessagePart]:\n+    \"\"\"Extract ``MessagePart`` s from ``SystemMessage`` s for ``gen_ai.system_instructions``.\"\"\"\n+    try:\n+        normalized_messages: Iterable[BaseMessage] = convert_to_messages(\n+            list(messages)\n+        )\n+    except Exception:  # pylint: disable=broad-except\n+        normalized_messages = [\n+            m for m in messages if isinstance(m, BaseMessage)\n+        ]",
+      "id": "PRRT_kwDOSbspP86dqMWg",
+      "opened": "2026-08-31T08:44:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-31T09:51:07Z",
+          "body": "resolved",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3893386581"
+        }
+      ],
+      "reviewed": "38fb0e3f90ecae00496ec20555a194fa5c7b91d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3892943802"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\ndef split_system_and_input_messages(\n    messages: Iterable[Any],\n) -> tuple[list[MessagePart], list[InputMessage]]:\n    \"\"\"Split ``messages`` into ``system_instruction`` parts and ``InputMessage`` s.\"\"\"\n    materialized = list(messages)\n    try:\n        normalized: Iterable[BaseMessage] = convert_to_messages(materialized)\n    except Exception:  # pylint: disable=broad-except\n        normalized = [m for m in materialized if isinstance(m, BaseMessage)]\n\n    system_parts: list[MessagePart] = []\n    input_messages: list[InputMessage] = []\n\n    for message in normalized:\n        if isinstance(message, SystemMessage):\n            system_parts.extend(_content_to_parts(message.content))\n        else:\n            parts = _message_parts(message)\n            if parts:\n                input_messages.append(\n                    InputMessage(role=_normalize_role(message), parts=parts)\n                )\n\n    return system_parts, input_messages\n```\n\nThis processes the normalized messages in a single pass instead of splitting them and calling `to_system_instruction` and `to_input_messages`, which each re-run `convert_to_messages` and iterate the list again.",
+      "created": "2026-08-31T23:46:08Z",
+      "hunk": "@@ -217,6 +218,45 @@ def to_input_messages(\n     return result\n \n \n+def to_system_instruction(\n+    messages: Iterable[Any],\n+) -> list[MessagePart]:\n+    \"\"\"Extract ``MessagePart`` s from ``SystemMessage`` s for ``gen_ai.system_instructions``.\"\"\"\n+    materialized = list(messages)\n+    try:\n+        normalized_messages: Iterable[BaseMessage] = convert_to_messages(\n+            materialized\n+        )\n+    except Exception:  # pylint: disable=broad-except\n+        normalized_messages = [\n+            m for m in materialized if isinstance(m, BaseMessage)\n+        ]\n+    parts: list[MessagePart] = []\n+    for message in normalized_messages:\n+        if isinstance(message, SystemMessage):\n+            parts.extend(_content_to_parts(message.content))\n+    return parts\n+\n+\n+def split_system_and_input_messages(\n+    messages: Iterable[Any],\n+) -> tuple[list[MessagePart], list[InputMessage]]:\n+    \"\"\"Split ``messages`` into ``system_instruction`` parts and ``InputMessage`` s.\"\"\"\n+    materialized = list(messages)\n+    try:\n+        normalized: Iterable[BaseMessage] = convert_to_messages(materialized)\n+    except Exception:  # pylint: disable=broad-except\n+        normalized = [m for m in materialized if isinstance(m, BaseMessage)]\n+    system: list[BaseMessage] = []\n+    non_system: list[BaseMessage] = []\n+    for message in normalized:\n+        if isinstance(message, SystemMessage):\n+            system.append(message)\n+        else:\n+            non_system.append(message)\n+    return to_system_instruction(system), to_input_messages(non_system)\n+\n+\n def to_output_messages(\n     messages: Iterable[BaseMessage],",
+      "id": "PRRT_kwDOSbspP86d6tM3",
+      "opened": "2026-08-31T23:46:08Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "0f350581b75c7ee6339ea4e5af9035540165cb9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3899447673"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "could you please add system instructions to conformance tests? this is where we validate conformance to semantic conventions including value types",
+      "created": "2026-08-31T23:47:31Z",
+      "hunk": "@@ -406,6 +410,112 @@ def test_function_message_role_maps_to_tool():\n     assert result[0].role == \"tool\"\n \n \n+def test_split_system_and_input_messages_diverts_system_instructions():\n+    system, inputs = split_system_and_input_messages(\n+        [\n+            SystemMessage(content=\"You are helpful.\"),",
+      "id": "PRRT_kwDOSbspP86d6u5s",
+      "opened": "2026-08-31T23:47:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [
+        {
+          "at": "2026-09-02T00:03:00Z",
+          "body": "sure! I've added validation logic there as well.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3909542588"
+        }
+      ],
+      "reviewed": "0f350581b75c7ee6339ea4e5af9035540165cb9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3899458041"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Since `gen_ai.system_instructions` is a sensitive attribute, it would be good to have a check here, which ensure we don't leak any sensitive information, unless the user opts in.",
+      "created": "2026-09-01T17:14:28Z",
+      "hunk": "@@ -519,16 +637,24 @@ def assert_openai_completion_attributes_with_error(\n     if verify_content:\n         input_message = attributes[gen_ai_attributes.GEN_AI_INPUT_MESSAGES]\n         assert input_message is not None\n-        assert '\"role\":\"system\"' in input_message\n-        assert '\"content\":\"You are a helpful assistant!\"' in input_message\n+        assert '\"role\":\"system\"' not in input_message\n         assert '\"role\":\"user\"' in input_message\n         assert '\"content\":\"What is the capital of France?\"' in input_message\n \n+        system_instructions = attributes[",
+      "id": "PRRT_kwDOSbspP86eM7Mq",
+      "opened": "2026-09-01T17:14:28Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [
+        {
+          "at": "2026-09-02T00:05:15Z",
+          "body": "Thanks! Added `test_system_instructions_absent_from_span_without_content_capture` (parametrized over `NO_CONTENT` / `EVENT_ONLY`) to cover that.\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3909553461"
+        },
+        {
+          "at": "2026-09-02T18:51:25Z",
+          "body": "`TelemetryHandler` snapshots content capture at initialization, so modifying the environment via `monkeypatch` after `start_instrumentation` has run has no effect on the handler.\r\n\r\nRhis is already covered by `test_chat_openai_gpt_3_5_turbo_model_llm_call`, which tests all four modes (`NO_CONTENT`, `EVENT_ONLY`, `SPAN_ONLY`, `SPAN_AND_EVENT`) using `instrument(...)` and verifies both span attributes and logs. We can remove this test.\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3917547835"
+        },
+        {
+          "at": "2026-09-02T21:34:52Z",
+          "body": "You're right, thanks for pointing it out. Sorry I misunderstood the lifecycle of the handler, I've removed this test",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3918890504"
+        }
+      ],
+      "reviewed": "0f350581b75c7ee6339ea4e5af9035540165cb9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3906565237"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n            parts = _message_parts(message)\n            if not parts and not _has_content(message):\n                continue\n            input_messages.append(\n                InputMessage(role=_normalize_role(message), parts=parts)\n            )\n```\nUsing `if not parts and not _has_content(message): continue` matches `to_input_messages` and preserves messages containing unconvertible content.",
+      "created": "2026-09-02T00:00:47Z",
+      "hunk": "@@ -217,6 +219,32 @@ def to_input_messages(\n     return result\n \n \n+def split_system_and_input_messages(\n+    messages: Iterable[Any],\n+) -> tuple[list[MessagePart], list[InputMessage]]:\n+    \"\"\"Split ``messages`` into ``system_instruction`` parts and ``InputMessage`` s.\"\"\"\n+    materialized = list(messages)\n+    try:\n+        normalized: Iterable[BaseMessage] = convert_to_messages(materialized)\n+    except Exception:  # pylint: disable=broad-except\n+        normalized = [m for m in materialized if isinstance(m, BaseMessage)]\n+\n+    system_parts: list[MessagePart] = []\n+    input_messages: list[InputMessage] = []\n+\n+    for message in normalized:\n+        if isinstance(message, SystemMessage):\n+            system_parts.extend(_content_to_parts(message.content))\n+        else:\n+            parts = _message_parts(message)\n+            if parts:",
+      "id": "PRRT_kwDOSbspP86eUbFm",
+      "opened": "2026-09-02T18:49:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-02T21:32:44Z",
+          "body": "thanks! applied this change to keep the new function align with `to_input_messages`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3918875863"
+        }
+      ],
+      "reviewed": "5b6504e22f5bebf05c296a5b014fdda9d39850ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/511#discussion_r3909532102"
+    }
+  ]
+}

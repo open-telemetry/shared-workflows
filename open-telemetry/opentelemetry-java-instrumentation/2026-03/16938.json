@@ -1,0 +1,31 @@
+{
+  "head": "a046995e7c2a4598bdea623790ec0e96dca1e995",
+  "merge": "071e0e6ba473222fb0f74120cccc218717ab4ddd",
+  "merged": "2026-03-23T07:58:05Z",
+  "missing_roots": 0,
+  "number": 16938,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this instrumentation is written in asm, the muzzle check won't really work",
+      "created": "2026-03-22T17:15:29Z",
+      "hunk": "@@ -1,3 +1,16 @@\n plugins {\n   id(\"otel.javaagent-instrumentation\")\n }\n+\n+muzzle {",
+      "id": "PRRT_kwDODJKVX851-8WX",
+      "opened": "2026-03-22T17:15:29Z",
+      "path": "instrumentation/payara/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-22T18:09:59Z",
+          "body": "@copilot revert and add a comment instead explaining why no muzzle",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16938#discussion_r2971862582"
+        }
+      ],
+      "reviewed": "ca47a27611538b74ce1161a81221bde3441a4477",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16938#discussion_r2971790316"
+    }
+  ]
+}

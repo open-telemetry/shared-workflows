@@ -1,0 +1,119 @@
+{
+  "head": "e321dd081b6f460c8bc301cd89d50ee1e98e1d4a",
+  "merge": "aa85df42d7d1fcc959c39b66da4d0098399f4c8c",
+  "merged": "2026-08-07T00:19:06Z",
+  "missing_roots": 0,
+  "number": 415,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The trailing sentence in this comment is grammatically incomplete (\"not what instrumentations should.\"). Consider completing it to avoid ambiguity about whether this list is normative or observational.",
+      "created": "2026-07-31T08:43:50Z",
+      "hunk": "@@ -217,10 +217,22 @@ def _from_yaml(\n     ),\n }\n \n-# The `gen_ai.client.operation.duration` and `gen_ai.client.token.usage`\n-# metrics are deliberately omitted: they are trivially derivable from the same\n-# information already present on spans.\n+# `gen_ai.client.operation.duration` and `gen_ai.client.token.usage` are a\n+# single-span read, unlike the `invoke_agent` counters below, which need each\n+# call attributed to exactly one invocation across the call tree (#336). They\n+# are tracked here because google-adk and agent-framework emit them; this list\n+# records what the reference scenarios emit, not what instrumentations should.",
+      "id": "PRRT_kwDOSUeMrM6VXU8P",
+      "opened": "2026-07-31T08:43:50Z",
+      "path": "reference/src/semconv_genai/semconv_model.py",
+      "replies": [
+        {
+          "at": "2026-07-31T09:52:24Z",
+          "body": "Fixed — \"not what instrumentations should emit.\"",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3689580203"
+        }
+      ],
+      "reviewed": "22559e26b2f2baa27c98edc5bd47797cb877deda",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3689196602"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "AgentGymLeader"
+      },
+      "body": "Carrying over an open point from #324 ([original thread](https://github.com/open-telemetry/semantic-conventions-genai/pull/324#discussion_r3687655828)).\n\n@trask found that `data_points` has no `skip_serializing_if`, so the key is always present and `null` when a metric has no data set — which kills the marker branch, the dict branch and the `metric[\"data\"]` lookup, and leaves `null` falling into the catch-all where a valid Weaver serialization gets logged as invalid.\n\nApplied his suggestion as-is in cd07fc2, plus the `test_null_data_points_is_skipped_without_warning` case he wrote — it fails on the old function with the warning he quoted and passes after. Verified against the Weaver this branch pins, v0.25.1.\n\nOne deviation: the test uses a local log-capture helper instead of `caplog`, so it also runs under `python tests/test_metrics.py`. CI doesn't run `reference/tests/` today, so that path is the only one that executes it.\n",
+      "created": "2026-07-31T09:52:26Z",
+      "hunk": "@@ -67,35 +74,43 @@ def _attribute_names(\n     return names\n \n \n-def _metric_attribute_names(\n-    metric: dict[str, object],\n-    include_attr: Callable[[dict[str, object]], bool] | None = None,\n-) -> set[str]:\n-    names: set[str] = set()\n-    raw_points = metric.get(\"data_points\", [])\n-    if not isinstance(raw_points, list):\n-        return names\n-    for dp in raw_points:\n-        if not isinstance(dp, dict):\n-            continue\n-        raw_attrs = dp.get(\"attributes\", [])\n-        if not isinstance(raw_attrs, list):\n-            continue\n-        for attr in raw_attrs:\n-            if not isinstance(attr, dict):\n-                continue\n-            name = attr.get(\"name\")\n-            if not isinstance(name, str) or not name:\n+def _metric_data_points(metric: dict[str, object]) -> list[dict[str, object]] | None:\n+    \"\"\"Return metric data points from either known Weaver metric shapes.\"\"\"\n+    marker = object()\n+    raw_points = metric.get(\"data_points\", marker)\n+    if raw_points is marker:\n+        raw_data = metric.get(\"data\", marker)\n+        if isinstance(raw_data, dict):\n+            raw_points = raw_data.get(\"data_points\", marker)\n+    if raw_points is marker:\n+        return [metric]\n+    if isinstance(raw_points, dict):\n+        return [raw_points]\n+    if isinstance(raw_points, list):\n+        data_points: list[dict[str, object]] = []\n+        for data_point in raw_points:\n+            if isinstance(data_point, dict):\n+                data_points.append(data_point)\n                 continue\n-            if include_attr is not None and not include_attr(attr):\n-                continue\n-            names.add(name)\n-    return names\n+            _LOGGER.warning(\n+                \"Skipping non-dict data point for metric %r: %r\",\n+                metric.get(\"name\", \"\"),\n+                data_point,\n+            )\n+        return data_points\n+\n+    _LOGGER.warning(\n+        \"Skipping metric %r with invalid data_points: expected dict or list, got %s\",\n+        metric.get(\"name\", \"\"),\n+        type(raw_points).__name__,\n+    )\n+    return None",
+      "id": "PRRT_kwDOSUeMrM6VYVbx",
+      "opened": "2026-07-31T09:52:26Z",
+      "path": "reference/src/semconv_genai/parse_results.py",
+      "replies": [],
+      "reviewed": "161f178471b57b5eb0aae1301a46412894246204",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3689580344"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This is missing anthropic. #324 landed on main after this PR's last CI run, so the green anthropic check is stale — the anthropic scenario now goes through `opentelemetry-util-genai`, which records the duration histogram on every inference invocation and token usage whenever token counts are set, as that scenario does. On a rebase, `run-scenario anthropic` will produce a `metrics` block in `scenarios/anthropic/data.json` and the up-to-date check will fail.\n\nWorth doing beyond the CI fix: anthropic is the only library here that passes `server_port`, so both new report pages currently show `server.port | (none)` when they shouldn't. Please rebase on main and re-run `uv run run-scenario anthropic` plus `uv run update-reports`.",
+      "created": "2026-08-02T03:19:47Z",
+      "hunk": "@@ -46,6 +46,8 @@ Run `uv run update-reports` to regenerate.\n \n | Metric | Libraries |\n | --- | --- |\n+| [Client Token Usage](reports/gen-ai-client-token-usage-metric.md) | agent-framework, google-adk |",
+      "id": "PRRT_kwDOSUeMrM6VtTYu",
+      "opened": "2026-08-02T03:20:50Z",
+      "path": "reference/README.md",
+      "replies": [
+        {
+          "at": "2026-08-02T12:13:37Z",
+          "body": "Fixed in 108d88f. Merged main, re-ran `run-scenario anthropic` and `update-reports` — anthropic now has a `metrics` block, and `server.port` went from `(none)` to anthropic on both pages.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3698965828"
+        }
+      ],
+      "reviewed": "cd07fc22fc60b474e4e549548a805224c8399ff7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3697591037"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Should google-adk be credited with these? ADK records both metrics for the model call it delegates to `google-genai` — the same call whose inference span #351 removed and whose README row says \"correctly not emitted\". `_suppress_adk_native_tracing` only patches tracers and the `trace_*` helpers, so ADK's own metrics pass through.\n\nIs that intended, or should the suppression cover the metrics too?",
+      "created": "2026-08-02T03:19:47Z",
+      "hunk": "@@ -68,6 +68,19 @@\n     ]\n   },\n   \"metrics\": {\n+    \"gen_ai.client.token.usage\": [",
+      "id": "PRRT_kwDOSUeMrM6VtTYw",
+      "opened": "2026-08-02T03:20:50Z",
+      "path": "reference/scenarios/google-adk/data.json",
+      "replies": [
+        {
+          "at": "2026-08-02T12:13:38Z",
+          "body": "Neither, I think — it's a conditional fallback.\n\nADK emits them itself (meter scope `gcp.vertex.agent`; `google/genai/` has no OTel code at all), but the attributes describe the delegated call: `gen_ai.operation.name = generate_content`, `gen_ai.provider.name = gemini`.\n\nAnd ADK treats them as model-client telemetry. `_should_emit_native_telemetry` returns False when the google-genai instrumentation is active on a Gemini agent, \"then the lib already emits inference metrics\" — so ADK only emits these when no real client instrumentation is present.\n\nThat leaves the span and the metric disagreeing about the same call: one says \"delegates, correctly not emitted\", the other credits google-adk. I'd rather close that on the suppression side — the helper already patches the tracers and the `trace_*` helpers, so covering the meter is the same kind of change.\n\nHappy to do it here or leave it for a separate change, whichever you prefer.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3698965887"
+        },
+        {
+          "at": "2026-08-02T18:27:50Z",
+          "body": "sounds good, let's do it here, thanks",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3699985015"
+        },
+        {
+          "at": "2026-08-03T03:28:24Z",
+          "body": "@trask done in 17402e9. The two client instruments are now disabled alongside the tracers, and the invoke_agent counters are untouched.\n\nThe scenario README already said inference here is \"correctly not emitted\". That was only true of spans until now.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3701149337"
+        }
+      ],
+      "reviewed": "cd07fc22fc60b474e4e549548a805224c8399ff7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3697591044"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "google-adk doesn't emit these in this PR — the google-adk scenario change here explicitly disables ADK's `_client_token_usage` and `_client_operation_duration` instruments, and its `data.json` still shows only the two `invoke_agent` metrics. The libraries that actually surface are agent-framework and anthropic, per the README table and the two new report files. The PR description's table has the same mistake and is worth fixing too.\n\n```suggestion\n# are tracked here because agent-framework and anthropic emit them; this list\n```",
+      "created": "2026-08-03T16:22:33Z",
+      "hunk": "@@ -223,10 +223,22 @@ def _from_yaml(\n     ),\n }\n \n-# The `gen_ai.client.operation.duration` and `gen_ai.client.token.usage`\n-# metrics are deliberately omitted: they are trivially derivable from the same\n-# information already present on spans.\n+# `gen_ai.client.operation.duration` and `gen_ai.client.token.usage` are a\n+# single-span read, unlike the `invoke_agent` counters below, which need each\n+# call attributed to exactly one invocation across the call tree (#336). They\n+# are tracked here because google-adk and agent-framework emit them; this list",
+      "id": "PRRT_kwDOSUeMrM6WC7cW",
+      "opened": "2026-08-03T16:25:49Z",
+      "path": "reference/src/semconv_genai/semconv_model.py",
+      "replies": [
+        {
+          "at": "2026-08-03T22:54:04Z",
+          "body": "@trask applied your suggestion in c205a6d. The description had it in two more places beyond the table, including the \"parser change alone\" line that cited `run-scenario google-adk` as evidence for both metrics — rewritten to say what the scenario change actually does.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3708226590"
+        }
+      ],
+      "reviewed": "820af161707920621077172304cd09517b4013be",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3705790189"
+    }
+  ]
+}

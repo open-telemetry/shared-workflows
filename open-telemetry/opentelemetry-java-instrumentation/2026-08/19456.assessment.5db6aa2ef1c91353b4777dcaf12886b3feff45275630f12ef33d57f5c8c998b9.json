@@ -1,0 +1,143 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "df4f1d62558ecd1477f44821a5e789abf79ae67f0454155ac11a17becc068cb1",
+  "input_digest": "5db6aa2ef1c91353b4777dcaf12886b3feff45275630f12ef33d57f5c8c998b9",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongCounter165Incubator.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX2B",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/daf6b7c5ecf7a13a6e1b2972e0b479c245ad2202"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX2f",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongUpDownCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongUpDownCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongUpDownCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongUpDownCounter165Incubator.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX20",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleUpDownCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleUpDownCounter165Incubator.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX3Q",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongHistogram165Incubator.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX3w",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/daf6b7c5ecf7a13a6e1b2972e0b479c245ad2202"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX4R",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongGauge165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundLongGauge165Incubator.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX4z",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleGauge165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28de05e1608cf2e7ccee6a35e071eea16935ee14/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleGauge165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleGauge165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleGauge165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/daf6b7c5ecf7a13a6e1b2972e0b479c245ad2202"
+      ],
+      "id": "PRRT_kwDODJKVX86XqX5Q",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb2b0d47a3c83ce768ba089a2df37ca783e395e4/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb2b0d47a3c83ce768ba089a2df37ca783e395e4/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleGauge165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleGauge165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb2b0d47a3c83ce768ba089a2df37ca783e395e4/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleHistogram165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb2b0d47a3c83ce768ba089a2df37ca783e395e4/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleUpDownCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleUpDownCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/765d1b70e0cdb637ca798b706466461fc12f7515"
+      ],
+      "id": "PRRT_kwDODJKVX86YPkyF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb2b0d47a3c83ce768ba089a2df37ca783e395e4/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb2b0d47a3c83ce768ba089a2df37ca783e395e4/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleCounter165Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bcb704461f1d11a70df3da6320645b4c0fb2798/instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleCounter165Incubator.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YPoYb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

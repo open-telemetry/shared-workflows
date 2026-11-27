@@ -1,0 +1,25 @@
+{
+  "head": "25925d2e770d722982d2ce1f643bda52cd7e114a",
+  "merge": "a685613a207a580163353b8e48a7ad88967e7b42",
+  "merged": "2026-08-15T18:09:28Z",
+  "missing_roots": 0,
+  "number": 450,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `openai` version is being pinned identically across multiple scenario `pyproject.toml` files. To reduce drift and simplify future upgrades, consider centralizing this pin (e.g., in `genai-reference-shared` or via a shared constraints/overrides mechanism) so scenarios inherit a single source of truth.",
+      "created": "2026-08-12T04:33:52Z",
+      "hunk": "@@ -6,7 +6,7 @@ dependencies = [\n     \"langchain==1.3.14\",\n     \"langchain-experimental==0.4.2\",\n     \"langchain-openai==1.4.1\",\n-    \"openai==2.53.0\",\n+    \"openai==3.0.0\",",
+      "id": "PRRT_kwDOSUeMrM6YdBJg",
+      "opened": "2026-08-12T04:33:53Z",
+      "path": "reference/scenarios/langchain/pyproject.toml",
+      "replies": [],
+      "reviewed": "54a398988e4d090ab25d727371b4357bdbd6f8d6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/450#discussion_r3763616225"
+    }
+  ]
+}

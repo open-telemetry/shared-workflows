@@ -1,0 +1,25 @@
+{
+  "head": "2a6fbc2633fcdae897b80996b23a83e209314faa",
+  "merge": "7ccf183c3df80dd536876d48803904bb95e5324a",
+  "merged": "2026-03-27T06:20:24Z",
+  "missing_roots": 0,
+  "number": 17103,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    systemProperty(\"testLatestDeps\", findProperty(\"testLatestDeps\"))\n```\nshould also work",
+      "created": "2026-03-26T18:45:37Z",
+      "hunk": "@@ -64,7 +64,7 @@ tasks {\n     jvmArgs(\"--add-exports=java.base/sun.security.util=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n \n-    systemProperty(\"testLatestDeps\", findProperty(\"testLatestDeps\") as Boolean)\n+    systemProperty(\"testLatestDeps\", findProperty(\"testLatestDeps\") == \"true\")",
+      "id": "PRRT_kwDODJKVX853G3qS",
+      "opened": "2026-03-26T18:45:37Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "f6d1d03a337da711fcb25f49fa1b5f7d3b6697ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17103#discussion_r2996987022"
+    }
+  ]
+}

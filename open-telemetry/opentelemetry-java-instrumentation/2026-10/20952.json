@@ -1,0 +1,115 @@
+{
+  "head": "043609873257a9f169555f50cd1e8fbfe8af8ef0",
+  "merge": "82c7d7bf9bc3ed569556017281108d907018fde7",
+  "merged": "2026-10-26T07:03:54Z",
+  "missing_roots": 0,
+  "number": 20952,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] SOFA extracts codes only from failures, so emitting them as `rpc.status_code` duplicates `error.type` on spans and duration metrics, contrary to `.github/instructions/emitted-telemetry.instructions.md:37–39`. It also exposes the synthetic `SERVER_UNDECLARED_ERROR` from `TracingFilter.extractException()` as a captured status when the response provides only an error flag/message. Keep numeric extraction in `getErrorType()`, leave SOFA's status getter at its null default, and adjust the SOFA getter, span, and metric assertions accordingly.",
+      "created": "2026-10-24T23:18:23Z",
+      "hunk": "@@ -51,6 +51,13 @@ public String getRpcMethod(SofaRpcRequest request) {\n   @Nullable\n   public String getErrorType(\n       SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n+    return getRpcStatusCode(request, response, error);\n+  }\n+\n+  @Override\n+  @Nullable\n+  public String getRpcStatusCode(\n+      SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX86v8mGl",
+      "opened": "2026-10-24T23:18:23Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-24T23:49:32Z",
+          "body": "Fixed the synthetic fallback case in cd4fb137b3d086e3e9b25f501b6a1358cc921ff4. Synchronous and asynchronous completion now distinguish the instrumentation-created exception, omit its `rpc.status_code`, and preserve its existing `error.type`. Genuine SOFA codes, including the same numeric code, remain eligible; the added regression coverage checks both cases on spans and metrics.\n\nThe duplication itself is intentional. This change reverses the repository-specific omission policy at the user's request, and #20954 removes that exception separately.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4368981645"
+        }
+      ],
+      "reviewed": "435df5d58ece3db96087722d15b9b2b52b7ef25b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4368902649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one focused correction to SOFA RPC status provenance.\n\nKeep the requested rpc.status_code emission for genuine SOFA framework/server/client codes, even when it duplicates error.type. The review's objection based on the old failure-only omission policy is intentionally not applicable: the user explicitly requested reversing that policy, with its documentation removal in a separate PR. Do not remove SOFA status support or restore that omission policy.\n\nThe review does identify a real fallback-provenance issue. TracingFilter.extractException() creates a new SofaRpcException(SERVER_UNDECLARED_ERROR, errorMsg) when a response exposes only an error flag/message. That code is fabricated by our instrumentation, not obtained from SOFA's response or an actual supplied RPC exception. The new getter currently exposes it as rpc.status_code because getErrorType() delegates to getRpcStatusCode(). Preserve the existing error.type classification and exception behavior, but do not emit a status for this instrumentation-created fallback.\n\nDistinguish that synthesized fallback from actual SofaRpcException codes on every relevant synchronous and asynchronous path. A genuine SERVER_UNDECLARED_ERROR code supplied by the framework must still be eligible, so do not simply blacklist its numeric value or discard all response failures. Keep exception-only and unavailable statuses omitted. Preserve Thrift behavior, legacy mode, preview/dup selection, gRPC's existing emission, and existing span and metric error classification.\n\nAdd focused regression coverage for error-flag/error-message-only responses and their synthetic fallback, including synchronous/asynchronous behavior where applicable, and for genuine supplied codes including the same numeric code. Adjust affected span/metric expectations to omit only fabricated statuses, not real codes. Apply the relevant formatter and run focused tests. Evidence is Copilot review 5640556097, root comment 4368902649, and the current TracingFilter.extractException() implementation.\n\nKeep this correction within this PR's RPC scope. Do not edit docs/instrumentation-list.yaml, database code, generated changelog entries, or .github/instructions/emitted-telemetry.instructions.md. Those generated/policy files are intentionally excluded or handled separately.",
+      "created": "2026-10-24T23:21:28Z",
+      "hunk": "@@ -51,6 +51,13 @@ public String getRpcMethod(SofaRpcRequest request) {\n   @Nullable\n   public String getErrorType(\n       SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n+    return getRpcStatusCode(request, response, error);\n+  }\n+\n+  @Override\n+  @Nullable\n+  public String getRpcStatusCode(\n+      SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX86v8nmU",
+      "opened": "2026-10-24T23:21:28Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-24T23:41:47Z",
+          "body": "Updated sync and async completion to suppress status only for the instrumentation-created fallback, while preserving `error.type` and genuine code 199 status emission. Added span and metric regression coverage. Commit: `cd4fb137`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4368962056"
+        }
+      ],
+      "reviewed": "435df5d58ece3db96087722d15b9b2b52b7ef25b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4368912816"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the latest-dependency CI failure on this PR directly with the smallest appropriate SOFA RPC test-fixture correction.\n\nThe user asked to address the CI failure in PR #20952, then explicitly requested cloud execution once the cause was identified. The deterministic fix-ci bundle was downloaded with .github/scripts/pr-triage/fix_ci.py 20952 --download-only. Its summary identifies one failed non-aggregate job, build / test-latest-deps / testLatestDeps1, job 121036114925, at https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/40143744750/job/121036114925. CI runs Gradle with -PtestLatestDeps=true.\n\nThe downloaded log identifies the root cause before any telemetry assertions: SofaRpcTest.suppliedStatusCodeIsEmitted(boolean) and syntheticFallbackStatusIsOmitted(boolean), each for async=false and async=true, fail in SofaRpcTest.assertStatusCode at FilterInvoker construction. The stack is SofaRpcRuntimeException: Can't access copy proxyClass, through BeanUtils.copyPropertiesToMap, AbstractInterfaceConfig.getConfigValueCache, FilterInvoker.<init>, caused by ConsumerConfig.getProxyClass reporting \"The value of config consumer.interface [null] is illegal, interfaceId must be not null\". The repeated attempts fail identically; this is not an infrastructure or flaky assertion failure.\n\nIn instrumentation/sofa-rpc-5.4/library/src/test/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcTest.java, assertStatusCode currently creates ConsumerConfig<?> config = new ConsumerConfig<>().setInJVM(false), with no interfaceId. Its request also uses the fictitious service name \"test.Service\". Make this fixture valid for the supported baseline SOFA 5.4.0 and latest dependency versions, using a real loadable test-service interface and coherent request/configuration fields as appropriate. Existing setup in instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java configures real HelloService/ErrorService interfaces with setInterfaceId; reuse the relevant existing pattern rather than adding production workarounds or unnecessary abstractions.\n\nPreserve the substantive regression coverage and intended production behavior. Both synchronous and asynchronous tests must still distinguish an instrumentation-manufactured SERVER_UNDECLARED_ERROR from a genuinely supplied exception with that same code, 199. Keep the existing error.type behavior and span/metric assertions, omit only fabricated rpc.status_code, preserve actual supplied status emission in preview/dup, and preserve legacy mode. Do not skip, disable, remove, weaken, or broadly mock away these tests to make CI pass. Keep Thrift and other integrations unchanged.\n\nApply the narrow module formatter directly before focused validation. Reproduce and validate the relevant SOFA library suite with -PtestLatestDeps=true, and verify baseline compatibility as well, including the configured semconv variants where relevant. The narrow test target is :instrumentation:sofa-rpc-5.4:library:test, with the failure rooted in SofaRpcTest. Do not run clean, disable the cache, or force all tasks to rerun. Report the exact focused commands and results in your coding-session evidence.\n\nKeep this fix scoped to the identified CI failure on the existing PR. Do not edit docs/instrumentation-list.yaml, database code, generated changelog entries, or .github/instructions/emitted-telemetry.instructions.md. The old omission exception is intentionally removed by a separate PR and must not be restored.",
+      "created": "2026-10-25T03:19:43Z",
+      "hunk": "@@ -34,4 +55,97 @@ protected List<Filter> clientFilters() {\n   protected List<Filter> serverFilters() {\n     return singletonList(telemetry.newServerFilter());\n   }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  @SuppressWarnings(\"deprecation\")\n+  void syntheticFallbackStatusIsOmitted(boolean async) {\n+    assertStatusCode(async, true);\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  @SuppressWarnings(\"deprecation\")\n+  void suppliedStatusCodeIsEmitted(boolean async) {\n+    assertStatusCode(async, false);\n+  }\n+\n+  @SuppressWarnings(\"deprecation\")\n+  private void assertStatusCode(boolean async, boolean syntheticFallback) {\n+    String service = \"test.Service\";\n+    String method = syntheticFallback ? \"syntheticFallback\" : \"suppliedErrorCode\";\n+    String errorType = Integer.toString(RpcErrorType.SERVER_UNDECLARED_ERROR);\n+    SofaRequest request = new SofaRequest();\n+    request.setInterfaceName(service);\n+    request.setMethodName(method);\n+    if (async) {\n+      request.setInvokeType(RpcConstants.INVOKER_TYPE_FUTURE);\n+    }\n+\n+    SofaResponse response = new SofaResponse();\n+    Throwable exception = new SofaRpcException(RpcErrorType.SERVER_UNDECLARED_ERROR, \"RPC error\");\n+    if (syntheticFallback) {\n+      response.setErrorMsg(\"RPC error\");\n+    } else if (!async) {\n+      response.setAppResponse(exception);\n+    }\n+\n+    ConsumerConfig<?> config = new ConsumerConfig<>().setInJVM(false);",
+      "id": "PRRT_kwDODJKVX86v-AuU",
+      "opened": "2026-10-25T03:19:43Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/test/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcTest.java",
+      "replies": [
+        {
+          "at": "2026-10-25T03:27:59Z",
+          "body": "Updated the SOFA test fixture to use the real `ErrorService` interface and matching interface ID. Commit: `bf9e664a`. The focused latest-dependency, baseline, preview, and duplicate-semconv test executions passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4369517533"
+        }
+      ],
+      "reviewed": "cd4fb137b3d086e3e9b25f501b6a1358cc921ff4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4369500685"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with the agreed RPC getter-ownership cleanup. Do not create another PR.\n\nThe user reviewed the status-to-error-classifier dependency and approved this behavior-preserving plan. A status getter must not depend on getErrorType(), because status extraction and error classification have different responsibilities. In SofaRpcAttributesGetter, getRpcStatusCode() currently checks TracingFilter.isSyntheticFallbackError() and then returns getErrorType(request, response, error).\n\nExtract a small neutral helper in SofaRpcAttributesGetter that reads and validates the numeric SofaRpcException code. Have getErrorType() consume that raw code, and have getRpcStatusCode() consume it subject to the existing synthetic-provenance exclusion. Do not mechanically reverse the delegation: routing error.type through the filtered status getter would lose the existing classification of instrumentation-created fallback exceptions. Do not introduce a shared extraction framework or redesign the shared RPC API.\n\nPreserve all existing telemetry behavior: supported SOFA code categories and bounds, exception-class fallback, unavailable success statuses, and preview/duplicate-semconv gating with the exact key rpc.status_code. The user intentionally requested emitting real statuses even when equal to error.type. Do not restore the old omission exception or rename the key to rpc.response.status_code.\n\nPreserve the prior provenance correction on every synchronous and asynchronous path. A genuine supplied SERVER_UNDECLARED_ERROR code 199 remains a captured status; the instrumentation-created fallback with the same code must have no status while retaining its error.type. Keep TracingFilter's scoped state restoration intact. Preserve the latest CI fixture correction in bf9e664ac895ba5f707e7a78528048adb944b004: SofaRpcTest uses the real ErrorService interface, real method names, and matching ConsumerConfig.interfaceId.\n\nThrift already extracts application-reply statuses independently from transport error classifications and _OTHER. Leave it unchanged, along with gRPC, the shared attribute extractors, database code, the separate policy-removal PR, docs/instrumentation-list.yaml, and generated changelog entries.\n\nKeep the existing getter, span, and metric regressions. Add or adjust focused coverage only if the refactor exposes a real gap, particularly genuine versus synthesized code 199 and status/error classification divergence. Do not weaken assertions or disable tests. Apply the narrow module formatter directly before focused validation, verify baseline and latest supported SOFA dependencies and relevant existing semconv variants, and report exact commands and outcomes in the coding-session evidence. Do not run clean, bypass the build cache, or force unchanged tasks to rerun.",
+      "created": "2026-10-25T03:39:32Z",
+      "hunk": "@@ -64,4 +64,14 @@ public String getErrorType(\n     }\n     return null;\n   }\n+\n+  @Override\n+  @Nullable\n+  public String getRpcStatusCode(\n+      SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n+    if (TracingFilter.isSyntheticFallbackError()) {\n+      return null;\n+    }\n+    return getErrorType(request, response, error);",
+      "id": "PRRT_kwDODJKVX86v-Ghz",
+      "opened": "2026-10-25T03:39:31Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T03:47:03Z",
+          "body": "Refactored both getters to use a neutral SOFA code extractor; `getErrorType()` retains synthetic fallback classification, while status provenance filtering remains independent. Baseline and latest-dependency tests passed in default, preview, and duplicate modes. Commit: `c7d6c051`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4369553076"
+        }
+      ],
+      "reviewed": "bf9e664ac895ba5f707e7a78528048adb944b004",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4369538724"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the SOFA RPC provenance handling and its new tests in this existing PR directly. Do not create another PR.\n\nReplace TracingFilter's SYNTHETIC_FALLBACK_ERROR ThreadLocal with per-call state on the existing instrumentation-owned SofaRpcRequest wrapper, which is already carried through asynchronous completion. Pass that wrapper into extractException and mark it only when our instrumentation manufactures the fallback SofaRpcException. Restore extractException's nullable Throwable return, remove ExtractedException and the end wrapper, and call instrumenter.end directly. Ensure both synchronous and asynchronous paths, supplied exceptions, thrown exceptions, and nested calls preserve the intended per-call provenance without ambient thread state. Keep the state package-private and avoid unnecessary public API additions.\n\nPreserve the neutral getSofaRpcCode helper in SofaRpcAttributesGetter. Earlier discussion explicitly established that status extraction must remain independent of getErrorType. My subsequent suggestion to delegate the status getter to getErrorType was mistaken and is NOT part of this assignment. Have getRpcStatusCode consult the request's provenance flag and independently consume the neutral helper; getErrorType must continue classifying synthetic fallback errors normally.\n\nCombine SofaRpcTest.syntheticFallbackStatusIsOmitted and suppliedStatusCodeIsEmitted and their forwarding helper into one parameterized test with all four async/syntheticFallback combinations, for example using CsvSource. Preserve the real ErrorService interface, coherent request methods and ConsumerConfig.interfaceId fixture correction. Do not weaken span or metric assertions or remove coverage.\n\nThis is behavior-preserving simplification. Genuine supplied SOFA codes, including SERVER_UNDECLARED_ERROR code 199, must still emit rpc.status_code in preview/dup even when equal to error.type. Instrumentation-created fallback errors with that same code must omit only rpc.status_code while retaining existing error.type and exception behavior. Preserve supported numeric bounds, unavailable success statuses, legacy mode, and asynchronous behavior. Leave the shared RPC API, Thrift, gRPC, policy-removal work, generated files, and unrelated code unchanged.\n\nApply the narrow module formatter immediately before focused validation. Verify the focused SOFA library tests with baseline and latest dependencies and relevant existing semconv variants, including genuine versus synthetic code 199 and all four test combinations. Use existing tasks, do not clean or force unchanged tasks to rerun, and record commands and results in coding-session evidence.",
+      "created": "2026-10-25T04:12:45Z",
+      "hunk": "@@ -23,6 +23,8 @@ final class TracingFilter extends Filter {\n \n   private static final String OTEL_CONTEXT_KEY = \"otel.context\";\n   private static final String OTEL_REQUEST_KEY = \"otel.request\";\n+  // Instrumenter.end() invokes attribute and metric extractors synchronously.\n+  private static final ThreadLocal<Boolean> SYNTHETIC_FALLBACK_ERROR = new ThreadLocal<>();",
+      "id": "PRRT_kwDODJKVX86v-SXY",
+      "opened": "2026-10-25T04:12:44Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/TracingFilter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T04:21:03Z",
+          "body": "Moved synthetic-fallback provenance onto `SofaRpcRequest`, restored nullable exception extraction, and combined the four sync/async regression cases. Commit: `21ff3ae5`. Baseline default, preview, and duplicate semconv tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4369631346"
+        }
+      ],
+      "reviewed": "c7d6c051c36698a7f3fdc3efa2c98796a6e188d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20952#discussion_r4369614477"
+    }
+  ]
+}

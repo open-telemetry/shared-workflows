@@ -1,0 +1,145 @@
+{
+  "head": "0d7fc862367ba5362202801c9992dd491c4ba44a",
+  "merge": "7cd6b07da887f5d46122b1f82bbfcf5a8fe6e29d",
+  "merged": "2026-10-01T03:26:25Z",
+  "missing_roots": 0,
+  "number": 175,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Bedrock Runtime exposes the response `contentType` field from the required `X-Amzn-Bedrock-Content-Type` header; Flask's standard `Content-Type` header does not populate that SDK field. Add `x-amzn-bedrock-content-type: application/json` here so the new InvokeModel response matches the service contract.",
+      "created": "2026-09-04T16:45:12Z",
+      "hunk": "@@ -130,9 +132,60 @@ def bedrock_converse_stream(model_id):\n \n @bp.route(\"/model/<path:model_id>/invoke\", methods=[\"POST\"])\n def bedrock_invoke(model_id):\n-    \"\"\"Handle Bedrock InvokeModel — used for Titan Embeddings.\"\"\"\n+    \"\"\"Handle Bedrock InvokeModel.\"\"\"\n+    if \"embed\" in model_id:\n+        resp = {\n+            \"embedding\": [0.001] * 256,\n+            \"inputTextTokenCount\": 8,\n+        }\n+        return Response(json.dumps(resp), mimetype=\"application/json\")\n+\n     resp = {\n-        \"embedding\": [0.001] * 256,\n-        \"inputTextTokenCount\": 8,\n+        \"inputTextTokenCount\": 5,\n+        \"results\": [\n+            {\n+                \"tokenCount\": 10,\n+                \"outputText\": \"This is a response from the mock server.\",\n+                \"completionReason\": \"FINISH\",\n+            }\n+        ],\n+    }\n+    headers = {\n+        \"x-amzn-bedrock-input-token-count\": \"5\",\n+        \"x-amzn-bedrock-output-token-count\": \"10\",\n     }",
+      "id": "PRRT_kwDOTuzK5c6fX20g",
+      "opened": "2026-09-04T16:45:13Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/bedrock.py",
+      "replies": [],
+      "reviewed": "3901e5e716c627db31d9bb97ac2d4c7a57117e2b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r3936118872"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "InvokeModelWithResponseStream also requires `X-Amzn-Bedrock-Content-Type` to expose the model payload MIME type (`application/json`) separately from the EventStream transport MIME type. Without it, SDK responses omit the modeled `contentType` field.",
+      "created": "2026-09-04T16:45:12Z",
+      "hunk": "@@ -130,9 +132,60 @@ def bedrock_converse_stream(model_id):\n \n @bp.route(\"/model/<path:model_id>/invoke\", methods=[\"POST\"])\n def bedrock_invoke(model_id):\n-    \"\"\"Handle Bedrock InvokeModel — used for Titan Embeddings.\"\"\"\n+    \"\"\"Handle Bedrock InvokeModel.\"\"\"\n+    if \"embed\" in model_id:\n+        resp = {\n+            \"embedding\": [0.001] * 256,\n+            \"inputTextTokenCount\": 8,\n+        }\n+        return Response(json.dumps(resp), mimetype=\"application/json\")\n+\n     resp = {\n-        \"embedding\": [0.001] * 256,\n-        \"inputTextTokenCount\": 8,\n+        \"inputTextTokenCount\": 5,\n+        \"results\": [\n+            {\n+                \"tokenCount\": 10,\n+                \"outputText\": \"This is a response from the mock server.\",\n+                \"completionReason\": \"FINISH\",\n+            }\n+        ],\n+    }\n+    headers = {\n+        \"x-amzn-bedrock-input-token-count\": \"5\",\n+        \"x-amzn-bedrock-output-token-count\": \"10\",\n     }\n-    return Response(json.dumps(resp), mimetype=\"application/json\")\n+    return Response(json.dumps(resp), mimetype=\"application/json\", headers=headers)\n+\n+\n+def _stream_invoke():\n+    \"\"\"Yield Bedrock InvokeModelWithResponseStream event-stream chunks in binary format.\"\"\"\n+    chunks = [\n+        {\"inputTextTokenCount\": 5, \"outputText\": \"This is \", \"tokenCount\": 5},\n+        {\n+            \"inputTextTokenCount\": 5,\n+            \"outputText\": \"a test\",\n+            \"tokenCount\": 5,\n+            \"completionReason\": \"FINISH\",\n+            \"amazon-bedrock-invocationMetrics\": {\n+                \"inputTokenCount\": 5,\n+                \"outputTokenCount\": 10,\n+                \"firstByteLatency\": 100,\n+                \"invocationLatency\": 200,\n+            },\n+        },\n+    ]\n+    for chunk in chunks:\n+        raw_bytes = json.dumps(chunk).encode(\"utf-8\")\n+        payload = json.dumps(\n+            {\"bytes\": base64.b64encode(raw_bytes).decode(\"ascii\")}\n+        ).encode(\"utf-8\")\n+        yield encode_aws_event_stream_message(\"chunk\", payload)\n+        time.sleep(0.05)\n+\n+\n+@bp.route(\"/model/<path:model_id>/invoke-with-response-stream\", methods=[\"POST\"])\n+def bedrock_invoke_stream(model_id):\n+    \"\"\"Handle Bedrock InvokeModelWithResponseStream.\"\"\"\n+    return Response(\n+        _stream_invoke(), mimetype=\"application/vnd.amazon.eventstream\"\n+    )",
+      "id": "PRRT_kwDOTuzK5c6fX21H",
+      "opened": "2026-09-04T16:45:13Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/bedrock.py",
+      "replies": [],
+      "reviewed": "3901e5e716c627db31d9bb97ac2d4c7a57117e2b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r3936118928"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This passes for any non-empty bytes, including malformed EventStream framing or a wrongly shaped chunk, so it does not verify that clients can consume the new endpoint. Decode the frames and assert the `chunk.bytes` payloads and final usage/completion fields.",
+      "created": "2026-09-04T16:45:13Z",
+      "hunk": "@@ -325,6 +337,26 @@ def test_bedrock_converse_answers_when_no_tool_is_offered(client):\n     assert response.json[\"stopReason\"] == \"end_turn\"\n \n \n+def test_bedrock_invoke_headers(client):\n+    response = client.post(\n+        \"/model/amazon.titan-text-express-v1/invoke\",\n+        json={\"inputText\": \"hi\"},\n+    )\n+    assert response.status_code == 200\n+    assert response.headers[\"x-amzn-bedrock-input-token-count\"] == \"5\"\n+    assert response.headers[\"x-amzn-bedrock-output-token-count\"] == \"10\"\n+\n+\n+def test_bedrock_invoke_stream_returns_eventstream(client):\n+    response = client.post(\n+        \"/model/amazon.titan-text-express-v1/invoke-with-response-stream\",\n+        json={\"inputText\": \"hi\"},\n+    )\n+    assert response.status_code == 200\n+    assert response.mimetype == \"application/vnd.amazon.eventstream\"\n+    assert len(response.data) > 0",
+      "id": "PRRT_kwDOTuzK5c6fX217",
+      "opened": "2026-09-04T16:45:13Z",
+      "path": "tools/gen-ai/mock-server/tests/test_mock_server.py",
+      "replies": [],
+      "reviewed": "3901e5e716c627db31d9bb97ac2d4c7a57117e2b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r3936118997"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The streaming route is absent from the deterministic endpoint table, while its standalone test invokes it only once. Add it here so identical requests are compared byte-for-byte as required by `scenarios/gen-ai/AGENTS.md:49-50`.",
+      "created": "2026-09-04T16:45:13Z",
+      "hunk": "@@ -110,6 +110,18 @@\n         \"/model/amazon.titan-text-express-v1/converse\",\n         {\"messages\": [{\"role\": \"user\", \"content\": [{\"text\": \"hi\"}]}]},\n     ),\n+    (\n+        \"bedrock-invoke\",\n+        \"post\",\n+        \"/model/amazon.titan-text-express-v1/invoke\",\n+        {\"inputText\": \"hi\"},\n+    ),\n+    (\n+        \"bedrock-invoke-embeddings\",\n+        \"post\",\n+        \"/model/amazon.titan-embed-text-v1/invoke\",\n+        {\"inputText\": \"hi\"},\n+    ),",
+      "id": "PRRT_kwDOTuzK5c6fX21p",
+      "opened": "2026-09-04T16:45:13Z",
+      "path": "tools/gen-ai/mock-server/tests/test_mock_server.py",
+      "replies": [],
+      "reviewed": "3901e5e716c627db31d9bb97ac2d4c7a57117e2b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r3936118973"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This checks every historical call name, so after one completed `get_weather` exchange a later user turn offering `get_weather` can never call it again; both streaming and non-streaming paths will return text instead. Determine whether the current turn still needs a call (for example, from the messages after the latest user input/result) rather than permanently blacklisting a tool name, and add a repeated-same-tool multi-turn case.",
+      "created": "2026-09-04T19:43:45Z",
+      "hunk": "@@ -372,18 +415,33 @@ def _text_protocol_tool_call(body, message_text):\n     )\n \n \n+def _should_call_tool(body):\n+    if not body.get(\"tools\"):\n+        return False\n+    messages = body.get(\"messages\", [])\n+    tool, tool_name = _get_offered_tool(body)\n+    if not tool or not tool_name:\n+        return False\n+    called_names, call_ids = _get_called_tool_info(messages)\n+    has_tool_result = any(m.get(\"role\") == \"tool\" for m in messages)\n+\n+    if not has_tool_result:\n+        return True\n+\n+    if called_names:\n+        return tool_name not in called_names",
+      "id": "PRRT_kwDOTuzK5c6fbGz2",
+      "opened": "2026-09-04T19:43:46Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "de30ee958074014670a12c2c542e3366a08fce3a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r3937399307"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A tool name is treated as exhausted for the entire message history. If a user starts another turn after a completed `get_weather` call, the same offered tool is suppressed and the endpoint returns text, so repeated tool use across turns is unsupported. Base this decision on the active turn/result pairing rather than the global `called_names` set, with a regression test for calling the same tool again.",
+      "created": "2026-09-04T19:43:45Z",
+      "hunk": "@@ -170,20 +195,37 @@ def messages():\n \n     context_management = body.get(\"context_management\") or {}\n     edits = context_management.get(\"edits\") or []\n-    if any(edit.get(\"type\") == \"compact_20260112\" for edit in edits if isinstance(edit, dict)):\n+    if any(\n+        edit.get(\"type\") == \"compact_20260112\"\n+        for edit in edits\n+        if isinstance(edit, dict)\n+    ):\n         resp = copy.deepcopy(MESSAGE_COMPACTION_RESPONSE)\n         resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n         return resp\n \n-    if body.get(\"tools\") and not _has_tool_result(body):\n-        resp = copy.deepcopy(MESSAGE_TOOL_USE_RESPONSE)\n-        resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n-        tool = body.get(\"tools\", [{}])[0]\n-        tool_name = tool.get(\"name\")\n-        if tool_name:\n-            resp[\"content\"][0][\"name\"] = tool_name\n-        resp[\"content\"][0][\"input\"] = mock_tool_arguments(tool)\n-        return resp\n+    if body.get(\"tools\"):\n+        tools = body.get(\"tools\")\n+        first_tool = tools[0] if tools else {}\n+        tool_name = first_tool.get(\"name\")\n+        called_names, call_ids = _get_anthropic_tool_info(body)\n+        has_tool_result = _has_tool_result(body)\n+        should_call = False\n+        if tool_name and tool_name not in called_names:\n+            should_call = True\n+        elif not has_tool_result:\n+            should_call = True",
+      "id": "PRRT_kwDOTuzK5c6fbGzM",
+      "opened": "2026-09-04T19:43:46Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/anthropic.py",
+      "replies": [],
+      "reviewed": "de30ee958074014670a12c2c542e3366a08fce3a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r3937399240"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These Titan streaming chunks do not match the real response shape used by the linked migration: the captured `InvokeModelWithResponseStream` response uses `index` and cumulative `totalOutputTextTokenCount`, whereas this mock substitutes the non-stream-style `tokenCount`/`inputTextTokenCount` fields. Clients that parse Titan's documented stream fields will therefore be tested against an incompatible payload; mirror the captured chunk schema and assert those fields in the stream test.",
+      "created": "2026-09-04T19:43:45Z",
+      "hunk": "@@ -125,14 +137,81 @@ def bedrock_converse(model_id):\n \n @bp.route(\"/model/<path:model_id>/converse-stream\", methods=[\"POST\"])\n def bedrock_converse_stream(model_id):\n-    return Response(_stream_converse(), mimetype=\"application/vnd.amazon.eventstream\")\n+    return Response(\n+        _stream_converse(), mimetype=\"application/vnd.amazon.eventstream\"\n+    )\n \n \n @bp.route(\"/model/<path:model_id>/invoke\", methods=[\"POST\"])\n def bedrock_invoke(model_id):\n-    \"\"\"Handle Bedrock InvokeModel — used for Titan Embeddings.\"\"\"\n+    \"\"\"Handle Bedrock InvokeModel.\"\"\"\n+    if \"embed\" in model_id:\n+        resp = {\n+            \"embedding\": [0.001] * 256,\n+            \"inputTextTokenCount\": 8,\n+        }\n+        headers = {\n+            \"x-amzn-bedrock-content-type\": \"application/json\",\n+        }\n+        return Response(\n+            json.dumps(resp), mimetype=\"application/json\", headers=headers\n+        )\n+\n     resp = {\n-        \"embedding\": [0.001] * 256,\n-        \"inputTextTokenCount\": 8,\n+        \"inputTextTokenCount\": 5,\n+        \"results\": [\n+            {\n+                \"tokenCount\": 10,\n+                \"outputText\": \"This is a response from the mock server.\",\n+                \"completionReason\": \"FINISH\",\n+            }\n+        ],\n     }\n-    return Response(json.dumps(resp), mimetype=\"application/json\")\n+    headers = {\n+        \"x-amzn-bedrock-input-token-count\": \"5\",\n+        \"x-amzn-bedrock-output-token-count\": \"10\",\n+        \"x-amzn-bedrock-content-type\": \"application/json\",\n+    }\n+    return Response(\n+        json.dumps(resp), mimetype=\"application/json\", headers=headers\n+    )\n+\n+\n+def _stream_invoke():\n+    \"\"\"Yield Bedrock InvokeModelWithResponseStream event-stream chunks in binary format.\"\"\"\n+    chunks = [\n+        {\"inputTextTokenCount\": 5, \"outputText\": \"This is \", \"tokenCount\": 5},\n+        {\n+            \"inputTextTokenCount\": 5,\n+            \"outputText\": \"a test\",",
+      "id": "PRRT_kwDOTuzK5c6fbGzk",
+      "opened": "2026-09-04T19:43:46Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/bedrock.py",
+      "replies": [],
+      "reviewed": "de30ee958074014670a12c2c542e3366a08fce3a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r3937399281"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This checks function calls from the entire Responses input, so once a tool name has appeared, offering that same tool on a later user turn always produces the final text response instead of a new call. That conflicts with the new multi-turn behavior implemented for Chat Completions and Anthropic; scope the suppression check to the current user turn while counting all prior function-call items separately for the next unique ID, and cover the Responses path with a regression test.",
+      "created": "2026-09-29T19:55:49Z",
+      "hunk": "@@ -634,16 +739,27 @@ def responses():\n         for item in request_input\n         if item.get(\"type\") == \"function_call\"\n     }\n-    if body.get(\"tools\") and \"agent_reference\" not in body and not (offered & called):\n-        return _responses_tool_call_response(body)\n+    if (\n+        body.get(\"tools\")\n+        and \"agent_reference\" not in body\n+        and not (offered & called)\n+    ):",
+      "id": "PRRT_kwDOTuzK5c6nRPA4",
+      "opened": "2026-09-29T19:55:49Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "18f71b3c7f61b57a9481babdefe4551918aed76d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r4137705357"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`tool_calls` is optional on assistant messages and may be serialized as JSON `null`. Iterating it directly raises `TypeError`, so a later tool-enabled turn can return a 500 merely because an earlier assistant response included `\"tool_calls\": null`. Normalize null to an empty list before iterating.",
+      "created": "2026-09-29T19:55:49Z",
+      "hunk": "@@ -228,7 +234,49 @@ def _chat_audio_response(body):\n     return response\n \n \n-def _responses_tool_call_response(body):\n+def _get_offered_tool(body):\n+    tools = body.get(\"tools\") or []\n+    if not tools:\n+        return None, None\n+    tool = tools[0]\n+    function = tool.get(\"function\", tool)\n+    name = function.get(\"name\") or tool.get(\"name\")\n+    return tool, name\n+\n+\n+def _current_turn(messages):\n+    \"\"\"Messages since the last user message.\n+\n+    A tool called in an earlier turn must not stop the model from calling it\n+    again when the user asks a new question.\n+    \"\"\"\n+    last_user = -1\n+    for index, message in enumerate(messages):\n+        if message.get(\"role\") == \"user\":\n+            last_user = index\n+    return messages[last_user + 1 :]\n+\n+\n+def _get_called_tool_info(messages):\n+    called_names = set()\n+    call_ids = []\n+    for m in messages:\n+        if m.get(\"role\") == \"assistant\":\n+            for tc in m.get(\"tool_calls\", []):",
+      "id": "PRRT_kwDOTuzK5c6nRPAU",
+      "opened": "2026-09-29T19:55:49Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [],
+      "reviewed": "18f71b3c7f61b57a9481babdefe4551918aed76d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/175#discussion_r4137705305"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "7ee4f9d50f0e6ed25ba0cebd3efa5789f0ae2d32",
+  "merge": "4a40aeffabcf9c5b717504bc5e4bd9f5e4da0c7d",
+  "merged": "2026-10-12T09:40:50Z",
+  "missing_roots": 0,
+  "number": 20513,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The removed declarative-config parsing and log assertions were the only users of `opentelemetry-sdk-extension-declarative-config` and `logunit-jul`, but both remain declared in `javaagent/build.gradle.kts`. Remove those now-unused test dependencies as part of this simplification.",
+      "created": "2026-10-12T03:25:01Z",
+      "hunk": "@@ -24,22 +21,15 @@\n import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n-import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfiguration;\n import io.opentelemetry.sdk.autoconfigure.spi.internal.DefaultConfigProperties;\n-import io.opentelemetry.sdk.internal.SdkConfigProvider;\n-import java.io.ByteArrayInputStream;\n import java.io.IOException;\n import java.nio.file.Files;\n import java.nio.file.Path;\n import java.util.HashMap;\n import java.util.Map;\n-import java.util.stream.Stream;\n+import org.junit.jupiter.api.Test;",
+      "id": "PRRT_kwDODJKVX86rUbgf",
+      "opened": "2026-10-12T03:25:01Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstallerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-12T03:52:28Z",
+          "body": "Addressed in 4a71e50c1d609740bfdb35f8385ef42bd35ae4e8.\n\nThe complete JMX installer unit suite uses the declarative bridge and flat DefaultConfigProperties fixtures, not SDK declarative-config parsing or logunit. Commit 1 removes both unused suite dependencies while retaining the bridge dependency. All 9 existing JMX unit tests and the Kotlin Gradle formatting check pass with the reduced dependencies.\n\n<!-- copilot-loop:1b017e9075730770427f73dc250e813bad7dce989762d50f772424ed4f79ed86:4244431982:5919c9fbc53749a9954fc72a643b9537 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20513#discussion_r4244527218"
+        }
+      ],
+      "reviewed": "1d51e6f22c0471ea87f5b8667d6af56096d8ae80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20513#discussion_r4244431982"
+    }
+  ]
+}

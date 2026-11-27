@@ -1,0 +1,40 @@
+{
+  "head": "e56714f01443476862f39f1976c156f020d2070c",
+  "merge": "409a183d94752d76d5bd306131c84914bfaa6b4d",
+  "merged": "2026-10-23T11:30:12Z",
+  "missing_roots": 0,
+  "number": 19815,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "instead of completely ignoring we usually log such failures",
+      "created": "2026-08-31T12:25:38Z",
+      "hunk": "@@ -1199,11 +1199,22 @@ public final void onEventStream(SdkPublisher<S> sdkPublisher) {\n       delegate.onEventStream(\n           sdkPublisher.map(\n               event -> {\n-                handleEvent(event);\n+                handleEventSafely(event);\n                 return event;\n               }));\n     }\n \n+    // Telemetry parsing must never change the behavior of the application's stream. A provider,\n+    // proxy, or future SDK version can deliver an incomplete or out-of-order event, and the\n+    // instrumentation should simply omit telemetry for that event instead of failing the stream.\n+    final void handleEventSafely(S event) {\n+      try {\n+        handleEvent(event);\n+      } catch (RuntimeException ignored) {\n+        // Keep the original event flowing to the delegate subscriber.",
+      "id": "PRRT_kwDODJKVX86dt8uV",
+      "opened": "2026-08-31T12:25:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/BedrockRuntimeImpl.java",
+      "replies": [],
+      "reviewed": "7a5e89f09a2d1c1836332ee80a945cb6a23f4abf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19815#discussion_r3894409324"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "imo the first sentence would be enough to convey what this method is about",
+      "created": "2026-08-31T12:26:19Z",
+      "hunk": "@@ -1199,11 +1199,22 @@ public final void onEventStream(SdkPublisher<S> sdkPublisher) {\n       delegate.onEventStream(\n           sdkPublisher.map(\n               event -> {\n-                handleEvent(event);\n+                handleEventSafely(event);\n                 return event;\n               }));\n     }\n \n+    // Telemetry parsing must never change the behavior of the application's stream. A provider,\n+    // proxy, or future SDK version can deliver an incomplete or out-of-order event, and the\n+    // instrumentation should simply omit telemetry for that event instead of failing the stream.",
+      "id": "PRRT_kwDODJKVX86dt9tR",
+      "opened": "2026-08-31T12:26:19Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/BedrockRuntimeImpl.java",
+      "replies": [],
+      "reviewed": "7a5e89f09a2d1c1836332ee80a945cb6a23f4abf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19815#discussion_r3894415642"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "51f2cb0d19ee31c9c290cbd3a93eccc73aae4e08",
+  "merge": "6bc49ac9cb5f61bee6b15400784ed1685196bcf3",
+  "merged": "2026-01-29T17:32:59Z",
+  "missing_roots": 0,
+  "number": 16026,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this method only used in tests?",
+      "created": "2026-01-29T09:37:41Z",
+      "hunk": "@@ -66,32 +68,32 @@ public String getOperationName(\n     }\n   }\n \n-  // visible for testing\n-  String getStatement(Exchange exchange, Endpoint endpoint) {\n+  @Nullable\n+  private String getRawQueryText(Exchange exchange) {\n     switch (component) {\n       case \"cql\":\n         Object cqlObj = exchange.getIn().getHeader(\"CamelCqlQuery\");\n-        if (cqlObj != null) {\n-          return sanitizer.sanitize(cqlObj.toString()).getQueryText();\n-        }\n-        return null;\n+        return cqlObj != null ? cqlObj.toString() : null;\n       case \"jdbc\":\n         Object body = exchange.getIn().getBody();\n-        if (body instanceof String) {\n-          return sanitizer.sanitize((String) body).getQueryText();\n-        }\n-        return null;\n+        return body instanceof String ? (String) body : null;\n       case \"sql\":\n         Object sqlquery = exchange.getIn().getHeader(\"CamelSqlQuery\");\n-        if (sqlquery instanceof String) {\n-          return sanitizer.sanitize((String) sqlquery).getQueryText();\n-        }\n-        return null;\n+        return sqlquery instanceof String ? (String) sqlquery : null;\n       default:\n         return null;\n     }\n   }\n \n+  // visible for testing\n+  SqlStatementInfo getSqlStatementInfo(Exchange exchange) {",
+      "id": "PRRT_kwDODJKVX85rnvOA",
+      "opened": "2026-01-29T09:37:41Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachecamel/decorators/DbSpanDecorator.java",
+      "replies": [
+        {
+          "at": "2026-01-29T16:42:41Z",
+          "body": "fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16026/commits/51f2cb0d19ee31c9c290cbd3a93eccc73aae4e08",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16026#discussion_r2742563193"
+        }
+      ],
+      "reviewed": "d382f3f608b80a2477642c6c80ec921e61f4ba89",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16026#discussion_r2740753445"
+    }
+  ]
+}

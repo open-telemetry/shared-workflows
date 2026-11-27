@@ -1,0 +1,53 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0dde8f770a96b59d8fa1bfa20da5ed3e18f4662c190a97a5149bf608ee0c2a9e",
+  "input_digest": "43b8eca2764f9f7a5b2e32a2c17217f61030a31c5fc01a514bbf9b16d4733ff8",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ac131d3c580c1c79613b36fbf22d0b8f12f2e84c/instrumentation/opentelemetry-instrumentation-google-genai/.changelog/947.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ac131d3c580c1c79613b36fbf22d0b8f12f2e84c/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/.changelog/947.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/cassettes/test_async_interactions_create_stream.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/cassettes/test_sync_interactions_create_stream.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/23b72eb2acce2f7db046b33d215aa32c5c6fd693"
+      ],
+      "id": "PRRT_kwDOSbspP86vCJGL",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ac131d3c580c1c79613b36fbf22d0b8f12f2e84c/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/23b72eb2acce2f7db046b33d215aa32c5c6fd693",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/cassettes/test_async_interactions_create_stream.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/cassettes/test_sync_interactions_create_stream.yaml"
+      ],
+      "id": "PRRT_kwDOSbspP86vCQ-6",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ac131d3c580c1c79613b36fbf22d0b8f12f2e84c/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/util.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ac131d3c580c1c79613b36fbf22d0b8f12f2e84c/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/test_e2e.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/test_e2e.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/23b72eb2acce2f7db046b33d215aa32c5c6fd693/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/cassettes/test_async_interactions_create_stream.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/619c347afdd3f3d862c5bc14cc955942f1cf3ccb"
+      ],
+      "id": "PRRT_kwDOSbspP86vCSwC",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

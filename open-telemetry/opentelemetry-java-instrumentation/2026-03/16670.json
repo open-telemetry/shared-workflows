@@ -1,0 +1,25 @@
+{
+  "head": "50f8c1a4e0a886518d33186f32b66d7867c1b454",
+  "merge": "765f24ac1fb44f0ef1de9797cdeacb0d650ae767",
+  "merged": "2026-03-18T17:36:13Z",
+  "missing_roots": 0,
+  "number": 16670,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "looks like we had a bug",
+      "created": "2026-03-18T12:13:59Z",
+      "hunk": "@@ -119,7 +119,7 @@ TracingServerCallListener start(Metadata headers, ServerCallHandler<REQUEST, RES\n \n     @Override\n     public void sendMessage(RESPONSE message) {\n-      request.setRequestSize(BodySizeUtil.getBodySize(message));\n+      request.setResponseSize(BodySizeUtil.getBodySize(message));",
+      "id": "PRRT_kwDODJKVX851JTPV",
+      "opened": "2026-03-18T12:13:59Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/TracingServerInterceptor.java",
+      "replies": [],
+      "reviewed": "50f8c1a4e0a886518d33186f32b66d7867c1b454",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16670#discussion_r2953033520"
+    }
+  ]
+}

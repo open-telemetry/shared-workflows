@@ -1,0 +1,267 @@
+{
+  "head": "8f39dca205a6930ec50ff15ba492cbd90730d6f5",
+  "merge": "551b396e3cb20f23affc5f12fdc9a06a3dda0026",
+  "merged": "2026-09-24T05:22:29Z",
+  "missing_roots": 0,
+  "number": 20084,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The cluster context is enabled in legacy mode too, so retries/redirections that previously produced one low-level span per attempted `Jedis` command are now folded into a single deferred span. That contradicts the linked requirement that legacy telemetry behavior remain unchanged. Please enable this aggregation only for stable database semconv and keep the existing legacy retry behavior (with corresponding legacy assertions).",
+      "created": "2026-09-10T04:09:59Z",
+      "hunk": "@@ -0,0 +1,85 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.instrumenter;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import javax.annotation.Nullable;\n+\n+public final class JedisClusterCommandContext {\n+  private static final ThreadLocal<JedisClusterCommandContext> current = new ThreadLocal<>();\n+\n+  @Nullable private Context context;\n+  @Nullable private JedisRequest request;\n+  private boolean executing;\n+\n+  @Nullable\n+  public static JedisClusterCommandContext start() {\n+    if (current.get() != null) {\n+      return null;",
+      "id": "PRRT_kwDODJKVX86g7M2T",
+      "opened": "2026-09-10T04:09:59Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterCommandContext.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:42:04Z",
+          "body": "Addressed in fad6f24ec9b7ff4c0732779df4154453518fa244.\n\nAnalysis: JedisClusterCommandContext.start() created a context in every semantic convention mode. That context suppressed the individual spans for legacy cluster retries and health checks. Limiting context creation to stable database semantic conventions restores the legacy command path while retaining stable-mode aggregation. The tests now assert the two legacy SET attempts on a reroute and the legacy PING health check before PUBLISH.\n\nUpsides: Legacy telemetry keeps one span per low-level command. Stable telemetry still reports one aggregate command span with the final socket peer.\n\nDownsides: The cluster tests now contain mode-specific span-count and endpoint assertions, which add a small maintenance cost.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r3975590031"
+        }
+      ],
+      "reviewed": "03e9a073a538ab44d936da35c1e08b1db722930f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r3975370919"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Jedis 2.3 declares `JedisClusterCommand.execute()` with zero arguments, while this module supports `[2.0.0,3.0.0)`. For that version this advice never marks the command as executing, but `CommandAdvice` still creates a cluster context, so every low-level request is suppressed as a connection-acquisition command and the cluster operation emits no span. Match both the zero- and one-argument `execute` signatures (and ideally cover the 2.3 compatibility boundary).",
+      "created": "2026-09-10T04:50:42Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisClusterCommandInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"redis.clients.jedis.JedisClusterCommand\")\n+        .or(extendsClass(named(\"redis.clients.jedis.JedisClusterCommand\")));\n+  }\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"redis.clients.jedis.JedisClusterCommand\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(namedOneOf(\"run\", \"runBinary\", \"runWithAnyNode\")),\n+        getClass().getName() + \"$CommandAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"execute\").and(takesArguments(1)), getClass().getName() + \"$ExecuteAdvice\");",
+      "id": "PRRT_kwDODJKVX86g75Z5",
+      "opened": "2026-09-10T04:50:43Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterCommandInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T05:04:55Z",
+          "body": "Addressed in 72038d1b9564755de3974ccf9346db654ea66082.\n\nAnalysis: Jedis 2.3 declares execute() with no arguments, while later Jedis 2.x versions declare execute(String). The existing one-argument matcher left the stable cluster context outside its executing state on Jedis 2.3, so it discarded the command request. The matcher now accepts both signatures. A Jedis 2.3 test suite invokes a zero-argument execute method in both legacy and stable modes. The cluster-context unit test now runs only in stable mode because context creation is intentionally disabled in legacy mode.\n\nUpsides: Jedis 2.3 cluster commands emit spans in stable mode. The dedicated compatibility test protects both execute signatures at the supported-version boundary.\n\nDownsides: The new Jedis 2.3 suite starts an additional Redis container during check, which increases test runtime.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r3975731723"
+        }
+      ],
+      "reviewed": "fad6f24ec9b7ff4c0732779df4154453518fa244",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r3975663286"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] After the first cluster request is captured, this branch suppresses every later Jedis command on the thread, while `JedisClusterCommandContext.capture()` silently ignores commands whose operation/query differs. This leaks across blocking cluster subscriptions: Jedis 2.x invokes Pub/Sub callbacks synchronously before `runWithAnyNode()` returns, so an `UNSUBSCRIBE` or an unrelated Jedis call made by a callback loses its span in stable mode. Suppress only requests that belong to the selected cluster operation/retry (for example, by matching the captured operation/query); let nonmatching requests follow normal instrumentation.",
+      "created": "2026-09-10T07:42:24Z",
+      "hunk": "@@ -74,39 +74,63 @@ public static void onExit(@Advice.This Connection connection) {\n   }\n \n   public static class AdviceScope {\n-    private final Context context;\n-    private final Scope scope;\n+    @Nullable private final Context context;\n+    @Nullable private final Scope scope;\n     private final JedisRequest request;\n+    @Nullable private final JedisClusterCommandContext clusterCommandContext;\n \n-    private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+    private AdviceScope(\n+        @Nullable Context context,\n+        @Nullable Scope scope,\n+        JedisRequest request,\n+        @Nullable JedisClusterCommandContext clusterCommandContext) {\n       this.context = context;\n       this.scope = scope;\n       this.request = request;\n+      this.clusterCommandContext = clusterCommandContext;\n     }\n \n     @Nullable\n     public static AdviceScope start(JedisRequest request) {\n       if (JedisPipelineContext.inTransactionFraming()) {\n         // MULTI/EXEC/DISCARD frame a batched transaction; they are represented by the MULTI batch\n-        // span rather than getting their own spans.\n-        return null;\n+        // span rather than getting their own spans. Keep the request until method exit so a\n+        // connected EXEC socket observed at method exit can become the transaction's last peer.\n+        return new AdviceScope(null, null, request, null);\n       }\n       Context parentContext = Context.current();\n       if (JedisPipelineContext.capture(request)) {\n-        // A pipeline or transaction is active, so this command is captured and aggregated into the\n-        // batch span created at sync()/exec() rather than getting its own span.\n-        return null;\n+        // Keep the request until method exit so its post-send peer snapshot is available to the\n+        // batch span created at sync()/exec().\n+        return new AdviceScope(null, null, request, null);\n+      }\n+      JedisClusterCommandContext clusterCommandContext = JedisClusterCommandContext.current();\n+      if (clusterCommandContext != null\n+          && (!clusterCommandContext.isExecuting() || clusterCommandContext.hasRequest())) {\n+        return new AdviceScope(null, null, request, clusterCommandContext);",
+      "id": "PRRT_kwDODJKVX86g-jeh",
+      "opened": "2026-09-10T07:42:25Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T07:53:30Z",
+          "body": "Addressed in 3dd881c67d8fa3846f7eafe6bd80f1b33fb95922.\n\nAnalysis: Blocking Pub/Sub callbacks run while the cluster execute advice remains active. The connection advice must aggregate only requests whose operation and sanitized query match the captured cluster request. It must detach a different request from the cluster context so normal instrumentation ends that request's span.\n\nUpsides: Cluster retries still update the aggregate peer address. Unsubscribe and unrelated callback commands keep their own spans in stable database semantic conventions.\n\nDownsides: Matching compares two short request strings for commands sent while a cluster command is active.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r3976803509"
+        }
+      ],
+      "reviewed": "3757a4b56d355ef4bc2db59428e85601e54f5fce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r3976710654"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] When a slot has no cached pool, Jedis 2.x calls `renewSlotCache()` from `getConnectionFromSlot()` while both acquisition and execution are active. The resulting `CLUSTER SLOTS` send reaches this code before any request has been captured, so it becomes the deferred cluster-operation span and the actual command is emitted separately. Detach non-PING sends during connection acquisition before retry matching so refresh commands remain independent and the requested command is aggregated.",
+      "created": "2026-09-20T04:33:05Z",
+      "hunk": "@@ -72,39 +73,82 @@ public static void onExit(@Advice.This Connection connection) {\n   }\n \n   public static class AdviceScope {\n-    private final Context context;\n-    private final Scope scope;\n+    private static final String CONNECTION_HEALTH_CHECK_COMMAND = Protocol.Command.PING.name();\n+\n+    @Nullable private final Context context;\n+    @Nullable private final Scope scope;\n     private final JedisRequest request;\n+    @Nullable private final JedisClusterCommandContext clusterCommandContext;\n \n-    private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+    private AdviceScope(\n+        @Nullable Context context,\n+        @Nullable Scope scope,\n+        JedisRequest request,\n+        @Nullable JedisClusterCommandContext clusterCommandContext) {\n       this.context = context;\n       this.scope = scope;\n       this.request = request;\n+      this.clusterCommandContext = clusterCommandContext;\n     }\n \n     @Nullable\n     public static AdviceScope start(JedisRequest request) {\n       if (JedisPipelineContext.inTransactionFraming()) {\n         // MULTI/EXEC/DISCARD frame a batched transaction; they are represented by the MULTI batch\n-        // span rather than getting their own spans.\n-        return null;\n+        // span rather than getting their own spans. Keep the request until method exit so a\n+        // connected EXEC socket observed at method exit can become the transaction's last peer.\n+        return new AdviceScope(null, null, request, null);\n       }\n       Context parentContext = Context.current();\n       if (JedisPipelineContext.capture(request)) {\n-        // A pipeline or transaction is active, so this command is captured and aggregated into the\n-        // batch span created at sync()/exec() rather than getting its own span.\n-        return null;\n+        // Keep the request until method exit so its post-send peer snapshot is available to the\n+        // batch span created at sync()/exec().\n+        return new AdviceScope(null, null, request, null);\n+      }\n+      JedisClusterCommandContext clusterCommandContext = currentCommandContext().get();\n+      if (clusterCommandContext != null) {\n+        if (clusterCommandContext.isAcquiringConnection()\n+            && CONNECTION_HEALTH_CHECK_COMMAND.equals(request.getOperationName())) {\n+          // Jedis validates a pooled cluster connection with a health check command before handing\n+          // it out; that command belongs to getting the connection rather than being an operation\n+          // of its own. Anything else sent while getting a connection, such as the slot cache\n+          // refresh a missing slot triggers, is an operation of its own.\n+          return null;\n+        }\n+        if (clusterCommandContext.isExecuting()\n+            && clusterCommandContext.matchesCapturedRequest(request)) {\n+          // A retry or a redirection re-sends the same command to another node, so it updates the\n+          // peer of the span already started for this cluster command instead of adding one.\n+          return new AdviceScope(null, null, request, clusterCommandContext);\n+        }\n+        if (!clusterCommandContext.isExecuting() || clusterCommandContext.hasRequest()) {\n+          // Slot cache refreshes and ASKING redirections are sent around the cluster command rather\n+          // than by it, so they get their own spans.\n+          clusterCommandContext = null;\n+        }",
+      "id": "PRRT_kwDODJKVX86kG_hG",
+      "opened": "2026-09-20T04:33:05Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:25:49Z",
+          "body": "Addressed in 073a63f1376a72dc2034dba2603e46f52c46a4a1.\n\nFixed in the verified source changes 073a63f1376a72dc2034dba2603e46f52c46a4a1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4056207932"
+        }
+      ],
+      "reviewed": "4767497219b4a1c883e60afbee0ac0f69e4dcb4e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4056125489"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This also aggregates `execGetResponse()` in legacy mode. Jedis 2.9.3 implements that method independently (it sends `EXEC` directly rather than delegating to `exec()`), so before this change legacy telemetry emitted the low-level `EXEC` span; now this advice consumes the queued requests, suppresses `EXEC`, and emits a batch `SET`/`MULTI` span instead. That conflicts with the linked requirement that legacy telemetry remain unchanged. Please gate the new `execGetResponse` aggregation to stable database semconv and keep the legacy expectation in the test.",
+      "created": "2026-09-20T05:32:24Z",
+      "hunk": "@@ -29,80 +33,96 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(named(\"exec\"), getClass().getName() + \"$ExecAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"exec\", \"execGetResponse\"), getClass().getName() + \"$ExecAdvice\");",
+      "id": "PRRT_kwDODJKVX86kHOjl",
+      "opened": "2026-09-20T05:32:24Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisTransactionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:51:10Z",
+          "body": "Addressed in 5c0f37d6126e2f2a4eb59852882384bb91e22345, 41f8dae6c0942fc8e4e11e5a9163c64f29836172.\n\nFixed in the verified source changes 5c0f37d6126e2f2a4eb59852882384bb91e22345, 41f8dae6c0942fc8e4e11e5a9163c64f29836172.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4056247455"
+        }
+      ],
+      "reviewed": "073a63f1376a72dc2034dba2603e46f52c46a4a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4056217873"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`extendsClass` should already match the given class so the named().or part shouldn't be needed",
+      "created": "2026-09-23T08:00:40Z",
+      "hunk": "@@ -0,0 +1,105 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v2_0.JedisSingletons.currentCommandContext;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class JedisClusterCommandInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"redis.clients.jedis.JedisClusterCommand\")\n+        .or(extendsClass(named(\"redis.clients.jedis.JedisClusterCommand\")));",
+      "id": "PRRT_kwDODJKVX86lEEVm",
+      "opened": "2026-09-23T08:00:40Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterCommandInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T03:23:09Z",
+          "body": "f66f9551a8ac3177f77db39a3b86c5558ca649ab",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4089473367"
+        }
+      ],
+      "reviewed": "41f8dae6c0942fc8e4e11e5a9163c64f29836172",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4080256588"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "elsewhere we assume that `scope.close()` doesn't throw",
+      "created": "2026-09-23T08:02:24Z",
+      "hunk": "@@ -102,15 +102,20 @@ public static class GetConnectionAdvice {\n     @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n     public static Scope onEnter(@Advice.This JedisClusterConnectionHandler handler) {\n+      JedisClusterCommandContext.enterConnectionAcquisition();\n       Context context =\n           JedisSingletons.configuredTargetContext(JedisClusterTargetAccessor.getTarget(handler));\n       return context != null ? context.makeCurrent() : null;\n     }\n \n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(@Advice.Enter @Nullable Scope scope) {\n-      if (scope != null) {\n-        scope.close();\n+      try {\n+        if (scope != null) {\n+          scope.close();\n+        }\n+      } finally {\n+        JedisClusterCommandContext.exitConnectionAcquisition();",
+      "id": "PRRT_kwDODJKVX86lEGL0",
+      "opened": "2026-09-23T08:02:24Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T02:57:58Z",
+          "body": "- 8462b08e978254c5ee7c85f099e4854e1520c392\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20231",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4089321310"
+        }
+      ],
+      "reviewed": "41f8dae6c0942fc8e4e11e5a9163c64f29836172",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4080268125"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we just use the `VirtualField.find` in static field assignment",
+      "created": "2026-09-23T08:03:48Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86lEH9i",
+      "opened": "2026-09-23T08:03:48Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterTargetAccessor.java",
+      "replies": [
+        {
+          "at": "2026-09-24T03:35:40Z",
+          "body": "Follow-up: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20233",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4089589555"
+        }
+      ],
+      "reviewed": "41f8dae6c0942fc8e4e11e5a9163c64f29836172",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4080278597"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "merge these lines\nI have a vague memory of someone requesting not creating spans for redis pings",
+      "created": "2026-09-23T08:05:39Z",
+      "hunk": "@@ -72,39 +73,85 @@ public static void onExit(@Advice.This Connection connection) {\n   }\n \n   public static class AdviceScope {\n-    private final Context context;\n-    private final Scope scope;\n+    private static final String CONNECTION_HEALTH_CHECK_COMMAND = Protocol.Command.PING.name();\n+\n+    @Nullable private final Context context;\n+    @Nullable private final Scope scope;\n     private final JedisRequest request;\n+    @Nullable private final JedisClusterCommandContext clusterCommandContext;\n \n-    private AdviceScope(Context context, Scope scope, JedisRequest request) {\n+    private AdviceScope(\n+        @Nullable Context context,\n+        @Nullable Scope scope,\n+        JedisRequest request,\n+        @Nullable JedisClusterCommandContext clusterCommandContext) {\n       this.context = context;\n       this.scope = scope;\n       this.request = request;\n+      this.clusterCommandContext = clusterCommandContext;\n     }\n \n     @Nullable\n     public static AdviceScope start(JedisRequest request) {\n       if (JedisPipelineContext.inTransactionFraming()) {\n         // MULTI/EXEC/DISCARD frame a batched transaction; they are represented by the MULTI batch\n-        // span rather than getting their own spans.\n-        return null;\n+        // span rather than getting their own spans. Keep the request until method exit so a\n+        // connected EXEC socket observed at method exit can become the transaction's last peer.\n+        return new AdviceScope(null, null, request, null);\n       }\n       Context parentContext = Context.current();\n       if (JedisPipelineContext.capture(request)) {\n-        // A pipeline or transaction is active, so this command is captured and aggregated into the\n-        // batch span created at sync()/exec() rather than getting its own span.\n-        return null;\n+        // Keep the request until method exit so its post-send peer snapshot is available to the\n+        // batch span created at sync()/exec().\n+        return new AdviceScope(null, null, request, null);\n+      }\n+      JedisClusterCommandContext clusterCommandContext = currentCommandContext().get();\n+      if (clusterCommandContext != null) {\n+        if (clusterCommandContext.isAcquiringConnection()) {\n+          if (CONNECTION_HEALTH_CHECK_COMMAND.equals(request.getOperationName())) {\n+            // Jedis validates a pooled cluster connection with a health check command before\n+            // handing\n+            // it out; that command belongs to getting the connection rather than being an operation",
+      "id": "PRRT_kwDODJKVX86lEKIG",
+      "opened": "2026-09-23T08:05:39Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T03:14:08Z",
+          "body": "4f0fea522f3f746cc3e4739537284939b65c789b",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4089401243"
+        },
+        {
+          "at": "2026-09-24T03:20:49Z",
+          "body": "This only suppresses the PING Jedis sends while borrowing a pooled cluster connection",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4089455017"
+        }
+      ],
+      "reviewed": "41f8dae6c0942fc8e4e11e5a9163c64f29836172",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4080291886"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe restore could be done as the first thing and the old `TransactionFraming` could be passed to `captureTransactionFramingPeerAddress` so that try finally wouldn't be needed. idk if it would make this better.",
+      "created": "2026-09-23T08:14:01Z",
+      "hunk": "@@ -71,16 +76,23 @@ public static void onExit(\n   @SuppressWarnings(\"unused\")\n   public static class MultiAdvice {\n \n+    @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter() {\n+    public static TransactionFraming onEnter() {\n       // The MULTI command frames a transaction that is reported as a single batch span at exec(),\n       // so its own command span is suppressed.\n-      JedisPipelineContext.enterTransactionFraming();\n+      return currentTransactionFraming().set(transactionFraming(null));\n     }\n \n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n-    public static void onExit() {\n-      JedisPipelineContext.exitTransactionFraming();\n+    public static void onExit(\n+        @Advice.Return(typing = Assigner.Typing.DYNAMIC) @Nullable Object transaction,\n+        @Advice.Enter @Nullable TransactionFraming previous) {\n+      try {\n+        captureTransactionFramingPeerAddress(transaction);\n+      } finally {\n+        currentTransactionFraming().restore(previous);",
+      "id": "PRRT_kwDODJKVX86lET7e",
+      "opened": "2026-09-23T08:14:01Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T03:59:48Z",
+          "body": "976e49d459f03b134cd47d40dcca9e073694ca8f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4089760194"
+        }
+      ],
+      "reviewed": "41f8dae6c0942fc8e4e11e5a9163c64f29836172",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4080352778"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "might as well catch and rethrow Throwable",
+      "created": "2026-09-23T08:17:16Z",
+      "hunk": "@@ -30,79 +35,98 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(named(\"exec\"), getClass().getName() + \"$ExecAdvice\");\n+    if (emitStableDatabaseSemconv()) {\n+      transformer.applyAdviceToMethod(\n+          named(\"execGetResponse\"), getClass().getName() + \"$ExecAdvice\");\n+    }\n     transformer.applyAdviceToMethod(named(\"discard\"), getClass().getName() + \"$DiscardAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class ExecAdvice {\n \n-    public static class AdviceScope {\n+    public static class AdviceState {\n       @Nullable private final Context context;\n-      @Nullable private final Scope scope;\n       @Nullable private final JedisRequest request;\n+      @Nullable public Scope scope;\n+      @Nullable public TransactionFraming previousTransactionFraming;\n \n-      private AdviceScope(\n-          @Nullable Context context, @Nullable Scope scope, @Nullable JedisRequest request) {\n+      public AdviceState(@Nullable Context context, @Nullable JedisRequest request) {\n         this.context = context;\n-        this.scope = scope;\n         this.request = request;\n       }\n \n-      public static AdviceScope start(Object transaction) {\n-        List<JedisRequest> requests = JedisPipelineContext.getAndClearCapturedRequests(transaction);\n-        // Suppress the EXEC framing command's own span; the transaction is reported as a single\n-        // batch span here.\n-        JedisPipelineContext.enterTransactionFraming();\n-        if (requests.isEmpty()) {\n-          // An empty transaction sends nothing for the batch, and with no captured request there\n-          // is no connection to derive server attributes from, so it is not reported as a batch\n-          // span.\n-          return new AdviceScope(null, null, null);\n-        }\n-        JedisRequest request = JedisRequest.createTransaction(requests);\n-        Context parentContext = Context.current();\n-        if (!instrumenter().shouldStart(parentContext, request)) {\n-          return new AdviceScope(null, null, null);\n-        }\n-        Context context = instrumenter().start(parentContext, request);\n-        return new AdviceScope(context, context.makeCurrent(), request);\n-      }\n-\n       public void end(@Nullable Throwable throwable) {\n-        JedisPipelineContext.exitTransactionFraming();\n         if (scope != null) {\n           scope.close();\n+        }\n+        if (context != null && request != null) {\n           instrumenter().end(context, request, null, throwable);\n         }\n       }\n     }\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static AdviceScope onEnter(@Advice.This Object transaction) {\n-      return AdviceScope.start(transaction);\n+    public static AdviceState onEnter(@Advice.This Object transaction) {\n+      BatchState batchState = JedisPipelineContext.takeBatchState(transaction);\n+      @Nullable JedisRequest request = null;\n+      @Nullable Context context = null;\n+      if (batchState != null && !batchState.getRequests().isEmpty()) {\n+        request =\n+            JedisRequest.createTransaction(\n+                batchState.getRequests(), batchState.getTransactionFramingPeerAddress());\n+        Context parentContext = Java8BytecodeBridge.currentContext();\n+        if (instrumenter().shouldStart(parentContext, request)) {\n+          context = instrumenter().start(parentContext, request);\n+        }\n+      }\n+\n+      // Suppress the EXEC framing command's own span; the transaction is reported as a single\n+      // batch span here. An empty transaction has no peer to report, so it has no batch span.\n+      AdviceState adviceState = new AdviceState(context, request);\n+      adviceState.previousTransactionFraming =\n+          currentTransactionFraming().set(transactionFraming(request));\n+      if (context != null) {\n+        try {\n+          adviceState.scope = context.makeCurrent();\n+        } catch (RuntimeException e) {",
+      "id": "PRRT_kwDODJKVX86lEXxc",
+      "opened": "2026-09-23T08:17:16Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisTransactionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T03:07:48Z",
+          "body": "fed760f6dc97942766329d3e301960fbf88a5525",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4089364807"
+        }
+      ],
+      "reviewed": "41f8dae6c0942fc8e4e11e5a9163c64f29836172",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4080376276"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] This now generates `unitTestsStableSemconv`, but `unitTests` already runs with `database` enabled at lines 54–56. That duplicates the entire unit suite in effectively the same database mode and also applies `metadataConfig` to a direct unit-test run. Restrict the generated variants to the two agent-backed suites that need default and stable runs.",
+      "created": "2026-09-23T21:46:33Z",
+      "hunk": "@@ -65,15 +73,18 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n-  val testStableSemconv = register<Test>(\"testStableSemconv\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n+  val stableSemconvSuites = testing.suites.withType(JvmTestSuite::class)\n+    .map { suite ->",
+      "id": "PRRT_kwDODJKVX86lWZUt",
+      "opened": "2026-09-23T21:46:33Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-23T22:03:29Z",
+          "body": "Addressed in 13194744a102cd02f1963de3cd96898f756f28c5.\n\nFixed in the verified source changes 13194744a102cd02f1963de3cd96898f756f28c5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4087762601"
+        }
+      ],
+      "reviewed": "c0c4953481de7068023e14323bbbfd26d584359e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20084#discussion_r4087626764"
+    }
+  ]
+}

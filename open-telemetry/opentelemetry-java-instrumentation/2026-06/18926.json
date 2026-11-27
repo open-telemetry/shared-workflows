@@ -1,0 +1,276 @@
+{
+  "head": "9369c06ccd3e83fb3049e4ae81f25693640fd78c",
+  "merge": "e66113301df2c5e80fe9807f97e514748f8c7ef1",
+  "merged": "2026-06-09T13:28:33Z",
+  "missing_roots": 0,
+  "number": 18926,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The README now documents `otel.instrumentation.couchbase.experimental-span-attributes` as defaulting to `true`, but the javaagent implementation reads the corresponding declarative config with a `false` fallback (see CouchbaseRequestTracer `getBoolean(..., false)`) and the tests only enable it explicitly in `testStableSemconvExperimental`. Please align the documented default with the actual default behavior/value.",
+      "created": "2026-06-07T05:26:01Z",
+      "hunk": "@@ -2,4 +2,4 @@\n \n | System property                                               | Type    | Default | Description                                                             |\n |---------------------------------------------------------------|---------|---------|-------------------------------------------------------------------------|\n-| `otel.instrumentation.couchbase.experimental-span-attributes` | Boolean | `false` | Enables the capture of experimental span attributes (for 2.x versions). |\n+| `otel.instrumentation.couchbase.experimental-span-attributes` | Boolean | `true`  | Enables the capture of experimental span attributes (default is `false` under `otel.instrumentation.common.v3-preview=true`). |",
+      "id": "PRRT_kwDODJKVX86HoThJ",
+      "opened": "2026-06-07T05:26:02Z",
+      "path": "instrumentation/couchbase/README.md",
+      "replies": [
+        {
+          "at": "2026-06-08T00:03:53Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926/changes/6ccdec60f1689737f0369355d29033c6e1749e45",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370316437"
+        }
+      ],
+      "reviewed": "cd12158fd54e84dea1575e93644f57164d70a204",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3368803558"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`metadata.yaml` declares `otel.instrumentation.couchbase.experimental-span-attributes` default as `true`, but the corresponding javaagent code uses a `false` fallback (and tests enable it explicitly). This will cause generated documentation to claim a default that doesn't match runtime behavior; consider setting the metadata default to `false`.",
+      "created": "2026-06-07T05:26:01Z",
+      "hunk": "@@ -5,5 +5,11 @@ description: >\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n+configurations:\n+  - name: otel.instrumentation.couchbase.experimental-span-attributes\n+    declarative_name: java.couchbase.experimental_span_attributes/development\n+    description: Enables Couchbase-specific span attributes.\n+    type: boolean\n+    default: true # false under otel.instrumentation.common.v3-preview=true",
+      "id": "PRRT_kwDODJKVX86HoThL",
+      "opened": "2026-06-07T05:26:02Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-08T00:03:58Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926/changes/6ccdec60f1689737f0369355d29033c6e1749e45",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370316531"
+        }
+      ],
+      "reviewed": "cd12158fd54e84dea1575e93644f57164d70a204",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3368803560"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`metadata.yaml` declares `otel.instrumentation.couchbase.experimental-span-attributes` default as `true`, but the corresponding javaagent code uses a `false` fallback (and tests enable it explicitly). This will cause generated documentation to claim a default that doesn't match runtime behavior; consider setting the metadata default to `false`.",
+      "created": "2026-06-07T05:26:02Z",
+      "hunk": "@@ -5,5 +5,11 @@ description: >\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n+configurations:\n+  - name: otel.instrumentation.couchbase.experimental-span-attributes\n+    declarative_name: java.couchbase.experimental_span_attributes/development\n+    description: Enables Couchbase-specific span attributes.\n+    type: boolean\n+    default: true # false under otel.instrumentation.common.v3-preview=true",
+      "id": "PRRT_kwDODJKVX86HoThU",
+      "opened": "2026-06-07T05:26:02Z",
+      "path": "instrumentation/couchbase/couchbase-3.1.6/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-08T00:04:03Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926/changes/6ccdec60f1689737f0369355d29033c6e1749e45",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370316593"
+        }
+      ],
+      "reviewed": "cd12158fd54e84dea1575e93644f57164d70a204",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3368803570"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`metadata.yaml` declares `otel.instrumentation.couchbase.experimental-span-attributes` default as `true`, but the corresponding javaagent code uses a `false` fallback (and tests enable it explicitly). This will cause generated documentation to claim a default that doesn't match runtime behavior; consider setting the metadata default to `false`.",
+      "created": "2026-06-07T05:26:02Z",
+      "hunk": "@@ -5,5 +5,11 @@ description: >\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n+configurations:\n+  - name: otel.instrumentation.couchbase.experimental-span-attributes\n+    declarative_name: java.couchbase.experimental_span_attributes/development\n+    description: Enables Couchbase-specific span attributes.\n+    type: boolean\n+    default: true # false under otel.instrumentation.common.v3-preview=true",
+      "id": "PRRT_kwDODJKVX86HoThe",
+      "opened": "2026-06-07T05:26:02Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-08T00:04:07Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926/changes/6ccdec60f1689737f0369355d29033c6e1749e45",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370316690"
+        }
+      ],
+      "reviewed": "cd12158fd54e84dea1575e93644f57164d70a204",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3368803583"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`metadata.yaml` declares `otel.instrumentation.couchbase.experimental-span-attributes` default as `true`, but the corresponding javaagent code uses a `false` fallback (and tests enable it explicitly). This will cause generated documentation to claim a default that doesn't match runtime behavior; consider setting the metadata default to `false`.",
+      "created": "2026-06-07T05:26:02Z",
+      "hunk": "@@ -5,5 +5,11 @@ description: >\n library_link: https://github.com/couchbase/couchbase-java-client\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n+configurations:\n+  - name: otel.instrumentation.couchbase.experimental-span-attributes\n+    declarative_name: java.couchbase.experimental_span_attributes/development\n+    description: Enables Couchbase-specific span attributes.\n+    type: boolean\n+    default: true # false under otel.instrumentation.common.v3-preview=true",
+      "id": "PRRT_kwDODJKVX86HoThq",
+      "opened": "2026-06-07T05:26:02Z",
+      "path": "instrumentation/couchbase/couchbase-3.4/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-08T00:04:12Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926/changes/6ccdec60f1689737f0369355d29033c6e1749e45",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370316791"
+        }
+      ],
+      "reviewed": "cd12158fd54e84dea1575e93644f57164d70a204",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3368803594"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The README now states this flag defaults to `true`, but Couchbase 2.x instrumentations still declare/behave with a default of `false` (see `instrumentation/couchbase/couchbase-2.0/metadata.yaml` and `couchbase-2.6/metadata.yaml`). Since this README covers Couchbase instrumentation broadly, the default should be documented as version-dependent (or clarified in the description) to avoid misleading 2.x users.",
+      "created": "2026-06-08T00:08:29Z",
+      "hunk": "@@ -2,4 +2,4 @@\n \n | System property                                               | Type    | Default | Description                                                             |\n |---------------------------------------------------------------|---------|---------|-------------------------------------------------------------------------|\n-| `otel.instrumentation.couchbase.experimental-span-attributes` | Boolean | `false` | Enables the capture of experimental span attributes (for 2.x versions). |\n+| `otel.instrumentation.couchbase.experimental-span-attributes` | Boolean | `true`  | Enables the capture of experimental span attributes (default is `false` under `otel.instrumentation.common.v3-preview=true`). |",
+      "id": "PRRT_kwDODJKVX86HsvuU",
+      "opened": "2026-06-08T00:08:30Z",
+      "path": "instrumentation/couchbase/README.md",
+      "replies": [
+        {
+          "at": "2026-06-08T03:08:54Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926/commits/6dc019bf2cd4b353e54ee82761a572350b6a2cc1",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370638886"
+        }
+      ],
+      "reviewed": "6ccdec60f1689737f0369355d29033c6e1749e45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370321926"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`attribute(String, boolean)` only forwards attributes when `emitOldDatabaseSemconv()` is enabled. In stable database semconv mode this drops any boolean Couchbase attributes (including `db.couchbase.*` experimental attributes when enabled), while the String/long overloads do support stable translation + experimental passthrough. Consider mirroring the stable/experimental handling here for consistency.",
+      "created": "2026-06-08T03:15:27Z",
+      "hunk": "@@ -0,0 +1,172 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_4;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitOldDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_ADDRESS;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_NAME;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.cnc.RequestTracer;\n+import com.couchbase.client.core.msg.RequestContext;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.v3_4.shaded.com.couchbase.client.tracing.opentelemetry.OpenTelemetryRequestTracer;\n+import java.time.Duration;\n+import java.time.Instant;\n+import reactor.core.publisher.Mono;\n+\n+public final class CouchbaseRequestTracer implements RequestTracer {\n+\n+  private static final String DB_COUCHBASE_COLLECTION = \"db.couchbase.collection\";\n+  private static final String NET_PEER_NAME = \"net.peer.name\";\n+  private static final String NET_PEER_PORT = \"net.peer.port\";\n+\n+  private static final boolean captureExperimentalAttributes =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"couchbase\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private final RequestTracer delegate;\n+\n+  public static RequestTracer create(OpenTelemetry openTelemetry) {\n+    return new CouchbaseRequestTracer(OpenTelemetryRequestTracer.wrap(openTelemetry));\n+  }\n+\n+  private CouchbaseRequestTracer(RequestTracer delegate) {\n+    this.delegate = delegate;\n+  }\n+\n+  @Override\n+  public RequestSpan requestSpan(String name, RequestSpan parent) {\n+    RequestSpan unwrappedParent = parent;\n+    if (parent instanceof TranslatingRequestSpan) {\n+      unwrappedParent = ((TranslatingRequestSpan) parent).delegate;\n+    }\n+    return new TranslatingRequestSpan(delegate.requestSpan(name, unwrappedParent));\n+  }\n+\n+  @Override\n+  public Mono<Void> start() {\n+    return delegate.start();\n+  }\n+\n+  @Override\n+  public Mono<Void> stop(Duration timeout) {\n+    return delegate.stop(timeout);\n+  }\n+\n+  private static final class TranslatingRequestSpan implements RequestSpan {\n+\n+    private final RequestSpan delegate;\n+\n+    private TranslatingRequestSpan(RequestSpan delegate) {\n+      this.delegate = delegate;\n+    }\n+\n+    @Override\n+    public void attribute(String key, String value) {\n+      if (emitStableDatabaseSemconv()) {\n+        String stableKey = stableKey(key);\n+        if (stableKey != null) {\n+          delegate.attribute(stableKey, value);\n+        } else if (captureExperimentalAttribute(key)) {\n+          delegate.attribute(key, value);\n+        }\n+      }\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.attribute(key, value);\n+      }\n+    }\n+\n+    @Override\n+    public void attribute(String key, boolean value) {\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.attribute(key, value);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86HtquJ",
+      "opened": "2026-06-08T03:15:28Z",
+      "path": "instrumentation/couchbase/couchbase-3.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_4/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:30:51Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ba6dfec38bd95d6b313cd2209d78f13d993eafb5.\n\nAdded stable semconv translation and experimental passthrough for the Couchbase 3.4 boolean attribute overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370679392"
+        }
+      ],
+      "reviewed": "6dc019bf2cd4b353e54ee82761a572350b6a2cc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370650772"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`attribute(String, boolean)` currently ignores stable database semconv mode and only emits when `emitOldDatabaseSemconv()` is enabled. This is inconsistent with the String/long overloads and prevents boolean `db.couchbase.*` experimental attributes from being captured under stable semconv.",
+      "created": "2026-06-08T03:15:27Z",
+      "hunk": "@@ -0,0 +1,167 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitOldDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_ADDRESS;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_NAME;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.cnc.RequestTracer;\n+import com.couchbase.client.core.msg.RequestContext;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.v3_2.shaded.com.couchbase.client.tracing.opentelemetry.OpenTelemetryRequestTracer;\n+import java.time.Duration;\n+import java.time.Instant;\n+import reactor.core.publisher.Mono;\n+\n+public final class CouchbaseRequestTracer implements RequestTracer {\n+\n+  private static final String DB_COUCHBASE_COLLECTION = \"db.couchbase.collection\";\n+  private static final String NET_PEER_NAME = \"net.peer.name\";\n+  private static final String NET_PEER_PORT = \"net.peer.port\";\n+\n+  private static final boolean captureExperimentalAttributes =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"couchbase\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private final RequestTracer delegate;\n+\n+  public static RequestTracer create(OpenTelemetry openTelemetry) {\n+    return new CouchbaseRequestTracer(OpenTelemetryRequestTracer.wrap(openTelemetry));\n+  }\n+\n+  private CouchbaseRequestTracer(RequestTracer delegate) {\n+    this.delegate = delegate;\n+  }\n+\n+  @Override\n+  public RequestSpan requestSpan(String name, RequestSpan parent) {\n+    RequestSpan unwrappedParent = parent;\n+    if (parent instanceof TranslatingRequestSpan) {\n+      unwrappedParent = ((TranslatingRequestSpan) parent).delegate;\n+    }\n+    return new TranslatingRequestSpan(delegate.requestSpan(name, unwrappedParent));\n+  }\n+\n+  @Override\n+  public Mono<Void> start() {\n+    return delegate.start();\n+  }\n+\n+  @Override\n+  public Mono<Void> stop(Duration timeout) {\n+    return delegate.stop(timeout);\n+  }\n+\n+  private static final class TranslatingRequestSpan implements RequestSpan {\n+\n+    private final RequestSpan delegate;\n+\n+    private TranslatingRequestSpan(RequestSpan delegate) {\n+      this.delegate = delegate;\n+    }\n+\n+    @Override\n+    public void attribute(String key, String value) {\n+      if (emitStableDatabaseSemconv()) {\n+        String stableKey = stableKey(key);\n+        if (stableKey != null) {\n+          delegate.attribute(stableKey, value);\n+        } else if (captureExperimentalAttribute(key)) {\n+          delegate.attribute(key, value);\n+        }\n+      }\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.attribute(key, value);\n+      }\n+    }\n+\n+    @Override\n+    public void attribute(String key, boolean value) {\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.attribute(key, value);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86Htqua",
+      "opened": "2026-06-08T03:15:28Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:30:52Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/52dbcbe7d533a4ccee280ca3f4a6bb660eee43fb.\n\nAdded stable semconv translation and experimental passthrough for the Couchbase 3.2 boolean attribute overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370679422"
+        }
+      ],
+      "reviewed": "6dc019bf2cd4b353e54ee82761a572350b6a2cc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370650796"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`attribute(String, boolean)` only delegates in old database semconv mode. In stable semconv mode this means boolean attributes are always dropped, even when `experimental_span_attributes` is enabled (unlike the String/long overloads).",
+      "created": "2026-06-08T03:15:28Z",
+      "hunk": "@@ -0,0 +1,162 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_1_6;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitOldDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_ADDRESS;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_NAME;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.cnc.RequestTracer;\n+import com.couchbase.client.core.msg.RequestContext;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.v3_1_6.shaded.com.couchbase.client.tracing.opentelemetry.OpenTelemetryRequestTracer;\n+import java.time.Duration;\n+import java.time.Instant;\n+import reactor.core.publisher.Mono;\n+\n+public final class CouchbaseRequestTracer implements RequestTracer {\n+\n+  private static final String DB_COUCHBASE_COLLECTION = \"db.couchbase.collection\";\n+  private static final String NET_PEER_NAME = \"net.peer.name\";\n+  private static final String NET_PEER_PORT = \"net.peer.port\";\n+\n+  private static final boolean captureExperimentalAttributes =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"couchbase\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private final RequestTracer delegate;\n+\n+  public static RequestTracer create(OpenTelemetry openTelemetry) {\n+    return new CouchbaseRequestTracer(OpenTelemetryRequestTracer.wrap(openTelemetry));\n+  }\n+\n+  private CouchbaseRequestTracer(RequestTracer delegate) {\n+    this.delegate = delegate;\n+  }\n+\n+  @Override\n+  public RequestSpan requestSpan(String name, RequestSpan parent) {\n+    RequestSpan unwrappedParent = parent;\n+    if (parent instanceof TranslatingRequestSpan) {\n+      unwrappedParent = ((TranslatingRequestSpan) parent).delegate;\n+    }\n+    return new TranslatingRequestSpan(delegate.requestSpan(name, unwrappedParent));\n+  }\n+\n+  @Override\n+  public Mono<Void> start() {\n+    return delegate.start();\n+  }\n+\n+  @Override\n+  public Mono<Void> stop(Duration timeout) {\n+    return delegate.stop(timeout);\n+  }\n+\n+  private static final class TranslatingRequestSpan implements RequestSpan {\n+\n+    private final RequestSpan delegate;\n+\n+    private TranslatingRequestSpan(RequestSpan delegate) {\n+      this.delegate = delegate;\n+    }\n+\n+    @Override\n+    public void attribute(String key, String value) {\n+      if (emitStableDatabaseSemconv()) {\n+        String stableKey = stableKey(key);\n+        if (stableKey != null) {\n+          delegate.attribute(stableKey, value);\n+        } else if (captureExperimentalAttribute(key)) {\n+          delegate.attribute(key, value);\n+        }\n+      }\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.attribute(key, value);\n+      }\n+    }\n+\n+    @Override\n+    public void attribute(String key, boolean value) {\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.attribute(key, value);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86Htqug",
+      "opened": "2026-06-08T03:15:28Z",
+      "path": "instrumentation/couchbase/couchbase-3.1.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1_6/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:30:54Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0d1e6de59c4a74b52988c1ef0bb72453bf763e89.\n\nAdded stable semconv translation and experimental passthrough for the Couchbase 3.1.6 boolean attribute overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370679450"
+        }
+      ],
+      "reviewed": "6dc019bf2cd4b353e54ee82761a572350b6a2cc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370650805"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setAttribute(String, boolean)` only forwards when `emitOldDatabaseSemconv()` is enabled. In stable database semconv mode, this drops boolean attributes entirely (including any `db.couchbase.*` experimental attributes when enabled), while the String/long overloads support stable translation + experimental passthrough. Consider adding the same stable/experimental handling here for consistency.",
+      "created": "2026-06-08T03:15:28Z",
+      "hunk": "@@ -0,0 +1,171 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_1;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitOldDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_ADDRESS;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_NAME;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.cnc.RequestTracer;\n+import com.couchbase.client.core.msg.RequestContext;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Tracer;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.v3_1.shaded.com.couchbase.client.tracing.opentelemetry.OpenTelemetryRequestTracer;\n+import io.opentelemetry.javaagent.tooling.muzzle.NoMuzzle;\n+import java.time.Duration;\n+import java.time.Instant;\n+import reactor.core.publisher.Mono;\n+\n+public final class CouchbaseRequestTracer implements RequestTracer {\n+\n+  private static final String DB_COUCHBASE_COLLECTION = \"db.couchbase.collection\";\n+  private static final String NET_PEER_NAME = \"net.peer.name\";\n+  private static final String NET_PEER_PORT = \"net.peer.port\";\n+\n+  private static final boolean captureExperimentalAttributes =\n+      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"couchbase\")\n+          .getBoolean(\"experimental_span_attributes/development\", false);\n+\n+  private final RequestTracer delegate;\n+\n+  public static RequestTracer create(Tracer tracer) {\n+    return new CouchbaseRequestTracer(OpenTelemetryRequestTracer.wrap(tracer));\n+  }\n+\n+  private CouchbaseRequestTracer(RequestTracer delegate) {\n+    this.delegate = delegate;\n+  }\n+\n+  @Override\n+  public RequestSpan requestSpan(String name, RequestSpan parent) {\n+    RequestSpan unwrappedParent = parent;\n+    if (parent instanceof TranslatingRequestSpan) {\n+      unwrappedParent = ((TranslatingRequestSpan) parent).delegate;\n+    }\n+    return new TranslatingRequestSpan(delegate.requestSpan(name, unwrappedParent));\n+  }\n+\n+  @Override\n+  public Mono<Void> start() {\n+    return delegate.start();\n+  }\n+\n+  @Override\n+  public Mono<Void> stop(Duration timeout) {\n+    return delegate.stop(timeout);\n+  }\n+\n+  private static final class TranslatingRequestSpan implements RequestSpan {\n+\n+    private final RequestSpan delegate;\n+\n+    private TranslatingRequestSpan(RequestSpan delegate) {\n+      this.delegate = delegate;\n+    }\n+\n+    @Override\n+    public void setAttribute(String key, String value) {\n+      if (emitStableDatabaseSemconv()) {\n+        String stableKey = stableKey(key);\n+        if (stableKey != null) {\n+          delegate.setAttribute(stableKey, value);\n+        } else if (captureExperimentalAttribute(key)) {\n+          delegate.setAttribute(key, value);\n+        }\n+      }\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.setAttribute(key, value);\n+      }\n+    }\n+\n+    @Override\n+    // This wrapper method delegates to the same RequestSpan overload, which is absent from\n+    // Couchbase 3.1.0-3.1.2. Suppressing muzzle is safe because those older clients only call\n+    // the string overload that exists in their RequestSpan API.\n+    @NoMuzzle\n+    public void setAttribute(String key, boolean value) {\n+      if (emitOldDatabaseSemconv()) {\n+        delegate.setAttribute(key, value);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86Htquh",
+      "opened": "2026-06-08T03:15:28Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:30:55Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4fa487f6ce30b07ee4e7cb224f77a857bd53a255.\n\nAdded stable semconv translation and experimental passthrough for the Couchbase 3.1 boolean setAttribute overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370679489"
+        }
+      ],
+      "reviewed": "6dc019bf2cd4b353e54ee82761a572350b6a2cc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3370650807"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\n    description: Enables experimental span attributes `db.couchbase.scope`, `db.couchbase.retries`, and `db.couchbase.service`  emitted from the underlying Couchbase library.\r\n```",
+      "created": "2026-06-09T10:30:32Z",
+      "hunk": "@@ -5,5 +5,11 @@ description: >\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n+configurations:\n+  - name: otel.instrumentation.couchbase.experimental-span-attributes\n+    declarative_name: java.couchbase.experimental_span_attributes/development\n+    description: Enables experimental span attributes emitted from the underlying Couchbase library.",
+      "id": "PRRT_kwDODJKVX86IHV6Y",
+      "opened": "2026-06-09T10:33:29Z",
+      "path": "instrumentation/couchbase/couchbase-3.1.6/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-09T12:09:23Z",
+          "body": "I left it vague b/c there are quite a lot of these attributes from the upstream instrumentation, we just do very limited testing (since instrumentation is maintained upstream) and so don't emit many of them from the tests.\r\n\r\nhttps://github.com/couchbase/couchbase-jvm-clients/blob/master/core-io/src/main/java/com/couchbase/client/core/cnc/tracing/TracingDecoratorImplV0.java",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3380447617"
+        },
+        {
+          "at": "2026-06-09T12:20:44Z",
+          "body": "ah ok 👍 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3380512750"
+        }
+      ],
+      "reviewed": "9369c06ccd3e83fb3049e4ae81f25693640fd78c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3379881042"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\n    description: Enables experimental span attributes `db.couchbase.document_id`,  `db.couchbase.scope`, `db.couchbase.retries`, and `db.couchbase.service` emitted from the underlying Couchbase library.\r\n```",
+      "created": "2026-06-09T10:32:07Z",
+      "hunk": "@@ -5,5 +5,11 @@ description: >\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n library_link: https://github.com/couchbase/couchbase-java-client\n+configurations:\n+  - name: otel.instrumentation.couchbase.experimental-span-attributes\n+    declarative_name: java.couchbase.experimental_span_attributes/development\n+    description: Enables experimental span attributes emitted from the underlying Couchbase library.",
+      "id": "PRRT_kwDODJKVX86IHXwf",
+      "opened": "2026-06-09T10:33:29Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/metadata.yaml",
+      "replies": [],
+      "reviewed": "9369c06ccd3e83fb3049e4ae81f25693640fd78c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3379891074"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\n    description: Enables experimental span attributes `db.couchbase.document_id`,  `db.couchbase.scope`, `db.couchbase.retries`, and `db.couchbase.service` emitted from the underlying Couchbase library.\r\n```",
+      "created": "2026-06-09T10:32:50Z",
+      "hunk": "@@ -5,5 +5,11 @@ description: >\n library_link: https://github.com/couchbase/couchbase-java-client\n semantic_conventions:\n   - DATABASE_CLIENT_SPANS\n+configurations:\n+  - name: otel.instrumentation.couchbase.experimental-span-attributes\n+    declarative_name: java.couchbase.experimental_span_attributes/development\n+    description: Enables experimental span attributes emitted from the underlying Couchbase library.",
+      "id": "PRRT_kwDODJKVX86IHYfO",
+      "opened": "2026-06-09T10:33:29Z",
+      "path": "instrumentation/couchbase/couchbase-3.4/metadata.yaml",
+      "replies": [],
+      "reviewed": "9369c06ccd3e83fb3049e4ae81f25693640fd78c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18926#discussion_r3379895049"
+    }
+  ]
+}

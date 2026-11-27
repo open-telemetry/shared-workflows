@@ -1,0 +1,85 @@
+{
+  "head": "aa42f649b012a30c06045eb026d9b7cfa2ed8446",
+  "merge": "6b3ad35f0acdc5d40167378b295cc977562c02a0",
+  "merged": "2026-10-07T06:19:25Z",
+  "missing_roots": 0,
+  "number": 20426,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The companion guidance in `.github/agents/knowledge/testing-general-patterns.md:356-359` still says this rename is pending in #20410 and instructs contributors to use the old accessors. Remove that obsolete paragraph so the repository guidance consistently reflects the renamed API.",
+      "created": "2026-10-07T02:45:23Z",
+      "hunk": "@@ -38,10 +38,7 @@ preview values outside v3-preview. V3-preview ignores those legacy tokens for pr\n Preserve tests that explicitly cover this compatibility behavior.\n \n The naming convention is `emitStable*Semconv()` for stable selection and\n-`emitPreview*Semconv()` for preview selection. The preview accessor names below describe\n-the intended API; their implementation and caller migration are tracked in\n-[#20410](https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20410).\n-Until that rename lands, use the existing accessors when editing code.\n+`emitPreview*Semconv()` for preview selection.",
+      "id": "PRRT_kwDODJKVX86pvFef",
+      "opened": "2026-10-07T02:45:24Z",
+      "path": ".github/agents/knowledge/testing-semconv-stability.md",
+      "replies": [],
+      "reviewed": "6c7f6d6d0b76fd40184987743c1f3b5e6ec33664",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20426#discussion_r4202524916"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The comment still describes this preview-gated branch as the stable RPC semconv, which preserves the terminology this rename is intended to remove. Update it to identify preview selection.",
+      "created": "2026-10-07T02:45:23Z",
+      "hunk": "@@ -29,7 +29,7 @@ public String getServerAddress(DubboRequest request) {\n     // the registry address is the logical target only under the stable rpc semconv; keep the\n     // resolved provider host under the old semconv to avoid changing already-emitted attributes\n     String registryAddress = request.registryAddress();\n-    if (registryAddress != null && emitStableRpcSemconv()) {\n+    if (registryAddress != null && emitPreviewRpcSemconv()) {",
+      "id": "PRRT_kwDODJKVX86pvFfL",
+      "opened": "2026-10-07T02:45:24Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/internal/DubboClientNetworkAttributesGetter.java",
+      "replies": [],
+      "reviewed": "6c7f6d6d0b76fd40184987743c1f3b5e6ec33664",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20426#discussion_r4202524976"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The mode descriptions in this test still call the preview-gated behavior “stable rpc semconv” at lines 50, 151, and 192. Update those references to “preview rpc semconv” so the test documentation matches the renamed selector.",
+      "created": "2026-10-07T02:45:23Z",
+      "hunk": "@@ -167,26 +167,26 @@ void testRegistryModeServerAddress() throws Exception {\n                             .hasParent(trace.getSpan(0))\n                             .hasAttributesSatisfyingExactly(\n                                 equalTo(RPC_SYSTEM, emitOldRpcSemconv() ? \"apache_dubbo\" : null),\n-                                equalTo(RPC_SYSTEM_NAME, emitStableRpcSemconv() ? \"dubbo\" : null),\n+                                equalTo(RPC_SYSTEM_NAME, emitPreviewRpcSemconv() ? \"dubbo\" : null),",
+      "id": "PRRT_kwDODJKVX86pvFfr",
+      "opened": "2026-10-07T02:45:24Z",
+      "path": "instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboRegistryTest.java",
+      "replies": [],
+      "reviewed": "6c7f6d6d0b76fd40184987743c1f3b5e6ec33664",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20426#discussion_r4202525021"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This assumption now checks preview selection, but its failure message still says stable RPC semconv, so a skipped test reports the wrong requirement. Rename the message to preview RPC semconv.",
+      "created": "2026-10-07T02:45:24Z",
+      "hunk": "@@ -616,7 +616,7 @@ void testTripleUnknownService() throws ReflectiveOperationException {\n     // Triple protocol requires Dubbo 3.x\n     Assumptions.assumeTrue(testLatestDeps(), \"Triple protocol requires Dubbo 3.x\");\n     Assumptions.assumeTrue(canCaptureUnknownServiceSpans(), \"Requires agent instrumentation\");\n-    Assumptions.assumeTrue(emitStableRpcSemconv(), \"Requires stable RPC semconv\");\n+    Assumptions.assumeTrue(emitPreviewRpcSemconv(), \"Requires stable RPC semconv\");",
+      "id": "PRRT_kwDODJKVX86pvFgD",
+      "opened": "2026-10-07T02:45:24Z",
+      "path": "instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java",
+      "replies": [],
+      "reviewed": "6c7f6d6d0b76fd40184987743c1f3b5e6ec33664",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20426#discussion_r4202525056"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This rename removes `emitStableServicePeerSemconv()` from the published, stable `instrumentation-api` artifact (`instrumentation-api/gradle.properties:1` sets `otel.stable=true`), so downstream binaries using the existing public method will fail with `NoSuchMethodError`. Keep the old method as a deprecated delegate to `emitPreviewServicePeerSemconv()` until 3.0, with the required deprecation Javadoc and CHANGELOG entry.\n\nThis issue also appears on line 118 of the same file.",
+      "created": "2026-10-07T04:40:19Z",
+      "hunk": "@@ -82,8 +82,8 @@ public static boolean emitOldServicePeerSemconv() {\n     return emitOldServicePeerSemconv;\n   }\n \n-  public static boolean emitStableServicePeerSemconv() {\n-    return emitStableServicePeerSemconv;\n+  public static boolean emitPreviewServicePeerSemconv() {\n+    return emitPreviewServicePeerSemconv;",
+      "id": "PRRT_kwDODJKVX86pwgct",
+      "opened": "2026-10-07T04:40:19Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [],
+      "reviewed": "aa42f649b012a30c06045eb026d9b7cfa2ed8446",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20426#discussion_r4203115763"
+    }
+  ]
+}

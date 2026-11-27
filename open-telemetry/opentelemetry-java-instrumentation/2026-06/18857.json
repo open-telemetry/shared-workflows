@@ -1,0 +1,46 @@
+{
+  "head": "e03355d3b289405b8e9356d51480a27ba4942a91",
+  "merge": "6bc03b76e2800cca77abbb7ce0c7cbebb5eafa22",
+  "merged": "2026-06-09T14:00:35Z",
+  "missing_roots": 0,
+  "number": 18857,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@jaydeluca should this block get removed?",
+      "created": "2026-05-27T06:07:13Z",
+      "hunk": "@@ -15834,98 +15834,6 @@ libraries:\n       Opt-in to emit stable semantic conventions instead of the old experimental semantic conventions. Accepts a comma-separated list of semantic convention groups (e.g., `database`, `http`, `messaging`). Use `<group>/dup` to emit both old and new conventions simultaneously. Stable semantic conventions will become the default in version 3.0 of the agent.\n     type: list\n     default: ''\n-  telemetry:",
+      "id": "PRRT_kwDODJKVX86FAmKl",
+      "opened": "2026-05-27T06:07:13Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-05-27T13:05:00Z",
+          "body": "no i don't think it should. i'm investigating",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18857#discussion_r3310918070"
+        }
+      ],
+      "reviewed": "a9c728b563b30fe05baaca3fa94f53199b5552b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18857#discussion_r3308782794"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should this be removed?",
+      "created": "2026-05-28T16:07:54Z",
+      "hunk": "@@ -11407,159 +11407,6 @@ libraries:\n       metrics.\n     type: boolean\n     default: false\n-  telemetry:",
+      "id": "PRRT_kwDODJKVX86FdHbA",
+      "opened": "2026-05-28T16:07:54Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "a2c33bdbdf54f127b6fd62e9c6b1550174bcd0c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18857#discussion_r3319131770"
+    }
+  ]
+}

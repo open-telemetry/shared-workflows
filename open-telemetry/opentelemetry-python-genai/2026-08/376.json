@@ -1,0 +1,166 @@
+{
+  "head": "807469d5df7b5b7fdef65c81dbdac93f589cc45d",
+  "merge": "5ce361c6d41f47c4aff84b1223b402c73f852582",
+  "merged": "2026-08-12T02:47:48Z",
+  "missing_roots": 0,
+  "number": 376,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When running `bump` with `--package`, the script reads the version file immediately after resolving the hatch path. If the `tool.hatch.version.path` points to a missing file (misconfigured package or refactor), this will raise `FileNotFoundError` and produce a stack trace instead of a clean error + non-zero exit code (which will be hard to diagnose in workflows).",
+      "created": "2026-08-11T18:36:52Z",
+      "hunk": "@@ -0,0 +1,273 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Version utility tool for checking and bumping package versions.\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import re\n+import sys\n+from pathlib import Path\n+\n+try:\n+    import tomllib\n+except ModuleNotFoundError:\n+    import tomli as tomllib\n+\n+\n+def find_package_dir(repo_root: Path, package_name: str) -> Path | None:\n+    for path in sorted(repo_root.glob(\"instrumentation/*\")) + sorted(repo_root.glob(\"util/*\")):\n+        if path.is_dir() and path.name == package_name:\n+            return path\n+    return None\n+\n+\n+def get_version_file_path(package_dir: Path) -> Path | None:\n+    pyproject_path = package_dir / \"pyproject.toml\"\n+    pyproject = tomllib.loads(pyproject_path.read_text(encoding=\"utf-8\"))\n+    version_rel_path = pyproject.get(\"tool\", {}).get(\"hatch\", {}).get(\"version\", {}).get(\"path\")\n+    if not version_rel_path:\n+        return None\n+    return package_dir / version_rel_path\n+\n+\n+def get_version_from_file(file_path: Path) -> str:\n+    content = file_path.read_text(encoding=\"utf-8\")\n+    match = re.search(r\"__version__\\s*=\\s*[\\\"']([^\\\"']+)[\\\"']\", content)\n+    if not match:\n+        raise ValueError(f\"__version__ assignment not found in {file_path}\")\n+    return match.group(1)\n+\n+\n+def set_version_in_file(file_path: Path, new_version: str) -> None:\n+    content = file_path.read_text(encoding=\"utf-8\")\n+    new_content = re.sub(\n+        r\"(__version__\\s*=\\s*[\\\"']).*?([\\\"'])\",\n+        rf\"\\g<1>{new_version}\\g<2>\",\n+        content\n+    )\n+    file_path.write_text(new_content, encoding=\"utf-8\")\n+\n+\n+def get_repo_version(ini_path: Path) -> str:\n+    content = ini_path.read_text(encoding=\"utf-8\")\n+    match = re.search(r\"\\[prerelease\\]\\s*\\n\\s*version\\s*=\\s*(\\S+)\", content)\n+    if not match:\n+        raise ValueError(f\"version under [prerelease] not found in {ini_path}\")\n+    return match.group(1)\n+\n+\n+def set_repo_version(ini_path: Path, new_version: str) -> None:\n+    content = ini_path.read_text(encoding=\"utf-8\")\n+    prerelease_pos = content.find(\"[prerelease]\")\n+    if prerelease_pos == -1:\n+        raise ValueError(\"Could not find [prerelease] section in eachdist.ini\")\n+    \n+    version_match = re.search(r\"version\\s*=\\s*(\\S+)\", content[prerelease_pos:])\n+    if not version_match:\n+        raise ValueError(\"Could not find version entry under [prerelease]\")\n+        \n+    old_line = version_match.group(0)\n+    new_line = f\"version={new_version}\"\n+    updated_section = content[prerelease_pos:].replace(old_line, new_line, 1)\n+    new_content = content[:prerelease_pos] + updated_section\n+    ini_path.write_text(new_content, encoding=\"utf-8\")\n+\n+\n+def parse_major_minor(version: str) -> tuple[int, int]:\n+    match = re.match(r\"^([0-9]+)\\.([0-9]+)\", version)\n+    if not match:\n+        raise ValueError(f\"Invalid version format: {version}\")\n+    return int(match.group(1)), int(match.group(2))\n+\n+\n+def bump_minor(version: str) -> str:\n+    base = version.split(\".dev\")[0]\n+    match_semver = re.match(r\"^([0-9]+)\\.([0-9]+)\\.[0-9]+$\", base)\n+    if match_semver:\n+        major, minor = match_semver.groups()\n+        return f\"{major}.{int(minor) + 1}.0.dev\"\n+    match_beta = re.match(r\"^([0-9]+)\\.([0-9]+)b([0-9]+)$\", base)\n+    if match_beta:\n+        major, minor, _ = match_beta.groups()\n+        return f\"{major}.{int(minor) + 1}b0.dev\"\n+    raise ValueError(f\"Unexpected version format for minor bump: {version}\")\n+\n+\n+def bump_major(version: str) -> str:\n+    base = version.split(\".dev\")[0]\n+    match_semver = re.match(r\"^([0-9]+)\\.[0-9]+\\.[0-9]+$\", base)\n+    if match_semver:\n+        major = match_semver.group(1)\n+        return f\"{int(major) + 1}.0.0.dev\"\n+    match_beta = re.match(r\"^([0-9]+)\\.[0-9]+b[0-9]+$\", base)\n+    if match_beta:\n+        major = match_beta.group(1)\n+        return f\"{int(major) + 1}.0b0.dev\"\n+    raise ValueError(f\"Unexpected version format for major bump: {version}\")\n+\n+\n+def bump_patch(version: str) -> str:\n+    base = version.split(\".dev\")[0]\n+    match_semver = re.match(r\"^([0-9]+)\\.([0-9]+)\\.([0-9]+)$\", base)\n+    if match_semver:\n+        major, minor, patch = match_semver.groups()\n+        return f\"{major}.{minor}.{int(patch) + 1}\"\n+    match_beta = re.match(r\"^([0-9]+)\\.([0-9]+)b([0-9]+)$\", base)\n+    if match_beta:\n+        major, minor, patch = match_beta.groups()\n+        return f\"{major}.{minor}b{int(patch) + 1}\"\n+    raise ValueError(f\"Unexpected version format for patch bump: {version}\")\n+\n+\n+def run_check(repo_root: Path, ini_path: Path) -> int:\n+    try:\n+        target_version = get_repo_version(ini_path)\n+        target_major, target_minor = parse_major_minor(target_version)\n+    except Exception as err:\n+        print(f\"Error reading/parsing target version from eachdist.ini: {err}\", file=sys.stderr)\n+        return 1\n+\n+    pyprojects = sorted(\n+        repo_root.glob(\"instrumentation/*/pyproject.toml\"),\n+    ) + sorted(repo_root.glob(\"util/*/pyproject.toml\"))\n+\n+    if not pyprojects:\n+        print(\"No packages with pyproject.toml found.\", file=sys.stderr)\n+        return 1\n+\n+    errors: list[str] = []\n+\n+    for pyproject_path in pyprojects:\n+        pkg_dir = pyproject_path.parent\n+        try:\n+            version_file_path = get_version_file_path(pkg_dir)\n+            if version_file_path is None:\n+                continue\n+        except Exception as err:\n+            errors.append(f\"Failed to parse {pyproject_path}: {err}\")\n+            continue\n+\n+        if not version_file_path.exists():\n+            errors.append(f\"{version_file_path.relative_to(repo_root)} does not exist.\")\n+            continue\n+\n+        try:\n+            version = get_version_from_file(version_file_path)\n+            major, minor = parse_major_minor(version)\n+            if (major, minor) != (target_major, target_minor):\n+                errors.append(\n+                    f\"{version_file_path.relative_to(repo_root)} version is {version}. \"\n+                    f\"Expected major.minor to be {target_major}.{target_minor} (defined in eachdist.ini).\"\n+                )\n+        except Exception as err:\n+            errors.append(f\"Error checking {version_file_path.relative_to(repo_root)}: {err}\")\n+\n+    if errors:\n+        print(\"Version major/minor alignment check failed:\", file=sys.stderr)\n+        for err in errors:\n+            print(f\"  [ERROR] {err}\", file=sys.stderr)\n+        return 1\n+\n+    print(f\"All version.py files are aligned with target major.minor ({target_major}.{target_minor}).\")\n+    return 0\n+\n+\n+def main(argv: list[str] | None = None, repo_root: Path | None = None) -> int:\n+    parser = argparse.ArgumentParser(description=\"Version utility tool for checking and bumping package versions.\")\n+    subparsers = parser.add_subparsers(dest=\"command\", required=True, help=\"Command to run\")\n+\n+    # 'check' subcommand\n+    subparsers.add_parser(\"check\", help=\"Check major/minor version alignment against config.\")\n+    \n+    # 'bump' subcommand\n+    bump_parser = subparsers.add_parser(\"bump\", help=\"Bump package or repository versions.\")\n+    bump_parser.add_argument(\n+        \"--package\",\n+        help=\"Package to bump. If omitted, bumps the entire repository.\",\n+    )\n+    group = bump_parser.add_mutually_exclusive_group(required=True)\n+    group.add_argument(\n+        \"--release\",\n+        action=\"store_true\",\n+        help=\"Prepare for release (drop .dev suffix).\",\n+    )\n+    group.add_argument(\n+        \"--dev\",\n+        action=\"store_true\",\n+        help=\"Bump to next dev version (minor).\",\n+    )\n+    group.add_argument(\n+        \"--patch\",\n+        action=\"store_true\",\n+        help=\"Bump patch component.\",\n+    )\n+    group.add_argument(\n+        \"--major\",\n+        action=\"store_true\",\n+        help=\"Bump major component.\",\n+    )\n+\n+    args = parser.parse_args(argv)\n+\n+    if repo_root is None:\n+        repo_root = Path(__file__).resolve().parent.parent\n+    ini_path = repo_root / \"eachdist.ini\"\n+\n+    if args.command == \"check\":\n+        return run_check(repo_root, ini_path)\n+\n+    # Bump logic\n+    if args.package:\n+        pkg_dir = find_package_dir(repo_root, args.package)\n+        if not pkg_dir:\n+            print(f\"Error: package '{args.package}' not found.\", file=sys.stderr)\n+            return 1\n+        version_file = get_version_file_path(pkg_dir)\n+        if not version_file:\n+            print(f\"Error: package '{args.package}' does not use dynamic versioning.\", file=sys.stderr)\n+            return 1\n+        current_version = get_version_from_file(version_file)\n+    else:\n+        current_version = get_repo_version(ini_path)",
+      "id": "PRRT_kwDOSbspP86YVibe",
+      "opened": "2026-08-11T18:36:53Z",
+      "path": "scripts/version_utils.py",
+      "replies": [],
+      "reviewed": "c3e070989c5da99b2faf638977ca6d54408b65f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3760714281"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`lint-check-versions` is now part of the CI lint matrix (CI builds the matrix from `tox -l`, and `scripts/tox_matrix.py` includes all `lint-*` envs). That check enforces *all* packages’ major/minor to match `eachdist.ini`, but the `bump-minor` / `bump-major` operations here only bump a single package, which will make the PR opened by these workflows fail CI immediately.",
+      "created": "2026-08-11T18:36:53Z",
+      "hunk": "@@ -63,12 +63,12 @@ runs:\n     - name: Run bump-minor\n       if: inputs.operation == 'bump-minor'\n       shell: bash\n-      run: ./scripts/bump_package_minor_version.sh \"${{ inputs.package }}\"\n+      run: uv run python ./scripts/version_utils.py bump --package \"${{ inputs.package }}\" --dev\n \n     - name: Run bump-major\n       if: inputs.operation == 'bump-major'\n       shell: bash\n-      run: ./scripts/bump_package_major_version.sh \"${{ inputs.package }}\"\n+      run: uv run python ./scripts/version_utils.py bump --package \"${{ inputs.package }}\" --major",
+      "id": "PRRT_kwDOSbspP86YVicE",
+      "opened": "2026-08-11T18:36:53Z",
+      "path": ".github/actions/bump-package/action.yml",
+      "replies": [],
+      "reviewed": "c3e070989c5da99b2faf638977ca6d54408b65f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3760714346"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "nit\n```suggestion\n      run: uv run ./scripts/version_utils.py bump --package \"${{ inputs.package }}\" --dev\n```",
+      "created": "2026-08-11T19:40:15Z",
+      "hunk": "@@ -63,12 +63,12 @@ runs:\n     - name: Run bump-minor\n       if: inputs.operation == 'bump-minor'\n       shell: bash\n-      run: ./scripts/bump_package_minor_version.sh \"${{ inputs.package }}\"\n+      run: uv run python ./scripts/version_utils.py bump --package \"${{ inputs.package }}\" --dev",
+      "id": "PRRT_kwDOSbspP86YWpxd",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": ".github/actions/bump-package/action.yml",
+      "replies": [],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761144205"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\n      run: uv run ./scripts/version_utils.py bump --package \"${{ inputs.package }}\" --major\n```",
+      "created": "2026-08-11T19:40:31Z",
+      "hunk": "@@ -63,12 +63,12 @@ runs:\n     - name: Run bump-minor\n       if: inputs.operation == 'bump-minor'\n       shell: bash\n-      run: ./scripts/bump_package_minor_version.sh \"${{ inputs.package }}\"\n+      run: uv run python ./scripts/version_utils.py bump --package \"${{ inputs.package }}\" --dev\n \n     - name: Run bump-major\n       if: inputs.operation == 'bump-major'\n       shell: bash\n-      run: ./scripts/bump_package_major_version.sh \"${{ inputs.package }}\"\n+      run: uv run python ./scripts/version_utils.py bump --package \"${{ inputs.package }}\" --major",
+      "id": "PRRT_kwDOSbspP86YWqE9",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": ".github/actions/bump-package/action.yml",
+      "replies": [],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761146013"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\n          uv run ./scripts/version_utils.py bump --dev\n```",
+      "created": "2026-08-11T19:40:49Z",
+      "hunk": "@@ -149,19 +149,19 @@ jobs:\n           git checkout main\n           git pull origin main\n \n-          ./scripts/bump_package_minor_version.sh \"${PACKAGE_NAME}\"\n+          uv run python ./scripts/version_utils.py bump --dev",
+      "id": "PRRT_kwDOSbspP86YWqaA",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": ".github/workflows/_release-finalize.yml",
+      "replies": [],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761148031"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\n          uv run ./scripts/version_utils.py bump --dev\n```",
+      "created": "2026-08-11T19:40:59Z",
+      "hunk": "@@ -137,35 +137,19 @@ jobs:\n           client-id: ${{ vars.OTELBOT_CLIENT_ID }}\n           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}\n \n-      - name: Bump released packages to next dev versions\n+      - name: Bump repository version to next dev version\n         env:\n           GITHUB_TOKEN: ${{ steps.otelbot-token.outputs.token }}\n-          PACKAGES_JSON: ${{ needs.enumerate.outputs.packages }}\n         run: |\n-          bumped=()\n-          while IFS= read -r package; do\n-            [[ -z \"$package\" ]] && continue\n-            version=$(./scripts/eachdist.py version --package \"$package\")\n-            tag=\"${package}==${version}\"\n-            if ! gh release view \"$tag\" >/dev/null 2>&1; then\n-              echo \"Skipping ${package}: release tag ${tag} not found\"\n-              continue\n-            fi\n-            if [[ \"$version\" == *.dev ]]; then\n-              echo \"Skipping ${package}: already bumped to ${version}\"\n-              continue\n-            fi\n-            ./scripts/bump_package_minor_version.sh \"$package\"\n-            bumped+=(\"$package\")\n-          done < <(echo \"$PACKAGES_JSON\" | jq -r '.[]')\n+          uv run python ./scripts/version_utils.py bump --dev",
+      "id": "PRRT_kwDOSbspP86YWqlN",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761149072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\nuv run ./scripts/version_utils.py bump --package \"$package\" --patch\n```",
+      "created": "2026-08-11T19:41:33Z",
+      "hunk": "@@ -14,34 +14,9 @@ if [[ ! -f \"$changelog\" ]]; then\n   echo \"missing ${changelog}\"\n   exit 1\n fi\n+uv run python ./scripts/version_utils.py bump --package \"$package\" --patch",
+      "id": "PRRT_kwDOSbspP86YWrQh",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": "scripts/prepare_package_for_patch_release.sh",
+      "replies": [],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761153073"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\nuv run ./scripts/version_utils.py bump --package \"$package\" --release\n```",
+      "created": "2026-08-11T19:41:43Z",
+      "hunk": "@@ -24,16 +24,7 @@ fi\n \n version=\"${version_dev%.dev}\"\n \n-version_file=\"$(find \"$path\" -type f -path \"**/version.py\")\"\n-file_count=\"$(echo \"$version_file\" | wc -l | tr -d ' ')\"\n-\n-if [[ \"$file_count\" -ne 1 ]]; then\n-  echo \"Error: expected one version file, found ${file_count}\"\n-  echo \"$version_file\"\n-  exit 1\n-fi\n-\n-sed -i -E \"s/__version__\\\\s*=\\\\s*\\\"${version}\\\\.dev\\\"/__version__ = \\\"${version}\\\"/g\" \"$version_file\"\n+uv run python ./scripts/version_utils.py bump --package \"$package\" --release",
+      "id": "PRRT_kwDOSbspP86YWrdq",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": "scripts/prepare_package_for_release.sh",
+      "replies": [],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761154237"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Took a brief look, a few thoughts (I can try it as a follow up since I'm curious to improve the situation)\n\n- We're using hatch as a build backend with dynamic version script (the python `__version__.py`) files and tbh I don't remember why. It might be historical.\n  \n  However [`uv version --bump`](https://docs.astral.sh/uv/reference/cli/#uv-version--bump) would cover all or most of what this script does, but it doesn't work with the dynamic versioning.\n  ```console\n  $ uv version --package opentelemetry-proto\n  error: We cannot get or set dynamic project versions in: opentelemetry-proto/pyproject.toml\n  ```\n\n- For now could run hatch in the CWD of each subpackage to avoid the manual parsing and rewriting\n  ```console\n  $ uv run --directory opentelemetry-configuration/  hatch version\n  0.66b0.dev\n  # can bump too\n  $ uv run --directory opentelemetry-configuration/  hatch version  1.1.1b0\n  Old: 0.66b0.dev\n  New: 1.1.1b0\n  ```",
+      "created": "2026-08-11T20:09:19Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86YXKLc",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": "scripts/version_utils.py",
+      "replies": [
+        {
+          "at": "2026-08-12T02:31:24Z",
+          "body": "It would be awesome if you could follow up. \r\n\r\nI probably miss some details, but my AI-assisted attempt to do the latter resulted in this conclusion:\r\n\r\n- **The Problem:** Under PEP 440, a `.dev` suffix without a trailing digit is normalized (e.g., `1.2b0.dev` is canonicalized to `1.2b0.dev0`). Running `hatch version 1.2b0.dev` writes `__version__ = \"1.2b0.dev0\"` to the file. While this works fine for tag releases like `1.1.1b0`, it breaks during development version updates.\r\n- **Compatibility:** Having `.dev0` violates the OpenTelemetry repository standard (`1.1b0.dev` format without the trailing `0`). Bypassing or post-processing this normalization would require resolving the version file path, which defeats the goal of avoiding manual file path parsing.\r\n- **Performance:** Running `uv run --no-project --with hatch hatch version` takes ~1s per package. For repository-wide checks, spawning a subprocess 12+ times takes over 15 seconds, compared to sub-millisecond execution with local regex parsing.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3763178522"
+        }
+      ],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761339396"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "why not import up top?",
+      "created": "2026-08-11T20:09:55Z",
+      "hunk": "@@ -0,0 +1,213 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from pathlib import Path\n+import sys\n+import unittest\n+\n+# Add scripts directory to sys.path to import version_utils\n+repo_root = Path(__file__).resolve().parent.parent.parent.parent\n+sys.path.insert(0, str(repo_root / \"scripts\"))\n+\n+from version_utils import bump_major, bump_minor, bump_patch, parse_major_minor\n+\n+\n+class TestVersionUtils(unittest.TestCase):\n+    def test_parse_major_minor(self):\n+        self.assertEqual(parse_major_minor(\"1.1b0.dev\"), (1, 1))\n+        self.assertEqual(parse_major_minor(\"1.2.3.dev\"), (1, 2))\n+        self.assertEqual(parse_major_minor(\"10.5\"), (10, 5))\n+        self.assertEqual(parse_major_minor(\"2.0b0\"), (2, 0))\n+        \n+        with self.assertRaises(ValueError):\n+            parse_major_minor(\"invalid\")\n+        with self.assertRaises(ValueError):\n+            parse_major_minor(\"1\")\n+\n+    def test_bump_minor(self):\n+        self.assertEqual(bump_minor(\"1.0.5\"), \"1.1.0.dev\")\n+        self.assertEqual(bump_minor(\"1.0.5.dev\"), \"1.1.0.dev\")\n+        self.assertEqual(bump_minor(\"1.0b3.dev\"), \"1.1b0.dev\")\n+        self.assertEqual(bump_minor(\"1.0b3\"), \"1.1b0.dev\")\n+        \n+        with self.assertRaises(ValueError):\n+            bump_minor(\"invalid\")\n+\n+    def test_bump_major(self):\n+        self.assertEqual(bump_major(\"1.5b2.dev\"), \"2.0b0.dev\")\n+        self.assertEqual(bump_major(\"1.5b2\"), \"2.0b0.dev\")\n+        self.assertEqual(bump_major(\"1.5.3\"), \"2.0.0.dev\")\n+        self.assertEqual(bump_major(\"1.5.3.dev\"), \"2.0.0.dev\")\n+        \n+        with self.assertRaises(ValueError):\n+            bump_major(\"invalid\")\n+\n+    def test_bump_patch(self):\n+        self.assertEqual(bump_patch(\"1.2.3\"), \"1.2.4\")\n+        self.assertEqual(bump_patch(\"1.2.3.dev\"), \"1.2.4\")\n+        self.assertEqual(bump_patch(\"1.1b0\"), \"1.1b1\")\n+        self.assertEqual(bump_patch(\"1.1b0.dev\"), \"1.1b1\")\n+        self.assertEqual(bump_patch(\"1.1.0\"), \"1.1.1\")\n+        \n+        with self.assertRaises(ValueError):\n+            bump_patch(\"invalid\")\n+\n+\n+class TestVersionUtilsCheck(unittest.TestCase):\n+    def setUp(self):\n+        import tempfile",
+      "id": "PRRT_kwDOSbspP86YXKxb",
+      "opened": "2026-08-11T20:11:25Z",
+      "path": "util/opentelemetry-util-genai/tests/test_version_utils.py",
+      "replies": [],
+      "reviewed": "8106f5a246c70e1242f44719d92597c8b5c71f23",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/376#discussion_r3761343069"
+    }
+  ]
+}

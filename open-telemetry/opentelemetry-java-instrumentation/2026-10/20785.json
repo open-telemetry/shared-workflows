@@ -1,0 +1,25 @@
+{
+  "head": "a097c744ff3c99a2ecaae3df94903a10ccc6fce8",
+  "merge": "db4fc9b513a6719c66a77ff325e6625ae455b3de",
+  "merged": "2026-10-21T07:32:02Z",
+  "missing_roots": 0,
+  "number": 20785,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly on its existing head branch with the following documentation-only changes. Preserve its existing draft/ready state; do not create a follow-up PR as a workaround.\n\nIn `.github/agents/knowledge/semconv-conformance.md`, remove the sentence \"Select schemas for spans, metrics, and logs independently, even when they share a scope name or trace.\" Keep the preceding sentence \"Supporting attributes must not select, change, or invalidate the schema.\"\n\nIn `.github/instructions/emitted-telemetry.instructions.md`, remove the sentence \"Select each signal's schema independently; sharing a scope name or trace does not require sharing a schema.\"\n\nRemove these sentences without replacement. Keep the remaining convention-based schema guidance and examples unchanged. The guidance should explain which convention justifies a schema URL without prescribing separate schema configuration for each signal. Do not add replacement prose about related signals sharing a URL.\n\nLimit changes to these two files. No API or telemetry behavior changes. Follow the repository's Markdown formatting guidance, then commit and push the requested documentation changes to this PR's existing head branch. Do not post replies or resolve review threads.",
+      "created": "2026-10-20T20:58:19Z",
+      "hunk": "@@ -40,6 +40,25 @@ the\n [general attribute naming guidance](https://opentelemetry.io/docs/specs/semconv/general/naming/)\n and this repository's experimental telemetry rules.\n \n+## Select schema URLs\n+\n+A schema URL identifies the semantic convention defining a span, metric, or log, not every\n+registered attribute attached to it. Select the version adopted by that signal and its effective\n+mode, not the latest semconv dependency.\n+\n+Supporting attributes must not select, change, or invalidate the schema. Select schemas for spans,\n+metrics, and logs independently, even when they share a scope name or trace.",
+      "id": "PRRT_kwDODJKVX86uhaLm",
+      "opened": "2026-10-20T20:58:19Z",
+      "path": ".github/agents/knowledge/semconv-conformance.md",
+      "replies": [],
+      "reviewed": "8b85f73c45a4131d1203613729b051b1810c1697",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20785#discussion_r4330236470"
+    }
+  ]
+}

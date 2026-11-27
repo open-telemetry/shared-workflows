@@ -1,0 +1,119 @@
+{
+  "head": "21511ba1151974bcff76906a7bf0f94151c2fcd6",
+  "merge": "e335c65ae051c6f841dd95cb5cb322a1c547abc9",
+  "merged": "2026-08-12T21:17:19Z",
+  "missing_roots": 0,
+  "number": 19451,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Patterns with multiple `*` segments compile to chained greedy `.*` expressions. Java's backtracking regex engine can take polynomial/exponential time on a non-match (for example, `*a*a*a*a*a*b` against a long run of `a`s), and `matches()` is expected to run for every captured value. Please use a linear-time glob matcher (or otherwise guarantee bounded matching time) so a configured selector cannot stall instrumentation threads.",
+      "created": "2026-08-09T15:18:21Z",
+      "hunk": "@@ -0,0 +1,134 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.config;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.unmodifiableList;\n+import static java.util.Objects.requireNonNull;\n+\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Objects;\n+import java.util.function.Predicate;\n+import java.util.regex.Pattern;\n+\n+/**\n+ * An immutable selector that matches strings against included and excluded glob patterns.\n+ *\n+ * <p>Matching is case-sensitive. {@code ?} matches any single character and {@code *} matches any\n+ * number of characters, including none. Excluded patterns take precedence over included patterns.\n+ * When there are no included patterns, all values that are not excluded match. Callers are\n+ * responsible for normalizing values and patterns when a domain requires case-insensitive matching.\n+ */\n+public final class IncludeExclude {\n+\n+  private final List<String> included;\n+  private final List<String> excluded;\n+  private final List<Predicate<String>> includedPredicates;\n+  private final List<Predicate<String>> excludedPredicates;\n+\n+  /** Returns a new builder for an {@link IncludeExclude}. */\n+  public static IncludeExcludeBuilder builder() {\n+    return new IncludeExcludeBuilder();\n+  }\n+\n+  IncludeExclude(List<String> included, List<String> excluded) {\n+    this.included = unmodifiableList(new ArrayList<>(included));\n+    this.excluded = unmodifiableList(new ArrayList<>(excluded));\n+    this.includedPredicates = createGlobPredicates(included);\n+    this.excludedPredicates = createGlobPredicates(excluded);\n+  }\n+\n+  /** Returns the included patterns. */\n+  public List<String> getIncluded() {\n+    return included;\n+  }\n+\n+  /** Returns the excluded patterns. */\n+  public List<String> getExcluded() {\n+    return excluded;\n+  }\n+\n+  /** Returns whether {@code value} matches this selector. */\n+  public boolean matches(String value) {\n+    requireNonNull(value, \"value\");\n+    return (includedPredicates.isEmpty() || matchesAny(includedPredicates, value))\n+        && !matchesAny(excludedPredicates, value);\n+  }\n+\n+  @Override\n+  public boolean equals(Object object) {\n+    if (this == object) {\n+      return true;\n+    }\n+    if (!(object instanceof IncludeExclude)) {\n+      return false;\n+    }\n+    IncludeExclude that = (IncludeExclude) object;\n+    return included.equals(that.included) && excluded.equals(that.excluded);\n+  }\n+\n+  @Override\n+  public int hashCode() {\n+    return Objects.hash(included, excluded);\n+  }\n+\n+  @Override\n+  public String toString() {\n+    return \"IncludeExclude{included=\" + included + \", excluded=\" + excluded + '}';\n+  }\n+\n+  private static List<Predicate<String>> createGlobPredicates(List<String> patterns) {\n+    if (patterns.isEmpty()) {\n+      return emptyList();\n+    }\n+\n+    List<Predicate<String>> predicates = new ArrayList<>(patterns.size());\n+    for (String pattern : patterns) {\n+      predicates.add(createGlobPredicate(pattern));\n+    }\n+    return unmodifiableList(predicates);\n+  }\n+\n+  private static Predicate<String> createGlobPredicate(String globPattern) {\n+    if (globPattern.indexOf('*') == -1 && globPattern.indexOf('?') == -1) {\n+      return globPattern::equals;\n+    }\n+\n+    Pattern pattern = toRegexPattern(globPattern);\n+    return value -> pattern.matcher(value).matches();\n+  }\n+\n+  private static Pattern toRegexPattern(String globPattern) {\n+    StringBuilder regex = new StringBuilder();\n+    int tokenStart = 0;\n+    for (int i = 0; i < globPattern.length(); i++) {\n+      char character = globPattern.charAt(i);\n+      if (character != '*' && character != '?') {\n+        continue;\n+      }\n+\n+      if (tokenStart < i) {\n+        regex.append(Pattern.quote(globPattern.substring(tokenStart, i)));\n+      }\n+      regex.append(character == '*' ? \".*\" : \".\");",
+      "id": "PRRT_kwDODJKVX86Xokre",
+      "opened": "2026-08-09T15:18:21Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+      "replies": [
+        {
+          "at": "2026-08-09T15:44:07Z",
+          "body": "Fixed in `8302fc3583e` by replacing regex matching with an iterative, code-point-aware glob matcher. It uses no recursion or regex backtracking; each retry consumes one input code point, which bounds worst-case work to O(pattern length × value length), with no per-match allocation. I also added an adversarial chained-star non-match regression and supplementary-code-point coverage while retaining the existing newline cases.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3744328152"
+        }
+      ],
+      "reviewed": "e51f9b3bf8119ded23c5c835f9941ccd2722574a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3744258302"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not that it matters but the backtracking probably could be managed with the possessive quantifier",
+      "created": "2026-08-10T14:37:04Z",
+      "hunk": "@@ -0,0 +1,154 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.config;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.unmodifiableList;\n+import static java.util.Objects.requireNonNull;\n+\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Objects;\n+import java.util.function.Predicate;\n+\n+/**\n+ * An immutable selector that matches strings against included and excluded glob patterns.\n+ *\n+ * <p>Matching is case-sensitive. {@code ?} matches any single character and {@code *} matches any\n+ * number of characters, including none. Excluded patterns take precedence over included patterns.\n+ * When there are no included patterns, all values that are not excluded match. Callers are\n+ * responsible for normalizing values and patterns when a domain requires case-insensitive matching.\n+ */\n+public final class IncludeExclude {\n+\n+  private final List<String> included;\n+  private final List<String> excluded;\n+  private final List<Predicate<String>> includedPredicates;\n+  private final List<Predicate<String>> excludedPredicates;\n+\n+  /** Returns a new builder for an {@link IncludeExclude}. */\n+  public static IncludeExcludeBuilder builder() {\n+    return new IncludeExcludeBuilder();\n+  }\n+\n+  IncludeExclude(List<String> included, List<String> excluded) {\n+    this.included = unmodifiableList(new ArrayList<>(included));\n+    this.excluded = unmodifiableList(new ArrayList<>(excluded));\n+    this.includedPredicates = createGlobPredicates(included);\n+    this.excludedPredicates = createGlobPredicates(excluded);\n+  }\n+\n+  /** Returns the included patterns. */\n+  public List<String> getIncluded() {\n+    return included;\n+  }\n+\n+  /** Returns the excluded patterns. */\n+  public List<String> getExcluded() {\n+    return excluded;\n+  }\n+\n+  /** Returns whether {@code value} matches this selector. */\n+  public boolean matches(String value) {\n+    requireNonNull(value, \"value\");\n+    return (includedPredicates.isEmpty() || matchesAny(includedPredicates, value))\n+        && !matchesAny(excludedPredicates, value);\n+  }\n+\n+  @Override\n+  public boolean equals(Object object) {\n+    if (this == object) {\n+      return true;\n+    }\n+    if (!(object instanceof IncludeExclude)) {\n+      return false;\n+    }\n+    IncludeExclude that = (IncludeExclude) object;\n+    return included.equals(that.included) && excluded.equals(that.excluded);\n+  }\n+\n+  @Override\n+  public int hashCode() {\n+    return Objects.hash(included, excluded);\n+  }\n+\n+  @Override\n+  public String toString() {\n+    return \"IncludeExclude{included=\" + included + \", excluded=\" + excluded + '}';\n+  }\n+\n+  private static List<Predicate<String>> createGlobPredicates(List<String> patterns) {\n+    if (patterns.isEmpty()) {\n+      return emptyList();\n+    }\n+\n+    List<Predicate<String>> predicates = new ArrayList<>(patterns.size());\n+    for (String pattern : patterns) {\n+      predicates.add(createGlobPredicate(pattern));\n+    }\n+    return unmodifiableList(predicates);\n+  }\n+\n+  private static Predicate<String> createGlobPredicate(String globPattern) {\n+    if (globPattern.indexOf('*') == -1 && globPattern.indexOf('?') == -1) {\n+      return globPattern::equals;\n+    }\n+\n+    return value -> globMatches(globPattern, value);\n+  }\n+\n+  private static boolean globMatches(String pattern, String value) {\n+    int patternIndex = 0;\n+    int valueIndex = 0;\n+    int patternIndexAfterStar = -1;\n+    int valueIndexAfterStar = -1;\n+\n+    // Do not translate globs to regular expressions: repeated '*' segments can cause excessive",
+      "id": "PRRT_kwDODJKVX86X6TeI",
+      "opened": "2026-08-10T14:37:04Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+      "replies": [
+        {
+          "at": "2026-08-10T16:36:37Z",
+          "body": "it seems there is an issue with possessive quantifier not matching glob pattern exactly, added comment and some more tests",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3751448717"
+        },
+        {
+          "at": "2026-08-11T13:19:48Z",
+          "body": "Found https://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html where they use independent subexpressions and reluctant quantifier to manage backtracking. Of course just because someone has managed to do this doesn't mean that we need to do it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3758295048"
+        }
+      ],
+      "reviewed": "ea9e7bd8d88545dfba2587508ff418b81706040f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3750479803"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    // the pattern and value lengths.\n```",
+      "created": "2026-08-11T12:56:09Z",
+      "hunk": "@@ -0,0 +1,171 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.config;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.unmodifiableList;\n+import static java.util.Objects.requireNonNull;\n+\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Objects;\n+import java.util.function.Predicate;\n+\n+/**\n+ * An immutable selector that matches strings against included and excluded glob patterns.\n+ *\n+ * <p>Matching is case-sensitive. {@code ?} matches any single character and {@code *} matches any\n+ * number of characters, including none. Excluded patterns take precedence over included patterns.\n+ * When there are no included patterns, all values that are not excluded match. Callers are\n+ * responsible for normalizing values and patterns when a domain requires case-insensitive matching.\n+ *\n+ * <p>An empty selector, one with no included and no excluded patterns, carries no configuration. A\n+ * setting that uses one should behave as if no selector were configured and fall back to its own\n+ * default.\n+ */\n+public final class IncludeExclude {\n+\n+  private final List<String> included;\n+  private final List<String> excluded;\n+  private final List<Predicate<String>> includedPredicates;\n+  private final List<Predicate<String>> excludedPredicates;\n+\n+  /** Returns a new builder for an {@link IncludeExclude}. */\n+  public static IncludeExcludeBuilder builder() {\n+    return new IncludeExcludeBuilder();\n+  }\n+\n+  IncludeExclude(List<String> included, List<String> excluded) {\n+    this.included = unmodifiableList(new ArrayList<>(included));\n+    this.excluded = unmodifiableList(new ArrayList<>(excluded));\n+    this.includedPredicates = createGlobPredicates(included);\n+    this.excludedPredicates = createGlobPredicates(excluded);\n+  }\n+\n+  /** Returns the included patterns. */\n+  public List<String> getIncluded() {\n+    return included;\n+  }\n+\n+  /** Returns the excluded patterns. */\n+  public List<String> getExcluded() {\n+    return excluded;\n+  }\n+\n+  /**\n+   * Returns whether this selector has no included and no excluded patterns.\n+   *\n+   * <p>An empty selector carries no configuration, so a setting that uses one should fall back to\n+   * its own default, as if no selector were configured.\n+   */\n+  public boolean isEmpty() {\n+    return included.isEmpty() && excluded.isEmpty();\n+  }\n+\n+  /** Returns whether {@code value} matches this selector. */\n+  public boolean matches(String value) {\n+    requireNonNull(value, \"value\");\n+    return (includedPredicates.isEmpty() || matchesAny(includedPredicates, value))\n+        && !matchesAny(excludedPredicates, value);\n+  }\n+\n+  @Override\n+  public boolean equals(Object object) {\n+    if (this == object) {\n+      return true;\n+    }\n+    if (!(object instanceof IncludeExclude)) {\n+      return false;\n+    }\n+    IncludeExclude that = (IncludeExclude) object;\n+    return included.equals(that.included) && excluded.equals(that.excluded);\n+  }\n+\n+  @Override\n+  public int hashCode() {\n+    return Objects.hash(included, excluded);\n+  }\n+\n+  @Override\n+  public String toString() {\n+    return \"IncludeExclude{included=\" + included + \", excluded=\" + excluded + '}';\n+  }\n+\n+  private static List<Predicate<String>> createGlobPredicates(List<String> patterns) {\n+    if (patterns.isEmpty()) {\n+      return emptyList();\n+    }\n+\n+    List<Predicate<String>> predicates = new ArrayList<>(patterns.size());\n+    for (String pattern : patterns) {\n+      predicates.add(createGlobPredicate(pattern));\n+    }\n+    return unmodifiableList(predicates);\n+  }\n+\n+  private static Predicate<String> createGlobPredicate(String globPattern) {\n+    if (globPattern.indexOf('*') == -1 && globPattern.indexOf('?') == -1) {\n+      return globPattern::equals;\n+    }\n+\n+    return value -> globMatches(globPattern, value);\n+  }\n+\n+  private static boolean globMatches(String pattern, String value) {\n+    int patternIndex = 0;\n+    int valueIndex = 0;\n+    int patternIndexAfterStar = -1;\n+    int valueIndexAfterStar = -1;\n+\n+    // Do not translate globs to regular expressions: repeated '*' segments can cause excessive\n+    // regex backtracking on a non-match. Possessive quantifiers change glob semantics because '*'\n+    // may need to give characters back to match a later token (for example, glob \"*a\" must match\n+    // \"ba\"). Each retry below consumes one value code point, bounding the work by the product of\n+    // the\n+    // pattern and value lengths.",
+      "id": "PRRT_kwDODJKVX86YOyYA",
+      "opened": "2026-08-11T12:56:09Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+      "replies": [],
+      "reviewed": "96ed206ea97341d3206eb00702a31a4b24720e19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3758122970"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jack-berg"
+      },
+      "body": "Assuming the mechanics are the same as [IncludeExcludePredicate](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk/common/src/main/java/io/opentelemetry/sdk/common/internal/IncludeExcludePredicate.java), could upstream this and make it part of the public API of `opentelemetry-sdk-common`. ",
+      "created": "2026-08-11T14:07:54Z",
+      "hunk": "@@ -0,0 +1,170 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.config;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.unmodifiableList;\n+import static java.util.Objects.requireNonNull;\n+\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Objects;\n+import java.util.function.Predicate;\n+\n+/**\n+ * An immutable selector that matches strings against included and excluded glob patterns.\n+ *\n+ * <p>Matching is case-sensitive. {@code ?} matches any single character and {@code *} matches any\n+ * number of characters, including none. Excluded patterns take precedence over included patterns.\n+ * When there are no included patterns, all values that are not excluded match. Callers are\n+ * responsible for normalizing values and patterns when a domain requires case-insensitive matching.\n+ *\n+ * <p>An empty selector, one with no included and no excluded patterns, carries no configuration. A\n+ * setting that uses one should behave as if no selector were configured and fall back to its own\n+ * default.\n+ */\n+public final class IncludeExclude {",
+      "id": "PRRT_kwDODJKVX86YQPpf",
+      "opened": "2026-08-11T14:07:54Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+      "replies": [
+        {
+          "at": "2026-08-11T14:27:09Z",
+          "body": "we need it in the api (as opposed to sdk) so we can use it from instrumentation",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3758833698"
+        },
+        {
+          "at": "2026-08-11T16:58:12Z",
+          "body": "Ah instrumentation only depends on opentelemetry-api...",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3760017098"
+        }
+      ],
+      "reviewed": "53ad03a7ec2a48062103360b1369cfd70c3eb3ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3758675936"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Maybe add an override with `String...` as it is probably more convenient to use.",
+      "created": "2026-08-11T16:11:53Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.config;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Objects.requireNonNull;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.List;\n+\n+/** A builder for {@link IncludeExclude}. */\n+public final class IncludeExcludeBuilder {\n+\n+  private List<String> included = emptyList();\n+  private List<String> excluded = emptyList();\n+\n+  IncludeExcludeBuilder() {}\n+\n+  /** Replaces the included patterns. */\n+  @CanIgnoreReturnValue\n+  public IncludeExcludeBuilder setIncluded(Collection<String> included) {",
+      "id": "PRRT_kwDODJKVX86YS4gJ",
+      "opened": "2026-08-11T16:11:53Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExcludeBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-11T21:02:39Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451/commits/0b7c24bbca99f9b25e48b750081233acba5e2d14",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3761693231"
+        }
+      ],
+      "reviewed": "77174f962109c0c541195bfeb52ae50d58858982",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451#discussion_r3759688223"
+    }
+  ]
+}

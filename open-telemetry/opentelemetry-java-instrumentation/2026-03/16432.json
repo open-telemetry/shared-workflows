@@ -1,0 +1,100 @@
+{
+  "head": "55299381926d5fdb50dd1749fa6ad75b8f3b16c4",
+  "merge": "0a9b8d571429d0117992eb1c47f605170068d381",
+  "merged": "2026-03-16T21:44:20Z",
+  "missing_roots": 0,
+  "number": 16432,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "I should have added a note to the #14096 issue that we are going to handle these metric bridges in a different way, see #15333.  \r\n\r\nSo you can leave the metadata files, but we can remove the telemetry interception",
+      "created": "2026-03-11T10:54:25Z",
+      "hunk": "@@ -181,6 +181,10 @@ readonly INSTRUMENTATIONS=(\n   \"lettuce:lettuce-5.0:javaagent:testExperimental\"\n   \"lettuce:lettuce-5.0:javaagent:testStableSemconv\"\n   \"lettuce:lettuce-5.1:javaagent:test\"\n+  \"micrometer:micrometer-1.5:javaagent:test\"\n+  \"micrometer:micrometer-1.5:javaagent:testPrometheusMode\"\n+  \"micrometer:micrometer-1.5:javaagent:testBaseTimeUnit\"\n+  \"micrometer:micrometer-1.5:javaagent:testHistogramGauges\"",
+      "id": "PRRT_kwDODJKVX85zjvYk",
+      "opened": "2026-03-11T11:09:47Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "e8682d6632897b3bb96cb00a23ae0fa04b5e902b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16432#discussion_r2917538309"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "I'm guessing that this note was from [this comment](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/liberty/liberty-dispatcher-20.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/liberty/dispatcher/LibertyDispatcherLinkInstrumentation.java#L27-L29), but I think we can probably remove it from the description, it might be confusing.\r\n\r\n```suggestion\r\n  layer.\r\n```",
+      "created": "2026-03-11T11:02:56Z",
+      "hunk": "@@ -0,0 +1,8 @@\n+display_name: Liberty\n+description: >\n+  This instrumentation enables HTTP server spans for the IBM WebSphere Liberty HTTP dispatcher\n+  layer, handling responses when no application is matched.",
+      "id": "PRRT_kwDODJKVX85zj4AD",
+      "opened": "2026-03-11T11:09:47Z",
+      "path": "instrumentation/liberty/liberty-dispatcher-20.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "e8682d6632897b3bb96cb00a23ae0fa04b5e902b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16432#discussion_r2917585396"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "I think this one is still more of a library instrumentation, so we can remove this\r\n```suggestion\r\n```",
+      "created": "2026-03-11T11:04:29Z",
+      "hunk": "@@ -0,0 +1,8 @@\n+display_name: Liberty\n+description: >\n+  This instrumentation enables HTTP server spans for the IBM WebSphere Liberty HTTP dispatcher\n+  layer, handling responses when no application is matched.\n+library_link: https://openliberty.io/\n+semantic_conventions:\n+  - HTTP_SERVER_SPANS\n+classification: internal",
+      "id": "PRRT_kwDODJKVX85zj5fe",
+      "opened": "2026-03-11T11:09:47Z",
+      "path": "instrumentation/liberty/liberty-dispatcher-20.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "e8682d6632897b3bb96cb00a23ae0fa04b5e902b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16432#discussion_r2917593511"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "since this instrumenation uses the [JavaagentHttpServerInstrumenters](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/liberty/liberty-dispatcher-20.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/liberty/dispatcher/LibertyDispatcherSingletons.java#L18) which uses [DefaultHttpServerInstrumenterBuilder](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java) it should also produce `HTTP_SERVER_METRICS` and have a handful of config options too\r\n\r\n```\r\nconfigurations:\r\n  - name: otel.instrumentation.http.known-methods\r\n    description: >\r\n      Configures the instrumentation to recognize an alternative set of HTTP request methods. All\r\n      other methods will be treated as `_OTHER`.\r\n    type: list\r\n    default: \"CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE\"\r\n  - name: otel.instrumentation.http.server.capture-request-headers\r\n    description: List of HTTP request headers to capture in HTTP server telemetry.\r\n    type: list\r\n    default: \"\"\r\n  - name: otel.instrumentation.http.server.capture-response-headers\r\n    description: List of HTTP response headers to capture in HTTP server telemetry.\r\n    type: list\r\n    default: \"\"\r\n  - name: otel.instrumentation.http.server.emit-experimental-telemetry\r\n    description: >\r\n      Enable the capture of experimental HTTP server telemetry. Adds the `http.request.body.size`\r\n      and `http.response.body.size` attributes to spans, and records `http.server.request.size` and\r\n      `http.server.response.size` metrics.\r\n    type: boolean\r\n    default: false\r\n```",
+      "created": "2026-03-11T11:08:16Z",
+      "hunk": "@@ -0,0 +1,8 @@\n+display_name: Liberty\n+description: >\n+  This instrumentation enables HTTP server spans for the IBM WebSphere Liberty HTTP dispatcher\n+  layer, handling responses when no application is matched.\n+library_link: https://openliberty.io/\n+semantic_conventions:\n+  - HTTP_SERVER_SPANS",
+      "id": "PRRT_kwDODJKVX85zj9qa",
+      "opened": "2026-03-11T11:09:47Z",
+      "path": "instrumentation/liberty/liberty-dispatcher-20.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "e8682d6632897b3bb96cb00a23ae0fa04b5e902b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16432#discussion_r2917617075"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "i think this one has some config options too, it uses https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/AgentServletInstrumenterBuilder.java#L29-L34",
+      "created": "2026-03-11T11:13:29Z",
+      "hunk": "@@ -0,0 +1,8 @@\n+display_name: Liberty\n+description: >\n+  This instrumentation enables HTTP server spans and metrics for IBM WebSphere Liberty application\n+  server.\n+library_link: https://openliberty.io/\n+semantic_conventions:\n+  - HTTP_SERVER_SPANS\n+  - HTTP_SERVER_METRICS",
+      "id": "PRRT_kwDODJKVX85zkD-7",
+      "opened": "2026-03-11T11:13:29Z",
+      "path": "instrumentation/liberty/liberty-20.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "e8682d6632897b3bb96cb00a23ae0fa04b5e902b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16432#discussion_r2917654193"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider removing `Prometheus mode` since it is a made up term that won't tell anything to the user.\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dba3aae717a1bd2010722ccbe20ad022d22e1129/instrumentation/micrometer/micrometer-1.5/javaagent/README.md?plain=1#L6 \nhas a bit different description (the same is also used in javadoc). Could also consider copying that description.",
+      "created": "2026-03-12T10:03:40Z",
+      "hunk": "@@ -1 +1,24 @@\n+display_name: Micrometer\n disabled_by_default: true\n+description: >\n+  This instrumentation enables a Micrometer MeterRegistry that bridges Micrometer metrics to the\n+  OpenTelemetry Metrics SDK. It is disabled by default because it may produce metrics that overlap\n+  with metrics already captured by other instrumentations.\n+library_link: https://micrometer.io/\n+configurations:\n+  - name: otel.instrumentation.micrometer.prometheus-mode.enabled\n+    description: >\n+      Enables Prometheus mode to match Micrometer PrometheusMeterRegistry naming conventions.",
+      "id": "PRRT_kwDODJKVX85z0zMD",
+      "opened": "2026-03-12T10:03:39Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/metadata.yaml",
+      "replies": [],
+      "reviewed": "22bdce01cc75e3ec429885bc66ca2b7ed5c98a6b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16432#discussion_r2923529676"
+    }
+  ]
+}

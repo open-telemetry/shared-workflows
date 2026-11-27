@@ -1,0 +1,97 @@
+{
+  "head": "273d57ebb10084884facae104a2939a46c5d537b",
+  "merge": "2ce71a19389b9b36016ad58961b00f525107484a",
+  "merged": "2026-09-22T07:43:05Z",
+  "missing_roots": 0,
+  "number": 20136,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The automated metadata collection does not currently run any `testExceptionSignalLogs` task: `.github/scripts/instrumentations.sh` lists only the ordinary/stable/experimental tasks, while those exception-event tests are separate Gradle tasks. Consequently the published instrumentation list cannot contain the exception events described here (the referenced generated PR contains only the default GenAI events). Add the relevant metadata-enabled tasks to the collection script, or narrow this documentation and feature scope.",
+      "created": "2026-09-13T18:55:28Z",
+      "hunk": "@@ -184,6 +184,15 @@ public class SpringWebInstrumentationModule extends InstrumentationModule\n   - List of span kinds the instrumentation module generates, including the attributes and their types.\n   - Emitted inline under each telemetry `when` block (spans are not yet part of the definitions catalog).\n   - Separate `when` blocks distinguish spans emitted by default vs via configuration options.\n+- events (referenced via `event_refs`)\n+  - Each telemetry `when` block lists `event_refs`: the ids of event definitions the module emits.\n+  - Each id resolves to an entry in the top-level `definitions.events` catalog.\n+  - An event is a log record carrying an event name, for example the GenAI message events or the\n+    exception events emitted when `otel.semconv.exception.signal.preview=logs` is set.\n+  - Each definition records the event `name`, its `severity` (omitted when the instrumentation does\n+    not set one) and its attributes.\n+  - This is the _generated_ representation, produced automatically from collected telemetry. There is",
+      "id": "PRRT_kwDODJKVX86h7IWP",
+      "opened": "2026-09-13T18:55:30Z",
+      "path": "instrumentation-docs/readme.md",
+      "replies": [
+        {
+          "at": "2026-09-14T13:13:52Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20136#discussion_r4005529710"
+        }
+      ],
+      "reviewed": "51bc6d2ddace4aec3dde765a2b3351573729b445",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20136#discussion_r4000542325"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This aggregation again collapses records by event name and keeps whichever non-null severity is encountered first. `Files.list()` does not define iteration order, so if separate metadata files contain the same event name with different severities, the generated definition can vary between runs and omits one valid event shape. Aggregate by name plus severity (or retain a set of severities) instead.",
+      "created": "2026-09-13T18:55:29Z",
+      "hunk": "@@ -0,0 +1,166 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.docs.parsers;\n+\n+import static io.opentelemetry.instrumentation.docs.parsers.TelemetryParser.normalizeWhenCondition;\n+\n+import com.fasterxml.jackson.core.JsonProcessingException;\n+import io.opentelemetry.instrumentation.docs.internal.EmittedEvents;\n+import io.opentelemetry.instrumentation.docs.internal.TelemetryAttribute;\n+import io.opentelemetry.instrumentation.docs.utils.FileManager;\n+import io.opentelemetry.instrumentation.docs.utils.YamlHelper;\n+import java.io.IOException;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.util.ArrayList;\n+import java.util.HashMap;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.Set;\n+import java.util.logging.Logger;\n+import java.util.stream.Stream;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is responsible for parsing events-* files from the `.telemetry` directory of an\n+ * instrumentation module and converting them into the {@link EmittedEvents} format.\n+ */\n+public class EmittedEventParser {\n+  private static final Logger logger = Logger.getLogger(EmittedEventParser.class.getName());\n+\n+  /**\n+   * Looks for event files in the .telemetry directory, and combines them into a single map.\n+   *\n+   * @param instrumentationDirectory the directory to traverse\n+   * @return contents of aggregated files\n+   */\n+  public static Map<String, EmittedEvents> getEventsByScopeFromFiles(\n+      Path rootDir, String instrumentationDirectory) throws JsonProcessingException {\n+    Map<String, StringBuilder> eventsByScope = new HashMap<>();\n+    Path telemetryDir = rootDir.resolve(instrumentationDirectory).resolve(\".telemetry\");\n+\n+    if (Files.exists(telemetryDir) && Files.isDirectory(telemetryDir)) {\n+      try (Stream<Path> files = Files.list(telemetryDir)) {\n+        files\n+            .filter(path -> path.getFileName().toString().startsWith(\"events-\"))\n+            .forEach(\n+                path -> {\n+                  String content = FileManager.readFileToString(path);\n+                  if (content != null) {\n+                    String whenKey = normalizeWhenCondition(content);\n+\n+                    eventsByScope.putIfAbsent(whenKey, new StringBuilder(\"events_by_scope:\\n\"));\n+\n+                    // Skip the events_by_scope line so we can aggregate into one list\n+                    int eventIndex = content.indexOf(\"events_by_scope:\\n\");\n+                    if (eventIndex != -1) {\n+                      String contentAfter =\n+                          content.substring(eventIndex + \"events_by_scope:\\n\".length());\n+                      eventsByScope.get(whenKey).append(contentAfter);\n+                    }\n+                  }\n+                });\n+      } catch (IOException e) {\n+        logger.severe(\n+            \"Error reading event files from \" + instrumentationDirectory + \": \" + e.getMessage());\n+      }\n+    }\n+\n+    return parseEvents(eventsByScope);\n+  }\n+\n+  /**\n+   * Takes in a raw string representation of the aggregated EmittedEvents yaml map, separated by the\n+   * `when`, indicating the conditions under which the telemetry is emitted. deduplicates by name\n+   * and then returns a new map.\n+   *\n+   * @param input raw string representation of EmittedEvents yaml\n+   * @return {@code Map<String, EmittedEvents>} where the key is the `when` condition\n+   */\n+  private static Map<String, EmittedEvents> parseEvents(Map<String, StringBuilder> input)\n+      throws JsonProcessingException {\n+    Map<String, EmittedEvents> result = new HashMap<>();\n+\n+    for (Map.Entry<String, StringBuilder> entry : input.entrySet()) {\n+      String when = entry.getKey().strip();\n+      StringBuilder content = entry.getValue();\n+\n+      EmittedEvents events = YamlHelper.emittedEventsParser(content.toString());\n+      if (events.getEventsByScope().isEmpty()) {\n+        continue;\n+      }\n+\n+      Map<String, Map<String, AggregatedEvent>> eventsByScopeAndName = new HashMap<>();\n+\n+      for (EmittedEvents.EventsByScope eventsByScopeEntry : events.getEventsByScope()) {\n+        Map<String, AggregatedEvent> eventsByName =\n+            eventsByScopeAndName.computeIfAbsent(\n+                eventsByScopeEntry.getScope(), s -> new HashMap<>());\n+\n+        for (EmittedEvents.Event event : eventsByScopeEntry.getEvents()) {\n+          AggregatedEvent aggregated =\n+              eventsByName.computeIfAbsent(event.getName(), n -> new AggregatedEvent());\n+          aggregated.severityIfAbsent(event.getSeverity());\n+",
+      "id": "PRRT_kwDODJKVX86h7IWd",
+      "opened": "2026-09-13T18:55:30Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedEventParser.java",
+      "replies": [],
+      "reviewed": "51bc6d2ddace4aec3dde765a2b3351573729b445",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20136#discussion_r4000542346"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Filtering performs another name-only merge and therefore discards distinct severities even if the file parser preserves them. Keep severity as part of the event identity (or preserve all severities) through this stage as well; otherwise the final catalog remains lossy and order-dependent.",
+      "created": "2026-09-13T18:55:29Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.docs.parsers;\n+\n+import com.fasterxml.jackson.core.JsonProcessingException;\n+import io.opentelemetry.instrumentation.docs.internal.EmittedEvents;\n+import io.opentelemetry.instrumentation.docs.internal.InstrumentationModule;\n+import io.opentelemetry.instrumentation.docs.internal.TelemetryAttribute;\n+import io.opentelemetry.instrumentation.docs.utils.FileManager;\n+import java.util.ArrayList;\n+import java.util.HashMap;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is responsible for parsing event files from the `.telemetry` directory of an\n+ * instrumentation module and filtering them by scope.\n+ */\n+public class EventParser {\n+\n+  /**\n+   * Pull events from the `.telemetry` directory, filter them by scope, and return them keyed by the\n+   * `when` condition.\n+   *\n+   * @param module the instrumentation module to extract events for\n+   * @param fileManager the file manager to access the filesystem\n+   * @throws JsonProcessingException if there is an error processing the JSON from the event files\n+   */\n+  public static Map<String, List<EmittedEvents.Event>> getEvents(\n+      InstrumentationModule module, FileManager fileManager) throws JsonProcessingException {\n+    Map<String, EmittedEvents> events =\n+        EmittedEventParser.getEventsByScopeFromFiles(fileManager.rootDir(), module.getSrcPath());\n+\n+    if (events.isEmpty()) {\n+      return new HashMap<>();\n+    }\n+\n+    return filterEventsByScope(events, module.getScopeInfo().getName());\n+  }\n+\n+  /**\n+   * Filters events by scope and aggregates attributes for each event name.\n+   *\n+   * @param eventsByScope the map of events by scope\n+   * @param scopeName the name of the scope to filter events for\n+   * @return a map of filtered events by `when`\n+   */\n+  private static Map<String, List<EmittedEvents.Event>> filterEventsByScope(\n+      Map<String, EmittedEvents> eventsByScope, String scopeName) {\n+\n+    Map<String, List<EmittedEvents.Event>> result = new HashMap<>();\n+\n+    for (Map.Entry<String, EmittedEvents> entry : eventsByScope.entrySet()) {\n+      EmittedEvents events = entry.getValue();\n+      if (events == null || events.getEventsByScope() == null) {\n+        continue;\n+      }\n+\n+      Map<String, AggregatedEvent> eventsByName = new HashMap<>();\n+      for (EmittedEvents.EventsByScope scopeEvents : events.getEventsByScope()) {\n+        if (!TelemetryParser.scopeIsValid(scopeEvents.getScope(), scopeName)) {\n+          continue;\n+        }\n+        for (EmittedEvents.Event event : scopeEvents.getEvents()) {\n+          AggregatedEvent aggregated =\n+              eventsByName.computeIfAbsent(event.getName(), n -> new AggregatedEvent());\n+          aggregated.severityIfAbsent(event.getSeverity());\n+          addEventAttributes(event, aggregated.attributes);",
+      "id": "PRRT_kwDODJKVX86h7IWi",
+      "opened": "2026-09-13T18:55:30Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EventParser.java",
+      "replies": [],
+      "reviewed": "51bc6d2ddace4aec3dde765a2b3351573729b445",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20136#discussion_r4000542355"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Events are keyed only by name here, so the first observed severity wins and later valid severities are silently lost. This is not guaranteed to be fixed per name: the default `exception` event in `instrumentation-api/.../Instrumenter.java:346-359` is `ERROR` for server/consumer operations and `WARN` for client/producer operations, and modules such as Sofa RPC build both under one instrumentation scope. Preserve distinct `(name, severity)` shapes (or model all severities) so the generated metadata is accurate and independent of test order.",
+      "created": "2026-09-13T18:55:29Z",
+      "hunk": "@@ -280,6 +293,70 @@ private void collectEmittedSpans(List<List<SpanData>> spans) {\n     }\n   }\n \n+  /**\n+   * Collects the events emitted so far, if telemetry metadata collection is enabled. Called after\n+   * every test, so that events are captured whether or not the test asserted on them.\n+   */\n+  public void collectEmittedEventsIfEnabled() {\n+    if (Boolean.getBoolean(\"collectMetadata\")) {\n+      collectEmittedEvents(getExportedLogRecords());\n+    }\n+  }\n+\n+  private void collectEmittedEvents(List<LogRecordData> logRecords) {\n+    for (LogRecordData logRecord : logRecords) {\n+      String eventName = eventName(logRecord);\n+      if (eventName == null) {\n+        // Not an event, just an ordinary log record (for example from a logging library bridge).\n+        continue;\n+      }\n+\n+      Map<String, CollectedEvent> scopeMap =\n+          this.eventsByScope.computeIfAbsent(\n+              logRecord.getInstrumentationScopeInfo(), s -> new HashMap<>());\n+      CollectedEvent event = scopeMap.computeIfAbsent(eventName, e -> new CollectedEvent());\n+\n+      Severity severity = logRecord.getSeverity();\n+      if (severity != null && severity != Severity.UNDEFINED_SEVERITY_NUMBER) {\n+        event.setSeverityIfAbsent(severity.name());",
+      "id": "PRRT_kwDODJKVX86h7IWs",
+      "opened": "2026-09-13T18:55:30Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/InstrumentationTestRunner.java",
+      "replies": [
+        {
+          "at": "2026-09-14T13:13:36Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20136#discussion_r4005527497"
+        }
+      ],
+      "reviewed": "51bc6d2ddace4aec3dde765a2b3351573729b445",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20136#discussion_r4000542367"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`File.createTempFile` is more conventional for creating temporary files. It ensures that each call gets a unique temp file. Guess this is fine too since the uuid collisions are improbable.",
+      "created": "2026-09-22T07:42:05Z",
+      "hunk": "@@ -145,6 +149,58 @@ private static void writeSpanData(\n     YAML.writeValue(spansPath.toFile(), spanData);\n   }\n \n+  private static void writeEventData(\n+      String instrumentationPath,\n+      Map<InstrumentationScopeInfo, Map<CollectedEvent.Key, CollectedEvent>> eventsByScope)\n+      throws IOException {\n+\n+    if (eventsByScope.isEmpty()) {\n+      return;\n+    }\n+\n+    Path eventsPath =\n+        Paths.get(instrumentationPath, TMP_DIR, \"events-\" + UUID.randomUUID() + \".yaml\");",
+      "id": "PRRT_kwDODJKVX86ko1hn",
+      "opened": "2026-09-22T07:42:05Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/MetaDataCollector.java",
+      "replies": [],
+      "reviewed": "273d57ebb10084884facae104a2939a46c5d537b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20136#discussion_r4069430320"
+    }
+  ]
+}

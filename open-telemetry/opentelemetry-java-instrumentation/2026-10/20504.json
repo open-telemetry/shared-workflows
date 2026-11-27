@@ -1,0 +1,31 @@
+{
+  "head": "94a61cf6e2af4fe8b94ea2a9c95c8b6ee5eb97aa",
+  "merge": "edc816f57e7e251a618c577d79c5eb9441b23109",
+  "merged": "2026-10-12T05:39:39Z",
+  "missing_roots": 0,
+  "number": 20504,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot remove all tests added in this PR",
+      "created": "2026-10-11T20:57:25Z",
+      "hunk": "@@ -0,0 +1,93 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.rocketmqclient.v4_8;\n+\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.verify;\n+import static org.mockito.Mockito.verifyNoInteractions;\n+\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.api.trace.TraceFlags;\n+import io.opentelemetry.api.trace.TraceState;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksBuilder;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.List;\n+import org.apache.rocketmq.client.hook.SendMessageContext;\n+import org.junit.jupiter.api.Test;\n+\n+class RocketMqBatchSendSpanLinksExtractorTest {",
+      "id": "PRRT_kwDODJKVX86rRc--",
+      "opened": "2026-10-11T20:57:25Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqBatchSendSpanLinksExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-11T21:03:31Z",
+          "body": "Removed all PR-added tests and restored the additions to the existing test in 94a61cf6. Production changes are unchanged; 45 existing targeted tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20504#discussion_r4243212816"
+        }
+      ],
+      "reviewed": "b6061a4a8f1520f881da401f8c5f6f54de1deaab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20504#discussion_r4243193557"
+    }
+  ]
+}

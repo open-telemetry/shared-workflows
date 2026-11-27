@@ -1,0 +1,256 @@
+{
+  "head": "9e96f18028b557a12b074b8a2cc7242d0620db00",
+  "merge": "8fe4f92440fbb68b36dae12f536d39adbdc680c7",
+  "merged": "2026-11-04T06:39:59Z",
+  "missing_roots": 0,
+  "number": 21147,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the CI failures on this PR directly, keeping the semantic-conventions upgrade to 1.45.0 and the maintenance/v2.x base. The user requested: \"fix ci cloud\". Preserve the PR's existing ready-for-review state. Do not create a replacement PR or implement unrelated changes.\n\nInspect the failed jobs in https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/41500457263 and fix the root causes attributable to this dependency upgrade. The build job 125468381809 and muzzle job 125468381710 fail at instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java:175 with [OtelDeprecatedApiUsage] Use of deprecated API: ENDUSER_ID. Preserve the existing principal attribute behavior: enduser.id in legacy mode and user.name in v3 preview. Follow the repository's existing patterns for intentionally retained legacy semconv attributes; do not globally weaken deprecated-API checks or silently migrate legacy telemetry.\n\nThe testLatestDeps2 job 125468381505 also has AWS Lambda assertion failures, including AwsLambdaStreamHandlerTest.handlerTraced at line 73. Assertions expect faas.invocation.id but exported spans contain faas.invocation_id=1-22-333. Investigate this mismatch and any other upgrade-related failures across the failed jobs. Preserve the maintenance branch's intended legacy and preview behavior, and fix production compatibility or test expectations according to the actual supported semantics rather than merely making assertions pass. Do not change unrelated dependency versions or suppress/disable tests to hide failures.\n\nRun the narrow relevant formatting, compilation and tests for the fixes, including affected compatibility modes and latest-dependency coverage where applicable. Add focused regression coverage if needed. Acceptance criteria: retain the 1.45.0 upgrade, eliminate the upgrade-related compile errors and attribute mismatches, preserve intended telemetry compatibility, and commit and push the fixes to this PR's existing branch.",
+      "created": "2026-11-03T00:51:45Z",
+      "hunk": "@@ -44,7 +44,7 @@ val asmVersion = \"9.11.1\"\n val jmhVersion = \"1.37\"\n val mockitoVersion = \"4.11.0\"\n val slf4jVersion = \"2.0.20\"\n-val semConvVersion = \"1.44.0\"\n+val semConvVersion = \"1.45.0\"",
+      "id": "PRRT_kwDODJKVX86y7etB",
+      "opened": "2026-11-03T00:51:45Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T01:16:32Z",
+          "body": "Fixed and pushed as `89c56303`. Legacy servlet/RabbitMQ keys are retained locally, Pulsar tests narrowly suppress intentional deprecated-semconv assertions, and Lambda invocation IDs now use `faas.invocation.id`. Focused compilation, latest-dependency AWS Lambda tests, RabbitMQ compatibility-mode tests, and Spotless passed. CodeQL timed out; its tool instructed me not to retry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4449745088"
+        }
+      ],
+      "reviewed": "4988a191d2100cc3de67cb561382fea0cd887500",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4449558850"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This unconditionally renames the exported Lambda attribute from `faas.invocation_id` to `faas.invocation.id`, so existing queries and processors using the old key will stop matching after this update. `CONTRIBUTING.md:15–32` requires an Unreleased changelog entry and migration notes for breaking behavioral changes, but neither is included; the module metadata also still advertises the old key. Please document the migration and update the telemetry documentation if this rename is intentional, or retain the existing key for this dependency update.",
+      "created": "2026-11-03T01:26:34Z",
+      "hunk": "@@ -24,7 +24,7 @@ public final class AwsLambdaFunctionAttributesExtractor\n \n   // copied from FaasIncubatingAttributes\n   private static final AttributeKey<String> FAAS_INVOCATION_ID =\n-      AttributeKey.stringKey(\"faas.invocation_id\");\n+      AttributeKey.stringKey(\"faas.invocation.id\");",
+      "id": "PRRT_kwDODJKVX86y8HBU",
+      "opened": "2026-11-03T01:26:34Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-03T01:55:45Z",
+          "body": "Fixed in 5dd8e41a9e12f6ad692a2bb54ae614a1edaa111f. The extractor again emits faas.invocation_id, and the affected Lambda assertions now check that legacy key explicitly instead of following the renamed incubating constant. There is no exported-key migration, so the existing metadata remains accurate.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4450065655"
+        }
+      ],
+      "reviewed": "89c563036a6c26f53f3ace3d0dec59b1bbe1bebd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4449825181"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Correct the remaining compatibility regression from the previous CI-fix attempt directly on this PR. Keep semconv 1.45.0, the maintenance/v2.x base, the current ready-for-review state, and the servlet, RabbitMQ and Pulsar fixes already delivered in 89c563036a6c26f53f3ace3d0dec59b1bbe1bebd. Do not create another PR.\n\nThe original assignment required preserving maintenance-branch telemetry compatibility. The previous attempt changed AwsLambdaFunctionAttributesExtractor.FAAS_INVOCATION_ID from AttributeKey.stringKey(\"faas.invocation_id\") to AttributeKey.stringKey(\"faas.invocation.id\"). That unconditionally changes production telemetry just to follow a renamed incubating constant in test expectations. Copilot review 5745883022 confirmed this regression: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4449825181. The existing aws-lambda-core-1.0/metadata.yaml correctly documents faas.invocation_id.\n\nRestore the production Lambda key to faas.invocation_id. Fix the root cause of the AWS Lambda test mismatches by pinning affected assertions to this intentionally retained legacy key instead of importing the renamed FaasIncubatingAttributes.FAAS_INVOCATION_ID. For example, AwsLambdaStreamHandlerTest imports that constant and its handlerTraced assertion at line 73 follows its new spelling. Find every affected Lambda core, events and shared test use, including library and javaagent coverage, so default and latest-dependency runs consistently verify the actual preserved key. Prefer AttributeKey.stringKey(\"faas.invocation_id\") directly in concise assertions; do not expose production internals or add an abstraction solely to compute a short expected key. Keep exact-attribute assertions so an unintended faas.invocation.id emission is caught.\n\nDo not add a new compatibility flag, emit both keys, rename documentation to justify a behavior change, disable tests, weaken assertions, or change intended production behavior. With the production rename removed, the existing metadata remains accurate and no breaking-change migration is needed. Leave review replies and thread resolution to the coordinator.\n\nRun the narrow relevant formatter and AWS Lambda tests with default and latest dependencies, including the affected javaagent/library/event suites and existing compatibility modes where applicable. Acceptance criteria: semconv remains 1.45.0; production emits faas.invocation_id exactly as before this PR; all affected assertions explicitly verify that preserved key without tracking the renamed incubating constant; the other CI fixes remain intact; commit and push the correction to this PR's existing branch.",
+      "created": "2026-11-03T01:29:16Z",
+      "hunk": "@@ -24,7 +24,7 @@ public final class AwsLambdaFunctionAttributesExtractor\n \n   // copied from FaasIncubatingAttributes\n   private static final AttributeKey<String> FAAS_INVOCATION_ID =\n-      AttributeKey.stringKey(\"faas.invocation_id\");\n+      AttributeKey.stringKey(\"faas.invocation.id\");",
+      "id": "PRRT_kwDODJKVX86y8KLI",
+      "opened": "2026-11-03T01:29:16Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-03T01:50:53Z",
+          "body": "Restored production emission to `faas.invocation_id` and changed the affected Lambda core, events, and shared assertions to pin that literal key. Default and latest-dependency suites, including compatibility variants, pass. Committed as `5dd8e41a`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4450025822"
+        }
+      ],
+      "reviewed": "89c563036a6c26f53f3ace3d0dec59b1bbe1bebd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4449845834"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a behavior-preserving cleanup requested by the user: \"Can we use the deprecated constants where possible?\" and \"if so, send that work to cloud\". The user explicitly excludes the Lambda invocation key when no separate deprecated constant preserves its underscore spelling. Keep semconv 1.45.0, maintenance/v2.x, the current ready-for-review state, and all previously delivered CI fixes. Do not create another PR.\n\nVerified against semantic-conventions-java v1.45.0: EnduserIncubatingAttributes.ENDUSER_ID is deprecated but still stringKey(\"enduser.id\"); MessagingIncubatingAttributes.MESSAGING_SYSTEM is deprecated but still stringKey(\"messaging.system\"); MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY is deprecated but still stringKey(\"messaging.rabbitmq.destination.routing_key\"); MESSAGING_RABBITMQ_MESSAGE_DELIVERY_TAG is deprecated but still longKey(\"messaging.rabbitmq.message.delivery_tag\"). These exactly match the locally copied keys added by this PR. The PR's custom-checks/src/main/java/io/opentelemetry/javaagent/customchecks/OtelDeprecatedApiUsage.java explicitly supports @SuppressWarnings(\"deprecation\"), including static imports.\n\nRestore use of those existing semconv constants wherever this PR newly copied them and direct imports are permitted: remove the new private ENDUSER_ID copy in servlet-common/javaagent/BaseServletHelper.java and restore its static import; replace RabbitSemconvAttributes imports in the five RabbitMQ javaagent callers with the corresponding MessagingIncubatingAttributes imports, then remove the now-unnecessary RabbitSemconvAttributes.java file; restore the MESSAGING_SYSTEM import in aws-lambda-events-2.2/testing/AwsLambdaSqsMetricsAssertions.java instead of its newly inlined stringKey(\"messaging.system\") assertions. Add @SuppressWarnings(\"deprecation\") with a succinct current-code explanation for intentionally retained legacy semconv, scoped to the smallest practical existing method, field, or class. Do not add helper methods just to host suppressions, disable the checker, or change global build settings.\n\nPreserve the repository's library-production rule: incubating constants there remain locally copied, not directly imported. In particular leave AwsLambdaFunctionAttributesExtractor's local faas.invocation_id key and all corrected Lambda test assertions unchanged. FaasIncubatingAttributes.FAAS_INVOCATION_ID now maps to faas.invocation.id and no separate deprecated underscore-key constant exists, so it cannot replace the preserved key. Do not migrate any telemetry key, emit duplicate keys, introduce compatibility flags, undo the test fixes or other deprecation suppressions, or make unrelated cleanup.\n\nAcceptance criteria: available deprecated constants replace the new local copies only where key name and type match and repository rules permit imports; unused added holder code is removed; emitted telemetry and every legacy/preview/messaging mode remain unchanged; semconv remains 1.45.0; focused formatting, compilation and relevant servlet, RabbitMQ and AWS Lambda coverage pass with the deprecation checker enabled, including relevant compatibility modes and latest-dependency coverage where applicable. Commit and push the cleanup to this PR's existing branch. Leave review replies and thread resolution to the coordinator.",
+      "created": "2026-11-03T02:30:09Z",
+      "hunk": "@@ -36,6 +36,8 @@\n \n public abstract class BaseServletHelper<REQUEST, RESPONSE> {\n   private static final ServletConfig servletConfig = ServletConfig.get();\n+  // copied from EnduserIncubatingAttributes\n+  private static final AttributeKey<String> ENDUSER_ID = AttributeKey.stringKey(\"enduser.id\");",
+      "id": "PRRT_kwDODJKVX86y9NK5",
+      "opened": "2026-11-03T02:30:09Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java",
+      "replies": [
+        {
+          "at": "2026-11-03T02:48:34Z",
+          "body": "Done in `7040ea27`. Restored the matching deprecated semconv constants with narrow deprecation suppressions in servlet, RabbitMQ, and the AWS SQS assertion helper, and removed the redundant RabbitMQ holder. Lambda’s `faas.invocation_id` behavior remains unchanged. Formatting and compilation passed; latest-dependency default/duplicate RabbitMQ and all AWS Lambda variants passed. RabbitMQ preview/experimental runs were blocked only by the existing recovery test’s IPv6 loopback assertion.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4450418634"
+        }
+      ],
+      "reviewed": "5dd8e41a9e12f6ad692a2bb54ae614a1edaa111f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4450295344"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the remaining CI failures on this existing PR directly. Keep the semconv 1.45.0 update, maintenance/v2.x base, ready-for-review state, all earlier servlet/RabbitMQ/Pulsar/Lambda compatibility fixes, and existing exported telemetry keys. Commit and push fixes to this PR's head branch; do not create a replacement PR.\n\nThe current head 7040ea27606c87fe543dce26f176a7cc815d1d36 failed build run https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/41568229853. The common/build job 125695295313 fails compileTestJava in instrumentation/camel-2.20/javaagent: [OtelDeprecatedApiUsage] MESSAGING_SYSTEM in CamelMessagingMetricsAssertions, JmsCamelTest, and aws/CamelSpanAssertions. Common/test0 Java 8 job 125695296563 fails compilation of instrumentation/spring/spring-kafka-2.7/testing/AbstractSpringKafkaTest on deprecated MESSAGING_KAFKA_OFFSET and MESSAGING_KAFKA_MESSAGE_KEY. Muzzle4 job 125695295084 fails instrumentation/spring/spring-rabbit-1.0/javaagent/SpringRabbitExtraAttributesExtractor on deprecated MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY and MESSAGING_RABBITMQ_MESSAGE_DELIVERY_TAG. Jetty smoke job 125695295449 fails instrumentation/kafka/kafka-connect-2.6/javaagent/KafkaConnectBatchRecordAttributes on deprecated Kafka offset/message key. Many common/test and smoke variants fail compilation similarly; inspect their diagnostics and other affected call sites, not just these examples. For intentionally retained legacy semconv constants, use the repository's narrow, documented @SuppressWarnings(\"deprecation\") pattern where allowed; do not globally weaken OtelDeprecatedApiUsage, change legacy attribute names or types, replace old behavior with new semconv keys, or disable tests. Respect the library-production rule against importing incubating constants and preserve the previous Lambda faas.invocation_id correction.\n\nLatest-dependencies testLatestDeps3 job 125695295039 also fails instrumentation/jmx-metrics/library:test: 179 tests, 12 failures in JvmTest.testJvmMetrics for Tomcat/OpenJ9. WeaverContainer.checkRegisteredMetrics reports seven unexpected jvm.executor.* metrics (queue.capacity, task.rejected, thread.core, queue.size, thread.limit, task.completed, thread.count) versus the registry/test's exact expected set. Investigate the 1.45.0 registry/manifest and JMX rules, then correct the source of the mismatch while retaining the intended metric behavior and exact validation. The log also contains a Spring ClientResponse.statusCode() NoSuchMethodError in other test output; determine whether that is actually an independent failing test and attributable to this PR before changing any Spring dependency or instrumentation. Inspect the remaining failed-job diagnostics for other upgrade-related causes.\n\nRun the narrow relevant formatter, compilation, affected tests and latest-dependency coverage. Acceptance criteria: semconv remains 1.45.0; upgrade-related compiler diagnostics and JMX assertions are fixed without weakening checks; legacy and preview telemetry remains compatible; fix other verified PR-related CI failures uncovered during investigation, not unrelated baseline/environment failures. Report any unrelated failures clearly instead of masking them. Leave review replies and thread resolution to the coordinator.",
+      "created": "2026-11-03T18:24:44Z",
+      "hunk": "@@ -44,7 +44,7 @@ val asmVersion = \"9.11.1\"\n val jmhVersion = \"1.37\"\n val mockitoVersion = \"4.11.0\"\n val slf4jVersion = \"2.0.20\"\n-val semConvVersion = \"1.44.0\"\n+val semConvVersion = \"1.45.0\"",
+      "id": "PRRT_kwDODJKVX86zRarN",
+      "opened": "2026-11-03T18:24:44Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T19:13:17Z",
+          "body": "Committed and pushed the CI fixes in `59a8a833` (`Fix semconv 1.45 CI compatibility`). Focused compilation, formatting, JMX default/latest tests, and messaging compatibility suites passed. CodeQL classified the changes as trivial and skipped analysis.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459307309"
+        }
+      ],
+      "reviewed": "7040ea27606c87fe543dce26f176a7cc815d1d36",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4458800514"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Only `getLinkAttributes()` uses the deprecated Kafka constants; the other members use non-deprecated constants or no semconv constants. `.github/instructions/java-style.instructions.md:33` requires member-level suppression here. Move this annotation to `getLinkAttributes()` so the remaining members retain deprecation checks.",
+      "created": "2026-11-03T19:23:13Z",
+      "hunk": "@@ -17,6 +17,7 @@\n import javax.annotation.Nullable;\n import org.apache.kafka.connect.sink.SinkRecord;\n \n+@SuppressWarnings(\"deprecation\") // intentionally retain legacy messaging attributes",
+      "id": "PRRT_kwDODJKVX86zS2YH",
+      "opened": "2026-11-03T19:23:15Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectBatchRecordAttributes.java",
+      "replies": [
+        {
+          "at": "2026-11-03T19:49:40Z",
+          "body": "Fixed in daf6a701. The deprecation suppression is now on `getLinkAttributes()`; the other Kafka Connect members retain deprecation checks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459685874"
+        }
+      ],
+      "reviewed": "59a8a833f2ce28b3eeb3322ce96960afcbe99743",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459419184"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Only `onStart()` uses deprecated constants; `onEnd()` is empty. `.github/instructions/java-style.instructions.md:33` requires the suppression on the individual member when only one needs it. Move it to `onStart()` to retain deprecation checks for the rest of the class.",
+      "created": "2026-11-03T19:23:14Z",
+      "hunk": "@@ -17,6 +17,7 @@\n import javax.annotation.Nullable;\n import org.apache.rocketmq.client.apis.message.MessageView;\n \n+@SuppressWarnings(\"deprecation\") // intentionally retain legacy messaging attributes",
+      "id": "PRRT_kwDODJKVX86zS2Y_",
+      "opened": "2026-11-03T19:23:15Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqReceiveBatchMessageAttributeExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-03T19:49:40Z",
+          "body": "Fixed in daf6a701. The suppression is now on `onStart()` rather than the RocketMQ receive class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459685911"
+        }
+      ],
+      "reviewed": "59a8a833f2ce28b3eeb3322ce96960afcbe99743",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459419279"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] All deprecated-constant and deprecated-enum usages are confined to `onStart()`; `onEnd()` is empty. Move the suppression to `onStart()` as required by `.github/instructions/java-style.instructions.md:33`, instead of disabling deprecation checks for the whole class.",
+      "created": "2026-11-03T19:23:14Z",
+      "hunk": "@@ -22,6 +22,7 @@\n import org.apache.rocketmq.client.java.impl.producer.SendReceiptImpl;\n import org.apache.rocketmq.client.java.message.PublishingMessageImpl;\n \n+@SuppressWarnings(\"deprecation\") // intentionally retain legacy messaging attributes",
+      "id": "PRRT_kwDODJKVX86zS2Yn",
+      "opened": "2026-11-03T19:23:15Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqProducerAttributeExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-03T19:49:41Z",
+          "body": "Fixed in daf6a701. The suppression is now on `onStart()`, leaving `onEnd()` subject to deprecation checks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459685930"
+        }
+      ],
+      "reviewed": "59a8a833f2ce28b3eeb3322ce96960afcbe99743",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459419242"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Only `onStart()` uses deprecated constants; `onEnd()` is empty. The suppression rule in `.github/instructions/java-style.instructions.md:33` requires member-level suppression in this case. Move this annotation to `onStart()` so deprecation warnings remain enabled elsewhere in the class.",
+      "created": "2026-11-03T19:23:14Z",
+      "hunk": "@@ -15,6 +15,7 @@\n import javax.annotation.Nullable;\n import org.springframework.amqp.core.Message;\n \n+@SuppressWarnings(\"deprecation\") // intentionally retain legacy messaging attributes",
+      "id": "PRRT_kwDODJKVX86zS2Z4",
+      "opened": "2026-11-03T19:23:15Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitExtraAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-03T19:49:40Z",
+          "body": "Fixed in daf6a701. The suppression is now on `onStart()`, which contains the intentional legacy RabbitMQ attribute usages.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459685918"
+        }
+      ],
+      "reviewed": "59a8a833f2ce28b3eeb3322ce96960afcbe99743",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459419382"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The deprecated messaging constants are used only in `extract()`. Per `.github/instructions/java-style.instructions.md:33`, suppress the warning on that method rather than the entire class, leaving unrelated members subject to deprecation checks.",
+      "created": "2026-11-03T19:23:14Z",
+      "hunk": "@@ -24,6 +24,7 @@\n import java.util.Objects;\n import org.apache.rocketmq.client.apis.message.MessageView;\n \n+@SuppressWarnings(\"deprecation\") // intentionally retain legacy messaging attributes",
+      "id": "PRRT_kwDODJKVX86zS2Zf",
+      "opened": "2026-11-03T19:23:15Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqReceiveSpanLinksExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-03T19:49:40Z",
+          "body": "Fixed in daf6a701. The suppression is now limited to `extract()`; unrelated methods retain deprecation checks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459685913"
+        }
+      ],
+      "reviewed": "59a8a833f2ce28b3eeb3322ce96960afcbe99743",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459419332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Follow up on the CI compatibility fix in commit 59a8a833f2ce28b3eeb3322ce96960afcbe99743, directly on this PR. Keep semconv 1.45.0, maintenance/v2.x, the current ready-for-review state, the JMX JVM registry fix, previous CI compatibility changes, and all emitted telemetry unchanged. Commit and push only this scoped correction to the same PR head; do not create another PR. Leave review replies and thread resolution to the coordinator.\n\nThe latest-head Copilot review https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#pullrequestreview-5758227948 found five valid violations of .github/instructions/java-style.instructions.md's Suppressions rule: @SuppressWarnings belongs on the one member that needs it, and on a class only when multiple members need the same warning. The prior CI fix added class-level deprecation suppression although the deprecated semconv constants occur in one method per affected class. Move each annotation and its concise explanation from class to method: KafkaConnectBatchRecordAttributes.getLinkAttributes() (review comment 4459419184); RocketMqProducerAttributeExtractor.onStart() (4459419242); RocketMqReceiveBatchMessageAttributeExtractor.onStart() (4459419279); RocketMqReceiveSpanLinksExtractor.extract() (4459419332); SpringRabbitExtraAttributesExtractor.onStart() (4459419382). Inspect other class-level deprecation suppressions newly added by the same CI fix for this exact style issue; keep class scope where multiple members require it. Do not remove needed suppression or mask additional deprecated usage.\n\nRun the narrow relevant spotlessApply, compilation with OtelDeprecatedApiUsage enabled, and affected Kafka Connect, RocketMQ and Spring Rabbit tests/compatibility variants. Acceptance criteria: these five suppressions are member-scoped, any other single-member class suppression introduced by the prior fix is narrowed, previously fixed compilation and JMX behavior remain correct, and legacy messaging telemetry remains unchanged.",
+      "created": "2026-11-03T19:28:02Z",
+      "hunk": "@@ -17,6 +17,7 @@\n import javax.annotation.Nullable;\n import org.apache.kafka.connect.sink.SinkRecord;\n \n+@SuppressWarnings(\"deprecation\") // intentionally retain legacy messaging attributes",
+      "id": "PRRT_kwDODJKVX86zS9n0",
+      "opened": "2026-11-03T19:28:02Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectBatchRecordAttributes.java",
+      "replies": [],
+      "reviewed": "59a8a833f2ce28b3eeb3322ce96960afcbe99743",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459468844"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix one remaining testing-style issue from the latest Copilot review on this PR, directly on its existing head. Keep semconv 1.45.0, maintenance/v2.x, the current ready-for-review state, all earlier CI fixes and emitted telemetry unchanged. Commit and push only this targeted correction; do not create another PR. Leave review replies and thread resolution to the coordinator.\n\nReview https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#pullrequestreview-5758617412 contains a body-only, unpublished finding that needed human assessment. I verified the actual code and the .github/instructions/java-style.instructions.md Suppressions rule: instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/ReactorRabbitMqTest.java has @SuppressWarnings(\"deprecation\") on the class, but only testShouldNotFailDeclaringExchange() uses the intentionally retained deprecated MESSAGING_SYSTEM constant. Move that suppression and its succinct explanation to this test method, leaving the class's other annotations, the intentionally disabled latest-deps condition, and the assertion unchanged. I checked other class-level suppressions introduced in this PR; those have deprecated uses in multiple members and should stay as they are.\n\nRun the narrow RabbitMQ test formatting and compilation with OtelDeprecatedApiUsage enabled, plus the relevant test if feasible. Preserve the existing key and compatibility variants. No new issue or comment thread is required for this body-only review finding.",
+      "created": "2026-11-03T20:00:36Z",
+      "hunk": "@@ -30,6 +30,7 @@\n     matches = \"true\",\n     disabledReason =\n         \"reactor-rabbitmq 1.5.6 (and earlier) still calls `void useNio()` which was removed in 5.27.0\")\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv",
+      "id": "PRRT_kwDODJKVX86zTu6Q",
+      "opened": "2026-11-03T20:00:36Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/ReactorRabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-11-03T20:13:28Z",
+          "body": "Moved the deprecation suppression and explanation to `testShouldNotFailDeclaringExchange()` only; the assertion and class annotations are unchanged. Formatting, test compilation with deprecated-API checks, and the focused test passed. Committed as `95f9e28a`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459923041"
+        }
+      ],
+      "reviewed": "daf6a701a212ed71dbc868e9260591f4342371ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21147#discussion_r4459796753"
+    }
+  ]
+}

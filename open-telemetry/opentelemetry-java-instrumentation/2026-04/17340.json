@@ -1,0 +1,25 @@
+{
+  "head": "1025ddc4f84da66704a3a6866920a46f5cbeb0a2",
+  "merge": "5b6bb9055bd59a166cfe06975b36ae1afcde79e7",
+  "merged": "2026-04-01T15:38:57Z",
+  "missing_roots": 0,
+  "number": 17340,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "works because it is used only from `AdviceScope` class",
+      "created": "2026-04-01T07:29:00Z",
+      "hunk": "@@ -10,7 +10,7 @@\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.javaagent.bootstrap.internal.JavaagentHttpClientInstrumenters;\n \n-public class GoogleHttpClientSingletons {\n+final class GoogleHttpClientSingletons {",
+      "id": "PRRT_kwDODJKVX854J7si",
+      "opened": "2026-04-01T07:28:59Z",
+      "path": "instrumentation/google-http-client-1.19/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/googlehttpclient/GoogleHttpClientSingletons.java",
+      "replies": [],
+      "reviewed": "1025ddc4f84da66704a3a6866920a46f5cbeb0a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17340#discussion_r3020315477"
+    }
+  ]
+}

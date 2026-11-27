@@ -1,0 +1,52 @@
+{
+  "head": "029714767300d19494b2afb9ff4c7c8a9634dcc6",
+  "merge": "00c0e86daae738ccb8b67e4ab2fac13111ead42e",
+  "merged": "2026-11-20T22:59:13Z",
+  "missing_roots": 0,
+  "number": 504,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The pending marker survives when a later foreground or streaming create replaces the stored response. Message responses all reuse `resp-mock-001`, so a background create followed by a stored foreground create makes the foreground response's first GET return `in_progress` with no usage, even though its POST returned `completed`. Clear the pending marker whenever the stored response is replaced, before the streaming branch, and add it back only for this background polling path.",
+      "created": "2026-11-20T10:06:20Z",
+      "hunk": "@@ -798,6 +807,11 @@ def responses():\n             _RESUMABLE_RESPONSES.add(resp[\"id\"])\n             return Response(_stream_create(resp), mimetype=\"text/event-stream\")\n         return Response(_stream_response(resp), mimetype=\"text/event-stream\")\n+    if body.get(\"background\") and body.get(\"store\"):\n+        # Background create without streaming: answer before the generation\n+        # completes, and let the next fetch find the response still running.\n+        _RUNNING_RESPONSES.add(resp[\"id\"])",
+      "id": "PRRT_kwDOTuzK5c657xAg",
+      "opened": "2026-11-20T10:06:21Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [
+        {
+          "at": "2026-11-20T12:16:20Z",
+          "body": "Fixed in 035a603: storing a message response now clears the pending state for its id, and only the background polling path sets it again. Regression tests in 66b2a1f.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/504#discussion_r4642319554"
+        }
+      ],
+      "reviewed": "1cfa65609a7de357ef6f8b0b7164bf1662fda079",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/504#discussion_r4641115936"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `_stream_response` and `_stream_create` build the same in-progress copy inline. Could they call `_unfinished(response, \"in_progress\")` so the three stay in sync?",
+      "created": "2026-11-20T21:57:29Z",
+      "hunk": "@@ -920,6 +940,15 @@ def _stream_create(response):\n     yield sse({\"type\": \"response.in_progress\", \"sequence_number\": 1, \"response\": in_progress})\n \n \n+def _unfinished(response, status):\n+    \"\"\"Return `response` as reported before its generation completes.\"\"\"\n+    unfinished = copy.deepcopy(response)\n+    unfinished[\"status\"] = status\n+    unfinished[\"output\"] = []\n+    unfinished[\"usage\"] = None\n+    return unfinished",
+      "id": "PRRT_kwDOTuzK5c66MKT5",
+      "opened": "2026-11-20T22:08:10Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+      "replies": [
+        {
+          "at": "2026-11-20T22:17:23Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/504/changes/029714767300d19494b2afb9ff4c7c8a9634dcc6",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/504#discussion_r4648335222"
+        }
+      ],
+      "reviewed": "f337f7351cef7d03c85c4352728c9f98be76a01a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/504#discussion_r4648176704"
+    }
+  ]
+}

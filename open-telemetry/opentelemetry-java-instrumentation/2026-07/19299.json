@@ -1,0 +1,31 @@
+{
+  "head": "73d42058ba3bf7fd1309838dde2a6fac9f422103",
+  "merge": "54ac7474550b7219396b05f1f380949ab435da8f",
+  "merged": "2026-07-22T22:10:26Z",
+  "missing_roots": 0,
+  "number": 19299,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This safety check treats every non-successful `curl` result as “artifact absent.” A transient DNS/TLS failure or a Central 429/5xx response therefore allows recovery to continue and attempt a duplicate deployment. Please fail closed for every response except an explicit 404 (and let transport failures fail the step).",
+      "created": "2026-07-22T20:58:06Z",
+      "hunk": "@@ -64,6 +70,22 @@ jobs:\n           echo \"VERSION=$version\" >> $GITHUB_ENV\n           echo \"PRIOR_VERSION=$prior_version\" >> $GITHUB_ENV\n \n+      - name: Validate Maven Central recovery\n+        if: inputs.recover_maven_central\n+        env:\n+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n+        run: |\n+          if ! gh release view \"v$VERSION\" > /dev/null; then\n+            echo \"GitHub release v$VERSION does not exist\"\n+            exit 1\n+          fi\n+\n+          artifact_url=\"https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/$VERSION/opentelemetry-javaagent-$VERSION.jar\"\n+          if curl --silent --head --fail \"$artifact_url\" > /dev/null; then\n+            echo \"Version $VERSION is already available from Maven Central\"\n+            exit 1\n+          fi",
+      "id": "PRRT_kwDODJKVX86TEIm2",
+      "opened": "2026-07-22T20:58:06Z",
+      "path": ".github/workflows/release.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T21:12:07Z",
+          "body": "Fixed in 73d42058ba. Recovery now continues only for an explicit HTTP 404. Transport failures, HTTP 200, and every other HTTP status fail the step. `actionlint .github/workflows/release.yml` passes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19299#discussion_r3633838253"
+        }
+      ],
+      "reviewed": "81151ce430472d2d70744bb3c520144b688fb02c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19299#discussion_r3633756267"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "head": "ebb584faf1efb8b9a804ff7edd9385b4fefa8cbd",
+  "merge": "5131d7a927d9aaca993bd4d3cfea7b294280c886",
+  "merged": "2026-05-13T06:21:10Z",
+  "missing_roots": 0,
+  "number": 5,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not plumbed in contrib, fails https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/tox.ini",
+      "created": "2026-05-12T23:51:40Z",
+      "hunk": "@@ -130,10 +128,8 @@ commands =\n   test-instrumentation-claude-agent-sdk: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-claude-agent-sdk/tests --vcr-record=none {posargs}\n   lint-instrumentation-claude-agent-sdk: sh -c \"cd instrumentation && ruff check opentelemetry-instrumentation-claude-agent-sdk\"\n \n-  test-instrumentation-langchain: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-langchain/tests {posargs}\n   lint-instrumentation-langchain: sh -c \"cd instrumentation && ruff check opentelemetry-instrumentation-langchain\"\n \n-  test-instrumentation-weaviate: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-weaviate/tests {posargs}",
+      "id": "PRRT_kwDOSbspP86Bl3RO",
+      "opened": "2026-05-12T23:51:40Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "5bdf4b4fb36beecdb32ff423aacc7f8109594474",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/5#discussion_r3230528739"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not plumbed in contrib https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/tox.ini",
+      "created": "2026-05-12T23:51:54Z",
+      "hunk": "@@ -130,10 +128,8 @@ commands =\n   test-instrumentation-claude-agent-sdk: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-claude-agent-sdk/tests --vcr-record=none {posargs}\n   lint-instrumentation-claude-agent-sdk: sh -c \"cd instrumentation && ruff check opentelemetry-instrumentation-claude-agent-sdk\"\n \n-  test-instrumentation-langchain: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-langchain/tests {posargs}",
+      "id": "PRRT_kwDOSbspP86Bl3Xh",
+      "opened": "2026-05-12T23:51:54Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "5bdf4b4fb36beecdb32ff423aacc7f8109594474",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/5#discussion_r3230529309"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`tox` no longer runs the LangChain (and Weaviate) test environments in `envlist`. The LangChain package already has a non-empty `tests/` suite, so this effectively removes CI test coverage rather than fixing the underlying failure (e.g., missing test factors/requirements or missing runtime deps like `opentelemetry-util-genai`). Please restore the test envs and address the root cause so these tests keep running in CI.",
+      "created": "2026-05-13T00:02:45Z",
+      "hunk": "@@ -33,11 +33,14 @@ envlist =\n     lint-instrumentation-claude-agent-sdk\n \n     ; instrumentation-langchain\n-    py3{10,11,12,13,14}-test-instrumentation-langchain\n+    ; TODO: add tests/requirements.{oldest,latest}.txt and langchain-{oldest,latest}\n+    ; factors below; declare opentelemetry-util-genai in the package pyproject.toml\n+    ; (latent bug — code imports it but it's not in runtime deps).\n     lint-instrumentation-langchain",
+      "id": "PRRT_kwDOSbspP86Bl9LB",
+      "opened": "2026-05-13T00:02:46Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "ebb584faf1efb8b9a804ff7edd9385b4fefa8cbd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/5#discussion_r3230562417"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This workflow change removes the LangChain/Weaviate test jobs from CI. Since `instrumentation/opentelemetry-instrumentation-langchain/tests` contains an actual test suite, dropping these jobs will let regressions ship undetected. Please re-enable the LangChain test jobs (and fix the underlying install/dependency issue instead of skipping).",
+      "created": "2026-05-13T00:02:46Z",
+      "hunk": "@@ -974,196 +974,6 @@ jobs:\n       - name: Run tests\n         run: tox -e py313-test-instrumentation-claude-agent-sdk-latest -- -ra\n \n-  py310-test-instrumentation-langchain_ubuntu-latest:\n-    name: instrumentation-langchain 3.10 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.10\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.10\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py310-test-instrumentation-langchain -- -ra\n-\n-  py311-test-instrumentation-langchain_ubuntu-latest:\n-    name: instrumentation-langchain 3.11 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.11\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.11\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py311-test-instrumentation-langchain -- -ra\n-\n-  py312-test-instrumentation-langchain_ubuntu-latest:\n-    name: instrumentation-langchain 3.12 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.12\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.12\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py312-test-instrumentation-langchain -- -ra\n-\n-  py313-test-instrumentation-langchain_ubuntu-latest:\n-    name: instrumentation-langchain 3.13 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.13\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.13\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py313-test-instrumentation-langchain -- -ra\n-\n-  py314-test-instrumentation-langchain_ubuntu-latest:\n-    name: instrumentation-langchain 3.14 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.14\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.14\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py314-test-instrumentation-langchain -- -ra\n-\n-  py310-test-instrumentation-weaviate_ubuntu-latest:\n-    name: instrumentation-weaviate 3.10 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.10\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.10\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py310-test-instrumentation-weaviate -- -ra\n-\n-  py311-test-instrumentation-weaviate_ubuntu-latest:\n-    name: instrumentation-weaviate 3.11 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.11\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.11\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py311-test-instrumentation-weaviate -- -ra\n-\n-  py312-test-instrumentation-weaviate_ubuntu-latest:\n-    name: instrumentation-weaviate 3.12 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.12\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.12\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py312-test-instrumentation-weaviate -- -ra\n-\n-  py313-test-instrumentation-weaviate_ubuntu-latest:\n-    name: instrumentation-weaviate 3.13 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.13\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.13\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py313-test-instrumentation-weaviate -- -ra\n-\n-  py314-test-instrumentation-weaviate_ubuntu-latest:\n-    name: instrumentation-weaviate 3.14 Ubuntu\n-    runs-on: ubuntu-latest\n-    timeout-minutes: 30\n-    steps:\n-      - name: Checkout repo @ SHA - ${{ github.sha }}\n-        uses: actions/checkout@v4\n-\n-      - name: Set up Python 3.14\n-        uses: actions/setup-python@v5\n-        with:\n-          python-version: \"3.14\"\n-\n-      - name: Install tox\n-        run: pip install tox-uv\n-\n-      - name: Run tests\n-        run: tox -e py314-test-instrumentation-weaviate -- -ra\n-\n   py310-test-util-genai_ubuntu-latest:\n     name: util-genai 3.10 Ubuntu",
+      "id": "PRRT_kwDOSbspP86Bl9LM",
+      "opened": "2026-05-13T00:02:46Z",
+      "path": ".github/workflows/test.yml",
+      "replies": [],
+      "reviewed": "ebb584faf1efb8b9a804ff7edd9385b4fefa8cbd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/5#discussion_r3230562436"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The generated instrumentation table starts with a blank line and lists `anthropic >= 0.16.0`, but `instrumentation/opentelemetry-instrumentation-anthropic/pyproject.toml` declares `anthropic >= 0.51.0` in its `instruments` extra. Please make the supported version shown here consistent with the package metadata (or adjust the metadata) to avoid misleading users and docs builds installing an incompatible version.\n",
+      "created": "2026-05-13T00:02:46Z",
+      "hunk": "@@ -0,0 +1,10 @@\n+\n+| Instrumentation | Supported Packages | Metrics support | Semconv status |\n+| --------------- | ------------------ | --------------- | -------------- |\n+| [opentelemetry-instrumentation-anthropic](./opentelemetry-instrumentation-anthropic) | anthropic >= 0.16.0 | No | development",
+      "id": "PRRT_kwDOSbspP86Bl9LP",
+      "opened": "2026-05-13T00:02:46Z",
+      "path": "instrumentation/README.md",
+      "replies": [],
+      "reviewed": "ebb584faf1efb8b9a804ff7edd9385b4fefa8cbd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/5#discussion_r3230562447"
+    }
+  ]
+}

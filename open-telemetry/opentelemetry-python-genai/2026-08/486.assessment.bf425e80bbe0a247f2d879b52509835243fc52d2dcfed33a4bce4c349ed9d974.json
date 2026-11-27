@@ -1,0 +1,93 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d36e32ce83b5722f892d8f07e5284c0edbaae87d22b9bcd20c427a92d39d8799",
+  "input_digest": "bf425e80bbe0a247f2d879b52509835243fc52d2dcfed33a4bce4c349ed9d974",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/60ddbedfac8dc6db0742c7bcf8704ac52c974a72/instrumentation/opentelemetry-instrumentation-genai-bedrock/.changelog/.gitignore",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/instrumentation/opentelemetry-instrumentation-genai-bedrock/.changelog/.gitignore"
+      ],
+      "id": "PRRT_kwDOSbspP86cgNMU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/60ddbedfac8dc6db0742c7bcf8704ac52c974a72/instrumentation/opentelemetry-instrumentation-genai-bedrock/examples/zero-code/requirements.txt",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/60ddbedfac8dc6db0742c7bcf8704ac52c974a72/instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/version.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/instrumentation/opentelemetry-instrumentation-genai-bedrock/examples/zero-code/requirements.txt",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/version.py"
+      ],
+      "id": "PRRT_kwDOSbspP86cgNNl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/60ddbedfac8dc6db0742c7bcf8704ac52c974a72/instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/__init__.py"
+      ],
+      "id": "PRRT_kwDOSbspP86cgNO3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/60ddbedfac8dc6db0742c7bcf8704ac52c974a72/instrumentation/opentelemetry-instrumentation-genai-bedrock/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/instrumentation/opentelemetry-instrumentation-genai-bedrock/pyproject.toml"
+      ],
+      "id": "PRRT_kwDOSbspP86cgNON",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8d4ee0163a040f05dcd9112aa568c2ace2833502/tox.ini",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8d4ee0163a040f05dcd9112aa568c2ace2833502/scripts/tox_matrix.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/tox.ini",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/ae231cf8a540e0ca4db0bd6adab65b045476a19a",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/612a0d3b9db53f936330517efa7a8cefef4bf2b0"
+      ],
+      "id": "PRRT_kwDOSbspP86dE6iC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8d4ee0163a040f05dcd9112aa568c2ace2833502/tox.ini",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/tox.ini",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/612a0d3b9db53f936330517efa7a8cefef4bf2b0"
+      ],
+      "id": "PRRT_kwDOSbspP86dE6iF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8d4ee0163a040f05dcd9112aa568c2ace2833502/instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/requirements.latest.txt",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae231cf8a540e0ca4db0bd6adab65b045476a19a/instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/requirements.latest.txt",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/612a0d3b9db53f936330517efa7a8cefef4bf2b0"
+      ],
+      "id": "PRRT_kwDOSbspP86dE6iL",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

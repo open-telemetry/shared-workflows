@@ -1,0 +1,62 @@
+{
+  "head": "a0b9712181d8b50493b6044c2f46bd792e8c5a8d",
+  "merge": "fb32ef2855f66a5a7610c75bb23aeefe39dfa71f",
+  "merged": "2026-08-14T15:18:34Z",
+  "missing_roots": 0,
+  "number": 19476,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `getMessageId` is treated as nullable by `SqsProcessRequestAttributesGetter`, but null-valued `Attributes.of(...)` has undefined API behavior. A response with a propagated context but no message ID could therefore disrupt link extraction instead of retaining an attribute-free link. Build through `AttributesBuilder.put`, whose null handling safely omits the attribute.",
+      "created": "2026-08-10T21:43:26Z",
+      "hunk": "@@ -182,6 +194,10 @@ public Instrumenter<SqsProcessRequest, Response<?>> consumerProcessInstrumenter(\n     return builder.buildInstrumenter(SpanKindExtractor.alwaysConsumer());\n   }\n \n+  private static Attributes messageLinkAttributes(SqsMessage message) {\n+    return Attributes.of(MESSAGING_MESSAGE_ID, message.getMessageId());",
+      "id": "PRRT_kwDODJKVX86YC4yr",
+      "opened": "2026-08-10T21:43:27Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-08-13T13:11:46Z",
+          "body": "Addressed in d3a42720fac3fd408074b2e792e57587c64ea8e9.\n\nAnalysis: Both AWS SDK message ID getters can return null, so constructing link attributes through the fixed-value factory can reject an otherwise valid propagated link. Building the attributes and passing the nullable value to AttributesBuilder.put preserves the link while omitting only the unavailable message ID.\n\nUpsides: Receive links remain available for malformed or partial SDK responses, and both AWS SDK implementations now follow the attribute builder's documented null-omission behavior.\n\nDownsides: Allocates a builder for each receive link instead of using the fixed-value factory; no material behavioral downside for non-null message IDs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19476#discussion_r3775629423"
+        },
+        {
+          "at": "2026-08-13T13:39:26Z",
+          "body": "Correction after checking the exact OpenTelemetry API 1.65.0 implementation: the single-pair `Attributes.of` factory explicitly returns `Attributes.empty()` when `value == null`. The original direct call is therefore safe and avoids duplicating the factory's null handling, so I restored it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19476#discussion_r3775836048"
+        }
+      ],
+      "reviewed": "30865626d65163bf9f625846c656acad02e0dbf6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19476#discussion_r3753612828"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `getMessageId` is treated as nullable by `SqsProcessRequestAttributesGetter`, but null-valued `Attributes.of(...)` has undefined API behavior. A response with a propagated context but no message ID could therefore disrupt link extraction instead of retaining an attribute-free link. Build through `AttributesBuilder.put`, whose null handling safely omits the attribute.",
+      "created": "2026-08-10T21:43:26Z",
+      "hunk": "@@ -214,6 +226,10 @@ public Instrumenter<SqsProcessRequest, Response> consumerProcessInstrumenter() {\n     return builder.buildInstrumenter(SpanKindExtractor.alwaysConsumer());\n   }\n \n+  private static Attributes messageLinkAttributes(SqsMessage message) {\n+    return Attributes.of(MESSAGING_MESSAGE_ID, message.getMessageId());",
+      "id": "PRRT_kwDODJKVX86YC4zK",
+      "opened": "2026-08-10T21:43:27Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-08-13T13:11:48Z",
+          "body": "Addressed in d3a42720fac3fd408074b2e792e57587c64ea8e9.\n\nAnalysis: Both AWS SDK message ID getters can return null, so constructing link attributes through the fixed-value factory can reject an otherwise valid propagated link. Building the attributes and passing the nullable value to AttributesBuilder.put preserves the link while omitting only the unavailable message ID.\n\nUpsides: Receive links remain available for malformed or partial SDK responses, and both AWS SDK implementations now follow the attribute builder's documented null-omission behavior.\n\nDownsides: Allocates a builder for each receive link instead of using the fixed-value factory; no material behavioral downside for non-null message IDs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19476#discussion_r3775629636"
+        },
+        {
+          "at": "2026-08-13T13:39:26Z",
+          "body": "Correction after checking the exact OpenTelemetry API 1.65.0 implementation: the single-pair `Attributes.of` factory explicitly returns `Attributes.empty()` when `value == null`. The original direct call is therefore safe and avoids duplicating the factory's null handling, so I restored it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19476#discussion_r3775836029"
+        }
+      ],
+      "reviewed": "30865626d65163bf9f625846c656acad02e0dbf6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19476#discussion_r3753612874"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "head": "9cad85cf4796b976bd31797cf07a32119c462465",
+  "merge": "8554a35da2375c9afe9cdbfd626afd2f3582f620",
+  "merged": "2026-05-26T19:24:38Z",
+  "missing_roots": 0,
+  "number": 99,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This PR adds new well-known values for `gen_ai.provider.name`, which is a consumer-facing semantic-convention change. Per CONTRIBUTING.md, this should be accompanied by an entry under `Unreleased` in CHANGELOG.md so downstream consumers can track the new allowed values.",
+      "created": "2026-05-11T18:11:34Z",
+      "hunk": "@@ -70,6 +70,18 @@ attributes:\n           stability: development\n           value: \"mistral_ai\"\n           brief: '[Mistral AI](https://mistral.ai/)'\n+        - id: moonshot_ai\n+          stability: development\n+          value: \"moonshot_ai\"\n+          brief: '[Moonshot AI](https://www.moonshot.ai/)'\n+        - id: minimax\n+          stability: development\n+          value: \"minimax\"\n+          brief: '[MiniMax](https://www.minimax.io/)'\n+        - id: z_ai\n+          stability: development\n+          value: \"z_ai\"\n+          brief: '[zAI](https://z.ai/)'",
+      "id": "PRRT_kwDOSUeMrM6BLa08",
+      "opened": "2026-05-11T18:11:35Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "fafd8e6fff978e1c79ceaa69b93fc11058728764",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/99#discussion_r3221123202"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "We are updating `gen_ai.provider.name` not `gen_ai.system`, no?",
+      "created": "2026-05-21T20:39:20Z",
+      "hunk": "@@ -16,6 +16,8 @@\n   ([#97](https://github.com/open-telemetry/semantic-conventions-genai/pull/97))\n - Add `gen_ai.workflow.duration` metric to track duration of a workflow.\n   ([#126](https://github.com/open-telemetry/semantic-conventions-genai/pull/126))\n+- Add `moonshot_ai`, `minimax`, and `z_ai` to `gen_ai.system` well-known values.",
+      "id": "PRRT_kwDOSUeMrM6D7cvS",
+      "opened": "2026-05-21T20:39:20Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-05-22T05:40:41Z",
+          "body": "Done, thanks for pointing that out.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/99#discussion_r3286086072"
+        }
+      ],
+      "reviewed": "2e6009d8109770fb6e759e5a245afbc10da60c94",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/99#discussion_r3284193441"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`moonshot_ai` is being added as a new well-known value for `gen_ai.provider.name`, but there is no corresponding reference scenario / reference output demonstrating this provider value being emitted (no `moonshot`/`moonshot_ai` occurrences under `reference/`). Repo guidance expects convention changes under `model/` or `docs/` to be paired with a `reference/scenarios/` update to demonstrate capturability (see `.github/copilot-instructions.md:30-31`). Please add a scenario (or extend an existing one) that credibly emits `gen_ai.provider.name=moonshot_ai`, or document why this is a capture gap.\n",
+      "created": "2026-05-23T16:24:07Z",
+      "hunk": "@@ -70,6 +70,10 @@ attributes:\n           stability: development\n           value: \"mistral_ai\"\n           brief: '[Mistral AI](https://mistral.ai/)'\n+        - id: moonshot_ai\n+          stability: development\n+          value: \"moonshot_ai\"\n+          brief: '[Moonshot AI](https://www.moonshot.ai/)'",
+      "id": "PRRT_kwDOSUeMrM6EUYbs",
+      "opened": "2026-05-23T16:24:08Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-05-23T16:26:49Z",
+          "body": "@ariesdevil you can just update the PR description to cover both of these copilot comments, thanks",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/99#discussion_r3293128072"
+        },
+        {
+          "at": "2026-05-24T10:47:47Z",
+          "body": "Updated, PTAL again @trask ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/99#discussion_r3294288911"
+        }
+      ],
+      "reviewed": "9cad85cf4796b976bd31797cf07a32119c462465",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/99#discussion_r3293125250"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description checklist says “Reference instrumentation and scenarios updated for affected libraries”, but this PR doesn’t include any changes under `reference/scenarios/` and there’s no reference data demonstrating `moonshot_ai`. Please either add the corresponding reference scenario/update or adjust the PR description/checklist so it matches what’s actually included.",
+      "created": "2026-05-23T16:24:08Z",
+      "hunk": "@@ -22,6 +22,8 @@\n   ([#97](https://github.com/open-telemetry/semantic-conventions-genai/pull/97))\n - Add `gen_ai.workflow.duration` metric to track duration of a workflow.\n   ([#126](https://github.com/open-telemetry/semantic-conventions-genai/pull/126))\n+- Add `moonshot_ai` to `gen_ai.provider.name` well-known values.\n+  ([#99](https://github.com/open-telemetry/semantic-conventions-genai/pull/99))",
+      "id": "PRRT_kwDOSUeMrM6EUYb4",
+      "opened": "2026-05-23T16:24:08Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "9cad85cf4796b976bd31797cf07a32119c462465",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/99#discussion_r3293125262"
+    }
+  ]
+}

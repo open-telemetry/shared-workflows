@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "99a96ed819c93c53c5a3b31714a8f4b99bad2645522f4805f1092e0ab78120f8",
+  "input_digest": "7c885eb3c6b801030565cc42eadb55a9aba7d9e44b68da99aca94dd426513e63",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a4e6942c2ff258bb06927d2379560e736a4d400c/testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/33ecaed570de9bbb566c9bc84a48a5fc10f12c1f/testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/914a59c84e064f8bfa395ed30f3b1ed508d657ae"
+      ],
+      "id": "PRRT_kwDODJKVX86Dih1S",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a4e6942c2ff258bb06927d2379560e736a4d400c/testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/33ecaed570de9bbb566c9bc84a48a5fc10f12c1f/testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/914a59c84e064f8bfa395ed30f3b1ed508d657ae"
+      ],
+      "id": "PRRT_kwDODJKVX86Dih2o",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/914a59c84e064f8bfa395ed30f3b1ed508d657ae/testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/33ecaed570de9bbb566c9bc84a48a5fc10f12c1f/testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DkJ_i",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

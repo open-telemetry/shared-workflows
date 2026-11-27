@@ -1,0 +1,430 @@
+{
+  "head": "733ef86f095ca65c65228d861673f50b6a05314a",
+  "merge": "9388212c765fb294b0ae37dadeb179fc90175440",
+  "merged": "2026-08-27T14:31:42Z",
+  "missing_roots": 0,
+  "number": 74,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This generated artifact shows that the new document-load scenario contributes no HTTP conformance coverage: `spans` is empty. The HTTP runner only classifies CLIENT/SERVER spans carrying `http.request.method` (`tools/http/runner/src/http_conformance/_coverage.py:30-33`), so the exported document-load spans are excluded and the scenario currently checks only the generic deprecated-attribute finding. Please either make the scenario emit classifiable HTTP spans and regenerate this artifact, or omit it from the advertised HTTP scenarios until it does.",
+      "created": "2026-08-23T16:37:53Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+{\n+  \"spans\": {},",
+      "id": "PRRT_kwDOTuzK5c6bgn22",
+      "opened": "2026-08-23T16:37:53Z",
+      "path": "scenarios/http/js/document-load/opentelemetry-document-load/client/data.json",
+      "replies": [
+        {
+          "at": "2026-08-23T19:34:41Z",
+          "body": "Addressed in f7373990929d04077c8b55824b95594c1a3e31e3.\n\nAnalysis: DocumentLoadInstrumentation emits INTERNAL spans without http.request.method. The HTTP runner cannot classify these spans as HTTP client or server coverage. The scenario and all workspace and documentation references are removed until the instrumentation can emit classifiable HTTP spans.\n\nUpsides: Every advertised JavaScript HTTP scenario now contributes HTTP conformance coverage. The lockfile no longer installs an instrumentation that the HTTP runner cannot measure.\n\nDownsides: The repository no longer checks DocumentLoadInstrumentation's internal spans or their Weaver findings.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839403811"
+        }
+      ],
+      "reviewed": "8ea8d146763e04cc47dcef70831670840886b3ec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839025493"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR title and description still advertise browser document-load coverage, but the implemented browser scenarios now cover only Fetch and XMLHttpRequest; the prior review thread also confirms document-load was intentionally removed. Please update the PR metadata to remove the document-load claims so the stated scope matches this change.",
+      "created": "2026-08-23T19:38:40Z",
+      "hunk": "@@ -54,6 +58,17 @@ undici does not go through Node's `http` module, so its client spans come from\n `undici.request`, which reports every status rather than throwing on 4xx and\n 5xx: the contract's failing statuses are traffic to be measured like any other.\n \n+## Browser clients\n+\n+Fetch and XMLHttpRequest send the shared contract in a real headless Chromium",
+      "id": "PRRT_kwDOTuzK5c6bhpOh",
+      "opened": "2026-08-23T19:38:40Z",
+      "path": "scenarios/http/js/README.md",
+      "replies": [
+        {
+          "at": "2026-08-23T19:40:33Z",
+          "body": "No code change.\n\nAnalysis: The pull request description now lists only Fetch and XMLHttpRequest as browser coverage. The title already describes the full JavaScript HTTP scope and does not claim document-load coverage.\n\nUpsides: The pull request metadata now matches the implemented scenarios.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839416321"
+        }
+      ],
+      "reviewed": "f7373990929d04077c8b55824b95594c1a3e31e3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839412314"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The regenerated lockfile pins 33 newly added packages to the author-specific `ms-feed-*.pkgs.visualstudio.com/1es-public` mirror, while the existing dependencies resolve from `registry.npmjs.org` (for example, lines 495 and 545). Consequently every `npm ci`—including scenario setup—now depends on that unrelated Azure feed remaining anonymously available, despite the repository having no registry configuration for it. Please regenerate the lockfile with the public npm registry explicitly selected so these entries use stable public tarball URLs.",
+      "created": "2026-08-23T19:45:52Z",
+      "hunk": "@@ -37,6 +40,456 @@\n         \"express\": \"5.2.1\"\n       }\n     },\n+    \"fetch/opentelemetry-fetch\": {\n+      \"name\": \"@otel-conformance/fetch-opentelemetry-fetch\",\n+      \"version\": \"0.1.0\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/instrumentation-fetch\": \"0.221.0\",\n+        \"@otel-conformance/fetch-scenarios\": \"*\",\n+        \"@otel-conformance/http-browser-test-client\": \"file:../../../../../tools/http/test-client/browser-js\"\n+      }\n+    },\n+    \"fetch/scenarios\": {\n+      \"name\": \"@otel-conformance/fetch-scenarios\",\n+      \"version\": \"0.1.0\",\n+      \"license\": \"Apache-2.0\"\n+    },\n+    \"http/opentelemetry-http\": {\n+      \"name\": \"@otel-conformance/node-http-opentelemetry-http\",\n+      \"version\": \"0.1.0\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/instrumentation-http\": \"0.221.0\",\n+        \"@otel-conformance/node-http-scenarios\": \"*\",\n+        \"@otel-conformance/scenario-sdk\": \"file:../../../../../tools/js/scenario-sdk\"\n+      }\n+    },\n+    \"http/scenarios\": {\n+      \"name\": \"@otel-conformance/node-http-scenarios\",\n+      \"version\": \"0.1.0\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@otel-conformance/http-test-client\": \"file:../../../../../tools/http/test-client/js\",\n+        \"@otel-conformance/scenario-support\": \"file:../../../../../tools/js/scenario-support\"\n+      }\n+    },\n+    \"node_modules/@esbuild/aix-ppc64\": {\n+      \"version\": \"0.28.2\",\n+      \"resolved\": \"https://ms-feed-2.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz\",\n+      \"integrity\": \"sha1-v24QMDvPLnxoaXX6Uvk37Cco2Lw=\",",
+      "id": "PRRT_kwDOTuzK5c6bhr1D",
+      "opened": "2026-08-23T19:45:52Z",
+      "path": "scenarios/http/js/package-lock.json",
+      "replies": [
+        {
+          "at": "2026-08-23T19:51:16Z",
+          "body": "Addressed in 09b2621bda74698a5ba9761e561266b1e28cee08.\n\nAnalysis: The local npm registry proxy wrote its Azure feed URLs into 33 new lockfile entries. Each URL now points to the equivalent tarball on registry.npmjs.org without changing package versions or integrity hashes.\n\nUpsides: Scenario setup now depends only on the public npm registry already used by the rest of the lockfile. The lockfile remains reproducible without the unrelated Azure feed.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839439498"
+        }
+      ],
+      "reviewed": "f7373990929d04077c8b55824b95594c1a3e31e3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839427875"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new subprocess can fail because `node` is unavailable, but the shared `FileNotFoundError` handler always reports that npm is missing. That sends users toward the wrong setup fix for browser installs; report the executable from the exception instead.",
+      "created": "2026-08-23T20:05:51Z",
+      "hunk": "@@ -74,7 +89,12 @@ def main(argv: Sequence[str] | None = None) -> int:\n     # From the build root, so every scenario in it installs the same tree\n     # however deep its own directory sits.\n     try:\n-        return subprocess.call(npm_command(), cwd=root)  # noqa: S603\n+        result = subprocess.call(npm_command(), cwd=root)  # noqa: S603\n+        if result != 0 or arguments.browser is None:\n+            return result\n+        return subprocess.call(  # noqa: S603\n+            playwright_command(root, arguments.browser), cwd=root",
+      "id": "PRRT_kwDOTuzK5c6bhzHe",
+      "opened": "2026-08-23T20:05:51Z",
+      "path": "tools/js/src/otel_conformance_js/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-23T20:10:14Z",
+          "body": "Addressed in 3baee3ed9b752ec2b23464b8c065df4b8c44c2bf.\n\nAnalysis: The setup error now names FileNotFoundError.filename instead of always naming npm. Browser installation therefore reports node when the Playwright subprocess cannot start.\n\nUpsides: Users see the executable they need to install or restore. A regression test covers the missing-node browser setup path.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839480156"
+        }
+      ],
+      "reviewed": "3a7085e9b13da9a517afbd6cf0a6bfca55fb787a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3839470906"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Close the failed instance before re-raising a non-retryable exit. `WeaverLiveCheck.start()` creates temporary stdout/stderr files, and those are deleted only by `close()`, so the current code leaks both files whenever startup exits nonzero. Moving `close()` ahead of this branch preserves the retry behavior while cleaning up every failed attempt.",
+      "created": "2026-08-25T01:01:16Z",
+      "hunk": "@@ -102,16 +102,23 @@ def _quiet_connection_retries() -> Generator[None, None, None]:\n def _start_weaver(\n     factory: Callable[[], _TWeaver],\n ) -> Generator[_TWeaver, None, None]:\n-    \"\"\"Start weaver, retrying once if its fixed readiness window expires.\"\"\"\n+    \"\"\"Start weaver, retrying once after a transient startup failure.\"\"\"\n     for attempt in range(2):\n         weaver = factory()\n         try:\n             weaver.start()\n-        except TimeoutError:\n+        except (RuntimeError, TimeoutError) as error:\n+            retryable = isinstance(error, TimeoutError) or str(error) == (\n+                \"WeaverLiveCheck process exited unexpectedly (code 0)\"\n+            )\n+            if not retryable:\n+                raise\n             weaver.close()",
+      "id": "PRRT_kwDOTuzK5c6b5xqW",
+      "opened": "2026-08-25T01:01:16Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_session.py",
+      "replies": [
+        {
+          "at": "2026-08-25T01:06:14Z",
+          "body": "Addressed in 3103cafd0661f4deaac6fd727439686e1f4f5383.\n\nAnalysis: The non-retryable branch raised before calling `close()`. Closing the failed instance before checking whether to retry releases its temporary files on every startup failure while preserving the existing retry decision.\n\nUpsides: Failed startup attempts always release their temporary stdout and stderr files, and the regression test protects the non-retryable path.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3848737071"
+        }
+      ],
+      "reviewed": "60a05eeb23ca9c8c474a19235a3c4df9a95e9c96",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3848716059"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`body` is documented/used as `null` for 'no request body', but `request.end(null)` can throw `ERR_INVALID_ARG_TYPE` (since `end()` expects a string/Buffer/Uint8Array, etc.). Call `request.end()` when `body === null`, and only pass an argument when a body is present.",
+      "created": "2026-08-25T15:06:58Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Sends the shared HTTP exchanges with Node's built-in `http` module until\n+ * they are all answered.\n+ *\n+ * The mock server the runner started answers the same contract, so what the\n+ * scenario adds is the sending: the requests go through `http.request`, which\n+ * reports every status as a `response` event rather than failing on 4xx and\n+ * 5xx, since the contract's failing statuses are traffic to be measured like\n+ * any other. Its events are wrapped in a promise so one exchange is answered\n+ * before the next is sent.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  USER_AGENT,\n+  drive,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { requireEnv } = require(\"@otel-conformance/scenario-support\");\n+\n+function send(method, url, body) {\n+  return new Promise((resolve, reject) => {\n+    const request = http.request(url, {\n+      method,\n+      headers: {\n+        \"user-agent\": USER_AGENT,\n+        // Only when there is one to describe, so a GET does not announce a\n+        // content type for a body it never sent.\n+        ...(body === null ? {} : { \"content-type\": CONTENT_TYPE }),\n+      },\n+    });\n+    request.on(\"response\", (response) => {\n+      const chunks = [];\n+      response.on(\"data\", (chunk) => chunks.push(Buffer.from(chunk)));\n+      response.on(\"end\", () =>\n+        resolve({\n+          status: response.statusCode,\n+          body: Buffer.concat(chunks).toString(\"utf8\"),\n+        }),\n+      );\n+    });\n+    request.on(\"error\", reject);\n+    request.end(body);",
+      "id": "PRRT_kwDOTuzK5c6cIHtS",
+      "opened": "2026-08-25T15:06:59Z",
+      "path": "scenarios/http/js/http/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:11:32Z",
+          "body": "No code change.\n\nAnalysis: Node 22.19.0 treats null as an omitted ClientRequest.end chunk. An HTTP request that called request.end(null) completed without ERR_INVALID_ARG_TYPE on the exact Node version pinned in the workflow.\n\nUpsides: Keeping the single call preserves the contract's null sentinel without adding an unnecessary branch.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854408865"
+        }
+      ],
+      "reviewed": "ecb63a48e829c0a0883a3883b2aebd56ff6debce",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854367814"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`server.closeAllConnections()` is not available in all supported Node.js versions (it was added relatively recently). Calling it unconditionally can crash the scenario at shutdown on older runtimes. Consider feature-detecting (e.g., `if (typeof server.closeAllConnections === 'function')`) and falling back to `server.closeIdleConnections()` (if available) or skipping the call.",
+      "created": "2026-08-25T15:06:59Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.on(\"data\", (chunk) => chunks.push(Buffer.from(chunk)));\n+    request.on(\"end\", () => {\n+      // `respond` documents `null` as the value for a request with no body.\n+      const body = chunks.length\n+        ? Buffer.concat(chunks).toString(\"utf8\")\n+        : null;\n+      const answer = respond(request.method, request.url, body);\n+      response.writeHead(answer.status, { \"content-type\": CONTENT_TYPE });\n+      response.end(answer.body);\n+    });\n+  });\n+  await new Promise((resolve, reject) => {\n+    server.listen(scenarioPort(), \"127.0.0.1\", resolve);\n+    server.once(\"error\", reject);\n+  });\n+  try {\n+    await waitForEof();\n+  } finally {\n+    await new Promise((resolve, reject) => {\n+      server.close((error) => (error ? reject(error) : resolve()));\n+      // Idle keep-alive sockets close with the server, but a connection still\n+      // in flight would hold `close` open, and a scenario that does not exit\n+      // is a scenario the runner waits out.\n+      server.closeAllConnections();",
+      "id": "PRRT_kwDOTuzK5c6cIHtw",
+      "opened": "2026-08-25T15:06:59Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:11:33Z",
+          "body": "No code change.\n\nAnalysis: The workflow pins these scenarios to Node 22.19.0. That runtime provides server.closeAllConnections, and the existing Express scenario uses the same unconditional shutdown call.\n\nUpsides: Keeping the direct call makes shutdown behavior consistent across the Node HTTP servers and still terminates in-flight sockets.\n\nDownsides: The scenario does not run on Node versions older than the repository's configured runtime.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854409069"
+        }
+      ],
+      "reviewed": "ecb63a48e829c0a0883a3883b2aebd56ff6debce",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854367856"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`chunk` from the `data` event is already a `Buffer` (for typical Node `http` request streams). Wrapping it in `Buffer.from(chunk)` creates an unnecessary copy. Pushing `chunk` directly reduces allocations and makes the scenario less noisy under load.",
+      "created": "2026-08-25T15:06:59Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.on(\"data\", (chunk) => chunks.push(Buffer.from(chunk)));",
+      "id": "PRRT_kwDOTuzK5c6cIHua",
+      "opened": "2026-08-25T15:06:59Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:11:35Z",
+          "body": "Addressed in 28f60073a6f98382ae7469db14fc7f8f4c0e86c1.\n\nAnalysis: Node HTTP request and response streams emit Buffer chunks when no encoding is set. Both handlers keep the default encoding, so they can retain each chunk directly until Buffer.concat joins the body.\n\nUpsides: The request and response paths avoid one allocation and copy per data event.\n\nDownsides: The arrays now rely on the streams keeping their default Buffer encoding.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854409295"
+        }
+      ],
+      "reviewed": "ecb63a48e829c0a0883a3883b2aebd56ff6debce",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854367913"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "As with the server, `chunk` is typically already a `Buffer` for `http` response streams. `Buffer.from(chunk)` adds an avoidable copy; pushing `chunk` directly will reduce allocations.",
+      "created": "2026-08-25T15:06:59Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Sends the shared HTTP exchanges with Node's built-in `http` module until\n+ * they are all answered.\n+ *\n+ * The mock server the runner started answers the same contract, so what the\n+ * scenario adds is the sending: the requests go through `http.request`, which\n+ * reports every status as a `response` event rather than failing on 4xx and\n+ * 5xx, since the contract's failing statuses are traffic to be measured like\n+ * any other. Its events are wrapped in a promise so one exchange is answered\n+ * before the next is sent.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  USER_AGENT,\n+  drive,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { requireEnv } = require(\"@otel-conformance/scenario-support\");\n+\n+function send(method, url, body) {\n+  return new Promise((resolve, reject) => {\n+    const request = http.request(url, {\n+      method,\n+      headers: {\n+        \"user-agent\": USER_AGENT,\n+        // Only when there is one to describe, so a GET does not announce a\n+        // content type for a body it never sent.\n+        ...(body === null ? {} : { \"content-type\": CONTENT_TYPE }),\n+      },\n+    });\n+    request.on(\"response\", (response) => {\n+      const chunks = [];\n+      response.on(\"data\", (chunk) => chunks.push(Buffer.from(chunk)));",
+      "id": "PRRT_kwDOTuzK5c6cIHuv",
+      "opened": "2026-08-25T15:06:59Z",
+      "path": "scenarios/http/js/http/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:11:36Z",
+          "body": "Addressed in 28f60073a6f98382ae7469db14fc7f8f4c0e86c1.\n\nAnalysis: Node HTTP request and response streams emit Buffer chunks when no encoding is set. Both handlers keep the default encoding, so they can retain each chunk directly until Buffer.concat joins the body.\n\nUpsides: The request and response paths avoid one allocation and copy per data event.\n\nDownsides: The arrays now rely on the streams keeping their default Buffer encoding.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854409559"
+        }
+      ],
+      "reviewed": "ecb63a48e829c0a0883a3883b2aebd56ff6debce",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854367954"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`IncomingMessage` is a stream and can emit an `error` event; without a listener, an emitted error will crash the process. Add a `request.on(\"error\", ...)` handler (and consider also `response.on(\"error\", ...)`) to fail the scenario run cleanly rather than terminating unexpectedly.",
+      "created": "2026-08-25T15:27:59Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => {\n+      // `respond` documents `null` as the value for a request with no body.\n+      const body = chunks.length\n+        ? Buffer.concat(chunks).toString(\"utf8\")\n+        : null;\n+      const answer = respond(request.method, request.url, body);\n+      response.writeHead(answer.status, { \"content-type\": CONTENT_TYPE });",
+      "id": "PRRT_kwDOTuzK5c6cImra",
+      "opened": "2026-08-25T15:28:01Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:31:00Z",
+          "body": "Addressed in 6f3ad756e2f47425e1a6187752b4240c4f030790.\n\nAnalysis: The client now rejects when its response stream fails. The server races standard-input shutdown against request or response failure, so runScenario receives the error. The server also installs binding listeners before listen and removes the unused listener after either event.\n\nUpsides: Stream and binding failures fail the scenario instead of crashing, hanging, or being swallowed by a settled promise.\n\nDownsides: The server keeps one pending failure promise for its lifetime and adds two listeners per exchange.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854580184"
+        }
+      ],
+      "reviewed": "28f60073a6f98382ae7469db14fc7f8f4c0e86c1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854555117"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`IncomingMessage` (`response`) can emit an `error` event. With no `response.on(\"error\", reject)` handler, an error can crash the process or leave the promise unresolved, hanging the scenario. Attach an `error` listener to `response` and reject the promise on failure.",
+      "created": "2026-08-25T15:28:00Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Sends the shared HTTP exchanges with Node's built-in `http` module until\n+ * they are all answered.\n+ *\n+ * The mock server the runner started answers the same contract, so what the\n+ * scenario adds is the sending: the requests go through `http.request`, which\n+ * reports every status as a `response` event rather than failing on 4xx and\n+ * 5xx, since the contract's failing statuses are traffic to be measured like\n+ * any other. Its events are wrapped in a promise so one exchange is answered\n+ * before the next is sent.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  USER_AGENT,\n+  drive,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { requireEnv } = require(\"@otel-conformance/scenario-support\");\n+\n+function send(method, url, body) {\n+  return new Promise((resolve, reject) => {\n+    const request = http.request(url, {\n+      method,\n+      headers: {\n+        \"user-agent\": USER_AGENT,\n+        // Only when there is one to describe, so a GET does not announce a\n+        // content type for a body it never sent.\n+        ...(body === null ? {} : { \"content-type\": CONTENT_TYPE }),\n+      },\n+    });\n+    request.on(\"response\", (response) => {\n+      const chunks = [];\n+      response.on(\"data\", (chunk) => chunks.push(chunk));\n+      response.on(\"end\", () =>\n+        resolve({\n+          status: response.statusCode,\n+          body: Buffer.concat(chunks).toString(\"utf8\"),\n+        }),\n+      );\n+    });\n+    request.on(\"error\", reject);",
+      "id": "PRRT_kwDOTuzK5c6cImsL",
+      "opened": "2026-08-25T15:28:01Z",
+      "path": "scenarios/http/js/http/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:31:02Z",
+          "body": "Addressed in 6f3ad756e2f47425e1a6187752b4240c4f030790.\n\nAnalysis: The client now rejects when its response stream fails. The server races standard-input shutdown against request or response failure, so runScenario receives the error. The server also installs binding listeners before listen and removes the unused listener after either event.\n\nUpsides: Stream and binding failures fail the scenario instead of crashing, hanging, or being swallowed by a settled promise.\n\nDownsides: The server keeps one pending failure promise for its lifetime and adds two listeners per exchange.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854580441"
+        }
+      ],
+      "reviewed": "28f60073a6f98382ae7469db14fc7f8f4c0e86c1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854555184"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`server.closeAllConnections()` is not available in all supported Node.js versions; calling it unconditionally can throw and prevent clean shutdown. Guard the call (e.g., check method existence) or fall back to tracking sockets and destroying them to avoid hangs while maintaining compatibility.",
+      "created": "2026-08-25T15:28:00Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => {\n+      // `respond` documents `null` as the value for a request with no body.\n+      const body = chunks.length\n+        ? Buffer.concat(chunks).toString(\"utf8\")\n+        : null;\n+      const answer = respond(request.method, request.url, body);\n+      response.writeHead(answer.status, { \"content-type\": CONTENT_TYPE });\n+      response.end(answer.body);\n+    });\n+  });\n+  await new Promise((resolve, reject) => {\n+    server.listen(scenarioPort(), \"127.0.0.1\", resolve);\n+    server.once(\"error\", reject);\n+  });\n+  try {\n+    await waitForEof();\n+  } finally {\n+    await new Promise((resolve, reject) => {\n+      server.close((error) => (error ? reject(error) : resolve()));\n+      // Idle keep-alive sockets close with the server, but a connection still\n+      // in flight would hold `close` open, and a scenario that does not exit\n+      // is a scenario the runner waits out.\n+      server.closeAllConnections();\n+    });",
+      "id": "PRRT_kwDOTuzK5c6cIms_",
+      "opened": "2026-08-25T15:28:01Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:31:05Z",
+          "body": "No code change.\n\nAnalysis: The workflow pins these scenarios to Node 22.19.0. An exact-version probe confirmed that server.closeAllConnections exists, and the existing Express scenario uses the same unconditional call.\n\nUpsides: Keeping the direct call makes shutdown behavior consistent across the Node HTTP servers and still terminates in-flight sockets.\n\nDownsides: The scenario does not run on Node versions older than the repository's configured runtime.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854580871"
+        }
+      ],
+      "reviewed": "28f60073a6f98382ae7469db14fc7f8f4c0e86c1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854555253"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `error` handler is registered after calling `listen()`, which can theoretically miss an early `error` emission. Register `server.once(\"error\", reject)` before invoking `server.listen(...)` to ensure binding failures are reliably captured.",
+      "created": "2026-08-25T15:28:00Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => {\n+      // `respond` documents `null` as the value for a request with no body.\n+      const body = chunks.length\n+        ? Buffer.concat(chunks).toString(\"utf8\")\n+        : null;\n+      const answer = respond(request.method, request.url, body);\n+      response.writeHead(answer.status, { \"content-type\": CONTENT_TYPE });\n+      response.end(answer.body);\n+    });\n+  });\n+  await new Promise((resolve, reject) => {\n+    server.listen(scenarioPort(), \"127.0.0.1\", resolve);\n+    server.once(\"error\", reject);",
+      "id": "PRRT_kwDOTuzK5c6cImsn",
+      "opened": "2026-08-25T15:28:01Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:31:03Z",
+          "body": "Addressed in 6f3ad756e2f47425e1a6187752b4240c4f030790.\n\nAnalysis: The client now rejects when its response stream fails. The server races standard-input shutdown against request or response failure, so runScenario receives the error. The server also installs binding listeners before listen and removes the unused listener after either event.\n\nUpsides: Stream and binding failures fail the scenario instead of crashing, hanging, or being swallowed by a settled promise.\n\nDownsides: The server keeps one pending failure promise for its lifetime and adds two listeners per exchange.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854580692"
+        }
+      ],
+      "reviewed": "28f60073a6f98382ae7469db14fc7f8f4c0e86c1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854555223"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`request.end(body)` will throw if `body` is `null` (the contract appears to use `null` to represent “no body”). To avoid a runtime TypeError and scenario failure, call `request.end()` when `body` is `null`, and only pass an argument for string/Buffer bodies.",
+      "created": "2026-08-25T15:48:27Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Sends the shared HTTP exchanges with Node's built-in `http` module until\n+ * they are all answered.\n+ *\n+ * The mock server the runner started answers the same contract, so what the\n+ * scenario adds is the sending: the requests go through `http.request`, which\n+ * reports every status as a `response` event rather than failing on 4xx and\n+ * 5xx, since the contract's failing statuses are traffic to be measured like\n+ * any other. Its events are wrapped in a promise so one exchange is answered\n+ * before the next is sent.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  USER_AGENT,\n+  drive,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { requireEnv } = require(\"@otel-conformance/scenario-support\");\n+\n+function send(method, url, body) {\n+  return new Promise((resolve, reject) => {\n+    const request = http.request(url, {\n+      method,\n+      headers: {\n+        \"user-agent\": USER_AGENT,\n+        // Only when there is one to describe, so a GET does not announce a\n+        // content type for a body it never sent.\n+        ...(body === null ? {} : { \"content-type\": CONTENT_TYPE }),\n+      },\n+    });\n+    request.on(\"response\", (response) => {\n+      const chunks = [];\n+      response.once(\"error\", reject);\n+      response.on(\"data\", (chunk) => chunks.push(chunk));\n+      response.on(\"end\", () =>\n+        resolve({\n+          status: response.statusCode,\n+          body: Buffer.concat(chunks).toString(\"utf8\"),\n+        }),\n+      );\n+    });\n+    request.on(\"error\", reject);\n+    request.end(body);",
+      "id": "PRRT_kwDOTuzK5c6cJDui",
+      "opened": "2026-08-25T15:48:28Z",
+      "path": "scenarios/http/js/http/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:50:24Z",
+          "body": "No code change.\n\nAnalysis: Node 22.19.0 treats null as an omitted ClientRequest.end chunk. An HTTP request that called request.end(null) completed without a TypeError on the exact Node version pinned in the workflow.\n\nUpsides: Keeping the single call preserves the contract's null sentinel without adding an unnecessary branch.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854749820"
+        }
+      ],
+      "reviewed": "6f3ad756e2f47425e1a6187752b4240c4f030790",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854733190"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`server.closeAllConnections()` is not available in all Node.js versions; if the conformance runner executes these scenarios on an older Node, this will throw and prevent clean shutdown/flush. Consider feature-detecting (e.g., check the function exists) and falling back to a compatible approach when it doesn’t.",
+      "created": "2026-08-25T15:48:28Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  let failExchange;\n+  const exchangeFailed = new Promise((_, reject) => {\n+    failExchange = reject;\n+  });\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.once(\"error\", failExchange);\n+    response.once(\"error\", failExchange);\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => {\n+      // `respond` documents `null` as the value for a request with no body.\n+      const body = chunks.length\n+        ? Buffer.concat(chunks).toString(\"utf8\")\n+        : null;\n+      const answer = respond(request.method, request.url, body);\n+      response.writeHead(answer.status, { \"content-type\": CONTENT_TYPE });\n+      response.end(answer.body);\n+    });\n+  });\n+  await new Promise((resolve, reject) => {\n+    const onError = (error) => {\n+      server.off(\"listening\", onListening);\n+      reject(error);\n+    };\n+    const onListening = () => {\n+      server.off(\"error\", onError);\n+      resolve();\n+    };\n+    server.once(\"error\", onError);\n+    server.once(\"listening\", onListening);\n+    server.listen(scenarioPort(), \"127.0.0.1\");\n+  });\n+  try {\n+    await Promise.race([waitForEof(), exchangeFailed]);\n+  } finally {\n+    await new Promise((resolve, reject) => {\n+      server.close((error) => (error ? reject(error) : resolve()));\n+      // Idle keep-alive sockets close with the server, but a connection still\n+      // in flight would hold `close` open, and a scenario that does not exit\n+      // is a scenario the runner waits out.\n+      server.closeAllConnections();",
+      "id": "PRRT_kwDOTuzK5c6cJDvJ",
+      "opened": "2026-08-25T15:48:28Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T15:50:26Z",
+          "body": "No code change.\n\nAnalysis: The workflow pins these scenarios to Node 22.19.0. An exact-version probe confirmed that server.closeAllConnections exists, and the existing Express scenario uses the same unconditional call.\n\nUpsides: Keeping the direct call makes shutdown behavior consistent across the Node HTTP servers and still terminates in-flight sockets.\n\nDownsides: The scenario does not run on Node versions older than the repository's configured runtime.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854750087"
+        }
+      ],
+      "reviewed": "6f3ad756e2f47425e1a6187752b4240c4f030790",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854733251"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Depending on `\"*\"` for a workspace-local package can lead to non-deterministic installs (and can accidentally resolve from the registry outside a workspace context). Prefer using the workspace protocol (e.g., `workspace:*`) or an explicit local `file:` reference to ensure the intended package is always used.",
+      "created": "2026-08-25T15:48:28Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+{\n+  \"name\": \"@otel-conformance/node-http-opentelemetry-http\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"description\": \"Node.js built-in HTTP measured through @opentelemetry/instrumentation-http.\",\n+  \"license\": \"Apache-2.0\",\n+  \"dependencies\": {\n+    \"@otel-conformance/node-http-scenarios\": \"*\",",
+      "id": "PRRT_kwDOTuzK5c6cJDvr",
+      "opened": "2026-08-25T15:48:28Z",
+      "path": "scenarios/http/js/http/opentelemetry-http/package.json",
+      "replies": [
+        {
+          "at": "2026-08-25T15:50:27Z",
+          "body": "No code change.\n\nAnalysis: npm resolves the \"*\" dependency to the matching local workspace. The lockfile records node_modules/@otel-conformance/node-http-scenarios as a link to http/scenarios, and npm ls confirms that link. The Express and Undici workspaces use the same convention.\n\nUpsides: Keeping \"*\" follows the repository's npm workspace convention and retains the deterministic link already recorded in the lockfile.\n\nDownsides: The private package must be installed from its declared workspace root, which is how the runner builds it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854750303"
+        }
+      ],
+      "reviewed": "6f3ad756e2f47425e1a6187752b4240c4f030790",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854733297"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`server.closeAllConnections()` is only available on newer Node.js versions. If these scenarios are expected to run on older Node versions, this will throw at shutdown and can hang/fail the scenario run. Consider guarding the call (e.g., only invoke if the function exists) or documenting/enforcing a minimum Node.js version for these scenarios.",
+      "created": "2026-08-25T16:07:29Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  let failExchange;\n+  const exchangeFailed = new Promise((_, reject) => {\n+    failExchange = reject;\n+  });\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.once(\"error\", failExchange);\n+    response.once(\"error\", failExchange);\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => {\n+      // `respond` documents `null` as the value for a request with no body.\n+      const body = chunks.length\n+        ? Buffer.concat(chunks).toString(\"utf8\")\n+        : null;\n+      const answer = respond(request.method, request.url, body);\n+      response.writeHead(answer.status, { \"content-type\": CONTENT_TYPE });\n+      response.end(answer.body);\n+    });\n+  });\n+  await new Promise((resolve, reject) => {\n+    const onError = (error) => {\n+      server.off(\"listening\", onListening);\n+      reject(error);\n+    };\n+    const onListening = () => {\n+      server.off(\"error\", onError);\n+      resolve();\n+    };\n+    server.once(\"error\", onError);\n+    server.once(\"listening\", onListening);\n+    server.listen(scenarioPort(), \"127.0.0.1\");\n+  });\n+  try {\n+    await Promise.race([waitForEof(), exchangeFailed]);\n+  } finally {\n+    await new Promise((resolve, reject) => {\n+      server.close((error) => (error ? reject(error) : resolve()));\n+      // Idle keep-alive sockets close with the server, but a connection still\n+      // in flight would hold `close` open, and a scenario that does not exit\n+      // is a scenario the runner waits out.\n+      server.closeAllConnections();",
+      "id": "PRRT_kwDOTuzK5c6cJeSl",
+      "opened": "2026-08-25T16:07:29Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T16:08:19Z",
+          "body": "No code change.\n\nAnalysis: The workflow enforces Node 22.19.0 for these scenarios. An exact-version probe confirmed that server.closeAllConnections exists, and the existing Express scenario uses the same unconditional call.\n\nUpsides: Keeping the direct call makes shutdown behavior consistent across the Node HTTP servers and still terminates in-flight sockets.\n\nDownsides: The scenario does not run on Node versions older than the repository's configured runtime.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854901280"
+        }
+      ],
+      "reviewed": "6f3ad756e2f47425e1a6187752b4240c4f030790",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3854894642"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Writable.end()` does not reliably accept `null` as the chunk argument; passing `null` can throw a `TypeError` in Node. Since this scenario uses `null` to mean “no body”, call `request.end()` with no args when `body === null`, and only pass `body` when it’s a string/Buffer.",
+      "created": "2026-08-25T16:24:31Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Sends the shared HTTP exchanges with Node's built-in `http` module until\n+ * they are all answered.\n+ *\n+ * The mock server the runner started answers the same contract, so what the\n+ * scenario adds is the sending: the requests go through `http.request`, which\n+ * reports every status as a `response` event rather than failing on 4xx and\n+ * 5xx, since the contract's failing statuses are traffic to be measured like\n+ * any other. Its events are wrapped in a promise so one exchange is answered\n+ * before the next is sent.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  USER_AGENT,\n+  drive,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { requireEnv } = require(\"@otel-conformance/scenario-support\");\n+\n+function send(method, url, body) {\n+  return new Promise((resolve, reject) => {\n+    const request = http.request(url, {\n+      method,\n+      headers: {\n+        \"user-agent\": USER_AGENT,\n+        // Only when there is one to describe, so a GET does not announce a\n+        // content type for a body it never sent.\n+        ...(body === null ? {} : { \"content-type\": CONTENT_TYPE }),\n+      },\n+    });\n+    request.on(\"response\", (response) => {\n+      const chunks = [];\n+      response.once(\"error\", reject);\n+      response.on(\"data\", (chunk) => chunks.push(chunk));\n+      response.on(\"end\", () =>\n+        resolve({\n+          status: response.statusCode,\n+          body: Buffer.concat(chunks).toString(\"utf8\"),\n+        }),\n+      );\n+    });\n+    request.on(\"error\", reject);\n+    request.end(body);",
+      "id": "PRRT_kwDOTuzK5c6cJ1dF",
+      "opened": "2026-08-25T16:24:32Z",
+      "path": "scenarios/http/js/http/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-08-25T20:30:20Z",
+          "body": "No code change.\n\nAnalysis: Node's `Writable.end()` implementation treats `null` as an omitted chunk. The smoke test completed without an error on a supported Node version, so `request.end(body)` already sends no body when the contract supplies `null`.\n\nUpsides: Keeping the direct call preserves the contract value and avoids a branch that does not change runtime behavior.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3857069635"
+        }
+      ],
+      "reviewed": "6f3ad756e2f47425e1a6187752b4240c4f030790",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3855036496"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`server.closeAllConnections()` is not available on all supported Node.js versions; if it’s undefined this will throw during shutdown and can break the scenario run. Guard the call (e.g., check function existence) or use a compatibility approach (like `closeIdleConnections()` when present) so shutdown is reliable across Node versions.",
+      "created": "2026-08-25T16:24:31Z",
+      "hunk": "@@ -0,0 +1,76 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+/**\n+ * Hosts the shared HTTP exchanges on Node's built-in HTTP server until the\n+ * driver says stop.\n+ *\n+ * No framework and so no routing model: one handler answers every request by\n+ * its concrete method and target, which is why a run here records no\n+ * `http.route`. The answering itself is the shared lookup every framework\n+ * scenario performs once its own routing has matched.\n+ *\n+ * The requests are sent by `otel-http-drive` from another process, so nothing\n+ * this process loads can instrument the sender and record client spans in a\n+ * server scenario's report. It listens on the port the driver chose and shuts\n+ * down when the driver closes its standard input, which is what gives the SDK\n+ * a chance to flush.\n+ */\n+\n+const http = require(\"node:http\");\n+const {\n+  CONTENT_TYPE,\n+  respond,\n+  scenarioPort,\n+} = require(\"@otel-conformance/http-test-client\");\n+const { waitForEof } = require(\"@otel-conformance/scenario-support\");\n+\n+async function serve() {\n+  let failExchange;\n+  const exchangeFailed = new Promise((_, reject) => {\n+    failExchange = reject;\n+  });\n+  const server = http.createServer((request, response) => {\n+    const chunks = [];\n+    request.once(\"error\", failExchange);\n+    response.once(\"error\", failExchange);\n+    request.on(\"data\", (chunk) => chunks.push(chunk));\n+    request.on(\"end\", () => {\n+      // `respond` documents `null` as the value for a request with no body.\n+      const body = chunks.length\n+        ? Buffer.concat(chunks).toString(\"utf8\")\n+        : null;\n+      const answer = respond(request.method, request.url, body);\n+      response.writeHead(answer.status, { \"content-type\": CONTENT_TYPE });\n+      response.end(answer.body);\n+    });\n+  });\n+  await new Promise((resolve, reject) => {\n+    const onError = (error) => {\n+      server.off(\"listening\", onListening);\n+      reject(error);\n+    };\n+    const onListening = () => {\n+      server.off(\"error\", onError);\n+      resolve();\n+    };\n+    server.once(\"error\", onError);\n+    server.once(\"listening\", onListening);\n+    server.listen(scenarioPort(), \"127.0.0.1\");\n+  });\n+  try {\n+    await Promise.race([waitForEof(), exchangeFailed]);\n+  } finally {\n+    await new Promise((resolve, reject) => {\n+      server.close((error) => (error ? reject(error) : resolve()));\n+      // Idle keep-alive sockets close with the server, but a connection still\n+      // in flight would hold `close` open, and a scenario that does not exit\n+      // is a scenario the runner waits out.\n+      server.closeAllConnections();",
+      "id": "PRRT_kwDOTuzK5c6cJ1dh",
+      "opened": "2026-08-25T16:24:32Z",
+      "path": "scenarios/http/js/http/scenarios/server.js",
+      "replies": [
+        {
+          "at": "2026-08-25T20:30:22Z",
+          "body": "No code change.\n\nAnalysis: This workspace requires Node 22.19.0 or newer, and CI installs Node 22.19.0. Node added `server.closeAllConnections()` in 18.2.0, so every supported runtime has this method. A compatibility guard would cover unsupported Node versions only.\n\nUpsides: Keeping the unconditional call makes shutdown failures visible and guarantees that in-flight connections cannot hold the scenario open.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3857069848"
+        }
+      ],
+      "reviewed": "6f3ad756e2f47425e1a6187752b4240c4f030790",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3855036543"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `\\\"*\\\"` for an internal workspace dependency can accidentally resolve to a registry version (depending on package manager/config) rather than the local workspace. Prefer a workspace-pinned specifier (e.g., `workspace:*` or a `file:` reference) to ensure the scenario always uses the in-repo package.",
+      "created": "2026-08-25T16:24:32Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+{\n+  \"name\": \"@otel-conformance/node-http-opentelemetry-http\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"description\": \"Node.js built-in HTTP measured through @opentelemetry/instrumentation-http.\",\n+  \"license\": \"Apache-2.0\",\n+  \"dependencies\": {\n+    \"@otel-conformance/node-http-scenarios\": \"*\",",
+      "id": "PRRT_kwDOTuzK5c6cJ1d2",
+      "opened": "2026-08-25T16:24:32Z",
+      "path": "scenarios/http/js/http/opentelemetry-http/package.json",
+      "replies": [
+        {
+          "at": "2026-08-25T20:30:23Z",
+          "body": "No code change.\n\nAnalysis: This repository uses npm workspaces and commits npm's lockfile. The lockfile resolves `@otel-conformance/node-http-scenarios` to `http/scenarios` with `link: true`, so npm cannot substitute a registry package during `npm ci`. The same `\"*\"` form is used by the sibling Express and undici scenario packages.\n\nUpsides: Keeping the npm workspace form matches the sibling packages and preserves the lockfile's local link.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3857070038"
+        }
+      ],
+      "reviewed": "6f3ad756e2f47425e1a6187752b4240c4f030790",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/74#discussion_r3855036572"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "head": "88c975420fd2b8a94a7579c15c601e1361c2e49f",
+  "merge": "08334847891076f0dc3979a2437416ab97f5a445",
+  "merged": "2026-08-13T20:25:50Z",
+  "missing_roots": 0,
+  "number": 19535,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "theres some differencs in the partition handling between 2.8 and 2.9\n\nsee https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19566",
+      "created": "2026-08-13T14:31:32Z",
+      "hunk": "@@ -5,26 +5,58 @@\n \n package io.opentelemetry.javaagent.instrumentation.pulsar.v2_8.telemetry;\n \n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+\n import io.opentelemetry.javaagent.instrumentation.pulsar.v2_8.UrlParser.UrlData;\n import javax.annotation.Nullable;\n+import org.apache.pulsar.common.naming.TopicName;\n \n public class BasePulsarRequest {\n \n   private final String destination;\n+  @Nullable private final String destinationPartitionId;\n   @Nullable private final UrlData urlData;\n   @Nullable private final String subscription;\n \n   protected BasePulsarRequest(\n-      String destination, @Nullable UrlData urlData, @Nullable String subscription) {\n-    this.destination = destination;\n+      String topicName, @Nullable UrlData urlData, @Nullable String subscription) {\n+    this.destination = destination(topicName);\n+    this.destinationPartitionId = destinationPartitionId(topicName);\n     this.urlData = urlData;\n     this.subscription = subscription;\n   }\n \n+  /**\n+   * Returns the value to use for {@code messaging.destination.name}. The stable messaging semantic\n+   * conventions model the partition separately, in {@code messaging.destination.partition.id},\n+   * which is defined as being unique within the destination name, so the destination name must not\n+   * embed the {@code -partition-N} suffix.\n+   */\n+  static String destination(String topicName) {",
+      "id": "PRRT_kwDODJKVX86Y99c-",
+      "opened": "2026-08-13T14:31:32Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/BasePulsarRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-13T14:40:52Z",
+          "body": "merged",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19535#discussion_r3776324689"
+        }
+      ],
+      "reviewed": "47bc7e162b869f1f3647d721fc2009b839cdd7ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19535#discussion_r3776261745"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`stripPartitionSuffix` can throw `StringIndexOutOfBoundsException` when `TopicName.getPartitionIndex(topicName)` returns a non-`-1` value for a topic that does *not* contain `TopicName.PARTITIONED_TOPIC_SUFFIX` (e.g., `my-topic-1`). In that case `suffixIndex` is `-1`, and the substring call at lines 56–58 becomes invalid. Add an explicit `if (suffixIndex == -1) { return topicName; }` before the substring logic.",
+      "created": "2026-08-13T17:32:27Z",
+      "hunk": "@@ -5,26 +5,80 @@\n \n package io.opentelemetry.javaagent.instrumentation.pulsar.v2_8.telemetry;\n \n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+\n import io.opentelemetry.javaagent.instrumentation.pulsar.v2_8.UrlParser.UrlData;\n import javax.annotation.Nullable;\n+import org.apache.pulsar.common.naming.TopicName;\n \n public class BasePulsarRequest {\n \n   private final String destination;\n+  @Nullable private final String destinationPartitionId;\n   @Nullable private final UrlData urlData;\n   @Nullable private final String subscription;\n \n   protected BasePulsarRequest(\n-      String destination, @Nullable UrlData urlData, @Nullable String subscription) {\n-    this.destination = destination;\n+      String topicName, @Nullable UrlData urlData, @Nullable String subscription) {\n+    this.destination = destination(topicName);\n+    this.destinationPartitionId = destinationPartitionId(topicName);\n     this.urlData = urlData;\n     this.subscription = subscription;\n   }\n \n+  /**\n+   * Returns the value to use for {@code messaging.destination.name}. The stable messaging semantic\n+   * conventions model the partition separately, in {@code messaging.destination.partition.id},\n+   * which is defined as being unique within the destination name, so the destination name must not\n+   * embed the {@code -partition-N} suffix.\n+   */\n+  static String destination(String topicName) {\n+    if (!emitStableMessagingSemconv()) {\n+      return topicName;\n+    }\n+    return stripPartitionSuffix(topicName);\n+  }\n+\n+  /**\n+   * Returns {@code topicName} without its {@code -partition-N} suffix, or {@code topicName} when it\n+   * does not have one.\n+   */\n+  static String stripPartitionSuffix(String topicName) {\n+    int partitionIndex = TopicName.getPartitionIndex(topicName);\n+    if (partitionIndex == -1) {\n+      return topicName;\n+    }\n+    int suffixIndex = topicName.lastIndexOf(TopicName.PARTITIONED_TOPIC_SUFFIX);\n+    // pulsar 2.8 reads the partition index from the last '-' instead of from the last\n+    // \"-partition-\", so it reports e.g. \"my-topic-partition-key-1\" as partition 1, and it accepts a\n+    // zero padded suffix that pulsar 2.9+ rejects; only strip a suffix that is exactly the\n+    // partition index, otherwise the topic name would lose more than the partition\n+    if (!topicName\n+        .substring(suffixIndex + TopicName.PARTITIONED_TOPIC_SUFFIX.length())\n+        .equals(String.valueOf(partitionIndex))) {\n+      return topicName;\n+    }",
+      "id": "PRRT_kwDODJKVX86ZBlAr",
+      "opened": "2026-08-13T17:32:27Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/BasePulsarRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-13T18:23:54Z",
+          "body": "Addressed in e54a765571a93f7be834c868a003662c31fe8593.\n\nAnalysis: Pulsar 2.8 can infer a partition from any numeric topic tail, so parser output alone cannot identify a canonical partition suffix. A shared suffix-index helper now verifies that `-partition-` exists and that its exact text matches the parsed index; production destination naming, partition IDs, and integration-test expectations all use those criteria, with a regression test for a numeric tail without the suffix.\n\nUpsides: Prevents the stable-semconv substring exception, avoids emitting a partition ID for an unchanged non-partitioned destination, and keeps test expectations aligned with production behavior.\n\nDownsides: The integration-test expectation intentionally duplicates the production validation algorithm, so future changes to the criteria must update both.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19535#discussion_r3778032508"
+        }
+      ],
+      "reviewed": "5445e2080a62991ba015531a1f4ce421e88e1426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19535#discussion_r3777642908"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`destinationPartitionId` currently trusts `TopicName.getPartitionIndex` even in cases where `stripPartitionSuffix` intentionally refuses to treat the topic as partitioned (e.g., `...-partition-key-7` or `...-partition-01`). This can emit `messaging.destination.partition.id` for a destination name that still includes the full topic, creating inconsistent/incorrect semconv output. Make `destinationPartitionId` apply the same “valid suffix” check as `stripPartitionSuffix` (suffix present and equals the parsed index) and return `null` otherwise (or refactor into a single helper that returns a validated partition index used by both methods).",
+      "created": "2026-08-13T17:32:27Z",
+      "hunk": "@@ -5,26 +5,80 @@\n \n package io.opentelemetry.javaagent.instrumentation.pulsar.v2_8.telemetry;\n \n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+\n import io.opentelemetry.javaagent.instrumentation.pulsar.v2_8.UrlParser.UrlData;\n import javax.annotation.Nullable;\n+import org.apache.pulsar.common.naming.TopicName;\n \n public class BasePulsarRequest {\n \n   private final String destination;\n+  @Nullable private final String destinationPartitionId;\n   @Nullable private final UrlData urlData;\n   @Nullable private final String subscription;\n \n   protected BasePulsarRequest(\n-      String destination, @Nullable UrlData urlData, @Nullable String subscription) {\n-    this.destination = destination;\n+      String topicName, @Nullable UrlData urlData, @Nullable String subscription) {\n+    this.destination = destination(topicName);\n+    this.destinationPartitionId = destinationPartitionId(topicName);\n     this.urlData = urlData;\n     this.subscription = subscription;\n   }\n \n+  /**\n+   * Returns the value to use for {@code messaging.destination.name}. The stable messaging semantic\n+   * conventions model the partition separately, in {@code messaging.destination.partition.id},\n+   * which is defined as being unique within the destination name, so the destination name must not\n+   * embed the {@code -partition-N} suffix.\n+   */\n+  static String destination(String topicName) {\n+    if (!emitStableMessagingSemconv()) {\n+      return topicName;\n+    }\n+    return stripPartitionSuffix(topicName);\n+  }\n+\n+  /**\n+   * Returns {@code topicName} without its {@code -partition-N} suffix, or {@code topicName} when it\n+   * does not have one.\n+   */\n+  static String stripPartitionSuffix(String topicName) {\n+    int partitionIndex = TopicName.getPartitionIndex(topicName);\n+    if (partitionIndex == -1) {\n+      return topicName;\n+    }\n+    int suffixIndex = topicName.lastIndexOf(TopicName.PARTITIONED_TOPIC_SUFFIX);\n+    // pulsar 2.8 reads the partition index from the last '-' instead of from the last\n+    // \"-partition-\", so it reports e.g. \"my-topic-partition-key-1\" as partition 1, and it accepts a\n+    // zero padded suffix that pulsar 2.9+ rejects; only strip a suffix that is exactly the\n+    // partition index, otherwise the topic name would lose more than the partition\n+    if (!topicName\n+        .substring(suffixIndex + TopicName.PARTITIONED_TOPIC_SUFFIX.length())\n+        .equals(String.valueOf(partitionIndex))) {\n+      return topicName;\n+    }\n+    // not using TopicName.getPartitionedTopicName(), because it also expands a topic name that is\n+    // not fully qualified, e.g. \"my-topic\" to \"persistent://public/default/my-topic\"\n+    return topicName.substring(0, suffixIndex);\n+  }\n+\n+  /** Returns the value to use for {@code messaging.destination.partition.id}. */\n+  @Nullable\n+  static String destinationPartitionId(String topicName) {\n+    int partitionIndex = TopicName.getPartitionIndex(topicName);\n+    return partitionIndex == -1 ? null : String.valueOf(partitionIndex);",
+      "id": "PRRT_kwDODJKVX86ZBlBX",
+      "opened": "2026-08-13T17:32:27Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/BasePulsarRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-13T18:23:56Z",
+          "body": "Addressed in e54a765571a93f7be834c868a003662c31fe8593.\n\nAnalysis: Pulsar 2.8 can infer a partition from any numeric topic tail, so parser output alone cannot identify a canonical partition suffix. A shared suffix-index helper now verifies that `-partition-` exists and that its exact text matches the parsed index; production destination naming, partition IDs, and integration-test expectations all use those criteria, with a regression test for a numeric tail without the suffix.\n\nUpsides: Prevents the stable-semconv substring exception, avoids emitting a partition ID for an unchanged non-partitioned destination, and keeps test expectations aligned with production behavior.\n\nDownsides: The integration-test expectation intentionally duplicates the production validation algorithm, so future changes to the criteria must update both.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19535#discussion_r3778032697"
+        }
+      ],
+      "reviewed": "5445e2080a62991ba015531a1f4ce421e88e1426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19535#discussion_r3777642972"
+    }
+  ]
+}

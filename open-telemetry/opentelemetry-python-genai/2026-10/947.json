@@ -1,0 +1,67 @@
+{
+  "head": "619c347afdd3f3d862c5bc14cc955942f1cf3ccb",
+  "merge": "23b72eb2acce2f7db046b33d215aa32c5c6fd693",
+  "merged": "2026-10-22T20:07:38Z",
+  "missing_roots": 0,
+  "number": 947,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The real `interaction.completed` payload has no `steps`/`outputs` (checked against `gemini-3.8-flash`: only id, status, model, timestamps, usage), so output messages still won't be recorded on create streams:\n\n```suggestion\nRecord the response id, model and token usage on streamed `interactions.create` spans by matching the SDK's `interaction.completed` event.\n```\n",
+      "created": "2026-10-22T03:11:56Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record the response id, model, token usage and output messages on streamed `interactions.create` spans by matching the SDK's `interaction.completed` event.",
+      "id": "PRRT_kwDOSbspP86vCJGL",
+      "opened": "2026-10-22T03:27:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/947.fixed",
+      "replies": [],
+      "reviewed": "ac131d3c580c1c79613b36fbf22d0b8f12f2e84c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/947#discussion_r4344184757"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Output messages and finish reasons are still missing on create streams: the real `interaction.completed` payload has no `steps`, the text only arrives in `step.start`/`step.delta`. `FetchInteractionStreamWrapper` already rebuilds them with `_StreamedContent` + `_streamed_output_messages`, so the create wrappers could reuse that (and probably share a base with it). Could you file an issue or send a separate PR for it? Fine to keep this one scoped to the event name.",
+      "created": "2026-10-22T03:23:17Z",
+      "hunk": "@@ -555,7 +555,7 @@ def __init__(\n \n     def _process_chunk(self, chunk: InteractionSSEEvent) -> None:\n         event_type = _get_field(chunk, \"event_type\")\n-        if event_type == \"interaction_completed\":\n+        if event_type == \"interaction.completed\":",
+      "id": "PRRT_kwDOSbspP86vCQ-6",
+      "opened": "2026-10-22T03:27:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-10-22T13:49:23Z",
+          "body": "Done in #951. The four wrappers share a mixin and reuse `_StreamedContent` to rebuild output from `step.start`/`step.delta`. `finish_reasons` comes from the interaction status even with content capture off.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/947#discussion_r4349126356"
+        }
+      ],
+      "reviewed": "ac131d3c580c1c79613b36fbf22d0b8f12f2e84c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/947#discussion_r4344237339"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The mock event types are hand-typed to match the code, so this test can't catch a mismatch with the SDK (that's how #946 slipped through), and the mocked completed event carries `steps` that the real one doesn't. Could you add a cassette-backed streamed `interactions.create` test (sync + async) asserting response id, model and usage? That pins the real event sequence and payload.",
+      "created": "2026-10-22T03:25:54Z",
+      "hunk": "@@ -128,7 +128,7 @@ def create_mock_content_event() -> Any:\n \n def create_mock_completed_event(interaction: Any) -> Any:\n     event = unittest.mock.MagicMock()\n-    event.event_type = \"interaction_completed\"\n+    event.event_type = \"interaction.completed\"",
+      "id": "PRRT_kwDOSbspP86vCSwC",
+      "opened": "2026-10-22T03:27:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/util.py",
+      "replies": [
+        {
+          "at": "2026-10-22T13:49:26Z",
+          "body": "Added in `619c347`: sync and async streamed `interactions.create` tests on cassettes, checking response id, model and usage against the SDK's parsed `interaction.completed` event. Both fail with the old event name. They use `gemini-3.8-flash` because `gemini-2.5-flash` returned 404 with a newly created key.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/947#discussion_r4349127160"
+        }
+      ],
+      "reviewed": "ac131d3c580c1c79613b36fbf22d0b8f12f2e84c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/947#discussion_r4344249340"
+    }
+  ]
+}

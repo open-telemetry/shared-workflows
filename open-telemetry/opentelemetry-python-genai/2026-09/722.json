@@ -1,0 +1,76 @@
+{
+  "head": "569873f31672c43c3aeb7f4995680f2e510aa678",
+  "merge": "6434bd4556537d161740824061869ce0d7ef2cba",
+  "merged": "2026-09-17T20:42:02Z",
+  "missing_roots": 0,
+  "number": 722,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using a plain substring match (`'embed' in ...`) is very broad and can misclassify model IDs that happen to contain `embed` but aren’t embeddings. Consider tightening this to known Bedrock embedding patterns (e.g., regex/allowlist for `titan-embed-*`, `cohere.embed-*`, etc.) while still handling ARN forms, to reduce false positives and make the classification behavior explicit.",
+      "created": "2026-09-15T20:03:04Z",
+      "hunk": "@@ -817,3 +821,107 @@ def extract_invoke_model_response(\n                     finish_reason=finish_reason or \"error\",\n                 )\n             ]\n+\n+\n+def is_embedding_model(model_id: str | None) -> bool:\n+    \"\"\"Return True if the model ID corresponds to an embedding model.\"\"\"\n+    if not model_id:\n+        return False\n+    return \"embed\" in model_id.lower()",
+      "id": "PRRT_kwDOSbspP86irbwC",
+      "opened": "2026-09-15T20:03:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "31a8df019b235190f8ea42eb67bb7cb34b9fa0c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/722#discussion_r4019711009"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `elif` prevents checking top-level `billed_units` when `meta` exists but doesn’t contain `billed_units.input_tokens`. This can incorrectly leave `input_tokens` unset. Make the top-level `billed_units` check a separate `if` that runs when `token_count` is still `None` after examining `meta`.",
+      "created": "2026-09-15T20:03:05Z",
+      "hunk": "@@ -817,3 +821,107 @@ def extract_invoke_model_response(\n                     finish_reason=finish_reason or \"error\",\n                 )\n             ]\n+\n+\n+def is_embedding_model(model_id: str | None) -> bool:\n+    \"\"\"Return True if the model ID corresponds to an embedding model.\"\"\"\n+    if not model_id:\n+        return False\n+    return \"embed\" in model_id.lower()\n+\n+\n+def extract_embedding_request(\n+    api_params: dict[str, Any],\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    \"\"\"Populate request attributes from InvokeModel api_params onto the embedding invocation.\"\"\"\n+    _extract_guardrail_id(api_params, invocation)\n+\n+    body = _parse_body(api_params.get(\"body\"))\n+    if not _is_dict(body):\n+        return\n+\n+    # Dimensions (e.g. Titan Text v2 dimensions or embeddingConfig.outputEmbeddingLength)\n+    emb_config = body.get(\"embeddingConfig\")\n+    emb_config_dict = emb_config if _is_dict(emb_config) else None\n+    dimensions = _safe_int(\n+        _first_not_none(\n+            body.get(\"dimensions\"),\n+            emb_config_dict.get(\"outputEmbeddingLength\")\n+            if emb_config_dict\n+            else None,\n+        )\n+    )\n+    if dimensions is not None:\n+        invocation.dimension_count = dimensions\n+\n+    # Encoding formats (e.g. Cohere embedding_types)\n+    raw_formats = _first_not_none(\n+        body.get(\"embedding_types\"),\n+        body.get(\"embeddingTypes\"),\n+        body.get(\"encoding_format\"),\n+        body.get(\"encoding_formats\"),\n+    )\n+    if _is_list(raw_formats):\n+        invocation.encoding_formats = [\n+            str(fmt) for fmt in raw_formats if fmt is not None\n+        ]\n+    elif isinstance(raw_formats, str):\n+        invocation.encoding_formats = [raw_formats]\n+\n+\n+def extract_embedding_response(\n+    response: dict[str, Any],\n+    raw_body_bytes: bytes,\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    \"\"\"Populate response attributes from InvokeModel embedding response.\"\"\"\n+    # 1. Token counts and response model from response headers (case-insensitive)\n+    resp_meta = response.get(\"ResponseMetadata\")\n+    http_headers = (\n+        resp_meta.get(\"HTTPHeaders\") if _is_dict(resp_meta) else None\n+    )\n+    if _is_dict(http_headers):\n+        headers_lower: dict[str, str] = {\n+            str(k).lower(): str(v) for k, v in http_headers.items()\n+        }\n+        if invocation.input_tokens is None:\n+            invocation.input_tokens = _safe_int(\n+                headers_lower.get(\"x-amzn-bedrock-input-token-count\")\n+            )\n+        model_header = headers_lower.get(\"x-amzn-bedrock-model-id\")\n+        if model_header and invocation.response_model_name is None:\n+            invocation.response_model_name = model_header\n+\n+    body = _parse_body(raw_body_bytes)\n+    if not _is_dict(body):\n+        return\n+\n+    # 2. Token counts from payload if not in headers\n+    if invocation.input_tokens is None:\n+        token_count = body.get(\"inputTextTokenCount\")\n+        if token_count is None and _is_dict(body.get(\"meta\")):\n+            meta = body[\"meta\"]\n+            if _is_dict(meta.get(\"billed_units\")):\n+                token_count = meta[\"billed_units\"].get(\"input_tokens\")\n+        elif token_count is None and _is_dict(body.get(\"billed_units\")):",
+      "id": "PRRT_kwDOSbspP86irbw4",
+      "opened": "2026-09-15T20:03:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "31a8df019b235190f8ea42eb67bb7cb34b9fa0c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/722#discussion_r4019711086"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This eagerly reads and buffers the entire embedding response, then wraps it again, which can create a large peak-memory footprint for high-dimension embeddings. Consider using a sync `StreamingBody` wrapper that finalizes telemetry when the caller reads/closes the body (similar to the async wrapper behavior), which avoids upfront buffering at the cost of deferring span completion until the body is consumed.",
+      "created": "2026-09-15T20:03:05Z",
+      "hunk": "@@ -162,6 +165,37 @@ def _handle_invoke_model(\n     server_address, server_port = extract_server_address_and_port(endpoint_url)\n     raw_model_id = api_params.get(\"modelId\")\n     model_id = str(raw_model_id) if raw_model_id else None\n+\n+    if not is_stream and is_embedding_model(model_id):\n+        invocation = handler.embedding(\n+            provider=GenAiProviderNameValues.AWS_BEDROCK.value,\n+            request_model=model_id,\n+            server_address=server_address,\n+            server_port=server_port,\n+        )\n+        extract_embedding_request(api_params, invocation)\n+        try:\n+            response: Any = wrapped(*args, **kwargs)\n+        except BaseException as exc:\n+            invocation.fail(exc)\n+            raise\n+\n+        raw_bytes = b\"\"\n+        body_stream = response.get(\"body\")\n+        if hasattr(body_stream, \"read\"):\n+            raw_bytes = body_stream.read()\n+            response[\"body\"] = StreamingBody(\n+                io.BytesIO(raw_bytes), len(raw_bytes)\n+            )",
+      "id": "PRRT_kwDOSbspP86irbxw",
+      "opened": "2026-09-15T20:03:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [],
+      "reviewed": "31a8df019b235190f8ea42eb67bb7cb34b9fa0c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/722#discussion_r4019711166"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Avoid setting an empty list attribute when `raw_formats` is empty:\n\n```suggestion\n    if _is_list(raw_formats):\n        formats = [str(fmt) for fmt in raw_formats if fmt is not None]\n        if formats:\n            invocation.encoding_formats = formats\n    elif isinstance(raw_formats, str) and raw_formats:\n        invocation.encoding_formats = [raw_formats]\n```",
+      "created": "2026-09-16T05:03:24Z",
+      "hunk": "@@ -817,3 +821,111 @@ def extract_invoke_model_response(\n                     finish_reason=finish_reason or \"error\",\n                 )\n             ]\n+\n+\n+def is_embedding_model(model_id: str | None) -> bool:\n+    \"\"\"Return True if the model ID corresponds to an embedding model.\n+\n+    Every Bedrock embedding model ID contains ``embed`` (``amazon.titan-embed-*``,\n+    ``cohere.embed-*``, ``twelvelabs.*-embed-*``), and no text generation model does. The\n+    match is deliberately broad so that new embedding models are not reported as chat\n+    completions.\n+    \"\"\"\n+    if not model_id:\n+        return False\n+    return \"embed\" in model_id.lower()\n+\n+\n+def extract_embedding_request(\n+    api_params: dict[str, Any],\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    \"\"\"Populate request attributes from InvokeModel api_params onto the embedding invocation.\"\"\"\n+    _extract_guardrail_id(api_params, invocation)\n+\n+    body = _parse_body(api_params.get(\"body\"))\n+    if not _is_dict(body):\n+        return\n+\n+    # Dimensions (e.g. Titan Text v2 dimensions or embeddingConfig.outputEmbeddingLength)\n+    emb_config = body.get(\"embeddingConfig\")\n+    emb_config_dict = emb_config if _is_dict(emb_config) else None\n+    dimensions = _safe_int(\n+        _first_not_none(\n+            body.get(\"dimensions\"),\n+            emb_config_dict.get(\"outputEmbeddingLength\")\n+            if emb_config_dict\n+            else None,\n+        )\n+    )\n+    if dimensions is not None:\n+        invocation.dimension_count = dimensions\n+\n+    # Encoding formats (e.g. Cohere embedding_types)\n+    raw_formats = _first_not_none(\n+        body.get(\"embedding_types\"),\n+        body.get(\"embeddingTypes\"),\n+        body.get(\"encoding_format\"),\n+        body.get(\"encoding_formats\"),\n+    )\n+    if _is_list(raw_formats):\n+        invocation.encoding_formats = [\n+            str(fmt) for fmt in raw_formats if fmt is not None",
+      "id": "PRRT_kwDOSbspP86iywvc",
+      "opened": "2026-09-16T05:05:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-16T14:51:11Z",
+          "body": "Ack.. fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/722#discussion_r4027394919"
+        }
+      ],
+      "reviewed": "2ddf70ea53cbba0ed96d0b0bae520f42c4c2b505",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/722#discussion_r4022659166"
+    }
+  ]
+}

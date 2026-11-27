@@ -1,0 +1,48 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9c554cc2ad5029cc9d0b56759022ad41f250993836b7afbb4b3f41c550d4d544",
+  "input_digest": "56e626766ba6b6a554516fdd7514ebe121542755fea2bdb029976eecee2ea867",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5c77ce9e1c6c348e8dea8034dd9434f8e6bbede/instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpDataSourceMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/19150d05d320b8d2b7fc4d065200150e7f6ecef9/instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpDataSourceMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0a7dbdc8c3cf0dd27430b01a2e906edbae12d47"
+      ],
+      "id": "PRRT_kwDODJKVX86XwmJ5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5c77ce9e1c6c348e8dea8034dd9434f8e6bbede/instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/19150d05d320b8d2b7fc4d065200150e7f6ecef9/instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/19150d05d320b8d2b7fc4d065200150e7f6ecef9/instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d2c7b75eccd650b6e4722186dc9b686fc1a285a5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0a7dbdc8c3cf0dd27430b01a2e906edbae12d47"
+      ],
+      "id": "PRRT_kwDODJKVX86XwmKO",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0a7dbdc8c3cf0dd27430b01a2e906edbae12d47/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/19150d05d320b8d2b7fc4d065200150e7f6ecef9/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0a7dbdc8c3cf0dd27430b01a2e906edbae12d47/instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/19150d05d320b8d2b7fc4d065200150e7f6ecef9/instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86X4R_V",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

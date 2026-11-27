@@ -1,0 +1,31 @@
+{
+  "head": "72528fbcd08e8e889339ab1dbcf80c4a6a12af80",
+  "merge": "be38b418c17993766afe38185f023ed8d5ce6b47",
+  "merged": "2026-07-13T20:49:51Z",
+  "missing_roots": 0,
+  "number": 255,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nopenai-agents~=0.18.2\n```",
+      "created": "2026-07-13T16:31:44Z",
+      "hunk": "@@ -37,8 +37,8 @@\n # This variant of the requirements aims to test the system using\n # the newest supported version of external dependencies.\n \n-openai-agents==0.18.1\n-openai~=2.44.0  # openai-agents 0.18.0 breaks with openai>=2.45.0 (openai/openai-agents-python#3772)\n+openai-agents==0.18.2",
+      "id": "PRRT_kwDOSbspP86QdtPJ",
+      "opened": "2026-07-13T16:31:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/requirements.latest.txt",
+      "replies": [
+        {
+          "at": "2026-07-13T20:06:25Z",
+          "body": "Applied in d16e686.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/255#discussion_r3573786244"
+        }
+      ],
+      "reviewed": "6914c82621b7a1a9269658dff9cb629cb59748a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/255#discussion_r3572380706"
+    }
+  ]
+}

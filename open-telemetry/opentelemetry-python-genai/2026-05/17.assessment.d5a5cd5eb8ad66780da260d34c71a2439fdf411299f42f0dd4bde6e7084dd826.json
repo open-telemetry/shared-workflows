@@ -1,0 +1,70 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9e3cc70f0ad011b639b71cae7d4b3c4a8201338d4f03ae35eb100f58d552d2e3",
+  "input_digest": "d5a5cd5eb8ad66780da260d34c71a2439fdf411299f42f0dd4bde6e7084dd826",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/e065b787ca278043f54a595170ea497a42be2927/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/50b9b33f9956c284d9d265f66d121f142e31a935/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/9e71f1ce2a2a8626381f8bf7830c541149319792"
+      ],
+      "id": "PRRT_kwDOSbspP86CLgLC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/e065b787ca278043f54a595170ea497a42be2927/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/50b9b33f9956c284d9d265f66d121f142e31a935/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/50b9b33f9956c284d9d265f66d121f142e31a935/util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/9e71f1ce2a2a8626381f8bf7830c541149319792"
+      ],
+      "id": "PRRT_kwDOSbspP86CLgLe",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5162cec5511e0eee99dc26169b9c1ce0f58a1ca8/util/opentelemetry-util-genai/AGENTS.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/50b9b33f9956c284d9d265f66d121f142e31a935/util/opentelemetry-util-genai/AGENTS.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/90705317d5d750a3b8fbb95b15b1f79ac7001903"
+      ],
+      "id": "PRRT_kwDOSbspP86CpdKI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5162cec5511e0eee99dc26169b9c1ce0f58a1ca8/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/50b9b33f9956c284d9d265f66d121f142e31a935/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/90705317d5d750a3b8fbb95b15b1f79ac7001903"
+      ],
+      "id": "PRRT_kwDOSbspP86Cph0E",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f4f31bc4ada778840e41097c76bd10d132f687ae/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/50b9b33f9956c284d9d265f66d121f142e31a935/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/3649139bd0753571924d05111e4b7ae68828822d"
+      ],
+      "id": "PRRT_kwDOSbspP86C7_wU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

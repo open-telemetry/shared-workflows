@@ -1,0 +1,639 @@
+{
+  "head": "ceaf60ab2a71c8568f7b4bbf1c51fb4e5c4a4bfa",
+  "merge": "46a4bdbef1727343e0a13cc153e5b9275fa55598",
+  "merged": "2026-09-30T14:32:02Z",
+  "missing_roots": 0,
+  "number": 19783,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "this tests all the metrics definitions parsing at once, we don't have to validate parsing in every per-system test.",
+      "created": "2026-09-02T15:05:34Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal;\n+\n+import static java.util.stream.Collectors.toSet;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.assertj.core.api.Assertions.fail;\n+\n+import io.opentelemetry.instrumentation.jmx.internal.yaml.JmxConfig;\n+import io.opentelemetry.instrumentation.jmx.internal.yaml.JmxRule;\n+import io.opentelemetry.instrumentation.jmx.internal.yaml.RuleParser;\n+import java.io.IOException;\n+import java.io.InputStream;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.nio.file.Paths;\n+import java.util.HashSet;\n+import java.util.Set;\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+class InternalMetricsDefinitionsTest {\n+  private static final ClassLoader CLASS_LOADER =\n+      InternalMetricsDefinitionsTest.class.getClassLoader();\n+  private static final Path YAML_ROOT_FOLDER =\n+      Paths.get(\"src\", \"main\", \"resources\", \"jmx\", \"rules\");\n+\n+  @Test\n+  void supportedSystems() throws IOException {\n+    assertThat(InternalMetricsDefinitions.getSupportedSystems())\n+        .containsExactlyInAnyOrder(\n+            \"activemq\",\n+            \"camel\",\n+            \"cassandra\",\n+            \"kafka-broker\",\n+            \"kafka-connect\",\n+            \"hadoop\",\n+            \"jetty\",\n+            \"jvm\",\n+            \"tomcat\",\n+            \"wildfly\");\n+\n+    InternalMetricsDefinitions definitions = new InternalMetricsDefinitions(CLASS_LOADER);\n+\n+    Set<String> allRules = new HashSet<>();\n+    for (String system : InternalMetricsDefinitions.getSupportedSystems()) {\n+      Set<String> rulesForSystem = definitions.getRulesForSystem(system, true, true);\n+      assertThat(rulesForSystem).isNotEmpty();\n+      allRules.addAll(rulesForSystem);\n+    }\n+\n+    assertThat(getYamlFilesFromFileSystem()).isNotEmpty();\n+    assertThat(allRules).containsExactlyInAnyOrderElementsOf(getYamlFilesFromFileSystem());\n+  }\n+\n+  private static Set<String> getYamlFilesFromFileSystem() throws IOException {\n+    Path rulesRoot = YAML_ROOT_FOLDER;\n+    try (Stream<Path> stream = Files.walk(rulesRoot)) {\n+      return stream\n+          .filter(Files::isRegularFile)\n+          .filter(path -> path.getFileName().toString().endsWith(\".yaml\"))\n+          .map(path -> \"jmx/rules/\" + rulesRoot.relativize(path))\n+          .collect(toSet());\n+    }\n+  }\n+\n+  @ParameterizedTest\n+  @MethodSource(\"getYamlFilesFromFileSystem\")\n+  void validateYamlSyntax(String path) {",
+      "id": "PRRT_kwDODJKVX86ejwd5",
+      "opened": "2026-09-02T15:11:34Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/internal/InternalMetricsDefinitionsTest.java",
+      "replies": [],
+      "reviewed": "db5cd38fa5d14d33c09df6282e096e558ef7f66b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3915552413"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "this new file contains all the non-stable metrics for 'jvm', which is currently the only system where we have both stable and unstable metrics. This has no effect on instrumentation as JMX JVM metrics are disabled and captured by runtime-telemetry.",
+      "created": "2026-09-02T15:07:33Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+---\n+\n+rules:",
+      "id": "PRRT_kwDODJKVX86ejzhB",
+      "opened": "2026-09-02T15:11:34Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/jvm_unstable.yaml",
+      "replies": [],
+      "reviewed": "db5cd38fa5d14d33c09df6282e096e558ef7f66b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3915570996"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example requests `rules/tomcat.yaml`, but that resource does not exist in the library; the bundled Tomcat definitions are now at `jmx/rules/tomcat_unstable.yaml`. Following the example therefore passes `null` to `addRules` and throws `IllegalArgumentException`.",
+      "created": "2026-09-03T15:24:02Z",
+      "hunk": "@@ -41,13 +41,17 @@ import java.time.Duration;\n OpenTelemetry openTelemetry = ...;\n \n JmxTelemetry jmxTelemetry = JmxTelemetry.builder(openTelemetry)\n-  // Configure included metrics (optional)\n-  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"jmx/rules/jetty.yaml\"), \"jetty\")\n-  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"jmx/rules/tomcat.yaml\"), \"tomcat\")\n-  // Configure custom metrics (optional)\n+    // Configure loading embedded metric definitions (optional)\n+  .loadStableMetrics(IncludeExclude.builder().build()) // this will add all available stable metrics\n+  .loadUnstableMetrics(IncludeExclude.builder().setIncluded(\"kafka-*\").build()) // this will opt-in for unstable metrics for \"kafka-*\" systems\n+  // Load metrics from classpath resource (optional)\n+  .addRules(JmxTelemetry.class.getClassLoader().getResourceAsStream(\"rules/tomcat.yaml\"))",
+      "id": "PRRT_kwDODJKVX86e-O9C",
+      "opened": "2026-09-03T15:24:03Z",
+      "path": "instrumentation/jmx-metrics/library/README.md",
+      "replies": [
+        {
+          "at": "2026-09-03T15:50:52Z",
+          "body": "This is intentional as the example is for loading embedded rules provided by user, not to include the embedded files in this library.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3926229877"
+        }
+      ],
+      "reviewed": "b6dcf783bc55c65a7996e04b93fb58a59de20f12",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3926006047"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `otel.jmx.experimental.included` option is consumed by the installer, mapped by the declarative-config bridge, and documented in the README, but it is absent from this configuration metadata. Add it here so generated configuration documentation and metadata-based tooling expose the per-system unstable-metric opt-in.",
+      "created": "2026-09-03T15:24:03Z",
+      "hunk": "@@ -26,3 +27,13 @@ configurations:\n     description: List of predefined JMX target systems to collect metrics for.\n     type: list\n     default: \"\"\n+  - name: otel.jmx.metrics.included\n+    declarative_name: java.jmx.metrics.included\n+    description: List of metric name patterns to include. When set, only metrics matching these patterns are collected; all others are excluded. Wildcards are supported.\n+    type: list\n+    default: \"\"",
+      "id": "PRRT_kwDODJKVX86e-O99",
+      "opened": "2026-09-03T15:24:03Z",
+      "path": "instrumentation/jmx-metrics/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T15:55:00Z",
+          "body": "This configuration option is only relevant with v3 preview is enabled, should we include it right now or update metadata when the v3 changes are effective ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3926264222"
+        }
+      ],
+      "reviewed": "b6dcf783bc55c65a7996e04b93fb58a59de20f12",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3926006137"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The unstable selector is configured with target-system patterns (`otel.jmx.experimental.included` supplies values such as `jetty` and `kafka-*`), but this applies it to metric names such as `jetty.thread.count` and `kafka.message.count`. Those documented opt-ins therefore match nothing and the unstable metrics remain excluded. Select unstable rule sets by their system identifier before deriving the metric filter; this also avoids loading and polling definitions that were not opted into.",
+      "created": "2026-09-04T19:51:22Z",
+      "hunk": "@@ -95,17 +113,141 @@ public JmxTelemetryBuilder addRules(Path path) {\n     }\n   }\n \n-  /** Sets the {@link ClassLoader} to be used to load SPI implementations. */\n+  /**\n+   * Set metrics to include and exclude\n+   *\n+   * @param metrics metrics to include/exclude\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n+    this.metrics = metrics;\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which systems should have their internal metrics automatically registered.\n+   *\n+   * @param systemFilter system filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsSystemFilter(IncludeExclude systemFilter) {\n+    internalMetricsSystemFilter = systemFilter;\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which unstable internal metrics should be enabled, unless enabled they are\n+   * filtered-out.\n+   *\n+   * @param metricsFilter metric filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsUnstableMetricsFilter(IncludeExclude metricsFilter) {\n+    internalMetricsUnstableMetricsFilter = metricsFilter;\n+    return this;\n+  }\n+\n+  /**\n+   * Sets the {@link ClassLoader} to be used to load SPI implementations and internal resource\n+   * loading\n+   */\n   @CanIgnoreReturnValue\n   public JmxTelemetryBuilder setServiceClassLoader(ClassLoader serviceClassLoader) {\n     requireNonNull(serviceClassLoader, \"serviceClassLoader\");\n     this.componentLoader = ComponentLoader.forClassLoader(serviceClassLoader);\n+    this.classLoader = serviceClassLoader;\n     return this;\n   }\n \n-  public JmxTelemetry build() {\n+  // package private for testing\n+  JmxTelemetry build(InternalMetricsDefinitions metricsDefinitions) {\n     HandlerRegistry handlerRegistry = new HandlerRegistry();\n     handlerRegistry.load(componentLoader);\n-    return new JmxTelemetry(openTelemetry, discoveryDelayMs, metricConfiguration, handlerRegistry);\n+\n+    // metric names from handlers are only available after handlers have been resolved\n+    // also, we should only include handlers that have been explicitly registered in the rules.\n+    registeredHandlers.forEach(\n+        h -> {\n+          ExperimentalJmxMetricHandler handler = handlerRegistry.getHandler(h);\n+          if (handler != null) {\n+            registeredMetrics.addAll(handler.getMetricNames());\n+          }\n+        });\n+\n+    // filter on system name let the caller control which systems are supported.\n+    metricsDefinitions.loadInternalRules(internalMetricsSystemFilter, handlerRegistry);\n+    // all metric defs are loaded and configured, even if metrics may be filtered-out later\n+    metricsDefinitions.getAllMetricDefs().forEach(metricConfiguration::addMetricDef);\n+\n+    Set<String> stableMetrics = metricsDefinitions.getMetricNames(true);\n+    Set<String> unstableMetrics = metricsDefinitions.getMetricNames(false);\n+\n+    // make all internal metrics as registered, but they can be filtered out\n+    registeredMetrics.addAll(stableMetrics);\n+    registeredMetrics.addAll(unstableMetrics);\n+\n+    // make the metric filter ignore the non-stable metrics not explicitly in the opt-in filter\n+    Set<String> excludePatterns = new HashSet<>(metrics.getExcluded());\n+    unstableMetrics.stream()\n+        .filter(m -> !internalMetricsUnstableMetricsFilter.matches(m))",
+      "id": "PRRT_kwDODJKVX86fbPfh",
+      "opened": "2026-09-04T19:51:23Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-07T09:38:45Z",
+          "body": "this is no longer relevant as the metric opt-in is now using the metric names, and not system name as previously.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948442939"
+        }
+      ],
+      "reviewed": "222737e360db2994610a730c479a532ac666b658",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3937452643"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The public API described by this PR (`addStableMetrics`/`addUnstableMetrics`) is not exposed; instead the builder exposes this `internal*` method, while the updated library README calls yet another nonexistent pair (`loadStableMetrics`/`loadUnstableMetrics`). Library consumers therefore cannot use the documented API. Expose the agreed public methods and align the installer, tests, and README with those names.",
+      "created": "2026-09-04T19:51:23Z",
+      "hunk": "@@ -95,17 +113,141 @@ public JmxTelemetryBuilder addRules(Path path) {\n     }\n   }\n \n-  /** Sets the {@link ClassLoader} to be used to load SPI implementations. */\n+  /**\n+   * Set metrics to include and exclude\n+   *\n+   * @param metrics metrics to include/exclude\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n+    this.metrics = metrics;\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which systems should have their internal metrics automatically registered.\n+   *\n+   * @param systemFilter system filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsSystemFilter(IncludeExclude systemFilter) {",
+      "id": "PRRT_kwDODJKVX86fbPfw",
+      "opened": "2026-09-04T19:51:23Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "222737e360db2994610a730c479a532ac666b658",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3937452671"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: this allows to get rid of hard-coded resource path in hadoop startup shell scripts.",
+      "created": "2026-09-07T09:41:01Z",
+      "hunk": "@@ -28,19 +28,18 @@\n class HadoopTest extends TargetSystemTest {\n \n   private static final String ENDPOINT_PLACEHOLDER = \"<<ENDPOINT_PLACEHOLDER>>\";\n+  private static final String JMX_CONFIG_PLACEHOLDER = \"<<JMX_CONFIG_PLACEHOLDER>>\";",
+      "id": "PRRT_kwDODJKVX86f3HrR",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/HadoopTest.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948458992"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: this is now we disable loading internal metrics by default using the API.",
+      "created": "2026-09-07T09:42:01Z",
+      "hunk": "@@ -97,6 +99,12 @@ public Enumeration<URL> getResources(String name) throws IOException {\n     assertThat(BaseThreadHandler.createCount.get()).isEqualTo(1);\n   }\n \n+  private static JmxTelemetryBuilder getTestJmxTelemetryBuilder() {\n+    return JmxTelemetry.builder(testing.getOpenTelemetry())\n+        // disable internal metrics loading as they are enabled by default and interfere with test\n+        .internalMetricsSystemFilter(IncludeExclude.builder().setExcluded(\"*\").build());",
+      "id": "PRRT_kwDODJKVX86f3I89",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/HandlerTest.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948466666"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: allows to make the tests using the new config options opt-in, hence avoiding having to update all tests for now. This will become the default for v3 though.",
+      "created": "2026-09-07T09:43:32Z",
+      "hunk": "@@ -179,12 +177,37 @@ protected static List<String> javaPropertiesToJvmArgs(Map<String, String> config\n   }\n \n   /**\n-   * Generates otel configuration for JMX testing with instrumentation agent\n+   * Generates otel configuration for JMX testing with custom yaml configuration files\n    *\n    * @param yamlFiles JMX metrics definitions in YAML\n    * @return map of otel configuration properties for JMX testing\n    */\n-  protected static Map<String, String> otelConfigProperties(List<String> yamlFiles) {\n+  protected static Map<String, String> otelConfigProperties(Collection<String> yamlFiles) {\n+    Map<String, String> config = commonOtelConfig();\n+    assertThat(yamlFiles).isNotEmpty();\n+    // set yaml config files to test\n+    config.put(\n+        \"otel.jmx.config\",\n+        yamlFiles.stream().map(TargetSystemTest::containerYamlPath).collect(joining(\",\")));\n+    return config;\n+  }\n+\n+  /**\n+   * Generates otel configuration for JMX testing with opt-in for experimental unstable metrics\n+   *\n+   * @param experimentalInclude comma-separated list of systems for which we need to enable\n+   *     non-stable metrics\n+   * @return map of otel configuration properties for JMX testing\n+   */\n+  protected Map<String, String> otelConfigPropertiesExperimentalOptIn(String experimentalInclude) {",
+      "id": "PRRT_kwDODJKVX86f3Kzj",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948477829"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: existing tests do not use full path, but the new implementation does, so we preserve compatibility here.",
+      "created": "2026-09-07T09:44:15Z",
+      "hunk": "@@ -266,43 +286,16 @@ protected static void copyTestWebAppToTarget(GenericContainer<?> target, String\n   }\n \n   private static String yamlResourcePath(String yaml) {\n+    if (yaml.startsWith(\"jmx/rules/\")) {",
+      "id": "PRRT_kwDODJKVX86f3LuL",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948483491"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: yaml validation is now tested systematically in `InternalMetricsDefinitionsTest`, so we don't have to do this on every per-system test.",
+      "created": "2026-09-07T09:45:06Z",
+      "hunk": "@@ -266,43 +286,16 @@ protected static void copyTestWebAppToTarget(GenericContainer<?> target, String\n   }\n \n   private static String yamlResourcePath(String yaml) {\n+    if (yaml.startsWith(\"jmx/rules/\")) {\n+      return yaml;\n+    }\n     return \"jmx/rules/\" + yaml;\n   }\n \n   private static String containerYamlPath(String yaml) {\n     return \"/\" + yaml;\n   }\n \n-  /**\n-   * Validates YAML definition by parsing it to check for syntax errors\n-   *\n-   * @param yaml path to YAML resource (in classpath)\n-   */\n-  protected void validateYamlSyntax(String yaml) {",
+      "id": "PRRT_kwDODJKVX86f3M2Y",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948490200"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: for now, only tomcat test is using the new configuration options for non-stable metrics.",
+      "created": "2026-09-07T09:46:05Z",
+      "hunk": "@@ -10,29 +10,48 @@\n import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attributeWithAnyValue;\n import static java.util.Arrays.asList;\n import static java.util.Collections.emptyList;\n-import static java.util.Collections.singletonList;\n+import static org.junit.jupiter.params.provider.Arguments.arguments;\n \n import io.opentelemetry.instrumentation.jmx.rules.assertions.AttributeMatcher;\n import java.time.Duration;\n import java.util.ArrayList;\n import java.util.List;\n+import java.util.Map;\n+import java.util.stream.Stream;\n import org.junit.jupiter.params.ParameterizedTest;\n-import org.junit.jupiter.params.provider.ValueSource;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n import org.testcontainers.containers.GenericContainer;\n import org.testcontainers.containers.wait.strategy.Wait;\n \n class TomcatTest extends TargetSystemTest {\n \n-  @ParameterizedTest\n-  @ValueSource(strings = {\"tomcat:10.0\", \"tomcat:9.0\"})\n-  void testCollectedMetrics(String dockerImageName) {\n-    List<String> yamlFiles = singletonList(\"tomcat.yaml\");\n+  static Stream<Arguments> tomcatArgs() {",
+      "id": "PRRT_kwDODJKVX86f3OBG",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TomcatTest.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948497326"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: the test now relies on test-only resource files, hence avoiding any change in the metrics definitions to influence the test.",
+      "created": "2026-09-07T09:47:38Z",
+      "hunk": "@@ -38,20 +44,182 @@ void throwsExceptionOnNullInput() {\n   @Test\n   void invalidClasspathTarget() {\n     JmxTelemetryBuilder builder = JmxTelemetry.builder(OpenTelemetry.noop());\n-    assertThatThrownBy(() -> addClasspathRules(builder, \"jmx/rules/invalid.yaml\"))\n+    assertThatThrownBy(() -> builder.addRules(classpathRules(\"jmx/rules/invalid.yaml\")))\n         .isInstanceOf(IllegalArgumentException.class);\n   }\n \n   @Test\n   void knownValidYaml() {\n-    JmxTelemetryBuilder jmxtelemetry = JmxTelemetry.builder(OpenTelemetry.noop());\n-    addClasspathRules(jmxtelemetry, \"jmx/rules/jvm.yaml\");\n-    assertThat(jmxtelemetry.build()).isNotNull();\n+    JmxTelemetryBuilder builder = JmxTelemetry.builder(OpenTelemetry.noop());",
+      "id": "PRRT_kwDODJKVX86f3P2j",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryTest.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948508832"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for reviewer: changing the value of this allows to avoid loading the jvm metrics in instrumentation.",
+      "created": "2026-09-07T10:15:02Z",
+      "hunk": "@@ -31,8 +37,17 @@ public final class JmxTelemetryBuilder {\n   private final OpenTelemetry openTelemetry;\n   private final MetricConfiguration metricConfiguration;\n   private long discoveryDelayMs;\n-  private ComponentLoader componentLoader =\n-      ComponentLoader.forClassLoader(JmxTelemetryBuilder.class.getClassLoader());\n+  private ClassLoader classLoader = JmxTelemetryBuilder.class.getClassLoader();\n+  private ComponentLoader componentLoader = ComponentLoader.forClassLoader(classLoader);\n+  private final Set<String> registeredMetrics = new HashSet<>();\n+  private final Set<String> registeredHandlers = new HashSet<>();\n+  private IncludeExclude metrics = IncludeExclude.builder().build();\n+\n+  // include all systems by default\n+  private IncludeExclude internalMetricsSystemFilter = IncludeExclude.builder().build();",
+      "id": "PRRT_kwDODJKVX86f3xnz",
+      "opened": "2026-09-07T10:29:26Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "c69e83172e902f1bb0a0faab8acf91ba6f609295",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3948712761"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces a runtime deprecation for `otel.jmx.target.system`, but the PR does not add the required `Unreleased` changelog entry. `CONTRIBUTING.md:34-45` explicitly requires an entry with replacement/removal guidance for every deprecation; please document the migration to stable-by-default metrics and `otel.jmx.metrics.experimental.included`.",
+      "created": "2026-09-07T13:39:54Z",
+      "hunk": "@@ -58,10 +61,80 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    // otel.jmx.target.system support will be removed in v3\n+    List<String> systemsConfig =\n+        config.get(\"target\").getScalarList(\"system\", String.class, emptyList());\n+    if (!systemsConfig.isEmpty()) {\n+      logger.log(WARNING, \"'otel.jmx.target.system' is deprecated and will be removed in 3.x.\");",
+      "id": "PRRT_kwDODJKVX86f7s7W",
+      "opened": "2026-09-07T13:39:55Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-07T14:04:07Z",
+          "body": "The config option is deprecated as it will be removed in 3.0, this makes the users of the last 2.x aware that the option will be removed in 3.0. For now the migration can only be described with v3 preview + the new experimental metric include option.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3950442100"
+        }
+      ],
+      "reviewed": "dfb8113bc077f48b791065c0a1677f06889f0b8c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3950252706"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `build()` now appends every embedded `MetricDef` to the builder's shared `metricConfiguration`. Calling `build()` more than once therefore duplicates the definitions, and previously built `JmxTelemetry` instances also observe the mutation because they retain that same configuration; subsequent bean discovery can register duplicate callbacks and query each MBean multiple times. Build from a fresh combined configuration (or otherwise ensure embedded definitions are added only once).",
+      "created": "2026-09-08T09:49:07Z",
+      "hunk": "@@ -95,17 +114,120 @@ public JmxTelemetryBuilder addRules(Path path) {\n     }\n   }\n \n-  /** Sets the {@link ClassLoader} to be used to load SPI implementations. */\n+  /**\n+   * Set metrics to include and exclude\n+   *\n+   * @param metrics metrics to include/exclude\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n+    this.metrics = metrics;\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which systems should have their internal metrics automatically registered.\n+   *\n+   * @param systemFilter system filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsSystemFilter(IncludeExclude systemFilter) {\n+    internalMetricsSystemFilter = systemFilter;\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which unstable internal metrics should be enabled, unless enabled they are\n+   * filtered-out.\n+   *\n+   * @param metricsFilter metric filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsUnstableMetricsFilter(IncludeExclude metricsFilter) {\n+    internalMetricsUnstableMetricsFilter = metricsFilter;\n+    return this;\n+  }\n+\n+  /**\n+   * Sets the {@link ClassLoader} to be used to load SPI implementations and internal resource\n+   * loading\n+   */\n   @CanIgnoreReturnValue\n   public JmxTelemetryBuilder setServiceClassLoader(ClassLoader serviceClassLoader) {\n     requireNonNull(serviceClassLoader, \"serviceClassLoader\");\n     this.componentLoader = ComponentLoader.forClassLoader(serviceClassLoader);\n+    this.classLoader = serviceClassLoader;\n     return this;\n   }\n \n-  public JmxTelemetry build() {\n+  // package private for testing\n+  JmxTelemetry build(InternalMetricsDefinitions metricsDefinitions) {\n     HandlerRegistry handlerRegistry = new HandlerRegistry();\n     handlerRegistry.load(componentLoader);\n-    return new JmxTelemetry(openTelemetry, discoveryDelayMs, metricConfiguration, handlerRegistry);\n+\n+    // metric names from handlers are only available after handlers have been resolved\n+    // also, we should only include handlers that have been explicitly registered in the rules.\n+    registeredHandlers.forEach(\n+        h -> {\n+          ExperimentalJmxMetricHandler handler = handlerRegistry.getHandler(h);\n+          if (handler != null) {\n+            registeredMetrics.addAll(handler.getMetricNames());\n+          }\n+        });\n+\n+    // filter on system name let the caller control which systems are supported.\n+    metricsDefinitions.loadInternalRules(internalMetricsSystemFilter, handlerRegistry);\n+    // all metric defs are loaded and configured, even if metrics may be filtered-out later\n+    metricsDefinitions.getAllMetricDefs().forEach(metricConfiguration::addMetricDef);",
+      "id": "PRRT_kwDODJKVX86gLx9E",
+      "opened": "2026-09-08T09:49:07Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-10T08:32:33Z",
+          "body": "fixed in ed3d8f0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3977135465"
+        }
+      ],
+      "reviewed": "b2c90e2a1764d9bc816748f1ea1b0dffdfd03573",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3956570408"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The filter is applied only after `BeanFinder.resolveBeans()` has queried every configured ObjectName and `resolveAttributes()` has fetched MBean metadata. In v3 mode all non-JVM systems are loaded even though their unstable metrics are excluded by default, so every application repeatedly scans hundreds of disabled rules (eventually once per minute), and matching beans have their attributes inspected on every pass because enrollment never succeeds. Apply the effective filter before bean discovery, or prune disabled extractors/handlers from the configuration while retaining explicitly opted-in metrics.",
+      "created": "2026-09-10T12:27:52Z",
+      "hunk": "@@ -70,9 +76,17 @@ void enrollExtractor(\n       return;\n     }\n \n-    boolean recordDoubleValue = attributeInfo.usesDoubleValues();\n     MetricInfo metricInfo = extractor.getInfo();\n     String metricName = metricInfo.getMetricName();\n+\n+    if (!metrics.matches(metricName)) {\n+      // shortcut: when metric is excluded, we don't even need to attempt building it nor let the\n+      // meter filter the metrics.\n+      logger.log(FINE, \"Metric {0} is excluded by configuration\", metricName);\n+      return;",
+      "id": "PRRT_kwDODJKVX86hEdQN",
+      "opened": "2026-09-10T12:27:53Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [
+        {
+          "at": "2026-09-10T13:12:09Z",
+          "body": "This is a known limitation of the current architecture where the metrics are not registered and polled individually. The polling is organized by mbeans rather than per-metric. Adding the ability to do so would likely require some significant refactor of the current implementation so it's probably better to do that as a later improvement.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3979407178"
+        }
+      ],
+      "reviewed": "5a0a2047b6909ef5aa6e926b39fb7fb3de5f8006",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r3979029990"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `setServiceClassLoader` is documented as selecting the loader for SPI implementations, but this assignment also makes it the loader for bundled `jmx/rules` resources. A valid isolated SPI class loader (for example, one with no parent resources) will now make every predefined rule appear absent. Keep embedded definitions on the library's class loader and use this argument only for `ComponentLoader`, or expose a separate resource-loader API.",
+      "created": "2026-09-14T11:55:03Z",
+      "hunk": "@@ -116,19 +131,108 @@ public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n     return this;\n   }\n \n+  /**\n+   * Configure which systems should have their internal metrics automatically registered.\n+   *\n+   * @param systemFilter system filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsSystemFilter(IncludeExclude systemFilter) {\n+    internalMetricsSystemFilter = systemFilter;\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which unstable internal metrics should be enabled, unless enabled they are\n+   * filtered-out.\n+   *\n+   * @param metricsFilter metric filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsUnstableMetricsFilter(IncludeExclude metricsFilter) {\n+    internalMetricsUnstableMetricsFilter = metricsFilter;\n+    return this;\n+  }\n+\n   /** Sets the {@link ClassLoader} to be used to load SPI implementations. */\n   @CanIgnoreReturnValue\n   public JmxTelemetryBuilder setServiceClassLoader(ClassLoader serviceClassLoader) {\n     requireNonNull(serviceClassLoader, \"serviceClassLoader\");\n     this.componentLoader = ComponentLoader.forClassLoader(serviceClassLoader);\n+    this.classLoader = serviceClassLoader;",
+      "id": "PRRT_kwDODJKVX86iGFuO",
+      "opened": "2026-09-14T11:55:04Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "d7523926e89d79fa3ed5c6dbb7998c21c38b6f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4004866741"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `OpenFileDescriptorCount` and `MaxFileDescriptorCount` are attributes of the `java.lang:type=OperatingSystem` MBean, not `Threading`. As written, this new fixture parses successfully but can never collect either metric, so it cannot serve as a realistic unstable-rule fixture.",
+      "created": "2026-09-14T11:55:03Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+---\n+# subset of jvm rules for testing without dependency on real jvm metrics evolution\n+rules:\n+\n+  - bean: java.lang:type=Threading",
+      "id": "PRRT_kwDODJKVX86iGFuz",
+      "opened": "2026-09-14T11:55:04Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/resources/jmx/rules/jvm-test_unstable.yaml",
+      "replies": [],
+      "reviewed": "d7523926e89d79fa3ed5c6dbb7998c21c38b6f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4004866805"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This example does not activate the new behavior in the current 2.x release. The installer reads this option only in the `v3Preview` branch, while the pre-v3 branch disables all predefined systems when `otel.jmx.target.system` is absent, so running the shown command today collects none of these metrics. Include the preview flag and clarify that it becomes the default in 3.0.",
+      "created": "2026-09-14T11:55:04Z",
+      "hunk": "@@ -14,26 +14,38 @@ To control the time interval between MBean detection attempts, one can use the `\n \n JMX is a popular metrics technology used throughout the JVM (see [runtime metrics](../runtime-telemetry/library/README.md)), application servers, third-party libraries, and applications.\n JMX Metric Insight comes with a number of predefined configurations containing curated sets of JMX metrics for frequently used application servers or frameworks.\n-To enable collection of the predefined metrics, specify a list of targets as the value for the `otel.jmx.target.system` property. For example\n+\n+Before 3.0, no targets are enabled by default. To enable collection of the predefined metrics, specify a list of targets as the value for the `otel.jmx.target.system` property. For example:\n \n ```bash\n $ java -javaagent:path/to/opentelemetry-javaagent.jar \\\n-     -Dotel.jmx.target.system=jetty,experimental-kafka-broker \\\n+     -Dotel.jmx.target.system=jetty,kafka-broker \\\n      ... \\\n      -jar myapp.jar\n ```\n \n-No targets are enabled by default. The supported target environments are listed below.\n+Starting with 3.0, the stable pre-defined metrics are always enabled by default, the non-stable metrics are opt-in using the `otel.jmx.metrics.experimental.included` property. For example:\n+\n+```bash\n+$ java -javaagent:path/to/opentelemetry-javaagent.jar \\\n+     -Dotel.jmx.metrics.experimental.included=jetty.*,kafka.* \\",
+      "id": "PRRT_kwDODJKVX86iGFvF",
+      "opened": "2026-09-14T11:55:04Z",
+      "path": "instrumentation/jmx-metrics/README.md",
+      "replies": [],
+      "reviewed": "d7523926e89d79fa3ed5c6dbb7998c21c38b6f7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4004866831"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An empty `IncludeExclude` is defined as carrying no configuration, but assigning it here changes this none-by-default setting to match every unstable metric. Callers that pass an empty selector (for example, after parsing an unset option) therefore opt into all experimental telemetry. Treat `isEmpty()` as no override, and update callers that intentionally want everything to use an explicit `included: \"*\"`.",
+      "created": "2026-09-15T08:54:14Z",
+      "hunk": "@@ -116,6 +131,31 @@ public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n     return this;\n   }\n \n+  /**\n+   * Configure which systems should have their internal metrics automatically registered.\n+   *\n+   * @param systemFilter system filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsSystemFilter(IncludeExclude systemFilter) {\n+    internalMetricsSystemFilter = systemFilter;\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which unstable internal metrics should be enabled, unless enabled they are\n+   * filtered-out.\n+   *\n+   * @param metricsFilter metric filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsUnstableMetricsFilter(IncludeExclude metricsFilter) {\n+    internalMetricsUnstableMetricsFilter = metricsFilter;",
+      "id": "PRRT_kwDODJKVX86icdBw",
+      "opened": "2026-09-15T08:54:15Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-15T13:15:35Z",
+          "body": "Yes, an empty `IncludeExclude` will include every unstable by default. This configuration is only provided to the API level and not directly to end-users, when handling the `otel.jmx.metrics.experimental.included` configuration option, the caller needs to take care to preserve the \"no unstable metrics by default\" behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4015985738"
+        }
+      ],
+      "reviewed": "a1219cf60d4f706fba446db1e121b2f63a39b7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4013784603"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This reads and warns on the deprecated key even in v3-preview mode, although the value is ignored there and 3.0 will no longer recognize it. Preview mode should reproduce that behavior; keep the lookup and warning inside the legacy path so carrying the old key is silent under v3 preview.",
+      "created": "2026-09-15T08:54:15Z",
+      "hunk": "@@ -63,11 +65,72 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    // otel.jmx.target.system support will be removed in v3\n+    List<String> systemsConfig =\n+        config.get(\"target\").getScalarList(\"system\", String.class, emptyList());\n+    if (!systemsConfig.isEmpty()) {\n+      logger.log(WARNING, \"'otel.jmx.target.system' is deprecated and will be removed in 3.x.\");\n+    }",
+      "id": "PRRT_kwDODJKVX86icdDK",
+      "opened": "2026-09-15T08:54:15Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [],
+      "reviewed": "a1219cf60d4f706fba446db1e121b2f63a39b7e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4013784726"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This warning presents the replacement as usable immediately, but this branch ignores `otel.jmx.metrics.experimental.included` unless v3 preview is enabled. A 2.x user who follows the message by replacing `otel.jmx.target.system` will therefore lose all target metrics. Include the required v3-preview step in the migration guidance.",
+      "created": "2026-09-15T14:02:24Z",
+      "hunk": "@@ -63,11 +65,77 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    List<String> systemsConfig = emptyList();\n+    if (!v3Preview) {\n+      systemsConfig = config.get(\"target\").getScalarList(\"system\", String.class, emptyList());\n+      if (!systemsConfig.isEmpty()) {\n+        logger.log(\n+            WARNING,\n+            \"'otel.jmx.target.system' is deprecated and will be removed in 3.0.\"\n+                + \" Stable metrics are enabled automatically; use 'otel.jmx.metrics.experimental.included'\"\n+                + \" to opt in to unstable metrics.\");",
+      "id": "PRRT_kwDODJKVX86ijPRF",
+      "opened": "2026-09-15T14:02:25Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [],
+      "reviewed": "ddbf338162ce5251acb96332d7803c70c19cbfea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4016447512"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This now makes `build()` fail whenever `setServiceClassLoader(...)` supplies a loader that does not expose the library's built-in Cassandra handler, even though Cassandra metrics are unstable and excluded by default. Replacement loaders are supported (the loaders in `HandlerTest` intentionally expose only their test providers), while all embedded systems are loaded unconditionally, so an unrelated custom handler can trigger this exception. Preserve the existing unresolved-handler behavior—let `BeanFinder` warn and skip it—rather than failing the whole JMX setup.",
+      "created": "2026-09-15T15:36:15Z",
+      "hunk": "@@ -0,0 +1,168 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal;\n+\n+import static java.util.Arrays.asList;\n+import static java.util.logging.Level.FINE;\n+\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.jmx.internal.engine.MetricDef;\n+import io.opentelemetry.instrumentation.jmx.internal.handler.HandlerRegistry;\n+import io.opentelemetry.instrumentation.jmx.internal.yaml.RuleParser;\n+import java.io.IOException;\n+import java.io.InputStream;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.HashSet;\n+import java.util.List;\n+import java.util.Set;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class InternalMetricsDefinitions {\n+\n+  private static final Logger logger = Logger.getLogger(InternalMetricsDefinitions.class.getName());\n+\n+  private static final Set<String> SUPPORTED_SYSTEMS =\n+      Collections.unmodifiableSet(\n+          new HashSet<>(\n+              asList(\n+                  \"activemq\",\n+                  \"camel\",\n+                  \"cassandra\",\n+                  \"kafka-broker\",\n+                  \"kafka-connect\",\n+                  \"hadoop\",\n+                  \"jetty\",\n+                  \"jvm\",\n+                  \"tomcat\",\n+                  \"wildfly\")));\n+\n+  private final ClassLoader classLoader;\n+  private final List<RuleSet> loadedRules = new ArrayList<>();\n+\n+  public InternalMetricsDefinitions(ClassLoader classLoader) {\n+    this.classLoader = classLoader;\n+  }\n+\n+  // intentionally not static for easier testing\n+  public Set<String> getSupportedSystems() {\n+    return SUPPORTED_SYSTEMS;\n+  }\n+\n+  /**\n+   * Load internal rules for supported systems, filtered by the provided filter\n+   *\n+   * @param systemFilter filter on supported systems identifiers.\n+   */\n+  public void loadInternalRules(IncludeExclude systemFilter, HandlerRegistry handlerRegistry) {\n+    getSupportedSystems().stream()\n+        .filter(systemFilter::matches)\n+        .forEach(\n+            s -> {\n+              loadRules(s, false, handlerRegistry);\n+              loadRules(s, true, handlerRegistry);\n+            });\n+  }\n+\n+  private void loadRules(String systemName, boolean stable, HandlerRegistry handlerRegistry) {\n+    String path = getRulesPath(systemName, stable);\n+    if (path == null) {\n+      // silently ignore non-existing rules\n+      return;\n+    }\n+\n+    try (InputStream input = classLoader.getResourceAsStream(path)) {\n+      logger.log(FINE, \"loading embedded JMX rules from {0}\", path);\n+      List<MetricDef> metricDefs = RuleParser.get().parseMetricDefs(input);\n+      loadedRules.add(new RuleSet(metricDefs, stable, handlerRegistry));\n+    } catch (IOException e) {\n+      throw new IllegalStateException(\"unable to load resource \" + path, e);\n+    }\n+  }\n+\n+  /**\n+   * Get metric names for a given stability.\n+   *\n+   * @param stable true to get stable metrics, false to get unstable metrics\n+   * @return set of metrics for the provided stability, may be empty.\n+   */\n+  public Set<String> getMetricNames(boolean stable) {\n+    Set<String> result = new HashSet<>();\n+    for (RuleSet ruleSet : loadedRules) {\n+      if (ruleSet.stable == stable) {\n+        result.addAll(ruleSet.getMetricNames());\n+      }\n+    }\n+    return result;\n+  }\n+\n+  /**\n+   * Get all internal metrics definitions.\n+   *\n+   * @return list of all internal metrics definitions, may be empty.\n+   */\n+  public List<MetricDef> getAllMetricDefs() {\n+    List<MetricDef> result = new ArrayList<>();\n+    for (RuleSet ruleSet : loadedRules) {\n+      result.addAll(ruleSet.metricDefs);\n+    }\n+    return result;\n+  }\n+\n+  /**\n+   * Get path to existing rules resources.\n+   *\n+   * @param system system name\n+   * @param stable true to load stable rules, false for non-stable rules\n+   * @return path to rules resource, {@literal null} if there is none\n+   */\n+  @Nullable\n+  public String getRulesPath(String system, boolean stable) {\n+    String path = String.format(\"jmx/rules/%s.yaml\", system);\n+    if (!stable) {\n+      path = String.format(\"jmx/rules/%s_unstable.yaml\", system);\n+    }\n+\n+    // Probe existence by attempting to read it using same method as actually reading it.\n+    try (InputStream input = classLoader.getResourceAsStream(path)) {\n+      return input != null ? path : null;\n+    } catch (IOException e) {\n+      // no io exception expected when loading resources\n+      throw new IllegalStateException(e);\n+    }\n+  }\n+\n+  private static class RuleSet {\n+    private final boolean stable;\n+    private final List<MetricDef> metricDefs;\n+    private final Set<String> metricNames = new HashSet<>();\n+\n+    RuleSet(List<MetricDef> metricDefs, boolean stable, HandlerRegistry handlerRegistry) {\n+      this.metricDefs = metricDefs;\n+      this.stable = stable;\n+      for (MetricDef def : metricDefs) {\n+        metricNames.addAll(def.getMetricNames());\n+        for (String handlerName : def.getHandlerNames()) {\n+          ExperimentalJmxMetricHandler handler = handlerRegistry.getHandler(handlerName);\n+          if (handler == null) {\n+            throw new IllegalArgumentException(\n+                \"Unable to resolve handler \" + handlerName + \" with provided registry\");\n+          }\n+          metricNames.addAll(handler.getMetricNames());\n+        }",
+      "id": "PRRT_kwDODJKVX86iltz2",
+      "opened": "2026-09-15T15:36:16Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/InternalMetricsDefinitions.java",
+      "replies": [
+        {
+          "at": "2026-09-16T15:35:18Z",
+          "body": "When this happens this is clearly a bug in the implementation and we should throw an exception to make it obvious. If that happens there is nothing the user can do about so it's not really worth adding a log statement, that may effectively affect the jmx feature as a whole if that happens, hence making the issue even more obvious if it ever happens.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4027840105"
+        }
+      ],
+      "reviewed": "89390fc8990d3e81e872e3201ab84964c968319a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4017420248"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `otel.jmx.target.system` is a list of literal target IDs, but passing its raw values to `IncludeExclude` gives `*` and `?` glob semantics. An unsupported value such as `*` is warned about above and then matches every supported system, enabling all unstable metrics in pre-v3 mode. Restrict the selector to exact supported values and keep exclude-all when none remain.",
+      "created": "2026-09-16T15:46:06Z",
+      "hunk": "@@ -63,11 +65,77 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    List<String> systemsConfig = emptyList();\n+    if (!v3Preview) {\n+      systemsConfig = config.get(\"target\").getScalarList(\"system\", String.class, emptyList());\n+      if (!systemsConfig.isEmpty()) {\n+        logger.log(\n+            WARNING,\n+            \"'otel.jmx.target.system' is deprecated and will be removed in 3.0.\"\n+                + \" Stable metrics are enabled automatically; use 'otel.jmx.metrics.experimental.included'\"\n+                + \" to opt in to unstable metrics.\");\n+      }\n+    }\n+\n+    if (v3Preview) {\n+      // include all stable metrics excepted for jvm metrics as they overlap runtime-telemetry\n+      jmx.internalMetricsSystemFilter(IncludeExclude.builder().setExcluded(\"jvm\").build());\n+\n+      List<String> unstableInclude =\n+          config\n+              .get(\"metrics\")\n+              .get(\"experimental\")\n+              .getScalarList(\"included\", String.class, emptyList());\n+\n+      if (!unstableInclude.isEmpty()) {\n+        // only include explicitly opted-in, others will be excluded\n+        jmx.internalMetricsUnstableMetricsFilter(\n+            IncludeExclude.builder().setIncluded(unstableInclude).build());\n+      }\n+\n+    } else {\n+      // pre-v3 compatibility\n+      InternalMetricsDefinitions metricsDefinitions =\n+          new InternalMetricsDefinitions(JmxMetricInsightInstaller.class.getClassLoader());\n+\n+      // mapping of 'experimental-' deprecated prefix in target system\n+      systemsConfig =\n+          systemsConfig.stream()\n+              .map(\n+                  s ->\n+                      s.startsWith(EXPERIMENTAL_PREFIX)\n+                          ? s.substring(EXPERIMENTAL_PREFIX.length())\n+                          : s)\n+              .collect(toList());\n+\n+      // warn about unsupported systems\n+      systemsConfig.forEach(\n+          system -> {\n+            if (!metricsDefinitions.getSupportedSystems().contains(system)) {\n+              logger.log(\n+                  WARNING,\n+                  \"JMX target system \"\n+                      + system\n+                      + \" is not supported. Supported systems are: \"\n+                      + metricsDefinitions.getSupportedSystems());\n+            }\n+          });\n+\n+      if (systemsConfig.isEmpty()) {\n+        // exclude everything by default\n+        jmx.internalMetricsSystemFilter(IncludeExclude.builder().setExcluded(\"*\").build());\n+      } else {\n+        // only opt-in on explicitly configured values\n+        jmx.internalMetricsSystemFilter(\n+            IncludeExclude.builder().setIncluded(systemsConfig).build());",
+      "id": "PRRT_kwDODJKVX86jAT2V",
+      "opened": "2026-09-16T15:46:06Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-17T14:32:50Z",
+          "body": "This is fine because wildcards are not supported in the current version. This might eventually be used to use `*` to include all of them at once, but that would be intentional. Also, with v3 the `otel.jmx.target.system` is being removed so it's not worth making things more complicated here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4038052485"
+        }
+      ],
+      "reviewed": "82bd931245713179958edd7bf1b1215e23edf036",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4027950086"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Java agent explicitly excludes the `jvm` rule set, so “for any supported system” is inaccurate: the only current stable JMX definitions are not loaded by this path and are instead supplied by runtime-telemetry. State that exception so users do not expect the JMX JVM definitions to be active.",
+      "created": "2026-09-16T15:46:06Z",
+      "hunk": "@@ -14,26 +14,38 @@ To control the time interval between MBean detection attempts, one can use the `\n \n JMX is a popular metrics technology used throughout the JVM (see [runtime metrics](../runtime-telemetry/library/README.md)), application servers, third-party libraries, and applications.\n JMX Metric Insight comes with a number of predefined configurations containing curated sets of JMX metrics for frequently used application servers or frameworks.\n-To enable collection of the predefined metrics, specify a list of targets as the value for the `otel.jmx.target.system` property. For example\n+\n+Before 3.0, no targets are enabled by default. To enable collection of the predefined metrics, specify a list of targets as the value for the `otel.jmx.target.system` property. For example:\n \n ```bash\n $ java -javaagent:path/to/opentelemetry-javaagent.jar \\\n-     -Dotel.jmx.target.system=jetty,experimental-kafka-broker \\\n+     -Dotel.jmx.target.system=jetty,kafka-broker \\\n      ... \\\n      -jar myapp.jar\n ```\n \n-No targets are enabled by default. The supported target environments are listed below.\n+Starting with 3.0 (or with the `otel.instrumentation.common.v3-preview=true` option), the stable pre-defined metrics are always enabled by default, the non-stable metrics are opt-in using the `otel.jmx.metrics.experimental.included` property. For example:\n+\n+```bash\n+$ java -javaagent:path/to/opentelemetry-javaagent.jar \\\n+     -Dotel.jmx.metrics.experimental.included=jetty.*,kafka.* \\\n+     ... \\\n+     -jar myapp.jar\n+```\n+\n+This example will enable all stable metrics (for any supported system) and all the non-stable metrics matching the `jetty.*` and `kafka.*` patterns.",
+      "id": "PRRT_kwDODJKVX86jAT3E",
+      "opened": "2026-09-16T15:46:06Z",
+      "path": "instrumentation/jmx-metrics/README.md",
+      "replies": [],
+      "reviewed": "82bd931245713179958edd7bf1b1215e23edf036",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4027950160"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "There are many conditions here. Could you extract some condition branches code to private methods?\nThis code executed for v3Preview can be easily extracted",
+      "created": "2026-09-18T13:35:19Z",
+      "hunk": "@@ -63,11 +65,77 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    List<String> systemsConfig = emptyList();\n+    if (!v3Preview) {\n+      systemsConfig = config.get(\"target\").getScalarList(\"system\", String.class, emptyList());\n+      if (!systemsConfig.isEmpty()) {\n+        logger.log(\n+            WARNING,\n+            \"'otel.jmx.target.system' is deprecated and will be removed in 3.0.\"\n+                + \" Stable metrics are enabled automatically; use 'otel.jmx.metrics.experimental.included'\"\n+                + \" to opt in to unstable metrics.\");\n+      }\n+    }\n+\n+    if (v3Preview) {",
+      "id": "PRRT_kwDODJKVX86jwfw2",
+      "opened": "2026-09-18T15:12:55Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-21T08:20:08Z",
+          "body": "I agree, but this complexity will be removed with v3 (equivalent to forcing `v3Preview=true`), so I don't think it's really worth moving and trying to simplify things for now.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4060348257"
+        }
+      ],
+      "reviewed": "b9cb74d56b4ae3a792411fda989d771e7a13c820",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4047196605"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "Whole `if` content could be moved down to the `} else {` section, where `systemsConfig` is used",
+      "created": "2026-09-18T14:29:46Z",
+      "hunk": "@@ -63,11 +65,77 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    List<String> systemsConfig = emptyList();\n+    if (!v3Preview) {\n+      systemsConfig = config.get(\"target\").getScalarList(\"system\", String.class, emptyList());",
+      "id": "PRRT_kwDODJKVX86jxoGK",
+      "opened": "2026-09-18T15:12:55Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [],
+      "reviewed": "b9cb74d56b4ae3a792411fda989d771e7a13c820",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4047641360"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "I'm not sure if listing supported systems is needed. The error here will usually be a consequence of a typo. Supported systems should be listed in docs.",
+      "created": "2026-09-18T14:31:55Z",
+      "hunk": "@@ -63,11 +65,77 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    List<String> systemsConfig = emptyList();\n+    if (!v3Preview) {\n+      systemsConfig = config.get(\"target\").getScalarList(\"system\", String.class, emptyList());\n+      if (!systemsConfig.isEmpty()) {\n+        logger.log(\n+            WARNING,\n+            \"'otel.jmx.target.system' is deprecated and will be removed in 3.0.\"\n+                + \" Stable metrics are enabled automatically; use 'otel.jmx.metrics.experimental.included'\"\n+                + \" to opt in to unstable metrics.\");\n+      }\n+    }\n+\n+    if (v3Preview) {\n+      // include all stable metrics excepted for jvm metrics as they overlap runtime-telemetry\n+      jmx.internalMetricsSystemFilter(IncludeExclude.builder().setExcluded(\"jvm\").build());\n+\n+      List<String> unstableInclude =\n+          config\n+              .get(\"metrics\")\n+              .get(\"experimental\")\n+              .getScalarList(\"included\", String.class, emptyList());\n+\n+      if (!unstableInclude.isEmpty()) {\n+        // only include explicitly opted-in, others will be excluded\n+        jmx.internalMetricsUnstableMetricsFilter(\n+            IncludeExclude.builder().setIncluded(unstableInclude).build());\n+      }\n+\n+    } else {\n+      // pre-v3 compatibility\n+      InternalMetricsDefinitions metricsDefinitions =\n+          new InternalMetricsDefinitions(JmxMetricInsightInstaller.class.getClassLoader());\n+\n+      // mapping of 'experimental-' deprecated prefix in target system\n+      systemsConfig =\n+          systemsConfig.stream()\n+              .map(\n+                  s ->\n+                      s.startsWith(EXPERIMENTAL_PREFIX)\n+                          ? s.substring(EXPERIMENTAL_PREFIX.length())\n+                          : s)\n+              .collect(toList());\n+\n+      // warn about unsupported systems\n+      systemsConfig.forEach(\n+          system -> {\n+            if (!metricsDefinitions.getSupportedSystems().contains(system)) {\n+              logger.log(\n+                  WARNING,\n+                  \"JMX target system \"\n+                      + system\n+                      + \" is not supported. Supported systems are: \"\n+                      + metricsDefinitions.getSupportedSystems());",
+      "id": "PRRT_kwDODJKVX86jxq0Z",
+      "opened": "2026-09-18T15:12:55Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-09-21T08:24:49Z",
+          "body": "We need for the internal metrics registry, so it's there and we can use it with little cost to provide a user-friendly message without extra cost. Do you see any downside of calling this here ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4060376053"
+        },
+        {
+          "at": "2026-09-22T10:47:36Z",
+          "body": "The only downside is that it may be repeated few times if few incorrect systems are provided, but all in all I think you had a good motivation. Let's keep it is it is.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4070793201"
+        }
+      ],
+      "reviewed": "b9cb74d56b4ae3a792411fda989d771e7a13c820",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4047658599"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "Minor thing, but avoids string concatenation if log level is higher:\n`logger.log(FINE, \"Metric is filtered out by configuration: {0}\", metricName);`",
+      "created": "2026-09-18T15:09:42Z",
+      "hunk": "@@ -36,24 +41,32 @@ class FilteringMeter implements Meter {\n     this.metrics = metrics;\n   }\n \n+  private Meter getMeterAndLog(String metricName) {\n+    if (metrics.matches(metricName)) {\n+      return delegate;\n+    }\n+    logger.log(FINE, \"Metric is filtered out by configuration: \" + metricName);",
+      "id": "PRRT_kwDODJKVX86jyfY6",
+      "opened": "2026-09-18T15:12:55Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/FilteringMeter.java",
+      "replies": [],
+      "reviewed": "b9cb74d56b4ae3a792411fda989d771e7a13c820",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4047983075"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "This may be a bit confusing - there is an inconsistency in setters naming pattern. Some of them start with 'set' and some of them not.",
+      "created": "2026-09-22T15:39:43Z",
+      "hunk": "@@ -112,7 +127,32 @@ public JmxTelemetryBuilder addRules(Path path) {\n    */\n   @CanIgnoreReturnValue\n   public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n-    this.metrics = metrics;\n+    this.metrics = requireNonNull(metrics, \"metrics\");\n+    return this;\n+  }\n+\n+  /**\n+   * Configure which systems should have their internal metrics automatically registered.\n+   *\n+   * @param systemFilter system filter\n+   * @return this\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder internalMetricsSystemFilter(IncludeExclude systemFilter) {",
+      "id": "PRRT_kwDODJKVX86kzLLE",
+      "opened": "2026-09-22T16:07:33Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-09-23T10:21:29Z",
+          "body": "fixed in 4e857e2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4081381942"
+        }
+      ],
+      "reviewed": "d6b1656b4d6716d76c891130ebceafe88d27375c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4073493617"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The usage example calls methods that do not exist on `JmxTelemetryBuilder`; the new APIs are named `setInternalMetricsSystemFilter` and `setInternalMetricsUnstableMetricsFilter`. As written, copying this example produces compilation errors.",
+      "created": "2026-09-23T10:28:12Z",
+      "hunk": "@@ -42,6 +42,9 @@ import java.time.Duration;\n OpenTelemetry openTelemetry = ...;\n \n JmxTelemetry jmxTelemetry = JmxTelemetry.builder(openTelemetry)\n+    // Configure loading embedded metric definitions (optional)\n+  .internalMetricsSystemFilter(IncludeExclude.builder().build()) // load internal metrics for all systems, this will load all internal stable metrics.\n+  .internalMetricsUnstableMetricsFilter(IncludeExclude.builder().setIncluded(\"kafka.*\").build()) // opt-in for all `kafka.*` internal unstable metrics",
+      "id": "PRRT_kwDODJKVX86lHC3y",
+      "opened": "2026-09-23T10:28:12Z",
+      "path": "instrumentation/jmx-metrics/library/README.md",
+      "replies": [],
+      "reviewed": "52c45ba88ab0e7bebebb6d8a180cd0b5b6a932f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4081435835"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This exposes the experimental selector at `java.jmx.metrics.experimental.included`, but new experimental declarative settings use a `/development` node (for selectors, `java.jmx.metrics/development.included`, as in the existing servlet selectors). With the current mapping, declarative users get a nonconforming path that will later need a breaking rename. Map the flat property to the `/development` form and update the installer, metadata, and tests to read that path.",
+      "created": "2026-09-28T08:03:29Z",
+      "hunk": "@@ -92,7 +92,9 @@ final class ConfigPropertiesBackedDeclarativeConfigProperties\n     // Duration and falls back to otel.metric.export.interval; this mapping is here only to keep\n     // it consistent with the rest of the jmx.* properties.\n     SPECIAL_MAPPINGS.put(\"java.jmx.discovery.delay\", \"otel.jmx.discovery.delay\");\n-    SPECIAL_MAPPINGS.put(\"java.jmx.target.system\", \"otel.jmx.target.system\");\n+    SPECIAL_MAPPINGS.put(\"java.jmx.target.system\", \"otel.jmx.target.system\"); // TODO: remove in v3\n+    SPECIAL_MAPPINGS.put(\n+        \"java.jmx.metrics.experimental.included\", \"otel.jmx.metrics.experimental.included\");",
+      "id": "PRRT_kwDODJKVX86mldmm",
+      "opened": "2026-09-28T08:03:31Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [
+        {
+          "at": "2026-09-28T12:35:52Z",
+          "body": "The `metrics.included` and `metrics.excluded` where introduced without the `/development` part, so I guess it would be consistent to not use it here.\r\n\r\nAlso, if we try to follow this pattern, the feature is about opt-in of experimental metrics, so it would be more `java.jmx.metrics/development.experimental.included` as otherwise it would overlap with the existing `java.jmx.metrics.included` when the `/development` part is removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4122191696"
+        }
+      ],
+      "reviewed": "b441e575a2210e73321feb3f812495e0bb4a067c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4119850369"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Use “except for” here; “excepted for” is grammatically incorrect.",
+      "created": "2026-09-28T08:03:30Z",
+      "hunk": "@@ -63,11 +65,75 @@ public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n         .map(Paths::get)\n         .forEach(path -> addFileRules(path, jmx));\n \n-    config\n-        .get(\"target\")\n-        .getScalarList(\"system\", String.class, emptyList())\n-        .forEach(target -> addClasspathRules(target, jmx));\n+    if (v3Preview) {\n+      // include all stable metrics excepted for jvm metrics as they overlap runtime-telemetry",
+      "id": "PRRT_kwDODJKVX86mldnN",
+      "opened": "2026-09-28T08:03:31Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [],
+      "reviewed": "b441e575a2210e73321feb3f812495e0bb4a067c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4119850438"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This parameter is a metric-name selector (`tomcat.*` in the caller), not a list of systems. Describing it as systems preserves the obsolete semantics and can mislead future tests into passing target IDs that match no metric.",
+      "created": "2026-09-28T08:03:30Z",
+      "hunk": "@@ -179,12 +177,37 @@ protected static List<String> javaPropertiesToJvmArgs(Map<String, String> config\n   }\n \n   /**\n-   * Generates otel configuration for JMX testing with instrumentation agent\n+   * Generates otel configuration for JMX testing with custom yaml configuration files\n    *\n    * @param yamlFiles JMX metrics definitions in YAML\n    * @return map of otel configuration properties for JMX testing\n    */\n-  protected static Map<String, String> otelConfigProperties(List<String> yamlFiles) {\n+  protected static Map<String, String> otelConfigProperties(Collection<String> yamlFiles) {\n+    Map<String, String> config = commonOtelConfig();\n+    assertThat(yamlFiles).isNotEmpty();\n+    // set yaml config files to test\n+    config.put(\n+        \"otel.jmx.config\",\n+        yamlFiles.stream().map(TargetSystemTest::containerYamlPath).collect(joining(\",\")));\n+    return config;\n+  }\n+\n+  /**\n+   * Generates otel configuration for JMX testing with opt-in for experimental unstable metrics\n+   *\n+   * @param experimentalInclude comma-separated list of systems for which we need to enable\n+   *     non-stable metrics",
+      "id": "PRRT_kwDODJKVX86mldnk",
+      "opened": "2026-09-28T08:03:31Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/TargetSystemTest.java",
+      "replies": [],
+      "reviewed": "b441e575a2210e73321feb3f812495e0bb4a067c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4119850487"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] `otel.jmx.target.system` is a stable configuration contract, but the proposed replacement contains the `experimental` marker and is therefore an unstable property that may be removed in a later minor release. A stable property cannot be deprecated in favor of a less-stable replacement. Give this selector a stable flat/declarative name (the selected metrics themselves can remain unstable), then update the installer, bridge, documentation, and tests consistently.",
+      "created": "2026-09-30T03:49:19Z",
+      "hunk": "@@ -38,6 +43,17 @@ configurations:\n     default: \"\"\n     examples:\n       - \"jvm.memory.*,jvm.thread.count\"\n+  - name: otel.jmx.metrics.experimental.included\n+    declarative_name: java.jmx.metrics.experimental.included",
+      "id": "PRRT_kwDODJKVX86nYNtx",
+      "opened": "2026-09-30T03:49:19Z",
+      "path": "instrumentation/jmx-metrics/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-30T03:55:06Z",
+          "body": "this is intentional",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4140654058"
+        }
+      ],
+      "reviewed": "a0b51c208a37b8b975d91db7f5863af5b54a5974",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19783#discussion_r4140630195"
+    }
+  ]
+}

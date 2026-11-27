@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7a2b2e261b2ad04758cdec080f56f60508e3f3187c6d89c28ca4a569df42b1a8",
+  "input_digest": "cd32556cadd8d8d9ec8c0aceb068fb5763f6353f8a197a2c3f7e2f68f5ded745",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5b44ae9801f52bfdc668ee7057a1bc0ebfe2c770/instrumentation/rmi/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rmi/RmiTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5c8fb1b690e5aed2d4e431d142734e912951362d/instrumentation/rmi/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rmi/RmiTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/00af5d10f731968a73e57da2870c514227891ffc"
+      ],
+      "id": "PRRT_kwDODJKVX85rZoRV",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

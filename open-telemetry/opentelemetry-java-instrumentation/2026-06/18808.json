@@ -1,0 +1,136 @@
+{
+  "head": "293038ff1247bae2ee0bbe25619b235791390e3f",
+  "merge": "724f5815e9dca8e8d44b30a902fdce9540ca0c1f",
+  "merged": "2026-06-10T14:10:47Z",
+  "missing_roots": 0,
+  "number": 18808,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`connectionInfo` is a `VirtualField` handle (constant-like) but is named lowerCamelCase. In this codebase, `VirtualField` handles are treated as constants and use `SCREAMING_SNAKE_CASE` (e.g., `REQUEST_CONTEXT` etc.). Rename this field accordingly to match the established convention.",
+      "created": "2026-05-20T03:35:19Z",
+      "hunk": "@@ -5,17 +5,24 @@\n \n package io.opentelemetry.javaagent.instrumentation.jedis.v4_0;\n \n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesExtractor;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientMetrics;\n-import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientSpanNameExtractor;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import javax.annotation.Nullable;\n+import redis.clients.jedis.Connection;\n+import redis.clients.jedis.JedisSocketFactory;\n \n public class JedisSingletons {\n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.jedis-4.0\";\n \n   private static final Instrumenter<JedisRequest, Void> instrumenter;\n+  private static final VirtualField<Connection, JedisConnectionInfo> connectionInfo =\n+      VirtualField.find(Connection.class, JedisConnectionInfo.class);\n ",
+      "id": "PRRT_kwDODJKVX86DWsBN",
+      "opened": "2026-05-20T03:35:21Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-06-06T19:16:02Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a64001a4ee28b3082c1995f405f0617dd2a5afd4.\n\nRenamed the Jedis connection VirtualField handle to CONNECTION_INFO and updated its same-class uses.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3368079032"
+        }
+      ],
+      "reviewed": "75851998f4834205eec88936532297b663818e33",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3271066284"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`connectionInfo(Connection)` and `setConnectionInfo(...)` are `public` but appear to be used only within the `jedis.v4_0` package. Consider reducing their visibility (e.g., package-private) to avoid exposing internal connection metadata plumbing as part of the module’s public surface area.\n",
+      "created": "2026-05-20T03:35:20Z",
+      "hunk": "@@ -34,5 +41,31 @@ public static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  @Nullable\n+  public static JedisConnectionInfo connectionInfo(Connection connection) {\n+    return connectionInfo.get(connection);\n+  }\n+\n+  public static void setConnectionInfo(",
+      "id": "PRRT_kwDODJKVX86DWsBY",
+      "opened": "2026-05-20T03:35:21Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-06-06T19:16:04Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/74b5a04b73a4a9673c45a0b8cb655aa8a190a892.\n\nNarrowed connectionInfo(Connection) to package-private while keeping setConnectionInfo(...) public for direct advice access.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3368079129"
+        }
+      ],
+      "reviewed": "75851998f4834205eec88936532297b663818e33",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3271066300"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`JedisRequest` now stores the raw `connection` as an AutoValue property, but it is not used anywhere after construction (no call sites of `getConnection()` in this module). Keeping it increases object retention and memory pressure for each request span. Consider removing the connection property from `JedisRequest` and using the local `connection` parameter only to look up `JedisConnectionInfo` during `create(...)`.",
+      "created": "2026-05-20T03:35:20Z",
+      "hunk": "@@ -31,10 +33,28 @@ public abstract class JedisRequest {\n   @Nullable private SocketAddress remoteSocketAddress;\n \n   public static JedisRequest create(ProtocolCommand command, List<byte[]> args) {\n-    return new AutoValue_JedisRequest(command, args);\n+    return create(null, command, args);\n+  }\n+\n+  public static JedisRequest create(\n+      @Nullable Object connection, ProtocolCommand command, List<byte[]> args) {\n+    JedisConnectionInfo connectionInfo = getConnectionInfo(connection);\n+    return new AutoValue_JedisRequest(\n+        command,\n+        args,\n+        connection,\n+        connectionInfo != null ? connectionInfo.getServerAddress() : null,\n+        connectionInfo != null ? connectionInfo.getServerPort() : null,\n+        JedisRequestContext.databaseIndex(\n+            connection, connectionInfo != null ? connectionInfo.getDatabaseIndex() : null));\n   }",
+      "id": "PRRT_kwDODJKVX86DWsBk",
+      "opened": "2026-05-20T03:35:21Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-06T19:16:06Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d02666a3c509370484b0c1c29b85fc9dc6ade8da.\n\nRemoved the unused AutoValue connection property while still using the local connection parameter for database-index lookup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3368079209"
+        }
+      ],
+      "reviewed": "75851998f4834205eec88936532297b663818e33",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3271066311"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test name `selectCommandKeepsConnectionDatabaseIndex` doesn’t match what the assertions verify: both spans expect `db.namespace` to remain \"0\" after `jedis.select(1)`. Rename the test to reflect the intended behavior being asserted (or adjust the assertions if the intent is to report the selected database).",
+      "created": "2026-05-20T03:35:21Z",
+      "hunk": "@@ -139,24 +161,99 @@ void commandWithNoArguments() {\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n-                    span.hasName(\"SET\")\n+                    span.hasName(emitStableDatabaseSemconv() ? \"SET \" + host + \":\" + port : \"SET\")\n                         .hasKind(SpanKind.CLIENT)\n                         .hasAttributesSatisfyingExactly(\n                             equalTo(maybeStable(DB_SYSTEM), REDIS),\n                             equalTo(maybeStable(DB_STATEMENT), \"SET foo ?\"),\n                             equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                            equalTo(DB_NAMESPACE, emitStableDatabaseSemconv() ? \"0\" : null),\n+                            equalTo(SERVER_ADDRESS, host),\n+                            equalTo(SERVER_PORT, port),\n                             equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n                             equalTo(NETWORK_PEER_PORT, port),\n                             equalTo(NETWORK_PEER_ADDRESS, ip))),\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n-                    span.hasName(\"RANDOMKEY\")\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? \"RANDOMKEY \" + host + \":\" + port\n+                                : \"RANDOMKEY\")\n                         .hasKind(SpanKind.CLIENT)\n                         .hasAttributesSatisfyingExactly(\n                             equalTo(maybeStable(DB_SYSTEM), REDIS),\n                             equalTo(maybeStable(DB_STATEMENT), \"RANDOMKEY\"),\n                             equalTo(maybeStable(DB_OPERATION), \"RANDOMKEY\"),\n+                            equalTo(DB_NAMESPACE, emitStableDatabaseSemconv() ? \"0\" : null),\n+                            equalTo(SERVER_ADDRESS, host),\n+                            equalTo(SERVER_PORT, port),\n+                            equalTo(NETWORK_TYPE, emitOldDatabaseSemconv() ? IPV4 : null),\n+                            equalTo(NETWORK_PEER_PORT, port),\n+                            equalTo(NETWORK_PEER_ADDRESS, ip))));\n+  }\n+\n+  @Test\n+  void selectCommandKeepsConnectionDatabaseIndex() {\n+    jedis.select(1);\n+    jedis.set(\"foo\", \"bar\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv() ? \"SELECT \" + host + \":\" + port : \"SELECT\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), \"SELECT 1\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"SELECT\"),\n+                            equalTo(DB_NAMESPACE, emitStableDatabaseSemconv() ? \"0\" : null),\n+                            equalTo(SERVER_ADDRESS, host),",
+      "id": "PRRT_kwDODJKVX86DWsBv",
+      "opened": "2026-05-20T03:35:21Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/Jedis40ClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-06T19:16:08Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/45b50ba478055e7787de75398df4faa1c4bf5c27.\n\nRenamed the SELECT test to describe that the configured database index remains unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3368079263"
+        }
+      ],
+      "reviewed": "75851998f4834205eec88936532297b663818e33",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3271066326"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not really necessary since namespace is not implemented https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be68ff06db63ea003816e9f3b3140b80dc293d31/instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisDbAttributesGetter.java#L28-L30",
+      "created": "2026-06-10T11:29:29Z",
+      "hunk": "@@ -28,7 +28,7 @@ class JedisSingletons {\n         Instrumenter.<JedisRequest, Void>builder(\n                 GlobalOpenTelemetry.get(),\n                 INSTRUMENTATION_NAME,\n-                DbClientSpanNameExtractor.create(dbAttributesGetter))",
+      "id": "PRRT_kwDODJKVX86Idf_6",
+      "opened": "2026-06-10T11:29:28Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-06-10T13:15:40Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808/commits/c8afec19aaa5d8a277dbdac3301167fe354dc920",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3388592894"
+        }
+      ],
+      "reviewed": "0583252cd9a4c9faf14f6559b1d5bfad85d79582",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3387861526"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering maybe it would be better to use something like\n```\n    JedisDbAttributesGetter spanNameAttributesGetter = new JedisDbAttributesGetter() {\n      @Override\n      @Nullable\n      public String getDbNamespace(JedisRequest request) {\n        return null;\n      }\n    };\n...\nDbClientSpanNameExtractor.create(spanNameAttributesGetter))\n```\nso that the whole name logic wouldn't need to be reimplemented.",
+      "created": "2026-06-10T11:35:55Z",
+      "hunk": "@@ -27,7 +33,7 @@ public class JedisSingletons {\n         Instrumenter.<JedisRequest, Void>builder(\n                 GlobalOpenTelemetry.get(),\n                 INSTRUMENTATION_NAME,\n-                DbClientSpanNameExtractor.create(dbAttributesGetter))\n+                request -> spanName(dbAttributesGetter, request))",
+      "id": "PRRT_kwDODJKVX86Idm6X",
+      "opened": "2026-06-10T11:35:55Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v4_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-06-10T13:15:52Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808/commits/293038ff1247bae2ee0bbe25619b235791390e3f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3388594359"
+        }
+      ],
+      "reviewed": "0583252cd9a4c9faf14f6559b1d5bfad85d79582",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18808#discussion_r3387899877"
+    }
+  ]
+}

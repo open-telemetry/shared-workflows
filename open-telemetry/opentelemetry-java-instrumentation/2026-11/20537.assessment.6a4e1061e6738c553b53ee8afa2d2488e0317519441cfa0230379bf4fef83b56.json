@@ -1,0 +1,100 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "13e55943cfb14446aa5099b2efb95fbb03d98efda7e46e1c73f3ce6608052180",
+  "input_digest": "6a4e1061e6738c553b53ee8afa2d2488e0317519441cfa0230379bf4fef83b56",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47d61236e4d02cae56c452251a8f1689971e32ae/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractResponsesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/47d61236e4d02cae56c452251a8f1689971e32ae...3ab34369190e17f016fda597a0160c222fd15209",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractResponsesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9560a23e21e91b7a9edeb3503f6e14928d896ba2"
+      ],
+      "id": "PRRT_kwDODJKVX86rhFbP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9560a23e21e91b7a9edeb3503f6e14928d896ba2/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseService.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9560a23e21e91b7a9edeb3503f6e14928d896ba2/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseServiceAsync.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseService.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseServiceAsync.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/ResponseServiceOverloads.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ff6c3aa15957c24a68bd6c7d680c8c29a1f15b84"
+      ],
+      "id": "PRRT_kwDODJKVX86ttjjT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9560a23e21e91b7a9edeb3503f6e14928d896ba2/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseServiceAsync.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9560a23e21e91b7a9edeb3503f6e14928d896ba2/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/DelegatingInvocationHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseServiceAsync.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/DelegatingInvocationHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ff6c3aa15957c24a68bd6c7d680c8c29a1f15b84"
+      ],
+      "id": "PRRT_kwDODJKVX86ttjjY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ff6c3aa15957c24a68bd6c7d680c8c29a1f15b84/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractResponsesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractResponsesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f327bc19d5894dbfb7dff4ab1c96393042bc0daf"
+      ],
+      "id": "PRRT_kwDODJKVX86twlxI",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3464117716497895cf256fdced18892fda35180/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractResponsesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractResponsesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e22ad259e2f810fd284865fc5e84a0acd226ea2a"
+      ],
+      "id": "PRRT_kwDODJKVX86tydjq",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/206f3060ff915940cbbc56d438b1ecfe9b5f0576/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAITelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAITelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1d30a3e36f2ac987085d47d46b80d9e18e9394b0"
+      ],
+      "id": "PRRT_kwDODJKVX86usOtW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3ab34369190e17f016fda597a0160c222fd15209/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseServiceAsync.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3ab34369190e17f016fda597a0160c222fd15209/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/TracingAsyncStreamedResponse.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/InstrumentedResponseServiceAsync.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ad52419a3acfb54040f2f7b8a6dbce427438090f/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/TracingAsyncStreamedResponse.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wZIFG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "head": "b1e8f9be77c644d0c7d20a3005221e1b2cc6cdf1",
+  "merge": "779c964fc43ea8aae95cd95875dea93f79977ce1",
+  "merged": "2026-10-26T08:58:48Z",
+  "missing_roots": 0,
+  "number": 20880,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Non-blocking: Please remove the two newly added `@Nullable` annotations from this test fixture's override. `.github/instructions/java-style.instructions.md:67–68` explicitly excludes test code from nullable annotations; the production interface already documents the parameter contract.",
+      "created": "2026-10-23T01:14:41Z",
+      "hunk": "@@ -276,8 +317,11 @@ public Long getBatchMessageCount(Map<String, String> request, @Nullable String r\n     }\n \n     @Override\n-    public String getErrorType(Map<String, String> request, String response, Throwable error) {\n-      return \"failure\".equals(response) ? response : null;\n+    public String getErrorType(\n+        Map<String, String> request, @Nullable String response, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX86vcEGE",
+      "opened": "2026-10-23T01:14:42Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T01:39:15Z",
+          "body": "Removed the newly added test annotations in e0d3aca3. The override still delegates to the default when there is no messaging-specific classification.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355287400"
+        }
+      ],
+      "reviewed": "66df0e91012e684b088f82ea07a452f7102cb744",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355166886"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Non-blocking: This new test constructs the javaagent getter directly and does not require an installed agent. `.github/instructions/java-tests.instructions.md:22–24` places these tests in the javaagent module's `unitTests` JvmTestSuite, rather than the separate `javaagent-unit-tests` project. Move the class to `javaagent/src/unitTests/java`, register the suite with its test dependencies, and wire it into `check`.",
+      "created": "2026-10-23T01:14:42Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+\n+import org.apache.rocketmq.client.apis.consumer.ConsumeResult;\n+import org.apache.rocketmq.client.apis.message.MessageView;\n+import org.junit.jupiter.api.Test;\n+\n+class RocketMqConsumerProcessAttributeGetterTest {",
+      "id": "PRRT_kwDODJKVX86vcEGu",
+      "opened": "2026-10-23T01:14:42Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqConsumerProcessAttributeGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T01:39:23Z",
+          "body": "Fixed in e0d3aca3. The test is now under `javaagent/src/unitTests/java`; `unitTests` is registered as a `JvmTestSuite` with its dependencies and included in `check`. The existing separate test project is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355288086"
+        }
+      ],
+      "reviewed": "66df0e91012e684b088f82ea07a452f7102cb744",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355166940"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Address the two verified repository-convention findings from review 5622810669 in this existing PR directly. Preserve the implemented final-getter contract, all existing telemetry classifications, main as base, and draft state. Do not create another PR.\n\nRemove only the newly added @Nullable annotations in the MessagingAttributesExtractorTest.getErrorType override. The production interface carries the contract; .github/instructions/java-style.instructions.md explicitly excludes nullable annotations from test code.\n\nMove the newly introduced RocketMqConsumerProcessAttributeGetterTest from instrumentation/rocketmq/rocketmq-client-5.0/javaagent-unit-tests/src/test/java to the same package under javaagent/src/unitTests/java. It directly constructs the helper without an installed agent. Register the javaagent module's unitTests JvmTestSuite with its required dependencies and wire it into check, following the repository's current same-package helper-test patterns and .github/instructions/java-tests.instructions.md. Keep the existing separate javaagent-unit-tests project and its unrelated tests unchanged. Do not migrate the pre-existing Camel suite or unrelated tests.\n\nBoth findings are verified against head 66df0e91012e684b088f82ea07a452f7102cb744 and the current module build files: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355166886 and https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355166940. The original cloud task has completed and its latest-head review has finished. No behavior redesign, other getter families, compatibility shims, or changes to held PR #20782.\n\nApply the narrowest relevant spotlessApply directly before behavior validation and run the central messaging extractor test and relocated helper suite where feasible. Report real blockers without unrelated fixes. Leave PR metadata and review-thread replies/resolution to the coordinator.",
+      "created": "2026-10-23T01:19:51Z",
+      "hunk": "@@ -276,8 +317,11 @@ public Long getBatchMessageCount(Map<String, String> request, @Nullable String r\n     }\n \n     @Override\n-    public String getErrorType(Map<String, String> request, String response, Throwable error) {\n-      return \"failure\".equals(response) ? response : null;\n+    public String getErrorType(\n+        Map<String, String> request, @Nullable String response, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX86vcH_j",
+      "opened": "2026-10-23T01:19:51Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractorTest.java",
+      "replies": [],
+      "reviewed": "66df0e91012e684b088f82ea07a452f7102cb744",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355192858"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the user's requested simplification directly to this existing messaging PR #20880. The user approved replacing awkward interface-default fallback delegation with the direct nullable exception-class expression in four non-HTTP getter-family PRs. This assignment is ONLY this PR; do not create another PR or update other branches.\n\nKeep getErrorType() authoritative for the final error.type and retain its default method. In overrides that fall back to the exception-only getter default, replace the fallback-only interface-qualified super.getErrorType(request, response, error) call with the equivalent direct expression: error == null ? null : error.getClass().getName(). A local guard that already proves the throwable is non-null can simply return its class name. Apply this to affected production overrides and changed test fixtures; preserve ordinary inheritance that performs additional classification rather than merely supplying this fallback. Do not introduce a helper, common base class, cross-domain abstraction, flag, or new API to hide the expression.\n\nRevise the affected MessagingAttributesGetter.getErrorType Javadoc so it explains the final-value contract and how an override can return the exception class as fallback without recommending or requiring interface-default delegation. Update this PR's existing breaking-change CHANGELOG entry wherever it mandates or demonstrates such delegation, keeping it concise and not adding a second entry. Keep default exception fallback, no-error null, custom classifications, explicit-null omission, and direct extractor writes exactly as implemented. Delegation remains technically possible, but it is no longer the prescribed migration pattern.\n\nInclude Camel and both RocketMQ consumers and relevant changed test fixtures. Preserve Camel exception priority and its exceptionless failed-exchange _OTHER; preserve RocketMQ response-classification priority and existing span-status helpers. Keep the recently corrected RocketMQ helper test under javaagent/src/unitTests/java with its registered suite and check wiring. Do not migrate unrelated pre-existing suites.\n\nThis is a behavior-preserving simplification of already verified code. Preserve every existing protocol/service-code precedence rule, selected exception identity, cancellation case, deliberate null omission, _OTHER rule, span status, metrics, lifecycle, and semconv selection. Preserve this PR's current base and draft/ready state. Other getter families, HTTP PR #20881, and held Dubbo PR #20782 are out of scope. HTTP needs its role-specific status/exception/_OTHER default policy and must not be simplified to this expression. Do not implement span-status alignment or make getErrorType mandatory.\n\nFollow CONTRIBUTING.md and applicable repository instructions. Do not add Nullable annotations in test code. Keep focused existing default/custom/null and affected-override tests, adjusting only what this simplification requires. Apply the narrowest applicable spotlessApply directly before the targeted behavioral validation, run relevant central extractor and affected-module tests where feasible, and report genuine blockers without unrelated fixes. Acceptance is no fallback-only super delegation remaining for this getter family in the migrated overrides, equivalent telemetry behavior, and Javadoc/changelog guidance consistent with the direct expression. Leave PR title/body edits and review-thread handling to the coordinator.",
+      "created": "2026-10-23T02:01:43Z",
+      "hunk": "@@ -59,18 +59,20 @@ default String getDestinationSubscriptionName(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final value of {@code error.type} for the operation.",
+      "id": "PRRT_kwDODJKVX86vclV4",
+      "opened": "2026-10-23T02:01:42Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-23T02:10:37Z",
+          "body": "Replaced the fallback-only super calls with direct exception-class fallback expressions in Camel, both RocketMQ getters, and the changed test fixture; updated the Javadoc and existing changelog entry. Focused tests passed. Commit: 45f88988.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355435864"
+        }
+      ],
+      "reviewed": "e0d3aca3de24293b9c386f23748ae88248e905a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4355393651"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete and refresh this existing messaging PR #20880 directly on its existing head branch. Do not create another PR, change its main base or draft state, or update other branches. The user approved a consistent 3.0 getter-finality contract across domains.\n\nMessagingAttributesGetter.getErrorType must remain a default method returning error == null ? null : error.getClass().getName(). Its result is the final error.type, and null means intentional omission even when an exception exists. MessagingAttributesExtractor must use it verbatim, with no extractor fallback. Overrides use explicit nullable exception-class fallback when wanted, not Interface.super.getErrorType calls.\n\nAudit current main for all messaging getter implementations, including non-AttributesGetter names and inherited implementations, and ensure the ownership move preserves current Camel and RocketMQ classifications, exception unwrapping, success/cancellation behavior, span status, and span/metric consistency. Do not introduce richer classifications, automatic error.type/span-status alignment, or unrelated messaging lifecycle changes. Keep custom classifications ahead of fallback and preserve deliberate nulls. Existing focused regressions and unit-test source-set choices should remain intact.\n\nRefresh against current main if necessary by merging main into this PR head, never the reverse, without rebasing or incorporating unmerged sibling PRs. Record the pre-update head and verify it remains on the first-parent chain before pushing. Update only omissions, regressions, or stale code needed for this scope; if the current PR already satisfies the complete contract against current main, explain that without gratuitous changes. Keep concise API/breaking-change documentation and run repository-prescribed narrow formatting and relevant tests. Do not edit this PR's title/description, reply to human comments, resolve unrelated threads, merge PRs, or wait for CI. Stop once scoped work is committed and pushed.",
+      "created": "2026-10-25T19:56:56Z",
+      "hunk": "@@ -59,18 +59,20 @@ default String getDestinationSubscriptionName(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final value of {@code error.type} for the operation.",
+      "id": "PRRT_kwDODJKVX86wEemA",
+      "opened": "2026-10-25T19:56:56Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T20:09:43Z",
+          "body": "Merged current `main` into this PR in `3a90df5`; the prior head remains on the first-parent chain. I audited the messaging getters, preserved the getter-final contract and Camel/RocketMQ classifications, and ran the focused format and tests successfully. CodeQL ran but skipped Java analysis because the database was too large.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4372222934"
+        }
+      ],
+      "reviewed": "d2f580d0579992816edc4c4cf777bc48a3528dd2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4372188415"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20880 directly with a documentation-only refinement. Preserve its existing head branch, base, draft state, and all runtime behavior. Do not create a follow-up PR or update other PRs. The earlier implementation attempt is complete; this is a new, separately scoped user request.\n\nSimplify the getErrorType Javadoc in MessagingAttributesGetter. The user wants documentation of the current contract, not an explanation of the previous fallback behavior. Use \"Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.\" Follow with \"The default implementation returns the exception class name, or {@code null} if there is no exception.\" Remove the emphasis that omission holds \"even when error is non-null\", the override fallback recipe and its example expression, and any statement that extractors add no further fallback. Retain low-cardinality and custom-value guidance. Avoid unnecessary finality contrasts or migration instructions in source documentation.\n\nOnly change directly related source documentation. Preserve the default implementation and all other code, tests, telemetry, public signatures, and existing CHANGELOG migration guidance. Do not alter the PR title or description; the coordinator owns metadata. Follow repository Javadoc style and apply the narrow formatting task if needed. Behavioral tests are unnecessary for this documentation-only change. Do not merge main or sibling branches merely for this wording edit, rebase, wait for CI, reply to human comments, or resolve unrelated threads. Commit and push only this scoped documentation refinement to this PR.",
+      "created": "2026-10-25T21:03:15Z",
+      "hunk": "@@ -59,18 +59,20 @@ default String getDestinationSubscriptionName(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final value of {@code error.type} for the operation.",
+      "id": "PRRT_kwDODJKVX86wFAHV",
+      "opened": "2026-10-25T21:03:14Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T21:08:48Z",
+          "body": "Updated in `bc5424c1`. The Javadoc now uses the requested contract and default wording; no runtime or changelog changes were made.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4372430212"
+        }
+      ],
+      "reviewed": "3a90df567da2b84a9720dfe5dbee52397a1403cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4372407321"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * Returns the {@code error.type} value for the operation.\n```",
+      "created": "2026-10-25T23:44:06Z",
+      "hunk": "@@ -59,18 +59,18 @@ default String getDestinationSubscriptionName(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.",
+      "id": "PRRT_kwDODJKVX86wGUPf",
+      "opened": "2026-10-25T23:44:06Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesGetter.java",
+      "replies": [],
+      "reviewed": "bc5424c1811daa74c2a0dc2745f6c4a5fcdc126f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4372968556"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply all the following user-requested changes directly to this existing PR #20880. Preserve the existing head branch, base, draft state and other edits. Commit and push only this scoped update to this PR, not a new follow-up PR. Earlier contract and Javadoc work is complete; this is a new user request.\n\nIn instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerAttributeGetter.java, rename the static response-only getErrorType(ConsumeMessageContext) helper to getResponseErrorType(ConsumeMessageContext). Keep its response classification algorithm unchanged. Update both its caller in the complete three-argument getter and the call in RocketMqInstrumenterFactory.consumeStatusExtractor(), plus any directly affected references. Use a descriptive responseErrorType local. The complete getter must still prefer the response-derived error classification, then the original exception's class name, then null. Avoid a nested ternary: use an early-return if for the response classification followed by the simple nullable-exception expression. Keep the response-only distinction because the span-status extractor uses it independently and delegates exception handling to SpanStatusExtractor.getDefault(). Do not fold Throwable fallback into this response-only helper or change the status extractor's decisions. If its short Javadoc needs clarification, describe the current response-only contract without migration history.\n\nAlso avoid the nested ternary in instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqConsumerProcessAttributeGetter.java. Use an explicit if/early return for ConsumeResult.FAILURE, then return the exception class name or null using a simple conditional. Preserve classification precedence and all behavior.\n\nThe user explicitly requests removal of instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqConsumerProcessAttributeGetterTest.java and the newly introduced unitTests JvmTestSuite in that module's build.gradle.kts. Remove that test class, the added unitTests registration/dependencies, and the check dependency on testing.suites introduced solely for this suite. Preserve all pre-existing test tasks, dependencies and other check wiring. Do not replace the removed class with another test class or suite. Keep the existing 4.8 tests and all other unrelated coverage.\n\nPreserve the established messaging getter/extractor contract, interface defaults, Javadocs, telemetry, consume-return-type precedence, cancellation and span-status behavior. Do not change other instrumentations or PRs, add unrelated cleanup, or reintroduce extractor fallback. Apply the narrow relevant formatting tasks and run the smallest existing tests covering the changed 4.8 helper/status behavior, plus a narrow Gradle configuration check appropriate to removing the 5.0 suite. Report execution blockers accurately. Do not wait for CI, merge main or sibling branches, rebase, reply to human comments, resolve unrelated threads, or alter the PR title or description; the coordinator handles metadata.",
+      "created": "2026-10-25T23:49:48Z",
+      "hunk": "@@ -82,7 +82,8 @@ public String getErrorType(\n       RocketMqConsumerRequest request,\n       @Nullable ConsumeMessageContext response,\n       @Nullable Throwable error) {\n-    return getErrorType(response);\n+    String errorType = getErrorType(response);",
+      "id": "PRRT_kwDODJKVX86wGXYf",
+      "opened": "2026-10-25T23:49:48Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerAttributeGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T23:59:00Z",
+          "body": "Applied in e807ae4b. The 4.8 helper now explicitly represents response-only classification; the 5.0 getter uses an early return, and its standalone unit test suite was removed as requested. The 4.8 library tests and 5.0 check-graph dry run passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4373017338"
+        }
+      ],
+      "reviewed": "854ac4482d526aa487070fea5cadf91ce3032ec5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4372988160"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "the old behavior matches what http instrumentation uses\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c2044227ef0b8cd630f420aacd9c7813cfa0c8cc/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesExtractor.java#L106-L110 should these be also changed?",
+      "created": "2026-10-26T08:17:08Z",
+      "hunk": "@@ -167,11 +167,7 @@ public void onEnd(\n       @Nullable Throwable error) {\n     attributes.put(MESSAGING_MESSAGE_ID, getter.getMessageId(request, response));\n     attributes.put(MESSAGING_BATCH_MESSAGE_COUNT, getter.getBatchMessageCount(request, response));\n-    String errorType = getter.getErrorType(request, response, error);\n-    if (errorType == null && error != null) {\n-      errorType = error.getClass().getName();\n-    }\n-    attributes.put(ERROR_TYPE, errorType);\n+    attributes.put(ERROR_TYPE, getter.getErrorType(request, response, error));",
+      "id": "PRRT_kwDODJKVX86wLlFA",
+      "opened": "2026-10-26T08:17:08Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-26T08:19:10Z",
+          "body": "http changes implemented in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20881",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4375166457"
+        }
+      ],
+      "reviewed": "b1e8f9be77c644d0c7d20a3005221e1b2cc6cdf1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20880#discussion_r4375153303"
+    }
+  ]
+}

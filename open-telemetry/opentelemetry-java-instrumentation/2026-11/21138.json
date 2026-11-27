@@ -1,0 +1,31 @@
+{
+  "head": "33751fcdf12bda10d8c050ad387e6afd87ae69d8",
+  "merge": "0ed286538234a313cdd37c98a3592002156dc65c",
+  "merged": "2026-11-02T17:11:06Z",
+  "missing_roots": 0,
+  "number": 21138,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by adding the following explanatory comment immediately after the shebang in .github/scripts/gha-free-disk-space.sh, before set -o pipefail:\n\n```bash\n# Current runners often start with around 90 GB free, but GitHub only guarantees 14 GB of disk space.\n# Keep cleanup conditional and revisit removing this script when the documented minimum increases.\n# https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories\n```\n\nThis exact text was approved by the user. Preserve all executable code, the 20 GiB cutoff, every workflow call, and the draft state. This is a comment-only follow-up; do not make unrelated changes. Verify that only the requested comment is added.",
+      "created": "2026-11-02T15:21:14Z",
+      "hunk": "@@ -1,7 +1,12 @@\n #!/bin/bash -e\n \n-# GitHub Actions runners have only provide 14 GB of disk space which we have been exceeding regularly\n-# https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources\n+set -o pipefail",
+      "id": "PRRT_kwDODJKVX86yu2Ai",
+      "opened": "2026-11-02T15:21:13Z",
+      "path": ".github/scripts/gha-free-disk-space.sh",
+      "replies": [
+        {
+          "at": "2026-11-02T15:24:32Z",
+          "body": "Added the requested comment-only context in commit `33751fcd`. Verified the diff contains only those three lines; `bash -n` and `git diff --check` pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21138#discussion_r4444196669"
+        }
+      ],
+      "reviewed": "d8feffaf3389ca5c41a0580184d13200cb0de5ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21138#discussion_r4444156545"
+    }
+  ]
+}

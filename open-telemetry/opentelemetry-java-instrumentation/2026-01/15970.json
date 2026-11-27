@@ -1,0 +1,25 @@
+{
+  "head": "00af5d10f731968a73e57da2870c514227891ffc",
+  "merge": "5c8fb1b690e5aed2d4e431d142734e912951362d",
+  "merged": "2026-01-28T10:13:45Z",
+  "missing_roots": 0,
+  "number": 15970,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n                span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n```",
+      "created": "2026-01-28T09:49:50Z",
+      "hunk": "@@ -69,33 +68,26 @@ void clientCallCreatesSpans() throws Exception {\n             });\n \n     assertThat(response).contains(\"Hello you\");\n-    assertThat(testing.waitForTraces(1))\n-        .satisfiesExactly(\n-            trace ->\n-                assertThat(trace)\n-                    .satisfiesExactly(\n-                        span ->\n-                            assertThat(span)\n-                                .hasName(\"parent\")\n-                                .hasKind(SpanKind.INTERNAL)\n-                                .hasParentSpanId(SpanId.getInvalid()),\n-                        span ->\n-                            assertThat(span)\n-                                .hasName(\"rmi.app.Greeter/hello\")\n-                                .hasKind(SpanKind.CLIENT)\n-                                .hasParentSpanId(trace.get(0).getSpanId())\n-                                .hasAttributesSatisfyingExactly(\n-                                    equalTo(RPC_SYSTEM, \"java_rmi\"),\n-                                    equalTo(RPC_SERVICE, \"rmi.app.Greeter\"),\n-                                    equalTo(RPC_METHOD, \"hello\")),\n-                        span ->\n-                            assertThat(span)\n-                                .hasName(\"rmi.app.Server/hello\")\n-                                .hasKind(SpanKind.SERVER)\n-                                .hasAttributesSatisfyingExactly(\n-                                    equalTo(RPC_SYSTEM, \"java_rmi\"),\n-                                    equalTo(RPC_SERVICE, \"rmi.app.Server\"),\n-                                    equalTo(RPC_METHOD, \"hello\"))));\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL),",
+      "id": "PRRT_kwDODJKVX85rZoRV",
+      "opened": "2026-01-28T09:49:50Z",
+      "path": "instrumentation/rmi/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rmi/RmiTest.java",
+      "replies": [],
+      "reviewed": "5b44ae9801f52bfdc668ee7057a1bc0ebfe2c770",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15970#discussion_r2735788991"
+    }
+  ]
+}

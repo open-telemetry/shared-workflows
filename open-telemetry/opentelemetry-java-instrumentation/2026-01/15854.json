@@ -1,0 +1,25 @@
+{
+  "head": "118f9bafddfeac7c5bca1ef9c5c4727f716e1eb6",
+  "merge": "9a9723445a1e0a8ac3503e3ffad3372ad1836423",
+  "merged": "2026-01-13T15:05:30Z",
+  "missing_roots": 0,
+  "number": 15854,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "moved this here from `SqlClientAttributesExtractor` so I can reuse this value from `DbClientSpanNameExtractor`",
+      "created": "2026-01-13T04:38:28Z",
+      "hunk": "@@ -46,10 +46,11 @@ static MultiQuery analyze(\n           statementSanitizationEnabled ? sanitizedStatement.getQueryText() : rawQueryText);\n     }\n \n+    String operationName = uniqueOperationName.getValue();\n     return new MultiQuery(\n         uniqueCollectionName.getValue(),\n         uniqueStoredProcedureName.getValue(),\n-        uniqueOperationName.getValue(),\n+        operationName == null ? \"BATCH\" : \"BATCH \" + operationName,",
+      "id": "PRRT_kwDODJKVX85pGS2W",
+      "opened": "2026-01-13T04:42:12Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/MultiQuery.java",
+      "replies": [],
+      "reviewed": "2191bdccd9200235acfd48467fcb725e6eeaa4b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15854#discussion_r2684787687"
+    }
+  ]
+}

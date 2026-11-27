@@ -1,0 +1,86 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "dc75c6cf75196ddeca7a8be35e75ad37ab91afcb54c15508394500471302fefd",
+  "input_digest": "bc1feea40d9d02d3ecb1a1e47feb3f2ecdc76b522be83bc5006c3cea6ca190dd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9e84f753b00f7f475d73fea6c00ffebe78269bc/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9e84f753b00f7f475d73fea6c00ffebe78269bc/instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClientBaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClientBaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/75ed42750918abe9dd0bb8394589299ce73516fd",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/741726a5fe60ba0868871fc760cedbf74dadaf58"
+      ],
+      "id": "PRRT_kwDODJKVX8559uQ8",
+      "kind": "test coverage gap",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9e84f753b00f7f475d73fea6c00ffebe78269bc/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9e84f753b00f7f475d73fea6c00ffebe78269bc/instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClientBaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClientBaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4199a0d96931f0908dab79fb4acbf5ffb17261f5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/75ed42750918abe9dd0bb8394589299ce73516fd",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/741726a5fe60ba0868871fc760cedbf74dadaf58"
+      ],
+      "id": "PRRT_kwDODJKVX8559uRf",
+      "kind": "test coverage gap",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9e84f753b00f7f475d73fea6c00ffebe78269bc/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9e84f753b00f7f475d73fea6c00ffebe78269bc/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/75ed42750918abe9dd0bb8394589299ce73516fd"
+      ],
+      "id": "PRRT_kwDODJKVX8559uRt",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX8560X8Q",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51ec987cd218bfb188548ee1ec2a803daf068494/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/75ed42750918abe9dd0bb8394589299ce73516fd"
+      ],
+      "id": "PRRT_kwDODJKVX8565ybx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75ed42750918abe9dd0bb8394589299ce73516fd/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75ed42750918abe9dd0bb8394589299ce73516fd/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6561066e6581da58517035a68ee59c34f2a4f803/instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6d20895f068950ebea4336cc6e448863be721bbe"
+      ],
+      "id": "PRRT_kwDODJKVX857eNGy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b19aa63ce032946cd103c044f1b308b6307d7d05b94970e73c0aeff0b593f7e1",
+  "input_digest": "39132f2c2f6a7173feee5f552d6382b7ee28598f1b8132aa173f78dfe7843747",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1300ca6fe15729f7047def008ed465c1edb23009/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/SpringDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/SpringDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1300ca6fe15729f7047def008ed465c1edb23009/instrumentation/spring/spring-boot-autoconfigure/src/testDeclarativeConfig/java/io/opentelemetry/instrumentation/spring/autoconfigure/SpringDeclarativeConfigPropertiesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/instrumentation/spring/spring-boot-autoconfigure/src/testDeclarativeConfig/java/io/opentelemetry/instrumentation/spring/autoconfigure/SpringDeclarativeConfigPropertiesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1300ca6fe15729f7047def008ed465c1edb23009/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/SemconvStabilityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/SemconvStabilityTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86q2inq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d24fef514e4ef688e3ed2b9af27018f11d5f17/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_56/incubator/config/ApplicationDeclarativeConfigProperties156Incubator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d24fef514e4ef688e3ed2b9af27018f11d5f17/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/src/incubatorTest/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_56/incubator/ExtendedOpenTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/src/incubatorTest/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_56/incubator/ExtendedOpenTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/src/incubatorTest/resources/declarative-config.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1c29becf2aa341edaabf9b9a563ecea49e3d0160"
+      ],
+      "id": "PRRT_kwDODJKVX86rI25V",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d24fef514e4ef688e3ed2b9af27018f11d5f17/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigPropertiesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6713a3ff326f6f2bb62d1270983220e58e836a47"
+      ],
+      "id": "PRRT_kwDODJKVX86rQGNd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1c29becf2aa341edaabf9b9a563ecea49e3d0160/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/context/propagation/ApplicationTextMapPropagator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/context/propagation/ApplicationTextMapPropagator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ea7b5a43155ac8ddef2798475fa6af1f9ae41846"
+      ],
+      "id": "PRRT_kwDODJKVX86rTAIG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86rUAKP",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c3a23dc85c3bd6ceebf6e8dbcf968945b0267e8/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a08d6dc800d04ed2d48a2c26eee654a0e619d0ac/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86reSDa",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

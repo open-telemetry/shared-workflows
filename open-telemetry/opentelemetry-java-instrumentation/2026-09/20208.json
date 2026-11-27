@@ -1,0 +1,82 @@
+{
+  "head": "15e8236e17f8f8706ac622b5f19ce879be19e36c",
+  "merge": "a4a3bd65bf1c2e660d2c70a573c3a7b01e5ad487",
+  "merged": "2026-09-22T21:23:10Z",
+  "missing_roots": 0,
+  "number": 20208,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Register JDK 26 base images before advancing this value. `configureImage` currently accepts only 8/11/17/21/25 for HotSpot Linux/Windows and OpenJ9 (lines 302–331), so task creation reaches `26` and throws `GradleException` while configuring this project. Add pinned JDK 26 mappings in all three branches, or keep this at 25 until those images are available.",
+      "created": "2026-09-22T02:32:48Z",
+      "hunk": "@@ -27,7 +27,7 @@ gradle.sharedServices.registerIfAbsent(\"dockerBuildService\", DockerBuildService:\n val extraTag = findProperty(\"extraTag\")\n   ?: java.time.format.DateTimeFormatter.ofPattern(\"yyyyMMdd.HHmmSS\").format(java.time.LocalDateTime.now())\n \n-val latestJava = \"25\" // renovate(java-version)\n+val latestJava = \"26\" // renovate(java-version)",
+      "id": "PRRT_kwDODJKVX86klPs_",
+      "opened": "2026-09-22T02:32:49Z",
+      "path": "smoke-tests/images/servlet/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-22T15:24:39Z",
+          "body": "237ed79cfb",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20208#discussion_r4073348521"
+        }
+      ],
+      "reviewed": "c9c94dcffce800564921b368e43256e4fbac6a20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20208#discussion_r4068012342"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The step is still labeled “Set up JDK 11” even though it now installs JDK 25, so workflow logs report the wrong toolchain. Rename the step to match the configured version.",
+      "created": "2026-09-22T02:32:48Z",
+      "hunk": "@@ -44,7 +44,7 @@ jobs:\n         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1\n         with:\n           distribution: temurin\n-          java-version: 11\n+          java-version: 25",
+      "id": "PRRT_kwDODJKVX86klPtW",
+      "opened": "2026-09-22T02:32:49Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [],
+      "reviewed": "c9c94dcffce800564921b368e43256e4fbac6a20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20208#discussion_r4068012371"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This build-JDK bump leaves the version documentation inconsistent: `CONTRIBUTING.md:49,81` still requires Java 21, while `docs/contributing/running-tests.md:25-27` still describes the old Java 21/23 setup. Update both documents as part of the `.java-version` change so contributors are told which JDK and test matrix the repository now uses.",
+      "created": "2026-09-22T05:56:13Z",
+      "hunk": "@@ -1 +1 @@\n-21\n\\ No newline at end of file\n+25",
+      "id": "PRRT_kwDODJKVX86knRO3",
+      "opened": "2026-09-22T05:56:13Z",
+      "path": ".java-version",
+      "replies": [
+        {
+          "at": "2026-09-22T19:00:59Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20208/commits/15e8236e17f8f8706ac622b5f19ce879be19e36c",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20208#discussion_r4075340373"
+        }
+      ],
+      "reviewed": "b8f90d061a26eb8a9ca2c84dfac26f430693eeb0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20208#discussion_r4068816648"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This value now matches the immediately following `java-version-file: .java-version` setup, so both steps install Temurin 25 and the first setup is superseded before any command runs. Remove this first setup step, or retain Java 11 here if it is intentionally preinstalled as an auxiliary toolchain.",
+      "created": "2026-09-22T15:22:41Z",
+      "hunk": "@@ -44,7 +44,7 @@ jobs:\n         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1\n         with:\n           distribution: temurin\n-          java-version: 11\n+          java-version: 25",
+      "id": "PRRT_kwDODJKVX86kywZI",
+      "opened": "2026-09-22T15:22:41Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [],
+      "reviewed": "237ed79cfb593de75e601abd5f98bbc9346a7951",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20208#discussion_r4073329288"
+    }
+  ]
+}

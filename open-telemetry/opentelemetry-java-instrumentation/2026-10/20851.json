@@ -1,0 +1,61 @@
+{
+  "head": "d3aae667cd8722dc5d93db3f0bc3761d85924faa",
+  "merge": "35ab7b529721850466396736905973039f41bc01",
+  "merged": "2026-10-23T19:19:16Z",
+  "missing_roots": 0,
+  "number": 20851,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The later `tasks.withType<Test>().configureEach` block sets this property back to `true` after the `testReceiveSpansDisabled` variant configures it as `false`. `telemetryConfig` writes the system property immediately; it does not protect it from later overrides. The task therefore runs with receive telemetry enabled while its metadata says it is disabled, losing disabled-mode coverage. Make the shared `true` setting a fallback so it preserves the variant's explicit value.",
+      "created": "2026-10-22T16:00:05Z",
+      "hunk": "@@ -30,8 +25,37 @@ dependencies {\n   }\n \n   testInstrumentation(project(\":instrumentation:reactor:reactor-3.1:javaagent\"))\n+}\n \n-  testLibrary(\"io.projectreactor.rabbitmq:reactor-rabbitmq:1.0.0.RELEASE\")\n+testing.suites {\n+  register<JvmTestSuite>(\"reactorTest\") {\n+    dependencies {\n+      implementation(\"io.projectreactor.rabbitmq:reactor-rabbitmq:${baseVersion(\"1.0.0.RELEASE\").orLatest()}\")\n+      implementation(\"com.rabbitmq:amqp-client:${baseVersion(\"5.5.1\").orLatest()}\")\n+    }\n+  }\n+  register<JvmTestSuite>(\"recoveryTest\") {\n+    dependencies {\n+      implementation(\"com.rabbitmq:amqp-client:${baseVersion(\"4.0.0\").orLatest()}\")\n+    }\n+  }\n+  withType<JvmTestSuite>().configureEach {\n+    sources.java.srcDir(\"src/testCommon/java\")\n+    dependencies {\n+      implementation(\"org.testcontainers:testcontainers\")\n+    }\n+    val baseline = name == \"test\"\n+    executions {\n+      register(\"Experimental\") {\n+        telemetryConfig(\"otel.instrumentation.rabbitmq.experimental-span-attributes\", \"true\")\n+      }\n+      if (baseline) {\n+        register(\"ReceiveSpansDisabled\") {\n+          telemetryConfig(\"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\", \"false\")",
+      "id": "PRRT_kwDODJKVX86vRYAh",
+      "opened": "2026-10-22T16:00:05Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-22T16:24:48Z",
+          "body": "Fixed in 8e5686cdf6b94bfb8036eb4568ca5a3d6c3611b4. The shared receive-enabled setting now runs in `executions.configureEach`, before each variant's configuration, and the later unconditional override is removed. `ReceiveSpansDisabled` therefore retains its explicit `false` value and matching metadata.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20851#discussion_r4350840062"
+        }
+      ],
+      "reviewed": "d22ae65079a0829abf448699337d64205d0c413e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20851#discussion_r4350597402"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the receive-disabled coverage regression identified in Copilot review 5617129283, comment 4350597402. Do not create a separate PR.\n\nIn instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts, the ReceiveSpansDisabled execution calls telemetryConfig(\"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\", \"false\"), but the later tasks.withType<Test>().configureEach block sets the same system property to \"true\". The executions helper applies the variant action immediately during task configuration; telemetryConfig does not protect the resulting property from subsequent task actions. As a result the disabled variant can run enabled while metadataConfig labels it disabled.\n\nPreserve the explicit disabled override. Use the existing executions common-before-variant configuration mechanism, or a shared default that does not overwrite an explicit task value. Keep normal and experimental executions receive-enabled, and keep testReceiveSpansDisabled receive-disabled with matching metadata. Inspect final configured task properties after all configuration has completed to establish the exact true/false values, not merely whether tasks exist or whether mode-dependent assertions pass.\n\nKeep the original scope and behavior: retain RabbitMQ client 2.7.0 as the real baseline and the existing Muzzle range, the isolated Reactor and recovery runtimes, meaningful experimental-attribute variants, check wiring, and the Reactor latest-dependencies exclusion. Do not add module-specific runtime-version assertions or unrelated infrastructure. Confirm dependencyInsight still selects 2.7.0 for the baseline, 5.5.1 for Reactor, and 4.0.0 for recovery in baseline mode, and run the focused module tests including the disabled and newer-version executions plus required formatting. If execution is blocked, identify the concrete blocker rather than reporting successful runtime coverage from dependency resolution alone. Do not reply to or resolve review threads; the coordinating session will handle them after verifying the fix.",
+      "created": "2026-10-22T16:05:02Z",
+      "hunk": "@@ -30,8 +25,37 @@ dependencies {\n   }\n \n   testInstrumentation(project(\":instrumentation:reactor:reactor-3.1:javaagent\"))\n+}\n \n-  testLibrary(\"io.projectreactor.rabbitmq:reactor-rabbitmq:1.0.0.RELEASE\")\n+testing.suites {\n+  register<JvmTestSuite>(\"reactorTest\") {\n+    dependencies {\n+      implementation(\"io.projectreactor.rabbitmq:reactor-rabbitmq:${baseVersion(\"1.0.0.RELEASE\").orLatest()}\")\n+      implementation(\"com.rabbitmq:amqp-client:${baseVersion(\"5.5.1\").orLatest()}\")\n+    }\n+  }\n+  register<JvmTestSuite>(\"recoveryTest\") {\n+    dependencies {\n+      implementation(\"com.rabbitmq:amqp-client:${baseVersion(\"4.0.0\").orLatest()}\")\n+    }\n+  }\n+  withType<JvmTestSuite>().configureEach {\n+    sources.java.srcDir(\"src/testCommon/java\")\n+    dependencies {\n+      implementation(\"org.testcontainers:testcontainers\")\n+    }\n+    val baseline = name == \"test\"\n+    executions {\n+      register(\"Experimental\") {\n+        telemetryConfig(\"otel.instrumentation.rabbitmq.experimental-span-attributes\", \"true\")\n+      }\n+      if (baseline) {\n+        register(\"ReceiveSpansDisabled\") {\n+          telemetryConfig(\"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\", \"false\")",
+      "id": "PRRT_kwDODJKVX86vRfQL",
+      "opened": "2026-10-22T16:05:02Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d22ae65079a0829abf448699337d64205d0c413e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20851#discussion_r4350646155"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove the unnecessary automatic-recovery override from the shared RabbitMQ test setup. Do not create a separate PR.\n\nIn instrumentation/rabbitmq-2.7/javaagent/src/testCommon/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java, remove the entire try/catch that reflectively calls ConnectionFactory.setAutomaticRecoveryEnabled(false), including its fallback comment, and remove ReflectiveOperationException from startRabbit()'s throws declaration. Leave the shared factory using the client defaults; do not replace the block with another recovery-disable mechanism.\n\nThe ordinary tests explicitly close or abort their resources, and their deliberate protocol errors are channel-level errors rather than unexpected connection failures. The dedicated RabbitMqRecoveryTest creates its own recoveringFactory and explicitly enables automatic recovery; preserve that test and its configuration unchanged. Keep the PR's existing scope, real 2.7.0 baseline, isolated Reactor/recovery suites, Muzzle range, and experimental/receive-disabled coverage unchanged.\n\nRun the narrowest required formatting and relevant RabbitMQ tests to confirm shared setup still works with the minimum and newer-client suites. Report any concrete execution blocker accurately. Do not reply to or resolve review threads; the coordinating session handles those.",
+      "created": "2026-10-22T17:46:19Z",
+      "hunk": "@@ -57,7 +57,13 @@ static void startRabbit() throws IOException, InterruptedException {\n     connectionFactory = new ConnectionFactory();\n     connectionFactory.setHost(rabbitMqContainer.getHost());\n     connectionFactory.setPort(rabbitMqContainer.getMappedPort(5672));\n-    connectionFactory.setAutomaticRecoveryEnabled(false);\n+    try {\n+      ConnectionFactory.class\n+          .getMethod(\"setAutomaticRecoveryEnabled\", boolean.class)",
+      "id": "PRRT_kwDODJKVX86vTyO2",
+      "opened": "2026-10-22T17:46:19Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/testCommon/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java",
+      "replies": [],
+      "reviewed": "8e5686cdf6b94bfb8036eb4568ca5a3d6c3611b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20851#discussion_r4351624080"
+    }
+  ]
+}

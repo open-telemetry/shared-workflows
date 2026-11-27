@@ -1,0 +1,76 @@
+{
+  "head": "32a40007c47d177dfc3e749d40075484d2226705",
+  "merge": "3434fe9b617f148a5b1a5f120da9d322f5f46030",
+  "merged": "2026-01-09T15:48:51Z",
+  "missing_roots": 0,
+  "number": 15791,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "carry this comment over to bridge fallback..",
+      "created": "2026-01-08T16:20:30Z",
+      "hunk": "@@ -73,16 +72,4 @@ private static void addClasspathRules(String target, JmxTelemetryBuilder builder\n           Level.SEVERE, \"Error while loading JMX configuration from classpath \" + resource, e);\n     }\n   }\n-\n-  private static Duration beanDiscoveryDelay(\n-      ExtendedDeclarativeConfigProperties config, ConfigProperties configProperties) {\n-    Long discoveryDelayMs = config.get(\"discovery\").getLong(\"delay\");\n-    if (discoveryDelayMs != null) {\n-      return Duration.ofMillis(discoveryDelayMs);\n-    }\n-\n-    // If discovery delay has not been configured, have a peek at the metric export interval.\n-    // It makes sense for both of these values to be similar.",
+      "id": "PRRT_kwDODJKVX85ojvGa",
+      "opened": "2026-01-08T16:26:09Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [],
+      "reviewed": "b7a99d6d4934bdd6336853ab7596423d30fbe0bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15791#discussion_r2673013745"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "could use Global here for consistency",
+      "created": "2026-01-08T16:22:41Z",
+      "hunk": "@@ -19,21 +19,21 @@ public class JarAnalyzerInstaller implements BeforeAgentListener {\n \n   @Override\n   public void beforeAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk) {\n-    ConfigProperties config = AutoConfigureUtil.getConfig(autoConfiguredOpenTelemetrySdk);\n-\n-    boolean enabled =\n-        config.getBoolean(\"otel.instrumentation.runtime-telemetry.package-emitter.enabled\", false);\n-    if (!enabled) {\n+    ExtendedDeclarativeConfigProperties config =\n+        DeclarativeConfigUtil.getInstrumentationConfig(\n+                autoConfiguredOpenTelemetrySdk.getOpenTelemetrySdk(), \"runtime_telemetry\")",
+      "id": "PRRT_kwDODJKVX85ojwiL",
+      "opened": "2026-01-08T16:26:09Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimemetrics/java8/JarAnalyzerInstaller.java",
+      "replies": [],
+      "reviewed": "b7a99d6d4934bdd6336853ab7596423d30fbe0bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15791#discussion_r2673021440"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "for consistency (config is the module)\r\n```suggestion\r\n    if (!config.get(\"package_emitter\").getBoolean(\"enabled\", false)) {\r\n```",
+      "created": "2026-01-08T16:23:45Z",
+      "hunk": "@@ -19,21 +19,21 @@ public class JarAnalyzerInstaller implements BeforeAgentListener {\n \n   @Override\n   public void beforeAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk) {\n-    ConfigProperties config = AutoConfigureUtil.getConfig(autoConfiguredOpenTelemetrySdk);\n-\n-    boolean enabled =\n-        config.getBoolean(\"otel.instrumentation.runtime-telemetry.package-emitter.enabled\", false);\n-    if (!enabled) {\n+    ExtendedDeclarativeConfigProperties config =\n+        DeclarativeConfigUtil.getInstrumentationConfig(\n+                autoConfiguredOpenTelemetrySdk.getOpenTelemetrySdk(), \"runtime_telemetry\")\n+            .get(\"package_emitter\");\n+    if (!config.getBoolean(\"enabled\", false)) {",
+      "id": "PRRT_kwDODJKVX85ojxNM",
+      "opened": "2026-01-08T16:26:09Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimemetrics/java8/JarAnalyzerInstaller.java",
+      "replies": [],
+      "reviewed": "b7a99d6d4934bdd6336853ab7596423d30fbe0bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15791#discussion_r2673025053"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "let's split these two tests out into separate PR, looks like their purpose maybe to delete `AutoConfigureUtil`?",
+      "created": "2026-01-08T16:25:59Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85ojyqY",
+      "opened": "2026-01-08T16:26:09Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ConfigurationPropertiesSupplierTest.java",
+      "replies": [
+        {
+          "at": "2026-01-09T07:38:50Z",
+          "body": "split off to https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15805",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15791#discussion_r2675165372"
+        }
+      ],
+      "reviewed": "b7a99d6d4934bdd6336853ab7596423d30fbe0bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15791#discussion_r2673032881"
+    }
+  ]
+}

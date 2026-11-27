@@ -1,0 +1,94 @@
+{
+  "head": "07f3839aaef6ed07e1c721f0c71bd08d573c9262",
+  "merge": "8c34534fc2da55b230113e56d2a81954e3373c02",
+  "merged": "2026-06-09T09:45:55Z",
+  "missing_roots": 0,
+  "number": 18891,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[API] `MessagingExceptionEventExtractors` is in a public semconv package but depends on `io.opentelemetry.instrumentation.api.internal.Experimental` (an explicitly internal/temporary bridge API). This effectively exposes internal wiring as part of the incubator public surface area, which makes it harder to evolve/remove when a stable `InstrumenterBuilder` API for exception-log configuration is introduced.\n\nConsider moving this helper into an `.internal` package (similar to `...builder.internal.DefaultHttp*InstrumenterBuilder`), or otherwise keeping the internal dependency from leaking into the public semconv namespace (e.g., introduce a public builder method once available and delegate to that).",
+      "created": "2026-06-03T22:12:43Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.messaging;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n+import io.opentelemetry.instrumentation.api.internal.Experimental;\n+",
+      "id": "PRRT_kwDODJKVX86G6EEW",
+      "opened": "2026-06-03T22:12:43Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingExceptionEventExtractors.java",
+      "replies": [
+        {
+          "at": "2026-06-03T23:39:41Z",
+          "body": "Addressed — moved all five exception-event helpers into their `semconv.{domain}.internal` subpackages so the public incubator surface no longer depends on the internal `Experimental` bridge API (following the existing HTTP precedent, which keeps this wiring inside `.internal`). Updated all caller imports accordingly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3352543640"
+        }
+      ],
+      "reviewed": "1e5a537296136f35b8a2aac63972f80cac006654",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3352236912"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`testExceptionSignalLogs` doesn't inherit the same `testLatestDeps` / `collectMetadata` system properties as the main `test` task. If those flags are enabled in CI or local runs, this task will execute `WrapperTest` under a different configuration than the rest of the suite, and metadata collection may be skipped for this run.",
+      "created": "2026-06-04T23:11:00Z",
+      "hunk": "@@ -22,6 +22,21 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n+\n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+\n+    filter {\n+      includeTestsMatching(\"WrapperTest\")\n+    }\n+    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+  }",
+      "id": "PRRT_kwDODJKVX86HOC5H",
+      "opened": "2026-06-04T23:11:01Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-05T00:14:37Z",
+          "body": "Fixed. The Kafka clients 2.6 library now configures the shared Test-task settings via `withType<Test>().configureEach`, so both `test` and `testExceptionSignalLogs` use the Testcontainers build service and receive `testLatestDeps` and `collectMetadata`. The preview task keeps its logs-mode flag and now also sets `metadataConfig=otel.semconv.exception.signal.preview=logs` for metadata collection.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3359587679"
+        }
+      ],
+      "reviewed": "70287df0bc8cd9ef4b3a05ead140d0b2e48215d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3359406882"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`emitExceptionAsLogs()` is computed once in `SemconvExceptionSignal` during class initialization (based on the JVM/system properties and GlobalOpenTelemetry config). This test never sets `otel.semconv.exception.signal.preview=logs` for the test JVM, so on a normal test run `emitExceptionAsLogs()` will almost always be false and these tests will only assert that no logs were emitted, without ever validating the configured event names/severities/attributes for the logs path.",
+      "created": "2026-06-05T00:25:57Z",
+      "hunk": "@@ -0,0 +1,100 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvExceptionSignal.emitExceptionAsLogs;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_MESSAGE;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_STACKTRACE;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_TYPE;\n+\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n+import io.opentelemetry.sdk.logs.data.LogRecordData;\n+import io.opentelemetry.sdk.testing.junit5.OpenTelemetryExtension;\n+import java.util.List;\n+import java.util.function.Consumer;\n+import org.assertj.core.api.AbstractAssert;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class MessagingExceptionEventExtractorsTest {\n+\n+  @RegisterExtension\n+  static final OpenTelemetryExtension otelTesting = OpenTelemetryExtension.create();\n+\n+  @Test\n+  void messagingCreateExceptionLog() {\n+    assertExceptionLog(\n+        MessagingExceptionEventExtractors::setMessagingCreateExceptionEventExtractor,\n+        \"messaging.create.exception\",\n+        Severity.WARN);\n+  }\n+\n+  @Test\n+  void messagingSendExceptionLog() {\n+    assertExceptionLog(\n+        MessagingExceptionEventExtractors::setMessagingSendExceptionEventExtractor,\n+        \"messaging.send.exception\",\n+        Severity.WARN);\n+  }\n+\n+  @Test\n+  void messagingReceiveExceptionLog() {\n+    assertExceptionLog(\n+        MessagingExceptionEventExtractors::setMessagingReceiveExceptionEventExtractor,\n+        \"messaging.receive.exception\",\n+        Severity.WARN);\n+  }\n+\n+  @Test\n+  void messagingSettleExceptionLog() {\n+    assertExceptionLog(\n+        MessagingExceptionEventExtractors::setMessagingSettleExceptionEventExtractor,\n+        \"messaging.settle.exception\",\n+        Severity.WARN);\n+  }\n+\n+  @Test\n+  void messagingProcessExceptionLog() {\n+    assertExceptionLog(\n+        MessagingExceptionEventExtractors::setMessagingProcessExceptionEventExtractor,\n+        \"messaging.process.exception\",\n+        Severity.ERROR);\n+  }\n+\n+  private static void assertExceptionLog(\n+      Consumer<InstrumenterBuilder<String, String>> configure,\n+      String expectedEventName,\n+      Severity expectedSeverity) {\n+    InstrumenterBuilder<String, String> builder =\n+        Instrumenter.builder(otelTesting.getOpenTelemetry(), \"test\", unused -> \"span\");\n+    configure.accept(builder);\n+    Instrumenter<String, String> instrumenter = builder.buildInstrumenter();\n+\n+    Context context = instrumenter.start(Context.root(), \"request\");\n+    IllegalStateException error = new IllegalStateException(\"test\");\n+    instrumenter.end(context, \"request\", \"response\", error);\n+\n+    List<LogRecordData> logs = otelTesting.getLogRecords();\n+    if (emitExceptionAsLogs()) {\n+      assertThat(logs).hasSize(1);\n+      assertThat(logs.get(0))\n+          .hasSeverity(expectedSeverity)\n+          .hasEventName(expectedEventName)\n+          .hasAttributesSatisfyingExactly(\n+              equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n+              equalTo(EXCEPTION_MESSAGE, \"test\"),\n+              satisfies(EXCEPTION_STACKTRACE, AbstractAssert::isNotNull));\n+    } else {\n+      assertThat(logs).isEmpty();\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86HOre3",
+      "opened": "2026-06-05T00:25:57Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingExceptionEventExtractorsTest.java",
+      "replies": [
+        {
+          "at": "2026-06-06T00:18:50Z",
+          "body": "No code change needed. The current PR head already wires `testExceptionSignalLogs` with `-Dotel.semconv.exception.signal.preview=logs` and `testExceptionSignalLogsDup` with `logs/dup`; both tasks run the normal test classes/runtime classpath, and `check` depends on both tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3366013078"
+        }
+      ],
+      "reviewed": "68a8372bc0edd919a440f8eb66fb156e52c86dba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3359630055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] In logs mode (`otel.semconv.exception.signal.preview=logs`), this test currently stops asserting anything about span exceptions, so it would still pass even if the exception continued to be emitted as a span event (regressing the intended behavior). Use the existing `hasException(... ? error : null)` pattern to also assert *absence* of span exceptions when span events are disabled.",
+      "created": "2026-06-05T16:44:56Z",
+      "hunk": "@@ -177,15 +186,40 @@ void testConsumerError() {\n     testing.waitAndAssertTraces(\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n-                span ->\n-                    span.hasName(\"unknown receive\")\n-                        .hasKind(SpanKind.CONSUMER)\n-                        .hasNoParent()\n-                        .hasStatus(StatusData.error())\n-                        .hasException(new IllegalStateException())\n-                        .hasAttributesSatisfyingExactly(\n-                            equalTo(MESSAGING_SYSTEM, \"kafka\"),\n-                            equalTo(MESSAGING_OPERATION, \"receive\"),\n-                            equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 0))));\n+                span -> {\n+                  span.hasName(\"unknown receive\")\n+                      .hasKind(SpanKind.CONSUMER)\n+                      .hasNoParent()\n+                      .hasStatus(StatusData.error())\n+                      .hasAttributesSatisfyingExactly(\n+                          equalTo(MESSAGING_SYSTEM, \"kafka\"),\n+                          equalTo(MESSAGING_OPERATION, \"receive\"),\n+                          equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 0));\n+                  if (emitExceptionAsSpanEvents()) {\n+                    span.hasException(new IllegalStateException());\n+                  }",
+      "id": "PRRT_kwDODJKVX86HbH08",
+      "opened": "2026-06-05T16:44:57Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/WrapperTest.java",
+      "replies": [
+        {
+          "at": "2026-06-06T00:14:22Z",
+          "body": "No code change needed. The current PR head already uses `hasException(emitExceptionAsSpanEvents() ? error : null)`, which asserts absence of span exceptions when span events are disabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3366004797"
+        }
+      ],
+      "reviewed": "aafe54c93fb22ce3fbfb530f7b3b85db706218cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18891#discussion_r3364061213"
+    }
+  ]
+}

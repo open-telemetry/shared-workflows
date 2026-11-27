@@ -1,0 +1,31 @@
+{
+  "head": "b33ef4243c6a1989e38fb1c201fab0618d77d41c",
+  "merge": "3b6e0075c9e71931cf4bcda2cbb758fb2fd833e3",
+  "merged": "2026-08-17T11:24:56Z",
+  "missing_roots": 0,
+  "number": 19597,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion now applies the `test-peer-service` default to every subclass, but the Ktor 2.0 and 3.0 library suites still inherit that default even though `HttpClientInstrumentationExtension.forLibrary()` does not configure the javaagent peer-service mapping. Add `setExpectedServicePeerName { null }` to both Ktor library test configurations, as done for the other library suites; otherwise these suites contradict the PR's library expectation and fail when this shared assertion runs.",
+      "created": "2026-08-14T22:34:08Z",
+      "hunk": "@@ -1102,14 +1107,11 @@ protected SpanDataAssert assertClientSpan(\n         .hasKind(SpanKind.CLIENT)\n         .hasAttributesSatisfying(\n             attrs -> {\n-              // Check for service.peer.name when running with javaagent instrumentation\n-              String distroName = span.actual().getResource().getAttribute(TELEMETRY_DISTRO_NAME);\n-              if (\"opentelemetry-java-instrumentation\".equals(distroName)) {\n-                String expectedServicePeerName = options.getExpectedServicePeerName().apply(uri);\n-                if (expectedServicePeerName != null) {\n-                  assertThat(attrs)\n-                      .containsEntry(maybeStablePeerService(), expectedServicePeerName);\n-                }\n+              String expectedServicePeerName = expectedServicePeerName(uri);\n+              if (expectedServicePeerName != null) {\n+                assertThat(attrs).containsEntry(maybeStablePeerService(), expectedServicePeerName);\n+              } else {\n+                assertThat(attrs).doesNotContainKey(maybeStablePeerService());",
+      "id": "PRRT_kwDODJKVX86Zbr3e",
+      "opened": "2026-08-14T22:34:08Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-15T02:40:33Z",
+          "body": "No longer relevant after the follow-up refactor. The shared assertion now derives the expectation from `testing.isJavaagent()`, so Ktor library tests inherit `false` from the library runner and explicitly require the peer-service attribute to be absent. The per-test `setExpectedServicePeerName` option has been removed entirely.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19597#discussion_r3788284428"
+        }
+      ],
+      "reviewed": "20cc54405b9b3ed2dcc10fefbda1d9c365d936cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19597#discussion_r3787573183"
+    }
+  ]
+}

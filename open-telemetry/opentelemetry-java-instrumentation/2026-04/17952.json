@@ -1,0 +1,25 @@
+{
+  "head": "31f85504260c089f9fe127ec28e5c65665ef91c0",
+  "merge": "210110b921ce406f1a206a9e96c5f6a36d1b8357",
+  "merged": "2026-04-18T22:44:29Z",
+  "missing_roots": 0,
+  "number": 17952,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // org.elasticsearch.client.Request was added in 6.4.0\n    return not(hasClassesNamed(\"org.elasticsearch.client.Request\"));\n```",
+      "created": "2026-04-18T21:56:25Z",
+      "hunk": "@@ -23,8 +23,10 @@ public ElasticsearchRest5InstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    // org.elasticsearch.client.Request was added in 6.4.0\n-    return not(hasClassesNamed(\"org.elasticsearch.client.Request\"));\n+    return not(\n+        hasClassesNamed(\n+            // added in 6.4.0\n+            \"org.elasticsearch.client.Request\"));",
+      "id": "PRRT_kwDODJKVX857-TZZ",
+      "opened": "2026-04-18T21:56:25Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/v5_0/ElasticsearchRest5InstrumentationModule.java",
+      "replies": [],
+      "reviewed": "ae623601569295c34a191c35a3000539ddbd46f1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17952#discussion_r3105892795"
+    }
+  ]
+}

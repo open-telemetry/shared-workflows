@@ -1,0 +1,25 @@
+{
+  "head": "6f982061113126d8dd44428d7da3d3b4af85ff73",
+  "merge": "6649bcca1cac49a3e1aa3d79df3dafdeec64d3ec",
+  "merged": "2026-08-28T23:25:54Z",
+  "missing_roots": 0,
+  "number": 99,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "interesting!\n\nthere is more - https://github.com/strands-agents/harness-sdk/blob/c2d2d4f92f075d78a779d50fe5b294280469a3d9/strands-py/src/strands/telemetry/tracer.py#L127-L129",
+      "created": "2026-08-28T15:51:53Z",
+      "hunk": "@@ -0,0 +1,24 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: strands-agents\n+instrumentation_library: strands-agents\n+\n+server:\n+  run: genai-mock-server --port ${PORT}\n+\n+env:\n+  OPENAI_BASE_URL: ${MOCK_SERVER_URL}/v1\n+  OPENAI_API_KEY: test_openai_api_key\n+  # Strands emits the GenAI conventions only under this opt-in, and puts tool\n+  # definitions behind a token of its own. Message content is recorded unless\n+  # a redaction allowlist is opted into, so there is no capture switch here.\n+  OTEL_SEMCONV_STABILITY_OPT_IN: gen_ai_latest_experimental,gen_ai_tool_definitions",
+      "id": "PRRT_kwDOTuzK5c6dOSK1",
+      "opened": "2026-08-28T15:51:53Z",
+      "path": "scenarios/gen-ai/python/strands-agents/native/conformance.yaml",
+      "replies": [],
+      "reviewed": "2fb00838398429711cb2882f0bc53a10ff7ae6ea",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/99#discussion_r3881998995"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "head": "635f37468cc72287b28d8b111ee7290f19ca0d02",
+  "merge": "28c5bab1646b511c06af7faa3214d2c211b9d268",
+  "merged": "2026-06-17T22:42:16Z",
+  "missing_roots": 0,
+  "number": 142,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The “Before opening a PR…” command list mixes `uv run tox` earlier with bare `tox` here. Unless contributors have activated the workspace venv (not described above), `tox` may not be on PATH; this should be consistent with the preceding examples and use `uv run tox`.",
+      "created": "2026-06-16T01:55:07Z",
+      "hunk": "@@ -50,22 +50,55 @@ own `pyproject.toml` and `tests/`. The util package follows the equivalent layou\n - Packages use the OpenTelemetry beta versioning format `MAJOR.MINORbN` (e.g. `1.0b0`). `version.py` carries a `.dev`\n   suffix during development (`1.0b0.dev`); the release workflow drops it.\n \n+## Adding a package to the workspace\n+\n+A new package under `instrumentation/<pkg>/` (where `<pkg>` is the full\n+`opentelemetry-instrumentation-genai-<lib>` directory name) wires in as follows.\n+Copy the shape from an existing package — paths in `tox.ini` are repo-root-relative.\n+\n+- **uv workspace**: auto-included via the `instrumentation/*` glob in root\n+  `pyproject.toml [tool.uv.workspace] members` — no edit needed.\n+- **`tox.ini`**:\n+  - `envlist`: add `py3{…}-test-instrumentation-genai-<lib>-{oldest,latest}`, the\n+    `py3{…}-…-<lib>-conformance` entry, and `lint-instrumentation-genai-<lib>`.\n+  - `[testenv] deps`: add the factor-conditional test-requirements lines\n+    (`<lib>-{oldest,latest,conformance}: -r …/tests/requirements.<factor>.txt` plus\n+    `{[testenv]test_deps}` / `{[testenv]pytest_deps}`). Requirements install here — **not**\n+    in `commands_pre`.\n+  - `[testenv] commands`: add the pytest line (it `--ignore`s `tests/test_conformance.py`),\n+    the separate `…-conformance` pytest line, and\n+    `lint-…: sh -c \"cd instrumentation && ruff check <pkg>\"`.\n+  - `[testenv:typecheck] deps`: add `{toxinidir}/instrumentation/<pkg>[instruments]`.\n+- **`[tool.pyright]`** (in root `pyproject.toml`): `include` is opt-in and added to\n+  *progressively* as a package gets fully typed. When a package is in `include`, also add its\n+  `<pkg>/tests/**/*.py` and `<pkg>/examples/**/*.py` to `exclude` — tests and examples stay\n+  untyped; `src/**` is never excluded.\n+\n ## Commands\n \n ```sh\n # Install all packages and dev tools\n uv sync --frozen --all-packages\n \n-# Lint (runs ruff via pre-commit)\n+# All pre-commit hooks (ruff, ruff-format, uv-lock, rstcheck) — the CI lint gate\n+uv run tox -e precommit\n+# …or just the ruff hook while iterating\n uv run pre-commit run ruff --all-files\n \n-# Test a specific package (append -oldest, -latest for version variants)\n-uv run tox -e py312-test-instrumentation-genai-openai-oldest\n+# Test one package (append -oldest / -latest for the version-matrix variants)\n+uv run tox -e py312-test-instrumentation-genai-openai-latest\n+\n+# Run a package's conformance scenarios (only *-conformance envs collect test_conformance.py)\n+uv run tox -e py312-test-instrumentation-genai-openai-conformance\n \n-# Type check\n+# Type check (pyright)\n uv run tox -e typecheck\n ```\n \n+Before opening a PR, run `tox -e precommit`, `tox -e typecheck`, and the changed package's\n+test envs (`-oldest` and `-latest`, plus `-conformance` if it ships scenarios) — these mirror\n+the CI gates.",
+      "id": "PRRT_kwDOSbspP86JwXXS",
+      "opened": "2026-06-16T01:55:08Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "42547981d14487c7e561c83bedc2502ab3451874",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/142#discussion_r3417660338"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This says every instrumentation `tests/conftest.py` must register both the fixtures and VCR plugins. The repo currently has at least one instrumentation (`opentelemetry-instrumentation-genai-claude-agent-sdk`) that registers only the fixtures plugin, so the rule as written is inconsistent with existing practice. Consider making the VCR plugin requirement conditional on tests that actually use cassettes.",
+      "created": "2026-06-16T01:55:07Z",
+      "hunk": "@@ -112,10 +188,19 @@ Apply to packages under `instrumentation/`.\n - Tests must verify exact attribute names **and value types**, checked against the semconv spec.\n - Test against oldest and latest supported library versions via `tests/requirements.{oldest,latest}.txt`\n   and `{oldest,latest}` `tox.ini` factors.\n-- `tests/conftest.py` must consume the shared fixtures from\n-  `opentelemetry.test_util_genai` (`from opentelemetry.test_util_genai.fixtures import *` and\n-  `from opentelemetry.test_util_genai.vcr import fixture_vcr, scrub_response_headers`) rather\n-  than re-implementing provider/exporter/VCR plumbing.\n+- `tests/conftest.py` must consume the shared fixtures from `opentelemetry.test_util_genai`\n+  by registering them as plugins —\n+  `pytest_plugins = [\"opentelemetry.test_util_genai.fixtures\", \"opentelemetry.test_util_genai.vcr\"]` —\n+  rather than re-implementing provider/exporter/VCR plumbing. Import scrub helpers\n+  (`scrub_response_headers` / `scrub_response_headers_overwrite`) from\n+  `opentelemetry.test_util_genai.vcr` where a `vcr_config` needs them.",
+      "id": "PRRT_kwDOSbspP86JwXXa",
+      "opened": "2026-06-16T01:55:08Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "42547981d14487c7e561c83bedc2502ab3451874",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/142#discussion_r3417660354"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This rule requires registering both `opentelemetry.test_util_genai.fixtures` and `opentelemetry.test_util_genai.vcr` plugins in every instrumentation’s `tests/conftest.py`. At least one existing instrumentation (`opentelemetry-instrumentation-genai-claude-agent-sdk`) registers only the fixtures plugin, so the requirement as stated is stricter than the repo’s current usage. Consider making the VCR plugin requirement conditional on tests that actually use VCR cassettes.",
+      "created": "2026-06-16T01:55:07Z",
+      "hunk": "@@ -66,8 +68,9 @@ prefer opt-in or additive. Breaking changes need explicit justification in the P\n - Test against oldest and latest supported library versions via `tests/requirements.{oldest,latest}.txt`\n   and `{oldest,latest}` `tox.ini` factors.\n - `tests/conftest.py` must consume the shared fixtures from `opentelemetry.test_util_genai`\n-  (`from opentelemetry.test_util_genai.fixtures import *` and\n-  `from opentelemetry.test_util_genai.vcr import fixture_vcr, scrub_response_headers`). Do not\n+  by registering them as plugins —\n+  `pytest_plugins = [\"opentelemetry.test_util_genai.fixtures\", \"opentelemetry.test_util_genai.vcr\"]`,\n+  importing scrub helpers from `opentelemetry.test_util_genai.vcr` as needed. Do not\n   re-implement in-memory provider/exporter setup or the VCR pretty-print serializer locally.",
+      "id": "PRRT_kwDOSbspP86JwXXj",
+      "opened": "2026-06-16T01:55:08Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "42547981d14487c7e561c83bedc2502ab3451874",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/142#discussion_r3417660363"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "suggestion(non-blocking): Should we add a note here to include test scenarios verifying that both stream exceptions and user-defined exceptions are bubbled up to the context manager when process_chunk is implemented?",
+      "created": "2026-06-17T02:14:40Z",
+      "hunk": "@@ -112,15 +188,29 @@ Apply to packages under `instrumentation/`.\n - Tests must verify exact attribute names **and value types**, checked against the semconv spec.\n - Test against oldest and latest supported library versions via `tests/requirements.{oldest,latest}.txt`\n   and `{oldest,latest}` `tox.ini` factors.\n-- `tests/conftest.py` must consume the shared fixtures from\n-  `opentelemetry.test_util_genai` (`from opentelemetry.test_util_genai.fixtures import *` and\n-  `from opentelemetry.test_util_genai.vcr import fixture_vcr, scrub_response_headers`) rather\n-  than re-implementing provider/exporter/VCR plumbing.\n+- `tests/conftest.py` must consume the shared fixtures from `opentelemetry.test_util_genai`\n+  by registering them as plugins. Always register the fixtures plugin; register the VCR plugin\n+  too when the package's tests use VCR cassettes —\n+  `pytest_plugins = [\"opentelemetry.test_util_genai.fixtures\", \"opentelemetry.test_util_genai.vcr\"]`\n+  (drop the `vcr` entry for packages with no cassette-backed tests) — rather than\n+  re-implementing provider/exporter/VCR plumbing. Import scrub helpers\n+  (`scrub_response_headers` / `scrub_response_headers_overwrite`) from\n+  `opentelemetry.test_util_genai.vcr` where a `vcr_config` needs them.\n+- Drive instrumentation in tests through the shared `instrument` context manager from\n+  `opentelemetry.test_util_genai.instrumentor` — `instrument(SomeInstrumentor(),\n+  tracer_provider=…, logger_provider=…, meter_provider=…, semconv=…, content_capture=…)`. It sets\n+  the content-capture (`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`) env var *before* instrumenting and\n+  restores them after, so a package's `instrument_*` fixtures don't manage that env themselves\n+  (`TelemetryHandler` snapshots content-capture at construction, so the env must be set before it\n+  is built).",
+      "id": "PRRT_kwDOSbspP86KFR2v",
+      "opened": "2026-06-17T02:14:40Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-06-17T22:29:43Z",
+          "body": "great point, added",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/142#discussion_r3431842653"
+        }
+      ],
+      "reviewed": "ebb4aadf53a4ae62a4f8a720bc7d82c131b07290",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/142#discussion_r3425158088"
+    }
+  ]
+}

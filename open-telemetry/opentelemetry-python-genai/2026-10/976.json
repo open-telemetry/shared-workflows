@@ -1,0 +1,85 @@
+{
+  "head": "c4b4d8a8ce42fe42cb3f0ceb809d88acfaaa2ba4",
+  "merge": "e25770aa361043fc5b4902c82eceb9ce86dc103e",
+  "merged": "2026-10-23T03:09:14Z",
+  "missing_roots": 0,
+  "number": 976,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The last item is missing the closing ``` `` ``` and `()`.\n\n```suggestion\n  ``ToolInvocation.should_capture_content_on_span()``.\n```",
+      "created": "2026-10-23T00:11:02Z",
+      "hunk": "@@ -15,6 +15,75 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.3b0 (2026-10-23)\n+\n+### Added\n+\n+- Add SuppressedInferenceInvocation to deduplicate nested inference operations\n+  and propagate context attributes.\n+  ([#765](https://github.com/open-telemetry/opentelemetry-python-genai/pull/765))\n+- Support RetrievalDocument models on RetrievalInvocation.documents and\n+  finalize abandoned streams.\n+  ([#776](https://github.com/open-telemetry/opentelemetry-python-genai/pull/776))\n+- Stream wrappers make a suspended invocation current only while a chunk is\n+  read or the stream is cleaned up.\n+  ([#817](https://github.com/open-telemetry/opentelemetry-python-genai/pull/817))\n+- Add `object_to_any_value` and `tool_arguments_to_any_value` to convert\n+  arbitrary objects (models, dataclasses, datetimes, UUIDs, enums, objects with\n+  a custom `__str__`) into OpenTelemetry `AnyValue`, dropping values that\n+  cannot be converted. For example, `object_to_any_value({\"when\": date(2026, 1,\n+  1), \"cb\": print})` returns `{\"when\": \"2026-01-01\"}`.\n+  ([#821](https://github.com/open-telemetry/opentelemetry-python-genai/pull/821))\n+- Add context data propagation and nested operation suppression across GenAI\n+  invocations.\n+  ([#859](https://github.com/open-telemetry/opentelemetry-python-genai/pull/859))\n+- Add IteratorCapture to observe nested request iterators lazily and expose\n+  snapshots for telemetry extraction.\n+  ([#873](https://github.com/open-telemetry/opentelemetry-python-genai/pull/873))\n+\n+### Changed\n+\n+- `ToolInvocation` always records non-string arguments and results as JSON\n+  strings and converts objects that are not JSON-serializable through\n+  `object_to_any_value`; previously primitives were recorded as-is and other\n+  objects through `str()`, e.g. `arguments = 42` was recorded as `42`, now\n+  `\"42\"`. Prompt variables set to `None` are no longer recorded; previously\n+  they were recorded as `\"null\"`.\n+  ([#821](https://github.com/open-telemetry/opentelemetry-python-genai/pull/821))\n+- Raise the minimum `fsspec` version in the `upload` extra to `2026.6.0` to\n+  pick up a security fix.\n+  ([#961](https://github.com/open-telemetry/opentelemetry-python-genai/pull/961))\n+\n+### Deprecated\n+\n+- Deprecate `GenericPart`; instrumentations should use a specific part type or\n+  drop the content.\n+  ([#936](https://github.com/open-telemetry/opentelemetry-python-genai/pull/936))\n+\n+### Removed\n+\n+- Remove the deprecated GenAI utility callables ``should_emit_event()``,\n+  ``should_capture_content_on_spans()``,\n+  ``TelemetryHandler.start_inference()``, ``TelemetryHandler.start_llm()``,\n+  ``TelemetryHandler.start_embedding()``, ``TelemetryHandler.start_tool()``,\n+  ``TelemetryHandler.start_workflow()``, ``TelemetryHandler.stop_llm()``,\n+  ``TelemetryHandler.fail_llm()``,\n+  ``TelemetryHandler.start_invoke_local_agent()``,\n+  ``TelemetryHandler.start_invoke_remote_agent()``, and\n+  ``ToolInvocation.should_capture_content_on_span",
+      "id": "PRRT_kwDOSbspP86vbUFy",
+      "opened": "2026-10-23T00:16:26Z",
+      "path": "util/opentelemetry-util-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "2d16e6760f6eb103c7ca5d6de4bce2d16cdacd2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/976#discussion_r4354841246"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this is a test-only change, could we drop it from the user-facing changelog?\n\n```suggestion\n```",
+      "created": "2026-10-23T00:11:02Z",
+      "hunk": "@@ -15,6 +15,65 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.3b0 (2026-10-23)\n+\n+### Added\n+\n+- Capture prompt template name - `gen_ai.prompt.name` and variables -\n+  `gen_ai.prompt.variable.<key>` on chat\n+  ([#730](https://github.com/open-telemetry/opentelemetry-python-genai/pull/730))\n+\n+### Changed\n+\n+- Require `langchain >= 0.3.22`. Context propagation across LangGraph nodes\n+  requires LangGraph 0.3.18 or later.\n+  ([#818](https://github.com/open-telemetry/opentelemetry-python-genai/pull/818))\n+- Validate LangChain instrumentation through offline public-API tests,\n+  including tool-result capture.",
+      "id": "PRRT_kwDOSbspP86vbUGA",
+      "opened": "2026-10-23T00:16:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "2d16e6760f6eb103c7ca5d6de4bce2d16cdacd2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/976#discussion_r4354841264"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this changes existing stream wrapper behavior, so it probably fits better under `### Changed` (see the suggestion below).\n\n```suggestion\n```",
+      "created": "2026-10-23T00:15:20Z",
+      "hunk": "@@ -15,6 +15,75 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.3b0 (2026-10-23)\n+\n+### Added\n+\n+- Add SuppressedInferenceInvocation to deduplicate nested inference operations\n+  and propagate context attributes.\n+  ([#765](https://github.com/open-telemetry/opentelemetry-python-genai/pull/765))\n+- Support RetrievalDocument models on RetrievalInvocation.documents and\n+  finalize abandoned streams.\n+  ([#776](https://github.com/open-telemetry/opentelemetry-python-genai/pull/776))\n+- Stream wrappers make a suspended invocation current only while a chunk is\n+  read or the stream is cleaned up.\n+  ([#817](https://github.com/open-telemetry/opentelemetry-python-genai/pull/817))",
+      "id": "PRRT_kwDOSbspP86vbXij",
+      "opened": "2026-10-23T00:16:26Z",
+      "path": "util/opentelemetry-util-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "2d16e6760f6eb103c7ca5d6de4bce2d16cdacd2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/976#discussion_r4354864945"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n- Stream wrappers make a suspended invocation current only while a chunk is\n  read or the stream is cleaned up.\n  ([#817](https://github.com/open-telemetry/opentelemetry-python-genai/pull/817))\n- `ToolInvocation` always records non-string arguments and results as JSON\n```",
+      "created": "2026-10-23T00:15:21Z",
+      "hunk": "@@ -15,6 +15,75 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.3b0 (2026-10-23)\n+\n+### Added\n+\n+- Add SuppressedInferenceInvocation to deduplicate nested inference operations\n+  and propagate context attributes.\n+  ([#765](https://github.com/open-telemetry/opentelemetry-python-genai/pull/765))\n+- Support RetrievalDocument models on RetrievalInvocation.documents and\n+  finalize abandoned streams.\n+  ([#776](https://github.com/open-telemetry/opentelemetry-python-genai/pull/776))\n+- Stream wrappers make a suspended invocation current only while a chunk is\n+  read or the stream is cleaned up.\n+  ([#817](https://github.com/open-telemetry/opentelemetry-python-genai/pull/817))\n+- Add `object_to_any_value` and `tool_arguments_to_any_value` to convert\n+  arbitrary objects (models, dataclasses, datetimes, UUIDs, enums, objects with\n+  a custom `__str__`) into OpenTelemetry `AnyValue`, dropping values that\n+  cannot be converted. For example, `object_to_any_value({\"when\": date(2026, 1,\n+  1), \"cb\": print})` returns `{\"when\": \"2026-01-01\"}`.\n+  ([#821](https://github.com/open-telemetry/opentelemetry-python-genai/pull/821))\n+- Add context data propagation and nested operation suppression across GenAI\n+  invocations.\n+  ([#859](https://github.com/open-telemetry/opentelemetry-python-genai/pull/859))\n+- Add IteratorCapture to observe nested request iterators lazily and expose\n+  snapshots for telemetry extraction.\n+  ([#873](https://github.com/open-telemetry/opentelemetry-python-genai/pull/873))\n+\n+### Changed\n+\n+- `ToolInvocation` always records non-string arguments and results as JSON",
+      "id": "PRRT_kwDOSbspP86vbXjm",
+      "opened": "2026-10-23T00:16:26Z",
+      "path": "util/opentelemetry-util-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "2d16e6760f6eb103c7ca5d6de4bce2d16cdacd2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/976#discussion_r4354865043"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "@aabmass this is a first release of this package, do we need to update trusted publishers for it? ",
+      "created": "2026-10-23T00:19:22Z",
+      "hunk": "@@ -14,3 +14,11 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n -->\n \n <!-- changelog start -->\n+\n+## Version 1.3b0 (2026-10-23)\n+\n+### Added\n+\n+- Initial QwenPaw instrumentation: trace `AgentRunner.query_handler` turns as",
+      "id": "PRRT_kwDOSbspP86vbawO",
+      "opened": "2026-10-23T00:19:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwenpaw/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "c4b4d8a8ce42fe42cb3f0ceb809d88acfaaa2ba4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/976#discussion_r4354887047"
+    }
+  ]
+}

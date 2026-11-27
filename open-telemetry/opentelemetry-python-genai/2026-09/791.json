@@ -1,0 +1,78 @@
+{
+  "head": "dc3640c685d97e76c4d8a223e4ed510c39e9cc47",
+  "merge": "99ef6bca7be312b80172cc51bcc328c220f8fdcb",
+  "merged": "2026-09-29T20:05:41Z",
+  "missing_roots": 0,
+  "number": 791,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "This drops the previous `model_dump()`/`__dict__` normalization. For tool arguments containing objects such as Pydantic models, the shared JSON serializer can fail and fall back to a string representation of the entire dictionary, so `gen_ai.tool.call.arguments` is no longer valid JSON. Could we preserve the previous normalization?",
+      "created": "2026-09-28T19:15:17Z",
+      "hunk": "@@ -40,94 +44,65 @@ def _to_otel_value(python_value):\n     return repr(python_value)\n \n \n-# There is no canonical way to serialize a Python object to a span attribute value.\n-# Span attribute values currently must be one of the primitive types, or a homogeneous list of primitive types.\n-# In the future the value will be expanded to include None, heterogeneous lists of primitive types, and a Map of these types.\n-# See https://github.com/open-telemetry/opentelemetry-specification/pull/4485\n-def _get_function_args(wrapped_function, function_args, function_kwargs):\n-    \"\"\"Records the details about a function invocation as span attributes.\"\"\"\n-    function_arg_attr = {}\n+def _snapshot_tool_arguments(",
+      "id": "PRRT_kwDOSbspP86m07n4",
+      "opened": "2026-09-28T19:15:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/tool_call_wrapper.py",
+      "replies": [
+        {
+          "at": "2026-09-28T21:00:12Z",
+          "body": "Restored `model_dump()`/`__dict__` normalization before shared serialization, including nested objects. Added sync/async regression tests to verify the arguments stay valid JSON and preserve their original values when the tool mutates them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/791#discussion_r4126984469"
+        }
+      ],
+      "reviewed": "d8cdbe59e7bb10fbaf96fbbe4412bac0974244ad",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/791#discussion_r4126098152"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Should be able to remove this, I fixed it in main",
+      "created": "2026-09-29T02:32:14Z",
+      "hunk": "@@ -106,6 +106,13 @@\n     \"member-order\": \"bysource\",\n }\n \n+# OTel's recursive aliases must resolve in their defining module, not in",
+      "id": "PRRT_kwDOSbspP86m79Ep",
+      "opened": "2026-09-29T02:35:39Z",
+      "path": "docs/conf.py",
+      "replies": [
+        {
+          "at": "2026-09-29T17:46:58Z",
+          "body": "Removed, thanks for fixing this in main",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/791#discussion_r4136567200"
+        }
+      ],
+      "reviewed": "7f8b2b46c8bcb4f9162c229835ca6ae403c7bca0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/791#discussion_r4129047050"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Is there any change in behavior? I see the tests were cleaned up but at quick glance the expected values look the same as before",
+      "created": "2026-09-29T02:35:00Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86m7_Iw",
+      "opened": "2026-09-29T02:35:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/utils/test_tool_call_wrapper.py",
+      "replies": [
+        {
+          "at": "2026-09-29T19:05:22Z",
+          "body": "The values in those examples stay the same, but the structure changes. We now emit `{\"city\":\"Boston\"}` instead of the `code.function.parameters.city.type/value` entries. I added a test to make that clearer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/791#discussion_r4137266403"
+        },
+        {
+          "at": "2026-09-29T19:55:02Z",
+          "body": "Nice. LGTM thank you :)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/791#discussion_r4137698704"
+        }
+      ],
+      "reviewed": "7f8b2b46c8bcb4f9162c229835ca6ae403c7bca0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/791#discussion_r4129060469"
+    }
+  ]
+}

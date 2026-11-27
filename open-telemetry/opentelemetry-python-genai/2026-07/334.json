@@ -1,0 +1,25 @@
+{
+  "head": "7afd47361e1d3418fb66671211382032e5e25be4",
+  "merge": "2357599f7689b3e99c2f247997b14703b1f7518e",
+  "merged": "2026-07-29T21:48:33Z",
+  "missing_roots": 0,
+  "number": 334,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The legacy flat-OpenAI branch triggers for any tool entry that has a top-level `name`, even when `type` is present but not `\"function\"`. That changes prior behavior (non-function tool types were skipped) and can misclassify non-function tool definitions as `FunctionToolDefinition` (e.g., vendor-specific tool types that still carry a `name`). Restrict the legacy path to only run when the entry has no `type`.",
+      "created": "2026-07-29T17:37:31Z",
+      "hunk": "@@ -262,6 +262,22 @@ def prepare_tool_definitions(tools: list[Any]) -> list[ToolDefinition] | None:\n                         parameters=_get_property_value(func, \"parameters\"),\n                     )\n                 )\n+        elif _get_property_value(tool, \"name\") is not None:",
+      "id": "PRRT_kwDOSbspP86U2jVh",
+      "opened": "2026-07-29T17:37:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "ddb821cc525265a918b120f4d9aa768c8e6b32e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/334#discussion_r3676707384"
+    }
+  ]
+}

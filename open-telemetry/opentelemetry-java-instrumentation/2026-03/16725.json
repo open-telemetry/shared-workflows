@@ -1,0 +1,25 @@
+{
+  "head": "39d87309e48fb1e6678c67121d1c45586024a5b9",
+  "merge": "f544f14cddd3cef9df9362b9622959be97288730",
+  "merged": "2026-03-19T02:40:14Z",
+  "missing_roots": 0,
+  "number": 16725,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "seems ok, all the others have it...",
+      "created": "2026-03-19T02:40:05Z",
+      "hunk": "@@ -34,6 +34,8 @@ muzzle {\n }\n \n dependencies {\n+  bootstrap(project(\":instrumentation:jaxrs:jaxrs-common:bootstrap\"))\n+",
+      "id": "PRRT_kwDODJKVX851V5L_",
+      "opened": "2026-03-19T02:40:08Z",
+      "path": "instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-resteasy-3.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "39d87309e48fb1e6678c67121d1c45586024a5b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16725#discussion_r2957451171"
+    }
+  ]
+}

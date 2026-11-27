@@ -1,0 +1,40 @@
+{
+  "head": "23524ae1b830fb172875a85de6efe69a09e0be26",
+  "merge": "f1eb55895200f628b3d49f7dc830821049f93e01",
+  "merged": "2026-05-13T20:02:33Z",
+  "missing_roots": 0,
+  "number": 11,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "merged instrumentation-genai into this file, forgot to update during split from contrib repo",
+      "created": "2026-05-13T19:28:48Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86B3kUG",
+      "opened": "2026-05-13T19:28:48Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "7b754b5a841fb6dd54d6d4fd33f0d0ed19a26ad3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/11#discussion_r3236915467"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`PrettyPrintJSONBody.deserialize()` uses `yaml.load(..., Loader=yaml.Loader)`, which allows construction of arbitrary Python objects from YAML tags. Even though this is “test util” code, cassettes are files on disk and using an unsafe loader is an avoidable footgun. Prefer `yaml.safe_load()` / `SafeLoader` (and if you switch `serialize()` to `safe_dump`, register the `LiteralBlockScalar` representer on `SafeDumper`).",
+      "created": "2026-05-13T19:32:01Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+\"\"\"VCR cassette helpers for GenAI instrumentation tests.\n+\n+Every instrumentation conftest used to duplicate:\n+\n+- A ``LiteralBlockScalar`` YAML representer that renders long strings and\n+  pretty-printed JSON bodies as literal block scalars (``|``-style) so\n+  cassettes are diff-readable instead of one-line escaped blobs.\n+- A ``PrettyPrintJSONBody`` VCR serializer that runs the representer over\n+  ``request.body`` and ``response.body.string`` fields.\n+- A ``fixture_vcr`` autouse fixture that registers the serializer with\n+  ``pytest-vcr``.\n+- A per-package ``scrub_response_headers`` callable.\n+\n+This module hosts those bits once. Per-instrumentation conftests stay short:\n+\n+.. code-block:: python\n+\n+    from opentelemetry.test_util_genai.fixtures import *  # noqa: F401,F403\n+    from opentelemetry.test_util_genai.vcr import (\n+        fixture_vcr,                # autouse — registers the serializer\n+        scrub_response_headers,\n+    )\n+\n+    @pytest.fixture(scope=\"module\")\n+    def vcr_config():\n+        return {\n+            \"filter_headers\": [\n+                (\"authorization\", \"Bearer test_openai_api_key\"),\n+                (\"openai-organization\", \"test_openai_org_id\"),\n+            ],\n+            \"decode_compressed_response\": True,\n+            \"before_record_response\": scrub_response_headers(\n+                [\"openai-organization\", \"set-cookie\"]\n+            ),\n+        }\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Callable, Iterable\n+from typing import Any\n+\n+import pytest\n+import yaml\n+\n+\n+class LiteralBlockScalar(str):\n+    \"\"\"A string subclass that renders as a YAML literal block scalar.\n+\n+    The custom representer below emits these as ``|``-style blocks, which\n+    preserves whitespace and avoids the escape-soup that one-line\n+    JSON-in-YAML produces.\n+    \"\"\"\n+\n+\n+def _literal_block_scalar_presenter(\n+    dumper: yaml.Dumper, data: LiteralBlockScalar\n+) -> yaml.ScalarNode:\n+    return dumper.represent_scalar(\"tag:yaml.org,2002:str\", data, style=\"|\")\n+\n+\n+yaml.add_representer(LiteralBlockScalar, _literal_block_scalar_presenter)\n+\n+\n+def _process_string_value(string_value: str) -> str:\n+    \"\"\"Pretty-print as JSON if it parses, else wrap long strings as a block.\"\"\"\n+    try:\n+        json_data = json.loads(string_value)\n+    except (ValueError, TypeError):\n+        if len(string_value) > 80:\n+            return LiteralBlockScalar(string_value)\n+        return string_value\n+    return LiteralBlockScalar(json.dumps(json_data, indent=2))\n+\n+\n+def _convert_body_to_literal(data: Any) -> Any:\n+    \"\"\"Recursively pretty-print every ``body`` field in a cassette dict.\"\"\"\n+    if isinstance(data, dict):\n+        for key, value in data.items():\n+            # Response body case: response.body.string\n+            if (\n+                key == \"body\"\n+                and isinstance(value, dict)\n+                and \"string\" in value\n+                and isinstance(value[\"string\"], str)\n+            ):\n+                value[\"string\"] = _process_string_value(value[\"string\"])\n+            # Request body case: request.body\n+            elif key == \"body\" and isinstance(value, str):\n+                data[key] = _process_string_value(value)\n+            else:\n+                _convert_body_to_literal(value)\n+    elif isinstance(data, list):\n+        for idx, item in enumerate(data):\n+            data[idx] = _convert_body_to_literal(item)\n+    return data\n+\n+\n+class PrettyPrintJSONBody:\n+    \"\"\"A VCR cassette serializer that pretty-prints JSON request/response bodies.\n+\n+    Register via ``vcr.register_serializer(\"yaml\", PrettyPrintJSONBody)`` —\n+    the ``fixture_vcr`` fixture in this module does that automatically.\n+    \"\"\"\n+\n+    @staticmethod\n+    def serialize(cassette_dict: dict[str, Any]) -> str:\n+        cassette_dict = _convert_body_to_literal(cassette_dict)\n+        return yaml.dump(\n+            cassette_dict, default_flow_style=False, allow_unicode=True\n+        )\n+\n+    @staticmethod\n+    def deserialize(cassette_string: str) -> dict[str, Any]:\n+        return yaml.load(cassette_string, Loader=yaml.Loader)\n+",
+      "id": "PRRT_kwDOSbspP86B3nYO",
+      "opened": "2026-05-13T19:32:02Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/vcr.py",
+      "replies": [],
+      "reviewed": "7b754b5a841fb6dd54d6d4fd33f0d0ed19a26ad3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/11#discussion_r3236931944"
+    }
+  ]
+}

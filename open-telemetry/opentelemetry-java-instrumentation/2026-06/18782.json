@@ -1,0 +1,313 @@
+{
+  "head": "6f5b751e305c68058e4babfc1ff087b63c1b128d",
+  "merge": "eacc1e2a6c6172f11d8adafef15c8b52d3f60842",
+  "merged": "2026-06-09T18:46:43Z",
+  "missing_roots": 0,
+  "number": 18782,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The constructor removes unknown handler names by mutating `metricDef.getHandlers()` in-place. This violates `MetricDef`’s immutability contract (see its class javadoc) and can have surprising side effects if the same `MetricConfiguration` is reused elsewhere. Prefer filtering into a separate validated list/map inside `BeanFinder` (or during parsing/building of `MetricDef`) without mutating the `MetricDef` instance.\n\nThis issue also appears on line 194 of the same file.",
+      "created": "2026-05-19T10:07:09Z",
+      "hunk": "@@ -43,23 +48,38 @@ class BeanFinder {\n   private final long maxDelay;\n   private long delay = 1000; // number of milliseconds until first attempt to discover MBeans\n \n-  BeanFinder(MetricRegistrar registrar, long discoveryDelay) {\n+  BeanFinder(\n+      MetricConfiguration conf,\n+      MetricRegistrar registrar,\n+      Map<String, JmxMetricHandler> handlers,\n+      long discoveryDelay) {\n+    this.conf = conf;\n     this.registrar = registrar;\n+    this.handlers = handlers;\n     this.discoveryDelay = Math.max(1000, discoveryDelay); // Enforce sanity\n     this.maxDelay = Math.max(60000, discoveryDelay);\n+\n+    for (MetricDef metricDef : conf.getMetricDefs()) {\n+      for (Iterator<String> i = metricDef.getHandlers().iterator(); i.hasNext(); ) {\n+        String handlerName = i.next();\n+        if (!handlers.containsKey(handlerName)) {\n+          logger.log(\n+              WARNING,\n+              \"Metric definition references unknown handler {0}, skipping it.\",\n+              new Object[] {handlerName});\n+          i.remove();\n+        }\n+      }",
+      "id": "PRRT_kwDODJKVX86DHO7r",
+      "opened": "2026-05-19T10:07:12Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/BeanFinder.java",
+      "replies": [],
+      "reviewed": "2409f2fa7dc676eefaab8d4b7fcee69a47d891fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3265444472"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`MetricDef` is documented as immutable, but it stores the provided `handlers` list directly. This is currently mutated by `BeanFinder` and also means callers can mutate `handlers` after construction. Consider defensively copying (e.g., `List.copyOf(...)`) and/or storing handler holders instead of mutable names to preserve immutability and avoid cross-thread surprises.\n",
+      "created": "2026-05-19T10:07:10Z",
+      "hunk": "@@ -91,9 +91,10 @@ public class MetricDef {\n    *     MetricExtractor is provided, they should use unique metric names or unique metric\n    *     attributes\n    */\n-  public MetricDef(BeanGroup beans, List<MetricExtractor> metricExtractors) {\n+  public MetricDef(BeanGroup beans, List<MetricExtractor> metricExtractors, List<String> handlers) {\n     this.beans = beans;\n     this.metricExtractors = metricExtractors;\n+    this.handlers = handlers;",
+      "id": "PRRT_kwDODJKVX86DHO8a",
+      "opened": "2026-05-19T10:07:12Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricDef.java",
+      "replies": [],
+      "reviewed": "2409f2fa7dc676eefaab8d4b7fcee69a47d891fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3265444535"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changing `JmxTelemetry.start()` / `start(Supplier<...>)` to return `AutoCloseable` instead of `JmxTelemetry` is a source-breaking change for library consumers that previously relied on chaining or the return type. Consider keeping the old signature (possibly deprecated) and adding a new method that returns an `AutoCloseable` handle for stopping/cleanup, or otherwise provide a migration path to avoid an abrupt API break.",
+      "created": "2026-05-19T10:07:10Z",
+      "hunk": "@@ -18,37 +18,39 @@\n public final class JmxTelemetry {\n   private final JmxMetricInsight service;\n   private final MetricConfiguration metricConfiguration;\n+  private final ComponentLoader componentLoader;\n+\n+  /** Returns a new instance configured with the given {@link OpenTelemetry} instance. */\n+  public static JmxTelemetry create(OpenTelemetry openTelemetry) {\n+    return builder(openTelemetry).build();\n+  }\n \n   /** Returns a new {@link JmxTelemetryBuilder} configured with the given {@link OpenTelemetry}. */\n   public static JmxTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     return new JmxTelemetryBuilder(openTelemetry);\n   }\n \n   JmxTelemetry(\n-      OpenTelemetry openTelemetry, long discoveryDelayMs, MetricConfiguration metricConfiguration) {\n+      OpenTelemetry openTelemetry,\n+      long discoveryDelayMs,\n+      MetricConfiguration metricConfiguration,\n+      ComponentLoader componentLoader) {\n     this.service = JmxMetricInsight.createService(openTelemetry, discoveryDelayMs);\n     this.metricConfiguration = metricConfiguration;\n+    this.componentLoader = componentLoader;\n   }\n \n-  /**\n-   * Starts JMX metrics collection on current JVM\n-   *\n-   * @return this\n-   */\n-  @CanIgnoreReturnValue\n-  public JmxTelemetry start() {\n-    return this.start(() -> MBeanServerFactory.findMBeanServer(null));\n+  /** Starts JMX metrics collection on current JVM */\n+  public AutoCloseable start() {\n+    return start(() -> MBeanServerFactory.findMBeanServer(null));\n   }\n \n   /**\n    * Starts JMX metrics collection on provided (local or remote) connections\n    *\n    * @param connections connection provider\n-   * @return this\n    */\n-  @CanIgnoreReturnValue\n-  public JmxTelemetry start(Supplier<List<? extends MBeanServerConnection>> connections) {\n-    service.start(metricConfiguration, connections);\n-    return this;\n+  public AutoCloseable start(Supplier<List<? extends MBeanServerConnection>> connections) {\n+    return service.start(metricConfiguration, connections, componentLoader);\n   }",
+      "id": "PRRT_kwDODJKVX86DHO8p",
+      "opened": "2026-05-19T10:07:12Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetry.java",
+      "replies": [],
+      "reviewed": "2409f2fa7dc676eefaab8d4b7fcee69a47d891fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3265444561"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The returned `AutoCloseable` from `start()` runs `finder.shutdown()` and then `registrar.close()`. If `shutdown()` throws (e.g., `InterruptedException`), `registrar.close()` will be skipped, potentially leaking instruments. Consider ensuring `registrar.close()` runs in a `finally` block and preserving interrupt status when catching `InterruptedException`.\n",
+      "created": "2026-05-19T10:07:11Z",
+      "hunk": "@@ -69,17 +72,36 @@ public void startRemote(\n    * @param conf metric configuration\n    * @param connections supplier for list of connections (remote or local)\n    */\n-  public void start(\n-      MetricConfiguration conf, Supplier<List<? extends MBeanServerConnection>> connections) {\n+  public AutoCloseable start(\n+      MetricConfiguration conf,\n+      Supplier<List<? extends MBeanServerConnection>> connections,\n+      ComponentLoader componentLoader) {\n     if (conf.isEmpty()) {\n       logger.log(\n           FINE,\n           \"Empty JMX configuration, no metrics will be collected for InstrumentationScope \"\n               + INSTRUMENTATION_SCOPE);\n+      return () -> {};\n     } else {\n+      Map<String, JmxMetricHandler> handlers = new HashMap<>();\n+      for (JmxMetricHandler handler : componentLoader.load(JmxMetricHandler.class)) {\n+        String name = handler.getName();\n+        if (handlers.putIfAbsent(name, handler) != null) {\n+          logger.warning(\n+              \"Multiple JmxMetricHandlers with the same name found: \"\n+                  + name\n+                  + \". Only one will be used.\");\n+        }\n+      }\n+\n       MetricRegistrar registrar = new MetricRegistrar(openTelemetry, INSTRUMENTATION_SCOPE);\n-      BeanFinder finder = new BeanFinder(registrar, discoveryDelay);\n-      finder.discoverBeans(conf, connections);\n+      BeanFinder finder = new BeanFinder(conf, registrar, handlers, discoveryDelay);\n+      finder.discoverBeans(connections);\n+\n+      return () -> {\n+        finder.shutdown();\n+        registrar.close();",
+      "id": "PRRT_kwDODJKVX86DHO8-",
+      "opened": "2026-05-19T10:07:12Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/JmxMetricInsight.java",
+      "replies": [],
+      "reviewed": "2409f2fa7dc676eefaab8d4b7fcee69a47d891fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3265444592"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`close()` logs only `e.getMessage()` when an instrument fails to close, which drops the exception type/stack trace and makes debugging harder. Prefer logging the exception itself (e.g., pass `e` to the logger) and include enough context to identify which instrument failed.\n",
+      "created": "2026-05-19T10:07:11Z",
+      "hunk": "@@ -201,4 +206,49 @@ static Attributes createMetricAttributes(\n     }\n     return attrBuilder.build();\n   }\n+\n+  void enrollHandler(\n+      MBeanServerConnection connection,\n+      Collection<ObjectName> objectNames,\n+      MetricHandlerHolder holder) {\n+    DetectionStatus status = new DetectionStatus(connection, objectNames);\n+    boolean firstEnrollment = holder.setStatus(status);\n+    if (!firstEnrollment) {\n+      // For successive enrollments, it is sufficient to refresh the status\n+      return;\n+    }\n+\n+    register(\n+        holder\n+            .getHandler()\n+            .create(\n+                meter,\n+                () ->\n+                    new JmxMetricHandler.Detector() {\n+                      @Override\n+                      public MBeanServerConnection getConnection() {\n+                        return holder.getStatus().getConnection();\n+                      }\n+\n+                      @Override\n+                      public Collection<ObjectName> getObjectNames() {\n+                        return holder.getStatus().getObjectNames();\n+                      }\n+                    }));\n+  }\n+\n+  private void register(AutoCloseable instrument) {\n+    instruments.add(instrument);\n+  }\n+\n+  @Override\n+  public void close() {\n+    for (AutoCloseable instrument : instruments) {\n+      try {\n+        instrument.close();\n+      } catch (Exception e) {\n+        logger.log(WARNING, \"Failed to close metric instrument: {0}\", e.getMessage());",
+      "id": "PRRT_kwDODJKVX86DHO9m",
+      "opened": "2026-05-19T10:07:12Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [],
+      "reviewed": "2409f2fa7dc676eefaab8d4b7fcee69a47d891fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3265444647"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test method declares `throws Exception` but appears to only need narrower checked exceptions (or none). Per project test conventions, prefer removing the broad `throws Exception` or narrowing it to the specific exceptions actually thrown.",
+      "created": "2026-05-19T10:07:12Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Collections.enumeration;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.instrumentation.jmx.JmxMetricHandler;\n+import io.opentelemetry.instrumentation.jmx.JmxTelemetry;\n+import io.opentelemetry.instrumentation.jmx.JmxTelemetryBuilder;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import java.io.IOException;\n+import java.net.URL;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.util.Enumeration;\n+import java.util.function.Supplier;\n+import javax.management.MBeanServerConnection;\n+import javax.management.ObjectName;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.api.io.TempDir;\n+\n+class HandlerTest {\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  @Test\n+  void testHandler(@TempDir Path tempDir) throws Exception {\n+    Path spiFile = tempDir.resolve(JmxMetricHandler.class.getName());\n+    Files.write(spiFile, ThreadHandler.class.getName().getBytes(UTF_8));",
+      "id": "PRRT_kwDODJKVX86DHO-D",
+      "opened": "2026-05-19T10:07:12Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/HandlerTest.java",
+      "replies": [],
+      "reviewed": "2409f2fa7dc676eefaab8d4b7fcee69a47d891fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3265444689"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`resolveHandlers()` creates a new `MetricHandlerHolder` on every refresh cycle. Since `refreshState()` runs repeatedly on a schedule, this causes each handler to be enrolled as “first enrollment” every time, leading to repeated instrument registration and leaking callbacks/instruments (and potentially double-counting metrics). Consider caching/reusing a holder per (MetricDef, handlerName) across refresh cycles (and just updating its `DetectionStatus`), so instruments are created only once.",
+      "created": "2026-05-19T12:45:46Z",
+      "hunk": "@@ -169,4 +187,22 @@ private void resolveAttributes(\n       }\n     }\n   }\n+\n+  private void resolveHandlers(\n+      Set<ObjectName> objectNames, MBeanServerConnection connection, MetricDef metricDef) {\n+    for (String handlerName : metricDef.getHandlers()) {\n+      JmxMetricHandler handler = handlers.get(handlerName);\n+      // we print a warning for missing handlers in constructor\n+      if (handler == null) {\n+        continue;\n+      }\n+      MetricHandlerHolder holder = new MetricHandlerHolder(handler);\n+      registrar.enrollHandler(connection, objectNames, holder);\n+    }",
+      "id": "PRRT_kwDODJKVX86DJ0fV",
+      "opened": "2026-05-19T12:45:47Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/BeanFinder.java",
+      "replies": [],
+      "reviewed": "363854e999475814de2afb9fd620f2c44baca9c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3266359687"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`MetricExtractor.getStatus()` is now synchronized even though `status` is already `volatile`. This getter is invoked in the metric callback path (`MetricRegistrar.*TypeCallback`), so the added monitor enter/exit can introduce avoidable overhead/lock contention. Consider making `getStatus()` a plain volatile read, and keep synchronization only in `setStatus()` where you need the atomic “check-null then set” logic.\n",
+      "created": "2026-05-19T12:45:47Z",
+      "hunk": "@@ -51,12 +51,14 @@ List<MetricAttribute> getAttributes() {\n     return attributes;\n   }\n \n-  void setStatus(DetectionStatus status) {\n+  synchronized boolean setStatus(DetectionStatus status) {\n+    boolean first = this.status == null;\n     this.status = status;\n+    return first;\n   }\n \n   @Nullable\n-  DetectionStatus getStatus() {\n+  synchronized DetectionStatus getStatus() {",
+      "id": "PRRT_kwDODJKVX86DJ0gR",
+      "opened": "2026-05-19T12:45:47Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricExtractor.java",
+      "replies": [],
+      "reviewed": "363854e999475814de2afb9fd620f2c44baca9c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3266359761"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Best practices] `MetricHandlerHolder` is declared `public` even though it appears to be used only within `io.opentelemetry.instrumentation.jmx.internal.*` packages in this PR. Consider reducing visibility (e.g., package-private) to follow least-access and avoid exposing an internal type unintentionally.\n\nThis issue also appears on line 17 of the same file.\n",
+      "created": "2026-05-19T13:46:52Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal.engine;\n+\n+import io.opentelemetry.instrumentation.jmx.JmxMetricHandler;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class MetricHandlerHolder {\n+\n+  private final String handlerClassName;\n+  @Nullable private JmxMetricHandler handler;\n+  @Nullable private volatile DetectionStatus status;\n+\n+  public MetricHandlerHolder(String handlerClassName) {",
+      "id": "PRRT_kwDODJKVX86DLAXC",
+      "opened": "2026-05-19T13:46:54Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricHandlerHolder.java",
+      "replies": [
+        {
+          "at": "2026-05-19T14:11:39Z",
+          "body": "it is used from 2 different packages",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3266960359"
+        }
+      ],
+      "reviewed": "7a9d8b29e0745173578576b0321fdb1f186a5de6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3266783109"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] `JmxTelemetry.start()` / `start(connections)` now returns an `AutoCloseable`, but the Javadoc no longer explains what closing does (e.g., stopping bean discovery / unregistering callbacks) or that callers should hold and close the returned handle to avoid the background scheduler thread running indefinitely. Please document the lifecycle semantics of the returned `AutoCloseable` (and consider updating usage examples accordingly).",
+      "created": "2026-05-19T13:46:53Z",
+      "hunk": "@@ -18,37 +18,39 @@\n public final class JmxTelemetry {\n   private final JmxMetricInsight service;\n   private final MetricConfiguration metricConfiguration;\n+  private final ComponentLoader componentLoader;\n+\n+  /** Returns a new instance configured with the given {@link OpenTelemetry} instance. */\n+  public static JmxTelemetry create(OpenTelemetry openTelemetry) {\n+    return builder(openTelemetry).build();\n+  }\n \n   /** Returns a new {@link JmxTelemetryBuilder} configured with the given {@link OpenTelemetry}. */\n   public static JmxTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     return new JmxTelemetryBuilder(openTelemetry);\n   }\n \n   JmxTelemetry(\n-      OpenTelemetry openTelemetry, long discoveryDelayMs, MetricConfiguration metricConfiguration) {\n+      OpenTelemetry openTelemetry,\n+      long discoveryDelayMs,\n+      MetricConfiguration metricConfiguration,\n+      ComponentLoader componentLoader) {\n     this.service = JmxMetricInsight.createService(openTelemetry, discoveryDelayMs);\n     this.metricConfiguration = metricConfiguration;\n+    this.componentLoader = componentLoader;\n   }\n \n-  /**\n-   * Starts JMX metrics collection on current JVM\n-   *\n-   * @return this\n-   */\n-  @CanIgnoreReturnValue\n-  public JmxTelemetry start() {\n-    return this.start(() -> MBeanServerFactory.findMBeanServer(null));\n+  /** Starts JMX metrics collection on current JVM */\n+  public AutoCloseable start() {\n+    return start(() -> MBeanServerFactory.findMBeanServer(null));\n   }\n \n   /**\n    * Starts JMX metrics collection on provided (local or remote) connections\n    *\n    * @param connections connection provider\n-   * @return this\n    */\n-  @CanIgnoreReturnValue\n-  public JmxTelemetry start(Supplier<List<? extends MBeanServerConnection>> connections) {\n-    service.start(metricConfiguration, connections);\n-    return this;\n+  public AutoCloseable start(Supplier<List<? extends MBeanServerConnection>> connections) {\n+    return service.start(metricConfiguration, connections, componentLoader);\n   }",
+      "id": "PRRT_kwDODJKVX86DLAX7",
+      "opened": "2026-05-19T13:46:54Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetry.java",
+      "replies": [],
+      "reviewed": "7a9d8b29e0745173578576b0321fdb1f186a5de6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3266783189"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The changelog entry mentions only `JmxTelemetry.start()` return type change, but `start(Supplier<...>)` is also changed to return `AutoCloseable`. Consider updating the wording to reflect the full surface area of the breaking change (e.g., “`JmxTelemetry.start*()` methods now return `AutoCloseable`”).\n",
+      "created": "2026-05-19T13:46:54Z",
+      "hunk": "@@ -2,6 +2,11 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Changed the return type for `JmxTelemetry.start()` API.",
+      "id": "PRRT_kwDODJKVX86DLAZL",
+      "opened": "2026-05-19T13:46:54Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "7a9d8b29e0745173578576b0321fdb1f186a5de6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3266783295"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`MetricHandlerHolder` is in an `internal` package but is declared `public`, which makes it part of the library's public surface area (even if not intended). Since it appears only used internally, consider making the class package-private (remove `public`) to reduce accidental API exposure. Also consider annotating `getHandler()` with `@Nullable` (or enforcing non-null once set) to reflect the actual nullability contract.",
+      "created": "2026-05-19T14:22:26Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal.engine;\n+\n+import io.opentelemetry.instrumentation.jmx.JmxMetricHandler;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class MetricHandlerHolder {\n+\n+  private final String handlerName;\n+  @Nullable private JmxMetricHandler handler;\n+  @Nullable private volatile DetectionStatus status;\n+\n+  public MetricHandlerHolder(String handlerName) {\n+    this.handlerName = handlerName;\n+  }\n+\n+  String getHandlerName() {\n+    return handlerName;\n+  }\n+\n+  JmxMetricHandler getHandler() {\n+    return handler;\n+  }",
+      "id": "PRRT_kwDODJKVX86DLuCv",
+      "opened": "2026-05-19T14:22:27Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricHandlerHolder.java",
+      "replies": [
+        {
+          "at": "2026-05-20T06:49:02Z",
+          "body": "`MetricHandlerHolder` is used from a different package and can't be package private",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3271776330"
+        }
+      ],
+      "reviewed": "d51599ec9b0c25cad84b3d04538d82a684bddd20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3267037621"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This allows specifying both `handler` and `handlers` and does not deduplicate entries, so the same handler name can be added multiple times (e.g., if `handler` is also listed in `handlers`). That can lead to the same handler being enrolled multiple times and potentially producing duplicate instruments/duplicate metric streams. Consider normalizing to a single list (e.g., treat `handler` as a single-element alias), validating non-blank values, and deduplicating while preserving order.",
+      "created": "2026-05-19T14:22:26Z",
+      "hunk": "@@ -85,11 +85,22 @@ private static JmxRule parseJmxRule(Map<String, Object> ruleYaml) {\n     if (beans != null) {\n       beans.forEach(jmxRule::addBean);\n     }\n+    String handler = (String) ruleYaml.remove(\"handler\");\n+    if (handler != null) {\n+      jmxRule.addHandler(handler);\n+    }\n+    List<String> handlers = (List<String>) ruleYaml.remove(\"handlers\");\n+    if (handlers != null) {\n+      handlers.forEach(jmxRule::addHandler);\n+    }",
+      "id": "PRRT_kwDODJKVX86DLuDu",
+      "opened": "2026-05-19T14:22:27Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/yaml/RuleParser.java",
+      "replies": [],
+      "reviewed": "d51599ec9b0c25cad84b3d04538d82a684bddd20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3267037711"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`close()` is not idempotent: if the returned `AutoCloseable` is closed more than once (which is common in defensive cleanup paths), the same instruments may be closed repeatedly, potentially generating warnings or throwing from underlying implementations. Consider clearing `instruments` after closing (or guarding with a `closed` flag) to make shutdown reliable and repeatable.",
+      "created": "2026-05-19T14:22:27Z",
+      "hunk": "@@ -201,4 +206,51 @@ static Attributes createMetricAttributes(\n     }\n     return attrBuilder.build();\n   }\n+\n+  void enrollHandler(\n+      MBeanServerConnection connection,\n+      Collection<ObjectName> objectNames,\n+      MetricHandlerHolder holder) {\n+    DetectionStatus status = new DetectionStatus(connection, objectNames);\n+    boolean firstEnrollment = holder.setStatus(status);\n+    if (!firstEnrollment) {\n+      // For successive enrollments, it is sufficient to refresh the status\n+      return;\n+    }\n+\n+    register(\n+        holder\n+            .getHandler()\n+            .create(\n+                meter,\n+                () -> {\n+                  DetectionStatus detectionStatus = holder.getStatus();\n+                  return new JmxMetricHandler.Detector() {\n+                    @Override\n+                    public MBeanServerConnection getConnection() {\n+                      return detectionStatus.getConnection();\n+                    }\n+\n+                    @Override\n+                    public Collection<ObjectName> getObjectNames() {\n+                      return detectionStatus.getObjectNames();\n+                    }\n+                  };\n+                }));\n+  }\n+\n+  private void register(AutoCloseable instrument) {\n+    instruments.add(instrument);\n+  }\n+\n+  @Override\n+  public void close() {\n+    for (AutoCloseable instrument : instruments) {\n+      try {\n+        instrument.close();\n+      } catch (Exception e) {\n+        logger.log(WARNING, \"Failed to close metric instrument\", e);\n+      }\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86DLuER",
+      "opened": "2026-05-19T14:22:27Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [],
+      "reviewed": "d51599ec9b0c25cad84b3d04538d82a684bddd20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3267037750"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The parser behavior now depends on the interaction between `mapping` and `handler`/`handlers` (e.g., handler-only rules skip `setMapping`, and empty mapping without handlers is still invalid). There are tests for missing/loaded handlers, but it would be helpful to add coverage for (1) `handlers:` list parsing, (2) a handler-only rule with no mapping, and (3) duplicate handler entries behavior (whether rejected or deduped) to lock in the intended contract.",
+      "created": "2026-05-19T14:22:27Z",
+      "hunk": "@@ -85,11 +85,22 @@ private static JmxRule parseJmxRule(Map<String, Object> ruleYaml) {\n     if (beans != null) {\n       beans.forEach(jmxRule::addBean);\n     }\n+    String handler = (String) ruleYaml.remove(\"handler\");\n+    if (handler != null) {\n+      jmxRule.addHandler(handler);\n+    }\n+    List<String> handlers = (List<String>) ruleYaml.remove(\"handlers\");\n+    if (handlers != null) {\n+      handlers.forEach(jmxRule::addHandler);\n+    }\n     String prefix = (String) ruleYaml.remove(\"prefix\");\n     if (prefix != null) {\n       jmxRule.setPrefix(prefix);\n     }\n-    jmxRule.setMapping(parseMappings((Map<String, Object>) ruleYaml.remove(\"mapping\")));\n+    Map<String, Metric> mapping = parseMappings((Map<String, Object>) ruleYaml.remove(\"mapping\"));\n+    if (!mapping.isEmpty() || !jmxRule.hasHandlers()) {\n+      jmxRule.setMapping(mapping);\n+    }",
+      "id": "PRRT_kwDODJKVX86DLuEx",
+      "opened": "2026-05-19T14:22:27Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/yaml/RuleParser.java",
+      "replies": [],
+      "reviewed": "d51599ec9b0c25cad84b3d04538d82a684bddd20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3267037794"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`enrollHandler()` dereferences `holder.getHandler()` without a null-check, even though `MetricHandlerHolder.getHandler()` is nullable. Currently `BeanFinder` guards this, but the contract isn’t enforced here, so a future call path (or refactor) could trigger an NPE. Consider validating `holder.getHandler()` inside `enrollHandler()` (e.g., early-return with a warning) or making the holder guarantee a non-null handler before enrollment.\n\nThis issue also appears on line 246 of the same file.\n",
+      "created": "2026-05-20T06:55:14Z",
+      "hunk": "@@ -201,4 +206,52 @@ static Attributes createMetricAttributes(\n     }\n     return attrBuilder.build();\n   }\n+\n+  void enrollHandler(\n+      MBeanServerConnection connection,\n+      Collection<ObjectName> objectNames,\n+      MetricHandlerHolder holder) {\n+    DetectionStatus status = new DetectionStatus(connection, objectNames);\n+    boolean firstEnrollment = holder.setStatus(status);\n+    if (!firstEnrollment) {\n+      // For successive enrollments, it is sufficient to refresh the status\n+      return;\n+    }\n+\n+    register(\n+        holder\n+            .getHandler()\n+            .create(\n+                meter,\n+                () -> {\n+                  DetectionStatus detectionStatus = holder.getStatus();\n+                  return new JmxMetricHandler.Detector() {\n+                    @Override\n+                    public MBeanServerConnection getConnection() {\n+                      return detectionStatus.getConnection();\n+                    }\n+\n+                    @Override\n+                    public Collection<ObjectName> getObjectNames() {\n+                      return detectionStatus.getObjectNames();\n+                    }\n+                  };\n+                }));",
+      "id": "PRRT_kwDODJKVX86DYwrO",
+      "opened": "2026-05-20T06:55:15Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [],
+      "reviewed": "83c1c4bc1bedd0e6be42cc724f23cf618b68ed16",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3271812340"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`shutdown()` ignores the boolean result of `awaitTermination(...)`. If the executor doesn’t terminate within the timeout, the bean-finder thread can keep running and leak resources. Consider checking the return value and logging (or taking additional action) when termination fails.\n",
+      "created": "2026-05-20T06:55:15Z",
+      "hunk": "@@ -169,4 +189,21 @@ private void resolveAttributes(\n       }\n     }\n   }\n+\n+  private void resolveHandlers(\n+      Set<ObjectName> objectNames, MBeanServerConnection connection, MetricDef metricDef) {\n+    for (MetricHandlerHolder holder : metricDef.getHandlers()) {\n+      JmxMetricHandler handler = holder.getHandler();\n+      // we print a warning for missing handlers in constructor\n+      if (handler == null) {\n+        continue;\n+      }\n+      registrar.enrollHandler(connection, objectNames, holder);\n+    }\n+  }\n+\n+  void shutdown() throws InterruptedException {\n+    exec.shutdownNow();\n+    exec.awaitTermination(10, SECONDS);",
+      "id": "PRRT_kwDODJKVX86DYwr0",
+      "opened": "2026-05-20T06:55:15Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/BeanFinder.java",
+      "replies": [],
+      "reviewed": "83c1c4bc1bedd0e6be42cc724f23cf618b68ed16",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3271812391"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`MetricHandlerHolder.setHandler()` throws if invoked more than once. Since `BeanFinder` resolves and sets handlers on every `JmxTelemetry.start(...)` call (and `MetricConfiguration`/`MetricDef` instances are reused across starts), calling `start()` a second time on the same `JmxTelemetry` instance will fail with `IllegalStateException`. Consider making handler assignment idempotent (e.g., no-op if already set to the same implementation) or guarding in `BeanFinder` before calling `setHandler()`.",
+      "created": "2026-05-20T07:27:16Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal.engine;\n+\n+import io.opentelemetry.instrumentation.jmx.JmxMetricHandler;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class MetricHandlerHolder {\n+\n+  private final String handlerName;\n+  @Nullable private JmxMetricHandler handler;\n+  @Nullable private volatile DetectionStatus status;\n+\n+  public MetricHandlerHolder(String handlerName) {\n+    this.handlerName = handlerName;\n+  }\n+\n+  String getHandlerName() {\n+    return handlerName;\n+  }\n+\n+  @Nullable\n+  JmxMetricHandler getHandler() {\n+    return handler;\n+  }\n+\n+  void setHandler(JmxMetricHandler handler) {\n+    if (this.handler != null) {\n+      throw new IllegalStateException(\"Handler is already set\");\n+    }",
+      "id": "PRRT_kwDODJKVX86DZQbq",
+      "opened": "2026-05-20T07:27:17Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricHandlerHolder.java",
+      "replies": [
+        {
+          "at": "2026-05-20T07:50:17Z",
+          "body": "This isn't enough to make calling `start` multiple times work.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3272123792"
+        }
+      ],
+      "reviewed": "2c7332a4f2f87300fb02e5ace2f919ed38157abb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3271990751"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`handler.create(...)` is registered without validating the return value. If an SPI implementation mistakenly returns `null`, this will fail later with an unhelpful `NullPointerException` when adding to the `instruments` set or during shutdown. Consider enforcing a non-null `AutoCloseable` (e.g., `requireNonNull` with a clear message, or log+skip when null) to make the SPI contract failure easier to diagnose.",
+      "created": "2026-05-20T07:27:17Z",
+      "hunk": "@@ -201,4 +206,56 @@ static Attributes createMetricAttributes(\n     }\n     return attrBuilder.build();\n   }\n+\n+  void enrollHandler(\n+      MBeanServerConnection connection,\n+      Collection<ObjectName> objectNames,\n+      MetricHandlerHolder holder) {\n+    JmxMetricHandler handler = holder.getHandler();\n+    // we print a warning for missing handlers in the constructor of BeanFinder\n+    if (handler == null) {\n+      return;\n+    }\n+\n+    DetectionStatus status = new DetectionStatus(connection, objectNames);\n+    boolean firstEnrollment = holder.setStatus(status);\n+    if (!firstEnrollment) {\n+      // For successive enrollments, it is sufficient to refresh the status\n+      return;\n+    }\n+\n+    register(\n+        handler.create(\n+            meter,\n+            () -> {\n+              DetectionStatus detectionStatus = holder.getStatus();\n+              return new JmxMetricHandler.Detector() {\n+                @Override",
+      "id": "PRRT_kwDODJKVX86DZQcY",
+      "opened": "2026-05-20T07:27:17Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricRegistrar.java",
+      "replies": [],
+      "reviewed": "2c7332a4f2f87300fb02e5ace2f919ed38157abb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18782#discussion_r3271990816"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "head": "568905d9ddac451fac8294fff2a79740be193632",
+  "merge": "9e74bd7ebf4ceea3d62e783c3f4708b82f4f6dbd",
+  "merged": "2026-09-24T03:28:40Z",
+  "missing_roots": 0,
+  "number": 20050,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This resolves `unwrap` reflectively every time a connection wrapper misses the virtual-field cache, including repeatedly caching the same lookup failure for classes without `unwrap`. Repository guidance requires runtime-class-dependent reflection (and missing methods) to be cached with `ClassValue` (`.github/agents/knowledge/java-reflection.md:11-17`); please cache this method lookup so connection/query paths do not repeatedly call `Class.getMethod`.",
+      "created": "2026-09-14T22:38:37Z",
+      "hunk": "@@ -177,6 +246,88 @@ public static VertxSqlClientConstructionState getConstructionState() {\n     return constructionState.get();\n   }\n \n+  public static Future<SqlConnectOptions> captureConnectionAttempt(\n+      Future<SqlConnectOptions> connectOptionsFuture, ConnectionAttempt connectionAttempt) {\n+    return connectOptionsFuture.map(\n+        connectOptions -> {\n+          try {\n+            connectionAttempt.capture(connectOptions);\n+          } catch (Throwable t) {\n+            logger.log(FINE, \"Failed to capture Vert.x SQL connection options\", t);\n+          }\n+          return connectOptions;\n+        });\n+  }\n+\n+  public static <T> Future<T> attachConnectionData(\n+      Future<T> future, @Nullable ConnectionAttempt connectionAttempt) {\n+    if (connectionAttempt == null) {\n+      return future;\n+    }\n+    return future.transform(\n+        result -> {\n+          try {\n+            VertxSqlClientInfo info = connectionAttempt.info;\n+            if (info != null) {\n+              if (result.succeeded()) {\n+                cacheConnectionInfo(result.result(), info);\n+              } else {\n+                connectionAttempt.captureFailureInfo(info);\n+              }\n+            }\n+          } catch (Throwable t) {\n+            logger.log(FINE, \"Failed to attach Vert.x SQL connection metadata\", t);\n+          }\n+          return copyResult(result);\n+        });\n+  }\n+\n+  private static <T> Future<T> copyResult(AsyncResult<T> result) {\n+    return result.succeeded()\n+        ? Future.succeededFuture(result.result())\n+        : Future.failedFuture(result.cause());\n+  }\n+\n+  private static void cacheConnectionInfo(Object connection, VertxSqlClientInfo info) {\n+    if (CONNECTION_INFO == null) {\n+      return;\n+    }\n+    Object candidate = connection;\n+    while (candidate != null) {\n+      CONNECTION_INFO.set(candidate, info);\n+      candidate = unwrap(candidate);\n+    }\n+  }\n+\n+  @Nullable\n+  public static VertxSqlClientInfo getConnectionInfo(Object connection) {\n+    if (CONNECTION_INFO == null) {\n+      return null;\n+    }\n+    Object candidate = connection;\n+    while (candidate != null) {\n+      VertxSqlClientInfo info = CONNECTION_INFO.get(candidate);\n+      if (info != null) {\n+        if (candidate != connection) {\n+          CONNECTION_INFO.set(connection, info);\n+        }\n+        return info;\n+      }\n+      candidate = unwrap(candidate);\n+    }\n+    return null;\n+  }\n+\n+  @Nullable\n+  private static Object unwrap(Object candidate) {\n+    try {\n+      Object unwrapped = candidate.getClass().getMethod(\"unwrap\").invoke(candidate);",
+      "id": "PRRT_kwDODJKVX86iTnAz",
+      "opened": "2026-09-14T22:38:37Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:01:53Z",
+          "body": "Addressed in 8ba5d496fa96d02d7cbb454cc24e88d954263b35.\n\nAnalysis: `cacheConnectionInfo` and `getConnectionInfo` can inspect instances of the same runtime class repeatedly. A `ClassValue<Method>` resolves `unwrap` once per class and caches `null` when the method is absent, while `Method.invoke` preserves the existing failure behavior.\n\nUpsides: Avoids repeated `Class.getMethod` calls on connection and query paths, including repeated failed lookups, without retaining application classes.\n\nDownsides: Adds one class-scoped cache entry per encountered runtime class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20050#discussion_r4010350598"
+        }
+      ],
+      "reviewed": "77297a399f970515972b1d09c430618de2016b06",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20050#discussion_r4010225314"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This installs a cleared context scope before the rest of `start()` performs fallible work (argument inspection, virtual-field access, and `instrumenter().start()`). If any of that throws, the enter advice suppresses the exception and returns its default state, so exit cannot close this scope or decrement the call depth; the thread then remains under the wrong context and subsequent queries can stay suppressed. Please ensure the scope and call depth are cleaned up on every exceptional path, or defer `makeCurrent()` until the last fallible action before returning.",
+      "created": "2026-09-16T00:11:59Z",
+      "hunk": "@@ -47,33 +49,31 @@ public static class ConstructorAdvice {\n \n     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n     public static void onExit(@Advice.This Object queryExecutor) {\n-      VertxSqlClientSingletons.setQueryExecutorInfo(\n-          queryExecutor, VertxSqlClientSingletons.getClientInfo());\n+      VertxSqlClientSingletons.captureQueryExecutorInfo(queryExecutor);\n     }\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class QueryAdvice {\n     public static class AdviceScope {\n       private final CallDepth callDepth;\n-      @Nullable private final Promise<?> promise;\n-      @Nullable private final Scope scope;\n+      @Nullable private Promise<?> promise;\n+      @Nullable private Scope scope;\n \n       private AdviceScope(CallDepth callDepth) {\n-        this(callDepth, null, null);\n-      }\n-\n-      private AdviceScope(CallDepth callDepth, Promise<?> promise, Scope scope) {\n         this.callDepth = callDepth;\n-        this.promise = promise;\n-        this.scope = scope;\n       }\n \n       public static AdviceScope start(Object queryExecutor, String methodName, Object[] arguments) {\n         CallDepth callDepth = CallDepth.forClass(queryExecutor.getClass());\n         if (callDepth.getAndIncrement() > 0) {\n           return new AdviceScope(callDepth);\n         }\n+        AdviceScope adviceScope = new AdviceScope(callDepth);\n+        Context parentContext = Context.current();\n+        if (parentContext.get(QUERY_STATE) != null) {\n+          adviceScope.scope = parentContext.with(QUERY_STATE, null).makeCurrent();",
+      "id": "PRRT_kwDODJKVX86ive4D",
+      "opened": "2026-09-16T00:11:59Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/QueryExecutorInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-20T04:26:24Z",
+          "body": "Addressed in a25c87a088e42887c6c65286322d9e84a0619df4.\n\nFixed in the verified source changes a25c87a088e42887c6c65286322d9e84a0619df4.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20050#discussion_r4056106935"
+        }
+      ],
+      "reviewed": "52d2bb2f3a2967815fa648e3643da434f99cd0e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20050#discussion_r4021350416"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this will conflict with the named virtual field pr",
+      "created": "2026-09-21T16:26:39Z",
+      "hunk": "@@ -65,8 +56,12 @@ public void registerVirtualFields(BiConsumer<String, String> virtualFieldRegistr\n     // used in 5.0\n     virtualFieldRegistrar.accept(\n         \"io.vertx.sqlclient.internal.command.CommandBase\", Context.class.getName());\n+    virtualFieldRegistrar.accept(",
+      "id": "PRRT_kwDODJKVX86kbr_Y",
+      "opened": "2026-09-21T16:26:39Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "a25c87a088e42887c6c65286322d9e84a0619df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20050#discussion_r4064189881"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "head": "cede401f54ad4558b2c274dded671fcf24a582fb",
+  "merge": "ef212d1d3f6850d2b0a612681d1d2e6c70da57f2",
+  "merged": "2026-02-26T03:10:43Z",
+  "missing_roots": 0,
+  "number": 16267,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this should have updated to `error.type`, but that is only emitted from [testLatestDeps tests](https://github.com/steverao/opentelemetry-java-instrumentation/blob/d4c60924c399ba98510366405bc83d78559bf7fc/instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceSyncClientAuthTest.java#L74-L98), so I've updated our automation to use that flag when running the telemetry collector for this module:  #16290",
+      "created": "2026-02-25T17:36:02Z",
+      "hunk": "@@ -8213,12 +8217,12 @@ libraries:\n       spans:\n       - span_kind: CLIENT\n         attributes:\n+        - name: db.operation.name\n+          type: STRING\n         - name: db.query.text\n           type: STRING\n         - name: db.system.name\n           type: STRING\n-        - name: error\n-          type: STRING",
+      "id": "PRRT_kwDODJKVX85wvMqG",
+      "opened": "2026-02-25T17:36:02Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "ffc985e48ff9a82012cb1df23d2dc63d76589649",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16267#discussion_r2854420680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "reference: #16275",
+      "created": "2026-02-25T20:47:56Z",
+      "hunk": "@@ -2403,14 +2403,6 @@ libraries:\n       spans:\n       - span_kind: CLIENT\n         attributes:\n-        - name: db.namespace\n-          type: STRING\n-        - name: db.query.summary\n-          type: STRING\n-        - name: db.query.text\n-          type: STRING\n-        - name: db.system.name\n-          type: STRING",
+      "id": "PRRT_kwDODJKVX85wx5AJ",
+      "opened": "2026-02-25T20:47:56Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "9bb8bfd5917560fca78480e74e7c7aefda1ef1ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16267#discussion_r2855395284"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "@trask this looks like it might be a change from #15838  ([here i think](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15838/files#diff-df933f8a20dfcc7d6577708ae77bdbb0fff0e15b3f2d60f567700aef451bac92R286-R290)). \r\n",
+      "created": "2026-02-25T21:34:47Z",
+      "hunk": "@@ -8177,12 +8181,12 @@ libraries:\n       spans:\n       - span_kind: CLIENT\n         attributes:\n+        - name: db.operation\n+          type: STRING\n         - name: db.statement\n           type: STRING\n         - name: db.system\n           type: STRING\n-        - name: error\n-          type: STRING",
+      "id": "PRRT_kwDODJKVX85wyija",
+      "opened": "2026-02-25T21:34:47Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-02-25T22:26:50Z",
+          "body": "I think it's from https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16290?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16267#discussion_r2855821717"
+        },
+        {
+          "at": "2026-02-26T00:10:50Z",
+          "body": "ah yea you are right, thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16267#discussion_r2856143641"
+        }
+      ],
+      "reviewed": "9bb8bfd5917560fca78480e74e7c7aefda1ef1ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16267#discussion_r2855629810"
+    }
+  ]
+}

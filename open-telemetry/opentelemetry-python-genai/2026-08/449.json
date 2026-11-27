@@ -1,0 +1,25 @@
+{
+  "head": "f7cc05336f5aacfd3f4fb65d2511ac4230947121",
+  "merge": "21c9def75278f8b205baa6a850d4557423e8cef1",
+  "merged": "2026-08-21T17:20:42Z",
+  "missing_roots": 0,
+  "number": 449,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These two entries are unrelated to the Google GenAI 1.1b1 release and the corresponding package changelogs still end at 1.1b0, so this makes the repository claim versions that are not represented as released here. Please leave both entries at 1.1b0, or include the separate releases and their changelog updates in the PR.",
+      "created": "2026-08-21T16:33:06Z",
+      "hunk": "@@ -14,13 +14,13 @@ All instrumentations use [opentelemetry-util-genai](./util/opentelemetry-util-ge\n | Instrumentation | Supported Package | Version |\n | --------------- | ----------------- | ------- |\n | [opentelemetry-instrumentation-genai-agno](./instrumentation/opentelemetry-instrumentation-genai-agno) | agno >= 2.0.0, < 3 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-agno/) |\n-| [opentelemetry-instrumentation-genai-anthropic](./instrumentation/opentelemetry-instrumentation-genai-anthropic) | anthropic >= 0.51.0, < 2 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-anthropic/) |\n-| [opentelemetry-instrumentation-genai-langchain](./instrumentation/opentelemetry-instrumentation-genai-langchain) | langchain >= 0.3.21, < 2 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-langchain/) |\n+| [opentelemetry-instrumentation-genai-anthropic](./instrumentation/opentelemetry-instrumentation-genai-anthropic) | anthropic >= 0.51.0, < 2 | [1.1b1](https://pypi.org/project/opentelemetry-instrumentation-genai-anthropic/) |\n+| [opentelemetry-instrumentation-genai-langchain](./instrumentation/opentelemetry-instrumentation-genai-langchain) | langchain >= 0.3.21, < 2 | [1.1b1](https://pypi.org/project/opentelemetry-instrumentation-genai-langchain/) |",
+      "id": "PRRT_kwDOSbspP86bOSZf",
+      "opened": "2026-08-21T16:33:06Z",
+      "path": "README.md",
+      "replies": [],
+      "reviewed": "f7cc05336f5aacfd3f4fb65d2511ac4230947121",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/449#discussion_r3831961467"
+    }
+  ]
+}

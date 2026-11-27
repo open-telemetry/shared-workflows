@@ -1,0 +1,73 @@
+{
+  "head": "70f7a81c7542d346a9823e5e6d9e617733cd7b5f",
+  "merge": "6e92c16f95b99cc793edf5e27234d397a2ba99e1",
+  "merged": "2026-09-21T04:36:38Z",
+  "missing_roots": 0,
+  "number": 751,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`set_usage_properties` casts `prompt_tokens` / `completion_tokens` with `int(...)` without validation. If Portkey ever returns an unexpected type (e.g., bool, list/dict, negative), this can either silently record incorrect values (`True` -> 1) or raise `TypeError`, breaking the instrumented call. Since you already validate detailed counts via `_get_token_count`, it’s safer to apply the same guard to the aggregate totals.",
+      "created": "2026-09-20T08:34:20Z",
+      "hunk": "@@ -376,11 +377,70 @@ def set_response_properties(\n                 cast(Iterable[Any], choices)\n             )\n \n-    usage = get_property_value(result, \"usage\")\n-    if usage is not None:\n-        prompt_tokens = get_property_value(usage, \"prompt_tokens\")\n-        if prompt_tokens is not None:\n-            invocation.input_tokens = int(prompt_tokens)\n-        completion_tokens = get_property_value(usage, \"completion_tokens\")\n-        if completion_tokens is not None:\n-            invocation.output_tokens = int(completion_tokens)\n+    set_usage_properties(invocation, get_property_value(result, \"usage\"))\n+\n+\n+def _get_token_count(usage: object, name: str) -> int | None:\n+    value = get_property_value(usage, name)\n+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:\n+        return value\n+    return None\n+\n+\n+def _modality_tokens(\n+    details: object, previous: tuple[tuple[Modality, int | None], ...]\n+) -> Iterator[tuple[Modality, int | None]]:\n+    for modality, previous_count in previous:\n+        count = _get_token_count(details, f\"{modality.value}_tokens\")\n+        yield modality, previous_count if count is None else count\n+\n+\n+def set_usage_properties(\n+    invocation: InferenceInvocation, usage: object\n+) -> None:\n+    \"\"\"Apply a usage snapshot without clearing counts omitted by later chunks.\"\"\"\n+    if usage is None:\n+        return\n+\n+    prompt_tokens = get_property_value(usage, \"prompt_tokens\")\n+    if prompt_tokens is not None:\n+        invocation.input_tokens = int(prompt_tokens)\n+    completion_tokens = get_property_value(usage, \"completion_tokens\")\n+    if completion_tokens is not None:\n+        invocation.output_tokens = int(completion_tokens)",
+      "id": "PRRT_kwDOSbspP86kIBqS",
+      "opened": "2026-09-20T08:34:21Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-20T08:37:45Z",
+          "body": "Reused the existing token-count validation for aggregate totals. Invalid values are now ignored instead of converted, preserving earlier valid counts while still accepting zero.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/751#discussion_r4056533427"
+        }
+      ],
+      "reviewed": "194490aa78acb6773bab532e0bdb96c2c042d8f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/751#discussion_r4056527356"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Consider extracting `reasoning_tokens` from `output_details` into `invocation.thinking_tokens` for reasoning models (e.g. o1/o3-mini or DeepSeek) routed through Portkey.",
+      "created": "2026-09-20T12:56:52Z",
+      "hunk": "@@ -376,11 +377,70 @@ def set_response_properties(\n                 cast(Iterable[Any], choices)\n             )\n \n-    usage = get_property_value(result, \"usage\")\n-    if usage is not None:\n-        prompt_tokens = get_property_value(usage, \"prompt_tokens\")\n-        if prompt_tokens is not None:\n-            invocation.input_tokens = int(prompt_tokens)\n-        completion_tokens = get_property_value(usage, \"completion_tokens\")\n-        if completion_tokens is not None:\n-            invocation.output_tokens = int(completion_tokens)\n+    set_usage_properties(invocation, get_property_value(result, \"usage\"))\n+\n+\n+def _get_token_count(usage: object, name: str) -> int | None:\n+    value = get_property_value(usage, name)\n+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:\n+        return value\n+    return None\n+\n+\n+def _modality_tokens(\n+    details: object, previous: tuple[tuple[Modality, int | None], ...]\n+) -> Iterator[tuple[Modality, int | None]]:\n+    for modality, previous_count in previous:\n+        count = _get_token_count(details, f\"{modality.value}_tokens\")\n+        yield modality, previous_count if count is None else count\n+\n+\n+def set_usage_properties(\n+    invocation: InferenceInvocation, usage: object\n+) -> None:\n+    \"\"\"Apply a usage snapshot without clearing counts omitted by later chunks.\"\"\"\n+    if usage is None:\n+        return\n+\n+    prompt_tokens = _get_token_count(usage, \"prompt_tokens\")\n+    if prompt_tokens is not None:\n+        invocation.input_tokens = prompt_tokens\n+    completion_tokens = _get_token_count(usage, \"completion_tokens\")\n+    if completion_tokens is not None:\n+        invocation.output_tokens = completion_tokens\n+\n+    input_details = get_property_value(usage, \"prompt_tokens_details\")\n+    output_details = get_property_value(usage, \"completion_tokens_details\")",
+      "id": "PRRT_kwDOSbspP86kJN5-",
+      "opened": "2026-09-20T12:57:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-20T16:46:06Z",
+          "body": "Thanks for the suggestion, we now record `reasoning_tokens` through `invocation.thinking_tokens` without double-counting them in the output total.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/751#discussion_r4057463250"
+        }
+      ],
+      "reviewed": "f775b768864a310423c9ef831c5863650cfbba2d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/751#discussion_r4056987996"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Consider including `(Modality.IMAGE, invocation.image_output_tokens)` as well so multimodal output models returning image tokens in completion details are covered.",
+      "created": "2026-09-20T12:56:52Z",
+      "hunk": "@@ -376,11 +377,70 @@ def set_response_properties(\n                 cast(Iterable[Any], choices)\n             )\n \n-    usage = get_property_value(result, \"usage\")\n-    if usage is not None:\n-        prompt_tokens = get_property_value(usage, \"prompt_tokens\")\n-        if prompt_tokens is not None:\n-            invocation.input_tokens = int(prompt_tokens)\n-        completion_tokens = get_property_value(usage, \"completion_tokens\")\n-        if completion_tokens is not None:\n-            invocation.output_tokens = int(completion_tokens)\n+    set_usage_properties(invocation, get_property_value(result, \"usage\"))\n+\n+\n+def _get_token_count(usage: object, name: str) -> int | None:\n+    value = get_property_value(usage, name)\n+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:\n+        return value\n+    return None\n+\n+\n+def _modality_tokens(\n+    details: object, previous: tuple[tuple[Modality, int | None], ...]\n+) -> Iterator[tuple[Modality, int | None]]:\n+    for modality, previous_count in previous:\n+        count = _get_token_count(details, f\"{modality.value}_tokens\")\n+        yield modality, previous_count if count is None else count\n+\n+\n+def set_usage_properties(\n+    invocation: InferenceInvocation, usage: object\n+) -> None:\n+    \"\"\"Apply a usage snapshot without clearing counts omitted by later chunks.\"\"\"\n+    if usage is None:\n+        return\n+\n+    prompt_tokens = _get_token_count(usage, \"prompt_tokens\")\n+    if prompt_tokens is not None:\n+        invocation.input_tokens = prompt_tokens\n+    completion_tokens = _get_token_count(usage, \"completion_tokens\")\n+    if completion_tokens is not None:\n+        invocation.output_tokens = completion_tokens\n+\n+    input_details = get_property_value(usage, \"prompt_tokens_details\")\n+    output_details = get_property_value(usage, \"completion_tokens_details\")\n+    cache_write = _get_token_count(input_details, \"cache_write_tokens\")\n+    if cache_write is None:\n+        cache_write = _get_token_count(usage, \"cache_creation_input_tokens\")\n+    if cache_write is not None:\n+        invocation.cache_write_input_tokens = cache_write\n+\n+    cache_read = _get_token_count(input_details, \"cached_tokens\")\n+    if cache_read is None:\n+        cache_read = _get_token_count(usage, \"cache_read_input_tokens\")\n+    if cache_read is not None:\n+        invocation.cache_read_input_tokens = cache_read\n+\n+    if input_details is not None:\n+        invocation.set_input_tokens(\n+            _modality_tokens(\n+                input_details,\n+                (\n+                    (Modality.TEXT, invocation.text_input_tokens),\n+                    (Modality.IMAGE, invocation.image_input_tokens),\n+                    (Modality.AUDIO, invocation.audio_input_tokens),\n+                ),\n+            )\n+        )\n+    if output_details is not None:\n+        invocation.set_output_tokens(\n+            _modality_tokens(\n+                output_details,\n+                (\n+                    (Modality.TEXT, invocation.text_output_tokens),\n+                    (Modality.AUDIO, invocation.audio_output_tokens),\n+                ),",
+      "id": "PRRT_kwDOSbspP86kJN6B",
+      "opened": "2026-09-20T12:57:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-20T16:49:56Z",
+          "body": "Added image output-token capture when Portkey reports it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/751#discussion_r4057471116"
+        }
+      ],
+      "reviewed": "f775b768864a310423c9ef831c5863650cfbba2d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/751#discussion_r4056988001"
+    }
+  ]
+}

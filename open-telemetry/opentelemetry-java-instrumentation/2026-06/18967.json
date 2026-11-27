@@ -1,0 +1,190 @@
+{
+  "head": "4985201ce612bdf973f8ac3cbf1483df758e3fcc",
+  "merge": "7a4599ea8c410876098ec1a84141b56d881949e7",
+  "merged": "2026-06-16T15:23:07Z",
+  "missing_roots": 0,
+  "number": 18967,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In `testCaptureGcCauseCanBeDisabled`, `java17Config` is returned from `getInstrumentationConfig(...)` but never stubbed. If `Internal.configure(...)` reads `enabled`/`capture_gc_cause` from `java17Config` on some runtimes, Mockito will return default values (often `false`) and the callback may never be invoked, making the test fail. Consider stubbing `java17Config.getBoolean(...)` as well, or returning the same fully-stubbed `config` for both `runtime_telemetry` and `runtime_telemetry_java17`.",
+      "created": "2026-06-11T16:56:52Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.mockStatic;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Internal;\n+import java.lang.reflect.Field;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.function.BiConsumer;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.mockito.MockedStatic;\n+\n+class RuntimeTelemetryTest {\n+\n+  private BiConsumer<RuntimeTelemetryBuilder, Boolean> originalCallback;\n+  private Field callbackField;\n+\n+  @SuppressWarnings(\"unchecked\")\n+  @BeforeEach\n+  void setUp() throws Exception {\n+    RuntimeTelemetryBuilder dummyBuilder = RuntimeTelemetry.builder(OpenTelemetry.noop());\n+    assertThat(dummyBuilder).isNotNull();\n+\n+    callbackField = Internal.class.getDeclaredField(\"setCaptureGcCause\");\n+    callbackField.setAccessible(true);\n+    originalCallback = (BiConsumer<RuntimeTelemetryBuilder, Boolean>) callbackField.get(null);\n+  }\n+\n+  @AfterEach\n+  void tearDown() throws Exception {\n+    if (callbackField != null) {\n+      callbackField.set(null, originalCallback);\n+    }\n+  }\n+\n+  @Test\n+  void testCaptureGcCauseDefaultsToTrue() {\n+    AtomicBoolean capturedValue = new AtomicBoolean(false);\n+    Internal.internalSetCaptureGcCause(\n+        (builder, capture) -> {\n+          capturedValue.set(capture);\n+          if (originalCallback != null) {\n+            originalCallback.accept(builder, capture);\n+          }\n+        });\n+\n+    Internal.configure(OpenTelemetry.noop(), true);\n+\n+    assertThat(capturedValue.get()).isTrue();\n+  }\n+\n+  @Test\n+  void testCaptureGcCauseCanBeDisabled() {\n+    OpenTelemetry openTelemetry = OpenTelemetry.noop();\n+    DeclarativeConfigProperties config = mock(DeclarativeConfigProperties.class);\n+    DeclarativeConfigProperties java17Config = mock(DeclarativeConfigProperties.class);\n+\n+    when(config.getBoolean(\"enabled\", true)).thenReturn(true);\n+    when(config.getBoolean(\"capture_gc_cause\", true)).thenReturn(false);\n+",
+      "id": "PRRT_kwDODJKVX86I4qqJ",
+      "opened": "2026-06-11T16:56:53Z",
+      "path": "instrumentation/runtime-telemetry/library/src/test/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryTest.java",
+      "replies": [],
+      "reviewed": "fe175d7ba61cad4ba023a645ae2d1f45ad81e7b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3397692568"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In `testCaptureGcCauseCanBeDisabled`, `java17Config` is returned from `getInstrumentationConfig(...)` but never stubbed. If `Internal.configure(...)` reads `enabled`/`capture_gc_cause` from `java17Config` on some runtimes, Mockito will return default values (often `false`) and the callback may never be invoked, making the test fail. Consider stubbing `java17Config.getBoolean(...)` as well, or returning the same fully-stubbed `config` for both `runtime_telemetry` and `runtime_telemetry_java17`.",
+      "created": "2026-06-11T16:56:52Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.mockStatic;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Internal;\n+import java.lang.reflect.Field;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.function.BiConsumer;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.mockito.MockedStatic;\n+\n+class RuntimeTelemetryTest {\n+\n+  private BiConsumer<RuntimeTelemetryBuilder, Boolean> originalCallback;\n+  private Field callbackField;\n+\n+  @SuppressWarnings(\"unchecked\")\n+  @BeforeEach\n+  void setUp() throws Exception {\n+    RuntimeTelemetryBuilder dummyBuilder = RuntimeTelemetry.builder(OpenTelemetry.noop());\n+    assertThat(dummyBuilder).isNotNull();\n+\n+    callbackField = Internal.class.getDeclaredField(\"setCaptureGcCause\");\n+    callbackField.setAccessible(true);\n+    originalCallback = (BiConsumer<RuntimeTelemetryBuilder, Boolean>) callbackField.get(null);\n+  }\n+\n+  @AfterEach\n+  void tearDown() throws Exception {\n+    if (callbackField != null) {\n+      callbackField.set(null, originalCallback);\n+    }\n+  }\n+\n+  @Test\n+  void testCaptureGcCauseDefaultsToTrue() {\n+    AtomicBoolean capturedValue = new AtomicBoolean(false);\n+    Internal.internalSetCaptureGcCause(\n+        (builder, capture) -> {\n+          capturedValue.set(capture);\n+          if (originalCallback != null) {\n+            originalCallback.accept(builder, capture);\n+          }\n+        });\n+\n+    Internal.configure(OpenTelemetry.noop(), true);\n+\n+    assertThat(capturedValue.get()).isTrue();\n+  }\n+\n+  @Test\n+  void testCaptureGcCauseCanBeDisabled() {\n+    OpenTelemetry openTelemetry = OpenTelemetry.noop();\n+    DeclarativeConfigProperties config = mock(DeclarativeConfigProperties.class);\n+    DeclarativeConfigProperties java17Config = mock(DeclarativeConfigProperties.class);\n+\n+    when(config.getBoolean(\"enabled\", true)).thenReturn(true);\n+    when(config.getBoolean(\"capture_gc_cause\", true)).thenReturn(false);\n+\n+    AtomicBoolean capturedValue = new AtomicBoolean(true);\n+    Internal.internalSetCaptureGcCause(\n+        (builder, capture) -> {\n+          capturedValue.set(capture);\n+          if (originalCallback != null) {\n+            originalCallback.accept(builder, capture);\n+          }\n+        });\n+\n+    try (MockedStatic<DeclarativeConfigUtil> utilities = mockStatic(DeclarativeConfigUtil.class)) {\n+      utilities\n+          .when(\n+              () ->\n+                  DeclarativeConfigUtil.getInstrumentationConfig(\n+                      openTelemetry, \"runtime_telemetry\"))\n+          .thenReturn(config);\n+      utilities\n+          .when(\n+              () ->\n+                  DeclarativeConfigUtil.getInstrumentationConfig(\n+                      openTelemetry, \"runtime_telemetry_java17\"))\n+          .thenReturn(java17Config);",
+      "id": "PRRT_kwDODJKVX86I4qqi",
+      "opened": "2026-06-11T16:56:53Z",
+      "path": "instrumentation/runtime-telemetry/library/src/test/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryTest.java",
+      "replies": [],
+      "reviewed": "fe175d7ba61cad4ba023a645ae2d1f45ad81e7b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3397692598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`testCaptureGcCauseDefaultsToTrue` calls `Internal.configure(...)` without controlling `DeclarativeConfigUtil`/config inputs. If this code consults system/env properties, the test can become environment-dependent (e.g., if `capture_gc_cause` is set to false externally) and fail unexpectedly. Consider mocking `DeclarativeConfigUtil.getInstrumentationConfig(...)` to return a controlled `DeclarativeConfigProperties` that does not override `capture_gc_cause`, or explicitly clearing/restoring the relevant property sources within the test.",
+      "created": "2026-06-11T16:56:53Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.mockStatic;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Internal;\n+import java.lang.reflect.Field;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.function.BiConsumer;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.mockito.MockedStatic;\n+\n+class RuntimeTelemetryTest {\n+\n+  private BiConsumer<RuntimeTelemetryBuilder, Boolean> originalCallback;\n+  private Field callbackField;\n+\n+  @SuppressWarnings(\"unchecked\")\n+  @BeforeEach\n+  void setUp() throws Exception {\n+    RuntimeTelemetryBuilder dummyBuilder = RuntimeTelemetry.builder(OpenTelemetry.noop());\n+    assertThat(dummyBuilder).isNotNull();\n+\n+    callbackField = Internal.class.getDeclaredField(\"setCaptureGcCause\");\n+    callbackField.setAccessible(true);\n+    originalCallback = (BiConsumer<RuntimeTelemetryBuilder, Boolean>) callbackField.get(null);\n+  }\n+\n+  @AfterEach\n+  void tearDown() throws Exception {\n+    if (callbackField != null) {\n+      callbackField.set(null, originalCallback);\n+    }\n+  }\n+\n+  @Test\n+  void testCaptureGcCauseDefaultsToTrue() {\n+    AtomicBoolean capturedValue = new AtomicBoolean(false);\n+    Internal.internalSetCaptureGcCause(\n+        (builder, capture) -> {\n+          capturedValue.set(capture);\n+          if (originalCallback != null) {\n+            originalCallback.accept(builder, capture);\n+          }\n+        });\n+\n+    Internal.configure(OpenTelemetry.noop(), true);\n+\n+    assertThat(capturedValue.get()).isTrue();\n+  }",
+      "id": "PRRT_kwDODJKVX86I4qqz",
+      "opened": "2026-06-11T16:56:53Z",
+      "path": "instrumentation/runtime-telemetry/library/src/test/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryTest.java",
+      "replies": [],
+      "reviewed": "fe175d7ba61cad4ba023a645ae2d1f45ad81e7b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3397692624"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The warning text is a bit ambiguous: what's deprecated is the ability to set the property to `false`, not 'disabling' in general. To make the operational message clearer, consider wording it like: \\\"Setting otel.instrumentation.runtime-telemetry.capture-gc-cause=false is deprecated and will be removed in 3.0; GC cause will always be captured.\\\"",
+      "created": "2026-06-11T16:56:53Z",
+      "hunk": "@@ -371,10 +371,10 @@ private static void configureUnified(\n     }\n \n     // Apply capture_gc_cause\n-    boolean captureGcCause = config.getBoolean(\"capture_gc_cause\", false);\n-    if (captureGcCause) {\n+    boolean captureGcCause = config.getBoolean(\"capture_gc_cause\", true);\n+    if (!captureGcCause) {\n       logger.warning(\n-          \"otel.instrumentation.runtime-telemetry.capture-gc-cause is deprecated and will be\"\n+          \"Disabling otel.instrumentation.runtime-telemetry.capture-gc-cause is deprecated and will be\"\n               + \" removed in 3.0. GC cause will always be captured.\");\n     }",
+      "id": "PRRT_kwDODJKVX86I4qrE",
+      "opened": "2026-06-11T16:56:53Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Internal.java",
+      "replies": [],
+      "reviewed": "fe175d7ba61cad4ba023a645ae2d1f45ad81e7b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3397692647"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you use the v3preview flag to make this change ahead of v3 while not breaking 2.x users? thanks!",
+      "created": "2026-06-11T17:24:38Z",
+      "hunk": "@@ -371,10 +371,10 @@ private static void configureUnified(\n     }\n \n     // Apply capture_gc_cause\n-    boolean captureGcCause = config.getBoolean(\"capture_gc_cause\", false);\n-    if (captureGcCause) {\n+    boolean captureGcCause = config.getBoolean(\"capture_gc_cause\", true);",
+      "id": "PRRT_kwDODJKVX86I5GpN",
+      "opened": "2026-06-11T17:24:38Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Internal.java",
+      "replies": [],
+      "reviewed": "75f7ec6148659623148adfb5b80d847d0bcd8c56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3397851524"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "would this work?\n\n```\nboolean captureGcCause = config.getBoolean(\"capture_gc_cause\", SemconvStability.v3Preview());\n```",
+      "created": "2026-06-11T18:05:01Z",
+      "hunk": "@@ -371,12 +372,19 @@ private static void configureUnified(\n     }\n \n     // Apply capture_gc_cause\n-    boolean captureGcCause = config.getBoolean(\"capture_gc_cause\", true);",
+      "id": "PRRT_kwDODJKVX86I5vH7",
+      "opened": "2026-06-11T18:05:01Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Internal.java",
+      "replies": [
+        {
+          "at": "2026-06-11T18:20:41Z",
+          "body": "Yes, that works. I adjusted the warning accordingly, and all tests are passing.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3398177446"
+        }
+      ],
+      "reviewed": "ee51437e3c72e6d89d4ff5fc8af194d5de751ca4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3398081219"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "probably need to keep these as their current value until we flip the switch to 3.0, check to see if there's a pattern for handling these elsewhere",
+      "created": "2026-06-11T18:23:16Z",
+      "hunk": "@@ -537,7 +537,7 @@\n       \"name\": \"otel.instrumentation.runtime-telemetry.capture-gc-cause\",\n       \"type\": \"java.lang.Boolean\",\n       \"description\": \"Enable the capture of the jvm.gc.cause attribute with the jvm.gc.duration metric.\",\n-      \"defaultValue\": false\n+      \"defaultValue\": true",
+      "id": "PRRT_kwDODJKVX86I6Cyv",
+      "opened": "2026-06-11T18:23:16Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [
+        {
+          "at": "2026-06-11T18:33:59Z",
+          "body": "From the examples I've looked at so far, it seems the common pattern is to keep the current baseline as the documented default.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3398253221"
+        }
+      ],
+      "reviewed": "5527641fd8cc3ed31bef5f38ee8a126c85686afe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3398192725"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "isn't the default still `false` for now?",
+      "created": "2026-06-16T11:00:33Z",
+      "hunk": "@@ -12,7 +12,7 @@\n \n | System property                                                          | Type    | Default | Description                                                                            |\n | ------------------------------------------------------------------------ | ------- | ------- | -------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.runtime-telemetry.capture-gc-cause`                | Boolean | `false` | Enable the capture of the jvm.gc.cause attribute. Will always be captured in 3.0.      |\n+| `otel.instrumentation.runtime-telemetry.capture-gc-cause`                | Boolean | `true`  | Enable the capture of the jvm.gc.cause attribute. Will always be captured in 3.0.      |",
+      "id": "PRRT_kwDODJKVX86J3YHe",
+      "opened": "2026-06-16T11:00:33Z",
+      "path": "instrumentation/runtime-telemetry/README.md",
+      "replies": [
+        {
+          "at": "2026-06-16T14:09:34Z",
+          "body": "Good catch — you're right. The default is still `false` until v3preview/stable semantic conventions are emitted. I've reverted the README default back to `false` (GC cause is only always captured under v3preview, where the option is no longer configurable).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3421404214"
+        }
+      ],
+      "reviewed": "4d3fb4ae841f1283d9cb73f2bdd133beb0ffba5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3420168507"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`capture_gc_cause` deprecation detection is currently based on `config.getString(\"capture_gc_cause\")`, which will likely be `null` for a boolean property, so the warning may never be emitted. Also, `SemconvStability.v3Preview() || ...` makes an explicit opt-out (`capture_gc_cause=false`) ineffective when v3 preview is enabled, which conflicts with the PR description’s “explicit opt-out” requirement. Consider reading the nullable Boolean once, warning when it’s present, and using it to override the default.",
+      "created": "2026-06-16T13:45:04Z",
+      "hunk": "@@ -370,12 +372,14 @@ private static void configureUnified(\n       Experimental.setPreferJfrMetrics(builder, true);\n     }\n \n-    // Apply capture_gc_cause\n-    boolean captureGcCause = config.getBoolean(\"capture_gc_cause\", false);\n-    if (captureGcCause) {\n+    // Apply capture_gc_cause. GC cause is always captured when emitting stable JVM semantic\n+    // conventions and is no longer configurable; otherwise it defaults to false.\n+    boolean captureGcCause =\n+        SemconvStability.v3Preview() || config.getBoolean(\"capture_gc_cause\", false);\n+\n+    if (config.getString(\"capture_gc_cause\") != null) {\n       logger.warning(",
+      "id": "PRRT_kwDODJKVX86J6VPV",
+      "opened": "2026-06-16T13:45:04Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Internal.java",
+      "replies": [
+        {
+          "at": "2026-06-16T14:08:12Z",
+          "body": "Fixed the warning detection: it now reads the nullable `config.getBoolean(\"capture_gc_cause\")` once and warns when the property is present (the previous `getString` check returned null for a boolean property, so the warning never fired).\n\nThe opt-out being ineffective under v3preview is intentional — GC cause is now unconditional once stable JVM semantic conventions are emitted (it's no longer configurable then). The `capture_gc_cause` option only applies before v3preview/3.0. I've updated the PR description to match.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3421394131"
+        }
+      ],
+      "reviewed": "3b0509f9e6f38536ba8f128bea444fb395570d6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3421207979"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description only mentions enabling `jvm.gc.cause` by default, but this PR also adds the new `jvm.file_descriptor.limit` metric (production implementation, JMX YAML rules, documentation, and tests). Consider updating the PR description to mention this addition for reviewers' clarity.",
+      "created": "2026-06-16T14:16:20Z",
+      "hunk": "@@ -370,13 +372,15 @@ private static void configureUnified(\n       Experimental.setPreferJfrMetrics(builder, true);\n     }\n \n-    // Apply capture_gc_cause\n-    boolean captureGcCause = config.getBoolean(\"capture_gc_cause\", false);\n-    if (captureGcCause) {\n+    // Apply capture_gc_cause. GC cause is always captured when emitting stable JVM semantic\n+    // conventions and is no longer configurable; otherwise it defaults to false.\n+    Boolean captureGcCauseConfig = config.getBoolean(\"capture_gc_cause\");\n+    if (captureGcCauseConfig != null) {\n       logger.warning(\n-          \"otel.instrumentation.runtime-telemetry.capture-gc-cause is deprecated and will be\"\n-              + \" removed in 3.0. GC cause will always be captured.\");\n+          \"otel.instrumentation.runtime-telemetry.capture-gc-cause is deprecated and will be removed in 3.0. GC cause will always be captured.\");\n     }\n+    boolean captureGcCause =\n+        SemconvStability.v3Preview() || Boolean.TRUE.equals(captureGcCauseConfig);\n     Internal.setCaptureGcCause(builder, captureGcCause);",
+      "id": "PRRT_kwDODJKVX86J7CHr",
+      "opened": "2026-06-16T14:16:21Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Internal.java",
+      "replies": [
+        {
+          "at": "2026-06-16T14:18:29Z",
+          "body": "This PR doesn't add a `jvm.file_descriptor.limit` metric — the diff only touches `Internal.java` (the `capture_gc_cause` handling). No JMX YAML, docs, or tests for a file-descriptor metric are part of this change, so the description doesn't need updating for that.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3421470761"
+        }
+      ],
+      "reviewed": "21af68401bdf9cca5c05a5d60fb8fa61f8854e01",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18967#discussion_r3421453962"
+    }
+  ]
+}

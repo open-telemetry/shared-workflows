@@ -1,0 +1,40 @@
+{
+  "head": "92802843802c152d80bec4d8bcffc5186b4fb2a5",
+  "merge": "f95ca7e0d66b27d4157a4aa30190af12029160c1",
+  "merged": "2026-03-06T17:00:58Z",
+  "missing_roots": 0,
+  "number": 16392,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "1.0 does not cause lookup, but later versions do",
+      "created": "2026-03-05T14:45:13Z",
+      "hunk": "@@ -31,12 +30,4 @@ internal enum class KtorHttpServerAttributesGetter : HttpServerAttributesGetter<\n   override fun getNetworkProtocolName(request: ApplicationRequest, response: ApplicationResponse?): String? = if (request.httpVersion.startsWith(\"HTTP/\")) \"http\" else null\n \n   override fun getNetworkProtocolVersion(request: ApplicationRequest, response: ApplicationResponse?): String? = if (request.httpVersion.startsWith(\"HTTP/\")) request.httpVersion.substring(\"HTTP/\".length) else null\n-\n-  override fun getNetworkPeerAddress(request: ApplicationRequest, response: ApplicationResponse?): String? {",
+      "id": "PRRT_kwDODJKVX85yWovS",
+      "opened": "2026-03-05T14:45:13Z",
+      "path": "instrumentation/ktor/ktor-1.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/v1_0/KtorHttpServerAttributesGetter.kt",
+      "replies": [],
+      "reviewed": "da99dd9ba7e93dfd0968349fe25780a2679bc370",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16392#discussion_r2890433586"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "introduced in 2.2.0",
+      "created": "2026-03-05T14:48:33Z",
+      "hunk": "@@ -5,15 +5,27 @@\n \n package io.opentelemetry.instrumentation.ktor.common.v2_0\n \n+import io.ktor.http.*\n import io.ktor.server.plugins.*\n import io.ktor.server.request.*\n import io.ktor.server.response.*\n import io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesGetter\n-import io.opentelemetry.instrumentation.ktor.isIpAddress\n+import io.opentelemetry.instrumentation.ktor.common.v2_0.internal.isIpAddress\n+import java.lang.invoke.MethodHandle\n+import java.lang.invoke.MethodHandles\n+import java.lang.invoke.MethodType\n \n internal enum class KtorHttpServerAttributesGetter : HttpServerAttributesGetter<ApplicationRequest, ApplicationResponse> {\n   INSTANCE;\n \n+  private val getRemoteAddressMethodHandle: MethodHandle? = getRemoteAddressMethodHandle()\n+\n+  private fun getRemoteAddressMethodHandle(): MethodHandle? = try {\n+    MethodHandles.lookup().findVirtual(RequestConnectionPoint::class.java, \"getRemoteAddress\", MethodType.methodType(String::class.java))",
+      "id": "PRRT_kwDODJKVX85yWsQw",
+      "opened": "2026-03-05T14:48:33Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/KtorHttpServerAttributesGetter.kt",
+      "replies": [],
+      "reviewed": "da99dd9ba7e93dfd0968349fe25780a2679bc370",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16392#discussion_r2890453020"
+    }
+  ]
+}

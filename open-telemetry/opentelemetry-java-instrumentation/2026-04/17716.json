@@ -1,0 +1,25 @@
+{
+  "head": "e899ae58eb0be865c6d7130f3d4c73d7f8b12705",
+  "merge": "99f339774bb13aa2afed8ae9b4c9a456c374aa5f",
+  "merged": "2026-04-17T01:12:19Z",
+  "missing_roots": 0,
+  "number": 17716,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    } catch (IllegalStateException e) {\n      String message = e.getMessage();\n```",
+      "created": "2026-04-17T00:29:07Z",
+      "hunk": "@@ -11,9 +11,9 @@ final class Utils {\n   static String safeTypeDefinitionName(TypeDefinition td) {\n     try {\n       return td.getTypeName();\n-    } catch (IllegalStateException e) {\n-      String message = e.getMessage();\n-      if (message.startsWith(\"Cannot resolve type description for \")) {\n+    } catch (IllegalStateException ex) {\n+      String message = ex.getMessage();",
+      "id": "PRRT_kwDODJKVX857mAe1",
+      "opened": "2026-04-17T00:29:06Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/Utils.java",
+      "replies": [],
+      "reviewed": "9292a5cdd4ce57888092ee2dd335b06c9737c158",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17716#discussion_r3097208365"
+    }
+  ]
+}

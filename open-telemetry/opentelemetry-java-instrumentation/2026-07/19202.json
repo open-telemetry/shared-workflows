@@ -1,0 +1,52 @@
+{
+  "head": "93b92a86f0c1404d5206e31008fc6c60f8325f5a",
+  "merge": "d3760417480184f11e7cbedae9ad2f2ffda7111b",
+  "merged": "2026-07-14T04:44:12Z",
+  "missing_roots": 0,
+  "number": 19202,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The replacement named here converts in the opposite direction: this bridge exposes `DeclarativeConfigProperties` as `ConfigProperties`, while `ConfigPropertiesBackedConfigProvider` exposes `ConfigProperties` through `ConfigProvider`. Following this migration guidance cannot replace this class; point readers to `DeclarativeConfigProperties` directly, as the builder documentation does.",
+      "created": "2026-07-14T01:10:09Z",
+      "hunk": "@@ -48,7 +48,11 @@\n  *       common:\n  *         string_key: value\n  * </pre>\n+ *\n+ * @deprecated Use {@link ConfigPropertiesBackedConfigProvider} when bridging {@link\n+ *     ConfigProperties} into declarative configuration. This class will be removed in 3.0.",
+      "id": "PRRT_kwDODJKVX86QluLm",
+      "opened": "2026-07-14T01:10:09Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigPropertiesBridge.java",
+      "replies": [
+        {
+          "at": "2026-07-14T03:03:42Z",
+          "body": "Addressed in 6cc3e8fab3: clarified that direct DeclarativeConfigProperties usage requires migrating the consumer, while ConfigPropertiesBackedConfigProvider applies to the opposite adapter direction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19202#discussion_r3575750275"
+        }
+      ],
+      "reviewed": "041f34600b963efaa53c7bc16bbce4b8d889c9e8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19202#discussion_r3575371010"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR states that all in-repository usages have been migrated, but `instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java:188` still constructs this builder in production code. That leaves the Spring starter dependent on an API scheduled for removal in 3.0. Migrate that caller as part of this removal cycle, or explicitly document that this deprecated compatibility bean must be removed together with the bridge.",
+      "created": "2026-07-14T03:05:58Z",
+      "hunk": "@@ -22,7 +22,13 @@\n /**\n  * A builder for {@link DeclarativeConfigPropertiesBridge} that allows adding translations and fixed\n  * values for properties.\n+ *\n+ * @deprecated Use {@link DeclarativeConfigProperties} directly when reading declarative component\n+ *     configuration, or use {@link ConfigPropertiesBackedConfigProvider} when exposing a {@link\n+ *     io.opentelemetry.api.incubator.config.ConfigProvider} backed by {@link ConfigProperties}.\n+ *     This class will be removed in 3.0.\n  */\n+@Deprecated // will be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86Qmvt0",
+      "opened": "2026-07-14T03:05:58Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/DeclarativeConfigPropertiesBridgeBuilder.java",
+      "replies": [
+        {
+          "at": "2026-07-14T03:37:30Z",
+          "body": "Addressed in 93b92a86f0: documented that the Spring compatibility bean will be removed in 3.0 together with DeclarativeConfigPropertiesBridgeBuilder.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19202#discussion_r3575857649"
+        }
+      ],
+      "reviewed": "6cc3e8fab3de3b1b308d0b5171ac31007b8e3085",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19202#discussion_r3575756797"
+    }
+  ]
+}

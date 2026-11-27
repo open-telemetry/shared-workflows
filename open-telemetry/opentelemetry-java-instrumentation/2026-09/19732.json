@@ -1,0 +1,232 @@
+{
+  "head": "335842b1cc8e7d4b632ee9fe64dad5dc81a8f949",
+  "merge": "0c16d7c125b42f310b8e40a82212d4b75b1ca6cd",
+  "merged": "2026-09-02T21:27:10Z",
+  "missing_roots": 0,
+  "number": 19732,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`ChannelConsumeAdvice.wrapConsumer` is the only construction site and now calls the four-argument constructor, leaving this overload unused.\n\n```suggestion\n  public TracedDelegatingConsumer(\n      String queue, Consumer delegate, Connection connection, boolean traceProcess) {\n```",
+      "created": "2026-08-21T16:26:43Z",
+      "hunk": "@@ -25,11 +27,18 @@ public class TracedDelegatingConsumer implements Consumer {\n   private final String queue;\n   private final Consumer delegate;\n   private final Connection connection;\n+  private final boolean traceProcess;\n \n   public TracedDelegatingConsumer(String queue, Consumer delegate, Connection connection) {\n+    this(queue, delegate, connection, true);\n+  }\n+\n+  public TracedDelegatingConsumer(\n+      String queue, Consumer delegate, Connection connection, boolean traceProcess) {",
+      "id": "PRRT_kwDODJKVX86bOLNr",
+      "opened": "2026-08-21T16:36:37Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/TracedDelegatingConsumer.java",
+      "replies": [
+        {
+          "at": "2026-08-21T18:37:24Z",
+          "body": "Thank you for pointing this out, and apologies for my oversight. I kept the overload to be conservative. You’re right that it’s no longer needed, so I’ve removed it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3832753677"
+        }
+      ],
+      "reviewed": "2c8ba688690146768946ff1664d6de3b8ba803cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3831916543"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The spring-rabbit advice decides by delivery shape: `AbstractMessageListenerContainerInstrumentation` starts a process span only when `invokeListener` receives a `Message`. Please key this predicate off the same signal, so the two sides cannot disagree about who owns the telemetry.\n\nListener type and delivery shape come apart. `setBatchListener(true)` on the factory (2.2+) and `@RabbitListener(batch = \"true\")` (3.0+) both select `BatchMessagingMessageListenerAdapter`, but neither enables `consumerBatchEnabled` on `SimpleMessageListenerContainer`. For an ordinary delivery with consumer batching off, the container passes a single `Message` to `invokeListener`, so the Spring advice starts its span while this returns false and leaves the RabbitMQ one enabled. `SimpleMessageListenerContainer` then emits the duplicate this PR set out to remove, and `DirectMessageListenerContainer` runs Spring inside RabbitMQ's process scope, so under the default suppression strategy the Spring span is dropped instead.\n\nTwo constraints the fix has to handle: `isConsumerBatchEnabled()` only exists from 2.2.4 while this module's muzzle range starts at 1.0.0, and a producer-created batch is debatched per delivery, so no registration-time check can see it.\n\nPlease also add a batch-typed listener with consumer batching disabled to the new test. `setConsumerBatchEnabled(true)` is the only batch path covered today.",
+      "created": "2026-08-21T20:46:17Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import javax.annotation.Nullable;\n+import org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer;\n+import org.springframework.amqp.rabbit.listener.BlockingQueueConsumer;\n+\n+public class SpringRabbitListenerUtil {\n+\n+  private static final String BATCH_MESSAGE_LISTENER =\n+      \"org.springframework.amqp.core.BatchMessageListener\";\n+  private static final String CHANNEL_AWARE_BATCH_MESSAGE_LISTENER =\n+      \"org.springframework.amqp.rabbit.listener.api.ChannelAwareBatchMessageListener\";\n+  private static final VirtualField<BlockingQueueConsumer, Boolean> springListenerConsumer =\n+      VirtualField.find(BlockingQueueConsumer.class, Boolean.class);\n+\n+  public static boolean hasSingleMessageListener(AbstractMessageListenerContainer container) {\n+    @Nullable Object listener = container.getMessageListener();\n+    return listener != null && !isBatchMessageListener(listener.getClass());",
+      "id": "PRRT_kwDODJKVX86bSf-O",
+      "opened": "2026-08-21T20:47:22Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitListenerUtil.java",
+      "replies": [
+        {
+          "at": "2026-08-25T17:11:44Z",
+          "body": "Thank you for clarifying the distinction between listener type and delivery form. I updated the ownership predicate to track consumerBatchEnabled instead of inferring it from the listener type, and added coverage for batch listeners with consumer batching both disabled and enabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3855411775"
+        }
+      ],
+      "reviewed": "3002082dadf8559dce0e29e37b04c102c502d975",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3833600064"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] The repository has an established shape for one instrumentation telling another to stand down: `KafkaClientsConsumerProcessTracing` and `SpringSchedulingTaskTracing` both return the previous boolean and restore it unconditionally. Please use that here.\n\nThe depth counter is solving nesting that these call paths don't produce. `BlockingQueueConsumer.consumeFromQueue` and `DirectMessageListenerContainer.consume` reach `basicConsume` independently, and neither goes through the other, so the previous value carries everything the exit advice has to put back.",
+      "created": "2026-08-21T20:46:17Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.bootstrap.rabbitmq;\n+\n+/** Coordinates process telemetry ownership between Spring Rabbit and RabbitMQ instrumentations. */\n+public final class RabbitMqConsumerProcessTracing {\n+\n+  private static final ThreadLocal<Integer> springListenerRegistrationDepth = new ThreadLocal<>();\n+\n+  /** Enters a Spring listener consumer registration and returns a non-zero restoration token. */\n+  public static int enterSpringListenerRegistration() {\n+    Integer currentDepth = springListenerRegistrationDepth.get();\n+    int newDepth = currentDepth == null ? 1 : currentDepth + 1;\n+    springListenerRegistrationDepth.set(newDepth);\n+    return newDepth;\n+  }\n+\n+  /**\n+   * Restores the registration state associated with {@code token}. A zero token indicates that no\n+   * registration state was entered and is a no-op.\n+   */\n+  public static void restore(int token) {\n+    if (token == 0) {\n+      return;\n+    }\n+\n+    Integer currentDepth = springListenerRegistrationDepth.get();\n+    if (currentDepth == null || currentDepth != token) {\n+      return;\n+    }\n+\n+    if (token == 1) {\n+      springListenerRegistrationDepth.remove();\n+    } else {\n+      springListenerRegistrationDepth.set(token - 1);\n+    }",
+      "id": "PRRT_kwDODJKVX86bSf-V",
+      "opened": "2026-08-21T20:47:22Z",
+      "path": "instrumentation/rabbitmq-2.7/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/rabbitmq/RabbitMqConsumerProcessTracing.java",
+      "replies": [
+        {
+          "at": "2026-08-25T17:16:12Z",
+          "body": "Updated to use the established previous-value/restore pattern instead of the depth counter, with the bootstrap tests adjusted accordingly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3855446217"
+        }
+      ],
+      "reviewed": "3002082dadf8559dce0e29e37b04c102c502d975",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3833600069"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] Please register this counter on an `Instrumenter` rather than driving an `OperationListener` by hand. No other production code in the repository runs a full extractor list plus operation-listener lifecycle outside `Instrumenter`. `InstrumenterBuilder` and the instrumenter it builds own the meter scope, version and schema URL, the global instrumenter customizers, the error-cause unwrapping, and the start/end extractor split, and each of those now has to be kept in step by hand.\n\nThe precedent for the ownership question is spring-kafka: it turns off kafka-clients *process* instrumentation, and in the default path with receive telemetry off, the Spring process instrumenter records `messaging.client.consumed.messages`. Adding `MessagingConsumerMetrics.getConsumedMessages()` to `SpringRabbitSingletons` follows that and removes this class. The metric moves to the `spring-rabbit-1.0` scope, so the scope and `error.type` assertions in `SpringRabbitMetricsAssertions` move with it.\n\nIt also changes what the counter can correlate with. `MessagingConsumerMetrics` records against the context it is handed, and this path captures the ambient context before Spring's process span starts, so an exemplar can't point at that span. On the Spring instrumenter it would.\n\n`server.address` and `server.port` are the one thing a straight move loses, since the Spring request is just `Message`. They're reachable though: `invokeListener(Channel, Object)` receives the `Channel`, and the advice currently ignores argument 0. `network.*` isn't in the default consumed-messages attribute set.",
+      "created": "2026-08-21T20:46:17Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rabbitmq.v2_7;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.ErrorCauseExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationListener;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+class RabbitDeliveryMetrics {\n+\n+  private final List<AttributesExtractor<DeliveryRequest, Void>> attributesExtractors;\n+  private final OperationListener consumedMessagesListener;\n+\n+  RabbitDeliveryMetrics(\n+      List<AttributesExtractor<DeliveryRequest, Void>> attributesExtractors,\n+      OperationListener consumedMessagesListener) {\n+    this.attributesExtractors = attributesExtractors;\n+    this.consumedMessagesListener = consumedMessagesListener;\n+  }\n+\n+  @Nullable\n+  State start(Context parentContext, DeliveryRequest request) {\n+    try {\n+      AttributesBuilder attributes = Attributes.builder();\n+      for (AttributesExtractor<DeliveryRequest, Void> extractor : attributesExtractors) {\n+        extractor.onStart(attributes, parentContext, request);\n+      }\n+      Context context =\n+          consumedMessagesListener.onStart(parentContext, attributes.build(), System.nanoTime());\n+      return new State(context);\n+    } catch (Throwable ignored) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX86bSf-a",
+      "opened": "2026-08-21T20:47:22Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitDeliveryMetrics.java",
+      "replies": [
+        {
+          "at": "2026-08-25T17:19:53Z",
+          "body": "Implemented this through the Spring Rabbit `Instrumenter` and removed the manual metrics helper. The Spring request now includes the channel, and the metric scope and error assertions have been updated accordingly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3855473789"
+        }
+      ],
+      "reviewed": "3002082dadf8559dce0e29e37b04c102c502d975",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3833600076"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Drain the three deterministic setup traces (queue declaration, `basic.qos`, and `basic.consume`) before clearing them. The listener container starts its consumer asynchronously, so clearing immediately can let a late startup span leak into the subsequent exact trace assertion and make this test flaky.",
+      "created": "2026-08-22T12:35:58Z",
+      "hunk": "@@ -189,6 +205,85 @@ private static List<AttributeAssertion> getAnonymousQueueAssertions(\n   @ParameterizedTest\n   @ValueSource(booleans = {true, false})\n   void testContextPropagation(boolean testHeaders) throws Exception {\n+    sendAndAssertContextPropagation(ConsumerConfig.TEST_QUEUE, testHeaders);\n+  }\n+\n+  @Test\n+  void testDirectContextPropagation() throws Exception {\n+    sendAndAssertContextPropagation(ConsumerConfig.DIRECT_QUEUE, false);\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {true, false})\n+  void testBatchListenerProcessTelemetryOwnership(boolean consumerBatchEnabled) throws Exception {\n+    assumeTrue(testLatestDeps());\n+\n+    String queue = consumerBatchEnabled ? \"consumerBatchQueue\" : \"batchListenerQueue\";\n+    applicationContext.getBean(AmqpAdmin.class).declareQueue(new Queue(queue));\n+    CountDownLatch messageConsumed = new CountDownLatch(1);\n+    Class<?> listenerType = Class.forName(\"org.springframework.amqp.core.BatchMessageListener\");\n+    MessageListener listener =\n+        (MessageListener)\n+            Proxy.newProxyInstance(\n+                listenerType.getClassLoader(),\n+                new Class<?>[] {listenerType},\n+                (proxy, method, args) -> {\n+                  if (method\n+                      .getName()\n+                      .equals(consumerBatchEnabled ? \"onMessageBatch\" : \"onMessage\")) {\n+                    messageConsumed.countDown();\n+                  }\n+                  return method.getReturnType() == boolean.class ? false : null;\n+                });\n+    SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();\n+    container.setConnectionFactory(\n+        applicationContext.getBean(\n+            org.springframework.amqp.rabbit.connection.ConnectionFactory.class));\n+    container.setQueueNames(queue);\n+    container.setMessageListener(listener);\n+    if (consumerBatchEnabled) {\n+      SimpleMessageListenerContainer.class\n+          .getMethod(\"setConsumerBatchEnabled\", boolean.class)\n+          .invoke(container, true);\n+    }\n+    cleanup.deferCleanup(container::stop);\n+    container.start();\n+    testing.clearData();",
+      "id": "PRRT_kwDODJKVX86bYwgB",
+      "opened": "2026-08-22T12:35:59Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-08-22T12:47:15Z",
+          "body": "You are right",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3836063614"
+        }
+      ],
+      "reviewed": "cda9df537fc667d5fadeed962f4d08c591665bd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3836045254"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This changes the owner of `messaging.client.consumed.messages` to the Spring instrumentation. Because `TracedDelegatingConsumer` now bypasses the entire Rabbit delivery instrumenter when process tracing is disabled, the Rabbit scope no longer records this metric (as the updated assertion confirms). That contradicts the PR contract that RabbitMQ continues to own `messaging.client.consumed.messages`, and breaks users filtering the metric by the existing RabbitMQ instrumentation scope. Keep the consumed-message operation listener on the Rabbit delivery path while disabling only its process span/duration, and do not register this metric on the Spring instrumenter.",
+      "created": "2026-08-22T12:35:58Z",
+      "hunk": "@@ -42,7 +44,12 @@ public class SpringRabbitSingletons {\n                     .setHeaders(ExperimentalConfig.get().getMessagingHeaders())\n                     .build())\n             .addAttributesExtractor(new SpringRabbitExtraAttributesExtractor())\n-            .addOperationMetrics(MessagingProcessMetrics.get());\n+            .addOperationMetrics(MessagingProcessMetrics.get())\n+            .addOperationMetrics(MessagingConsumerMetrics.getConsumedMessages());",
+      "id": "PRRT_kwDODJKVX86bYwgE",
+      "opened": "2026-08-22T12:35:59Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitSingletons.java",
+      "replies": [],
+      "reviewed": "cda9df537fc667d5fadeed962f4d08c591665bd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3836045259"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This matcher leaves the duplicate process telemetry unfixed on older supported Spring Rabbit versions. In Spring Rabbit 1.0.0 (included by this module's unbounded muzzle range), `BlockingQueueConsumer` has no `consumeFromQueue(String)` method; `basicConsume` is called directly from `start()`, so this advice never disables RabbitMQ wrapping. Instrument the zero-argument `start()` method instead (it encloses consumer registration on both legacy and current versions), or add an equivalent legacy-version instrumentation.",
+      "created": "2026-08-22T12:53:20Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.rabbitmq.RabbitMqConsumerProcessTracing.isWrappingEnabled;\n+import static io.opentelemetry.javaagent.bootstrap.rabbitmq.RabbitMqConsumerProcessTracing.setWrappingEnabled;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.springframework.amqp.rabbit.listener.BlockingQueueConsumer;\n+\n+class BlockingQueueConsumerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.springframework.amqp.rabbit.listener.BlockingQueueConsumer\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"consumeFromQueue\").and(takesArguments(String.class)),",
+      "id": "PRRT_kwDODJKVX86bY1Z9",
+      "opened": "2026-08-22T12:53:20Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/BlockingQueueConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-22T13:03:08Z",
+          "body": "\r\nYou are right！",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3836090252"
+        }
+      ],
+      "reviewed": "72bbfa7532a50ed5a8dff4fdb7226df9715b2d29",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3836073980"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test code in this repository must not add `@Nullable`. Remove this annotation (and its now-unused import); the helper can still accept `null` without it.",
+      "created": "2026-08-26T18:31:14Z",
+      "hunk": "@@ -117,8 +126,10 @@ private static List<AttributeAssertion> getAssertions(\n       String destination,\n       String operation,\n       String peerAddress,\n+      boolean serverAttributes,\n       boolean routingKey,\n-      boolean testHeaders) {\n+      boolean testHeaders,\n+      @Nullable Long expectedMessageBodySize) {",
+      "id": "PRRT_kwDODJKVX86cksJW",
+      "opened": "2026-08-26T18:31:15Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitMqTest.java",
+      "replies": [],
+      "reviewed": "ae3f3d38f07a02c31abd5e91637e8c5fb9af210c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3865637822"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] These `static final VirtualField` handles must use `SCREAMING_SNAKE_CASE`; rename both declarations and their references to `SPRING_LISTENER_CONSUMER` and `CONSUMER_BATCH_ENABLED`.",
+      "created": "2026-08-26T18:31:15Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer;\n+import org.springframework.amqp.rabbit.listener.BlockingQueueConsumer;\n+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;\n+\n+public class SpringRabbitListenerUtil {\n+\n+  private static final VirtualField<BlockingQueueConsumer, Boolean> springListenerConsumer =\n+      VirtualField.find(BlockingQueueConsumer.class, Boolean.class);\n+  private static final VirtualField<SimpleMessageListenerContainer, Boolean> consumerBatchEnabled =\n+      VirtualField.find(SimpleMessageListenerContainer.class, Boolean.class);\n+\n+  public static boolean hasSingleMessageDelivery(AbstractMessageListenerContainer container) {\n+    return container.getMessageListener() != null\n+        && (!(container instanceof SimpleMessageListenerContainer)\n+            || !Boolean.TRUE.equals(\n+                consumerBatchEnabled.get((SimpleMessageListenerContainer) container)));\n+  }\n+\n+  public static void setConsumerBatchEnabled(\n+      SimpleMessageListenerContainer container, boolean enabled) {\n+    consumerBatchEnabled.set(container, enabled);\n+  }\n+\n+  public static void markSpringListenerConsumer(BlockingQueueConsumer consumer) {\n+    springListenerConsumer.set(consumer, Boolean.TRUE);\n+  }\n+\n+  public static boolean isSpringListenerConsumer(BlockingQueueConsumer consumer) {\n+    return Boolean.TRUE.equals(springListenerConsumer.get(consumer));\n+  }",
+      "id": "PRRT_kwDODJKVX86cksJ1",
+      "opened": "2026-08-26T18:31:15Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitListenerUtil.java",
+      "replies": [],
+      "reviewed": "ae3f3d38f07a02c31abd5e91637e8c5fb9af210c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3865637868"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Producer-created batches now lose all process telemetry. Spring Rabbit's batch-listener path can debatch one delivery into a `List<Message>` even when `consumerBatchEnabled` is false (and DirectMessageListenerContainer does the same); this predicate therefore disables RabbitMQ wrapping, while `InvokeListenerAdvice` immediately ignores the resulting non-`Message` argument. Keep RabbitMQ ownership for those registrations, or add Spring instrumentation for the list path before suppressing RabbitMQ.",
+      "created": "2026-08-26T20:37:07Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer;\n+import org.springframework.amqp.rabbit.listener.BlockingQueueConsumer;\n+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;\n+\n+public class SpringRabbitListenerUtil {\n+\n+  private static final VirtualField<BlockingQueueConsumer, Boolean> SPRING_LISTENER_CONSUMER =\n+      VirtualField.find(BlockingQueueConsumer.class, Boolean.class);\n+  private static final VirtualField<SimpleMessageListenerContainer, Boolean>\n+      CONSUMER_BATCH_ENABLED =\n+          VirtualField.find(SimpleMessageListenerContainer.class, Boolean.class);\n+\n+  public static boolean hasSingleMessageDelivery(AbstractMessageListenerContainer container) {\n+    return container.getMessageListener() != null\n+        && (!(container instanceof SimpleMessageListenerContainer)\n+            || !Boolean.TRUE.equals(\n+                CONSUMER_BATCH_ENABLED.get((SimpleMessageListenerContainer) container)));",
+      "id": "PRRT_kwDODJKVX86cm9ml",
+      "opened": "2026-08-26T20:37:08Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitListenerUtil.java",
+      "replies": [
+        {
+          "at": "2026-08-26T20:45:06Z",
+          "body": "I will solve it.I make a  mistake.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3866584310"
+        }
+      ],
+      "reviewed": "8b068b4966a644323a2f02a1c1a4edfe09fcf511",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3866530366"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This misses Spring Rabbit 2.0.0-2.1.2, where `DirectMessageListenerContainer` has no `consume` method and `doConsumeFromQueue(String)` calls `basicConsume` directly. Since this module supports those versions, Direct listeners there still keep RabbitMQ process telemetry.\n\n```suggestion\n    transformer.applyAdviceToMethod(\n        named(\"doConsumeFromQueue\").and(takesArguments(1).or(takesArguments(2))),\n        getClass().getName() + \"$ConsumeAdvice\");\n```\n",
+      "created": "2026-08-28T19:49:34Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.rabbitmq.RabbitMqConsumerProcessTracing.isWrappingEnabled;\n+import static io.opentelemetry.javaagent.bootstrap.rabbitmq.RabbitMqConsumerProcessTracing.setWrappingEnabled;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer;\n+\n+class DirectMessageListenerContainerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.springframework.amqp.rabbit.listener.DirectMessageListenerContainer\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // This is the narrowest method that contains the basicConsume call across supported versions.\n+    transformer.applyAdviceToMethod(\n+        named(\"consume\").and(takesArguments(2).or(takesArguments(3))),\n+        getClass().getName() + \"$ConsumeAdvice\");",
+      "id": "PRRT_kwDODJKVX86dSSWc",
+      "opened": "2026-08-28T22:17:29Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/DirectMessageListenerContainerInstrumentation.java",
+      "replies": [],
+      "reviewed": "f2b000bc27724c54a4f2457f0b40537da2d246cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3883578967"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'd make this class more like https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitReceiveNetAttributesGetter.java so that it would also generate the `network.peer` attributes.",
+      "created": "2026-09-01T14:16:18Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import io.opentelemetry.instrumentation.api.semconv.network.ServerAttributesGetter;\n+\n+class SpringRabbitServerAttributesGetter implements ServerAttributesGetter<SpringRabbitRequest> {",
+      "id": "PRRT_kwDODJKVX86eI9oe",
+      "opened": "2026-09-01T14:16:18Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitServerAttributesGetter.java",
+      "replies": [],
+      "reviewed": "38352e9fda8db5e0b33d0f8140afc42e5cf325f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#discussion_r3905022074"
+    }
+  ]
+}

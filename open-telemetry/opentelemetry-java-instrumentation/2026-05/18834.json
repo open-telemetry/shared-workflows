@@ -1,0 +1,25 @@
+{
+  "head": "19f6d0320208405af08f214fa30cf266733f2b3a",
+  "merge": "70b2ed06222e608552c6b96b908bb5ac261040b5",
+  "merged": "2026-05-28T17:32:23Z",
+  "missing_roots": 0,
+  "number": 18834,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Users of this plugin might not even be using github.",
+      "created": "2026-05-25T12:39:46Z",
+      "hunk": "@@ -37,13 +37,21 @@ val RANGE_COUNT_LIMIT = Integer.getInteger(\"otel.javaagent.muzzle.versions.limit\n \n // Read pinned latest-dep versions to cap muzzle's open-ended version ranges,\n // preventing failures when new library versions are released to Maven Central.\n-val muzzlePinnedVersions: Map<String, String> by lazy {\n+//\n+// External users of the muzzle plugin may not have this repo-specific file. In that case,\n+// fall back to the old behavior and resolve versions directly from configured repositories.\n+val muzzlePinnedVersions: Map<String, String>? by lazy {\n   val file = rootProject.file(\".github/config/latest-dep-versions.json\")\n   if (!file.exists()) {\n-    throw GradleException(\"Pinned latest-dep versions file is missing: ${file}.\")\n+    logger.info(\n+      \"Pinned latest-dep versions file is missing: ${file}; falling back to repository \" +\n+        \"version resolution for muzzle checks.\"",
+      "id": "PRRT_kwDODJKVX86Ei8YB",
+      "opened": "2026-05-25T12:39:46Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [],
+      "reviewed": "733f2b64ee1238dba1f83eb8658e5d03e23f55aa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18834#discussion_r3298186903"
+    }
+  ]
+}

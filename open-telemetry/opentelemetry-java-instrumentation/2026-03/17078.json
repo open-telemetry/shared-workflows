@@ -1,0 +1,25 @@
+{
+  "head": "59d1e3366a17a8434b4f7daf3f621752a53ba179",
+  "merge": "e392ddedd1bb723af6e5f623ecc8e9240a9174cd",
+  "merged": "2026-03-27T14:40:50Z",
+  "missing_roots": 0,
+  "number": 17078,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this was a bug, I added test case to cover it",
+      "created": "2026-03-27T04:53:59Z",
+      "hunk": "@@ -66,9 +65,9 @@ public boolean handleWrite(\n     }\n     // updating Content-Length before any further writing in case that writing triggers a flush\n     state.getWrapper().updateContentLengthIfPreviouslySet();\n-    out.write(original, off, endOfHeadTagPosition + 1);\n+    out.write(original, off, endOfHeadTagPosition - off + 1);\n     out.write(snippetBytes);\n-    out.write(original, endOfHeadTagPosition + 1, length - endOfHeadTagPosition - 1);\n+    out.write(original, endOfHeadTagPosition + 1, endExclusive - endOfHeadTagPosition - 1);",
+      "id": "PRRT_kwDODJKVX853MaQX",
+      "opened": "2026-03-27T04:53:59Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/snippet/OutputStreamSnippetInjectionHelper.java",
+      "replies": [],
+      "reviewed": "2b8fdfedba94981e230c20cf19bd8fe714c7af83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17078#discussion_r2998951304"
+    }
+  ]
+}

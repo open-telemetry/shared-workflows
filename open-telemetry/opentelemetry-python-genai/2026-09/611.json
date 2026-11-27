@@ -1,0 +1,121 @@
+{
+  "head": "79ddc239e30a6afe6656b4044c5c665ae3b63f71",
+  "merge": "a0c620d0111748eafd73825931ef45865ed0ff20",
+  "merged": "2026-09-04T20:49:33Z",
+  "missing_roots": 0,
+  "number": 611,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The normal LangChain inference path calls `split_system_and_input_messages()` from `on_llm_start`, not this helper; that function's `InputMessage` construction still omits `name`. As a result, named messages continue to lose participant names on inference spans. Please propagate the name in that path as well and cover the callback path in a test.\n\nThis issue also appears on line 422 of the same file.",
+      "created": "2026-09-04T03:20:49Z",
+      "hunk": "@@ -352,10 +352,12 @@ def to_input_messages(\n         parts = _message_parts(message)\n         if not parts and not _has_content(message):\n             continue\n+        msg_name = getattr(message, \"name\", None)\n         result.append(\n             InputMessage(\n                 role=_normalize_role(message) or Role.USER.value,\n                 parts=parts,\n+                name=str(msg_name) if msg_name is not None else None,",
+      "id": "PRRT_kwDOSbspP86fJ1LZ",
+      "opened": "2026-09-04T03:20:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "dda6850b9dff47269c1d5a089f0c0a9629e756fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3930598422"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The repository's pinned `SEMCONV_GENAI_REF` (`67dff024…`) still requires `finish_reason` and does not allow `null`, while this default permits `OutputMessage(...)` to emit `\"finish_reason\": null` (as the new test asserts). This diverges from the schema source required by the [util semconv rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/util-genai.instructions.md#2-semantic-conventions). Please advance the pin and reconcile all affected models/conformance, or keep this field required until the pin advances.",
+      "created": "2026-09-04T03:20:49Z",
+      "hunk": "@@ -312,13 +312,16 @@ class Role(str, Enum):\n class InputMessage:\n     role: str\n     parts: list[MessagePart]\n+    name: str | None = None\n \n \n @dataclass()\n class OutputMessage:\n     role: str\n     parts: list[MessagePart]\n-    finish_reason: str | FinishReason\n+    finish_reason: str | FinishReason | None = None\n+    \"\"\"Deprecated: report finish reasons in ``gen_ai.response.finish_reasons`` instead.\"\"\"",
+      "id": "PRRT_kwDOSbspP86fJ1Ln",
+      "opened": "2026-09-04T03:20:50Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "dda6850b9dff47269c1d5a089f0c0a9629e756fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3930598446"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Responses API name extraction has no test with a named input item, so this newly emitted structured field and its value type are currently unverified. Add a `get_input_messages` or end-to-end response test asserting the exact `name` value, per the [instrumentation test rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/instrumentation.instructions.md#6-tests).",
+      "created": "2026-09-04T03:20:50Z",
+      "hunk": "@@ -207,10 +207,17 @@ def get_input_messages(\n         if not isinstance(role, str):\n             continue\n \n+        name = _get_field(item, \"name\")\n+        name_str = str(name) if name is not None else None\n+\n         content = _get_field(item, \"content\")\n         if isinstance(content, str):\n             messages.append(\n-                InputMessage(role=role, parts=[TextPart(content=content)])\n+                InputMessage(\n+                    role=role,\n+                    parts=[TextPart(content=content)],\n+                    name=name_str,",
+      "id": "PRRT_kwDOSbspP86fJ1L1",
+      "opened": "2026-09-04T03:20:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "dda6850b9dff47269c1d5a089f0c0a9629e756fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3930598466"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new Chat Completions name extraction is not exercised by the OpenAI tests; existing message assertions only cover roles, content, and tool names. Add a named input-message case that asserts the emitted `gen_ai.input.messages` value contains a string `name`, as required by the [instrumentation test rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/instrumentation.instructions.md#6-tests).",
+      "created": "2026-09-04T03:20:50Z",
+      "hunk": "@@ -197,7 +197,12 @@ def _prepare_input_messages(messages) -> list[InputMessage]:\n     chat_messages = []\n     for message in messages:\n         role = get_property_value(message, \"role\")\n-        chat_message = InputMessage(role=str(role), parts=[])\n+        name = get_property_value(message, \"name\")\n+        chat_message = InputMessage(\n+            role=str(role),\n+            parts=[],\n+            name=str(name) if name is not None else None,",
+      "id": "PRRT_kwDOSbspP86fJ1L_",
+      "opened": "2026-09-04T03:20:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [],
+      "reviewed": "dda6850b9dff47269c1d5a089f0c0a9629e756fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3930598483"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change also deprecates `OutputMessage.finish_reason`, but this Changed fragment only reports that it became optional. Add a `611.deprecated` fragment naming `gen_ai.response.finish_reasons` as the replacement so consumers see the deprecation in the correct release-notes section.",
+      "created": "2026-09-04T04:56:03Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add optional name field to InputMessage and OutputMessage, and make finish_reason optional in OutputMessage.",
+      "id": "PRRT_kwDOSbspP86fKztY",
+      "opened": "2026-09-04T04:56:03Z",
+      "path": "util/opentelemetry-util-genai/.changelog/611.changed",
+      "replies": [],
+      "reviewed": "293ad8695e4f1c96d25d699d9ae87abc1ec203c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3930986740"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This field changes every `asdict()`-based message payload to include `\"name\": null` when unnamed, but the published util README examples at lines 97–98 still show the exact input/output JSON without that field. Update those examples so the documented telemetry matches the new serialization.",
+      "created": "2026-09-04T04:56:03Z",
+      "hunk": "@@ -312,13 +312,16 @@ class Role(str, Enum):\n class InputMessage:\n     role: str\n     parts: list[MessagePart]\n+    name: str | None = None",
+      "id": "PRRT_kwDOSbspP86fKztg",
+      "opened": "2026-09-04T04:56:03Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [
+        {
+          "at": "2026-09-04T19:44:01Z",
+          "body": "to be addressed through https://github.com/open-telemetry/semantic-conventions-genai/issues/53",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3937401130"
+        }
+      ],
+      "reviewed": "293ad8695e4f1c96d25d699d9ae87abc1ec203c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3930986756"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "nit(non-blocking): This is me being pedantic but do you think we can extract this logic into a method and use it across utils and here. Feel free to push back.",
+      "created": "2026-09-04T17:11:02Z",
+      "hunk": "@@ -470,6 +470,9 @@ def on_llm_end(\n                             )\n                         )\n \n+                    msg_name = getattr(chat_generation.message, \"name\", None)",
+      "id": "PRRT_kwDOSbspP86fYXdR",
+      "opened": "2026-09-04T17:18:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "96b63c64e1d663b54b585881186942a201dbc76a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/611#discussion_r3936315364"
+    }
+  ]
+}

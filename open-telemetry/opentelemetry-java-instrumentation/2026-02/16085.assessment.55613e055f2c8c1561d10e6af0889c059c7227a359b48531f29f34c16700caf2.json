@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "55ea1b4229f97f76c87596c50d0c42845e33e31776b138fd66d40b9f150b4a56",
+  "input_digest": "55613e055f2c8c1561d10e6af0889c059c7227a359b48531f29f34c16700caf2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77e6c0fe8b518aa52b29a1531438bb189709ad24/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlStatementSanitizerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77e6c0fe8b518aa52b29a1531438bb189709ad24/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/074b04120e4159de3e2f8f13dd304beb06d35328/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlStatementSanitizerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/074b04120e4159de3e2f8f13dd304beb06d35328/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex"
+      ],
+      "id": "PRRT_kwDODJKVX85s3WXa",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

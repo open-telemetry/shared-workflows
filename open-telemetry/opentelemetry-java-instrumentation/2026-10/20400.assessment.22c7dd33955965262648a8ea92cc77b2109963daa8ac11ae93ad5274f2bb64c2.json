@@ -1,0 +1,20 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "31c0d8ef6a17ba2dad71442221535c283c9df13ab3f509866443aaeebee86895",
+  "input_digest": "22c7dd33955965262648a8ea92cc77b2109963daa8ac11ae93ad5274f2bb64c2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba7fdf53ae047222cf430763374fc6be0edeb2e2/instrumentation/jdbc/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scalaexecutors/SlickTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/32fd7e02d70c856a9129fcecfd135e3c6b9c7e74/instrumentation/jdbc/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scalaexecutors/SlickTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX86pmexP",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

@@ -1,0 +1,392 @@
+{
+  "head": "9974bec1dfe43d63852634d94ed61e1ba1bff9ab",
+  "merge": "7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511",
+  "merged": "2026-05-18T14:08:25Z",
+  "missing_roots": 0,
+  "number": 18754,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new \"USER\" keyword rule only handles operation targets and never falls back to `operation.handleIdentifier()` when `expectingOperationTarget()` is false. This changes parsing behavior for statements where an identifier is literally `user` (e.g., `SELECT * FROM user`, `ALTER TABLE user ...`), which previously went through the `{IDENTIFIER}` rule and could be captured as a table/procedure/etc. Consider handling `USER` the same way as other reserved words (e.g., include it in the existing `\"TABLE\" | \"INDEX\" | ...` rule) so it acts as an identifier when not in the DDL-target position.\n\nThis issue also appears on line 512 of the same file.",
+      "created": "2026-05-14T23:15:23Z",
+      "hunk": "@@ -493,13 +503,23 @@ WHITESPACE           = [ \\t\\r\\n]+\n           if (isOverLimit()) return YYEOF;\n       }\n   \"USER\" {\n+          if (!insideComment && !extractionDone && operation.expectingOperationTarget()) {\n+            extractionDone = operation.handleOperationTarget(yytext());\n+          }\n+          appendCurrentFragment();\n+          if (isOverLimit()) return YYEOF;\n+      }",
+      "id": "PRRT_kwDODJKVX86CNqYN",
+      "opened": "2026-05-14T23:15:23Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T03:42:54Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8.\n\nThis folds USER into the shared reserved-word handler so it falls back to identifier handling outside the DDL target position.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245743636"
+        }
+      ],
+      "reviewed": "1aef1fc4cc22e8f25b1ac95db6e5d8bcb18c78d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3244839404"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new \"USER\" keyword rule does not call `cancelPendingSubqueryIfNeeded()` or `operation.handleIdentifier()` when `expectingOperationTarget()` is false. This can break query-summary extraction when an identifier is literally `user` (e.g., table named `user`) and can also interfere with the pending-subquery heuristic. Consider folding `USER` into the existing reserved-word handler (`\"TABLE\" | \"INDEX\" | ...`) so it behaves like other reserved words in non-target positions.\n\nThis issue also appears on line 1033 of the same file.",
+      "created": "2026-05-14T23:15:23Z",
+      "hunk": "@@ -1014,13 +1024,23 @@ WHITESPACE           = [ \\t\\r\\n]+\n           if (isOverLimit()) return YYEOF;\n       }\n   \"USER\" {\n+          if (!insideComment && operation.expectingOperationTarget()) {\n+            operation.handleOperationTarget(yytext());\n+          }\n+          appendCurrentFragment();\n+          if (isOverLimit()) return YYEOF;\n+      }",
+      "id": "PRRT_kwDODJKVX86CNqYp",
+      "opened": "2026-05-14T23:15:23Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T03:42:55Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8.\n\nThis folds USER into the shared reserved-word handler so query summaries and pending-subquery handling treat user as an identifier outside the DDL target position.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245743767"
+        }
+      ],
+      "reviewed": "1aef1fc4cc22e8f25b1ac95db6e5d8bcb18c78d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3244839437"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] `shouldSanitizeRemainderAfterSensitivePhrase()` only exempts operations that extend `DmlOperation`. In this lexer, several data-modifying statements (e.g., REPLACE, VALUES) are modeled as `Operation`, so a column/table identifier named `password` in those statements will hit the `\"PASSWORD\"` rule and incorrectly truncate/redact the rest of the statement. Consider classifying all DML-like operations as `DmlOperation` (or broadening the predicate) so normal identifier usage doesn’t trigger sensitive-phrase redaction.",
+      "created": "2026-05-15T03:55:53Z",
+      "hunk": "@@ -137,6 +137,17 @@ WHITESPACE           = [ \\t\\r\\n]+\n     this.operation = operation;\n   }\n \n+  private boolean shouldSanitizeRemainderAfterSensitivePhrase() {\n+    return !insideComment\n+        && !(operation instanceof DmlOperation)\n+        && !isSafeDdlOperation();\n+  }\n+\n+  private boolean isSafeDdlOperation() {\n+    return operation instanceof DdlOperation\n+        && ((DdlOperation) operation).hasSafeDdlTarget();\n+  }",
+      "id": "PRRT_kwDODJKVX86CQNmS",
+      "opened": "2026-05-15T03:55:54Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T04:19:49Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9722f8921b6.\n\nThe sanitizer now defaults operations to not truncating after sensitive phrases; only DDL/admin operations that can contain password clauses opt into that behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245881746"
+        }
+      ],
+      "reviewed": "f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245805134"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] The `\"PASSWORD\"` token rule redacts/truncates the remainder whenever `shouldSanitizeRemainderAfterSensitivePhrase()` is true, even when `PASSWORD` is being used as an identifier (e.g., table/database name) rather than a secret clause. This can produce incorrect sanitized SQL by inserting an extra `?` and stopping early (for example, `TRUNCATE TABLE password` would become `TRUNCATE TABLE password ?`). Consider gating the truncation on context that indicates a secret clause (or detect when the token was consumed as an identifier and avoid redaction in that case).\n",
+      "created": "2026-05-15T03:55:54Z",
+      "hunk": "@@ -1013,14 +1043,21 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"USER\" {\n+  \"PASSWORD\" {\n+          if (!insideComment) {\n+            cancelPendingSubqueryIfNeeded();\n+            operation.handleIdentifier();\n+          }\n+          appendCurrentFragment();\n+          if (shouldSanitizeRemainderAfterSensitivePhrase()) {\n+            builder.append(\" ?\");\n+            return YYEOF;\n+          }",
+      "id": "PRRT_kwDODJKVX86CQNmi",
+      "opened": "2026-05-15T03:55:54Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T04:19:51Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9722f8921b6.\n\n`PASSWORD` no longer triggers remainder redaction when it is handled as a normal identifier in the summary sanitizer; the added TRUNCATE/REPLACE/VALUES cases cover this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245881829"
+        }
+      ],
+      "reviewed": "f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245805168"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] The expected query summaries for the `ALTER USER ...` sensitive cases omit the username, but the summary sanitizer’s DDL logic appends the first identifier after the operation target (so `ALTER USER user ...` will summarize as `ALTER USER user`). Either update these expectations to include the identifier (consistent with `CREATE USER new_user ...`) or adjust the sanitizer to intentionally skip capturing identifiers for `ALTER USER` if that’s the desired behavior.",
+      "created": "2026-05-15T03:55:54Z",
+      "hunk": "@@ -82,15 +82,56 @@ private static Stream<Arguments> sensitiveArgs() {\n         // SAP HANA CONNECT and CREATE USER statements can contain unquoted password\n         // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/20d3b9ad751910148cdccc8205563a87.html?locale=en-US\n         Arguments.of(\"CONNECT user PASSWORD Password1\", \"CONNECT ?\", null),\n-        Arguments.of(\"CREATE USER new_user PASSWORD Password1\", \"CREATE USER ?\", \"CREATE\"),\n-        Arguments.of(\"ALTER USER user PASSWORD Password1\", \"ALTER USER ?\", \"ALTER\"),\n+        Arguments.of(\n+            \"CREATE USER new_user PASSWORD Password1\",\n+            \"CREATE USER new_user PASSWORD ?\",\n+            \"CREATE USER new_user\"),\n+        Arguments.of(\n+            \"ALTER USER user PASSWORD Password1\", \"ALTER USER user PASSWORD ?\", \"ALTER USER\"),\n+        // Other SAP HANA administrative statements can contain unquoted or double-quoted passwords\n+        // after a PASSWORD keyword.\n+        Arguments.of(\n+            \"VALIDATE USER user PASSWORD Password1\", \"VALIDATE USER user PASSWORD ?\", null),\n+        Arguments.of(\"CHECK USER user PASSWORD \\\"Password1\\\"\", \"CHECK USER user PASSWORD ?\", null),\n+        Arguments.of(\n+            \"CREATE DATABASE db SYSTEM USER PASSWORD Password1\",\n+            \"CREATE DATABASE db SYSTEM USER PASSWORD ?\",\n+            \"CREATE DATABASE db\"),\n+        Arguments.of(\n+            \"ALTER SYSTEM SET SECURE STORE BACKUP PASSWORD \\\"Password1\\\"\",\n+            \"ALTER SYSTEM SET SECURE STORE BACKUP PASSWORD ?\",\n+            \"ALTER SYSTEM\"),\n+        Arguments.of(\n+            \"EXPORT table AS BINARY ENCRYPTION PASSWORD Password1\",\n+            \"EXPORT table AS BINARY ENCRYPTION PASSWORD ?\",\n+            null),\n+        Arguments.of(\n+            \"RECOVER ENCRYPTION ROOT KEYS USING 'backup' PASSWORD Password1\",\n+            \"RECOVER ENCRYPTION ROOT KEYS USING ? PASSWORD ?\",\n+            null),\n         // Oracle CREATE USER statement can contain unquoted password\n         // https://docs.oracle.com/cd/B13789_01/server.101/b10759/statements_8003.htm\n-        Arguments.of(\"CREATE USER new_user IDENTIFIED BY Password1\", \"CREATE USER ?\", \"CREATE\"),\n         Arguments.of(\n-            \"ALTER USER user IDENTIFIED BY Password1 REPLACE Password2\", \"ALTER USER ?\", \"ALTER\"),\n-        // field named \"connect\" does not trigger sanitization\n-        Arguments.of(\"SELECT connect FROM TABLE\", \"SELECT connect FROM TABLE\", \"SELECT TABLE\"));\n+            \"CREATE USER new_user IDENTIFIED BY Password1\",\n+            \"CREATE USER new_user IDENTIFIED BY ?\",\n+            \"CREATE USER new_user\"),\n+        Arguments.of(\n+            \"ALTER USER user IDENTIFIED BY Password1 REPLACE Password2\",\n+            \"ALTER USER user IDENTIFIED BY ?\",\n+            \"ALTER USER\"),",
+      "id": "PRRT_kwDODJKVX86CQNmz",
+      "opened": "2026-05-15T03:55:54Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+      "replies": [
+        {
+          "at": "2026-05-15T04:19:53Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c41bc83d635.\n\nThe ALTER USER sensitive-case expectations now include the username captured by the summary sanitizer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245881902"
+        }
+      ],
+      "reviewed": "f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245805206"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Bug] The `\"PASSWORD\"` token rule will truncate/redact the remainder for any non-DML operation (including `NoOp` when the statement type isn’t recognized). This means `PASSWORD` used as an identifier (e.g., table/database name in an unrecognized statement like `TRUNCATE TABLE password`) will be transformed into `... password ?` and stop scanning. Consider gating the truncation on context that indicates a secret clause, or at least avoid adding the trailing `?`/YYEOF when `PASSWORD` is functioning as an identifier.",
+      "created": "2026-05-15T03:55:54Z",
+      "hunk": "@@ -492,14 +513,20 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"USER\" {\n+  \"PASSWORD\" {\n+          if (!insideComment && !extractionDone) {\n+            extractionDone = operation.handleIdentifier();\n+          }\n+          appendCurrentFragment();\n+          if (shouldSanitizeRemainderAfterSensitivePhrase()) {\n+            builder.append(\" ?\");\n+            return YYEOF;\n+          }\n+          if (isOverLimit()) return YYEOF;\n+      }",
+      "id": "PRRT_kwDODJKVX86CQNnC",
+      "opened": "2026-05-15T03:55:54Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T04:19:55Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9722f8921b6.\n\nThe non-summary sanitizer now only truncates after PASSWORD/IDENTIFIED BY in explicit sensitive-clause contexts, so identifier uses such as TRUNCATE TABLE password are preserved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245881972"
+        }
+      ],
+      "reviewed": "f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245805250"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the non-summary sanitizer, the `\"GRANT\" | \"VALIDATE\" | \"CHECK\" | \"EXPORT\" | \"RECOVER\"` rule unconditionally enables `sensitivePhraseSanitizationAllowed` whenever these keywords appear outside comments. If one of these tokens is used as an identifier inside a normal DML statement (similar to the existing `SELECT connect ...` control case), it can wrongly enable sensitive-phrase truncation later in the same statement (e.g., `SELECT grant, password FROM users` would truncate at `PASSWORD`). Consider guarding this flag the same way as the `CONNECT` rule (e.g., only enable when `operation == NoOp.INSTANCE` / at statement start), or otherwise tie it to an explicit admin-statement context instead of any occurrence of the keyword.",
+      "created": "2026-05-15T04:37:08Z",
+      "hunk": "@@ -430,6 +453,13 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n+  \"GRANT\" | \"VALIDATE\" | \"CHECK\" | \"EXPORT\" | \"RECOVER\" {\n+          if (!insideComment) {\n+            sensitivePhraseSanitizationAllowed = true;\n+          }\n+          appendCurrentFragment();\n+          if (isOverLimit()) return YYEOF;\n+      }",
+      "id": "PRRT_kwDODJKVX86CQjbB",
+      "opened": "2026-05-15T04:37:08Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T05:00:47Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754/commits/a54cf738223. The non-summary admin keyword rule now only enables sensitive-phrase sanitization when the keyword starts the statement (`operation == NoOp.INSTANCE`), and I added the `SELECT grant, password FROM users` regression case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245997047"
+        }
+      ],
+      "reviewed": "ae457dc700a37584a7900959f2e47158c4a557d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3245928299"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`sensitivePhraseSanitizationAllowed` is a sticky flag that is never cleared. For multi-statement SQL (the tests cover semicolons in `simplifyArgs()`), a statement that starts with an admin keyword (e.g., `GRANT ...; SELECT password FROM users`) will enable this flag for the whole input, causing the later `PASSWORD` identifier in a subsequent statement to trigger `YYEOF` truncation/redaction incorrectly. Consider scoping the flag to a single statement by clearing it when a statement terminator (`;`) is encountered outside comments (without resetting `operation`, since old-semconv extraction intentionally sticks to the first statement), or otherwise resetting it when starting a new statement context.",
+      "created": "2026-05-15T05:06:16Z",
+      "hunk": "@@ -430,6 +453,13 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n+  \"GRANT\" | \"VALIDATE\" | \"CHECK\" | \"EXPORT\" | \"RECOVER\" {\n+          if (!insideComment && operation == NoOp.INSTANCE) {\n+            sensitivePhraseSanitizationAllowed = true;\n+          }\n+          appendCurrentFragment();\n+          if (isOverLimit()) return YYEOF;\n+      }",
+      "id": "PRRT_kwDODJKVX86CQy6o",
+      "opened": "2026-05-15T05:06:17Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T15:20:29Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e6dcc1434ccc269a8a2716772d96535b8ac9f041.\n\nThis clears the sensitive phrase flag at statement separators without resetting the old-semconv operation extraction state.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249190033"
+        }
+      ],
+      "reviewed": "a54cf7382230716f391b5c62b1f340af119ecef5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3246014840"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess you could have a comment between identified and by, but I think we can ignore that",
+      "created": "2026-05-15T11:33:17Z",
+      "hunk": "@@ -492,14 +522,20 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"USER\" {\n+  \"PASSWORD\" {\n+          if (!insideComment && !extractionDone) {\n+            extractionDone = operation.handleIdentifier();\n+          }\n+          appendCurrentFragment();\n+          if (shouldSanitizeRemainderAfterSensitivePhrase()) {\n+            builder.append(\" ?\");\n+            return YYEOF;\n+          }\n+          if (isOverLimit()) return YYEOF;\n+      }\n+  \"IDENTIFIED\" {WHITESPACE}+ \"BY\" {",
+      "id": "PRRT_kwDODJKVX86CV8UZ",
+      "opened": "2026-05-15T11:33:17Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [],
+      "reviewed": "a54cf7382230716f391b5c62b1f340af119ecef5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3247878871"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should also include `IMPORT`\n```java\n        Arguments.of(\n            \"IMPORT MY_SCHEMA1.T1 FROM '/backup/export_dir' WITH ENCRYPTION PASSWORD Password1\",\n            \"IMPORT MY_SCHEMA1.T1 FROM ? WITH ENCRYPTION PASSWORD ?\",\n            null),\n```",
+      "created": "2026-05-15T11:45:28Z",
+      "hunk": "@@ -430,6 +453,13 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n+  \"GRANT\" | \"VALIDATE\" | \"CHECK\" | \"EXPORT\" | \"RECOVER\" {",
+      "id": "PRRT_kwDODJKVX86CWIyU",
+      "opened": "2026-05-15T11:45:28Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T11:47:16Z",
+          "body": "should we also handle `CONNECT` this way (currently has separate handling)? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3247956598"
+        },
+        {
+          "at": "2026-05-15T15:20:31Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/afcca42728437e02d0a69931aa887661bd147173.\n\nThis adds IMPORT to the SAP HANA sensitive phrase handling and covers the ENCRYPTION PASSWORD case in tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249190208"
+        },
+        {
+          "at": "2026-05-15T15:20:33Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/afcca42728437e02d0a69931aa887661bd147173.\n\nCONNECT now uses the same PASSWORD-based sensitive phrase sanitization path instead of immediate whole-statement redaction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249190393"
+        }
+      ],
+      "reviewed": "a54cf7382230716f391b5c62b1f340af119ecef5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3247947505"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should there also be `!insideComment &&`?",
+      "created": "2026-05-15T11:50:32Z",
+      "hunk": "@@ -492,14 +522,20 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"USER\" {\n+  \"PASSWORD\" {\n+          if (!insideComment && !extractionDone) {\n+            extractionDone = operation.handleIdentifier();\n+          }\n+          appendCurrentFragment();\n+          if (shouldSanitizeRemainderAfterSensitivePhrase()) {",
+      "id": "PRRT_kwDODJKVX86CWNgB",
+      "opened": "2026-05-15T11:50:32Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T15:20:35Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/43cb8c14cceda72c0fad5617e0fe3063d1fb9786.\n\nThe inside-comment guard is now explicit at the sensitive phrase call sites, with a regression test for PASSWORD inside a block comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249190582"
+        }
+      ],
+      "reviewed": "a54cf7382230716f391b5c62b1f340af119ecef5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3247972951"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Grant` now extends `SensitivePhraseOperation`, which makes any occurrence of the `PASSWORD` token inside a GRANT statement trigger `YYEOF` truncation in the `\"PASSWORD\"` rule (since `shouldSanitizeRemainderAfterSensitivePhrase()` becomes true). This causes incorrect sanitization for GRANTs on objects literally named `password` (e.g., `GRANT SELECT ON password TO admin` would be truncated to `... password ?`). Consider scoping sensitive-phrase truncation for GRANT to `IDENTIFIED BY` only (or otherwise special-casing the PASSWORD rule so identifier uses of `password` in GRANT statements don’t truncate the remainder).\n",
+      "created": "2026-05-15T15:28:33Z",
+      "hunk": "@@ -591,7 +625,7 @@ WHITESPACE           = [ \\t\\r\\n]+\n   }\n \n   /** GRANT operation - blocks other keywords from being parsed. */\n-  private class Grant extends Operation {}\n+  private class Grant extends SensitivePhraseOperation {}",
+      "id": "PRRT_kwDODJKVX86CZxow",
+      "opened": "2026-05-15T15:28:34Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T15:48:42Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5bb06570243f065244ad3d89b99ba78498fb1460.\n\nGRANT summary sanitization now redacts IDENTIFIED BY credentials without treating an object named password as a password clause.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249351085"
+        }
+      ],
+      "reviewed": "43cb8c14cceda72c0fad5617e0fe3063d1fb9786",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249241904"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Including `\"GRANT\"` in the admin-keyword rule enables `sensitivePhraseSanitizationAllowed` for the entire statement whenever `GRANT` starts the SQL. This means an identifier named `password` later in the same GRANT (e.g., `GRANT SELECT ON password TO admin`) will match the `\"PASSWORD\"` token rule and incorrectly trigger remainder truncation (`... password ?`). Consider separating “allow IDENTIFIED BY truncation” from “allow PASSWORD truncation”, or otherwise ensuring GRANT only truncates on `IDENTIFIED BY` and not on the standalone `PASSWORD` token.",
+      "created": "2026-05-15T15:28:34Z",
+      "hunk": "@@ -430,18 +453,11 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"CONNECT\" {\n-          appendCurrentFragment();\n-          // sanitize SAP HANA CONNECT statement\n-          // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/20d3b9ad751910148cdccc8205563a87.html?locale=en-US\n-          // we check that operation is not set to avoid triggering sanitization when a field named\n-          // connect is used or CONNECT BY clause is used in a SELECT statement\n+  \"CONNECT\" | \"GRANT\" | \"VALIDATE\" | \"CHECK\" | \"EXPORT\" | \"IMPORT\" | \"RECOVER\" {\n           if (!insideComment && operation == NoOp.INSTANCE) {\n-            // CONNECT statement could contain an unquoted password. We are not going to try\n-            // figuring out whether that is the case or not, just sanitize the whole statement.\n-            builder.append(\" ?\");\n-            return YYEOF;\n+            sensitivePhraseSanitizationAllowed = true;\n           }\n+          appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }",
+      "id": "PRRT_kwDODJKVX86CZxpW",
+      "opened": "2026-05-15T15:28:34Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T15:48:46Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e7f4c5215134e27d1f39f81a63a930f145baccbb.\n\nThe plain sanitizer now enables GRANT redaction only for IDENTIFIED BY, so PASSWORD can remain an identifier.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249351454"
+        }
+      ],
+      "reviewed": "43cb8c14cceda72c0fad5617e0fe3063d1fb9786",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249241950"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`PASSWORD` is always treated as the start of a sensitive clause for DDL/admin operations (via `shouldSanitizeRemainderAfterPassword()`), even when it appears in the position where an identifier is expected. For example, `CREATE USER password PASSWORD secret` or `CREATE DATABASE password ...` will hit this rule on the object name `password` and truncate early (`... password ?`) before reaching the real password clause. Consider detecting when `PASSWORD` is being used as the first identifier after a DDL operation target (or otherwise when the current token is being consumed as the captured identifier) and skipping the remainder-redaction in that case, so later `PASSWORD` clauses can still be redacted correctly.\n",
+      "created": "2026-05-15T16:34:54Z",
+      "hunk": "@@ -492,14 +523,20 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"USER\" {\n+  \"PASSWORD\" {\n+          if (!insideComment && !extractionDone) {\n+            extractionDone = operation.handleIdentifier();\n+          }\n+          appendCurrentFragment();\n+          if (!insideComment && shouldSanitizeRemainderAfterPassword()) {",
+      "id": "PRRT_kwDODJKVX86CayV_",
+      "opened": "2026-05-15T16:34:55Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T17:13:40Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3595c953c054208e5b771b5c3afef0cc38f442e2.\n\nThe plain sanitizer now keeps scanning when PASSWORD is consumed as the DDL identifier, so a later real PASSWORD clause is still redacted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249786397"
+        }
+      ],
+      "reviewed": "7f244ae36c6accba48c3afb810cd72d228dbf718",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249602456"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `PASSWORD` keyword is redacted via `shouldSanitizeRemainderAfterPassword()` immediately after calling `operation.handleIdentifier()`. If the identifier being captured is literally `password` (e.g., `CREATE USER password PASSWORD ...` / `CREATE DATABASE password ...`), this rule will treat the object name as a sensitive clause and stop scanning early, producing incorrect sanitized SQL and an incomplete summary. Consider special-casing `PASSWORD` when it occurs in the “first identifier after DDL target” position so it can be captured as an identifier without triggering remainder redaction; only subsequent `PASSWORD` occurrences (actual clauses) should truncate.\n",
+      "created": "2026-05-15T16:34:54Z",
+      "hunk": "@@ -1013,14 +1051,21 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"USER\" {\n+  \"PASSWORD\" {\n+          if (!insideComment) {\n+            cancelPendingSubqueryIfNeeded();\n+            operation.handleIdentifier();\n+          }\n+          appendCurrentFragment();\n+          if (!insideComment && shouldSanitizeRemainderAfterPassword()) {",
+      "id": "PRRT_kwDODJKVX86CayWh",
+      "opened": "2026-05-15T16:34:55Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T17:13:45Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/72c9f2d18396939117847be0364284e7b99c729d.\n\nThe summary sanitizer now detects when PASSWORD is being captured as the DDL identifier and only redacts subsequent password clauses.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249786848"
+        }
+      ],
+      "reviewed": "7f244ae36c6accba48c3afb810cd72d228dbf718",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249602499"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There are good regression cases for objects/columns named `password`, but there’s no coverage for identifiers that are exactly the reserved word `PASSWORD` in sensitive statements (e.g., `CREATE USER password PASSWORD Password1` or `CREATE DATABASE password ... PASSWORD Password1`). These inputs currently risk being misparsed because `password` will match the `PASSWORD` token rule instead of `{IDENTIFIER}`. Adding an explicit test case here would prevent early-truncation regressions.",
+      "created": "2026-05-15T16:34:55Z",
+      "hunk": "@@ -77,20 +77,100 @@ void sanitizeSensitive(String original, String expected, String expectedQuerySum\n     }\n   }\n \n+  @Test\n+  void sanitizeGrantObjectNamedPassword() {\n+    SqlQuery result =\n+        ANALYZER.analyze(\"GRANT SELECT ON password TO admin\", DOUBLE_QUOTES_ARE_STRING_LITERALS);\n+\n+    assertThat(result.getQueryText()).isEqualTo(\"GRANT SELECT ON password TO admin\");\n+  }\n+\n+  @Test\n+  void sanitizeGrantObjectNamedPasswordWithSummary() {\n+    SqlQuery result =\n+        ANALYZER.analyzeWithSummary(\n+            \"GRANT SELECT ON password TO admin\", DOUBLE_QUOTES_ARE_STRING_LITERALS);\n+\n+    assertThat(result.getQueryText()).isEqualTo(\"GRANT SELECT ON password TO admin\");\n+    assertThat(result.getQuerySummary()).isEqualTo(\"GRANT\");\n+  }\n+\n   private static Stream<Arguments> sensitiveArgs() {\n     return Stream.of(\n-        // SAP HANA CONNECT and CREATE USER statements can contain unquoted password\n+        // SAP HANA CREATE USER statements can contain unquoted password\n         // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/20d3b9ad751910148cdccc8205563a87.html?locale=en-US\n-        Arguments.of(\"CONNECT user PASSWORD Password1\", \"CONNECT ?\", null),\n-        Arguments.of(\"CREATE USER new_user PASSWORD Password1\", \"CREATE USER ?\", \"CREATE\"),\n-        Arguments.of(\"ALTER USER user PASSWORD Password1\", \"ALTER USER ?\", \"ALTER\"),\n+        Arguments.of(\n+            \"CREATE USER new_user PASSWORD Password1\",\n+            \"CREATE USER new_user PASSWORD ?\",\n+            \"CREATE USER new_user\"),\n+        Arguments.of(\n+            \"ALTER USER user PASSWORD Password1\", \"ALTER USER user PASSWORD ?\", \"ALTER USER user\"),\n+        // Other SAP HANA administrative statements can contain unquoted or double-quoted passwords",
+      "id": "PRRT_kwDODJKVX86CayW7",
+      "opened": "2026-05-15T16:34:55Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+      "replies": [
+        {
+          "at": "2026-05-15T17:13:50Z",
+          "body": "Covered by https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3595c953c054208e5b771b5c3afef0cc38f442e2 and https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/72c9f2d18396939117847be0364284e7b99c729d.\n\nThe tests now cover CREATE USER password PASSWORD Password1 in both plain and summary sanitizer modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249787332"
+        }
+      ],
+      "reviewed": "7f244ae36c6accba48c3afb810cd72d228dbf718",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249602529"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Security] Same multi-statement issue as the other admin-keyword rule: gating `identifiedBySanitizationEnabled` on `operation == NoOp.INSTANCE` means a `GRANT ... IDENTIFIED BY ...` in a later statement (after an initial recognized statement that set `operation`) won’t redact credentials. This should be keyed off “statement start” (reset on `;`) rather than whether operation extraction has already happened.\n\nThis issue also appears on line 470 of the same file.",
+      "created": "2026-05-15T17:29:53Z",
+      "hunk": "@@ -430,18 +460,19 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n-  \"CONNECT\" {\n+  \"GRANT\" {\n+          if (!insideComment && operation == NoOp.INSTANCE) {\n+            identifiedBySanitizationEnabled = true;\n+          }",
+      "id": "PRRT_kwDODJKVX86Cbgbk",
+      "opened": "2026-05-15T17:29:53Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T17:54:47Z",
+          "body": "Pushed https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754/commits/bc0cb96fb575193e0099baa4ac58ce5f6a721ab4. The scanner now correctly tracks statement starts and resets after semicolons, ensuring that subsequent  clauses are properly redacted even in multi-statement queries.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249977244"
+        }
+      ],
+      "reviewed": "72c9f2d18396939117847be0364284e7b99c729d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249859841"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`shouldSanitizeRemainderAfterIdentifiedBy()` currently falls back to `operation.shouldSanitizeRemainderAfterPassword()`, which makes IDENTIFIED BY sanitization implicitly tied to the PASSWORD behavior. This looks like a copy/paste oversight and prevents operation-specific IDENTIFIED BY behavior (the summary sanitizer already has a dedicated `shouldSanitizeRemainderAfterIdentifiedBy()` hook, e.g., for GRANT). Consider adding `Operation.shouldSanitizeRemainderAfterIdentifiedBy()` in this lexer too and delegating to it here to keep the two sanitizers consistent and easier to evolve safely.",
+      "created": "2026-05-15T17:59:33Z",
+      "hunk": "@@ -120,13 +120,32 @@ WHITESPACE           = [ \\t\\r\\n]+\n   private Operation operation = NoOp.INSTANCE;\n   private boolean extractionDone = false;\n   private boolean doubleQuotesAreIdentifiers;\n+  private boolean statementStart = true;\n+  private boolean passwordSanitizationEnabled = false;\n+  private boolean identifiedBySanitizationEnabled = false;\n \n   private void setOperation(Operation operation) {\n     if (this.operation == NoOp.INSTANCE) {\n       this.operation = operation;\n     }\n   }\n \n+  private void markStatementStarted() {\n+    statementStart = false;\n+  }\n+\n+  private boolean shouldSanitizeRemainderAfterPassword() {\n+    return !insideComment\n+      && (passwordSanitizationEnabled\n+        || operation.shouldSanitizeRemainderAfterPassword());\n+  }\n+\n+  private boolean shouldSanitizeRemainderAfterIdentifiedBy() {\n+    return !insideComment\n+      && (identifiedBySanitizationEnabled\n+        || operation.shouldSanitizeRemainderAfterPassword());\n+  }",
+      "id": "PRRT_kwDODJKVX86Cb5NL",
+      "opened": "2026-05-15T17:59:33Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+      "replies": [
+        {
+          "at": "2026-05-15T18:13:23Z",
+          "body": "The plain sanitizer now has a separate `IDENTIFIED BY` operation hook instead of delegating to `PASSWORD` behavior. Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754/commits/9974bec1dfe43d63852634d94ed61e1ba1bff9ab",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3250082561"
+        }
+      ],
+      "reviewed": "bc0cb96fb575193e0099baa4ac58ce5f6a721ab4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18754#discussion_r3249998656"
+    }
+  ]
+}

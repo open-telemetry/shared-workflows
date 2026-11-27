@@ -1,0 +1,67 @@
+{
+  "head": "827dff54f817777d4465ad7d1d62c9206b6ac245",
+  "merge": "c41a6f046a64e1239de018b2d94f83da8c16eebe",
+  "merged": "2026-11-02T17:56:23Z",
+  "missing_roots": 0,
+  "number": 362,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These cases check HTTP 200 and byte-for-byte determinism, but not the response fields: either handler could return `{}` and still pass. Consider adding a focused payload test for the numerical rating scale, matching evaluator identities, and the evaluation value, label, and explanation. Checking that the returned value/label pair belongs to the advertised scale would also protect the relationship between the two responses.",
+      "created": "2026-10-22T16:37:08Z",
+      "hunk": "@@ -198,6 +198,13 @@\n         \"/api/embed\",\n         {\"model\": \"nomic-embed-text\", \"input\": [\"hi\", \"there\"]},\n     ),\n+    (\"bedrock-agentcore-get-evaluator\", \"get\", \"/evaluators/eval-mock-001\", None),\n+    (\n+        \"bedrock-agentcore-evaluate\",\n+        \"post\",\n+        \"/evaluations/evaluate/eval-mock-001\",\n+        {\"evaluationInput\": {\"sessionSpans\": []}},\n+    ),\n ]\n ",
+      "id": "PRRT_kwDOTuzK5c6vSOS6",
+      "opened": "2026-10-22T16:37:08Z",
+      "path": "tools/gen-ai/mock-server/tests/test_mock_server.py",
+      "replies": [],
+      "reviewed": "fc5b3eb7cf374aacff48b55b3ce0d77ab91a4e8d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/362#discussion_r4350957687"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Nit: could you update the module docstring on line 1 to mention evaluation endpoints too? It currently describes this module as \"Memory-compatible endpoints\", but it also handles GetEvaluator and Evaluate.",
+      "created": "2026-11-02T03:31:11Z",
+      "hunk": "@@ -144,3 +144,68 @@ def delete_memory_record(memory_id, record_id):\n         return _json({\"message\": f\"Memory record {record_id} not found\"}, status=404)\n     _RECORDS[memory_id] = [r for r in store if r[\"memoryRecordId\"] != record_id]\n     return _json({\"memoryRecordId\": record_id})\n+\n+\n+# Evaluations -----------------------------------------------------------------",
+      "id": "PRRT_kwDOTuzK5c6yhm_p",
+      "opened": "2026-11-02T03:32:05Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/bedrock_agentcore.py",
+      "replies": [
+        {
+          "at": "2026-11-02T17:26:56Z",
+          "body": "Done in 827dff5.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/362#discussion_r4445538740"
+        }
+      ],
+      "reviewed": "cc5229b661fbd4accf6b6a4096cd8fdd89c13bad",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/362#discussion_r4438684783"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could this use at least one span instead of an empty list? The real API requires sessionSpans to contain at least one item, so boto3 rejects this request before sending it. The mock accepts it, but a nonempty list would keep this determinism test representative of a valid request.",
+      "created": "2026-11-02T03:31:11Z",
+      "hunk": "@@ -198,6 +198,13 @@\n         \"/api/embed\",\n         {\"model\": \"nomic-embed-text\", \"input\": [\"hi\", \"there\"]},\n     ),\n+    (\"bedrock-agentcore-get-evaluator\", \"get\", \"/evaluators/eval-mock-0123456789\", None),\n+    (\n+        \"bedrock-agentcore-evaluate\",\n+        \"post\",\n+        \"/evaluations/evaluate/eval-mock-0123456789\",\n+        {\"evaluationInput\": {\"sessionSpans\": []}},",
+      "id": "PRRT_kwDOTuzK5c6yhm_r",
+      "opened": "2026-11-02T03:32:05Z",
+      "path": "tools/gen-ai/mock-server/tests/test_mock_server.py",
+      "replies": [
+        {
+          "at": "2026-11-02T17:26:58Z",
+          "body": "Done in 827dff5.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/362#discussion_r4445539132"
+        }
+      ],
+      "reviewed": "cc5229b661fbd4accf6b6a4096cd8fdd89c13bad",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/362#discussion_r4438684787"
+    }
+  ]
+}

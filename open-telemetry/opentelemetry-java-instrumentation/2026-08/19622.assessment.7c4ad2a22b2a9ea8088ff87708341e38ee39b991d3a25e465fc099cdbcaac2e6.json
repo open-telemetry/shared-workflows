@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "170a77bf5c6f2f1f447f2a3020c3191f5b9cfb820d26c51d4e909ffb5df49759",
+  "input_digest": "7c4ad2a22b2a9ea8088ff87708341e38ee39b991d3a25e465fc099cdbcaac2e6",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a35aee2f7ffe501435658f5f3efd8879c937fd20/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/29fb9f033bfe82ce95b1680ad7cc740324a0a168/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bf7a473adce92d51ae40d1c894964846e01cbc5f"
+      ],
+      "id": "PRRT_kwDODJKVX86Zdmbi",
+      "kind": "test coverage gap",
+      "regressed": true,
+      "status": "unaddressed"
+    }
+  ]
+}

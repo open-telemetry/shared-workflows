@@ -1,0 +1,25 @@
+{
+  "head": "eecd7348135ca2d6ab3367ef05bd814c47f354d4",
+  "merge": "986c051deb8accb1e528eeef60698f99bc86bb03",
+  "merged": "2026-03-27T07:51:27Z",
+  "missing_roots": 0,
+  "number": 17094,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "already aligns with declarative configuration",
+      "created": "2026-03-27T00:28:49Z",
+      "hunk": "@@ -71,7 +71,7 @@ public Object postProcessAfterInitialization(Object bean, String beanName) {\n                   config.get(\"transaction/development\").getBoolean(\"enabled\", false))\n               .setDataSourceInstrumenterEnabled(\n                   config.get(\"datasource/development\").getBoolean(\"enabled\", false));\n-      Experimental.setEnableSqlCommenter(\n+      Experimental.setSqlCommenterEnabled(\n           builder, config.get(\"sqlcommenter/development\").getBoolean(\"enabled\", false));",
+      "id": "PRRT_kwDODJKVX853K0PS",
+      "opened": "2026-03-27T00:28:49Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/jdbc/DataSourcePostProcessor.java",
+      "replies": [],
+      "reviewed": "eecd7348135ca2d6ab3367ef05bd814c47f354d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17094#discussion_r2998383520"
+    }
+  ]
+}

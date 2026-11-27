@@ -1,0 +1,40 @@
+{
+  "head": "a006c77d775d0a816892c4283b63f8362422975d",
+  "merge": "ae9613fc3400efd584447d529f0ba6c27f216893",
+  "merged": "2026-08-30T17:59:12Z",
+  "missing_roots": 0,
+  "number": 125,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This calls the text-completion API with only the user prompt, so the workflow request has no system instruction. That violates the scenario contract in `scenarios/gen-ai/README.md:69` and makes this workflow incomparable with the LangChain and Haystack workflow scenarios, which both send explicit system and user chat turns. Use LlamaIndex's chat-message API for those two turns, then regenerate `openinference/data.json`.",
+      "created": "2026-08-28T23:59:55Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a LlamaIndex workflow, with no agent around it.\n+\n+Shared by every implementation under ``llama-index/``, which is what makes\n+their results comparable. Nothing here turns instrumentation on, and nothing\n+here may: naming one would defeat the sharing.\n+\n+One step passing a prompt to a model is the smallest thing LlamaIndex calls a\n+workflow, and that is what the conventions call a workflow too. Kept free of\n+tools and agents so the workflow span stands on its own.\n+\"\"\"\n+\n+import asyncio\n+\n+from llama_index.core.workflow import StartEvent, StopEvent, Workflow, step\n+from llama_index.llms.openai import OpenAI\n+\n+\n+class AnswerWorkflow(Workflow):\n+    @step\n+    async def answer(self, event: StartEvent) -> StopEvent:\n+        llm = OpenAI(model=\"gpt-4o-mini\", temperature=0.5, max_tokens=100)\n+        response = await llm.acomplete(event.question)",
+      "id": "PRRT_kwDOTuzK5c6dVV8C",
+      "opened": "2026-08-28T23:59:55Z",
+      "path": "scenarios/gen-ai/python/llama-index/scenarios/workflow.py",
+      "replies": [],
+      "reviewed": "169c57100438ba9548330d769aefa72716becc4a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/125#discussion_r3884789622"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n| `llama-index` | workflow, invoke_agent, automatic_tool_calling | `native`, `openinference`<br>no `openllmetry`:  does not record anything for modern versions |\n```",
+      "created": "2026-08-29T01:28:25Z",
+      "hunk": "@@ -120,6 +120,7 @@ classes than the row, the row says so.\n | `haystack` | workflow, invoke_agent, automatic_tool_calling | `native`, `openinference`<br>no `openllmetry`: does not support Haystack 3 |\n | `langchain` | workflow, invoke_agent, automatic_tool_calling | `opentelemetry-langchain`, `openinference`, `openllmetry` |\n | `litellm` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `native`, `openinference`, `openllmetry` |\n+| `llama-index` | workflow, invoke_agent, automatic_tool_calling | `native`, `openinference`<br>no `openllmetry`: it instruments the LlamaIndex dispatcher but records nothing on llama-index-core 0.14 |",
+      "id": "PRRT_kwDOTuzK5c6dV_mk",
+      "opened": "2026-08-29T01:28:25Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "39c8a2fcd31269494a77f09eddb4e0eced7cb0ac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/125#discussion_r3885048800"
+    }
+  ]
+}
