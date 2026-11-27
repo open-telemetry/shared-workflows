@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() { echo "Sandbox check failed: $1" >&2; exit 1; }
+
+checkout=$1
+inputs=$2
+host_config=$3
+expected_head=$4
+target=$5
+expected_target=$6
+shift 6
+test ! -S /var/run/docker.sock || fail 'Docker socket is visible'
+test -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}${ACTIONS_RUNTIME_TOKEN:-}${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ||
+  fail 'Actions credential is visible'
+test "${COPILOT_GITHUB_TOKEN:-}" = ghu_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ||
+  fail 'Copilot proxy token not isolated'
+test ! -e "$host_config" || fail 'Host configuration is visible'
+test -w "$checkout" && test "$(git -C "$checkout" rev-parse HEAD)" = "$expected_head" ||
+  fail 'Expected PR checkout is not available'
+test -d "$target" && test ! -w "$target" && test "$(git -C "$target" rev-parse HEAD)" = "$expected_target" ||
+  fail 'Expected read-only target branch checkout is not available'
+test ! -w "$inputs" && test -r "$inputs/prompt.txt" || fail 'Review inputs are not read-only'
+echo '[review] Verified sandbox checkout and credential isolation' >&2
+
+# Start Copilot outside the PR checkout so it does not load PR-supplied configuration.
+exec "$@" -C "$inputs" -p "$(cat "$inputs/prompt.txt")
+
+PR checkout: $checkout
+Read-only target branch checkout: $target"

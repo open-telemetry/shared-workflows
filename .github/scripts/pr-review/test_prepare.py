@@ -1,0 +1,231 @@
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import common
+import prepare
+
+
+class ReviewBundleTest(unittest.TestCase):
+    def test_right_side_paths_handle_git_quoting_and_header_delimiters(self):
+        for header, path in (
+            (r'"b/caf\303\251.txt"', "caf\u00e9.txt"),
+            (r'"b/with\ttab\"quote.txt"' + "\t", 'with\ttab"quote.txt'),
+            ("b/with space.txt\t", "with space.txt"),
+        ):
+            with self.subTest(header=header):
+                scope = prepare.parse_diff(
+                    f"diff --git a/file b/file\n--- /dev/null\n+++ {header}\n@@ -0,0 +1 @@\n+text\n"
+                )
+                self.assertEqual(scope, {path: {"changed_lines": [1], "hunks": [(1, 1)]}})
+
+    def test_added_line_starting_with_two_pluses_is_not_a_file_header(self):
+        scope = prepare.parse_diff(
+            "diff --git a/example.txt b/example.txt\n"
+            "--- a/example.txt\n+++ b/example.txt\n@@ -0,0 +1,2 @@\n"
+            "+++ text\n+more text\n"
+        )
+        self.assertEqual(list(scope), ["example.txt"])
+        self.assertEqual(scope["example.txt"]["changed_lines"], [1, 2])
+
+    def test_line_separators_in_diff_content_do_not_move_the_anchor(self):
+        scope = prepare.parse_diff(
+            "diff --git a/example.txt b/example.txt\n+++ b/example.txt\n@@ -1 +1,2 @@\n"
+            " context\u2028 continuation\f still the first line\n+changed\n"
+        )
+        self.assertEqual(scope["example.txt"]["changed_lines"], [2])
+
+    def test_suggestion_preserves_separators_and_allows_deletion(self):
+        blob = mock.Mock(returncode=0, stdout="first\u2028continuation\ntarget\n")
+        with mock.patch.object(prepare, "run", return_value=blob):
+            self.assertFalse(prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, "target"))
+            self.assertTrue(prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, ""))
+            replacement = "\u2028".join(["segment"] * 15)
+            self.assertTrue(prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, replacement))
+            self.assertFalse(
+                prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, "\n".join(["line"] * 15))
+            )
+
+    def test_blank_line_suggestion_is_not_a_deletion(self):
+        blob = mock.Mock(returncode=0, stdout="\n")
+        with mock.patch.object(prepare, "run", return_value=blob):
+            self.assertTrue(prepare.small_suggestion(Path("source"), "head", "example.txt", 1, 1, ""))
+            self.assertFalse(prepare.small_suggestion(Path("source"), "head", "example.txt", 1, 1, "\n"))
+
+    def test_suggestion_renders_deletion_and_blank_replacement_differently(self):
+        blob = mock.Mock(returncode=0, stdout="old\n")
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        with mock.patch.object(prepare, "run", return_value=blob):
+            for suggestion, expected in (
+                ("", "**Finding:** Remove this text.\n\n**Why:** Nothing reads it.\n\n```suggestion\n```"),
+                ("\n", "**Finding:** Remove this text.\n\n**Why:** Nothing reads it.\n\n```suggestion\n\n```"),
+            ):
+                with self.subTest(suggestion=suggestion):
+                    result = prepare.prepare_review({
+                        "body": "Review summary",
+                        "comments": [{
+                            "kind": "review", "path": "example.txt", "line": 1,
+                            "finding": "Remove this text.", "why": "Nothing reads it.", "suggestion": suggestion,
+                        }],
+                    }, Path("source"), scope, metadata)
+                    self.assertEqual(result["review"]["comments"][0]["body"], expected)
+
+    def test_questions_are_labeled_and_cannot_include_a_patch(self):
+        question = {
+            "kind": "question", "path": "example.txt", "line": 2,
+            "finding": "Can this endpoint receive requests from clients older than v2?",
+            "why": "The handler drops the v1 fallback.",
+        }
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [2], "hunks": [(1, 2)]}}
+        findings = {"body": "One question about supported clients.", "comments": [question]}
+
+        result = prepare.prepare_review(findings, Path("source"), scope, metadata)
+        self.assertEqual(result["review"]["comments"], [{
+            "path": "example.txt", "line": 2, "side": "RIGHT",
+            "body": "**Question:** Can this endpoint receive requests from clients older than v2?\n\n"
+            "**Why:** The handler drops the v1 fallback.",
+        }])
+
+        with self.assertRaisesRegex(ValueError, "Review questions must not include a suggestion"):
+            prepare.prepare_review(
+                {**findings, "comments": [{**question, "suggestion": "replacement"}]}, Path("source"), scope, metadata,
+            )
+
+    def test_multiline_evidence_starts_on_its_own_line(self):
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        result = prepare.prepare_review({
+            "body": "Review summary",
+            "comments": [{
+                "kind": "review", "path": "example.txt", "line": 1,
+                "finding": "Retries never finish.", "why": "- The counter resets.\n- Nothing saves progress.",
+            }],
+        }, Path("source"), scope, metadata)
+        self.assertEqual(
+            result["review"]["comments"][0]["body"],
+            "**Finding:** Retries never finish.\n\n**Why:**\n\n- The counter resets.\n- Nothing saves progress.",
+        )
+
+    def test_comments_require_a_finding_and_evidence(self):
+        comment = {"kind": "review", "path": "example.txt", "line": 1, "finding": "A finding", "why": "Evidence"}
+        for kind, missing in (
+            ("review", "finding"), ("review", "why"),
+            ("question", "finding"), ("question", "why"),
+            ("simplification", "finding"),
+        ):
+            with self.subTest(kind=kind, missing=missing), self.assertRaisesRegex(ValueError, "Invalid final review comment"):
+                prepare.validate_findings({
+                    "body": "Review summary",
+                    "comments": [{key: value for key, value in {**comment, "kind": kind}.items() if key != missing}],
+                })
+
+    def test_simplifications_render_with_optional_evidence_and_suggestions(self):
+        comment = {
+            "kind": "simplification", "path": "example.txt", "line": 1,
+            "finding": "Remove the check; the helper already accepts empty input.",
+            "suggestion": "helper(value)",
+        }
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        blob = mock.Mock(returncode=0, stdout="helper(value) if value else ''\n")
+        for evidence, explanation in (
+            ({}, ""),
+            ({"why": "The empty-input case returns an empty string."},
+             "\n\n**Why:** The empty-input case returns an empty string."),
+        ):
+            with self.subTest(evidence=evidence), mock.patch.object(prepare, "run", return_value=blob):
+                result = prepare.prepare_review({
+                    "body": "Review summary", "comments": [{**comment, **evidence}],
+                }, Path("source"), scope, metadata)
+                self.assertEqual(
+                    result["review"]["comments"][0]["body"],
+                    "**Simplification:** Remove the check; the helper already accepts empty input."
+                    f"{explanation}\n\n```suggestion\nhelper(value)\n```",
+                )
+
+    def test_optional_simplification_evidence_must_be_valid_when_provided(self):
+        for why in (None, 42, "", " ", "```suggestion\nreplacement\n```"):
+            with self.subTest(why=why), self.assertRaisesRegex(ValueError, "Invalid final review comment"):
+                prepare.validate_findings({
+                    "body": "Review summary",
+                    "comments": [{
+                        "kind": "simplification", "path": "example.txt", "line": 1,
+                        "finding": "Remove the redundant check.", "why": why,
+                    }],
+                })
+
+    def test_suggestions_preserve_trailing_blank_lines(self):
+        blob = mock.Mock(returncode=0, stdout="old\n")
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        with mock.patch.object(prepare, "run", return_value=blob):
+            for text in ("new", "old"):
+                with self.subTest(text=text):
+                    result = prepare.prepare_review({
+                        "body": "Review summary",
+                        "comments": [{
+                            "kind": "review", "path": "example.txt", "line": 1,
+                            "finding": "Keep the blank line.", "why": "The file ends with one.", "suggestion": f"{text}\n\n",
+                        }],
+                    }, Path("source"), scope, metadata)
+                    self.assertEqual(
+                        result["review"]["comments"][0]["body"],
+                        f"**Finding:** Keep the blank line.\n\n**Why:** The file ends with one.\n\n"
+                        f"```suggestion\n{text}\n\n```",
+                    )
+
+    def test_metadata_uses_explicit_target_and_checks_resolved_url(self):
+        metadata = {"number": 123, "html_url": "https://github.com/org/Repo/pull/123"}
+        with mock.patch.object(common, "gh_json", return_value=metadata) as api:
+            self.assertEqual(common.pr_metadata("org/repo", 123), metadata)
+            api.assert_called_once_with(["api", "repos/org/repo/pulls/123"])
+            api.return_value = {**metadata, "html_url": "https://github.com/other/repo/pull/123"}
+            with self.assertRaisesRegex(RuntimeError, "different PR target"):
+                common.pr_metadata("org/repo", 123)
+
+    def test_bundle_writes_only_the_diff_from_the_target_repository(self):
+        metadata = {
+            "state": "open", "html_url": "https://github.com/org/repo/pull/123",
+            "base": {"repo": {"private": False}}, "head": {"sha": "head"},
+        }
+        diff = (
+            b"diff --git a/example.txt b/example.txt\n+++ b/example.txt\n"
+            b"@@ -0,0 +1,2 @@\n+text\r+on the same line\n+next line\r\n"
+        )
+        run = common.run
+
+        def emit_diff(_cmd, **kwargs):
+            return run([sys.executable, "-c", f"import sys; sys.stdout.buffer.write({diff!r})"], **kwargs)
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(prepare, "pr_metadata", return_value=metadata),
+            mock.patch.object(common, "run", side_effect=emit_diff) as gh_run,
+        ):
+            bundle = Path(directory)
+            result, scope = prepare.build_bundle("org/repo", 123, bundle)
+            self.assertEqual(result, metadata)
+            self.assertEqual(scope, {"example.txt": {"changed_lines": [1, 2], "hunks": [(1, 2)]}})
+            self.assertEqual({path.name for path in bundle.iterdir()}, {"pr.diff"})
+            self.assertEqual((bundle / "pr.diff").read_bytes(), diff)
+            gh_run.assert_called_once_with(
+                ["gh", "api", "-H", "Accept: application/vnd.github.diff", "repos/org/repo/pulls/123"],
+            )
+
+    def test_bundle_rejects_private_targets_before_fetching_the_diff(self):
+        metadata = {"state": "open", "base": {"repo": {"private": True}}}
+        with (
+            mock.patch.object(prepare, "pr_metadata", return_value=metadata),
+            mock.patch.object(prepare, "gh") as gh,
+            self.assertRaisesRegex(RuntimeError, "only available for public repositories"),
+        ):
+            prepare.build_bundle("org/private", 123, Path("bundle"))
+        gh.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

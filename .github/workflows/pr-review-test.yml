@@ -1,0 +1,39 @@
+name: PR review tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/scripts/pr-review/**
+      - .github/workflows/pr-review-test.yml
+      - .github/workflows/pr-review.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/scripts/pr-review/**
+      - .github/workflows/pr-review-test.yml
+      - .github/workflows/pr-review.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run tests
+        working-directory: .github/scripts/pr-review
+        run: python3 -m unittest discover -p 'test_*.py'
+      - uses: github/gh-aw-firewall@d9272015d8523b4c9cf3b00ce26b507046cbf1a3 # v0.29.11
+        id: firewall
+        with:
+          version: v0.29.11
+      - name: Smoke test the review sandbox
+        timeout-minutes: 5
+        working-directory: .github/scripts/pr-review
+        env:
+          AWF_IMAGE_TAG: ${{ steps.firewall.outputs.image-tag }}
+        run: python3 smoke_sandbox.py
