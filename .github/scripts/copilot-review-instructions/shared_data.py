@@ -18,7 +18,7 @@ from public_data import safe_payload
 
 SHARED_REMOTE = "https://github.com/open-telemetry/shared-workflows.git"
 DATA_REF = "refs/heads/data"
-SNAPSHOT_REF = "refs/heads/trask-copilot-review-backfill-data"
+SNAPSHOT_REF = "refs/heads/trask-copilot-review-rebuild-data"
 MANIFEST = "schema.json"
 COLLECTION_RETRIES = "collection-retries.json"
 FORMAT = {"format": 1}

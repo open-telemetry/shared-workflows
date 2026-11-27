@@ -18,8 +18,6 @@ from scorecard import COMMAND_ERRORS, REPOS, assess_cached, is_bot_pr_author, lo
 from shared_data import SHARED_REMOTE, SNAPSHOT_REF, RecordRejected, SharedData, check_record
 
 
-SEED_REMOTE = "https://github.com/trask/otel-pr-review-metrics.git"
-SEED_SHA = "a1e882d35cd3ef2a8c0dd9ec1a085b51363bf7c2"
 BUNDLE_REF = "refs/heads/copilot-review-instructions-snapshot"
 STAGING_REF = "refs/copilot-review-instructions/staged-data"
 ASSESSOR = "gpt-6.2-sol"
@@ -36,9 +34,10 @@ def remote_tip(remote=SHARED_REMOTE):
 
 
 def open_snapshot(archive, expected, git_root):
-    shared = SharedData(archive, REPOS, ref=SNAPSHOT_REF, snapshot=True, retrieval_git_root=git_root,
-                        remote=SHARED_REMOTE if expected else SEED_REMOTE)
-    shared.load(expected or SEED_SHA)
+    if not expected:
+        raise DataError("The staging rebuild checkpoint must be seeded before collection")
+    shared = SharedData(archive, REPOS, ref=SNAPSHOT_REF, snapshot=True, retrieval_git_root=git_root)
+    shared.load(expected)
     return shared
 
 
