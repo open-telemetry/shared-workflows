@@ -450,8 +450,11 @@ summary that is not attached to an inline review thread.
   If a whole thread exceeds the 96,000-byte prompt limit, the refresh reports a
   classification failure and leaves the last accepted routing intact.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
-  actionable top-level feedback item independently. 📌 means that one or more
-  of those items are waiting on the author.
+  item independently and only assigns it to the author when it identifies a
+  concrete next step for them in this PR, such as answering a question or fixing
+  a defect. Ambiguous comments, optional suggestions, and waits for someone
+  else's review or approval don't count as author action. 📌 means that one or
+  more items are waiting on the author.
 - Reviewer badges reflect GitHub's latest review state. A `CHANGES_REQUESTED`
   state affects only the reviewer's badge; it does not affect dashboard
   classification or routing. 🔴 remains until a later approval or dismissal

@@ -136,36 +136,32 @@ for an inline review thread. First-person statements in `body` are the reviewer
 speaking, never the PR author. `addressed_to` lists the logins and teams the
 comment opens by addressing, and is empty when it opens by addressing no one.
 
-Question: does this item leave something unresolved that `pr_author` must handle
-before this pull request can merge?
+Question: what specifically does `pr_author` still need to do on this pull
+request?
 
-  - author_action: anything the author would answer or act on, including
-    questions, requests, objections, remarks that reject the pull request's
-    premise or necessity without asking for anything, an answer to a question
-    the author asked, a concrete report that this pull request's tests still
-    fail or its proposed fix remains broken, and a statement that this pull
-    request is blocked on another pull request, release, or decision
-  - no_author_action: the item needs nothing from the PR author, such as pure
-    approval, thanks, a status summary, a preamble that only describes the
-    review it introduces, or a repository automation command (for example
-    "/workflow-approve", "/rerun", or "/easycla")
+  - author_action: you can name a concrete next step for the author from the
+    item itself, such as answering a specific question, making a requested
+    change, addressing a concrete objection, or fixing a defect in this change.
+  - no_author_action: no concrete author next step is evident. This includes
+    approval, thanks, informational notes, status updates, vague concerns,
+    and repository automation commands ("/workflow-approve", "/rerun", "/easycla").
+    When unsure, answer no_author_action. Do not invent a task to clarify an
+    ambiguous comment.
 
 Read the whole item before deciding. Approval is no_author_action however it is
 phrased ("LGTM", "I'm fine with the API changes", "looks good to me, feel free
-to merge"), and stays no_author_action when it carries a suggestion the reviewer
-explicitly leaves for later ("we can clean this up post submission", "an
-opportunity to refactor after a point fix release", "left one small
-maintainability comment").
+to merge"), unless it also asks the author to do something in this PR.
+Explicitly optional suggestions and work for a follow-up are no_author_action.
+A politely worded request for a specific change here can still be author_action
+("I think we should add a regression test for the empty response").
 
-A review preamble or summary is no_author_action. Inline comments submitted
-with a review are tracked separately as review_thread items, so the
-review_summary does not duplicate their action. This includes a summary that
-counts the comments, describes their severity, or names the topics they cover
-("a few nits below", "just one comment about naming", "left two requests to get
-checks passing"). The summary is still no_author_action even when the inline
-comments require author action. Classify a review_summary as author_action only
-when its body itself adds a distinct request, question, objection, or blocker
-beyond referring to the review's comments.
+Read a review_summary as standalone feedback. If its body describes a concrete
+author task or a defect in this PR, classify that content on its own merits.
+Do not assume the same feedback appears inline. A summary that only counts
+inline comments, describes their severity, or names their topics without
+stating a task or defect is no_author_action ("a few nits below", "just one
+comment about naming", "left two requests to get checks passing"). Inline
+comments are tracked separately as review_thread items.
 
 A preamble may also say where the review's comments came from, how much weight
 to give them, or that the author is free to disagree with them ("AI-generated
@@ -173,35 +169,39 @@ review", "lightly filtered AI-generated feedback, push back freely", "some nits
 below, take them or leave them"). An invitation to push back on those comments
 is not a request.
 
-A concrete report that tests still fail, CI still reproduces the defect, or the
-proposed fix remains broken is author_action even when phrased only as a
-statement, without polite request wording. This is unresolved defect evidence,
-not a status summary.
+A concrete report that this change still breaks a test or fails to fix the
+defect is author_action even without a request to fix it. A report that merely
+documents an unrelated or upstream problem is not an author task.
+
+A request for review or approval is reviewer work even without a named
+addressee ("Could someone have a look at this?", "We need one more approver").
+A merge hold pending another PR, a release, or someone else's decision is
+no_author_action unless the item also identifies an author step on this PR
+("rebase this PR after #123 merges"). A link to a fix or a report that another
+PR needs work does not assign that work to this author. Do not infer that they
+need to bring the fix here or get the other PR reopened or merged.
 
 Compare `addressed_to`, and every other login and team named in `body`, against
 `pr_author`. An item asking a different person or team to review, decide, or
 weigh in is no_author_action even when it describes a concern with this pull
-request.
+request. An agent or bot acting for the author, such as `@copilot` on a
+Copilot-authored pull request, counts as the author.
 
 When `addressed_to` names only people other than the author, the item is put to
 them, so a question or proposal it raises is theirs to answer rather than the
 author's, including one about this pull request's own design, scope, or approach
 ("@maintainer do you think the approach in #123 could be used here?",
 "@maintainer should we split this into two pull requests?"). That holds only
-when the item asks the author for nothing else: an item that also requests,
-suggests, or directs any change to this pull request is author_action however it
-opens. An agent or bot account acting for the author, such as `@copilot` on a
-Copilot-authored pull request, counts as the author.
+when the item gives the author no independent task. A separate concrete
+request for the author still counts, regardless of whom the item opens by
+addressing.
 
 Do not decide whether the author already responded. That is determined later
 from comment timestamps.
 
-When you cannot tell, answer author_action: ambiguity keeps the item with the
-author.
-
 Respond with a single JSON object and nothing else. Include exactly one result
 for every input discussion_id and copy each discussion_id exactly:
-{{"items": [{{"discussion_id": "input id", "verdict": "author_action" | "no_author_action", "reason": "short explanation grounded in this item"}}]}}
+{{"items": [{{"discussion_id": "input id", "verdict": "author_action" | "no_author_action", "reason": "name the concrete author next step, or explain why none is evident"}}]}}
 
 ---BEGIN REVIEWER FEEDBACK---
 {discussions}
