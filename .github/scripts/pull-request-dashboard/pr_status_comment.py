@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from collections.abc import Sequence
 from typing import Any
@@ -53,6 +54,16 @@ from utils import utc_now
 
 
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
+STATUS_COMMENT_REVISION_MARKER = "<!-- pull-request-dashboard-status-revision:"
+STATUS_COMMENT_HEADING = "## Pull request dashboard status"
+STATUS_COMMENT_BOOKKEEPING = re.compile(
+    rf"{re.escape(STATUS_MARKER)}\n"
+    rf"{re.escape(STATUS_COMMENT_REVISION_MARKER)}(?P<revision>[0-9]+) -->\n"
+    r"(?:<!-- [^\n]* -->\n)*"
+    rf"{re.escape(STATUS_COMMENT_HEADING)}\n\n"
+    r"\*\*[^\n]+\*\* \u00b7 refreshed "
+    r"(?P<refreshed_at>[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} UTC)\n"
+)
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
@@ -257,8 +268,12 @@ def is_terminal_pr(pr: dict[str, Any]) -> bool:
 def render_status_comment(
     pr: dict[str, Any],
     result: StoredDashboardResult | EvaluationFailure | None,
+    *,
+    revision: str | None = None,
+    refreshed_at: str | None = None,
 ) -> str:
-    last_updated = utc_now().strftime("%Y-%m-%d %H:%M UTC")
+    revision = revision or str(STATUS_COMMENT_REVISION)
+    refreshed_at = refreshed_at or utc_now().strftime("%Y-%m-%d %H:%M UTC")
     state = (pr.get("state") or "").lower()
     facts = (
         result.facts
@@ -398,10 +413,10 @@ def render_status_comment(
 
     lines = [
         STATUS_MARKER,
-        f"<!-- pull-request-dashboard-status-revision:{STATUS_COMMENT_REVISION} -->",
-        "## Pull request dashboard status",
+        f"{STATUS_COMMENT_REVISION_MARKER}{revision} -->",
+        STATUS_COMMENT_HEADING,
         "",
-        f"**{headline}** \u00b7 refreshed {last_updated}",
+        f"**{headline}** \u00b7 refreshed {refreshed_at}",
     ]
     optional_markers: list[str] = []
     episode_id = facts.author_nudge_episode_id or ""
@@ -490,25 +505,40 @@ def managed_status_comments(repo: str, pr_number: int) -> list[dict[str, Any]]:
 def upsert_status_comment(
     repo: str,
     pr_number: int,
-    body: str,
+    pr: dict[str, Any],
+    result: StoredDashboardResult | EvaluationFailure | None,
     *,
     create: bool = True,
     locked: bool = False,
     preserve_clearance: bool = False,
 ) -> None:
     comments = managed_status_comments(repo, pr_number)
+    clearance_comments = normalize_issue_comments(comments) if preserve_clearance else []
+
+    def render(**bookkeeping: str) -> str:
+        body = render_status_comment(pr, result, **bookkeeping)
+        if clearance_comments:
+            return preserve_released_handoff_markers(body, clearance_comments)
+        return body
+
     if comments:
         comment = comments[0]
-        if preserve_clearance:
-            body = preserve_released_handoff_markers(body, normalize_issue_comments(comments))
-        if locked and (comment.get("body") != body or len(comments) > 1):
+        existing_body = comment.get("body") or ""
+        bookkeeping = STATUS_COMMENT_BOOKKEEPING.match(existing_body)
+        # Render the whole comment with the published values so comparison
+        # includes the report URL, even when its quoted text is truncated.
+        body = render(**bookkeeping.groupdict()) if bookkeeping else render()
+        unchanged = existing_body == body
+        if locked and (not unchanged or len(comments) > 1):
             raise StatusCommentDeferred(
                 f"PR #{pr_number} is locked; deferring terminal status comment"
             )
         comment_id = comment["id"]
-        if comment.get("body") == body:
+        if unchanged:
             print(f"PR #{pr_number} status comment is unchanged", file=sys.stderr)
         else:
+            if bookkeeping:
+                body = render()
             print(f"updating PR #{pr_number} status comment {comment_id}", file=sys.stderr)
             run_gh([
                 "gh", "api", "--method", "PATCH",
@@ -532,6 +562,7 @@ def upsert_status_comment(
         return
 
     print(f"creating PR #{pr_number} status comment", file=sys.stderr)
+    body = render()
     run_gh([
         "gh", "api", "--method", "POST",
         f"repos/{repo}/issues/{pr_number}/comments",
@@ -558,7 +589,8 @@ def publish_pr_status(
     upsert_status_comment(
         repo,
         pr_number,
-        render_status_comment(pr, result),
+        pr,
+        result,
         create=not terminal,
         locked=terminal and bool(pr.get("locked")),
         preserve_clearance=True,
