@@ -391,7 +391,7 @@ class CollectionTests(unittest.TestCase):
     def test_capture_redacts_fixture_credentials_in_a_review_hunk(self):
         merged = "2026-10-02T00:00:00Z"
         opened = "2026-10-01T00:00:00Z"
-        hunk = '+    var url = "http://fixture:made-up@" + server.getHost();'
+        hunk = '+    var url = "hTtP://fixture:made-up@" + server.getHost();'
         comment = {
             "id": "root", "url": "https://example.test/review", "createdAt": opened,
             "publishedAt": opened, "replyTo": None, "author": None, "body": "Check the expected URL.",
@@ -403,7 +403,7 @@ class CollectionTests(unittest.TestCase):
         }
         repo = REPOS[0]
         pull = GitHub()._pull(repo, *repo.split("/"), node)
-        self.assertEqual(pull["threads"][0]["hunk"], '+    var url = "http://omitted:password@" + server.getHost();')
+        self.assertEqual(pull["threads"][0]["hunk"], '+    var url = "hTtP://omitted:password@" + server.getHost();')
         check_record("pull.json", SharedData.text_record(pull), pull)
 
     def test_merge_timing_uses_final_ready_event_before_merge_across_pages(self):
@@ -485,6 +485,7 @@ class AssessmentTests(unittest.TestCase):
     def test_publication_check_still_rejects_unredacted_or_ambiguous_values(self):
         values = (
             "https://fixture:made-up@example.test",
+            "HTTPS://fixture:made-up@example.test",
             redact_code_urls("https://fixture:made-up@extra@example.test"),
             redact_code_urls("Authorization: Bearer " + "A" * 40),
         )

@@ -7,9 +7,11 @@ PROBABLE_SECRET = re.compile(
     rb"(?:AKIA|ASIA)[A-Z0-9]{16}|xox[baprs]-[0-9A-Za-z-]{16,}|AIza[0-9A-Za-z_-]{35})\b"
     rb"|(?i:\bbearer )[A-Za-z0-9._~-]{32,}"
 )
-URL_AUTH = re.compile(rb"""https?://[^\s:/"\\@]+:([^\s/"\\@]+)@""")
+URL_AUTH = re.compile(rb"""https?://[^\s:/"\\@]+:([^\s/"\\@]+)@""", re.IGNORECASE)
 PLACEHOLDER = re.compile(rb"(?i)(?:pass(?:word)?|token|secret|xxx+|\$\{?[\w.-]+\}?|\*+)")
-CODE_URL_AUTH = re.compile(rb"""(https?://)([^\s:/?#"'<>\\@]+):([^\s/?#"'<>\\@]+)@(?![^\s/?#"'<>\\]*@)""")
+CODE_URL_AUTH = re.compile(
+    rb"""(https?://)([^\s:/?#"'<>\\@]+):([^\s/?#"'<>\\@]+)@(?![^\s/?#"'<>\\]*@)""", re.IGNORECASE
+)
 
 
 def redact_code_urls(text):
