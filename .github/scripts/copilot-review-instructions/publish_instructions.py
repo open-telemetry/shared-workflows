@@ -71,7 +71,7 @@ def publishing_plan(github, repo, base, *, pending=None):
     if managed is not None:
         return managed, managed["head"]["sha"]
     for closed in github.rest_pages(f"repos/{repo}/pulls", state="closed", base=base,
-                                    head=f"{BOT}:{BRANCH}", sort="updated", direction="desc"):
+                                    head=f"{BOT}:{BRANCH}", sort="created", direction="desc"):
         marker = OWNERSHIP.search(closed.get("body") or "")
         if marker and closed["user"]["login"].lower() == BOT:
             if not github.get(f"repos/{repo}/pulls/{closed['number']}")["merged"]:

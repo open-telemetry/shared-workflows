@@ -438,6 +438,22 @@ class InstructionPublishingTests(unittest.TestCase):
         with self.assertRaisesRegex(DataError, "manually changed bot PR"):
             publishing_plan(github, REPOS[0], "main")
 
+    def test_activity_on_an_older_merged_pr_does_not_change_the_last_publication(self):
+        older = {"number": 1, "user": {"login": BOT}, "body": pr_body("a" * 40),
+                 "created_at": "2026-10-01", "updated_at": "2026-10-03"}
+        newer = {"number": 2, "user": {"login": BOT}, "body": pr_body("b" * 40),
+                 "created_at": "2026-10-02", "updated_at": "2026-10-02"}
+        github = Mock()
+        github.get.return_value = {"merged": True}
+
+        def list_pulls(_path, *, state, sort="created", direction="desc", **_):
+            if state == "open":
+                return []
+            return sorted((older, newer), key=lambda pull: pull[f"{sort}_at"], reverse=direction == "desc")
+
+        github.rest_pages.side_effect = list_pulls
+        self.assertEqual(publishing_plan(github, REPOS[0], "main"), (None, "b" * 40))
+
 
 if __name__ == "__main__":
     unittest.main()
