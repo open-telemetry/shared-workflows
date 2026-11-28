@@ -102,6 +102,36 @@ class OwnedExecutionTest(unittest.TestCase):
             self.assertNotIn("checkout", [part for command in commands for part in command])
             self.assertNotEqual(code.script_dir, execution_code.SCRIPT_DIR)
 
+    def test_code_loading_uses_locked_uv_sync_for_refs_with_pyproject(self) -> None:
+        commands = []
+        ref = "c" * 40
+        with tempfile.TemporaryDirectory() as directory:
+            loader = execution_code.ExecutionCodeLoader(Path(directory), mock.Mock(spec=LeaseMonitor), {})
+
+            def run(command) -> None:
+                commands.append(command)
+                if command[1] == "archive":
+                    archive = Path(command[3].removeprefix("--output="))
+                    with tarfile.open(archive, "w") as output:
+                        for name in ("dashboard.py", "pyproject.toml", "uv.lock", "package.json"):
+                            data = b"pinned code"
+                            info = tarfile.TarInfo(f"{execution_code.CODE_PATH}/{name}")
+                            info.size = len(data)
+                            output.addfile(info, io.BytesIO(data))
+
+            with mock.patch.object(loader, "_run", side_effect=run):
+                code = loader.load(ref)
+            environment = code.script_dir / ".venv"
+            self.assertIn(["uv", "venv", str(environment)], commands)
+            self.assertIn(["uv", "sync", "--locked", "--project", str(code.script_dir)], commands)
+            expected_python = (
+                environment / "Scripts" / "python.exe" if sys.platform == "win32"
+                else environment / "bin" / "python"
+            )
+            self.assertEqual(code.python, str(expected_python))
+            self.assertNotIn("pip", [part for command in commands for part in command])
+            self.assertEqual(commands[-1], [code.python, "-m", "copilot", "download-runtime"])
+
     def test_failed_code_preparation_can_be_retried(self) -> None:
         ref = "b" * 40
         with tempfile.TemporaryDirectory() as directory:
