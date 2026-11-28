@@ -819,7 +819,7 @@ class StateTest(unittest.TestCase):
                     self.assertIsNone(load_dashboard_state_cache())
 
     def test_loads_previous_routing_snapshots(self) -> None:
-        for version in (27, 28):
+        for version in (27, 28, 29):
             with (
                 self.subTest(version=version),
                 tempfile.TemporaryDirectory() as temp_dir,
@@ -1423,7 +1423,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 29)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 30)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21, 23))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 24)

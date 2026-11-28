@@ -33,6 +33,7 @@ from dashboard_test_support import (
 )
 from discussion_lifecycle import resolve_discussions
 from github_cli import TransientGhError
+from pr_status_comment import render_status_comment
 from pull_request_source import normalize_pull_request_source
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
@@ -42,6 +43,7 @@ from pull_request_evaluation import (
     _is_maintenance_bot_author,
     evaluate_pull_request,
 )
+from state import decode_stored_result, encode_stored_result, stored_result
 
 
 def evaluation_config() -> PullRequestEvaluationConfig:
@@ -107,6 +109,77 @@ class PullRequestEvaluationContractTest(unittest.IsolatedAsyncioTestCase):
             config.required_approvals = 2  # type: ignore[misc]
         with self.assertRaises(FrozenInstanceError):
             source.previous_result = stored_dashboard_result()  # type: ignore[misc]
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_conflict_warning_survives_unknown_until_github_confirms_clearance(
+        self,
+        fetch_source,
+    ) -> None:
+        pr = pull_request_metadata(base_branch="feature")
+        previous = None
+        for mergeable, checks, expected_conflicts in (
+            ("CONFLICTING", (), "yes"),
+            ("UNKNOWN", (check_source(state="FAILURE", bucket="fail"),), "yes"),
+            ("UNKNOWN", (), "yes"),
+            ("MERGEABLE", (), "no"),
+        ):
+            with self.subTest(mergeable=mergeable, checks=checks):
+                fetch_source.return_value = pull_request_source(
+                    pull_request=replace(pr, mergeable=mergeable, merge_state_status=""),
+                    checks=checks,
+                )
+                result = await evaluate_pull_request(
+                    evaluation_config(),
+                    PullRequestEvaluationInput(7, previous),
+                    FakeClassificationOperation(),
+                )
+
+                assert isinstance(result, EvaluationSuccess)
+                previous = decode_stored_result(
+                    encode_stored_result(stored_result(result)),
+                )
+                self.assertEqual(expected_conflicts, previous.facts.conflicts)
+                body = render_status_comment({"state": "open"}, previous).lower()
+                if expected_conflicts == "yes":
+                    self.assertIn("merge conflicts", body)
+                else:
+                    self.assertNotIn("merge conflicts", body)
+                self.assertEqual(bool(checks), "required status check failures" in body)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_unknown_does_not_inherit_a_conflict_without_matching_refs(
+        self,
+        fetch_source,
+    ) -> None:
+        pr = pull_request_metadata(mergeable="UNKNOWN", merge_state_status="")
+        previous = dashboard_facts(
+            conflicts="yes",
+            head_sha=pr.head_sha,
+            conflict_base_branch=pr.base_branch,
+        )
+        for case, observed, prior in (
+            ("first observation", pr, None),
+            ("previously clear", pr, replace(previous, conflicts="no")),
+            ("new head", replace(pr, head_sha="different"), previous),
+            ("missing head", replace(pr, head_sha=""), replace(previous, head_sha="")),
+            ("retargeted", replace(pr, base_branch="other"), previous),
+            ("missing base", replace(pr, base_branch=""), previous),
+            ("legacy result", pr, replace(previous, conflict_base_branch="")),
+        ):
+            with self.subTest(case=case):
+                fetch_source.return_value = pull_request_source(pull_request=observed)
+                result = await evaluate_pull_request(
+                    evaluation_config(),
+                    PullRequestEvaluationInput(
+                        7,
+                        stored_dashboard_result(7, facts=prior) if prior is not None else None,
+                    ),
+                    FakeClassificationOperation(),
+                )
+
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual("unknown", result.facts.conflicts)
+                self.assertEqual("", result.facts.conflict_base_branch)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_success_uses_the_effective_copilot_author(
